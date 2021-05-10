@@ -31,7 +31,7 @@ public class ApiOneUseToken extends BaseEntity {
     @Column(name = "token_id", nullable = false)
     private long tokenId;
 
-    @Column(name = "token", unique=true, nullable = false, length = 4096)
+    @Column(name = "token", nullable = false, length = 4096)
     private String token;
 
     protected ApiOneUseToken() {
