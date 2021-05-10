@@ -1,15 +1,11 @@
-LTI 1.3
+TERRACOTTA
 ========
 
-IMS LTI 1.3 based starter (sample) application written using Java and Spring Boot
-
-The goal is to have a Java based web app which can serve as the basis (or starting point) for building a fully compliant
-LTI 1.3 tool.
-
+The Terracotta app description
 
 Build
 -----
-This will produce a lti13demo.jar file in the *target* directory
+This will produce a terracotta-X.X.jar file in the *target* directory
 
     mvn install 
 
