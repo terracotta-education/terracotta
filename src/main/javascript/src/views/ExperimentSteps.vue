@@ -1,14 +1,12 @@
 <template>
-	<v-container>
-		<v-row class="text-center">
-			<v-col cols="3">
-				<steps />
-			</v-col>
-			<v-col cols="9">
-				<router-view></router-view>
-			</v-col>
-		</v-row>
-	</v-container>
+	<main class="experiment-steps">
+		<aside class="experiment-steps__sidebar">
+			<steps />
+		</aside>
+		<article class="experiment-steps__body">
+			<router-view></router-view>
+		</article>
+	</main>
 </template>
 
 <script>
@@ -24,3 +22,13 @@
 		}
 	}
 </script>
+
+<style lang="scss" scoped>
+	.experiment-steps {
+		display: grid;
+		grid-template-columns: 268px 1fr;
+
+		&__sidebar {}
+		&__body {}
+	}
+</style>
