@@ -14,7 +14,7 @@ package edu.iu.terracotta.service.lti;
 
 import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.helper.ExceptionMessageGenerator;
-import edu.iu.terracotta.model.dto.ToolRegistrationDTO;
+import edu.iu.terracotta.model.lti.dto.ToolRegistrationDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
