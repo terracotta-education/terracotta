@@ -13,6 +13,7 @@
 package edu.iu.terracotta.service.app;
 
 import edu.iu.terracotta.exceptions.BadTokenException;
+import edu.iu.terracotta.model.oauth2.SecurityInfo;
 import edu.iu.terracotta.service.lti.LTIDataService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
@@ -37,7 +38,6 @@ import java.security.Key;
 import java.security.PublicKey;
 import java.util.Date;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * This manages all the data processing for the LTIRequest (and for LTI in general)
@@ -92,7 +92,7 @@ public class APIJWTService {
     /**
      * This JWT will contain the token request
      */
-    public String buildJwt(boolean oneUse, List<String> roles) throws GeneralSecurityException, IOException {
+    public String buildJwt(boolean oneUse, List<String> roles, Long contextId, Long platformDeploymentId, String userId ) throws GeneralSecurityException, IOException {
 
         int length = 3600;
         //We only allow 30 seconds (surely we can low that) for the one time token, because that one must be traded
@@ -105,13 +105,15 @@ public class APIJWTService {
         JwtBuilder builder = Jwts.builder()
                 .setHeaderParam("kid", TextConstants.DEFAULT_KID)
                 .setHeaderParam("typ", "JWT")
-                .setIssuer("ISSUER")
-                .setSubject("define subject") // The clientId
+                .setIssuer("TERRACOTTA")
+                .setSubject(userId) // The clientId
                 .setAudience(ltiDataService.getLocalUrl())  //We send here the authToken url.
                 .setExpiration(DateUtils.addSeconds(date, length)) //a java.util.Date
                 .setNotBefore(date) //a java.util.Date
                 .setIssuedAt(date) // for example, now
-                .claim("something", UUID.randomUUID().toString())  //This is an specific claim to ask for tokens.
+                .claim("contextId", contextId)  //This is an specific claim to ask for tokens.
+                .claim("platformDeploymentId", platformDeploymentId)  //This is an specific claim to ask for tokens.
+                .claim("userId", userId)  //This is an specific claim to ask for tokens.
                 .claim("roles", roles)
                 .claim("oneUse", oneUse)  //This is an specific claim to ask for tokens.
                 .signWith(SignatureAlgorithm.RS256, toolPrivateKey);  //We sign it with our own private key. The platform has the public one.
@@ -166,6 +168,21 @@ public class APIJWTService {
             return jwtValue;
         }
         return null;
+    }
+
+    public SecurityInfo extractValues(HttpServletRequest request, boolean allowQueryParam) {
+        String token = extractJwtStringValue(request,allowQueryParam);
+        Jws<Claims> claims = validateToken(token);
+        if (claims != null) {
+          SecurityInfo securityInfo = new SecurityInfo();
+          securityInfo.setUserId(claims.getBody().get("userId").toString());
+          securityInfo.setPlatformDeploymentId(Long.valueOf((Integer) claims.getBody().get("platformDeploymentId")));
+          securityInfo.setContextId(Long.valueOf((Integer) claims.getBody().get("contextId")));
+          securityInfo.setRoles((List<String>) claims.getBody().get("roles"));
+          return securityInfo;
+        } else {
+          return null;
+        }
     }
 
     public boolean isBearerToken(String rawHeaderValue) {

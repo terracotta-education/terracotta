@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd"
+        objectQuotingStrategy="QUOTE_ONLY_RESERVED_WORDS">
+    <changeSet id="1620753547823-17" author="ddelblanco (generated)">
+        <createTable tableName="terr_consent_document">
+            <column autoIncrement="true" name="consent_document_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="PK_TERR_CONSENT_DOCUMENT"/>
+            </column>
+            <column name="title" type="VARCHAR(255)"/>
+            <column name="file_pointer" type="VARCHAR(255)"/>
+            <column name="html" type="CLOB"/>
+            <column name="experiment_experiment_id" type="BIGINT"/>
+            <column name="lms_assignment_id" type="VARCHAR(255)"/>
+        </createTable>
+    </changeSet>
+    <changeSet id="1620753547823-18" author="ddelblanco (generated)">
+        <createTable tableName="terr_experiment">
+            <column autoIncrement="true" name="experiment_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="PK_TERR_EXPERIMENT"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP DEFAULT CURRENT_TIMESTAMP"/>
+            <column name="updated_at" type="DATETIME"/>
+            <column name="entity_version" type="INT"/>
+            <column name="platform_deployment_key_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="lti_context_entity_context_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="title" type="VARCHAR(255)"/>
+            <column name="description" type="VARCHAR(255)"/>
+            <column name="exposure_type" type="INT"/>
+            <column name="participation_type" type="INT"/>
+            <column name="distribution_type" type="INT"/>
+            <column name="started" type="DATETIME"/>
+        </createTable>
+    </changeSet>
+    <changeSet id="1620753547823-19" author="ddelblanco (generated)">
+        <addForeignKeyConstraint baseColumnNames="experiment_experiment_id" baseTableName="terr_consent_document"
+                                 constraintName="FK_TERR_CONSENT_DOCUMENT_ON_EXPERIMENT_EXPERIMENT"
+                                 referencedColumnNames="experiment_id" referencedTableName="terr_experiment"/>
+    </changeSet>
+    <changeSet id="1620753547823-20" author="ddelblanco (generated)">
+        <addForeignKeyConstraint baseColumnNames="lti_context_entity_context_id" baseTableName="terr_experiment"
+                                 constraintName="FK_TERR_EXPERIMENT_ON_LTI_CONTEXT_ENTITY_CONTEXT"
+                                 referencedColumnNames="context_id" referencedTableName="lti_context"/>
+    </changeSet>
+    <changeSet id="1620753547823-21" author="ddelblanco (generated)">
+        <addForeignKeyConstraint baseColumnNames="platform_deployment_key_id" baseTableName="terr_experiment"
+                                 constraintName="FK_TERR_EXPERIMENT_ON_PLATFORM_DEPLOYMENT_KEY"
+                                 referencedColumnNames="key_id" referencedTableName="iss_configuration"/>
+    </changeSet>
+
+</databaseChangeLog>

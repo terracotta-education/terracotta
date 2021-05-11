@@ -86,7 +86,7 @@ public class APIOAuthProviderProcessingFilter extends GenericFilterBean {
             if (StringUtils.hasText(token)) {
                 Jws<Claims> tokenClaims = apiJwtService.validateToken(token);
                 if (tokenClaims != null) {
-                    if (!tokenClaims.getBody().getIssuer().equals("ISSUER")){
+                    if (!tokenClaims.getBody().getIssuer().equals("TERRACOTTA")){
                         throw new IllegalStateException("API token is invalid");
                     };
                     //TODO add here any other checks we want to perform.

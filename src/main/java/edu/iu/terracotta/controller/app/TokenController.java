@@ -46,7 +46,11 @@ public class TokenController {
         Jws<Claims> claims = apijwtService.validateToken(token);
         if ((Boolean)claims.getBody().get("oneUse")) {
             try {
-                return new ResponseEntity<>(apijwtService.buildJwt(false, (List<String>)claims.getBody().get("roles")), HttpStatus.OK);
+                return new ResponseEntity<>(apijwtService.buildJwt(false,
+                        (List<String>)claims.getBody().get("roles"),
+                        Long.parseLong(claims.getBody().get("contextId").toString()),
+                        Long.parseLong(claims.getBody().get("platformDeploymentId").toString()),
+                        claims.getBody().get("userId").toString()), HttpStatus.OK);
             } catch (GeneralSecurityException e) {
                 e.printStackTrace();
             } catch (IOException e) {

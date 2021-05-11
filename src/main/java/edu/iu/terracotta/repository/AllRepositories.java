@@ -52,6 +52,12 @@ public class AllRepositories {
     @Autowired
     public ApiOneUseTokenRepository apiOneUseTokenRepository;
 
+    @Autowired
+    public ExperimentRepository experimentRepository;
+
+    @Autowired
+    public ConsentDocumentRepository consentDocumentRepository;
+
     @PersistenceContext
     public EntityManager entityManager;
 
