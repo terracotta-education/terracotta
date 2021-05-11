@@ -115,7 +115,7 @@ public class ExperimentController {
         Experiment experiment = null;
         experimentDto = experimentService.fillContextInfo(experimentDto, securityInfo);
         try {
-        experiment = experimentService.fromDto(experimentDto);
+            experiment = experimentService.fromDto(experimentDto);
         } catch (DataServiceException e) {
             return new ResponseEntity("Unable to create the experiment:" + e.getMessage(), HttpStatus.BAD_REQUEST);
         }

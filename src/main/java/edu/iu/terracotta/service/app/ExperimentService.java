@@ -80,8 +80,6 @@ public class ExperimentService {
         experiment.setParticipationType(EnumUtils.getEnum(ParticipationTypes.class, experimentDto.getParticipationType(), ParticipationTypes.AUTO));
         experiment.setDistributionType(EnumUtils.getEnum(DistributionTypes.class, experimentDto.getDistributionType(), DistributionTypes.EVEN));
         experiment.setStarted(experimentDto.getStarted());
-        experiment.setCreatedAt(experimentDto.getCreatedAt());
-        experiment.setUpdatedAt(experimentDto.getUpdatedAt());
 
         return experiment;
     }

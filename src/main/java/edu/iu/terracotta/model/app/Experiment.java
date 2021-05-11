@@ -59,6 +59,8 @@ public class Experiment  extends BaseEntity {
     @Column(name = "started")
     private Timestamp started;
 
+    //TODO, Add the list of conditions
+
     /*
 TODO: consentDocId (future, when consent table is created)
 */
