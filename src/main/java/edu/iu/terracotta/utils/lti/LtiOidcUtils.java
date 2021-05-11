@@ -16,7 +16,7 @@ import edu.iu.terracotta.service.lti.LTIDataService;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import edu.iu.terracotta.model.PlatformDeployment;
-import edu.iu.terracotta.model.dto.LoginInitiationDTO;
+import edu.iu.terracotta.model.lti.dto.LoginInitiationDTO;
 import edu.iu.terracotta.utils.TextConstants;
 import edu.iu.terracotta.utils.oauth.OAuthUtils;
 import org.apache.commons.lang3.time.DateUtils;

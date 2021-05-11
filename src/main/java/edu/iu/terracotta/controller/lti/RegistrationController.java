@@ -14,10 +14,10 @@ package edu.iu.terracotta.controller.lti;
 
 import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.repository.PlatformDeploymentRepository;
-import edu.iu.terracotta.model.dto.PlatformRegistrationDTO;
-import edu.iu.terracotta.model.dto.ToolConfigurationDTO;
-import edu.iu.terracotta.model.dto.ToolMessagesSupportedDTO;
-import edu.iu.terracotta.model.dto.ToolRegistrationDTO;
+import edu.iu.terracotta.model.lti.dto.PlatformRegistrationDTO;
+import edu.iu.terracotta.model.lti.dto.ToolConfigurationDTO;
+import edu.iu.terracotta.model.lti.dto.ToolMessagesSupportedDTO;
+import edu.iu.terracotta.model.lti.dto.ToolRegistrationDTO;
 import edu.iu.terracotta.service.lti.LTIDataService;
 import edu.iu.terracotta.service.lti.RegistrationService;
 import edu.iu.terracotta.utils.LtiStrings;

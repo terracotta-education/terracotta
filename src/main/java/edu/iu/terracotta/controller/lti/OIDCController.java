@@ -15,7 +15,7 @@ package edu.iu.terracotta.controller.lti;
 import com.google.common.hash.Hashing;
 import edu.iu.terracotta.repository.PlatformDeploymentRepository;
 import edu.iu.terracotta.model.PlatformDeployment;
-import edu.iu.terracotta.model.dto.LoginInitiationDTO;
+import edu.iu.terracotta.model.lti.dto.LoginInitiationDTO;
 import edu.iu.terracotta.service.lti.LTIDataService;
 import edu.iu.terracotta.utils.TextConstants;
 import edu.iu.terracotta.utils.lti.LtiOidcUtils;
