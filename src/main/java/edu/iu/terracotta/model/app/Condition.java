@@ -14,7 +14,6 @@ public class Condition extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long conditionId;
 
-
     // name
     @Column(name = "name")
     private String name;

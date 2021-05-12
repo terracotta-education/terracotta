@@ -13,6 +13,7 @@
 package edu.iu.terracotta.service.app;
 
 import edu.iu.terracotta.exceptions.BadTokenException;
+import edu.iu.terracotta.model.oauth2.Roles;
 import edu.iu.terracotta.model.oauth2.SecurityInfo;
 import edu.iu.terracotta.service.lti.LTIDataService;
 import io.jsonwebtoken.Claims;
@@ -139,7 +140,7 @@ public class APIJWTService {
                 .setIssuer(tokenClaims.getBody().getIssuer())
                 .setSubject(tokenClaims.getBody().getSubject()) // The clientId
                 .setAudience(tokenClaims.getBody().getAudience())  //We send here the authToken url.
-                .setExpiration(DateUtils.addSeconds(date, length)) //a java.util.Date
+                .setExpiration(DateUtils.addDays(date, length)) //a java.util.Date
                 .setNotBefore(date) //a java.util.Date
                 .setIssuedAt(date) // for example, now
                 .claim("something",tokenClaims.getBody().get("something"))  //This is an specific claim to ask for tokens.
@@ -183,6 +184,30 @@ public class APIJWTService {
         } else {
           return null;
         }
+    }
+
+    public boolean isAdmin(SecurityInfo securityInfo){
+        return securityInfo.getRoles().contains(Roles.ADMIN);
+    }
+
+    public boolean isInstructor(SecurityInfo securityInfo){
+        return securityInfo.getRoles().contains(Roles.INSTRUCTOR);
+    }
+
+    public boolean isInstructorOrHigher(SecurityInfo securityInfo){
+        return (securityInfo.getRoles().contains(Roles.INSTRUCTOR) || securityInfo.getRoles().contains(Roles.ADMIN));
+    }
+
+    public boolean isLearner(SecurityInfo securityInfo){
+        return securityInfo.getRoles().contains(Roles.LEARNER);
+    }
+
+    public boolean isLearnerOrHigher(SecurityInfo securityInfo){
+        return (securityInfo.getRoles().contains(Roles.LEARNER) ||securityInfo.getRoles().contains(Roles.INSTRUCTOR) || securityInfo.getRoles().contains(Roles.ADMIN));
+    }
+
+    public boolean isGeneral(SecurityInfo securityInfo){
+        return securityInfo.getRoles().contains(Roles.GENERAL);
     }
 
     public boolean isBearerToken(String rawHeaderValue) {

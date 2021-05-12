@@ -3,6 +3,7 @@ package edu.iu.terracotta.service.app;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.dto.ConditionDto;
+import edu.iu.terracotta.model.oauth2.SecurityInfo;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.model.app.Condition;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -72,6 +73,10 @@ public class ConditionService {
 
     public void deleteById(Long id) throws EmptyResultDataAccessException {
         allRepositories.conditionRepository.deleteById(id);
+    }
+
+    public boolean conditionBelongsToExperiment (Long experimentId, Long conditionId) {
+        return allRepositories.conditionRepository.existsByExperiment_ExperimentIdAndConditionId(experimentId,conditionId);
     }
 
 }
