@@ -14,4 +14,7 @@ public interface ExperimentRepository extends JpaRepository<Experiment, Long> {
 
   Optional<Experiment> findByPlatformDeployment_KeyIdAndLtiContextEntity_ContextIdAndExperimentId(
       long keyId, long contextId, Long experimentId);
+
+  boolean existsByExperimentIdAndPlatformDeployment_KeyIdAndLtiContextEntity_ContextId(
+      Long experimentId, long keyId, long contextId);
 }

@@ -16,9 +16,11 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
+import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.util.List;
 
 @Entity
 @Table(name = "terr_experiment")
@@ -59,9 +61,18 @@ public class Experiment  extends BaseEntity {
     @Column(name = "started")
     private Timestamp started;
 
-    //TODO, Add the list of conditions
+    @JoinColumn(name = "experiment_experiment_id")
+    @OneToMany(orphanRemoval = true)
+    private List<Condition> conditions;
 
-    /*
+    public List<Condition> getConditions() {
+        return conditions;
+    }
+
+    public void setConditions(List<Condition> conditions) {
+        this.conditions = conditions;
+    }
+/*
 TODO: consentDocId (future, when consent table is created)
 */
 

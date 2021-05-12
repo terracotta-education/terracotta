@@ -78,8 +78,8 @@ public class ConditionController {
 
         log.info("Creating Condition : {}", conditionDto);
         if (conditionDto.getConditionId() != null){
-            log.error("Cannot include id in the POST endpoint. To modify existing conditions you must use PUT");
-            return new ResponseEntity("Cannot include id in the POST endpoint. To modify existing conditions you must use PUT", HttpStatus.CONFLICT);
+            log.error(TextConstants.ID_IN_POST_ERROR);
+            return new ResponseEntity(TextConstants.ID_IN_POST_ERROR, HttpStatus.CONFLICT);
         }
 
         conditionDto.setExperimentId(experimentId);

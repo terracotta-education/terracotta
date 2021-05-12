@@ -13,4 +13,6 @@ public interface ConditionRepository extends JpaRepository<Condition, Long> {
 
     Optional<Condition> findByConditionId(Long conditionId);
 
+    boolean existsByExperiment_ExperimentIdAndConditionId(Long experimentId, Long conditionId);
+
 }

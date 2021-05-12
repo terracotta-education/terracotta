@@ -3,7 +3,9 @@ package edu.iu.terracotta.service.app;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.model.LtiContextEntity;
 import edu.iu.terracotta.model.PlatformDeployment;
+import edu.iu.terracotta.model.app.Condition;
 import edu.iu.terracotta.model.app.Experiment;
+import edu.iu.terracotta.model.app.dto.ConditionDto;
 import edu.iu.terracotta.model.app.dto.ExperimentDto;
 import edu.iu.terracotta.model.app.enumerator.DistributionTypes;
 import edu.iu.terracotta.model.app.enumerator.ExposureTypes;
@@ -15,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -24,6 +27,9 @@ public class ExperimentService {
 
     @Autowired
     AllRepositories allRepositories;
+
+    @Autowired
+    ConditionService conditionService;
 
 
     public List<Experiment> findAllByDeploymentIdAndCourseId(long deploymentId, long contextId) {
@@ -35,11 +41,10 @@ public class ExperimentService {
 
     }
 
-    public ExperimentDto toDto(Experiment experiment) { //TODO add booleans to add extra elements
+    public ExperimentDto toDto(Experiment experiment, boolean conditions) {
 
         ExperimentDto experimentDto = new ExperimentDto();
         experimentDto.setExperimentId(experiment.getExperimentId());
-        //TODO check null
         experimentDto.setContextId(experiment.getLtiContextEntity().getContextId());
         experimentDto.setPlatformDeploymentId(experiment.getPlatformDeployment().getKeyId());
         experimentDto.setTitle(experiment.getTitle());
@@ -50,8 +55,16 @@ public class ExperimentService {
         experimentDto.setStarted(experiment.getStarted());
         experimentDto.setCreatedAt(experiment.getCreatedAt());
         experimentDto.setUpdatedAt(experiment.getUpdatedAt());
-
-        //TODO, add extra elements based on booleans.
+        List<ConditionDto> conditionDtoList = new ArrayList<>();
+        if (conditions){
+            //TODO, add sort if needed
+            List<Condition> conditionList = allRepositories.conditionRepository.findByExperiment_ExperimentId(experiment.getExperimentId());
+            for (Condition condition:conditionList){
+                ConditionDto conditionDto = conditionService.toDto(condition);
+                conditionDtoList.add(conditionDto);
+            }
+        }
+        experimentDto.setConditions(conditionDtoList);
 
         return experimentDto;
     }
@@ -106,5 +119,9 @@ public class ExperimentService {
         experimentDto.setContextId(securityInfo.getContextId());
         experimentDto.setPlatformDeploymentId(securityInfo.getPlatformDeploymentId());
         return experimentDto;
+    }
+
+    public boolean experimentBelongsToDeploymentAndCourse(Long experimentId, Long platformDeploymentId, Long contextId){
+        return allRepositories.experimentRepository.existsByExperimentIdAndPlatformDeployment_KeyIdAndLtiContextEntity_ContextId(experimentId, platformDeploymentId, contextId);
     }
 }

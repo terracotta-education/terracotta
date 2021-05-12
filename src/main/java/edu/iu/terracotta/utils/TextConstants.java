@@ -32,6 +32,8 @@ public class TextConstants {
     public static final String ERROR_DEEP_RESPONSE = "Error creating the DeepLinking Response";
     public static final String NOT_FOUND_SUFFIX = " not found";
     public static final String LTI3ERROR = "lti3Error";
-
-
+    public static final String NOT_ENOUGH_PERMISSIONS = "Not enough permissions to access to this endpoint";
+    public static final String BAD_TOKEN = "The token does not contains the expected information";
+    public static final String ID_IN_POST_ERROR = "Unable to create. The POST endpoint does not accept objects with id";
+    public static final String EXPERIMENT_NOT_MATCHING = "Unable to create. The POST endpoint does not accept objects with id";
 }
