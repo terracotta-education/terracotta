@@ -21,7 +21,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.http.HttpHeaders;
 
 import javax.servlet.http.HttpServletRequest;
-import javax.xml.soap.Text;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
