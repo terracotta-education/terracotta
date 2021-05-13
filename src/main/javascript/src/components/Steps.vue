@@ -119,6 +119,30 @@
 					&:last-child {
 						padding-bottom: 0 !important;
 					}
+					&--complete {
+						z-index: 1;
+
+						&::before {
+							content: "";
+							display: block;
+							position: absolute;
+							height: 108%;
+							width: 14px;
+							background: #1d9dff;
+							left: 0;
+							bottom: 30px;
+							z-index: -1;
+							border-top-left-radius: 0;
+							border-top-right-radius: 0;
+							border-bottom-left-radius: 999px;
+							border-bottom-right-radius: 999px;
+						}
+						&:first-child {
+							&::before {
+								display: none;
+							}
+						}
+					}
 				}
 			}
 		}
