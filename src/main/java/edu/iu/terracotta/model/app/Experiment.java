@@ -24,8 +24,7 @@ import java.util.List;
 
 @Entity
 @Table(name = "terr_experiment")
-public class Experiment  extends BaseEntity {
-
+public class Experiment extends BaseEntity {
 
     @Column(name = "experiment_id", nullable = false)
     @Id
@@ -68,6 +67,10 @@ public class Experiment  extends BaseEntity {
     @JoinColumn(name = "experiment_experiment_id")
     @OneToMany(orphanRemoval = true)
     private List<Exposure> exposures;
+
+    @JoinColumn(name = "experiment_experiment_id")
+    @OneToMany(orphanRemoval = true)
+    private List<Participant> participants;
 
 /*
 TODO: consentDocId (future, when consent table is created)
@@ -154,5 +157,13 @@ TODO: consentDocId (future, when consent table is created)
     public List<Exposure> getExposures() { return exposures; }
 
     public void setExposures(List<Exposure> exposures) { this.exposures = exposures; }
+
+    public List<Participant> getParticipants() {
+        return participants;
+    }
+
+    public void setParticipants(List<Participant> participants) {
+        this.participants = participants;
+    }
 
 }

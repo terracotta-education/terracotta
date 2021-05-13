@@ -8,6 +8,7 @@ import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.ParticipantService;
 import edu.iu.terracotta.utils.TextConstants;
+import org.apache.commons.lang3.EnumUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.util.UriComponentsBuilder;
+import edu.iu.terracotta.model.app.enumerator.Source;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
@@ -177,12 +179,18 @@ public class ParticipantController {
             Optional<Participant> participantSearchResult = participantService.findById(id);
 
             if (!participantSearchResult.isPresent()) {
-                log.error("Unable to update. PArticipant with id {} not found.", id);
+                log.error("Unable to update. Participant with id {} not found.", id);
                 return new ResponseEntity("Unable to update. Participant with id " + id + TextConstants.NOT_FOUND_SUFFIX,
                         HttpStatus.NOT_FOUND);
             }
             Participant participantToChange = participantSearchResult.get();
-            //TODO, at this moment there is nothing to edit in a participant, but... later we will add the consent, but maybe it will be changed in its own controller
+            participantToChange.setConsent((participantDto.getConsent()));
+            participantToChange.setDateGiven(participantDto.getDateGiven());
+            participantToChange.setDateRevoked(participantDto.getDateRevoked());
+            if(participantDto.getSource() != null) {
+                participantToChange.setSource(
+                        EnumUtils.getEnum(Source.class, participantDto.getSource()));
+            }
             participantService.saveAndFlush(participantToChange);
             return new ResponseEntity<>(HttpStatus.OK);
         } else {
@@ -214,9 +222,5 @@ public class ParticipantController {
         } else {
             return new ResponseEntity(HttpStatus.UNAUTHORIZED);
         }
-
     }
-
-
-
 }

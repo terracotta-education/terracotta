@@ -26,6 +26,8 @@ public class ExperimentDto {
     private List<ConditionDto> conditions;
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<ExposureDto> exposures;
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private List<ParticipantDto> participants;
 
 
     public ExperimentDto() {
@@ -130,4 +132,8 @@ public class ExperimentDto {
     public List<ExposureDto> getExposures() {return exposures;}
 
     public void setExposures(List<ExposureDto> exposures) { this.exposures = exposures; }
+
+    public List<ParticipantDto> getParticipants() { return participants; }
+
+    public void setParticipants(List<ParticipantDto> participants) { this.participants = participants; }
 }
