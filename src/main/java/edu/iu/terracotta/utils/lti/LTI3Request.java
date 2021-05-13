@@ -20,6 +20,7 @@ import com.nimbusds.jose.jwk.JWKSet;
 import edu.iu.terracotta.config.ApplicationConfig;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.service.lti.LTIDataService;
+import edu.iu.terracotta.service.lti.impl.LTIDataServiceImpl;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.JwsHeader;
@@ -217,7 +218,7 @@ public class LTI3Request {
             log.debug("No LTIRequest found, attempting to create one for the current request");
             LTIDataService ltiDataService = null;
             try {
-                ltiDataService = ApplicationConfig.getContext().getBean(LTIDataService.class);
+                ltiDataService = ApplicationConfig.getContext().getBean(LTIDataServiceImpl.class);
             } catch (Exception e) {
                 log.warn("Unable to get the LTIDataService, initializing the LTIRequest without it");
             }
