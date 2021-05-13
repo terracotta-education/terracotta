@@ -21,12 +21,13 @@ import org.apache.commons.lang3.EnumUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-@Component
+@Service
 public class ExperimentServiceImpl implements ExperimentService {
 
 
@@ -38,8 +39,6 @@ public class ExperimentServiceImpl implements ExperimentService {
 
     @Autowired
     ExposureService exposureService;
-
-
 
     @Override
     public List<Experiment> findAllByDeploymentIdAndCourseId(long deploymentId, long contextId) {
@@ -53,6 +52,7 @@ public class ExperimentServiceImpl implements ExperimentService {
     }
 
     @Override
+
     public ExperimentDto toDto(Experiment experiment, boolean conditions, boolean exposures) {
 
         ExperimentDto experimentDto = new ExperimentDto();
@@ -77,6 +77,7 @@ public class ExperimentServiceImpl implements ExperimentService {
             }
         }
         experimentDto.setConditions(conditionDtoList);
+
         List<ExposureDto> exposureDtoList = new ArrayList<>();
         if(exposures){
             //TODO add sort if needed
@@ -87,6 +88,7 @@ public class ExperimentServiceImpl implements ExperimentService {
             }
         }
         experimentDto.setExposures(exposureDtoList);
+      
         return experimentDto;
     }
 
