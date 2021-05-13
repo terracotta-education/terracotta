@@ -5,8 +5,10 @@ import edu.iu.terracotta.model.LtiContextEntity;
 import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.model.app.Condition;
 import edu.iu.terracotta.model.app.Experiment;
+import edu.iu.terracotta.model.app.Exposure;
 import edu.iu.terracotta.model.app.dto.ConditionDto;
 import edu.iu.terracotta.model.app.dto.ExperimentDto;
+import edu.iu.terracotta.model.app.dto.ExposureDto;
 import edu.iu.terracotta.model.app.enumerator.DistributionTypes;
 import edu.iu.terracotta.model.app.enumerator.ExposureTypes;
 import edu.iu.terracotta.model.app.enumerator.ParticipationTypes;
@@ -14,6 +16,7 @@ import edu.iu.terracotta.model.oauth2.SecurityInfo;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.ConditionService;
 import edu.iu.terracotta.service.app.ExperimentService;
+import edu.iu.terracotta.service.app.ExposureService;
 import org.apache.commons.lang3.EnumUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -34,6 +37,8 @@ public class ExperimentServiceImpl implements ExperimentService {
     @Autowired
     ConditionService conditionService;
 
+    @Autowired
+    ExposureService exposureService;
 
     @Override
     public List<Experiment> findAllByDeploymentIdAndCourseId(long deploymentId, long contextId) {
@@ -47,7 +52,8 @@ public class ExperimentServiceImpl implements ExperimentService {
     }
 
     @Override
-    public ExperimentDto toDto(Experiment experiment, boolean conditions) {
+
+    public ExperimentDto toDto(Experiment experiment, boolean conditions, boolean exposures) {
 
         ExperimentDto experimentDto = new ExperimentDto();
         experimentDto.setExperimentId(experiment.getExperimentId());
@@ -72,6 +78,17 @@ public class ExperimentServiceImpl implements ExperimentService {
         }
         experimentDto.setConditions(conditionDtoList);
 
+        List<ExposureDto> exposureDtoList = new ArrayList<>();
+        if(exposures){
+            //TODO add sort if needed
+            List<Exposure> exposureList = allRepositories.exposureRepository.findByExperiment_ExperimentId(experiment.getExperimentId());
+            for(Exposure exposure : exposureList) {
+                ExposureDto exposureDto = exposureService.toDto(exposure);
+                exposureDtoList.add(exposureDto);
+            }
+        }
+        experimentDto.setExposures(exposureDtoList);
+      
         return experimentDto;
     }
 

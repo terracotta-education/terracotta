@@ -28,5 +28,24 @@
                                  constraintName="FK_TERR_PARTICIPANT_ON_LTI_USER_ENTITY_USER"
                                  referencedColumnNames="user_id" referencedTableName="lti_user"/>
     </changeSet>
+    <changeSet id="1620857642918-21" author="josh (generated)">
+        <createTable tableName="terr_exposure">
+            <column autoIncrement="true" name="exposure_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="PK_TERR_EXPOSURE"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP DEFAULT CURRENT_TIMESTAMP"/>
+            <column name="updated_at" type="DATETIME"/>
+            <column name="entity_version" type="INT"/>
+            <column name="experiment_experiment_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="title" type="VARCHAR(255)"/>
+        </createTable>
+    </changeSet>
+    <changeSet id="1620857642918-22" author="josh (generated)">
+        <addForeignKeyConstraint baseColumnNames="experiment_experiment_id" baseTableName="terr_exposure"
+                                 constraintName="FK_TERR_EXPOSURE_ON_EXPERIMENT_EXPERIMENT"
+                                 referencedColumnNames="experiment_id" referencedTableName="terr_experiment"/>
+    </changeSet>
 
 </databaseChangeLog>
