@@ -8,7 +8,7 @@ public class ConditionDto {
     private Long conditionId;
     private Long experimentId;
     private String name;
-    private boolean defaultCondition;
+    private Boolean defaultCondition;
     private float distributionPct;
 
     public ConditionDto() {}
@@ -25,9 +25,9 @@ public class ConditionDto {
 
     public void setName(String name) { this.name = name; }
 
-    public boolean getDefaultCondition() { return defaultCondition; }
+    public Boolean getDefaultCondition() { return defaultCondition; }
 
-    public void setDefaultCondition(boolean defaultCondition) { this.defaultCondition = defaultCondition; }
+    public void setDefaultCondition(Boolean defaultCondition) { this.defaultCondition = defaultCondition; }
 
     public float getDistributionPct() { return distributionPct; }
 

@@ -15,19 +15,12 @@ public class ParticipantDto {
     private Timestamp createdAt;
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private Timestamp updatedAt;
-    private boolean consent;
+    private Boolean consent;
     private Timestamp dateGiven;
     private Timestamp dateRevoked;
     private String source;
 
-    //I think we can delete this now
-    //TODO, uncomment this when we have consents
-    //@JsonInclude(JsonInclude.Include.NON_NULL)
-    //private ConsentDTO consent;
-
-
-    public ParticipantDto() {
-    }
+    public ParticipantDto() {}
 
     public Long getParticipantId() {
         return participantId;
@@ -69,9 +62,9 @@ public class ParticipantDto {
         this.updatedAt = updatedAt;
     }
 
-    public boolean getConsent() {return consent;}
+    public Boolean getConsent() {return consent;}
 
-    public void setConsent(boolean consent) { this.consent = consent;}
+    public void setConsent(Boolean consent) { this.consent = consent;}
 
     public Timestamp getDateGiven() { return dateGiven; }
 
