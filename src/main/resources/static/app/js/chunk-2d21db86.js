@@ -1,2 +1,0 @@
-(window["webpackJsonp"]=window["webpackJsonp"]||[]).push([["chunk-2d21db86"],{d301:function(e,n,t){"use strict";t.r(n);var r=function(){var e=this,n=e.$createElement,t=e._self._c||n;return t("h1",[e._v("Create a title for your experiment")])},u=[],a={name:"DesignTitle",data:function(){return{}}},i=a,l=t("2877"),c=Object(l["a"])(i,r,u,!1,null,null,null);n["default"]=c.exports}}]);
-//# sourceMappingURL=chunk-2d21db86.js.map

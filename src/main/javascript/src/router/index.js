@@ -19,24 +19,48 @@ const routes = [
         path: '',
         alias: 'design',
         component: () => import('../views/ExperimentSteps.vue'),
+        meta: {
+          currentSection: "design",
+          currentStep: "design"
+        },
         children: [
           // Experiment | Design Steps paths
           {
             path: '',
             alias: 'intro',
             name: 'ExperimentDesignIntro',
-            component: () => import('../views/design/Intro.vue')
+            component: () => import('../views/design/Intro.vue'),
+            meta: {
+              currentSection: "design",
+              currentStep: "design"
+            }
           },
           {
             path: 'title',
             name: 'ExperimentDesignTitle',
-            component: () => import('../views/design/Title.vue')
+            component: () => import('../views/design/Title.vue'),
+            meta: {
+              currentSection: "design",
+              currentStep: "design_title"
+            }
+          },
+          {
+            path: 'description',
+            name: 'ExperimentDesignDescription',
+            component: () => import('../views/design/Description.vue'),
+            meta: {
+              currentSection: "design",
+              currentStep: "design_description"
+            }
           },
         ]
       },
       {
         path: 'participation',
         component: () => import('../views/ExperimentSteps.vue'),
+        meta: {
+          currentSection: "participation"
+        },
         children: [
           // Experiment | Participation Steps paths
         ]
@@ -44,6 +68,9 @@ const routes = [
       {
         path: 'assignments',
         component: () => import('../views/ExperimentSteps.vue'),
+        meta: {
+          currentSection: "assignments"
+        },
         children: [
           // Experiment | Assignments Steps paths
         ]
