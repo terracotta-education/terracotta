@@ -201,27 +201,27 @@ public class APIJWTServiceImpl implements APIJWTService {
 
     @Override
     public boolean isInstructor(SecurityInfo securityInfo){
-        return securityInfo.getRoles().contains(Roles.INSTRUCTOR);
-    }
-
-    @Override
-    public boolean isInstructorOrHigher(SecurityInfo securityInfo){
-        return (securityInfo.getRoles().contains(Roles.INSTRUCTOR) || securityInfo.getRoles().contains(Roles.ADMIN));
+        return (securityInfo.getRoles().contains(Roles.INSTRUCTOR) || securityInfo.getRoles().contains(Roles.MEMBERSHIP_INSTRUCTOR));
     }
 
     @Override
     public boolean isLearner(SecurityInfo securityInfo){
-        return securityInfo.getRoles().contains(Roles.LEARNER);
-    }
-
-    @Override
-    public boolean isLearnerOrHigher(SecurityInfo securityInfo){
-        return (securityInfo.getRoles().contains(Roles.LEARNER) ||securityInfo.getRoles().contains(Roles.INSTRUCTOR) || securityInfo.getRoles().contains(Roles.ADMIN));
+        return (securityInfo.getRoles().contains(Roles.LEARNER) || securityInfo.getRoles().contains(Roles.MEMBERSHIP_LEARNER));
     }
 
     @Override
     public boolean isGeneral(SecurityInfo securityInfo){
         return securityInfo.getRoles().contains(Roles.GENERAL);
+    }
+
+    @Override
+    public boolean isInstructorOrHigher(SecurityInfo securityInfo){
+        return (isInstructor(securityInfo) || isAdmin(securityInfo));
+    }
+
+    @Override
+    public boolean isLearnerOrHigher(SecurityInfo securityInfo){
+        return (isLearner(securityInfo) || isInstructorOrHigher(securityInfo));
     }
 
     private boolean isBearerToken(String rawHeaderValue) {
