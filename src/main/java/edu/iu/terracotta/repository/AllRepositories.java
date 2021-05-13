@@ -58,6 +58,12 @@ public class AllRepositories {
     @Autowired
     public ConsentDocumentRepository consentDocumentRepository;
 
+    @Autowired
+    public ConditionRepository conditionRepository;
+
+    @Autowired
+    public ParticipantRepository participantRepository;
+
     @PersistenceContext
     public EntityManager entityManager;
 

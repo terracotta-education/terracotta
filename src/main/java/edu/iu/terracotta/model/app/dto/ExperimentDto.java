@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import java.sql.Timestamp;
+import java.util.List;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ExperimentDto {
@@ -21,9 +22,8 @@ public class ExperimentDto {
     private Timestamp createdAt;
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private Timestamp updatedAt;
-    //TODO, uncomment this when we have conditions and add getter, setters and test it
-    //@JsonInclude(JsonInclude.Include.NON_NULL)
-    //private List<ConditionDTO> conditions;
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private List<ConditionDto> conditions;
 
 
     public ExperimentDto() {
@@ -115,5 +115,13 @@ public class ExperimentDto {
 
     public void setPlatformDeploymentId(Long platformDeploymentId) {
         this.platformDeploymentId = platformDeploymentId;
+    }
+
+    public List<ConditionDto> getConditions() {
+        return conditions;
+    }
+
+    public void setConditions(List<ConditionDto> conditions) {
+        this.conditions = conditions;
     }
 }

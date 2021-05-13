@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -55,21 +56,26 @@ public class ExperimentController {
 
         SecurityInfo securityInfo = apijwtService.extractValues(req,false);
         if (securityInfo==null){
-            log.error("Can't extract the security elements from the token");
-            return new ResponseEntity(HttpStatus.UNAUTHORIZED);
+            log.error(TextConstants.BAD_TOKEN);
+            return new ResponseEntity(TextConstants.BAD_TOKEN, HttpStatus.UNAUTHORIZED);
         }
 
-    List<Experiment> experimentList =
-        experimentService.findAllByDeploymentIdAndCourseId(securityInfo.getPlatformDeploymentId(), securityInfo.getContextId());
-        if (experimentList.isEmpty()) {
-            return new ResponseEntity(HttpStatus.NO_CONTENT);
-            // You many decide to return HttpStatus.NOT_FOUND
+        if (apijwtService.isLearnerOrHigher(securityInfo)) {
+            List<Experiment> experimentList =
+                    experimentService.findAllByDeploymentIdAndCourseId(
+                            securityInfo.getPlatformDeploymentId(), securityInfo.getContextId());
+            if (experimentList.isEmpty()) {
+                return new ResponseEntity(HttpStatus.NO_CONTENT);
+                // You many decide to return HttpStatus.NOT_FOUND
+            }
+            List<ExperimentDto> experimentDtos = new ArrayList<>();
+            for (Experiment experiment : experimentList) {
+                experimentDtos.add(experimentService.toDto(experiment, false));
+            }
+            return new ResponseEntity<>(experimentDtos, HttpStatus.OK);
+        } else {
+            return new ResponseEntity(HttpStatus.UNAUTHORIZED);
         }
-        List<ExperimentDto> experimentDtos = new ArrayList<>();
-        for (Experiment experiment:experimentList){
-            experimentDtos.add(experimentService.toDto(experiment));
-        }
-        return new ResponseEntity<>(experimentDtos, HttpStatus.OK);
     }
 
     /**
@@ -77,55 +83,82 @@ public class ExperimentController {
      */
     @RequestMapping(value = "/{id}", method = RequestMethod.GET, produces = "application/json;")
     @ResponseBody
-    public ResponseEntity<ExperimentDto> getExperiment(@PathVariable("id") long id, HttpServletRequest req) {
+    public ResponseEntity<ExperimentDto> getExperiment(@PathVariable("id") long id, @RequestParam(name = "conditions", defaultValue = "false") boolean conditions, HttpServletRequest req) {
 
         SecurityInfo securityInfo = apijwtService.extractValues(req,false);
         if (securityInfo==null){
-            log.error("Can't extract the security elements from the token");
-            return new ResponseEntity(HttpStatus.UNAUTHORIZED);
+            log.error(TextConstants.BAD_TOKEN);
+            return new ResponseEntity(TextConstants.BAD_TOKEN, HttpStatus.UNAUTHORIZED);
         }
 
-        Optional<Experiment> experiment = experimentService.findOneByDeploymentIdAndCourseIdAndExperimentId(securityInfo.getPlatformDeploymentId(), securityInfo.getContextId(), id);
+        if (apijwtService.isLearnerOrHigher(securityInfo)) {
+            Optional<Experiment> experiment =
+                    experimentService.findOneByDeploymentIdAndCourseIdAndExperimentId(
+                            securityInfo.getPlatformDeploymentId(), securityInfo.getContextId(), id);
 
-        if (!experiment.isPresent()) {
-            log.error("experiment in platform {} and context {} with id {} not found.", securityInfo.getPlatformDeploymentId(), securityInfo.getContextId(), id);
-            return new ResponseEntity("experiment in platform " + securityInfo.getPlatformDeploymentId() + " and context " + securityInfo.getContextId() + " with id " + id
-                    + TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
+            if (!experiment.isPresent()) {
+                log.error(
+                        "experiment in platform {} and context {} with id {} not found.",
+                        securityInfo.getPlatformDeploymentId(),
+                        securityInfo.getContextId(),
+                        id);
+                return new ResponseEntity(
+                        "experiment in platform "
+                                + securityInfo.getPlatformDeploymentId()
+                                + " and context "
+                                + securityInfo.getContextId()
+                                + " with id "
+                                + id
+                                + TextConstants.NOT_FOUND_SUFFIX,
+                        HttpStatus.NOT_FOUND);
+            } else {
+                ExperimentDto experimentDto = experimentService.toDto(experiment.get(), conditions);
+                return new ResponseEntity<>(experimentDto, HttpStatus.OK);
+            }
         } else {
-            ExperimentDto experimentDto = experimentService.toDto(experiment.get());
-            return new ResponseEntity<>(experimentDto, HttpStatus.OK);
+            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
     }
 
     @RequestMapping(value = "/", method = RequestMethod.POST)
     public ResponseEntity<ExperimentDto> postExperiment(@RequestBody ExperimentDto experimentDto, UriComponentsBuilder ucBuilder, HttpServletRequest req) {
+        log.debug("Creating Experiment : {}", experimentDto);
         SecurityInfo securityInfo = apijwtService.extractValues(req,false);
         if (securityInfo==null){
-            log.error("Can't extract the security elements from the token");
-            return new ResponseEntity(HttpStatus.UNAUTHORIZED);
+            log.error(TextConstants.BAD_TOKEN);
+            return new ResponseEntity(TextConstants.BAD_TOKEN, HttpStatus.UNAUTHORIZED);
         }
 
-        log.info("Creating Experiment : {}", experimentDto);
-        //We check that it does not exist
-        if (experimentDto.getExperimentId()!=null){
-            log.error("Unable to create. An experiment with that id already exists");
-            return new ResponseEntity("Unable to create. An experiment with same id already exist.", HttpStatus.CONFLICT);
+        if (apijwtService.isInstructorOrHigher(securityInfo)) {
+            // We check that it does not exist
+            if (experimentDto.getExperimentId() != null) {
+                log.error(TextConstants.ID_IN_POST_ERROR);
+                return new ResponseEntity(
+                        TextConstants.ID_IN_POST_ERROR, HttpStatus.CONFLICT);
+            }
+
+            Experiment experiment = null;
+            experimentDto = experimentService.fillContextInfo(experimentDto, securityInfo);
+            try {
+                experiment = experimentService.fromDto(experimentDto);
+            } catch (DataServiceException e) {
+                return new ResponseEntity(
+                        "Unable to create the experiment:" + e.getMessage(), HttpStatus.BAD_REQUEST);
+            }
+
+            Experiment experimentSaved = experimentService.save(experiment);
+            ExperimentDto returnedDto = experimentService.toDto(experimentSaved, false);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setLocation(
+                    ucBuilder
+                            .path("/api/experiment/{id}")
+                            .buildAndExpand(experiment.getExperimentId())
+                            .toUri());
+            return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
+        } else {
+            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
-
-        Experiment experiment = null;
-        experimentDto = experimentService.fillContextInfo(experimentDto, securityInfo);
-        try {
-            experiment = experimentService.fromDto(experimentDto);
-        } catch (DataServiceException e) {
-            return new ResponseEntity("Unable to create the experiment:" + e.getMessage(), HttpStatus.BAD_REQUEST);
-        }
-
-        Experiment experimentSaved = experimentService.save(experiment);
-        ExperimentDto returnedDto = experimentService.toDto(experimentSaved);
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setLocation(ucBuilder.path("/api/experiment/{id}").buildAndExpand(experiment.getExperimentId()).toUri());
-        return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
     }
 
 
@@ -134,45 +167,69 @@ public class ExperimentController {
         log.info("Updating Experiment with id {}", id);
         SecurityInfo securityInfo = apijwtService.extractValues(req,false);
         if (securityInfo==null){
-            log.error("Can't extract the security elements from the token");
-            return new ResponseEntity(HttpStatus.UNAUTHORIZED);
+            log.error(TextConstants.BAD_TOKEN);
+            return new ResponseEntity(TextConstants.BAD_TOKEN, HttpStatus.UNAUTHORIZED);
         }
-        Optional<Experiment> experimentSearchResult = experimentService.findById(id);
+        if (!experimentService.experimentBelongsToDeploymentAndCourse(id, securityInfo.getPlatformDeploymentId(), securityInfo.getContextId())){
+            return new ResponseEntity("No permissions to change this experiment" , HttpStatus.UNAUTHORIZED);
+        }
+        if (apijwtService.isInstructorOrHigher(securityInfo)) {
+            Optional<Experiment> experimentSearchResult = experimentService.findById(id);
 
-        if (!experimentSearchResult.isPresent()) {
-            log.error("Unable to update. Experiment with id {} not found.", id);
-            return new ResponseEntity("Unable to update. Experiment with id " + id + TextConstants.NOT_FOUND_SUFFIX,
-                    HttpStatus.NOT_FOUND);
+            if (!experimentSearchResult.isPresent()) {
+                log.error("Unable to update. Experiment with id {} not found.", id);
+                return new ResponseEntity(
+                        "Unable to update. Experiment with id " + id + TextConstants.NOT_FOUND_SUFFIX,
+                        HttpStatus.NOT_FOUND);
+            }
+            Experiment experimentToChange = experimentSearchResult.get();
+            experimentToChange.setDescription(experimentDto.getDescription());
+            experimentToChange.setTitle(experimentDto.getTitle());
+            if (experimentDto.getExposureType() != null) {
+                experimentToChange.setExposureType(
+                        EnumUtils.getEnum(ExposureTypes.class, experimentDto.getExposureType()));
+            }
+            if (experimentDto.getDistributionType() != null) {
+                experimentToChange.setDistributionType(
+                        EnumUtils.getEnum(DistributionTypes.class, experimentDto.getDistributionType()));
+            }
+            if (experimentDto.getParticipationType() != null) {
+                experimentToChange.setParticipationType(
+                        EnumUtils.getEnum(ParticipationTypes.class, experimentDto.getParticipationType()));
+            }
+            experimentToChange.setStarted(experimentDto.getStarted());
+
+            //TODO: we won't modify the conditions on this endpoint. That will need to happen in the condition endpoint
+            // we can change that if needed.
+
+            experimentService.saveAndFlush(experimentToChange);
+            return new ResponseEntity<>(HttpStatus.OK);
+        } else {
+            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
-        Experiment experimentToChange = experimentSearchResult.get();
-        experimentToChange.setDescription(experimentDto.getDescription());
-        experimentToChange.setTitle(experimentDto.getTitle());
-        if (experimentDto.getExposureType() != null) {
-            experimentToChange.setExposureType(EnumUtils.getEnum(ExposureTypes.class,experimentDto.getExposureType()));
-        }
-        if (experimentDto.getDistributionType() != null) {
-            experimentToChange.setDistributionType(EnumUtils.getEnum(DistributionTypes.class,experimentDto.getDistributionType()));
-        }
-        if (experimentDto.getParticipationType() != null) {
-            experimentToChange.setParticipationType(EnumUtils.getEnum(ParticipationTypes.class,experimentDto.getParticipationType()));
-        }
-        experimentToChange.setStarted(experimentDto.getStarted());
-        //TODO, check if we will modify "sub elements, as conditions... I don't think we need to do it and we should do
-        //it on its own controller.
-        experimentService.saveAndFlush(experimentToChange);
-        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @RequestMapping(value = "/{id}", method = RequestMethod.DELETE)
-    public ResponseEntity<Void> deleteExperiment(@PathVariable("id") Long id, @RequestBody ExperimentDto experimentDto) {
-        try {
-            experimentService.deleteById(id);
-            return new ResponseEntity<>(HttpStatus.OK);
-        } catch (EmptyResultDataAccessException ex) {
-            log.error(ex.getMessage());
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    public ResponseEntity<Void> deleteExperiment(@PathVariable("id") Long id, HttpServletRequest req) {
+        SecurityInfo securityInfo = apijwtService.extractValues(req,false);
+        if (securityInfo==null){
+            log.error(TextConstants.BAD_TOKEN);
+            return new ResponseEntity(TextConstants.BAD_TOKEN, HttpStatus.UNAUTHORIZED);
         }
-
+        if (!experimentService.experimentBelongsToDeploymentAndCourse(id, securityInfo.getPlatformDeploymentId(), securityInfo.getContextId())){
+            return new ResponseEntity("No permissions to delete this experiment" , HttpStatus.UNAUTHORIZED);
+        }
+        if (apijwtService.isInstructorOrHigher(securityInfo)) {
+            try {
+                experimentService.deleteById(id);
+                return new ResponseEntity<>(HttpStatus.OK);
+            } catch (EmptyResultDataAccessException ex) {
+                log.error(ex.getMessage());
+                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            }
+        } else {
+            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
+        }
     }
 
 
