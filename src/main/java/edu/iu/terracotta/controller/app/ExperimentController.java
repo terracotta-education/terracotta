@@ -70,7 +70,7 @@ public class ExperimentController {
             }
             List<ExperimentDto> experimentDtos = new ArrayList<>();
             for (Experiment experiment : experimentList) {
-                experimentDtos.add(experimentService.toDto(experiment, false));
+                experimentDtos.add(experimentService.toDto(experiment, false, false));
             }
             return new ResponseEntity<>(experimentDtos, HttpStatus.OK);
         } else {
@@ -83,7 +83,7 @@ public class ExperimentController {
      */
     @RequestMapping(value = "/{id}", method = RequestMethod.GET, produces = "application/json;")
     @ResponseBody
-    public ResponseEntity<ExperimentDto> getExperiment(@PathVariable("id") long id, @RequestParam(name = "conditions", defaultValue = "false") boolean conditions, HttpServletRequest req) {
+    public ResponseEntity<ExperimentDto> getExperiment(@PathVariable("id") long id, @RequestParam(name = "conditions", defaultValue = "false") boolean conditions,  @RequestParam(name = "exposures", defaultValue = "false") boolean exposures, HttpServletRequest req) {
 
         SecurityInfo securityInfo = apijwtService.extractValues(req,false);
         if (securityInfo==null){
@@ -112,7 +112,7 @@ public class ExperimentController {
                                 + TextConstants.NOT_FOUND_SUFFIX,
                         HttpStatus.NOT_FOUND);
             } else {
-                ExperimentDto experimentDto = experimentService.toDto(experiment.get(), conditions);
+                ExperimentDto experimentDto = experimentService.toDto(experiment.get(), conditions, exposures);
                 return new ResponseEntity<>(experimentDto, HttpStatus.OK);
             }
         } else {
@@ -147,7 +147,7 @@ public class ExperimentController {
             }
 
             Experiment experimentSaved = experimentService.save(experiment);
-            ExperimentDto returnedDto = experimentService.toDto(experimentSaved, false);
+            ExperimentDto returnedDto = experimentService.toDto(experimentSaved, false, false);
 
             HttpHeaders headers = new HttpHeaders();
             headers.setLocation(

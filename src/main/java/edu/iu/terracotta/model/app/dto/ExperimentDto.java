@@ -24,6 +24,8 @@ public class ExperimentDto {
     private Timestamp updatedAt;
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<ConditionDto> conditions;
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private List<ExposureDto> exposures;
 
 
     public ExperimentDto() {
@@ -124,4 +126,8 @@ public class ExperimentDto {
     public void setConditions(List<ConditionDto> conditions) {
         this.conditions = conditions;
     }
+
+    public List<ExposureDto> getExposures() {return exposures;}
+
+    public void setExposures(List<ExposureDto> exposures) { this.exposures = exposures; }
 }
