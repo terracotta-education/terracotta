@@ -5,7 +5,6 @@ module.exports = {
     indexPath: path.resolve(__dirname, "../resources/static/app/app.html"),
     publicPath: "/app/",
     assetsDir: "./",
-    filenameHashing: false,
 
     transpileDependencies: [
       'vuetify'
