@@ -14,7 +14,7 @@ public interface ExperimentService {
 
     Optional<Experiment> findOneByDeploymentIdAndCourseIdAndExperimentId(long deploymentId, long contextId, long id);
 
-    ExperimentDto toDto(Experiment experiment, boolean conditions, boolean exposures);
+    ExperimentDto toDto(Experiment experiment, boolean conditions, boolean exposures, boolean participants);
 
     Experiment fromDto(ExperimentDto experimentDto) throws DataServiceException;
 

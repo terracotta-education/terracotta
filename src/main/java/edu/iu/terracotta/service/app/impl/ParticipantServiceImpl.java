@@ -6,8 +6,10 @@ import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.dto.ParticipantDto;
 import edu.iu.terracotta.model.app.dto.UserDto;
+import edu.iu.terracotta.model.app.enumerator.Source;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.ParticipantService;
+import org.apache.commons.lang3.EnumUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -32,6 +34,10 @@ public class ParticipantServiceImpl implements ParticipantService {
         participantDto.setParticipantId(participant.getParticipantId());
         participantDto.setExperimentId(participant.getExperiment().getExperimentId());
         participantDto.setUser(userToDTO(participant.getLtiUserEntity()));
+        participantDto.setConsent(participant.getConsent());
+        participantDto.setDateGiven(participant.getDateGiven());
+        participantDto.setDateRevoked(participant.getDateRevoked());
+        participantDto.setSource(participant.getSource().name());
         return participantDto;
     }
 
@@ -67,6 +73,13 @@ public class ParticipantServiceImpl implements ParticipantService {
         } catch (Exception e){
             throw new DataServiceException("The user for the participant is not valid");
         }
+
+        participant.setParticipantId(participant.getParticipantId());
+        participant.setConsent(participantDto.getConsent());
+        participant.setDateGiven(participantDto.getDateGiven());
+        participant.setDateRevoked(participantDto.getDateRevoked());
+        //TODO should default value be AUTO??
+        participant.setSource(EnumUtils.getEnum(Source.class, participantDto.getSource(), Source.AUTO));
         return participant;
     }
 

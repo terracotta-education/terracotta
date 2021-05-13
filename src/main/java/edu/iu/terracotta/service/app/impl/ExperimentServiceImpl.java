@@ -6,9 +6,11 @@ import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.model.app.Condition;
 import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.Exposure;
+import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.dto.ConditionDto;
 import edu.iu.terracotta.model.app.dto.ExperimentDto;
 import edu.iu.terracotta.model.app.dto.ExposureDto;
+import edu.iu.terracotta.model.app.dto.ParticipantDto;
 import edu.iu.terracotta.model.app.enumerator.DistributionTypes;
 import edu.iu.terracotta.model.app.enumerator.ExposureTypes;
 import edu.iu.terracotta.model.app.enumerator.ParticipationTypes;
@@ -17,12 +19,14 @@ import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.ConditionService;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.ExposureService;
+import edu.iu.terracotta.service.app.ParticipantService;
 import org.apache.commons.lang3.EnumUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
+import javax.servlet.http.Part;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -40,6 +44,9 @@ public class ExperimentServiceImpl implements ExperimentService {
     @Autowired
     ExposureService exposureService;
 
+    @Autowired
+    ParticipantService participantService;
+
     @Override
     public List<Experiment> findAllByDeploymentIdAndCourseId(long deploymentId, long contextId) {
         return allRepositories.experimentRepository.findByPlatformDeployment_KeyIdAndLtiContextEntity_ContextId(deploymentId,contextId);
@@ -52,8 +59,7 @@ public class ExperimentServiceImpl implements ExperimentService {
     }
 
     @Override
-
-    public ExperimentDto toDto(Experiment experiment, boolean conditions, boolean exposures) {
+    public ExperimentDto toDto(Experiment experiment, boolean conditions, boolean exposures, boolean participants) {
 
         ExperimentDto experimentDto = new ExperimentDto();
         experimentDto.setExperimentId(experiment.getExperimentId());
@@ -88,7 +94,19 @@ public class ExperimentServiceImpl implements ExperimentService {
             }
         }
         experimentDto.setExposures(exposureDtoList);
-      
+
+        List<ParticipantDto> participantDtoList = new ArrayList<>();
+        if (participants){
+            //TODO, add sort if needed
+            List<Participant> participantList = allRepositories.participantRepository.findByExperiment_ExperimentId(experiment.getExperimentId());
+            for (Participant participant : participantList){
+                ParticipantDto participantDto = participantService.toDto(participant);
+                participantDtoList.add(participantDto);
+            }
+        }
+        experimentDto.setParticipants(participantDtoList);
+
+
         return experimentDto;
     }
 
