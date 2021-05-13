@@ -61,4 +61,8 @@ public class ExposureService {
 
     public void deleteById(Long id) throws EmptyResultDataAccessException { allRepositories.exposureRepository.deleteById(id); }
 
+    public boolean exposureBelongsToExperiment (Long experimentId, Long exposureId) {
+        return allRepositories.exposureRepository.existsByExperiment_ExperimentIdAndExposureId(experimentId,exposureId);
+    }
+
 }

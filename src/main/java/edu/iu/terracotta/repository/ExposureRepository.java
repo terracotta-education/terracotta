@@ -11,4 +11,6 @@ public interface ExposureRepository extends JpaRepository<Exposure, Long> {
     List<Exposure> findByExperiment_ExperimentId(Long experimentId);
 
     Optional<Exposure> findByExposureId(Long exposureId);
+
+    boolean existsByExperiment_ExperimentIdAndExposureId(Long experimentId, Long exposureId);
 }

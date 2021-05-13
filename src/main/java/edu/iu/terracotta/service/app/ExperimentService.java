@@ -5,8 +5,10 @@ import edu.iu.terracotta.model.LtiContextEntity;
 import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.model.app.Condition;
 import edu.iu.terracotta.model.app.Experiment;
+import edu.iu.terracotta.model.app.Exposure;
 import edu.iu.terracotta.model.app.dto.ConditionDto;
 import edu.iu.terracotta.model.app.dto.ExperimentDto;
+import edu.iu.terracotta.model.app.dto.ExposureDto;
 import edu.iu.terracotta.model.app.enumerator.DistributionTypes;
 import edu.iu.terracotta.model.app.enumerator.ExposureTypes;
 import edu.iu.terracotta.model.app.enumerator.ParticipationTypes;
@@ -31,6 +33,9 @@ public class ExperimentService {
     @Autowired
     ConditionService conditionService;
 
+    @Autowired
+    ExposureService exposureService;
+
 
     public List<Experiment> findAllByDeploymentIdAndCourseId(long deploymentId, long contextId) {
         return allRepositories.experimentRepository.findByPlatformDeployment_KeyIdAndLtiContextEntity_ContextId(deploymentId,contextId);
@@ -41,7 +46,7 @@ public class ExperimentService {
 
     }
 
-    public ExperimentDto toDto(Experiment experiment, boolean conditions) {
+    public ExperimentDto toDto(Experiment experiment, boolean conditions, boolean exposures) {
 
         ExperimentDto experimentDto = new ExperimentDto();
         experimentDto.setExperimentId(experiment.getExperimentId());
@@ -65,6 +70,16 @@ public class ExperimentService {
             }
         }
         experimentDto.setConditions(conditionDtoList);
+        List<ExposureDto> exposureDtoList = new ArrayList<>();
+        if(exposures){
+            //TODO add sort if needed
+            List<Exposure> exposureList = allRepositories.exposureRepository.findByExperiment_ExperimentId(experiment.getExperimentId());
+            for(Exposure exposure : exposureList) {
+                ExposureDto exposureDto = exposureService.toDto(exposure);
+                exposureDtoList.add(exposureDto);
+            }
+        }
+        experimentDto.setExposures(exposureDtoList);
 
         return experimentDto;
     }
@@ -93,7 +108,7 @@ public class ExperimentService {
         experiment.setParticipationType(EnumUtils.getEnum(ParticipationTypes.class, experimentDto.getParticipationType(), ParticipationTypes.AUTO));
         experiment.setDistributionType(EnumUtils.getEnum(DistributionTypes.class, experimentDto.getDistributionType(), DistributionTypes.EVEN));
         experiment.setStarted(experimentDto.getStarted());
-
+        //TODO add exposures and conditions lists?
         return experiment;
     }
 

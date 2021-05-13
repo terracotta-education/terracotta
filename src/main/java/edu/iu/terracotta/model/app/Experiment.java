@@ -65,13 +65,10 @@ public class Experiment  extends BaseEntity {
     @OneToMany(orphanRemoval = true)
     private List<Condition> conditions;
 
-    public List<Condition> getConditions() {
-        return conditions;
-    }
+    @JoinColumn(name = "experiment_experiment_id")
+    @OneToMany(orphanRemoval = true)
+    private List<Exposure> exposures;
 
-    public void setConditions(List<Condition> conditions) {
-        this.conditions = conditions;
-    }
 /*
 TODO: consentDocId (future, when consent table is created)
 */
@@ -144,14 +141,18 @@ TODO: consentDocId (future, when consent table is created)
         return platformDeployment;
     }
 
-    public void setPlatformDeployment(PlatformDeployment platformDeployment) {
-        this.platformDeployment = platformDeployment;
+    public void setPlatformDeployment(PlatformDeployment platformDeployment) { this.platformDeployment = platformDeployment; }
+
+    public List<Condition> getConditions() {
+        return conditions;
     }
 
+    public void setConditions(List<Condition> conditions) {
+        this.conditions = conditions;
+    }
 
+    public List<Exposure> getExposures() { return exposures; }
 
-
-
-
+    public void setExposures(List<Exposure> exposures) { this.exposures = exposures; }
 
 }
