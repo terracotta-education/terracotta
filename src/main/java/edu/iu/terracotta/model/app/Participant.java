@@ -1,7 +1,8 @@
 package edu.iu.terracotta.model.app;
 
+import edu.iu.terracotta.model.LtiMembershipEntity;
 import edu.iu.terracotta.model.LtiUserEntity;
-import edu.iu.terracotta.model.app.enumerator.Source;
+import edu.iu.terracotta.model.app.enumerator.ParticipationTypes;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -29,8 +30,12 @@ public class Participant {
     private Experiment experiment;
 
     @JoinColumn(name = "lti_user_entity_user_id", nullable = false)
-    @OneToOne(optional = false)
+    @ManyToOne(optional = false)
     private LtiUserEntity ltiUserEntity;
+
+    @JoinColumn(name = "lti_membership_entity_membership_id", nullable = false)
+    @OneToOne(optional = false)
+    private LtiMembershipEntity ltiMembershipEntity;
 
     @Column(name = "consent")
     private Boolean consent;
@@ -43,7 +48,10 @@ public class Participant {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "source")
-    private Source source;
+    private ParticipationTypes source;
+
+    @Column(name = "dropped")
+    private Boolean dropped;
 
     public LtiUserEntity getLtiUserEntity() {
         return ltiUserEntity;
@@ -51,6 +59,14 @@ public class Participant {
 
     public void setLtiUserEntity(LtiUserEntity ltiUserEntity) {
         this.ltiUserEntity = ltiUserEntity;
+    }
+
+    public LtiMembershipEntity getLtiMembershipEntity() {
+        return ltiMembershipEntity;
+    }
+
+    public void setLtiMembershipEntity(LtiMembershipEntity ltiMembershipEntity) {
+        this.ltiMembershipEntity = ltiMembershipEntity;
     }
 
     public Experiment getExperiment() {
@@ -81,7 +97,15 @@ public class Participant {
 
     public void setDateRevoked(Timestamp dateRevoked) { this.dateRevoked = dateRevoked; }
 
-    public Source getSource() { return source; }
+    public ParticipationTypes getSource() { return source; }
 
-    public void setSource(Source source) { this.source = source; }
+    public void setSource(ParticipationTypes source) { this.source = source; }
+
+    public Boolean getDropped() {
+        return dropped;
+    }
+
+    public void setDropped(Boolean dropped) {
+        this.dropped = dropped;
+    }
 }

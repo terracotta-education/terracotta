@@ -19,6 +19,8 @@ public class ParticipantDto {
     private Timestamp dateGiven;
     private Timestamp dateRevoked;
     private String source;
+    private Boolean dropped;
+
 
     public ParticipantDto() {}
 
@@ -77,4 +79,12 @@ public class ParticipantDto {
     public String getSource() { return source; }
 
     public void setSource(String source) { this.source = source; }
+
+    public Boolean getDropped() {
+        return dropped;
+    }
+
+    public void setDropped(Boolean dropped) {
+        this.dropped = dropped;
+    }
 }

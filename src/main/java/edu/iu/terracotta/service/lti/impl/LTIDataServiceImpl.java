@@ -314,6 +314,26 @@ public class LTIDataServiceImpl implements LTIDataService {
     }
 
     @Override
+    public LtiUserEntity findByUserKeyAndPlatformDeployment(String userKey, PlatformDeployment platformDeployment) {
+        return repos.users.findByUserKeyAndPlatformDeployment(userKey,platformDeployment);
+    }
+
+    @Override
+    public LtiUserEntity saveLtiUserEntity(LtiUserEntity ltiUserEntity) {
+        return repos.users.save(ltiUserEntity);
+    }
+
+    @Override
+    public LtiMembershipEntity findByUserAndContext(LtiUserEntity ltiUserEntity, LtiContextEntity ltiContextEntity) {
+        return repos.members.findByUserAndContext(ltiUserEntity,ltiContextEntity);
+    }
+
+    @Override
+    public LtiMembershipEntity saveLtiMembershipEntity(LtiMembershipEntity ltiMembershipEntity) {
+        return repos.members.save(ltiMembershipEntity);
+    }
+
+    @Override
     public String getLocalUrl() {
         return localUrl;
     }
@@ -352,6 +372,8 @@ public class LTIDataServiceImpl implements LTIDataService {
     public void setDemoMode(Boolean demoMode) {
         this.demoMode = demoMode;
     }
+
+
 
 
 }
