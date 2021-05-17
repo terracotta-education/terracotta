@@ -1,6 +1,9 @@
 package edu.iu.terracotta.controller.app;
 
+import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.exceptions.ExposureNotMatchingException;
 import edu.iu.terracotta.model.app.Exposure;
 import edu.iu.terracotta.model.app.dto.ExposureDto;
 import edu.iu.terracotta.model.oauth2.SecurityInfo;
@@ -41,14 +44,13 @@ public class ExposureController {
     @Autowired
     ExperimentService experimentService;
 
-    @RequestMapping(value = "/{experiment_id}/exposures/", method = RequestMethod.GET, produces = "application/json")
+    @RequestMapping(value = "/{experiment_id}/exposures", method = RequestMethod.GET, produces = "application/json")
     @ResponseBody
-    public ResponseEntity<List<ExposureDto>> allExposuresByExperiment(@PathVariable("experiment_id") Long experimentId, HttpServletRequest req) {
+    public ResponseEntity<List<ExposureDto>> allExposuresByExperiment(@PathVariable("experiment_id") Long experimentId,
+                                                                      HttpServletRequest req)
+            throws ExperimentNotMatchingException, BadTokenException {
         SecurityInfo securityInfo = apijwtService.extractValues(req,false);
-        if(securityInfo==null){
-            log.error(TextConstants.BAD_TOKEN);
-            return new ResponseEntity(TextConstants.BAD_TOKEN, HttpStatus.UNAUTHORIZED);
-        }
+        apijwtService.experimentAllowed(securityInfo, experimentId);
 
         //TODO should this be Learner or higher? Is there a reason a student would need to see exposure type?
         if(apijwtService.isLearnerOrHigher(securityInfo)) {
@@ -67,15 +69,16 @@ public class ExposureController {
         }
     }
 
-    @RequestMapping(value = "/{experiment_id}/exposures/{id}", method = RequestMethod.GET, produces = "application/json")
+    @RequestMapping(value = "/{experiment_id}/exposures/{exposure_id}", method = RequestMethod.GET, produces = "application/json")
     @ResponseBody
-    public ResponseEntity<ExposureDto> getExposure(@PathVariable("experiment_id") long experimentId, @PathVariable("id") long exposureId, HttpServletRequest req) {
+    public ResponseEntity<ExposureDto> getExposure(@PathVariable("experiment_id") long experimentId,
+                                                   @PathVariable("exposure_id") long exposureId,
+                                                   HttpServletRequest req)
+            throws ExperimentNotMatchingException, BadTokenException, ExposureNotMatchingException {
 
         SecurityInfo securityInfo = apijwtService.extractValues(req,false);
-        if(securityInfo==null){
-            log.error(TextConstants.BAD_TOKEN);
-            return new ResponseEntity(TextConstants.BAD_TOKEN, HttpStatus.UNAUTHORIZED);
-        }
+        apijwtService.experimentAllowed(securityInfo, experimentId);
+        apijwtService.exposureAllowed(securityInfo, experimentId, exposureId);
 
         if(apijwtService.isLearnerOrHigher(securityInfo)) {
             Optional<Exposure> exposure = exposureService.findOneByExposureId(exposureId);
@@ -92,19 +95,16 @@ public class ExposureController {
         }
     }
 
-    @RequestMapping(value = "/{experiment_id}/exposures/", method = RequestMethod.POST)
-    public ResponseEntity<ExposureDto> postExposure(@PathVariable("experiment_id") Long experimentId, @RequestBody ExposureDto exposureDto, UriComponentsBuilder ucBuilder, HttpServletRequest req) {
+    @RequestMapping(value = "/{experiment_id}/exposures", method = RequestMethod.POST)
+    public ResponseEntity<ExposureDto> postExposure(@PathVariable("experiment_id") Long experimentId,
+                                                    @RequestBody ExposureDto exposureDto,
+                                                    UriComponentsBuilder ucBuilder,
+                                                    HttpServletRequest req)
+            throws ExperimentNotMatchingException, BadTokenException {
 
         log.info("Creating Exposure : {}", exposureDto);
         SecurityInfo securityInfo = apijwtService.extractValues(req,false);
-        if(securityInfo==null){
-            log.error(TextConstants.BAD_TOKEN);
-            return new ResponseEntity(TextConstants.BAD_TOKEN, HttpStatus.UNAUTHORIZED);
-        }
-
-        if (!experimentService.experimentBelongsToDeploymentAndCourse(experimentId, securityInfo.getPlatformDeploymentId(), securityInfo.getContextId())){
-            return new ResponseEntity(TextConstants.EXPERIMENT_NOT_MATCHING , HttpStatus.UNAUTHORIZED);
-        }
+        apijwtService.experimentAllowed(securityInfo, experimentId);
 
         if(apijwtService.isInstructorOrHigher(securityInfo)) {
             if(exposureDto.getExposureId() != null) {
@@ -131,30 +131,24 @@ public class ExposureController {
         }
     }
 
-    @RequestMapping(value = "/{experiment_id}/exposures/{id}", method = RequestMethod.PUT)
-    public ResponseEntity<Void> updateExposure(@PathVariable("experiment_id") Long experimentId, @PathVariable("id") Long id, @RequestBody ExposureDto exposureDto, HttpServletRequest req) {
+    @RequestMapping(value = "/{experiment_id}/exposures/{exposure_id}", method = RequestMethod.PUT)
+    public ResponseEntity<Void> updateExposure(@PathVariable("experiment_id") Long experimentId,
+                                               @PathVariable("exposure_id") Long exposureId,
+                                               @RequestBody ExposureDto exposureDto,
+                                               HttpServletRequest req)
+            throws ExperimentNotMatchingException, BadTokenException, ExposureNotMatchingException {
 
-        log.info("Updating exposure with id {}", id);
+        log.info("Updating exposure with id {}", exposureId);
         SecurityInfo securityInfo = apijwtService.extractValues(req,false);
-        if(securityInfo==null){
-            log.error(TextConstants.BAD_TOKEN);
-            return new ResponseEntity(TextConstants.BAD_TOKEN, HttpStatus.UNAUTHORIZED);
-        }
-
-        if (!experimentService.experimentBelongsToDeploymentAndCourse(experimentId, securityInfo.getPlatformDeploymentId(), securityInfo.getContextId())){
-            return new ResponseEntity(TextConstants.EXPERIMENT_NOT_MATCHING , HttpStatus.UNAUTHORIZED);
-        }
-
-        if(!exposureService.exposureBelongsToExperiment(experimentId,id)) {
-            return new ResponseEntity("You do not have permission to change this experiment", HttpStatus.UNAUTHORIZED);
-        }
+        apijwtService.experimentAllowed(securityInfo, experimentId);
+        apijwtService.exposureAllowed(securityInfo, experimentId, exposureId);
 
         if(apijwtService.isInstructorOrHigher(securityInfo)) {
-            Optional<Exposure> exposureSearchResult = exposureService.findById(id);
+            Optional<Exposure> exposureSearchResult = exposureService.findById(exposureId);
 
             if(!exposureSearchResult.isPresent()) {
-                log.error("Unable to update. Exposure with id {} not found.", id);
-                return new ResponseEntity("Unable to update. Exposure with id  " + id + TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
+                log.error("Unable to update. Exposure with id {} not found.", exposureId);
+                return new ResponseEntity("Unable to update. Exposure with id  " + exposureId + TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
             }
             Exposure exposureToChange = exposureSearchResult.get();
             exposureToChange.setTitle(exposureDto.getTitle());
@@ -166,23 +160,19 @@ public class ExposureController {
         }
     }
 
-    @RequestMapping(value = "/{experiment_id}/exposures/{id}", method = RequestMethod.DELETE)
-    public ResponseEntity<Void> deleteExposure(@PathVariable("experiment_id") Long experimentId, @PathVariable("id") Long id, HttpServletRequest req) {
+    @RequestMapping(value = "/{experiment_id}/exposures/{exposure_id}", method = RequestMethod.DELETE)
+    public ResponseEntity<Void> deleteExposure(@PathVariable("experiment_id") Long experimentId,
+                                               @PathVariable("exposure_id") Long exposureId,
+                                               HttpServletRequest req)
+            throws ExperimentNotMatchingException, BadTokenException, ExposureNotMatchingException {
 
         SecurityInfo securityInfo = apijwtService.extractValues(req,false);
-        if(securityInfo==null){
-            log.error(TextConstants.BAD_TOKEN);
-            return new ResponseEntity(TextConstants.BAD_TOKEN, HttpStatus.UNAUTHORIZED);
-        }
-        if (!experimentService.experimentBelongsToDeploymentAndCourse(experimentId, securityInfo.getPlatformDeploymentId(), securityInfo.getContextId())){
-            return new ResponseEntity(TextConstants.EXPERIMENT_NOT_MATCHING , HttpStatus.UNAUTHORIZED);
-        }
-        if(!exposureService.exposureBelongsToExperiment(experimentId, id)) {
-            return new ResponseEntity("You do not have permission to delete this experiment", HttpStatus.UNAUTHORIZED);
-        }
+        apijwtService.experimentAllowed(securityInfo, experimentId);
+        apijwtService.exposureAllowed(securityInfo, experimentId, exposureId);
+
         if(apijwtService.isInstructorOrHigher(securityInfo)) {
             try{
-                exposureService.deleteById(id);
+                exposureService.deleteById(exposureId);
                 return new ResponseEntity<>(HttpStatus.OK);
             } catch (EmptyResultDataAccessException ex) {
                 log.error(ex.getMessage());

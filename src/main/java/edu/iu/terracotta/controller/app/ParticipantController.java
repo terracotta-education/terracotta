@@ -1,6 +1,9 @@
 package edu.iu.terracotta.controller.app;
 
+import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
 import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.dto.ParticipantDto;
 import edu.iu.terracotta.model.oauth2.SecurityInfo;
@@ -51,18 +54,14 @@ public class ParticipantController {
     /**
      * To show the experiment in a course (context) in a platform deployment.
      */
-    @RequestMapping(value = "/{experimentId}/participants/", method = RequestMethod.GET, produces = "application/json;")
+    @RequestMapping(value = "/{experimentId}/participants", method = RequestMethod.GET, produces = "application/json;")
     @ResponseBody
-    public ResponseEntity<List<ParticipantDto>> allParticipantsByExperiment(@PathVariable("experimentId") long experimentId, HttpServletRequest req) {
+    public ResponseEntity<List<ParticipantDto>> allParticipantsByExperiment(@PathVariable("experimentId") long experimentId,
+                                                                            HttpServletRequest req)
+            throws ExperimentNotMatchingException, BadTokenException {
 
         SecurityInfo securityInfo = apijwtService.extractValues(req,false);
-        if (securityInfo==null){
-            log.error(TextConstants.BAD_TOKEN);
-            return new ResponseEntity(TextConstants.BAD_TOKEN, HttpStatus.UNAUTHORIZED);
-        }
-        if (!experimentService.experimentBelongsToDeploymentAndCourse(experimentId, securityInfo.getPlatformDeploymentId(), securityInfo.getContextId())){
-            return new ResponseEntity(TextConstants.EXPERIMENT_NOT_MATCHING , HttpStatus.UNAUTHORIZED);
-        }
+        apijwtService.experimentAllowed(securityInfo, experimentId);
 
         if (apijwtService.isLearnerOrHigher(securityInfo)) {
             List<Participant> participantList =
@@ -84,29 +83,27 @@ public class ParticipantController {
     /**
      * To show the an specific experiment.
      */
-    @RequestMapping(value = "/{experimentId}/participants/{id}", method = RequestMethod.GET, produces = "application/json;")
+    @RequestMapping(value = "/{experimentId}/participants/{participant_id}", method = RequestMethod.GET, produces = "application/json;")
     @ResponseBody
-    public ResponseEntity<ParticipantDto> getExperiment(@PathVariable("experimentId") long experimentId, @PathVariable("id") long id, HttpServletRequest req) {
+    public ResponseEntity<ParticipantDto> getExperiment(@PathVariable("experimentId") long experimentId,
+                                                        @PathVariable("participant_id") long participantId,
+                                                        HttpServletRequest req)
+            throws ExperimentNotMatchingException, BadTokenException, ParticipantNotMatchingException {
 
         SecurityInfo securityInfo = apijwtService.extractValues(req,false);
-        if (securityInfo==null){
-            log.error(TextConstants.BAD_TOKEN);
-            return new ResponseEntity(TextConstants.BAD_TOKEN, HttpStatus.UNAUTHORIZED);
-        }
-
-        if (!experimentService.experimentBelongsToDeploymentAndCourse(experimentId, securityInfo.getPlatformDeploymentId(), securityInfo.getContextId())){
-            return new ResponseEntity(TextConstants.EXPERIMENT_NOT_MATCHING , HttpStatus.UNAUTHORIZED);
-        }
+        apijwtService.experimentAllowed(securityInfo, experimentId);
+        apijwtService.participantAllowed(securityInfo, experimentId, participantId);
 
         if (apijwtService.isLearnerOrHigher(securityInfo)) {
 
-            Optional<Participant> participantSearchResult = participantService.findById(id);
+            Optional<Participant> participantSearchResult = participantService.findById(participantId);
 
             if (!participantSearchResult.isPresent()) {
-                log.error("participant in platform {} and context {} and experiment {} with id {} not found.", securityInfo.getPlatformDeploymentId(), securityInfo.getContextId(), experimentId, id);
+                log.error("participant in platform {} and context {} and experiment {} with id {} not found.",
+                        securityInfo.getPlatformDeploymentId(), securityInfo.getContextId(), experimentId, participantId);
 
                 return new ResponseEntity("participant in platform " + securityInfo.getPlatformDeploymentId()
-                        + " and context " + securityInfo.getContextId() + " experiment with id " + experimentId + " with id " + id
+                        + " and context " + securityInfo.getContextId() + " experiment with id " + experimentId + " with id " + participantId
                         + TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
             } else {
                 ParticipantDto participantDto = participantService.toDto(participantSearchResult.get());
@@ -117,18 +114,15 @@ public class ParticipantController {
         }
     }
 
-    @RequestMapping(value = "/{experimentId}/participants/", method = RequestMethod.POST)
-    public ResponseEntity<ParticipantDto> postExperiment(@PathVariable("experimentId") long experimentId, @RequestBody ParticipantDto participantDto, UriComponentsBuilder ucBuilder, HttpServletRequest req) {
+    @RequestMapping(value = "/{experimentId}/participants", method = RequestMethod.POST)
+    public ResponseEntity<ParticipantDto> postExperiment(@PathVariable("experimentId") long experimentId,
+                                                         @RequestBody ParticipantDto participantDto,
+                                                         UriComponentsBuilder ucBuilder,
+                                                         HttpServletRequest req)
+            throws ExperimentNotMatchingException, BadTokenException {
 
         SecurityInfo securityInfo = apijwtService.extractValues(req,false);
-        if (securityInfo==null){
-            log.error(TextConstants.BAD_TOKEN);
-            return new ResponseEntity(TextConstants.BAD_TOKEN, HttpStatus.UNAUTHORIZED);
-        }
-
-        if (!experimentService.experimentBelongsToDeploymentAndCourse(experimentId, securityInfo.getPlatformDeploymentId(), securityInfo.getContextId())){
-            return new ResponseEntity(TextConstants.EXPERIMENT_NOT_MATCHING , HttpStatus.UNAUTHORIZED);
-        }
+        apijwtService.experimentAllowed(securityInfo, experimentId);
 
         if (apijwtService.isLearnerOrHigher(securityInfo)) {
 
@@ -161,26 +155,24 @@ public class ParticipantController {
     }
 
 
-    @RequestMapping(value = "/{experimentId}/participants/{id}", method = RequestMethod.PUT)
-    public ResponseEntity<Void> updateParticipant(@PathVariable("experimentId") long experimentId, @PathVariable("id") Long id, @RequestBody ParticipantDto participantDto, HttpServletRequest req) {
-        log.info("Updating Participant with id {}", id);
+    @RequestMapping(value = "/{experimentId}/participants/{participant_id}", method = RequestMethod.PUT)
+    public ResponseEntity<Void> updateParticipant(@PathVariable("experimentId") long experimentId,
+                                                  @PathVariable("participant_id") Long participantId,
+                                                  @RequestBody ParticipantDto participantDto,
+                                                  HttpServletRequest req)
+            throws ExperimentNotMatchingException, BadTokenException, ParticipantNotMatchingException {
+        log.info("Updating Participant with id {}", participantId);
         SecurityInfo securityInfo = apijwtService.extractValues(req,false);
-        if (securityInfo==null){
-            log.error(TextConstants.BAD_TOKEN);
-            return new ResponseEntity(TextConstants.BAD_TOKEN, HttpStatus.UNAUTHORIZED);
-        }
-
-        if (!experimentService.experimentBelongsToDeploymentAndCourse(experimentId, securityInfo.getPlatformDeploymentId(), securityInfo.getContextId())){
-            return new ResponseEntity(TextConstants.EXPERIMENT_NOT_MATCHING , HttpStatus.UNAUTHORIZED);
-        }
+        apijwtService.experimentAllowed(securityInfo, experimentId);
+        apijwtService.participantAllowed(securityInfo, experimentId, participantId);
 
         if (apijwtService.isLearnerOrHigher(securityInfo)) {
 
-            Optional<Participant> participantSearchResult = participantService.findById(id);
+            Optional<Participant> participantSearchResult = participantService.findById(participantId);
 
             if (!participantSearchResult.isPresent()) {
-                log.error("Unable to update. Participant with id {} not found.", id);
-                return new ResponseEntity("Unable to update. Participant with id " + id + TextConstants.NOT_FOUND_SUFFIX,
+                log.error("Unable to update. Participant with id {} not found.", participantId);
+                return new ResponseEntity("Unable to update. Participant with id " + participantId + TextConstants.NOT_FOUND_SUFFIX,
                         HttpStatus.NOT_FOUND);
             }
             Participant participantToChange = participantSearchResult.get();
@@ -198,22 +190,19 @@ public class ParticipantController {
         }
     }
 
-    @RequestMapping(value = "/{experimentId}/participants/{id}", method = RequestMethod.DELETE)
-    public ResponseEntity<Void> deleteParticipant(@PathVariable("experimentId") long experimentId, @PathVariable("id") Long id, HttpServletRequest req) {
+    @RequestMapping(value = "/{experimentId}/participants/{participant_id}", method = RequestMethod.DELETE)
+    public ResponseEntity<Void> deleteParticipant(@PathVariable("experimentId") long experimentId,
+                                                  @PathVariable("participant_id") Long participantId,
+                                                  HttpServletRequest req)
+            throws ExperimentNotMatchingException, BadTokenException, ParticipantNotMatchingException {
 
         SecurityInfo securityInfo = apijwtService.extractValues(req,false);
-        if (securityInfo==null){
-            log.error(TextConstants.BAD_TOKEN);
-            return new ResponseEntity(TextConstants.BAD_TOKEN, HttpStatus.UNAUTHORIZED);
-        }
-
-        if (!experimentService.experimentBelongsToDeploymentAndCourse(experimentId, securityInfo.getPlatformDeploymentId(), securityInfo.getContextId())){
-            return new ResponseEntity(TextConstants.EXPERIMENT_NOT_MATCHING , HttpStatus.UNAUTHORIZED);
-        }
+        apijwtService.experimentAllowed(securityInfo, experimentId);
+        apijwtService.participantAllowed(securityInfo, experimentId, participantId);
 
         if (apijwtService.isLearnerOrHigher(securityInfo)) {
             try {
-                participantService.deleteById(id);
+                participantService.deleteById(participantId);
                 return new ResponseEntity<>(HttpStatus.OK);
             } catch (EmptyResultDataAccessException ex) {
                 log.error(ex.getMessage());

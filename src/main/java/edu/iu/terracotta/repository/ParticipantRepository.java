@@ -11,4 +11,8 @@ public interface ParticipantRepository extends JpaRepository<Participant, Long> 
       Long experimentId);
 
   Participant findByParticipantIdAndExperiment_ExperimentId(Long participantId, Long experimentId);
+
+  boolean existsByExperiment_ExperimentIdAndParticipantId(Long experimentId, Long participantId);
+
+
 }

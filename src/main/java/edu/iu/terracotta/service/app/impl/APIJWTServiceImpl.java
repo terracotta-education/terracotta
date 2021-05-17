@@ -13,10 +13,18 @@
 package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.exceptions.BadTokenException;
+import edu.iu.terracotta.exceptions.ConditionNotMatchingException;
+import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.exceptions.ExposureNotMatchingException;
+import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
 import edu.iu.terracotta.model.oauth2.Roles;
 import edu.iu.terracotta.model.oauth2.SecurityInfo;
 import edu.iu.terracotta.service.app.APIDataService;
 import edu.iu.terracotta.service.app.APIJWTService;
+import edu.iu.terracotta.service.app.ConditionService;
+import edu.iu.terracotta.service.app.ExperimentService;
+import edu.iu.terracotta.service.app.ExposureService;
+import edu.iu.terracotta.service.app.ParticipantService;
 import edu.iu.terracotta.service.lti.LTIDataService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
@@ -31,7 +39,6 @@ import org.apache.commons.lang3.time.DateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -57,6 +64,18 @@ public class APIJWTServiceImpl implements APIJWTService {
 
     @Autowired
     APIDataService apiDataService;
+
+    @Autowired
+    ExperimentService experimentService;
+
+    @Autowired
+    ConditionService conditionService;
+
+    @Autowired
+    ParticipantService participantService;
+
+    @Autowired
+    ExposureService exposureService;
 
     private static final String JWT_REQUEST_HEADER_NAME = "Authorization";
     private static final String JWT_BEARER_TYPE = "Bearer";
@@ -227,5 +246,38 @@ public class APIJWTServiceImpl implements APIJWTService {
     private boolean isBearerToken(String rawHeaderValue) {
         return rawHeaderValue.toLowerCase().startsWith(JWT_BEARER_TYPE.toLowerCase());
     }
+
+    @Override
+    public void experimentAllowed(SecurityInfo securityInfo, Long experimentId) throws BadTokenException, ExperimentNotMatchingException {
+        if (securityInfo==null){
+            log.error(TextConstants.BAD_TOKEN);
+            throw new BadTokenException(TextConstants.BAD_TOKEN);
+        }
+        if (!experimentService.experimentBelongsToDeploymentAndCourse(experimentId, securityInfo.getPlatformDeploymentId(), securityInfo.getContextId())){
+            throw new ExperimentNotMatchingException(TextConstants.EXPERIMENT_NOT_MATCHING);
+        }
+    }
+
+    @Override
+    public void conditionAllowed(SecurityInfo securityInfo, Long experimentId, Long conditionId) throws ConditionNotMatchingException {
+        if(!conditionService.conditionBelongsToExperiment(experimentId, conditionId)) {
+            throw new ConditionNotMatchingException(TextConstants.CONDITION_NOT_MATCHING);
+        }
+    }
+
+    @Override
+    public void participantAllowed(SecurityInfo securityInfo, Long experimentId, Long participantId) throws ParticipantNotMatchingException {
+        if(!participantService.participantBelongsToExperiment(experimentId, participantId)) {
+            throw new ParticipantNotMatchingException(TextConstants.PARTICIPANT_NOT_MATCHING);
+        }
+    }
+
+    @Override
+    public void exposureAllowed(SecurityInfo securityInfo, Long experimentId, Long exposureId) throws ExposureNotMatchingException {
+        if(!exposureService.exposureBelongsToExperiment(experimentId, exposureId)) {
+            throw new ExposureNotMatchingException(TextConstants.EXPOSURE_NOT_MATCHING);
+        }
+    }
+
 
 }

@@ -1,6 +1,8 @@
 package edu.iu.terracotta.controller.app;
 
+import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.dto.ExperimentDto;
 import edu.iu.terracotta.model.app.enumerator.DistributionTypes;
@@ -50,14 +52,13 @@ public class ExperimentController {
     /**
      * To show the experiment in a course (context) in a platform deployment.
      */
-    @RequestMapping(value = "/", method = RequestMethod.GET, produces = "application/json;")
+    @RequestMapping(value = "", method = RequestMethod.GET, produces = "application/json;")
     @ResponseBody
-    public ResponseEntity<List<ExperimentDto>> allExperimentsByCourse(HttpServletRequest req) {
+    public ResponseEntity<List<ExperimentDto>> allExperimentsByCourse(HttpServletRequest req) throws BadTokenException {
 
         SecurityInfo securityInfo = apijwtService.extractValues(req,false);
         if (securityInfo==null){
-            log.error(TextConstants.BAD_TOKEN);
-            return new ResponseEntity(TextConstants.BAD_TOKEN, HttpStatus.UNAUTHORIZED);
+            throw new BadTokenException(TextConstants.BAD_TOKEN);
         }
 
         if (apijwtService.isLearnerOrHigher(securityInfo)) {
@@ -83,15 +84,15 @@ public class ExperimentController {
      */
     @RequestMapping(value = "/{id}", method = RequestMethod.GET, produces = "application/json;")
     @ResponseBody
-    public ResponseEntity<ExperimentDto> getExperiment(@PathVariable("id") long id, @RequestParam(name = "conditions", defaultValue = "false") boolean conditions,
+    public ResponseEntity<ExperimentDto> getExperiment(@PathVariable("id") long id,
+                                                       @RequestParam(name = "conditions", defaultValue = "false") boolean conditions,
                                                        @RequestParam(name = "exposures", defaultValue = "false") boolean exposures,
-                                                       @RequestParam(name = "participants", defaultValue = "false") boolean participants, HttpServletRequest req) {
+                                                       @RequestParam(name = "participants", defaultValue = "false") boolean participants,
+                                                       HttpServletRequest req)
+            throws ExperimentNotMatchingException, BadTokenException {
 
         SecurityInfo securityInfo = apijwtService.extractValues(req,false);
-        if (securityInfo==null){
-            log.error(TextConstants.BAD_TOKEN);
-            return new ResponseEntity(TextConstants.BAD_TOKEN, HttpStatus.UNAUTHORIZED);
-        }
+        apijwtService.experimentAllowed(securityInfo, id);
 
         if (apijwtService.isLearnerOrHigher(securityInfo)) {
             Optional<Experiment> experiment =
@@ -122,13 +123,15 @@ public class ExperimentController {
         }
     }
 
-    @RequestMapping(value = "/", method = RequestMethod.POST)
-    public ResponseEntity<ExperimentDto> postExperiment(@RequestBody ExperimentDto experimentDto, UriComponentsBuilder ucBuilder, HttpServletRequest req) {
+    @RequestMapping(value = "", method = RequestMethod.POST)
+    public ResponseEntity<ExperimentDto> postExperiment(@RequestBody ExperimentDto experimentDto,
+                                                        UriComponentsBuilder ucBuilder,
+                                                        HttpServletRequest req)
+            throws BadTokenException {
         log.debug("Creating Experiment : {}", experimentDto);
         SecurityInfo securityInfo = apijwtService.extractValues(req,false);
         if (securityInfo==null){
-            log.error(TextConstants.BAD_TOKEN);
-            return new ResponseEntity(TextConstants.BAD_TOKEN, HttpStatus.UNAUTHORIZED);
+            throw new BadTokenException(TextConstants.BAD_TOKEN);
         }
 
         if (apijwtService.isInstructorOrHigher(securityInfo)) {
@@ -165,16 +168,14 @@ public class ExperimentController {
 
 
     @RequestMapping(value = "/{id}", method = RequestMethod.PUT)
-    public ResponseEntity<Void> updateExperiment(@PathVariable("id") Long id, @RequestBody ExperimentDto experimentDto, HttpServletRequest req) {
+    public ResponseEntity<Void> updateExperiment(@PathVariable("id") Long id,
+                                                 @RequestBody ExperimentDto experimentDto,
+                                                 HttpServletRequest req)
+            throws ExperimentNotMatchingException, BadTokenException {
         log.info("Updating Experiment with id {}", id);
         SecurityInfo securityInfo = apijwtService.extractValues(req,false);
-        if (securityInfo==null){
-            log.error(TextConstants.BAD_TOKEN);
-            return new ResponseEntity(TextConstants.BAD_TOKEN, HttpStatus.UNAUTHORIZED);
-        }
-        if (!experimentService.experimentBelongsToDeploymentAndCourse(id, securityInfo.getPlatformDeploymentId(), securityInfo.getContextId())){
-            return new ResponseEntity("No permissions to change this experiment" , HttpStatus.UNAUTHORIZED);
-        }
+        apijwtService.experimentAllowed(securityInfo, id);
+
         if (apijwtService.isInstructorOrHigher(securityInfo)) {
             Optional<Experiment> experimentSearchResult = experimentService.findById(id);
 
@@ -212,15 +213,12 @@ public class ExperimentController {
     }
 
     @RequestMapping(value = "/{id}", method = RequestMethod.DELETE)
-    public ResponseEntity<Void> deleteExperiment(@PathVariable("id") Long id, HttpServletRequest req) {
+    public ResponseEntity<Void> deleteExperiment(@PathVariable("id") Long id,
+                                                 HttpServletRequest req)
+            throws ExperimentNotMatchingException, BadTokenException {
         SecurityInfo securityInfo = apijwtService.extractValues(req,false);
-        if (securityInfo==null){
-            log.error(TextConstants.BAD_TOKEN);
-            return new ResponseEntity(TextConstants.BAD_TOKEN, HttpStatus.UNAUTHORIZED);
-        }
-        if (!experimentService.experimentBelongsToDeploymentAndCourse(id, securityInfo.getPlatformDeploymentId(), securityInfo.getContextId())){
-            return new ResponseEntity("No permissions to delete this experiment" , HttpStatus.UNAUTHORIZED);
-        }
+        apijwtService.experimentAllowed(securityInfo, id);
+
         if (apijwtService.isInstructorOrHigher(securityInfo)) {
             try {
                 experimentService.deleteById(id);

@@ -21,4 +21,6 @@ public interface ParticipantService {
     Participant save(Participant participant);
 
     void deleteById(Long id);
+
+    boolean participantBelongsToExperiment(Long experimentId, Long participantId);
 }

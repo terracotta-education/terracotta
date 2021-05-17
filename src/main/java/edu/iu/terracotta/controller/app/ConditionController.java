@@ -1,6 +1,9 @@
 package edu.iu.terracotta.controller.app;
 
+import edu.iu.terracotta.exceptions.BadTokenException;
+import edu.iu.terracotta.exceptions.ConditionNotMatchingException;
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.model.app.Condition;
 import edu.iu.terracotta.model.app.dto.ConditionDto;
 import edu.iu.terracotta.model.oauth2.SecurityInfo;
@@ -41,15 +44,14 @@ public class ConditionController {
     @Autowired
     ExperimentService experimentService;
 
-    @RequestMapping(value = "/{experiment_id}/conditions/", method = RequestMethod.GET, produces = "application/json")
+    @RequestMapping(value = "/{experiment_id}/conditions", method = RequestMethod.GET, produces = "application/json")
     @ResponseBody
-    public ResponseEntity<List<ConditionDto>> allConditionsByExperiment(@PathVariable("experiment_id") Long experimentId, HttpServletRequest req) {
+    public ResponseEntity<List<ConditionDto>> allConditionsByExperiment(@PathVariable("experiment_id") Long experimentId,
+                                                                        HttpServletRequest req)
+            throws ExperimentNotMatchingException, BadTokenException {
 
         SecurityInfo securityInfo = apijwtService.extractValues(req,false);
-        if(securityInfo == null){
-            log.error(TextConstants.BAD_TOKEN);
-            return new ResponseEntity(TextConstants.BAD_TOKEN, HttpStatus.UNAUTHORIZED);
-        }
+        apijwtService.experimentAllowed(securityInfo, experimentId);
 
         if(apijwtService.isLearnerOrHigher(securityInfo)) {
             List<Condition> conditionList =
@@ -67,15 +69,16 @@ public class ConditionController {
         }
     }
 
-    @RequestMapping(value = "/{experiment_id}/conditions/{id}", method = RequestMethod.GET, produces = "application/json")
+    @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}", method = RequestMethod.GET, produces = "application/json")
     @ResponseBody
-    public ResponseEntity<ConditionDto> getCondition(@PathVariable("experiment_id") long experimentId, @PathVariable("id") long conditionId, HttpServletRequest req) {
+    public ResponseEntity<ConditionDto> getCondition(@PathVariable("experiment_id") long experimentId,
+                                                     @PathVariable("condition_id") long conditionId,
+                                                     HttpServletRequest req)
+            throws ExperimentNotMatchingException, BadTokenException, ConditionNotMatchingException {
 
         SecurityInfo securityInfo = apijwtService.extractValues(req,false);
-        if(securityInfo==null){
-            log.error(TextConstants.BAD_TOKEN);
-            return new ResponseEntity(TextConstants.BAD_TOKEN, HttpStatus.UNAUTHORIZED);
-        }
+        apijwtService.experimentAllowed(securityInfo, experimentId);
+        apijwtService.conditionAllowed(securityInfo, experimentId, conditionId);
 
         if(apijwtService.isLearnerOrHigher(securityInfo)){
             Optional<Condition> condition = conditionService.findOneByConditionId(conditionId);
@@ -92,19 +95,17 @@ public class ConditionController {
         }
     }
 
-    @RequestMapping(value = "/{experiment_id}/conditions/", method = RequestMethod.POST)
-    public ResponseEntity<ConditionDto> postCondition(@PathVariable("experiment_id") Long experimentId, @RequestBody ConditionDto conditionDto, UriComponentsBuilder ucBuilder, HttpServletRequest req) {
+    @RequestMapping(value = "/{experiment_id}/conditions", method = RequestMethod.POST)
+    public ResponseEntity<ConditionDto> postCondition(@PathVariable("experiment_id") Long experimentId,
+                                                      @RequestBody ConditionDto conditionDto,
+                                                      UriComponentsBuilder ucBuilder,
+                                                      HttpServletRequest req)
+            throws ExperimentNotMatchingException, BadTokenException {
 
         log.info("Creating Condition : {}", conditionDto);
         SecurityInfo securityInfo = apijwtService.extractValues(req,false);
-        if(securityInfo==null){
-            log.error(TextConstants.BAD_TOKEN);
-            return new ResponseEntity(TextConstants.BAD_TOKEN, HttpStatus.UNAUTHORIZED);
-        }
+        apijwtService.experimentAllowed(securityInfo, experimentId);
 
-        if (!experimentService.experimentBelongsToDeploymentAndCourse(experimentId, securityInfo.getPlatformDeploymentId(), securityInfo.getContextId())){
-            return new ResponseEntity(TextConstants.EXPERIMENT_NOT_MATCHING , HttpStatus.UNAUTHORIZED);
-        }
         if(apijwtService.isInstructorOrHigher(securityInfo)) {
             if (conditionDto.getConditionId() != null){
                 log.error(TextConstants.ID_IN_POST_ERROR);
@@ -123,7 +124,7 @@ public class ConditionController {
             ConditionDto returnedDto = conditionService.toDto(conditionSaved);
 
             HttpHeaders headers = new HttpHeaders();
-            headers.setLocation(ucBuilder.path("/api/experiment/{experiment_id}/conditions/{id}").buildAndExpand(condition.getExperiment().getExperimentId(), condition.getConditionId()).toUri());
+            headers.setLocation(ucBuilder.path("/api/experiment/{experiment_id}/conditions/{condition_id}").buildAndExpand(condition.getExperiment().getExperimentId(), condition.getConditionId()).toUri());
             return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
         }else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
@@ -131,27 +132,23 @@ public class ConditionController {
     }
 
     @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}", method = RequestMethod.PUT)
-    public ResponseEntity<Void> updateCondition(@PathVariable("experiment_id") Long experimentId, @PathVariable("condition_id") Long id, @RequestBody ConditionDto conditionDto, HttpServletRequest req) {
+    public ResponseEntity<Void> updateCondition(@PathVariable("experiment_id") Long experimentId,
+                                                @PathVariable("condition_id") Long conditionId,
+                                                @RequestBody ConditionDto conditionDto,
+                                                HttpServletRequest req)
+            throws ExperimentNotMatchingException, BadTokenException, ConditionNotMatchingException {
 
-        log.info("Updating condition with id {}", id);
+        log.info("Updating condition with id {}", conditionId);
         SecurityInfo securityInfo = apijwtService.extractValues(req,false);
-        if(securityInfo==null){
-            log.error(TextConstants.BAD_TOKEN);
-            return new ResponseEntity(TextConstants.BAD_TOKEN, HttpStatus.UNAUTHORIZED);
-        }
+        apijwtService.experimentAllowed(securityInfo, experimentId);
+        apijwtService.conditionAllowed(securityInfo, experimentId, conditionId);
 
-        if (!experimentService.experimentBelongsToDeploymentAndCourse(experimentId, securityInfo.getPlatformDeploymentId(), securityInfo.getContextId())){
-            return new ResponseEntity(TextConstants.EXPERIMENT_NOT_MATCHING , HttpStatus.UNAUTHORIZED);
-        }
-        if(!conditionService.conditionBelongsToExperiment(experimentId, id)) {
-            return new ResponseEntity("No permission to change this condition", HttpStatus.UNAUTHORIZED);
-        }
         if(apijwtService.isInstructorOrHigher(securityInfo)) {
-            Optional<Condition> conditionSearchResult = conditionService.findById(id);
+            Optional<Condition> conditionSearchResult = conditionService.findById(conditionId);
 
             if(!conditionSearchResult.isPresent()) {
-                log.error("Unable to update. Condition with id {} not found.", id);
-                return new ResponseEntity("Unable to update, Condition with id " + id + TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
+                log.error("Unable to update. Condition with id {} not found.", conditionId);
+                return new ResponseEntity("Unable to update, Condition with id " + conditionId + TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
             }
             Condition conditionToChange = conditionSearchResult.get();
             conditionToChange.setName(conditionDto.getName());
@@ -165,22 +162,18 @@ public class ConditionController {
         }
     }
 
-    @RequestMapping(value = "/{experiment_id}/conditions/{id}", method = RequestMethod.DELETE)
-    public ResponseEntity<Void> deleteExperiment(@PathVariable("experiment_id") Long experimentId, @PathVariable("id") Long id, HttpServletRequest req) {
+    @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}", method = RequestMethod.DELETE)
+    public ResponseEntity<Void> deleteExperiment(@PathVariable("experiment_id") Long experimentId,
+                                                 @PathVariable("condition_id") Long conditionId,
+                                                 HttpServletRequest req)
+            throws ExperimentNotMatchingException, BadTokenException, ConditionNotMatchingException {
         SecurityInfo securityInfo = apijwtService.extractValues(req,false);
-        if(securityInfo==null){
-            log.error(TextConstants.BAD_TOKEN);
-            return new ResponseEntity(TextConstants.BAD_TOKEN, HttpStatus.UNAUTHORIZED);
-        }
-        if (!experimentService.experimentBelongsToDeploymentAndCourse(experimentId, securityInfo.getPlatformDeploymentId(), securityInfo.getContextId())){
-            return new ResponseEntity(TextConstants.EXPERIMENT_NOT_MATCHING , HttpStatus.UNAUTHORIZED);
-        }
-        if(!conditionService.conditionBelongsToExperiment(experimentId, id)) {
-            return new ResponseEntity("No permission to delete this experiment", HttpStatus.UNAUTHORIZED);
-        }
+        apijwtService.experimentAllowed(securityInfo, experimentId);
+        apijwtService.conditionAllowed(securityInfo, experimentId, conditionId);
+
         if(apijwtService.isInstructorOrHigher(securityInfo)) {
             try {
-                conditionService.deleteById(id);
+                conditionService.deleteById(conditionId);
                 return new ResponseEntity<>(HttpStatus.OK);
             } catch (EmptyResultDataAccessException ex) {
                 log.error(ex.getMessage());

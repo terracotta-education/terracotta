@@ -97,4 +97,9 @@ public class ParticipantServiceImpl implements ParticipantService {
     public void deleteById(Long id) {
         allRepositories.participantRepository.deleteById(id);
     }
+
+    @Override
+    public boolean participantBelongsToExperiment(Long experimentId, Long participantId) {
+        return allRepositories.participantRepository.existsByExperiment_ExperimentIdAndParticipantId(experimentId,participantId);
+    }
 }
