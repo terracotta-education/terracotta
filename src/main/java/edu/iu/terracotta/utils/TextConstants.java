@@ -35,5 +35,8 @@ public class TextConstants {
     public static final String NOT_ENOUGH_PERMISSIONS = "Not enough permissions to access to this endpoint";
     public static final String BAD_TOKEN = "The token does not contain the expected information";
     public static final String ID_IN_POST_ERROR = "Unable to create. The POST endpoint does not accept objects with id";
-    public static final String EXPERIMENT_NOT_MATCHING = "The experiment that is being changed does not belong to current course.";
+    public static final String EXPERIMENT_NOT_MATCHING = "The experiment does not belong to the course defined in the JWT token.";
+    public static final String CONDITION_NOT_MATCHING = "The condition does not belong to experiment defined in the path.";
+    public static final String EXPOSURE_NOT_MATCHING = "The exposure does not belong to experiment defined in the path.";
+    public static final String PARTICIPANT_NOT_MATCHING = "The participant does not belong to experiment defined in the path.";
 }

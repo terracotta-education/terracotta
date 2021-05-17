@@ -1,6 +1,8 @@
 package edu.iu.terracotta.controller.app;
 
 import com.google.common.net.HttpHeaders;
+import edu.iu.terracotta.exceptions.BadTokenException;
+import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.app.MyFileNotFoundException;
 import edu.iu.terracotta.model.app.UploadFile;
 import edu.iu.terracotta.model.oauth2.SecurityInfo;
@@ -54,16 +56,13 @@ public class FileController {
 
     @RequestMapping(value = "/{experiment_id}/files", method = RequestMethod.POST, produces = "application/json")
     @ResponseBody
-    public ResponseEntity<List<UploadFile>> uploadFiles(@RequestParam("files") MultipartFile[] files, @PathVariable("experiment_id") long experimentId, HttpServletRequest req) {
+    public ResponseEntity<List<UploadFile>> uploadFiles(@RequestParam("files") MultipartFile[] files,
+                                                        @PathVariable("experiment_id") long experimentId,
+                                                        HttpServletRequest req)
+            throws ExperimentNotMatchingException, BadTokenException {
 
         SecurityInfo securityInfo = apijwtService.extractValues(req,false);
-        if (securityInfo==null){
-            log.error(TextConstants.BAD_TOKEN);
-            return new ResponseEntity(TextConstants.BAD_TOKEN, HttpStatus.UNAUTHORIZED);
-        }
-        if (!experimentService.experimentBelongsToDeploymentAndCourse(experimentId, securityInfo.getPlatformDeploymentId(), securityInfo.getContextId())){
-            return new ResponseEntity(TextConstants.EXPERIMENT_NOT_MATCHING , HttpStatus.UNAUTHORIZED);
-        }
+        apijwtService.experimentAllowed(securityInfo, experimentId);
 
         if (apijwtService.isLearnerOrHigher(securityInfo)) {
             return new ResponseEntity<>(Arrays.asList(files).stream().map(file -> uploadFile(file, "/" + experimentId)).collect(Collectors.toList()), HttpStatus.OK);
@@ -75,17 +74,13 @@ public class FileController {
 
     @RequestMapping(value = "/{experiment_id}/files/{file:.+}", method = RequestMethod.GET)
     @ResponseBody
-    public ResponseEntity<Resource> downloadFile(@PathVariable("experiment_id") long experimentId, @PathVariable String file,
-                                                  HttpServletRequest req) {
+    public ResponseEntity<Resource> downloadFile(@PathVariable("experiment_id") long experimentId,
+                                                 @PathVariable String file,
+                                                  HttpServletRequest req)
+            throws ExperimentNotMatchingException, BadTokenException {
 
         SecurityInfo securityInfo = apijwtService.extractValues(req,false);
-        if (securityInfo==null){
-            log.error(TextConstants.BAD_TOKEN);
-            return new ResponseEntity(TextConstants.BAD_TOKEN, HttpStatus.UNAUTHORIZED);
-        }
-        if (!experimentService.experimentBelongsToDeploymentAndCourse(experimentId, securityInfo.getPlatformDeploymentId(), securityInfo.getContextId())){
-            return new ResponseEntity(TextConstants.EXPERIMENT_NOT_MATCHING , HttpStatus.UNAUTHORIZED);
-        }
+        apijwtService.experimentAllowed(securityInfo, experimentId);
 
         if (apijwtService.isLearnerOrHigher(securityInfo)) {
             Resource resource = fileStorageService.loadFileAsResource(file, "/" + experimentId);
@@ -111,15 +106,12 @@ public class FileController {
 
     @RequestMapping(value = "/{experiment_id}/files/{file:.+}", method = RequestMethod.DELETE)
     @ResponseBody
-    public ResponseEntity<Void> deleteFile(@PathVariable("experiment_id") long experimentId, @PathVariable String file, HttpServletRequest req) {
+    public ResponseEntity<Void> deleteFile(@PathVariable("experiment_id") long experimentId,
+                                           @PathVariable String file,
+                                           HttpServletRequest req)
+            throws ExperimentNotMatchingException, BadTokenException {
         SecurityInfo securityInfo = apijwtService.extractValues(req,false);
-        if (securityInfo==null){
-            log.error(TextConstants.BAD_TOKEN);
-            return new ResponseEntity(TextConstants.BAD_TOKEN, HttpStatus.UNAUTHORIZED);
-        }
-        if (!experimentService.experimentBelongsToDeploymentAndCourse(experimentId, securityInfo.getPlatformDeploymentId(), securityInfo.getContextId())){
-            return new ResponseEntity(TextConstants.EXPERIMENT_NOT_MATCHING , HttpStatus.UNAUTHORIZED);
-        }
+        apijwtService.experimentAllowed(securityInfo, experimentId);
 
         if (apijwtService.isLearnerOrHigher(securityInfo)) {
             try {
