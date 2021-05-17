@@ -4,6 +4,7 @@ import createPersistedState from 'vuex-persistedstate'
 
 import { account } from './account.module'
 import { alert } from './alert.module'
+import { experiment } from './experiment.module'
 
 Vue.use(Vuex)
 
@@ -13,7 +14,8 @@ const store = new Vuex.Store({
     })],
     modules: {
         account,
-        alert
+        alert,
+        experiment
     }
 })
 

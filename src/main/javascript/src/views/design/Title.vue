@@ -34,6 +34,8 @@
 </template>
 
 <script>
+import { mapActions,mapGetters } from "vuex"
+
 export default {
 	name: 'DesignTitle',
 
@@ -44,9 +46,25 @@ export default {
 		title: ''
 	}),
 	methods: {
+		computed: {
+			...mapGetters({
+				experiment: 'experiment/getById',
+			})
+		},
+		...mapActions({
+			updateExperiment: 'experiment/updateExperiment',
+		}),
 		saveTitle () {
-			console.log('SAVE TO API');
-			this.$router.push({name:'ExperimentDesignDescription'})
+			this.updateExperiment({
+				parameters: this.experiment
+			}).then(response => {
+				console.log(response)
+			}).catch(response => {
+				// TODO - Error, couldn't create session
+				console.log(response)
+			}).finally(
+				// this.$router.push({name:'ExperimentDesignDescription', params:{experiment: experiment?.experiment_id}})
+			)
 		},
 	}
 }

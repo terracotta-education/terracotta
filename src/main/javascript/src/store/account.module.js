@@ -3,7 +3,10 @@
 // import { authHeader } from '@/helpers'
 
 const state = {
-    user: null
+    user: {
+        api_token: null,
+        lti_token: null,
+    }
 }
 
 const actions = {
