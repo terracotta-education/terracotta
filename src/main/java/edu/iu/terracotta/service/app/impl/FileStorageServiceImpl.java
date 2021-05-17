@@ -35,25 +35,24 @@ public class FileStorageServiceImpl implements FileStorageService {
         }
     }
 
-    /*
-    public FileStorageServiceImpl(@Value("${upload.path}") String uploadDir) {
-        try {
-            Files.createDirectories(Paths.get(uploadDir));
-        } catch (Exception e){
-            throw new FileStorageException("Could not create directory where the uploaded files will be stored.", e);
-        }
-    }*/
-
     @Override
-    public String storeFile(MultipartFile file/*, @Value("${file.upload-dir}") String fileStorageLocation*/) {
+    public String storeFile(MultipartFile file, String extraPath) {
         String fileName = StringUtils.cleanPath(file.getOriginalFilename());
 
         try {
             if(fileName.contains("..")) {
                 throw new FileStorageException("Sorry, Filename contains invalid path sequence " + fileName);
             }
+            String finalPath = uploadDir;
+            if (StringUtils.hasText(extraPath)){
+                finalPath = finalPath + extraPath;
+            }
 
-            Path targetLocation = Paths.get(uploadDir).resolve(fileName);
+            if (!Files.exists(Paths.get(finalPath))){
+                Files.createDirectories(Paths.get(finalPath));
+            }
+
+            Path targetLocation = Paths.get(finalPath).resolve(fileName);
             Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
 
             return fileName;
@@ -62,9 +61,13 @@ public class FileStorageServiceImpl implements FileStorageService {
         }
     }
     @Override
-    public Resource loadFileAsResource(String fileName) {
+    public Resource loadFileAsResource(String fileName, String extraPath) {
         try {
-            Path filePath = Paths.get(this.uploadDir).resolve(fileName).normalize();
+            String finalPath = uploadDir;
+            if (StringUtils.hasText(extraPath)){
+                finalPath = finalPath + extraPath;
+            }
+            Path filePath = Paths.get(finalPath).resolve(fileName).normalize();
             Resource resource = new UrlResource(filePath.toUri());
             if(resource.exists()) {
                 return resource;
@@ -75,6 +78,27 @@ public class FileStorageServiceImpl implements FileStorageService {
             throw new MyFileNotFoundException("File not found " + fileName, ex);
         }
     }
+
+    @Override
+    public boolean deleteFile(String fileName, String extraPath) {
+        try {
+            String finalPath = uploadDir;
+            if (StringUtils.hasText(extraPath)){
+                finalPath = finalPath + extraPath;
+            }
+            Path filePath = Paths.get(finalPath).resolve(fileName).normalize();
+            Resource resource = new UrlResource(filePath.toUri());
+            if(resource.exists()) {
+                return filePath.toFile().delete();
+            }else {
+                throw new MyFileNotFoundException("File not found " + fileName);
+            }
+        } catch (MalformedURLException ex) {
+            throw new MyFileNotFoundException("File not found " + fileName, ex);
+        }
+    }
+
+
 
     /*
     @Override

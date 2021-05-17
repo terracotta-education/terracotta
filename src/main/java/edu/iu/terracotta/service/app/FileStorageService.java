@@ -5,9 +5,11 @@ import org.springframework.core.io.Resource;
 
 public interface FileStorageService {
 
-    String storeFile(MultipartFile file);
+    String storeFile(MultipartFile file, String extraPath);
 
-    Resource loadFileAsResource(String fileName);
+    Resource loadFileAsResource(String fileName , String extraPath);
+
+    boolean deleteFile(String fileName , String extraPath);
 
     /*
     String getFileStorageLocation();

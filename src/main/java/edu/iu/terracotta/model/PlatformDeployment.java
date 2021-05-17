@@ -12,6 +12,8 @@
  */
 package edu.iu.terracotta.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import javax.persistence.Basic;
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -52,6 +54,7 @@ public class PlatformDeployment extends BaseEntity {
     @Column(name = "deployment_id")
     private String deploymentId;  // Where in the platform we need to ask for the oidc authentication.
 
+    @JsonIgnore
     @OneToMany(mappedBy = "platformDeployment", fetch = FetchType.LAZY)
     private Set<LtiContextEntity> contexts;
 
