@@ -5,7 +5,7 @@ import org.springframework.core.io.Resource;
 
 public interface FileStorageService {
 
-    String storeFile(MultipartFile file, String extraPath);
+    String storeFile(MultipartFile file, String extraPath, boolean consent);
 
     Resource loadFileAsResource(String fileName , String extraPath);
 

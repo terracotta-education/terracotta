@@ -1,6 +1,5 @@
 package edu.iu.terracotta.model.app;
 
-import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
@@ -23,14 +22,13 @@ public class ConsentDocument {
     private String title;
 
     @Column(name = "file_pointer")
-    private String filePointerd;
+    private String filePointer;
 
     @Column(name = "html")
     @Lob
     private String html;
 
-    @JoinColumn(name = "experiment_experiment_id")
-    @OneToOne(orphanRemoval = true)
+    @OneToOne(mappedBy = "consentDocument")
     private Experiment experiment;
 
     @Column(name = "lms_assignment_id")
@@ -60,12 +58,12 @@ public class ConsentDocument {
         this.html = html;
     }
 
-    public String getFilePointerd() {
-        return filePointerd;
+    public String getFilePointer() {
+        return filePointer;
     }
 
-    public void setFilePointerd(String filePointerd) {
-        this.filePointerd = filePointerd;
+    public void setFilePointer(String filePointer) {
+        this.filePointer = filePointer;
     }
 
     public String getTitle() {

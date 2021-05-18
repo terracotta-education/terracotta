@@ -16,6 +16,7 @@ import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
+import javax.persistence.OneToOne;
 import javax.persistence.Table;
 import java.sql.Timestamp;
 import java.util.List;
@@ -69,6 +70,18 @@ public class Experiment extends BaseEntity {
     @JoinColumn(name = "experiment_experiment_id")
     @OneToMany(orphanRemoval = true)
     private List<Participant> participants;
+
+    @JoinColumn(name = "consent_document_consent_document_id")
+    @OneToOne(orphanRemoval = true)
+    private ConsentDocument consentDocument;
+
+    public ConsentDocument getConsentDocument() {
+        return consentDocument;
+    }
+
+    public void setConsentDocument(ConsentDocument consentDocument) {
+        this.consentDocument = consentDocument;
+    }
 
 /*
 TODO: consentDocId (future, when consent table is created)
