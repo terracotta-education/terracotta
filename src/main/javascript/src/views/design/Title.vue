@@ -2,11 +2,12 @@
 	<div>
 		<h1>Create a title for your experiment</h1>
 		<form
-			submit.prevent="saveTitle"
+			@submit.prevent="saveTitle"
 			class="my-5"
+			v-if="experiment"
 		>
 			<v-text-field
-				v-model="title"
+				v-model="experiment.title"
 				:rules="titleRules"
 				label="Experiment title"
 				placeholder="e.g. Lorem ipsum"
@@ -15,11 +16,11 @@
 				required
 			></v-text-field>
 			<v-btn
-				:disabled="!title"
+				:disabled="!experiment.title"
 				elevation="0"
 				color="primary"
 				class="mr-4"
-				@click="saveTitle"
+				type="submit"
 			>
 				Next
 			</v-btn>
@@ -34,37 +35,29 @@
 </template>
 
 <script>
-import { mapActions,mapGetters } from "vuex"
+import { mapActions } from "vuex"
 
 export default {
 	name: 'DesignTitle',
-
+	props: ['experiment'],
 	data: () => ({
 		titleRules: [
 			v => !!v || 'Title is required'
 		],
-		title: ''
 	}),
 	methods: {
-		computed: {
-			...mapGetters({
-				experiment: 'experiment/getById',
-			})
-		},
 		...mapActions({
 			updateExperiment: 'experiment/updateExperiment',
 		}),
 		saveTitle () {
-			this.updateExperiment({
-				parameters: this.experiment
-			}).then(response => {
-				console.log(response)
-			}).catch(response => {
-				// TODO - Error, couldn't create session
-				console.log(response)
-			}).finally(
-				// this.$router.push({name:'ExperimentDesignDescription', params:{experiment: experiment?.experiment_id}})
-			)
+			const _this = this
+			const e = _this.experiment
+			console.log({e})
+			this.updateExperiment(e)
+					.then(this.$router.push({name:'ExperimentDesignDescription', params:{experiment: this.experiment.experiment_id}})
+					).catch(response => {
+						console.log("updateExperiment | catch", {response})
+					})
 		},
 	}
 }

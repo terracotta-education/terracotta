@@ -2,10 +2,11 @@
 // import router from '../router/index.js'
 // import { authHeader } from '@/helpers'
 
+// TODO - set LTI & API tokens when local Canvas instance is set up
 const state = {
     user: {
-        api_token: null,
-        lti_token: null,
+        lti_token: "",
+        api_token: "",
     }
 }
 

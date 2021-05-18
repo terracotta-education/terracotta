@@ -2,17 +2,32 @@ import { experimentService } from '@/services'
 
 const state = {
     experiment: null,
-    experiments: null,
-    newExperiment: null
+    experiments: null
 };
 
 const actions = {
-    resetExperiment({ commit }) {
+    resetExperiment: ({ commit }) => {
         commit('setExperiment', {})
     },
-    createExperiment() {
+    createExperiment: () => {
         return experimentService.createExperiment()
-    }
+    },
+    fetchExperimentById: ({commit}, experimentId) => {
+        return experimentService.getById(experimentId)
+            .then(data => {
+                commit('setExperiment', data)
+            })
+            .catch(response => {
+                console.log("fetchExperimentById | catch",{response})
+            })
+    },
+    updateExperiment: ({commit}, experiment) => {
+        return experimentService.update(experiment)
+                .then(commit('setExperiment', experiment))
+                .catch(response => {
+                    console.log("updateExperiment | catch",{response})
+                })
+    },
 };
 
 const mutations = {
@@ -22,19 +37,6 @@ const mutations = {
 };
 
 const getters = {
-    pageExperiment({ commit, state }, experimentID) {
-        if (!experimentID) {
-            experimentID = state.experiment.experiment_id
-        }
-
-        experimentService.getById(experimentID)
-            .then(data => {
-                commit('setExperiment', data)
-            })
-            .catch(response => {
-                console.log({response})
-            })
-    },
 };
 
 export const experiment = {

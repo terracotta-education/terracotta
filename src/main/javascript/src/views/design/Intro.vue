@@ -2,7 +2,7 @@
 	<div>
 		<h1>Let's set up your experiment</h1>
 		<p>In this section, we'll outline the basic design of your experiment.  Once it is created, you can then select who will participate, and add assignments to your study.</p>
-		<v-btn elevation="0" color="primary" @click="startExperiment">Continue</v-btn>
+		<v-btn elevation="0" color="primary" :to="{name: 'ExperimentDesignTitle'}">Continue</v-btn>
 	</div>
 </template>
 
@@ -12,9 +12,5 @@
 
 export default {
 	name: 'DesignIntro',
-
-	data: () => ({}),
-	methods: {
-	}
 }
 </script>

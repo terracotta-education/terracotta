@@ -14,7 +14,7 @@
 			<v-container>
 				<v-row justify="center">
 					<v-col md="6">
-						<router-view :key="$route.fullPath"></router-view>
+						<router-view :key="$route.fullPath" :experiment="experiment"></router-view>
 					</v-col>
 				</v-row>
 			</v-container>
@@ -24,6 +24,8 @@
 
 <script>
 	import Steps from '../components/Steps'
+	import store from '@/store'
+	import {mapActions} from "vuex";
 
 	export default {
 		name: 'ExperimentSteps',
@@ -36,7 +38,26 @@
 			},
 			currentStep() {
 				return this.$router.currentRoute.meta.currentStep
+			},
+			experiment() {
+				return this.$store.state.experiment.experiment
+			},
+			routeExperimentId() {
+				return this.$route.params.experiment_id
 			}
+		},
+
+		beforeRouteEnter (to, from, next) {
+			return store.dispatch('experiment/fetchExperimentById', to.params.experiment_id).then(next, next)
+		},
+		beforeRouteUpdate (to, from, next) {
+			return store.dispatch('experiment/fetchExperimentById', to.params.experiment_id).then(next, next)
+		},
+
+		methods: {
+			...mapActions({
+				fetchExperimentById: 'experiment/fetchExperimentById',
+			}),
 		},
 
 		components: {

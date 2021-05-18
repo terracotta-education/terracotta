@@ -8,6 +8,7 @@
 <script>
 export default {
 	name: 'DesignDescription',
+	props: ['experiment'],
 
 	data: () => ({}),
 	methods: {}

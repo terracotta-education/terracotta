@@ -21,30 +21,17 @@ function getAll() {
         headers: authHeader()
     }
 
-    return fetch(`http://localhost:8081/api/experiments}`, requestOptions).then(handleResponse)
+    return fetch(`http://localhost:8081/api/experiments`, requestOptions).then(handleResponse)
 }
 
 /**
  * Create Experiment
  */
-function createExperiment(data) {
-    console.log("createExperiment",{data})
+function createExperiment() {
     const requestOptions = {
         method: 'POST',
         headers: { ...authHeader(), 'Content-Type': 'application/json' },
-        body: (data) ? JSON.stringify({
-            deployment: (data.parameters.deployment) ? data.parameters.deployment : null,
-            LMSCourseId: (data.parameters.LMSCourseId) ? data.parameters.LMSCourseId : null,
-            title: (data.parameters.title) ? data.parameters.title: null,
-            description: (data.parameters.description) ? data.parameters.description : null,
-            exposure_type: (data.parameters.exposure_type) ? data.parameters.exposure_type : null,
-            participation_type: (data.parameters.participation_type) ? data.parameters.participation_type : null,
-            distributionType: (data.parameters.distributionType) ? data.parameters.distributionType : null,
-            started: (data.parameters.started) ? data.parameters.started : null,
-            created_at: (data.parameters.created_at) ? data.parameters.created_at : null,
-            updated_at: (data.parameters.updated_at) ? data.parameters.updated_at : null,
-            conditions: (data.parameters.conditions) ? data.parameters.conditions : null,
-        }):null
+        body: JSON.stringify({})
     }
 
     return fetch(`http://localhost:8081/api/experiments`, requestOptions).then(handleResponse)
@@ -71,7 +58,7 @@ function update(experiment) {
         body: JSON.stringify(experiment)
     }
 
-    return fetch(`http://localhost:8081/api/experiments`, requestOptions).then(handleResponse)
+    return fetch(`http://localhost:8081/api/experiments/${experiment.experimentId}`, requestOptions).then(handleResponse)
 }
 
 /**
@@ -105,6 +92,7 @@ function handleResponse(response) {
             return Promise.reject(error)
         }
 
+        console.log("handleResponse | then",{data})
         return data
     }).catch(response => {
         console.log("handleResponse | catch",{response})
