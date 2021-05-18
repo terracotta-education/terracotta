@@ -1,6 +1,7 @@
 package edu.iu.terracotta.service.app;
 
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.model.app.ConsentDocument;
 import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.dto.ExperimentDto;
 import edu.iu.terracotta.model.oauth2.SecurityInfo;
@@ -29,4 +30,8 @@ public interface ExperimentService {
     ExperimentDto fillContextInfo(ExperimentDto experimentDto, SecurityInfo securityInfo);
 
     boolean experimentBelongsToDeploymentAndCourse(Long experimentId, Long platformDeploymentId, Long contextId);
+
+    ConsentDocument saveConsentDocument(ConsentDocument consentDocument);
+
+    void deleteConsentDocument(ConsentDocument consentDocument);
 }

@@ -36,8 +36,11 @@ public class FileStorageServiceImpl implements FileStorageService {
     }
 
     @Override
-    public String storeFile(MultipartFile file, String extraPath) {
-        String fileName = StringUtils.cleanPath(file.getOriginalFilename());
+    public String storeFile(MultipartFile file, String extraPath, boolean consent) {
+        String fileName = "consent.pdf";
+        if (!consent) {
+            fileName = StringUtils.cleanPath(file.getOriginalFilename());
+        }
 
         try {
             if(fileName.contains("..")) {

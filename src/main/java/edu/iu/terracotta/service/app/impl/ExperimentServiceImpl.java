@@ -4,6 +4,7 @@ import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.model.LtiContextEntity;
 import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.model.app.Condition;
+import edu.iu.terracotta.model.app.ConsentDocument;
 import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.Exposure;
 import edu.iu.terracotta.model.app.Participant;
@@ -171,5 +172,15 @@ public class ExperimentServiceImpl implements ExperimentService {
     @Override
     public boolean experimentBelongsToDeploymentAndCourse(Long experimentId, Long platformDeploymentId, Long contextId){
         return allRepositories.experimentRepository.existsByExperimentIdAndPlatformDeployment_KeyIdAndLtiContextEntity_ContextId(experimentId, platformDeploymentId, contextId);
+    }
+
+    @Override
+    public ConsentDocument saveConsentDocument(ConsentDocument consentDocument) {
+        return allRepositories.consentDocumentRepository.save(consentDocument);
+    }
+
+    @Override
+    public void deleteConsentDocument(ConsentDocument consentDocument) {
+        allRepositories.consentDocumentRepository.delete(consentDocument);
     }
 }

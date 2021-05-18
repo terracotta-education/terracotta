@@ -1,9 +1,12 @@
 package edu.iu.terracotta.controller.app;
 
 import com.google.common.net.HttpHeaders;
+import edu.iu.terracotta.exceptions.BadConsentFileTypeException;
 import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.app.MyFileNotFoundException;
+import edu.iu.terracotta.model.app.ConsentDocument;
+import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.UploadFile;
 import edu.iu.terracotta.model.oauth2.SecurityInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
@@ -25,11 +28,13 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.core.io.Resource;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+import org.w3c.dom.Text;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Controller
@@ -48,10 +53,61 @@ public class FileController {
     @Autowired
     ExperimentService experimentService;
 
-    private UploadFile uploadFile(MultipartFile file, String extraPath) {
-        String fileName = fileStorageService.storeFile(file, extraPath);
-        String fileDownloadUri = ServletUriComponentsBuilder.fromCurrentContextPath().path("/downloadFile/").path(fileName).toUriString();
+    private UploadFile uploadFile(MultipartFile file, String extraPath, boolean consent) {
+        String fileName = fileStorageService.storeFile(file, extraPath, consent);
+        String fileDownloadUri;
+        if (consent) {
+            fileDownloadUri = ServletUriComponentsBuilder.fromCurrentContextPath().path("/api/experiment" + extraPath).path(fileName).toUriString();
+        } else {
+            fileDownloadUri = ServletUriComponentsBuilder.fromCurrentContextPath().path("/downloadFile/").path(fileName).toUriString();
+        }
         return new UploadFile(fileName, fileDownloadUri, file.getContentType(), file.getSize());
+    }
+
+    @RequestMapping(value = "/{experiment_id}/consent", method = RequestMethod.POST, produces = "application/json")
+    @ResponseBody
+    public ResponseEntity<UploadFile> uploadConsentFiles(@RequestParam("consent") MultipartFile file,
+                                                        @PathVariable("experiment_id") long experimentId,
+                                                         @RequestParam(name = "title", defaultValue = "Terracotta Consent") String title,
+                                                        HttpServletRequest req)
+            throws ExperimentNotMatchingException, BadTokenException, BadConsentFileTypeException {
+
+        SecurityInfo securityInfo = apijwtService.extractValues(req,false);
+        apijwtService.experimentAllowed(securityInfo, experimentId);
+
+        if (apijwtService.isInstructorOrHigher(securityInfo)) {
+            if (!file.getContentType().equals(MediaType.APPLICATION_PDF_VALUE)) {
+                throw new BadConsentFileTypeException(TextConstants.BAD_CONSENT_FILETYPE);
+            }
+            UploadFile consentUploaded = uploadFile(file, "/" + experimentId + "/consent", true);
+            //TODO, if we upload a consent we need:
+            Optional<Experiment> experimentOptional = experimentService.findById(experimentId);
+            if (experimentOptional.isPresent()) {
+                Experiment experiment = experimentOptional.get();
+                ConsentDocument consentDocument = experiment.getConsentDocument();
+                if (consentDocument == null){
+                    consentDocument = new ConsentDocument();
+                    consentDocument.setFilePointer(consentUploaded.getFileDownloadUri());
+                    consentDocument.setExperiment(experiment);
+                    consentDocument.setTitle(title);
+                } else {
+                    consentDocument.setFilePointer(consentUploaded.getFileDownloadUri());
+                }
+                //Let's see if we have the assignment generated in Canvas
+                if (consentDocument.getLmsAssignmentId()==null){
+                    log.info("Here we will create the assignment");
+                }
+                consentDocument = experimentService.saveConsentDocument(consentDocument);
+                experiment.setConsentDocument(consentDocument);
+                experimentService.saveAndFlush(experiment);
+            } else {
+                //this will never happen... but... is a good practice to check it.
+                throw new ExperimentNotMatchingException("The experiment does not exist in the database");
+            }
+            return new ResponseEntity<>(consentUploaded, HttpStatus.OK);
+        }  else {
+            return new ResponseEntity(HttpStatus.UNAUTHORIZED);
+        }
     }
 
     @RequestMapping(value = "/{experiment_id}/files", method = RequestMethod.POST, produces = "application/json")
@@ -65,12 +121,11 @@ public class FileController {
         apijwtService.experimentAllowed(securityInfo, experimentId);
 
         if (apijwtService.isLearnerOrHigher(securityInfo)) {
-            return new ResponseEntity<>(Arrays.asList(files).stream().map(file -> uploadFile(file, "/" + experimentId)).collect(Collectors.toList()), HttpStatus.OK);
+            return new ResponseEntity<>(Arrays.asList(files).stream().map(file -> uploadFile(file, "/" + experimentId, false)).collect(Collectors.toList()), HttpStatus.OK);
         }  else {
             return new ResponseEntity(HttpStatus.UNAUTHORIZED);
         }
     }
-
 
     @RequestMapping(value = "/{experiment_id}/files/{file:.+}", method = RequestMethod.GET)
     @ResponseBody
@@ -104,6 +159,37 @@ public class FileController {
         }
     }
 
+    @RequestMapping(value = "/{experiment_id}/consent", method = RequestMethod.GET)
+    @ResponseBody
+    public ResponseEntity<Resource> getConsent(@PathVariable("experiment_id") long experimentId,
+                                                 HttpServletRequest req)
+            throws ExperimentNotMatchingException, BadTokenException {
+
+        SecurityInfo securityInfo = apijwtService.extractValues(req,false);
+        apijwtService.experimentAllowed(securityInfo, experimentId);
+
+        if (apijwtService.isLearnerOrHigher(securityInfo)) {
+            Resource resource = fileStorageService.loadFileAsResource("consent.pdf", "/" + experimentId + "/consent");
+
+            String contentType = null;
+            try {
+                contentType = req.getServletContext().getMimeType(resource.getFile().getAbsolutePath());
+            }catch (IOException ex) {
+                log.info("Could not determine file type.");
+            }
+
+            if(contentType == null) {
+                contentType = "application/octet-stream";
+            }
+
+            return ResponseEntity.ok().contentType(MediaType.parseMediaType(contentType))
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + resource.getFilename() + "\"")
+                    .body(resource);
+        }  else {
+            return new ResponseEntity(HttpStatus.UNAUTHORIZED);
+        }
+    }
+
     @RequestMapping(value = "/{experiment_id}/files/{file:.+}", method = RequestMethod.DELETE)
     @ResponseBody
     public ResponseEntity<Void> deleteFile(@PathVariable("experiment_id") long experimentId,
@@ -113,9 +199,40 @@ public class FileController {
         SecurityInfo securityInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securityInfo, experimentId);
 
-        if (apijwtService.isLearnerOrHigher(securityInfo)) {
+        if (apijwtService.isInstructorOrHigher(securityInfo)) {
             try {
                 if (fileStorageService.deleteFile(file, "/" + experimentId)) {
+                    return new ResponseEntity<>(HttpStatus.OK);
+                } else {
+                    return new ResponseEntity<>(HttpStatus.NOT_MODIFIED);
+                }
+            } catch (MyFileNotFoundException ex){
+                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            }
+        }  else {
+            return new ResponseEntity(HttpStatus.UNAUTHORIZED);
+        }
+    }
+
+    @RequestMapping(value = "/{experiment_id}/consent", method = RequestMethod.DELETE)
+    @ResponseBody
+    public ResponseEntity<Void> deleteConsent(@PathVariable("experiment_id") long experimentId,
+                                           HttpServletRequest req)
+            throws ExperimentNotMatchingException, BadTokenException {
+        SecurityInfo securityInfo = apijwtService.extractValues(req,false);
+        apijwtService.experimentAllowed(securityInfo, experimentId);
+
+        if (apijwtService.isLearnerOrHigher(securityInfo)) {
+            try {
+                if (fileStorageService.deleteFile("consent.pdf", "/" + experimentId + "/consent")) {
+                    Optional<Experiment> experimentOptional = experimentService.findById(experimentId);
+                    if (experimentOptional.isPresent()) {
+                        Experiment experiment = experimentOptional.get();
+                        ConsentDocument consentDocument = experiment.getConsentDocument();
+                        experiment.setConsentDocument(null);
+                        experimentService.saveAndFlush(experiment);
+                        experimentService.deleteConsentDocument(consentDocument);
+                    }
                     return new ResponseEntity<>(HttpStatus.OK);
                 } else {
                     return new ResponseEntity<>(HttpStatus.NOT_MODIFIED);

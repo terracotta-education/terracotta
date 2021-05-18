@@ -39,4 +39,6 @@ public class TextConstants {
     public static final String CONDITION_NOT_MATCHING = "The condition does not belong to experiment defined in the path.";
     public static final String EXPOSURE_NOT_MATCHING = "The exposure does not belong to experiment defined in the path.";
     public static final String PARTICIPANT_NOT_MATCHING = "The participant does not belong to experiment defined in the path.";
+    public static final String BAD_CONSENT_FILETYPE = "The consent must be a pdf file.";
+
 }
