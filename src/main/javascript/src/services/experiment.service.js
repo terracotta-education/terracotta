@@ -79,23 +79,23 @@ function _delete(id) {
  * Handle API response
  */
 function handleResponse(response) {
-    return response.text().then(text => {
-        const data = text && JSON.parse(text)
-        if (!response || !response.ok) {
-            if (response.status === 401 || response.status === 500) {
-                console.log("handleResponse | 401/500",{response})
-            } else if (response.status===404) {
-                return null
+    return response.text()
+        .then(text => {
+            const data = text && JSON.parse(text)
+
+            if (!response || !response.ok) {
+                if (response.status === 401 || response.status === 402 || response.status === 500) {
+                    console.log("handleResponse | 401/402/500",{response})
+                } else if (response.status===404) {
+                    console.log("handleResponse | 404",{response})
+                }
+
+                return response
             }
 
-            const error = (data && data.message) || response.statusText
-            return Promise.reject(error)
-        }
-
-        console.log("handleResponse | then",{data})
-        return data
-    }).catch(response => {
-        console.log("handleResponse | catch",{response})
-        // TODO - Handle error response
-    })
+            console.log("handleResponse | then",{text,data,response})
+            return data || response
+        }).catch(text => {
+            console.log("handleResponse | catch",{text})
+        })
 }

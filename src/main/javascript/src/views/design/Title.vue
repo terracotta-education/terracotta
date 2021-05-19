@@ -8,7 +8,7 @@
 		>
 			<v-text-field
 				v-model="experiment.title"
-				:rules="titleRules"
+				:rules="requiredText"
 				label="Experiment title"
 				placeholder="e.g. Lorem ipsum"
 				autofocus
@@ -41,7 +41,7 @@ export default {
 	name: 'DesignTitle',
 	props: ['experiment'],
 	data: () => ({
-		titleRules: [
+		requiredText: [
 			v => !!v || 'Title is required'
 		],
 	}),
@@ -52,13 +52,20 @@ export default {
 		saveTitle () {
 			const _this = this
 			const e = _this.experiment
-			console.log({e})
+
 			this.updateExperiment(e)
-					.then(this.$router.push({name:'ExperimentDesignDescription', params:{experiment: this.experiment.experiment_id}})
-					).catch(response => {
+					.then(response => {
+						if (response.status === 200) {
+							this.$router.push({name:'ExperimentDesignDescription', params:{experiment: this.experiment.experiment_id}})
+						} else {
+							alert("error: ", response.statusText || response.status)
+						}
+					})
+					.catch(response => {
 						console.log("updateExperiment | catch", {response})
 					})
 		},
+
 	}
 }
 </script>
