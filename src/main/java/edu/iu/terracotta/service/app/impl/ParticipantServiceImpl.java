@@ -1,19 +1,31 @@
 package edu.iu.terracotta.service.app.impl;
 
+import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.model.LtiContextEntity;
+import edu.iu.terracotta.model.LtiMembershipEntity;
 import edu.iu.terracotta.model.LtiUserEntity;
 import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.dto.ParticipantDto;
 import edu.iu.terracotta.model.app.dto.UserDto;
-import edu.iu.terracotta.model.app.enumerator.Source;
+import edu.iu.terracotta.model.app.enumerator.ParticipationTypes;
+import edu.iu.terracotta.model.membership.CourseUser;
+import edu.iu.terracotta.model.membership.CourseUsers;
+import edu.iu.terracotta.model.oauth2.LTIToken;
+import edu.iu.terracotta.model.oauth2.Roles;
+import edu.iu.terracotta.model.oauth2.SecurityInfo;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.ParticipantService;
-import org.apache.commons.lang3.EnumUtils;
+import edu.iu.terracotta.service.lti.AdvantageMembershipService;
+import edu.iu.terracotta.service.lti.LTIDataService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 
 @Service
@@ -21,6 +33,12 @@ public class ParticipantServiceImpl implements ParticipantService {
 
     @Autowired
     AllRepositories allRepositories;
+
+    @Autowired
+    AdvantageMembershipService advantageMembershipService;
+
+    @Autowired
+    LTIDataService ltiDataService;
 
 
     @Override
@@ -33,11 +51,12 @@ public class ParticipantServiceImpl implements ParticipantService {
         ParticipantDto participantDto = new ParticipantDto();
         participantDto.setParticipantId(participant.getParticipantId());
         participantDto.setExperimentId(participant.getExperiment().getExperimentId());
-        participantDto.setUser(userToDTO(participant.getLtiUserEntity()));
+        participantDto.setUser(userToDTO(participant.getLtiMembershipEntity().getUser()));
         participantDto.setConsent(participant.getConsent());
         participantDto.setDateGiven(participant.getDateGiven());
         participantDto.setDateRevoked(participant.getDateRevoked());
         participantDto.setSource(participant.getSource().name());
+        participantDto.setDropped(participant.getDropped());
         return participantDto;
     }
 
@@ -78,8 +97,10 @@ public class ParticipantServiceImpl implements ParticipantService {
         participant.setConsent(participantDto.getConsent());
         participant.setDateGiven(participantDto.getDateGiven());
         participant.setDateRevoked(participantDto.getDateRevoked());
-        //TODO should default value be AUTO??
-        participant.setSource(EnumUtils.getEnum(Source.class, participantDto.getSource(), Source.AUTO));
+        participant.setDropped(participantDto.getDropped());
+        //Default value will be the defined in the Experiment ParticipationType
+        //TODO, not here, but we need to write code to manage changes in the experiment participation type. (In the exepriment/PUT)
+        participant.setSource(experiment.get().getParticipationType());
         return participant;
     }
 
@@ -96,6 +117,82 @@ public class ParticipantServiceImpl implements ParticipantService {
     @Override
     public void deleteById(Long id) {
         allRepositories.participantRepository.deleteById(id);
+    }
+
+    @Override
+    public List<Participant> refreshParticipants(long experimentId, SecurityInfo securityInfo, List<Participant> currentParticipantList) {
+
+        List<Participant> newParticipantList = new ArrayList<>();
+        //We don't want to delete participants if they drop the course, so... we will keep the all participants
+        //But we will need to mark them as dropped if they are not in the next list. So... a way to do it is to mark
+        //all as dropped and then refresh the list with the new ones.
+        for (Participant participant:currentParticipantList){
+            participant.setDropped(true);
+        }
+        newParticipantList.addAll(currentParticipantList);
+        try {
+            Experiment experiment =  allRepositories.experimentRepository.findById(experimentId).get();
+            LTIToken ltiToken = advantageMembershipService.getToken(experiment.getPlatformDeployment());
+            CourseUsers courseUsers = advantageMembershipService.callMembershipService(ltiToken, experiment.getLtiContextEntity());
+
+            for (CourseUser courseUser:courseUsers.getCourseUserList()){
+                if (courseUser.getRoles().contains(Roles.LEARNER) || courseUser.getRoles().contains(Roles.MEMBERSHIP_LEARNER)) {
+                    LtiUserEntity ltiUserEntity = ltiDataService.findByUserKeyAndPlatformDeployment(courseUser.getUserId(), experiment.getPlatformDeployment());
+
+                    if (ltiUserEntity == null) {
+                        LtiUserEntity newLtiUserEntity = new LtiUserEntity(courseUser.getUserId(), null, experiment.getPlatformDeployment());
+                        newLtiUserEntity.setEmail(courseUser.getEmail());
+                        newLtiUserEntity.setDisplayName(courseUser.getName());
+                        //By default it adds a value in the constructor, but if we are generating it, it means that the user has never logged in
+                        newLtiUserEntity.setLoginAt(null);
+                        ltiUserEntity = ltiDataService.saveLtiUserEntity(newLtiUserEntity);
+
+
+                    }
+                    LtiMembershipEntity ltiMembershipEntity = ltiDataService.findByUserAndContext(ltiUserEntity, experiment.getLtiContextEntity());
+                    if (ltiMembershipEntity == null) {
+                        //TODO: Note, role 0 is student, surely we want to use a constant for that.
+                        ltiMembershipEntity = new LtiMembershipEntity(experiment.getLtiContextEntity(), ltiUserEntity, 0);
+                        ltiMembershipEntity = ltiDataService.saveLtiMembershipEntity(ltiMembershipEntity);
+                    }
+                    boolean alredyInList = false;
+                    for (Participant participant : currentParticipantList) {
+                        if (participant.getLtiMembershipEntity().getUser().getUserKey().equals(ltiUserEntity.getUserKey())) {
+                            alredyInList = true;
+                            participant.setDropped(false);
+                        }
+                    }
+                    if (!alredyInList) {
+                        Participant newParticipant = new Participant();
+                        newParticipant.setExperiment(experiment);
+                        newParticipant.setLtiUserEntity(ltiUserEntity);
+                        newParticipant.setLtiMembershipEntity(ltiMembershipEntity);
+                        newParticipant.setDropped(false);
+                        newParticipant.setSource(experiment.getParticipationType());
+                        switch (newParticipant.getSource()){
+                            case MANUAL:
+                                newParticipant.setConsent(false);
+                                newParticipant.setDateGiven(new Timestamp(System.currentTimeMillis()));
+                            case CONSENT:
+                                newParticipant.setConsent(false);
+                                //We don't set date here, because the date will be used to know if the students
+                                //ever checked a value. so a value with date means that the student answered the consent form assignment.
+                            case AUTO:
+                                newParticipant.setConsent(true);
+                                newParticipant.setDateGiven(new Timestamp(System.currentTimeMillis()));
+                            default:
+                        }
+                        newParticipant = allRepositories.participantRepository.save(newParticipant);
+                        newParticipantList.add(newParticipant);
+                    }
+                }
+            }
+        } catch (ConnectionException e) {
+            e.printStackTrace();
+        } catch (NoSuchElementException e) {
+            e.printStackTrace();
+        }
+        return newParticipantList;
     }
 
     @Override

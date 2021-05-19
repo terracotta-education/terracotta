@@ -59,7 +59,7 @@ public class LtiUserEntity extends BaseEntity {
     @Column(name = "json")
     private String json;
     @Basic
-    @Column(name = "login_at", nullable = false)
+    @Column(name = "login_at")
     private Timestamp loginAt;
 
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)

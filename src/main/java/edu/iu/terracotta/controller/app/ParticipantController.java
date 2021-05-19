@@ -4,14 +4,16 @@ import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
+import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.dto.ParticipantDto;
 import edu.iu.terracotta.model.oauth2.SecurityInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.ParticipantService;
+import edu.iu.terracotta.service.lti.AdvantageMembershipService;
+import edu.iu.terracotta.service.lti.LTIDataService;
 import edu.iu.terracotta.utils.TextConstants;
-import org.apache.commons.lang3.EnumUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,11 +27,13 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.util.UriComponentsBuilder;
-import edu.iu.terracotta.model.app.enumerator.Source;
 
 import javax.servlet.http.HttpServletRequest;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -50,28 +54,36 @@ public class ParticipantController {
     @Autowired
     APIJWTService apijwtService;
 
+    @Autowired
+    AdvantageMembershipService advantageMembershipService;
+
+    @Autowired
+    LTIDataService ltiDataService;
+
 
     /**
-     * To show the experiment in a course (context) in a platform deployment.
+     * To show the participants in an experiment.
      */
     @RequestMapping(value = "/{experimentId}/participants", method = RequestMethod.GET, produces = "application/json;")
     @ResponseBody
-    public ResponseEntity<List<ParticipantDto>> allParticipantsByExperiment(@PathVariable("experimentId") long experimentId,
-                                                                            HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException {
+    public ResponseEntity<List<ParticipantDto>> allParticipantsByExperiment(@PathVariable("experimentId") long experimentId, @RequestParam(name = "refresh", defaultValue = "true") boolean refresh, HttpServletRequest req)  throws ExperimentNotMatchingException, BadTokenException {
 
         SecurityInfo securityInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securityInfo, experimentId);
 
         if (apijwtService.isLearnerOrHigher(securityInfo)) {
-            List<Participant> participantList =
+
+            List<Participant> currentParticipantList =
                     participantService.findAllByExperimentId(experimentId);
-            if (participantList.isEmpty()) {
+            if (apijwtService.isInstructorOrHigher(securityInfo) && refresh) {
+                currentParticipantList = participantService.refreshParticipants(experimentId, securityInfo, currentParticipantList);
+            }
+            if (currentParticipantList.isEmpty()) {
                 return new ResponseEntity(HttpStatus.NO_CONTENT);
                 // You many decide to return HttpStatus.NOT_FOUND
             }
             List<ParticipantDto> participantDtos = new ArrayList<>();
-            for (Participant participant : participantList) {
+            for (Participant participant : currentParticipantList) {
                 participantDtos.add(participantService.toDto(participant));
             }
             return new ResponseEntity<>(participantDtos, HttpStatus.OK);
@@ -81,7 +93,7 @@ public class ParticipantController {
     }
 
     /**
-     * To show the an specific experiment.
+     * To show the an specific participant.
      */
     @RequestMapping(value = "/{experimentId}/participants/{participant_id}", method = RequestMethod.GET, produces = "application/json;")
     @ResponseBody
@@ -169,20 +181,42 @@ public class ParticipantController {
         if (apijwtService.isLearnerOrHigher(securityInfo)) {
 
             Optional<Participant> participantSearchResult = participantService.findById(participantId);
-
+            Optional<Experiment> experiment = experimentService.findById(experimentId);
             if (!participantSearchResult.isPresent()) {
                 log.error("Unable to update. Participant with id {} not found.", participantId);
                 return new ResponseEntity("Unable to update. Participant with id " + participantId + TextConstants.NOT_FOUND_SUFFIX,
                         HttpStatus.NOT_FOUND);
             }
             Participant participantToChange = participantSearchResult.get();
-            participantToChange.setConsent((participantDto.getConsent()));
-            participantToChange.setDateGiven(participantDto.getDateGiven());
-            participantToChange.setDateRevoked(participantDto.getDateRevoked());
-            if(participantDto.getSource() != null) {
-                participantToChange.setSource(
-                        EnumUtils.getEnum(Source.class, participantDto.getSource()));
+            //If they had no consent, and now they have, we change the dategiven to now.
+            //In any other case, we leave the date as it was. Ignoring any value in the PUT
+            if (!participantToChange.getConsent() && participantDto.getConsent()) {
+                participantToChange.setDateGiven(Timestamp.valueOf(LocalDateTime.now()));
+                participantToChange.setDateRevoked(null);
             }
+            //If they had consent, and now they don't have, we change the dateRevoked to now.
+            //In any other case, we leave the date as it is. Ignoring any value in the PUT
+            if (participantToChange.getConsent() && !participantDto.getConsent()) {
+                participantToChange.setDateRevoked(Timestamp.valueOf(LocalDateTime.now()));
+            }
+            participantToChange.setConsent((participantDto.getConsent()));
+            //NOTE: we do this... but this will be updated in the next GET participants with the real data and dropped will be overwritten.
+            if (participantDto.getDropped()!=null) {
+                participantToChange.setDropped(participantDto.getDropped());
+            }
+            //TODO: Not sure if we must use that value or use the one in the experiment.
+            //if(participantDto.getSource() != null) {
+            //    participantToChange.setSource(
+            //            EnumUtils.getEnum(ParticipationTypes.class, participantDto.getSource()));
+            //}*/
+            //This will never happen, but is here to avoid complains from the code sniffers.
+            if (!experiment.isPresent()) {
+                log.error("Unable to update. Experiment with id {} not found.", experimentId);
+                return new ResponseEntity("Unable to update. Experiment with id " + experimentId + TextConstants.NOT_FOUND_SUFFIX,
+                        HttpStatus.NOT_FOUND);
+            }
+            participantToChange.setSource(experiment.get().getParticipationType());
+
             participantService.saveAndFlush(participantToChange);
             return new ResponseEntity<>(HttpStatus.OK);
         } else {
