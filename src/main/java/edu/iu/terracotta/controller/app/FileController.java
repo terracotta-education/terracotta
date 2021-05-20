@@ -3,6 +3,7 @@ package edu.iu.terracotta.controller.app;
 import com.google.common.net.HttpHeaders;
 import edu.iu.terracotta.exceptions.BadConsentFileTypeException;
 import edu.iu.terracotta.exceptions.BadTokenException;
+import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.app.MyFileNotFoundException;
 import edu.iu.terracotta.model.app.ConsentDocument;
@@ -12,7 +13,9 @@ import edu.iu.terracotta.model.oauth2.SecurityInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.FileStorageService;
+import edu.iu.terracotta.service.canvas.CanvasAPIClient;
 import edu.iu.terracotta.utils.TextConstants;
+import edu.ksu.canvas.model.assignment.Assignment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,6 +36,7 @@ import org.w3c.dom.Text;
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -53,13 +57,16 @@ public class FileController {
     @Autowired
     ExperimentService experimentService;
 
+    @Autowired
+    CanvasAPIClient canvasAPIClient;
+
     private UploadFile uploadFile(MultipartFile file, String extraPath, boolean consent) {
         String fileName = fileStorageService.storeFile(file, extraPath, consent);
         String fileDownloadUri;
         if (consent) {
-            fileDownloadUri = ServletUriComponentsBuilder.fromCurrentContextPath().path("/api/experiment" + extraPath).path(fileName).toUriString();
+            fileDownloadUri = ServletUriComponentsBuilder.fromCurrentContextPath().path("/api/experiment" + extraPath).build().toUriString();
         } else {
-            fileDownloadUri = ServletUriComponentsBuilder.fromCurrentContextPath().path("/downloadFile/").path(fileName).toUriString();
+            fileDownloadUri = ServletUriComponentsBuilder.fromCurrentContextPath().path("/api/experiment" + extraPath).path(fileName).build().toUriString();
         }
         return new UploadFile(fileName, fileDownloadUri, file.getContentType(), file.getSize());
     }
@@ -95,6 +102,25 @@ public class FileController {
                 }
                 //Let's see if we have the assignment generated in Canvas
                 if (consentDocument.getLmsAssignmentId()==null){
+                    Assignment canvasAssignment = new Assignment();
+                    Assignment.ExternalToolTagAttribute canvasExternalToolTagAttributes = canvasAssignment.new ExternalToolTagAttribute();
+                    canvasExternalToolTagAttributes.setUrl(ServletUriComponentsBuilder.fromCurrentContextPath().path("/lti3?consent=true?experiment=" + experimentId).build().toUriString());
+                    canvasAssignment.setExternalToolTagAttributes(canvasExternalToolTagAttributes);
+                    canvasAssignment.setName("Consent: " + experiment.getTitle());
+                    //TODO: Think about the description of the assignment.
+                    canvasAssignment.setDescription(experiment.getDescription());
+                    canvasAssignment.setPublished(false);
+                    canvasAssignment.setPointsPossible(0.0);
+                    canvasAssignment.setSubmissionTypes(Collections.singletonList("external_tool"));
+                    try {
+                        Optional<Assignment> assignment = canvasAPIClient.createCanvasAssignment(canvasAssignment,experiment.getLtiContextEntity().getContext_memberships_url(), experiment.getPlatformDeployment());
+                        consentDocument.setLmsAssignmentId(Integer.toString(assignment.get().getId()));
+                    } catch (CanvasApiException e) {
+                        log.info("Create the assignment failed");
+                        e.printStackTrace();
+                        return new ResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR);
+                    }
+
                     log.info("Here we will create the assignment");
                 }
                 consentDocument = experimentService.saveConsentDocument(consentDocument);
@@ -121,7 +147,7 @@ public class FileController {
         apijwtService.experimentAllowed(securityInfo, experimentId);
 
         if (apijwtService.isLearnerOrHigher(securityInfo)) {
-            return new ResponseEntity<>(Arrays.asList(files).stream().map(file -> uploadFile(file, "/" + experimentId, false)).collect(Collectors.toList()), HttpStatus.OK);
+            return new ResponseEntity<>(Arrays.asList(files).stream().map(file -> uploadFile(file, "/" + experimentId + "/", false)).collect(Collectors.toList()), HttpStatus.OK);
         }  else {
             return new ResponseEntity(HttpStatus.UNAUTHORIZED);
         }

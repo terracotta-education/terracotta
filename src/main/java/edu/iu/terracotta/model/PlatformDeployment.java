@@ -53,6 +53,14 @@ public class PlatformDeployment extends BaseEntity {
     @Basic
     @Column(name = "deployment_id")
     private String deploymentId;  // Where in the platform we need to ask for the oidc authentication.
+    @Basic
+    @Column(name = "api_token")
+    private String apiToken;
+    @Basic
+    @Column(name = "base_url")
+    private String baseUrl;
+
+
 
     @JsonIgnore
     @OneToMany(mappedBy = "platformDeployment", fetch = FetchType.LAZY)
@@ -129,6 +137,22 @@ public class PlatformDeployment extends BaseEntity {
 
     public void setContexts(Set<LtiContextEntity> contexts) {
         this.contexts = contexts;
+    }
+
+    public String getApiToken() {
+        return apiToken;
+    }
+
+    public void setApiToken(String apiToken) {
+        this.apiToken = apiToken;
+    }
+
+    public String getBaseUrl() {
+        return baseUrl;
+    }
+
+    public void setBaseUrl(String baseUrl) {
+        this.baseUrl = baseUrl;
     }
 
     @Override

@@ -93,6 +93,13 @@
             <version>30.1.1-jre</version>
         </dependency>
 
+        <!--CANVAS -->
+        <dependency>
+            <groupId>edu.ksu.canvas</groupId>
+            <artifactId>canvas-api</artifactId>
+            <version>1.0.24</version>
+        </dependency>
+
         <!-- OAuth -->
         <dependency>
             <groupId>org.springframework.security.oauth</groupId>
