@@ -21,7 +21,7 @@ function getAll() {
         headers: authHeader()
     }
 
-    return fetch(`http://localhost:8081/api/experiments`, requestOptions).then(handleResponse)
+    return fetch(`http://localhost:8081/api/experiments?conditions=true`, requestOptions).then(handleResponse)
 }
 
 /**
@@ -46,7 +46,7 @@ function getById(experiment_id) {
         headers: authHeader()
     }
 
-    return fetch(`http://localhost:8081/api/experiments/${experiment_id}`, requestOptions).then(handleResponse)
+    return fetch(`http://localhost:8081/api/experiments/${experiment_id}?conditions=true`, requestOptions).then(handleResponse)
 }
 /**
  * Update Experiment

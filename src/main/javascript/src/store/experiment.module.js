@@ -27,13 +27,28 @@ const actions = {
                 .catch(response => {
                     console.log("updateExperiment | catch",{response})
                 })
-    },
+    }
 };
 
 const mutations = {
     setExperiment(state, data) {
         state.experiment = data
     },
+    setConditions(state, conditions) {
+        state.experiment.conditions = conditions
+    },
+    updateConditions(state, conditions) {
+        state.experiment.conditions = conditions
+    },
+    updateCondition(state, condition) {
+        console.log("mutation->updateCondition", {condition})
+        const foundIndex = state.experiment.conditions.findIndex(c => c.conditionId === condition.conditionId)
+        if (foundIndex >= 0) {
+            state.experiment.conditions[foundIndex] = condition
+        } else {
+            state.experiment.conditions.push(condition)
+        }
+    }
 };
 
 const getters = {
