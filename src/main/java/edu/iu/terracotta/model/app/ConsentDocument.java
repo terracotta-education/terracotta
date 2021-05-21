@@ -15,7 +15,7 @@ import javax.persistence.Table;
 public class ConsentDocument {
     @Column(name = "consent_document_id", nullable = false)
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long consentDocumentId;
 
     @Column(name = "title")

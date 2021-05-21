@@ -18,7 +18,7 @@ public class Exposure extends BaseEntity {
     // ID
     @Column(name = "exposure_id", nullable = false)
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long exposureId;
 
     // Experiment ID

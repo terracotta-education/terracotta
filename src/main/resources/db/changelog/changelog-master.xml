@@ -7,15 +7,5 @@
    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd
    http://www.liquibase.org/xml/ns/dbchangelog
    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd">
-   <include file="/db/changelog/2021/05/05-01-changelog.xml"/>
-    <include file="db/changelog/2021/05/11-01-changelog.xml"/>
-    <include file="db/changelog/2021/05/12-01-changelog.xml"/>
-    <include file="db/changelog/2021/05/12-02-changelog.xml"/>
-    <include file="db/changelog/2021/05/13-01-changelog.xml"/>
-    <include file="db/changelog/2021/05/14-01-changelog.xml"/>
-    <include file="db/changelog/2021/05/18-01-changelog.xml"/>
- <include file="db/changelog/2021/05/19-01-changelog.xml"/>
- <include file="db/changelog/2021/05/19-02-changelog.xml"/>
- <include file="db/changelog/2021/05/19-03-changelog.xml"/>
- <include file="db/changelog/2021/05/20-01-changelog.xml"/>
+    <include file="db/changelog/2021/05/21-01-changelog.xml"/>
 </databaseChangeLog>

@@ -28,6 +28,7 @@ public class ExperimentDto {
     private List<ExposureDto> exposures;
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<ParticipantDto> participants;
+    private Long createdBy;
 
 
     public ExperimentDto() {
@@ -136,4 +137,12 @@ public class ExperimentDto {
     public List<ParticipantDto> getParticipants() { return participants; }
 
     public void setParticipants(List<ParticipantDto> participants) { this.participants = participants; }
+
+    public Long getCreatedBy() {
+        return createdBy;
+    }
+
+    public void setCreatedBy(Long createdBy) {
+        this.createdBy = createdBy;
+    }
 }

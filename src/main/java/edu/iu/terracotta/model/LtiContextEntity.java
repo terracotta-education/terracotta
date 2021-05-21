@@ -32,7 +32,7 @@ import java.util.Set;
 @Table(name = "lti_context")
 public class LtiContextEntity extends BaseEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "context_id", nullable = false)
     private long contextId;
     @Basic

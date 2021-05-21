@@ -2,6 +2,7 @@ package edu.iu.terracotta.model.app;
 
 import edu.iu.terracotta.model.BaseEntity;
 import edu.iu.terracotta.model.LtiContextEntity;
+import edu.iu.terracotta.model.LtiUserEntity;
 import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.model.app.enumerator.DistributionTypes;
 import edu.iu.terracotta.model.app.enumerator.ExposureTypes;
@@ -28,7 +29,7 @@ public class Experiment extends BaseEntity {
 
     @Column(name = "experiment_id", nullable = false)
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long experimentId;
 
     @JoinColumn(name = "platform_deployment_key_id", nullable = false)
@@ -76,6 +77,18 @@ public class Experiment extends BaseEntity {
     @JoinColumn(name = "consent_document_consent_document_id")
     @OneToOne(orphanRemoval = true)
     private ConsentDocument consentDocument;
+
+    @JoinColumn(name = "created_by")
+    @ManyToOne
+    private LtiUserEntity createdBy;
+
+    public LtiUserEntity getCreatedBy() {
+        return createdBy;
+    }
+
+    public void setCreatedBy(LtiUserEntity createdBy) {
+        this.createdBy = createdBy;
+    }
 
     public ConsentDocument getConsentDocument() {
         return consentDocument;
@@ -178,5 +191,6 @@ TODO: consentDocId (future, when consent table is created)
     public void setParticipants(List<Participant> participants) {
         this.participants = participants;
     }
+
 
 }
