@@ -63,8 +63,7 @@ export default {
 		],
 		slide: 0,
 		blurbs: [
-			"The study explores how learning about the biology of skin color (vs. social construction of race) impacts students’ conception of race. It is important for science teachers to understand the impacts of teaching about skin color biology and how it may impact students' concepts of race.",
-			"The study explores how learning about the biology of skin color (vs. social construction of race) impacts students’ conception of race. It is important for science teachers to understand the impacts of teaching about skin color biology and how it may impact students' concepts of race.",
+			"The study looks to test whether exposure to ones' own lexile level (and seeing how it improves over time) might improve students' learning outcomes.",
 			"The study explores how learning about the biology of skin color (vs. social construction of race) impacts students’ conception of race. It is important for science teachers to understand the impacts of teaching about skin color biology and how it may impact students' concepts of race."
 		]
 	}),
