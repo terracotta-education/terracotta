@@ -34,4 +34,6 @@ public interface ExperimentService {
     ConsentDocument saveConsentDocument(ConsentDocument consentDocument);
 
     void deleteConsentDocument(ConsentDocument consentDocument);
+
+    ExperimentDto getEmptyExperiment(SecurityInfo securityInfo, ExperimentDto experimentDto);
 }

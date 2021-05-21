@@ -141,8 +141,17 @@ public class ExperimentController {
                 return new ResponseEntity(
                         TextConstants.ID_IN_POST_ERROR, HttpStatus.CONFLICT);
             }
-
-            Experiment experiment = null;
+            ExperimentDto existingEmpty = experimentService.getEmptyExperiment(securityInfo, experimentDto);
+            if (existingEmpty!=null){
+                HttpHeaders headers = new HttpHeaders();
+                headers.setLocation(
+                        ucBuilder
+                                .path("/api/experiment/{id}")
+                                .buildAndExpand(existingEmpty.getExperimentId())
+                                .toUri());
+                return new ResponseEntity<>(existingEmpty, headers, HttpStatus.ALREADY_REPORTED);
+            }
+            Experiment experiment;
             experimentDto = experimentService.fillContextInfo(experimentDto, securityInfo);
             try {
                 experiment = experimentService.fromDto(experimentDto);

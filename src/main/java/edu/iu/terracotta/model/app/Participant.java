@@ -22,7 +22,7 @@ import java.sql.Timestamp;
 public class Participant {
     @Column(name = "participant_id", nullable = false)
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long participantId;
 
     @JoinColumn(name = "experiment_experiment_id", nullable = false)

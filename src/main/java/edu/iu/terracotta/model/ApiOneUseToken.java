@@ -27,7 +27,7 @@ import java.util.Objects;
 public class ApiOneUseToken extends BaseEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "token_id", nullable = false)
     private long tokenId;
 

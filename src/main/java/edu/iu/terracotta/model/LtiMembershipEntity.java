@@ -29,7 +29,7 @@ public class LtiMembershipEntity extends BaseEntity {
 
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "membership_id", nullable = false)
     private long membershipId;
     @Basic

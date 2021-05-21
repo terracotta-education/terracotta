@@ -29,7 +29,7 @@ import java.util.Set;
 @Table(name = "iss_configuration")
 public class PlatformDeployment extends BaseEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "key_id")
     private long keyId;
     @Basic

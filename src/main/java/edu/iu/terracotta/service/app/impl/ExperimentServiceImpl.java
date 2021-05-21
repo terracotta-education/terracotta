@@ -2,6 +2,7 @@ package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.model.LtiContextEntity;
+import edu.iu.terracotta.model.LtiUserEntity;
 import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.model.app.Condition;
 import edu.iu.terracotta.model.app.ConsentDocument;
@@ -22,9 +23,9 @@ import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.ExposureService;
 import edu.iu.terracotta.service.app.ParticipantService;
 import org.apache.commons.lang3.EnumUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
 import javax.servlet.http.Part;
@@ -74,6 +75,7 @@ public class ExperimentServiceImpl implements ExperimentService {
         experimentDto.setStarted(experiment.getStarted());
         experimentDto.setCreatedAt(experiment.getCreatedAt());
         experimentDto.setUpdatedAt(experiment.getUpdatedAt());
+        experimentDto.setCreatedBy(experiment.getCreatedBy().getUserId());
         List<ConditionDto> conditionDtoList = new ArrayList<>();
         if (conditions){
             //TODO, add sort if needed
@@ -136,6 +138,12 @@ public class ExperimentServiceImpl implements ExperimentService {
         experiment.setParticipationType(EnumUtils.getEnum(ParticipationTypes.class, experimentDto.getParticipationType(), ParticipationTypes.AUTO));
         experiment.setDistributionType(EnumUtils.getEnum(DistributionTypes.class, experimentDto.getDistributionType(), DistributionTypes.EVEN));
         experiment.setStarted(experimentDto.getStarted());
+        LtiUserEntity user = allRepositories.users.findByUserIdAndPlatformDeployment_KeyId(experimentDto.getCreatedBy(),platformDeployment.get().getKeyId());
+        if (user!=null){
+            experiment.setCreatedBy(user);
+        } else {
+            throw new DataServiceException("The user specified to create the experiment does not exist or does not belong to this course");
+        }
 
         return experiment;
     }
@@ -166,6 +174,10 @@ public class ExperimentServiceImpl implements ExperimentService {
         //than the one in the token.
         experimentDto.setContextId(securityInfo.getContextId());
         experimentDto.setPlatformDeploymentId(securityInfo.getPlatformDeploymentId());
+        LtiUserEntity user = allRepositories.users.findByUserKeyAndPlatformDeployment_KeyId(securityInfo.getUserId(),securityInfo.getPlatformDeploymentId());
+        if (user!=null){
+            experimentDto.setCreatedBy(user.getUserId());
+        }
         return experimentDto;
     }
 
@@ -183,4 +195,20 @@ public class ExperimentServiceImpl implements ExperimentService {
     public void deleteConsentDocument(ConsentDocument consentDocument) {
         allRepositories.consentDocumentRepository.delete(consentDocument);
     }
+
+    @Override
+    public ExperimentDto getEmptyExperiment(SecurityInfo securityInfo, ExperimentDto experimentDto) {
+        if (!StringUtils.isBlank(experimentDto.getTitle())){
+            return null;
+        }
+        List<Experiment> experimentList = allRepositories.experimentRepository.findByPlatformDeployment_KeyIdAndLtiContextEntity_ContextIdAndCreatedBy_UserKey(securityInfo.getPlatformDeploymentId(), securityInfo.getContextId(), securityInfo.getUserId());
+        for (Experiment experiment:experimentList){
+            if (StringUtils.isBlank(experiment.getTitle())) {
+                return toDto(experiment, false, false, false);
+            }
+        }
+        return null;
+    }
+
+
 }

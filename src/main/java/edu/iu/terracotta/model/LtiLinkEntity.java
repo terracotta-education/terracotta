@@ -31,7 +31,7 @@ import java.util.Set;
 @Table(name = "lti_link")
 public class LtiLinkEntity extends BaseEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "link_id", nullable = false)
     private long linkId;
     @Basic

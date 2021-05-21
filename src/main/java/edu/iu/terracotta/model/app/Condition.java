@@ -11,7 +11,7 @@ public class Condition extends BaseEntity {
     // condition_id
     @Column(name = "condition_id", nullable = false)
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long conditionId;
 
     // name
