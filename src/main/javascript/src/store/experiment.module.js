@@ -10,7 +10,7 @@ const actions = {
         commit('setExperiment', {})
     },
     createExperiment: () => {
-        return experimentService.createExperiment()
+        return experimentService.create()
     },
     fetchExperimentById: ({commit}, experimentId) => {
         return experimentService.getById(experimentId)
@@ -41,13 +41,17 @@ const mutations = {
         state.experiment.conditions = conditions
     },
     updateCondition(state, condition) {
-        console.log("mutation->updateCondition", {condition})
         const foundIndex = state.experiment.conditions.findIndex(c => c.conditionId === condition.conditionId)
         if (foundIndex >= 0) {
             state.experiment.conditions[foundIndex] = condition
         } else {
             state.experiment.conditions.push(condition)
         }
+    },
+    deleteCondition(state, condition) {
+        state.experiment.conditions = state.experiment.conditions.filter(function(item) {
+            return item.conditionId !== condition.conditionId
+        })
     }
 };
 

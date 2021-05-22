@@ -62,6 +62,15 @@ const routes = [
               currentStep: "design_conditions"
             }
           },
+          {
+            path: 'type',
+            name: 'ExperimentDesignType',
+            component: () => import('../views/design/ExperimentType.vue'),
+            meta: {
+              currentSection: "design",
+              currentStep: "design_type"
+            }
+          },
         ]
       },
       {

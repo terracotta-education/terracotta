@@ -19,7 +19,7 @@ const actions = {
         ]
         dispatch('createConditions', defaultConditions)
     },
-    createConditions: ({ dispatch }, conditions) => {
+    createConditions: ({dispatch}, conditions) => {
         if (conditions.length > 0) {
             conditions.forEach(condition => {
                 dispatch('createCondition', condition)
@@ -27,7 +27,7 @@ const actions = {
         }
     },
     createCondition: ({commit}, condition) => {
-        return conditionService.createCondition(condition)
+        return conditionService.create(condition)
                     .then(condition => {
                         // commit mutation from experiment module
                         commit('experiment/updateCondition', condition, {root:true})
@@ -36,6 +36,38 @@ const actions = {
                         console.log("setCondition | catch",{response})
                     })
     },
+    updateConditions: ({dispatch}, conditions) => {
+        if (conditions.length > 0) {
+            conditions.forEach(condition => {
+                if (condition?.conditionId) {
+                    dispatch('updateCondition', condition)
+                }
+            })
+            return {status: 200}
+        }
+    },
+    updateCondition: ({commit}, condition) => {
+        return conditionService.update(condition)
+                    .then(condition => {
+                        // commit mutation from experiment module
+                        if (condition?.conditionId) {
+                            commit('experiment/updateCondition', condition, {root:true})
+                        }
+                    })
+                    .catch(response => {
+                        console.log("setCondition | catch",{response})
+                    })
+    },
+    deleteCondition: ({commit}, condition) => {
+        return conditionService.delete(condition)
+                    .then(() => {
+                        // commit mutation from experiment module
+                        commit('experiment/deleteCondition', condition, {root:true})
+                    })
+                    .catch(response => {
+                        console.log("setCondition | catch",{response})
+                    })
+    }
 };
 
 const mutations = {};

@@ -17,9 +17,10 @@
 						<v-col class="py-0">
 							<v-text-field
 								v-model="condition.name"
+								:name="'condition-'+condition.conditionId"
 								:rules="requiredText"
 								label="Condition name"
-								placeholder="e.g. Condition A"
+								placeholder="e.g. Condition Name"
 								outlined
 								required
 							></v-text-field>
@@ -29,9 +30,10 @@
 						<v-col class="py-0">
 							<v-text-field
 								v-model="condition.name"
+								:name="'condition-'+condition.conditionId"
 								:rules="requiredText"
 								label="Condition name"
-								placeholder="e.g. Condition A"
+								placeholder="e.g. Condition Name"
 								outlined
 								required
 							></v-text-field>
@@ -42,6 +44,7 @@
 								outlined
 								tile
 								class="delete_condition"
+								@click="deleteCondition(condition)"
 							><v-icon>mdi-delete</v-icon></v-btn>
 						</v-col>
 					</template>
@@ -58,7 +61,7 @@
 			</div>
 
 			<v-btn
-				:disabled="!experiment.conditions.length > 0"
+				:disabled="!experiment.conditions.length > 0 || !experiment.conditions.every(c => c.name)"
 				elevation="0"
 				color="primary"
 				class="mr-4"
@@ -87,27 +90,28 @@ export default {
 
 	methods: {
 		...mapActions({
+			updateExperiment: 'experiment/updateExperiment',
 			createCondition: 'condition/createCondition',
+			deleteCondition: 'condition/deleteCondition',
+			updateConditions: 'condition/updateConditions',
 		}),
 		// TODO - DELETE Conditions
 
 		// TODO - SAVE Conditions
 		saveConditions() {
-			const _this = this
-			const e = _this.experiment.conditions
-			console.log({e})
-			// this.updateConditions(e)
-			// 		.then(response => {
-			// 			if (response.status === 200) {
-			// 				console.log({response})
-			// 				// this.$router.push({name:'ExperimentDesignConditions', params:{experiment: this.experiment.experiment_id}})
-			// 			} else {
-			// 				alert(response.error)
-			// 			}
-			// 		})
-			// 		.catch(response => {
-			// 			console.log("updateExperiment | catch", {response})
-			// 		})
+			const e = this.experiment
+
+			this.updateConditions(e.conditions)
+					.then(response => {
+						if (response?.status === 200) {
+							this.$router.push({name:'ExperimentDesignType', params:{experiment: this.experiment.experimentId}})
+						} else {
+							alert(response.error)
+						}
+					})
+					.catch(response => {
+						console.log("updateConditions | catch", {response})
+					})
 		},
 	},
 

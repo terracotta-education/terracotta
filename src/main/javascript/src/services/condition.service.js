@@ -5,7 +5,7 @@ import { authHeader } from '@/helpers'
  * Register methods
  */
 export const conditionService = {
-    createCondition,
+    create,
     update,
     delete: _delete
 }
@@ -13,7 +13,7 @@ export const conditionService = {
 /**
  * Create Condition
  */
-function createCondition(condition) {
+function create(condition) {
     const requestOptions = {
         method: 'POST',
         headers: { ...authHeader(), 'Content-Type': 'application/json' },
@@ -33,7 +33,7 @@ function update(condition) {
         body: JSON.stringify(condition)
     }
 
-    return fetch(`http://localhost:8081/api/experiments/${condition.experiment_experiment_id}/conditions/${condition.condition_id}`, requestOptions).then(handleResponse)
+    return fetch(`http://localhost:8081/api/experiments/${condition.experimentId}/conditions/${condition.conditionId}`, requestOptions).then(handleResponse)
 }
 
 /**
@@ -44,10 +44,10 @@ function update(condition) {
 function _delete(condition) {
     const requestOptions = {
         method: 'DELETE',
-        headers: authHeader()
+        headers: { ...authHeader(), 'Content-Type': 'application/json' },
     }
 
-    return fetch(`http://localhost:8081/api/experiment/${condition.experiment_experiment_id}/condition/${condition.condition_id}`, requestOptions).then(handleResponse)
+    return fetch(`http://localhost:8081/api/experiments/${condition.experimentId}/conditions/${condition.conditionId}`, requestOptions).then(handleResponse)
 }
 
 /**

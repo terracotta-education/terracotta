@@ -7,7 +7,7 @@ import { authHeader } from '@/helpers'
 export const experimentService = {
     getAll,
     getById,
-    createExperiment,
+    create,
     update,
     delete: _delete
 }
@@ -27,7 +27,7 @@ function getAll() {
 /**
  * Create Experiment
  */
-function createExperiment() {
+function create() {
     const requestOptions = {
         method: 'POST',
         headers: { ...authHeader(), 'Content-Type': 'application/json' },
