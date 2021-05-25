@@ -1,5 +1,6 @@
 package edu.iu.terracotta.controller.app;
 
+import edu.iu.terracotta.exceptions.AssignmentNotMatchingException;
 import edu.iu.terracotta.exceptions.BadConsentFileTypeException;
 import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.ConditionNotMatchingException;
@@ -60,7 +61,16 @@ public class RestResponseEntityExceptionHandler
             = {ExposureNotMatchingException.class})
     protected ResponseEntity<Object> handleExposureNotMatchingException(
             ExposureNotMatchingException ex, WebRequest request) {
-        String bodyOfResponse = TextConstants.PARTICIPANT_NOT_MATCHING;
+        String bodyOfResponse = TextConstants.EXPOSURE_NOT_MATCHING;
+        return handleExceptionInternal(ex, bodyOfResponse,
+                new HttpHeaders(), HttpStatus.UNAUTHORIZED, request);
+    }
+
+    @ExceptionHandler(value
+            = {AssignmentNotMatchingException.class})
+    protected ResponseEntity<Object> handleAssignmentNotMatchingException(
+            AssignmentNotMatchingException ex, WebRequest request) {
+        String bodyOfResponse= TextConstants.ASSIGNMENT_NOT_MATCHING;
         return handleExceptionInternal(ex, bodyOfResponse,
                 new HttpHeaders(), HttpStatus.UNAUTHORIZED, request);
     }

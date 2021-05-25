@@ -124,7 +124,7 @@ public class ConditionController {
             ConditionDto returnedDto = conditionService.toDto(conditionSaved);
 
             HttpHeaders headers = new HttpHeaders();
-            headers.setLocation(ucBuilder.path("/api/experiment/{experiment_id}/conditions/{condition_id}").buildAndExpand(condition.getExperiment().getExperimentId(), condition.getConditionId()).toUri());
+            headers.setLocation(ucBuilder.path("/api/experiments/{experiment_id}/conditions/{condition_id}").buildAndExpand(condition.getExperiment().getExperimentId(), condition.getConditionId()).toUri());
             return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
         }else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
