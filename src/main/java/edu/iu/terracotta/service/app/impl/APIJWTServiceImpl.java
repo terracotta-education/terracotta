@@ -12,6 +12,7 @@
  */
 package edu.iu.terracotta.service.app.impl;
 
+import edu.iu.terracotta.exceptions.AssignmentNotMatchingException;
 import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.ConditionNotMatchingException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
@@ -21,6 +22,7 @@ import edu.iu.terracotta.model.oauth2.Roles;
 import edu.iu.terracotta.model.oauth2.SecurityInfo;
 import edu.iu.terracotta.service.app.APIDataService;
 import edu.iu.terracotta.service.app.APIJWTService;
+import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.app.ConditionService;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.ExposureService;
@@ -76,6 +78,9 @@ public class APIJWTServiceImpl implements APIJWTService {
 
     @Autowired
     ExposureService exposureService;
+
+    @Autowired
+    AssignmentService assignmentService;
 
     private static final String JWT_REQUEST_HEADER_NAME = "Authorization";
     private static final String JWT_BEARER_TYPE = "Bearer";
@@ -276,6 +281,13 @@ public class APIJWTServiceImpl implements APIJWTService {
     public void exposureAllowed(SecurityInfo securityInfo, Long experimentId, Long exposureId) throws ExposureNotMatchingException {
         if(!exposureService.exposureBelongsToExperiment(experimentId, exposureId)) {
             throw new ExposureNotMatchingException(TextConstants.EXPOSURE_NOT_MATCHING);
+        }
+    }
+
+    @Override
+    public void assignmentAllowed(SecurityInfo securityInfo, Long experimentId, Long exposureId, Long assignmentId) throws AssignmentNotMatchingException {
+        if(!assignmentService.assignmentBelongsToExperimentAndExposure(experimentId, exposureId, assignmentId)) {
+            throw new AssignmentNotMatchingException(TextConstants.ASSIGNMENT_NOT_MATCHING);
         }
     }
 

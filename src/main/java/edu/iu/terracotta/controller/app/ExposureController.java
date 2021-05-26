@@ -124,7 +124,7 @@ public class ExposureController {
             ExposureDto returnedDto = exposureService.toDto(exposureSaved);
 
             HttpHeaders headers = new HttpHeaders();
-            headers.setLocation(ucBuilder.path("/api/experiment/{experiment_id}/exposures/{id}").buildAndExpand(exposure.getExperiment().getExperimentId(), exposure.getExposureId()).toUri());
+            headers.setLocation(ucBuilder.path("/api/experiments/{experiment_id}/exposures/{id}").buildAndExpand(exposure.getExperiment().getExperimentId(), exposure.getExposureId()).toUri());
             return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
         }else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);

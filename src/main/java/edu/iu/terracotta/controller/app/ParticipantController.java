@@ -159,7 +159,7 @@ public class ParticipantController {
             ParticipantDto returnedDto = participantService.toDto(participantSaved);
 
             HttpHeaders headers = new HttpHeaders();
-            headers.setLocation(ucBuilder.path("/api/experiment/{experimentId}/participant/{participanId}").buildAndExpand(experimentId, participantSaved.getParticipantId()).toUri());
+            headers.setLocation(ucBuilder.path("/api/experiments/{experimentId}/participant/{participantId}").buildAndExpand(experimentId, participantSaved.getParticipantId()).toUri());
             return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
         } else {
             return new ResponseEntity(HttpStatus.UNAUTHORIZED);

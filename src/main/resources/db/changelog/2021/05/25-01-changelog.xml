@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd"
+        objectQuotingStrategy="QUOTE_ONLY_RESERVED_WORDS">
+    <changeSet id="1621984478726-23" author="josh (generated)">
+        <addColumn tableName="terr_assignment">
+            <column name="order" type="INT"/>
+        </addColumn>
+    </changeSet>
+    <changeSet id="1621984478726-24" author="josh (generated)">
+        <dropColumn columnName="html" tableName="terr_assignment"/>
+    </changeSet>
+
+</databaseChangeLog>
