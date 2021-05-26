@@ -66,7 +66,7 @@
 								name: "Conditions"
 							},
 							{
-								key: "design_experiment",
+								key: "design_type",
 								name: "Experiment type"
 							},
 						]
@@ -117,7 +117,7 @@
 					padding: 0 0 28px 0 !important;
 
 					&:last-child {
-						padding-bottom: 0 !important;
+						//padding-bottom: 0 !important;
 					}
 					&--complete {
 						z-index: 1;

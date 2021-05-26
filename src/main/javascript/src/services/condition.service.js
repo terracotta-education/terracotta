@@ -1,6 +1,8 @@
 import { authHeader } from '@/helpers'
 // import store from '@/store/index.js'
 
+const base_url = "http://localhost:8081"
+
 /**
  * Register methods
  */
@@ -20,7 +22,7 @@ function create(condition) {
         body: JSON.stringify(condition)
     }
 
-    return fetch(`http://localhost:8081/api/experiments/${condition.experiment_experiment_id}/conditions`, requestOptions).then(handleResponse)
+    return fetch(`${base_url}/api/experiments/${condition.experiment_experiment_id}/conditions`, requestOptions).then(handleResponse)
 }
 
 /**
@@ -33,7 +35,7 @@ function update(condition) {
         body: JSON.stringify(condition)
     }
 
-    return fetch(`http://localhost:8081/api/experiments/${condition.experimentId}/conditions/${condition.conditionId}`, requestOptions).then(handleResponse)
+    return fetch(`${base_url}/api/experiments/${condition.experimentId}/conditions/${condition.conditionId}`, requestOptions).then(handleResponse)
 }
 
 /**
@@ -47,7 +49,7 @@ function _delete(condition) {
         headers: { ...authHeader(), 'Content-Type': 'application/json' },
     }
 
-    return fetch(`http://localhost:8081/api/experiments/${condition.experimentId}/conditions/${condition.conditionId}`, requestOptions).then(handleResponse)
+    return fetch(`${base_url}/api/experiments/${condition.experimentId}/conditions/${condition.conditionId}`, requestOptions).then(handleResponse)
 }
 
 /**

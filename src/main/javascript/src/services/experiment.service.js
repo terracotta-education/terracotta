@@ -1,6 +1,8 @@
 import { authHeader } from '@/helpers'
 // import store from '@/store/index.js'
 
+const base_url = "http://localhost:8081"
+
 /**
  * Register methods
  */
@@ -21,7 +23,7 @@ function getAll() {
         headers: authHeader()
     }
 
-    return fetch(`http://localhost:8081/api/experiments?conditions=true`, requestOptions).then(handleResponse)
+    return fetch(`${base_url}/api/experiments?conditions=true`, requestOptions).then(handleResponse)
 }
 
 /**
@@ -34,7 +36,7 @@ function create() {
         body: JSON.stringify({})
     }
 
-    return fetch(`http://localhost:8081/api/experiments`, requestOptions).then(handleResponse)
+    return fetch(`${base_url}/api/experiments`, requestOptions).then(handleResponse)
 }
 
 /**
@@ -43,10 +45,10 @@ function create() {
 function getById(experiment_id) {
     const requestOptions = {
         method: 'GET',
-        headers: authHeader()
+        headers: { ...authHeader() },
     }
 
-    return fetch(`http://localhost:8081/api/experiments/${experiment_id}?conditions=true`, requestOptions).then(handleResponse)
+    return fetch(`${base_url}/api/experiments/${experiment_id}?conditions=true`, requestOptions).then(handleResponse)
 }
 /**
  * Update Experiment
@@ -54,11 +56,11 @@ function getById(experiment_id) {
 function update(experiment) {
     const requestOptions = {
         method: 'PUT',
-        headers: { ...authHeader(), 'Content-Type': 'application/json' },
+        headers: { ...authHeader() },
         body: JSON.stringify(experiment)
     }
 
-    return fetch(`http://localhost:8081/api/experiments/${experiment.experimentId}`, requestOptions).then(handleResponse)
+    return fetch(`${base_url}/api/experiments/${experiment.experimentId}`, requestOptions).then(handleResponse)
 }
 
 /**
@@ -72,7 +74,7 @@ function _delete(id) {
         headers: authHeader()
     }
 
-    return fetch(`http://localhost:8081/api/experiments/${id}`, requestOptions).then(handleResponse)
+    return fetch(`${base_url}/api/experiments/${id}`, requestOptions).then(handleResponse)
 }
 
 /**

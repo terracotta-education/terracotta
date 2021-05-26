@@ -1,9 +1,19 @@
 import store from '../store/index.js'
 
-export function authHeader() {
-    if (store.state.account && store.state.account.user && store.state.account.user.lti_token) {
+export function initHeader() {
+    if (store.state.api?.lti_token) {
         return {
-            'Authorization': 'Bearer ' + store.state.account.user.lti_token,
+            'Authorization': 'Bearer ' + store.state.api.lti_token,
+            'Content-Type': 'application/json'
+        };
+    } else {
+        return {};
+    }
+}
+export function authHeader() {
+    if (store.state.api?.api_token) {
+        return {
+            'Authorization': 'Bearer ' + store.state.api.api_token,
             'Content-Type': 'application/json'
         };
     } else {

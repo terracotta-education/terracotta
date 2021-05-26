@@ -14,12 +14,12 @@ const actions = {
     },
     fetchExperimentById: ({commit}, experimentId) => {
         return experimentService.getById(experimentId)
-            .then(data => {
-                commit('setExperiment', data)
-            })
-            .catch(response => {
-                console.log("fetchExperimentById | catch",{response})
-            })
+                .then(data => {
+                    commit('setExperiment', data)
+                })
+                .catch(response => {
+                    console.log("fetchExperimentById | catch",{response})
+                })
     },
     updateExperiment: ({commit}, experiment) => {
         return experimentService.update(experiment)

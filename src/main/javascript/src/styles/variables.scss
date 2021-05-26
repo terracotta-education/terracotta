@@ -1,2 +1,10 @@
+// Colors
 $gray-lightest: #F6F6F6;
 $gray: #E2E2E2;
+
+// Expansion Panels
+$expansion-panel-header-font-size: 16px;
+$expansion-panel-border-radius: 10px;
+$expansion-panel-content-padding: 30px;
+
+@import '~vuetify/src/styles/styles.sass';

@@ -2,7 +2,7 @@ import Vue from 'vue'
 import Vuex from 'vuex'
 import createPersistedState from 'vuex-persistedstate'
 
-import { account } from './account.module'
+import { api } from './api.module'
 import { alert } from './alert.module'
 import { experiment } from './experiment.module'
 import { condition } from './condition.module'
@@ -14,7 +14,7 @@ const store = new Vuex.Store({
         key: 'terracotta'
     })],
     modules: {
-        account,
+        api,
         alert,
         experiment,
         condition

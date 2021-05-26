@@ -71,6 +71,15 @@ const routes = [
               currentStep: "design_type"
             }
           },
+          {
+            path: 'default-condition',
+            name: 'ExperimentDesignDefaultCondition',
+            component: () => import('../views/design/DefaultCondition.vue'),
+            meta: {
+              currentSection: "design",
+              currentStep: "design_type"
+            }
+          },
         ]
       },
       {
