@@ -6,6 +6,7 @@ import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.ConditionNotMatchingException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.ExposureNotMatchingException;
+import edu.iu.terracotta.exceptions.GroupNotMatchingException;
 import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
 import edu.iu.terracotta.exceptions.AssignmentNotMatchingException;
 import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
@@ -50,6 +51,8 @@ public interface APIJWTService {
     void participantAllowed(SecurityInfo securityInfo, Long experimentId, Long participantId) throws ParticipantNotMatchingException;
 
     void exposureAllowed(SecurityInfo securityInfo, Long experimentId, Long exposureId) throws ExposureNotMatchingException;
+
+    void groupAllowed(SecurityInfo securityInfo, Long experimentId, Long groupId) throws GroupNotMatchingException;
 
     void assignmentAllowed(SecurityInfo securityInfo, Long experimentId, Long exposureId, Long assignmentId) throws AssignmentNotMatchingException;
 

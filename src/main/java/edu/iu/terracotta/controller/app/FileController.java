@@ -104,7 +104,7 @@ public class FileController {
                 if (consentDocument.getLmsAssignmentId()==null){
                     Assignment canvasAssignment = new Assignment();
                     Assignment.ExternalToolTagAttribute canvasExternalToolTagAttributes = canvasAssignment.new ExternalToolTagAttribute();
-                    canvasExternalToolTagAttributes.setUrl(ServletUriComponentsBuilder.fromCurrentContextPath().path("/lti3?consent=true?experiment=" + experimentId).build().toUriString());
+                    canvasExternalToolTagAttributes.setUrl(ServletUriComponentsBuilder.fromCurrentContextPath().path("/lti3?consent=true&experiment=" + experimentId).build().toUriString());
                     canvasAssignment.setExternalToolTagAttributes(canvasExternalToolTagAttributes);
                     canvasAssignment.setName("Consent: " + experiment.getTitle());
                     //TODO: Think about the description of the assignment.

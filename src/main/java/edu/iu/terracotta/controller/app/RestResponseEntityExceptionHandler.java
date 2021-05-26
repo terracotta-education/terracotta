@@ -9,6 +9,7 @@ import edu.iu.terracotta.exceptions.ConditionNotMatchingException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.ExposureNotMatchingException;
+import edu.iu.terracotta.exceptions.GroupNotMatchingException;
 import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
 import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
 import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
@@ -113,6 +114,15 @@ public class RestResponseEntityExceptionHandler
     protected ResponseEntity<Object> handleAnswerNotMatchingException(
             AnswerNotMatchingException ex, WebRequest request) {
         String bodyOfResponse = TextConstants.ANSWER_NOT_MATCHING;
+        return handleExceptionInternal(ex, bodyOfResponse,
+                new HttpHeaders(), HttpStatus.UNAUTHORIZED, request);
+    }
+
+    @ExceptionHandler(value
+            = {GroupNotMatchingException.class})
+    protected ResponseEntity<Object> handleGroupNotMatchingException(
+            GroupNotMatchingException ex, WebRequest request) {
+        String bodyOfResponse = TextConstants.GROUP_NOT_MATCHING;
         return handleExceptionInternal(ex, bodyOfResponse,
                 new HttpHeaders(), HttpStatus.UNAUTHORIZED, request);
     }

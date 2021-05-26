@@ -68,6 +68,9 @@ public class AllRepositories {
     public ExposureRepository exposureRepository;
 
     @Autowired
+    public GroupRepository groupRepository;
+
+    @Autowired
     public AssignmentRepository assignmentRepository;
 
     @Autowired

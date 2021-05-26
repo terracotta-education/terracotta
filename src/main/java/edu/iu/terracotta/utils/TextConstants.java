@@ -45,5 +45,6 @@ public class TextConstants {
     public static final String QUESTION_NOT_MATCHING = "The question does not belong to the experiment, condition, treatment, or assignment defined in path.";
     public static final String ANSWER_NOT_MATCHING = "The answer does not belong to the experiment, condition, treatment, assignment, or question defined in path.";
     public static final String BAD_CONSENT_FILETYPE = "The consent must be a pdf file.";
+    public static final String GROUP_NOT_MATCHING = "The group does not belong to experiment defined in the path.";
 
 }

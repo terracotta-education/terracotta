@@ -19,6 +19,7 @@ import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.ConditionNotMatchingException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.ExposureNotMatchingException;
+import edu.iu.terracotta.exceptions.GroupNotMatchingException;
 import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
 import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
 import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
@@ -32,6 +33,7 @@ import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.app.ConditionService;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.ExposureService;
+import edu.iu.terracotta.service.app.GroupService;
 import edu.iu.terracotta.service.app.ParticipantService;
 import edu.iu.terracotta.service.app.QuestionService;
 import edu.iu.terracotta.service.app.TreatmentService;
@@ -89,6 +91,9 @@ public class APIJWTServiceImpl implements APIJWTService {
 
     @Autowired
     AssignmentService assignmentService;
+
+    @Autowired
+    GroupService groupService;
 
     @Autowired
     TreatmentService treatmentService;
@@ -301,6 +306,13 @@ public class APIJWTServiceImpl implements APIJWTService {
     public void exposureAllowed(SecurityInfo securityInfo, Long experimentId, Long exposureId) throws ExposureNotMatchingException {
         if(!exposureService.exposureBelongsToExperiment(experimentId, exposureId)) {
             throw new ExposureNotMatchingException(TextConstants.EXPOSURE_NOT_MATCHING);
+        }
+    }
+
+    @Override
+    public void groupAllowed(SecurityInfo securityInfo, Long experimentId, Long groupId) throws GroupNotMatchingException {
+        if(!groupService.groupBelongsToExperiment(experimentId, groupId)) {
+            throw new GroupNotMatchingException(TextConstants.GROUP_NOT_MATCHING);
         }
     }
 
