@@ -93,6 +93,18 @@ public class APIJWTServiceImpl implements APIJWTService {
     AssignmentService assignmentService;
 
     @Autowired
+    TreatmentService treatmentService;
+
+    @Autowired
+    AssessmentService assessmentService;
+
+    @Autowired
+    QuestionService questionService;
+
+    @Autowired
+    AnswerService answerService;
+
+    @Autowired
     GroupService groupService;
 
     @Autowired
