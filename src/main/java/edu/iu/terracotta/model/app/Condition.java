@@ -39,6 +39,7 @@ public class Condition extends BaseEntity {
     public Experiment getExperiment() {
         return experiment;
     }
+
     public void setExperiment(Experiment experiment) {
         this.experiment = experiment;
     }

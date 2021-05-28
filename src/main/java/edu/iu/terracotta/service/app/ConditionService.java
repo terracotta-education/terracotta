@@ -11,15 +11,12 @@ import java.util.Optional;
 public interface ConditionService {
     List<Condition> findAllByExperimentId(long experimentId);
 
-    Optional<Condition> findOneByConditionId(long conditionId);
-
     ConditionDto toDto(Condition condition);
 
     Condition fromDto(ConditionDto conditionDto) throws DataServiceException;
 
     Condition save(Condition condition);
 
-    //needed??
     Optional<Condition> findById(Long id);
 
     void saveAndFlush(Condition conditionToChange);

@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd"
+        objectQuotingStrategy="QUOTE_ONLY_RESERVED_WORDS">
+    <changeSet id="1622153695729-23" author="josh (generated)">
+        <createTable tableName="terr_answer">
+            <column autoIncrement="true" name="answer_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="PK_TERR_ANSWER"/>
+            </column>
+            <column name="html" type="CLOB"/>
+            <column name="correct" type="BOOLEAN"/>
+            <column name="question_question_id" type="BIGINT"/>
+        </createTable>
+    </changeSet>
+    <changeSet id="1622153695729-24" author="josh (generated)">
+        <createTable tableName="terr_assessment">
+            <column autoIncrement="true" name="assessment_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="PK_TERR_ASSESSMENT"/>
+            </column>
+            <column name="html" type="CLOB"/>
+            <column name="treatment_treatment_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="title" type="VARCHAR(255)"/>
+        </createTable>
+    </changeSet>
+    <changeSet id="1622153695729-25" author="josh (generated)">
+        <createTable tableName="terr_question">
+            <column autoIncrement="true" name="question_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="PK_TERR_QUESTION"/>
+            </column>
+            <column name="html" type="CLOB"/>
+            <column name="points" type="FLOAT"/>
+            <column name="assessment_assessment_id" type="BIGINT"/>
+        </createTable>
+    </changeSet>
+    <changeSet id="1622153695729-26" author="josh (generated)">
+        <createTable tableName="terr_treatment">
+            <column autoIncrement="true" name="treatment_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="PK_TERR_TREATMENT"/>
+            </column>
+            <column name="condition_condition_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="assessment_assessment_id" type="BIGINT"/>
+            <column name="treatment_order" type="INT"/>
+        </createTable>
+    </changeSet>
+    <changeSet id="1622153695729-27" author="josh (generated)">
+        <addForeignKeyConstraint baseColumnNames="question_question_id" baseTableName="terr_answer"
+                                 constraintName="FK_TERR_ANSWER_ON_QUESTION_QUESTION"
+                                 referencedColumnNames="question_id" referencedTableName="terr_question"/>
+    </changeSet>
+    <changeSet id="1622153695729-28" author="josh (generated)">
+        <addForeignKeyConstraint baseColumnNames="treatment_treatment_id" baseTableName="terr_assessment"
+                                 constraintName="FK_TERR_ASSESSMENT_ON_TREATMENT_TREATMENT"
+                                 referencedColumnNames="treatment_id" referencedTableName="terr_treatment"/>
+    </changeSet>
+    <changeSet id="1622153695729-29" author="josh (generated)">
+        <addForeignKeyConstraint baseColumnNames="assessment_assessment_id" baseTableName="terr_question"
+                                 constraintName="FK_TERR_QUESTION_ON_ASSESSMENT_ASSESSMENT"
+                                 referencedColumnNames="assessment_id" referencedTableName="terr_assessment"/>
+    </changeSet>
+    <changeSet id="1622153695729-30" author="josh (generated)">
+        <addForeignKeyConstraint baseColumnNames="assessment_assessment_id" baseTableName="terr_treatment"
+                                 constraintName="FK_TERR_TREATMENT_ON_ASSESSMENT_ASSESSMENT"
+                                 referencedColumnNames="assessment_id" referencedTableName="terr_assessment"/>
+    </changeSet>
+    <changeSet id="1622153695729-31" author="josh (generated)">
+        <addForeignKeyConstraint baseColumnNames="condition_condition_id" baseTableName="terr_treatment"
+                                 constraintName="FK_TERR_TREATMENT_ON_CONDITION_CONDITION"
+                                 referencedColumnNames="condition_id" referencedTableName="terr_condition"/>
+    </changeSet>
+
+</databaseChangeLog>

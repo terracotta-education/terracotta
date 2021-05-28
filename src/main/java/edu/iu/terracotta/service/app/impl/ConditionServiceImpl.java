@@ -26,11 +26,6 @@ public class ConditionServiceImpl implements ConditionService {
     }
 
     @Override
-    public Optional<Condition> findOneByConditionId(long conditionId) {
-        return allRepositories.conditionRepository.findByConditionId(conditionId);
-    }
-
-    @Override
     public ConditionDto toDto(Condition condition) {
 
         ConditionDto conditionDto = new ConditionDto();

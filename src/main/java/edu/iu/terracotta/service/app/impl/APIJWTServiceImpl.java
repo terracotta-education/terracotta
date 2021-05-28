@@ -12,21 +12,29 @@
  */
 package edu.iu.terracotta.service.app.impl;
 
+import edu.iu.terracotta.exceptions.AnswerNotMatchingException;
+import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.exceptions.AssignmentNotMatchingException;
 import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.ConditionNotMatchingException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.ExposureNotMatchingException;
 import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
+import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
+import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
 import edu.iu.terracotta.model.oauth2.Roles;
 import edu.iu.terracotta.model.oauth2.SecurityInfo;
 import edu.iu.terracotta.service.app.APIDataService;
 import edu.iu.terracotta.service.app.APIJWTService;
+import edu.iu.terracotta.service.app.AnswerService;
+import edu.iu.terracotta.service.app.AssessmentService;
 import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.app.ConditionService;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.ExposureService;
 import edu.iu.terracotta.service.app.ParticipantService;
+import edu.iu.terracotta.service.app.QuestionService;
+import edu.iu.terracotta.service.app.TreatmentService;
 import edu.iu.terracotta.service.lti.LTIDataService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
@@ -81,6 +89,18 @@ public class APIJWTServiceImpl implements APIJWTService {
 
     @Autowired
     AssignmentService assignmentService;
+
+    @Autowired
+    TreatmentService treatmentService;
+
+    @Autowired
+    AssessmentService assessmentService;
+
+    @Autowired
+    QuestionService questionService;
+
+    @Autowired
+    AnswerService answerService;
 
     private static final String JWT_REQUEST_HEADER_NAME = "Authorization";
     private static final String JWT_BEARER_TYPE = "Bearer";
@@ -291,5 +311,31 @@ public class APIJWTServiceImpl implements APIJWTService {
         }
     }
 
+    @Override
+    public void treatmentAllowed(SecurityInfo securityInfo, Long experimentId, Long conditionId, Long treatmentId) throws TreatmentNotMatchingException {
+        if(!treatmentService.treatmentBelongsToExperimentAndCondition(experimentId, conditionId, treatmentId)) {
+            throw new TreatmentNotMatchingException(TextConstants.TREATMENT_NOT_MATCHING);
+        }
+    }
 
+    @Override
+    public void assessmentAllowed(SecurityInfo securityInfo, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId) throws AssessmentNotMatchingException {
+        if(!assessmentService.assessmentBelongsToExperimentAndConditionAndTreatment(experimentId, conditionId, treatmentId, assessmentId)) {
+            throw new AssessmentNotMatchingException(TextConstants.ASSESSMENT_NOT_MATCHING);
+        }
+    }
+
+    @Override
+    public void questionAllowed(SecurityInfo securityInfo, Long assessmentId, Long questionId) throws QuestionNotMatchingException {
+        if(!questionService.questionBelongsToAssessment(assessmentId, questionId)) {
+            throw new QuestionNotMatchingException(TextConstants.QUESTION_NOT_MATCHING);
+        }
+    }
+
+    @Override
+    public void answerAllowed(SecurityInfo securityInfo, Long assessmentId, Long questionId, Long answerId) throws AnswerNotMatchingException {
+        if(!answerService.answerBelongsToAssessmentAndQuestion(assessmentId, questionId, answerId)) {
+            throw new AnswerNotMatchingException(TextConstants.ANSWER_NOT_MATCHING);
+        }
+    }
 }

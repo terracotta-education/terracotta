@@ -52,7 +52,6 @@ public class ExposureController {
         SecurityInfo securityInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securityInfo, experimentId);
 
-        //TODO should this be Learner or higher? Is there a reason a student would need to see exposure type?
         if(apijwtService.isLearnerOrHigher(securityInfo)) {
             List<Exposure> exposureList =
                     exposureService.findAllByExperimentId(experimentId);
@@ -81,7 +80,7 @@ public class ExposureController {
         apijwtService.exposureAllowed(securityInfo, experimentId, exposureId);
 
         if(apijwtService.isLearnerOrHigher(securityInfo)) {
-            Optional<Exposure> exposure = exposureService.findOneByExposureId(exposureId);
+            Optional<Exposure> exposure = exposureService.findById(exposureId);
 
             if(!exposure.isPresent()) {
                 log.error("exposure {} in experiment {} not found.", exposureId, experimentId);

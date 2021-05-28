@@ -25,11 +25,6 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     @Override
-    public Optional<Assignment> findOneByAssignmentId(long assignmentId) {
-        return allRepositories.assignmentRepository.findByAssignmentId(assignmentId);
-    }
-
-    @Override
     public AssignmentDto toDto(Assignment assignment) {
 
         AssignmentDto assignmentDto = new AssignmentDto();

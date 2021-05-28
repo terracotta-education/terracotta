@@ -70,6 +70,18 @@ public class AllRepositories {
     @Autowired
     public AssignmentRepository assignmentRepository;
 
+    @Autowired
+    public AnswerRepository answerRepository;
+
+    @Autowired
+    public QuestionRepository questionRepository;
+
+    @Autowired
+    public AssessmentRepository assessmentRepository;
+
+    @Autowired
+    public TreatmentRepository treatmentRepository;
+
     @PersistenceContext
     public EntityManager entityManager;
 
