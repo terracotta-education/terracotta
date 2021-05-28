@@ -11,8 +11,6 @@ import java.util.Optional;
 public interface ExposureService {
     List<Exposure> findAllByExperimentId(long experimentId);
 
-    Optional<Exposure> findOneByExposureId(long exposureId);
-
     ExposureDto toDto(Exposure exposure);
 
     Exposure fromDto(ExposureDto exposureDto) throws DataServiceException;

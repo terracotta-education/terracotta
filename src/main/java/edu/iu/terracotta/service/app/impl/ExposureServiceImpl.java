@@ -25,11 +25,6 @@ public class ExposureServiceImpl implements ExposureService {
     }
 
     @Override
-    public Optional<Exposure> findOneByExposureId(long exposureId) {
-        return allRepositories.exposureRepository.findByExposureId(exposureId);
-    }
-
-    @Override
     public ExposureDto toDto(Exposure exposure) {
 
         ExposureDto exposureDto = new ExposureDto();

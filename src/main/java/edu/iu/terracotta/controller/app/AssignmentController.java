@@ -80,11 +80,10 @@ public class AssignmentController {
                                                        @PathVariable("exposure_id") long exposureId,
                                                        @PathVariable("assignment_id") long assignmentId,
                                                        HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, ExposureNotMatchingException, AssignmentNotMatchingException {
+            throws ExperimentNotMatchingException, BadTokenException, AssignmentNotMatchingException {
 
         SecurityInfo securityInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.exposureAllowed(securityInfo, experimentId, exposureId);
         apijwtService.assignmentAllowed(securityInfo, experimentId, exposureId, assignmentId);
         //student access? Or should it be instructorOrHigher?
         if (apijwtService.isLearnerOrHigher(securityInfo)) {
@@ -151,12 +150,11 @@ public class AssignmentController {
                                                  @PathVariable("assignment_id") Long assignmentId,
                                                  @RequestBody AssignmentDto assignmentDto,
                                                  HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, ExposureNotMatchingException, AssignmentNotMatchingException {
+            throws ExperimentNotMatchingException, BadTokenException, AssignmentNotMatchingException {
 
         log.info("Updating assignment with id: {}", assignmentId);
         SecurityInfo securityInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.exposureAllowed(securityInfo, experimentId, exposureId);
         apijwtService.assignmentAllowed(securityInfo, experimentId, exposureId, assignmentId);
 
         if(apijwtService.isInstructorOrHigher(securityInfo)) {
@@ -183,11 +181,10 @@ public class AssignmentController {
                                                  @PathVariable("exposure_id") Long exposureId,
                                                  @PathVariable("assignment_id") Long assignmentId,
                                                  HttpServletRequest req)
-            throws ExperimentNotMatchingException, ExposureNotMatchingException, AssignmentNotMatchingException, BadTokenException {
+            throws ExperimentNotMatchingException, AssignmentNotMatchingException, BadTokenException {
 
         SecurityInfo securityInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.exposureAllowed(securityInfo, experimentId, exposureId);
         apijwtService.assignmentAllowed(securityInfo, experimentId, exposureId, assignmentId);
 
         if(apijwtService.isInstructorOrHigher(securityInfo)) {

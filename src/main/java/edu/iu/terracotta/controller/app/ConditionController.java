@@ -81,7 +81,7 @@ public class ConditionController {
         apijwtService.conditionAllowed(securityInfo, experimentId, conditionId);
 
         if(apijwtService.isLearnerOrHigher(securityInfo)){
-            Optional<Condition> condition = conditionService.findOneByConditionId(conditionId);
+            Optional<Condition> condition = conditionService.findById(conditionId);
 
             if(!condition.isPresent()) {
                 log.error("condition {} in experiment {} not found.", conditionId, experimentId);

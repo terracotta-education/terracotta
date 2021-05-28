@@ -40,6 +40,10 @@ public class TextConstants {
     public static final String EXPOSURE_NOT_MATCHING = "The exposure does not belong to experiment defined in the path.";
     public static final String PARTICIPANT_NOT_MATCHING = "The participant does not belong to experiment defined in the path.";
     public static final String ASSIGNMENT_NOT_MATCHING = "The assignment does not belong to experiment or exposure defined in path.";
+    public static final String TREATMENT_NOT_MATCHING = "The treatment does not belong to experiment or condition defined in path.";
+    public static final String ASSESSMENT_NOT_MATCHING = "The assessment does not belong to the experiment, condition, or treatment defined in path.";
+    public static final String QUESTION_NOT_MATCHING = "The question does not belong to the experiment, condition, treatment, or assignment defined in path.";
+    public static final String ANSWER_NOT_MATCHING = "The answer does not belong to the experiment, condition, treatment, assignment, or question defined in path.";
     public static final String BAD_CONSENT_FILETYPE = "The consent must be a pdf file.";
 
 }

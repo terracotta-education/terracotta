@@ -11,8 +11,6 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
 
     List<Assignment> findByExposure_ExposureId(Long exposureId);
 
-    Optional<Assignment> findByAssignmentId(Long assignmentId);
-
     boolean existsByExposure_Experiment_ExperimentIdAndExposure_ExposureIdAndAssignmentId(Long experimentId, Long exposureId, Long assignmentId);
 
 }

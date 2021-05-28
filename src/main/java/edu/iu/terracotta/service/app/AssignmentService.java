@@ -12,8 +12,6 @@ public interface AssignmentService {
 
     List<Assignment> findAllByExposureId(long exposureId);
 
-    Optional<Assignment> findOneByAssignmentId(long assignmentId);
-
     AssignmentDto toDto(Assignment assignment);
 
     Assignment fromDto(AssignmentDto assignmentDto) throws DataServiceException;
