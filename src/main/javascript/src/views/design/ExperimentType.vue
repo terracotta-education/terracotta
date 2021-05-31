@@ -35,9 +35,6 @@
 					<v-col class="grow">
 						No conditions found
 					</v-col>
-					<v-col class="shrink">
-						<v-btn>Go back</v-btn>
-					</v-col>
 				</v-row>
 			</v-alert>
 		</template>

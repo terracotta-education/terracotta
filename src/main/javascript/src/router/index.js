@@ -80,6 +80,16 @@ const routes = [
               currentStep: "design_type"
             }
           },
+          {
+            path: 'summary',
+            name: 'ExperimentDesignSummary',
+            component: () => import('../views/design/Summary.vue'),
+            meta: {
+              currentSection: "design",
+              currentStep: "design_type",
+              stepsComplete: true
+            }
+          },
         ]
       },
       {

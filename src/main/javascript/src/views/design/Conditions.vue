@@ -90,14 +90,10 @@ export default {
 
 	methods: {
 		...mapActions({
-			updateExperiment: 'experiment/updateExperiment',
 			createCondition: 'condition/createCondition',
 			deleteCondition: 'condition/deleteCondition',
 			updateConditions: 'condition/updateConditions',
 		}),
-		// TODO - DELETE Conditions
-
-		// TODO - SAVE Conditions
 		saveConditions() {
 			const e = this.experiment
 

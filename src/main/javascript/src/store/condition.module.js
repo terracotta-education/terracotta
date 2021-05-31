@@ -58,6 +58,17 @@ const actions = {
                         console.log("setCondition | catch",{response})
                     })
     },
+    setDefaultCondition({dispatch}, payload) {
+        if (!payload || !payload.conditions || !payload.defaultConditionId) {
+            return false
+        }
+        payload.conditions.forEach(condition => {
+            condition.defaultCondition = (condition.conditionId===payload.defaultConditionId)?1:0
+            dispatch('updateCondition', condition)
+            return condition
+        })
+        return {status: 200}
+    },
     deleteCondition: ({commit}, condition) => {
         return conditionService.delete(condition)
                     .then(() => {
@@ -70,7 +81,8 @@ const actions = {
     }
 };
 
-const mutations = {};
+const mutations = {
+};
 
 const getters = {};
 
