@@ -44,7 +44,11 @@ const mutations = {
     },
 }
 
-const getters = {}
+const getters = {
+    hasTokens(state) {
+        return state.lti_token && state.api_token
+    }
+}
 
 export const api = {
     namespaced: true,

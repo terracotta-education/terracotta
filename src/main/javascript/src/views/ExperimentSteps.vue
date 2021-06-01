@@ -1,25 +1,45 @@
 <template>
-	<main class="experiment-steps">
-		<aside class="experiment-steps__sidebar">
-			<steps :current-section="currentSection" :current-step="currentStep" />
-		</aside>
-		<nav>
-			<router-link
-				v-if="$routerHistory.hasPrevious()"
-				:to="{ path: $routerHistory.previous().path }">
-				<v-icon>mdi-chevron-left</v-icon> Back
-			</router-link>
-		</nav>
-		<article class="experiment-steps__body">
-			<v-container>
-				<v-row justify="center">
-					<v-col md="6">
-						<router-view :key="$route.fullPath" :experiment="experiment"></router-view>
-					</v-col>
-				</v-row>
-			</v-container>
-		</article>
-	</main>
+	<div>
+		<template v-if="experiment">
+			<div class="experiment-steps">
+				<aside class="experiment-steps__sidebar">
+					<steps :current-section="currentSection" :current-step="currentStep" />
+				</aside>
+				<nav>
+					<router-link
+						v-if="$routerHistory.hasPrevious()"
+						:to="{ path: $routerHistory.previous().path }">
+						<v-icon>mdi-chevron-left</v-icon> Back
+					</router-link>
+				</nav>
+				<article class="experiment-steps__body">
+					<v-container>
+						<v-row justify="center">
+							<v-col md="6">
+								<router-view :key="$route.fullPath" :experiment="experiment"></router-view>
+							</v-col>
+						</v-row>
+					</v-container>
+				</article>
+			</div>
+		</template>
+		<template v-else>
+			<v-row justify="center">
+				<v-col md="6">
+					<v-alert
+						prominent
+						type="error"
+					>
+						<v-row align="center">
+							<v-col class="grow">
+								Experiment not found
+							</v-col>
+						</v-row>
+					</v-alert>
+				</v-col>
+			</v-row>
+		</template>
+	</div>
 </template>
 
 <script>

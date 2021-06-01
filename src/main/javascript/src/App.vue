@@ -1,13 +1,31 @@
 <template>
-  <v-app>
-    <v-main>
-      <router-view :key="$route.fullPath"/>
-    </v-main>
-  </v-app>
+	<v-app>
+		<v-main>
+			<template v-if="hasTokens">
+				<router-view :key="$route.fullPath"/>
+			</template>
+			<template v-else>
+				<v-row justify="center">
+					<v-col md="6">
+						<v-alert
+						prominent
+						type="error"
+						>
+							<v-row align="center">
+								<v-col class="grow">
+									Error
+								</v-col>
+							</v-row>
+						</v-alert>
+					</v-col>
+				</v-row>
+			</template>
+		</v-main>
+	</v-app>
 </template>
 
 <script>
-import { mapActions } from "vuex";
+import { mapActions, mapGetters } from "vuex";
 import store from "@/store";
 
 export default {
@@ -16,6 +34,11 @@ export default {
   data: () => ({
     //
   }),
+	computed: {
+		...mapGetters({
+			hasTokens: 'api/hasTokens',
+		}),
+	},
 	methods: {
 		...mapActions({
 			refreshToken: 'api/refreshToken',
@@ -28,6 +51,9 @@ export default {
 			}.bind(this), 1000 * 60 * 59)
 		}
 	},
+	mounted() {
+		this.refreshToken()
+	}
 };
 </script>
 

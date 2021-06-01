@@ -7,7 +7,7 @@
 			class="my-5 mb-15"
 			v-if="experiment"
 		>
-			<v-text-field
+			<v-textarea
 				v-model="experiment.description"
 				:rules="requiredText"
 				label="Experiment description"
@@ -15,7 +15,7 @@
 				autofocus
 				outlined
 				required
-			></v-text-field>
+			></v-textarea>
 			<v-btn
 				:disabled="!experiment.description"
 				elevation="0"
