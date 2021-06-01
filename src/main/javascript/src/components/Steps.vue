@@ -5,20 +5,21 @@
 			:key="section.key"
 		>
 			<template v-if="section.key === currentSection">
-				<strong>{{section.name}}</strong>
+				<strong :class="{'green--text':isSummary && section.key === $route.meta.currentSection}">{{section.name}}</strong>
 			</template>
 			<template v-else>
-				<span>{{section.name}}</span>
+				<span :class="{'green--text':isSummary && section.key === $route.meta.currentSection}">{{section.name}}</span>
 			</template>
 
 			<v-stepper
 				vertical
 				v-if="section.key === currentSection"
+				:class="{finished:isSummary}"
 			>
 				<v-stepper-step
 					v-for="(step) in section.steps"
 					:key="step.key"
-					:complete="section.steps.findIndex((el,i) => {return el.key === step.key}) <= currentStepNum"
+					:complete="section.steps.findIndex((el) => {return el.key === step.key}) <= currentStepNum"
 					step=""
 				>
 					{{step.name}}
@@ -35,6 +36,9 @@
 		props: ['currentSection','currentStep'],
 
 		computed: {
+			isSummary() {
+				return this.$route.name==='ExperimentDesignSummary'
+			},
 			currentStepNum() {
 				return this.sectionList
 									.filter(obj => {
@@ -76,8 +80,8 @@
 						name: "Section 2: Participation",
 						steps: [
 							{
-								key: "design_title",
-								name: "Title"
+								key: "participation_selection_method",
+								name: "Selection Method"
 							}
 						]
 					},
@@ -98,8 +102,8 @@
 </script>
 
 <style lang="scss">
+	@import '~@/styles/variables';
 
-@import '~@/styles/variables';
 	ul.component-steps {
 		list-style: none;
 		padding: 0 !important;
@@ -110,15 +114,51 @@
 			margin-bottom: 20px;
 
 			.v-stepper {
-				background: $gray-lightest;
+				background: map-get($grey, 'lighten-4');
 				padding: 30px 0 30px 0;
 
+				&.finished {
+					.v-stepper__step--complete {
+						&::before {
+							background: map-get($green, 'base');
+						}
+						.primary {
+							border-color: map-get($green, 'base') !important;
+						}
+					}
+				}
+				&--vertical {
+					padding-bottom: 0;
+					box-shadow: none !important;
+
+					.v-stepper {
+						border-radius: 0;
+						padding: 0;
+
+						&__label {
+							color: black !important;
+						}
+						&__step {
+							padding: 0;
+
+							> span {
+								display: block;
+								background:white !important;
+								width: 14px !important;
+								height: 14px !important;
+								min-width: 14px !important;
+								border:5px solid #E2E2E2;
+
+								i {
+									display: none;
+								}
+							}
+						}
+					}
+				}
 				&__step {
 					padding: 0 0 28px 0 !important;
 
-					&:last-child {
-						//padding-bottom: 0 !important;
-					}
 					&--complete {
 						z-index: 1;
 
@@ -128,7 +168,7 @@
 							position: absolute;
 							height: 108%;
 							width: 14px;
-							background: #1d9dff;
+							background: map-get($light-blue, 'base');
 							left: 0;
 							bottom: 30px;
 							z-index: -1;
@@ -142,35 +182,6 @@
 								display: none;
 							}
 						}
-					}
-				}
-			}
-		}
-	}
-	.v-stepper--vertical {
-		padding-bottom: 0;
-		box-shadow: none !important;
-
-		.v-stepper {
-			border-radius: 0;
-			padding: 0;
-
-			&__label {
-				color: black !important;
-			}
-			&__step {
-				padding: 0;
-
-				> span {
-					display: block;
-					background:white !important;
-					width: 14px !important;
-					height: 14px !important;
-					min-width: 14px !important;
-					border:5px solid #E2E2E2;
-
-					i {
-						display: none;
 					}
 				}
 			}

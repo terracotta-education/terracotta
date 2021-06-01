@@ -64,7 +64,11 @@ export default {
 			this.updateExperiment(e)
 					.then(response => {
 						if (response.status === 200) {
-							this.$router.push({name:'ExperimentDesignDefaultCondition', params:{experiment: this.experiment.experiment_id}})
+							if (this.experiment.exposureType==='WITHIN') {
+								this.$router.push({name:'ExperimentDesignDefaultCondition', params:{experiment: this.experiment.experiment_id}})
+							} else if(this.experiment.exposureType==='BETWEEN') {
+								this.$router.push({name:'ExperimentDesignSummary', params:{experiment: this.experiment.experiment_id}})
+							}
 						} else {
 							alert("error: ", response.statusText || response.status)
 						}
@@ -78,49 +82,49 @@ export default {
 </script>
 
 <style lang="scss">
-@import '~@/styles/variables';
+	@import '~@/styles/variables';
 
-.v-expansion-panel {
-	padding: 30px;
-	border: 2px solid #E0E0E0;
-	border-radius: 10px;
-	margin-bottom: 10px;
+	.v-expansion-panel {
+		padding: 30px;
+		border: 2px solid map-get($grey, 'lighten-2');
+		border-radius: 10px;
+		margin-bottom: 10px;
 
 
-	&-header {
-		padding: 0 !important;
-		min-height: 1em !important;
+		&-header {
+			padding: 0 !important;
+			min-height: 1em !important;
 
-		> img {
-			max-width: 20px;
-			margin-right: 10px;
+			> img {
+				max-width: 20px;
+				margin-right: 10px;
+			}
 		}
-	}
-	&-content {
-		font-size: 14px;
-		color: rgba(0,0,0,0.6);
+		&-content {
+			font-size: 14px;
+			color: rgba(0,0,0,0.6);
 
-		.v-expansion-panel-content__wrap {
-			padding: 10px 0 0 0 !important;
+			.v-expansion-panel-content__wrap {
+				padding: 10px 0 0 0 !important;
+			}
 		}
-	}
-	&--active {
-		border-color: map-get($light-blue, 'base');
-		text-align:center;
+		&--active {
+			border-color: map-get($light-blue, 'base');
+			text-align:center;
 
-		.v-expansion-panel-header{
-			text-align: center;
-			flex-direction: column;
-			font-weight: bold;
-			transition: all 250ms ease-in-out;
+			.v-expansion-panel-header{
+				text-align: center;
+				flex-direction: column;
+				font-weight: bold;
+				transition: all 250ms ease-in-out;
 
-			img {
-				display: block;
-				opacity: 0.6;
-				max-width: 40px;
-				margin: 0 auto 20px;
+				img {
+					display: block;
+					opacity: 0.6;
+					max-width: 40px;
+					margin: 0 auto 20px;
+				}
 			}
 		}
 	}
-}
 </style>

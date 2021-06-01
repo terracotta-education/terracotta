@@ -101,7 +101,7 @@
 		}
 
 		&__sidebar {
-			background: $gray-lightest;
+			background: map-get($grey, 'lighten-4');
 			padding: 30px 45px;
 		}
 		&__body {

@@ -100,6 +100,26 @@ const routes = [
         },
         children: [
           // Experiment | Participation Steps paths
+          {
+            path: '',
+            alias: 'intro',
+            name: 'ExperimentParticipationIntro',
+            component: () => import('../views/participation/Intro.vue'),
+            meta: {
+              currentSection: "participation",
+              currentStep: "participation"
+            }
+          },
+          {
+            path: '',
+            alias: 'intro',
+            name: 'ExperimentParticipationSelectionMethod',
+            component: () => import('../views/participation/SelectionMethod.vue'),
+            meta: {
+              currentSection: "participation",
+              currentStep: "participation_selection_method"
+            }
+          },
         ]
       },
       {
