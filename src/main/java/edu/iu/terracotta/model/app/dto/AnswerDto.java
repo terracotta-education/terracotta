@@ -9,6 +9,7 @@ public class AnswerDto {
     private String html;
     private Boolean correct;
     private Long questionId;
+    private Integer answerOrder;
 
 
     public Long getAnswerId() { return answerId; }
@@ -26,4 +27,8 @@ public class AnswerDto {
     public Long getQuestionId() { return questionId; }
 
     public void setQuestionId(Long questionId) { this.questionId = questionId; }
+
+    public Integer getAnswerOrder() { return answerOrder; }
+
+    public void setAnswerOrder(Integer answerOrder) { this.answerOrder = answerOrder; }
 }

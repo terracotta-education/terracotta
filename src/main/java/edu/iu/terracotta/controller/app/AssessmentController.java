@@ -319,6 +319,7 @@ public class AssessmentController {
                                                     HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, BadTokenException {
 
+        log.info("Creating Question: {}", questionDto);
         SecurityInfo securityInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securityInfo, experimentId);
         apijwtService.assessmentAllowed(securityInfo, experimentId, conditionId, treatmentId, assessmentId);
@@ -351,6 +352,47 @@ public class AssessmentController {
         }
     }
 
+
+    @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/questions", method = RequestMethod.PUT)
+    public ResponseEntity<Void> updateQuestions(@PathVariable("experiment_id") Long experimentId,
+                                                @PathVariable("condition_id") Long conditionId,
+                                                @PathVariable("treatment_id") Long treatmentId,
+                                                @PathVariable("assessment_id") Long assessmentId,
+                                                @RequestBody List<QuestionDto> questionDtos,
+                                                HttpServletRequest req)
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionNotMatchingException, BadTokenException, DataServiceException {
+
+        SecurityInfo securityInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securityInfo, experimentId);
+        apijwtService.assessmentAllowed(securityInfo, experimentId, conditionId, treatmentId, assessmentId);
+
+        if(apijwtService.isInstructorOrHigher(securityInfo)) {
+            List<Question> questionList = new ArrayList<>();
+
+            for(QuestionDto questionDto : questionDtos){
+                apijwtService.questionAllowed(securityInfo, assessmentId, questionDto.getQuestionId());
+                Optional<Question> question = questionService.findById(questionDto.getQuestionId());
+                if(question.isPresent()){
+                    Question questionToChange = question.get();
+                    questionToChange.setHtml(questionDto.getHtml());
+                    questionToChange.setQuestionOrder(questionDto.getQuestionOrder());
+                    questionToChange.setPoints(questionDto.getPoints());
+                    questionList.add(questionToChange);
+                }
+            }
+            try{
+                questionService.saveAllQuestions(questionList);
+                return new ResponseEntity<>(HttpStatus.OK);
+            } catch (Exception ex) {
+                throw new DataServiceException("An error occurred trying to update the question list. No questions were updated. " + ex.getMessage());
+            }
+        } else {
+            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
+        }
+    }
+
+
+
     @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/questions/{question_id}",
                     method = RequestMethod.PUT)
     public ResponseEntity<Void> updateQuestion(@PathVariable("experiment_id") Long experimentId,
@@ -377,6 +419,7 @@ public class AssessmentController {
             }
             Question questionToChange = questionSearchResult.get();
             questionToChange.setHtml(questionDto.getHtml());
+            questionToChange.setQuestionOrder(questionDto.getQuestionOrder());
             questionToChange.setPoints(questionDto.getPoints());
 
             questionService.saveAndFlush(questionToChange);
@@ -500,6 +543,7 @@ public class AssessmentController {
                                                 HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionNotMatchingException, BadTokenException {
 
+        log.info("Creating Answer: {}", answerDto);
         SecurityInfo securityInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securityInfo, experimentId);
         apijwtService.assessmentAllowed(securityInfo, experimentId, conditionId, treatmentId, assessmentId);
@@ -534,6 +578,47 @@ public class AssessmentController {
     }
 
 
+    @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/questions/{question_id}/answers",
+                    method = RequestMethod.PUT)
+    public ResponseEntity<Void> updateAnswers(@PathVariable("experiment_id") Long experimentId,
+                                              @PathVariable("condition_id") Long conditionId,
+                                              @PathVariable("treatment_id") Long treatmentId,
+                                              @PathVariable("assessment_id") Long assessmentId,
+                                              @PathVariable("question_id") Long questionId,
+                                              @RequestBody List<AnswerDto> answerDtos,
+                                              HttpServletRequest req)
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, AnswerNotMatchingException, BadTokenException, DataServiceException {
+
+        SecurityInfo securityInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securityInfo, experimentId);
+        apijwtService.assessmentAllowed(securityInfo, experimentId, conditionId, treatmentId, assessmentId);
+
+        if(apijwtService.isInstructorOrHigher(securityInfo)){
+            List<Answer> answerList = new ArrayList<>();
+
+            for(AnswerDto answerDto : answerDtos) {
+                apijwtService.answerAllowed(securityInfo, assessmentId, questionId, answerDto.getAnswerId());
+                Optional<Answer> answer = answerService.findById(answerDto.getAnswerId());
+                if(answer.isPresent()) {
+                    Answer answerToChange = answer.get();
+                    answerToChange.setHtml(answerDto.getHtml());
+                    answerToChange.setAnswerOrder(answerDto.getAnswerOrder());
+                    answerToChange.setCorrect(answerDto.getCorrect());
+                    answerList.add(answerToChange);
+                }
+            }
+            try{
+                answerService.saveAllAnswers(answerList);
+                return new ResponseEntity<>(HttpStatus.OK);
+            } catch (Exception ex) {
+                throw new DataServiceException("An error occurred trying to update the answer list. No answers were updated. " + ex.getMessage());
+            }
+        } else {
+            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
+        }
+    }
+
+
     @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/questions/{question_id}/answers/{answer_id}",
                     method = RequestMethod.PUT)
     public ResponseEntity<Void> updateAnswer(@PathVariable("experiment_id") Long experimentId,
@@ -561,6 +646,7 @@ public class AssessmentController {
             }
             Answer answerToChange = answerSearchResult.get();
             answerToChange.setHtml(answerDto.getHtml());
+            answerToChange.setAnswerOrder(answerDto.getAnswerOrder());
             answerToChange.setCorrect(answerDto.getCorrect());
 
             answerService.saveAndFlush(answerToChange);
