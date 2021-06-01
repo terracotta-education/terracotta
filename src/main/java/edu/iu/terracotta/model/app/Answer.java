@@ -29,6 +29,9 @@ public class Answer {
     @ManyToOne
     private Question question;
 
+    @Column(name = "answer_order")
+    private Integer answerOrder;
+
 
     public Long getAnswerId() { return answerId; }
 
@@ -45,4 +48,8 @@ public class Answer {
     public Question getQuestion() { return question; }
 
     public void setQuestion(Question question) { this.question = question; }
+
+    public Integer getAnswerOrder() { return answerOrder; }
+
+    public void setAnswerOrder(Integer answerOrder) { this.answerOrder = answerOrder; }
 }

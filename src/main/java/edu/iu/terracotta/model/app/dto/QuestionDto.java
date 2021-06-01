@@ -13,6 +13,7 @@ public class QuestionDto {
     private List<AnswerDto> answers;
     private Float points;
     private Long assessmentId;
+    private Integer questionOrder;
 
 
     public Long getQuestionId() { return questionId; }
@@ -23,9 +24,7 @@ public class QuestionDto {
 
     public void setHtml(String html) { this.html = html; }
 
-    public List<AnswerDto> getAnswers() {
-        return answers;
-    }
+    public List<AnswerDto> getAnswers() { return answers; }
 
     public void setAnswers(List<AnswerDto> answers) {
         this.answers = answers;
@@ -38,4 +37,8 @@ public class QuestionDto {
     public Long getAssessmentId() { return assessmentId; }
 
     public void setAssessmentId(Long assessmentId) { this.assessmentId = assessmentId; }
+
+    public Integer getQuestionOrder() { return questionOrder; }
+
+    public void setQuestionOrder(Integer questionOrder) { this.questionOrder = questionOrder; }
 }

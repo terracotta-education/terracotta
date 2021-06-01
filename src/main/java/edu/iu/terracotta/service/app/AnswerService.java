@@ -22,6 +22,8 @@ public interface AnswerService {
 
     void saveAndFlush(Answer answerToChange);
 
+    void saveAllAnswers(List<Answer> answerList);
+
     void deleteById(Long id) throws EmptyResultDataAccessException;
 
     boolean answerBelongsToAssessmentAndQuestion(Long assessmentId, Long questionId, Long answerId);

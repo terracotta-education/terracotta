@@ -9,6 +9,7 @@ import edu.iu.terracotta.service.app.AnswerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import javax.transaction.Transactional;
 import java.util.List;
 import java.util.Optional;
 
@@ -29,6 +30,7 @@ public class AnswerServiceImpl implements AnswerService {
         answerDto.setAnswerId(answer.getAnswerId());
         answerDto.setHtml(answer.getHtml());
         answerDto.setCorrect(answer.getCorrect());
+        answerDto.setAnswerOrder(answer.getAnswerOrder());
         answerDto.setQuestionId(answer.getQuestion().getQuestionId());
 
         return answerDto;
@@ -41,6 +43,7 @@ public class AnswerServiceImpl implements AnswerService {
         answer.setAnswerId(answerDto.getAnswerId());
         answer.setHtml(answerDto.getHtml());
         answer.setCorrect(answerDto.getCorrect());
+        answer.setAnswerOrder(answerDto.getAnswerOrder());
         Optional<Question> question = allRepositories.questionRepository.findById(answerDto.getQuestionId());
         if(question.isPresent()){
             answer.setQuestion(question.get());
@@ -58,6 +61,10 @@ public class AnswerServiceImpl implements AnswerService {
 
     @Override
     public void saveAndFlush(Answer answerTOChange) { allRepositories.answerRepository.saveAndFlush(answerTOChange); }
+
+    @Override
+    @Transactional
+    public void saveAllAnswers(List<Answer> answerList) { allRepositories.answerRepository.saveAll(answerList); }
 
     @Override
     public void deleteById(Long id) { allRepositories.answerRepository.deleteById(id); }

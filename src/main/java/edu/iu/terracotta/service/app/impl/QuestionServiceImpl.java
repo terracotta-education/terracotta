@@ -1,5 +1,6 @@
 package edu.iu.terracotta.service.app.impl;
 
+import edu.iu.terracotta.controller.app.AssessmentController;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.model.app.Answer;
 import edu.iu.terracotta.model.app.Assessment;
@@ -9,10 +10,13 @@ import edu.iu.terracotta.model.app.dto.QuestionDto;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.AnswerService;
 import edu.iu.terracotta.service.app.QuestionService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.stereotype.Component;
 
+import javax.transaction.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -37,6 +41,7 @@ public class QuestionServiceImpl implements QuestionService {
         QuestionDto questionDto = new QuestionDto();
         questionDto.setQuestionId(question.getQuestionId());
         questionDto.setHtml(question.getHtml());
+        questionDto.setQuestionOrder(question.getQuestionOrder());
         List<AnswerDto> answers = new ArrayList<>();
         for(Answer answer : question.getAnswers()) {
             answers.add(answerService.toDto(answer));
@@ -55,6 +60,7 @@ public class QuestionServiceImpl implements QuestionService {
         question.setQuestionId(questionDto.getQuestionId());
         question.setHtml(questionDto.getHtml());
         question.setPoints(questionDto.getPoints());
+        question.setQuestionOrder(questionDto.getQuestionOrder());
         Optional<Assessment> assessment = allRepositories.assessmentRepository.findById(questionDto.getAssessmentId());
         if(assessment.isPresent()) {
             question.setAssessment(assessment.get());
@@ -72,6 +78,10 @@ public class QuestionServiceImpl implements QuestionService {
 
     @Override
     public void saveAndFlush(Question questionToChange) { allRepositories.questionRepository.saveAndFlush(questionToChange); }
+
+    @Override
+    @Transactional
+    public void saveAllQuestions(List<Question> questionList) { allRepositories.questionRepository.saveAll(questionList); }
 
     @Override
     public void deleteById(Long id) throws EmptyResultDataAccessException { allRepositories.questionRepository.deleteById(id); }

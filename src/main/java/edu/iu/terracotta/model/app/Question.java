@@ -34,6 +34,9 @@ public class Question {
     @ManyToOne
     private Assessment assessment;
 
+    @Column(name = "question_order")
+    private Integer questionOrder;
+
 
     public Long getQuestionId() { return questionId; }
 
@@ -54,4 +57,8 @@ public class Question {
     public Assessment getAssessment() { return assessment; }
 
     public void setAssessment(Assessment assessment) { this.assessment = assessment; }
+
+    public Integer getQuestionOrder() { return questionOrder; }
+
+    public void setQuestionOrder(Integer questionOrder) { this.questionOrder = questionOrder; }
 }
