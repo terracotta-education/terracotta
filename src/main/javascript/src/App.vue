@@ -58,6 +58,8 @@ export default {
 </script>
 
 <style lang="scss" >
+	@import "./styles/custom";
+
 	h1, h2, h3, h4 {
 		line-height: 1.2;
 		font-weight: 400;

@@ -6,7 +6,7 @@
 				<span>How do you want students to be exposed to these different conditions?</span>
 			</h1>
 
-			<v-expansion-panels flat>
+			<v-expansion-panels class="v-expansion-panels--icon" flat>
 
 				<v-expansion-panel :class="{'v-expansion-panel--selected':experiment.exposureType==='BETWEEN'}">
 					<v-expansion-panel-header hide-actions><img src="@/assets/all_conditions.svg" alt="all conditions"> All conditions</v-expansion-panel-header>
@@ -80,51 +80,3 @@ export default {
 	}
 }
 </script>
-
-<style lang="scss">
-	@import '~@/styles/variables';
-
-	.v-expansion-panel {
-		padding: 30px;
-		border: 2px solid map-get($grey, 'lighten-2');
-		border-radius: 10px;
-		margin-bottom: 10px;
-
-
-		&-header {
-			padding: 0 !important;
-			min-height: 1em !important;
-
-			> img {
-				max-width: 20px;
-				margin-right: 10px;
-			}
-		}
-		&-content {
-			font-size: 14px;
-			color: rgba(0,0,0,0.6);
-
-			.v-expansion-panel-content__wrap {
-				padding: 10px 0 0 0 !important;
-			}
-		}
-		&--active {
-			border-color: map-get($light-blue, 'base');
-			text-align:center;
-
-			.v-expansion-panel-header{
-				text-align: center;
-				flex-direction: column;
-				font-weight: bold;
-				transition: all 250ms ease-in-out;
-
-				img {
-					display: block;
-					opacity: 0.6;
-					max-width: 40px;
-					margin: 0 auto 20px;
-				}
-			}
-		}
-	}
-</style>

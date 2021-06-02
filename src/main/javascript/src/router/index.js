@@ -111,8 +111,7 @@ const routes = [
             }
           },
           {
-            path: '',
-            alias: 'intro',
+            path: 'selection-method',
             name: 'ExperimentParticipationSelectionMethod',
             component: () => import('../views/participation/SelectionMethod.vue'),
             meta: {
