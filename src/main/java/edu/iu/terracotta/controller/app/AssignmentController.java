@@ -123,7 +123,6 @@ public class AssignmentController {
                 log.error("Cannot include id in the POST endpoint. To modify existing exposures you must use PUT");
                 return new ResponseEntity("Cannot include id in the POST endpoint. To modify existing exposures you must use PUT", HttpStatus.CONFLICT);
             }
-
             assignmentDto.setExposureId(exposureId);
             Assignment assignment = null;
             try {

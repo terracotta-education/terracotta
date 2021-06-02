@@ -2,6 +2,7 @@ package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.model.LtiContextEntity;
 import edu.iu.terracotta.model.LtiMembershipEntity;
 import edu.iu.terracotta.model.LtiUserEntity;
@@ -19,6 +20,7 @@ import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.ParticipantService;
 import edu.iu.terracotta.service.lti.AdvantageMembershipService;
 import edu.iu.terracotta.service.lti.LTIDataService;
+import net.bytebuddy.implementation.bytecode.Throw;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -120,7 +122,7 @@ public class ParticipantServiceImpl implements ParticipantService {
     }
 
     @Override
-    public List<Participant> refreshParticipants(long experimentId, SecurityInfo securityInfo, List<Participant> currentParticipantList) {
+    public List<Participant> refreshParticipants(long experimentId, SecurityInfo securityInfo, List<Participant> currentParticipantList) throws ParticipantNotUpdatedException {
 
         List<Participant> newParticipantList = new ArrayList<>();
         //We don't want to delete participants if they drop the course, so... we will keep the all participants
@@ -169,17 +171,20 @@ public class ParticipantServiceImpl implements ParticipantService {
                         newParticipant.setLtiMembershipEntity(ltiMembershipEntity);
                         newParticipant.setDropped(false);
                         newParticipant.setSource(experiment.getParticipationType());
-                        switch (newParticipant.getSource()){
+                        switch (experiment.getParticipationType()){
                             case MANUAL:
                                 newParticipant.setConsent(false);
                                 newParticipant.setDateGiven(new Timestamp(System.currentTimeMillis()));
+                                break;
                             case CONSENT:
                                 newParticipant.setConsent(false);
                                 //We don't set date here, because the date will be used to know if the students
                                 //ever checked a value. so a value with date means that the student answered the consent form assignment.
+                                break;
                             case AUTO:
                                 newParticipant.setConsent(true);
                                 newParticipant.setDateGiven(new Timestamp(System.currentTimeMillis()));
+                                break;
                             default:
                         }
                         newParticipant = allRepositories.participantRepository.save(newParticipant);
@@ -187,10 +192,8 @@ public class ParticipantServiceImpl implements ParticipantService {
                     }
                 }
             }
-        } catch (ConnectionException e) {
-            e.printStackTrace();
-        } catch (NoSuchElementException e) {
-            e.printStackTrace();
+        } catch (ConnectionException | NoSuchElementException e) {
+            throw new ParticipantNotUpdatedException(e.getMessage());
         }
         return newParticipantList;
     }
@@ -198,5 +201,13 @@ public class ParticipantServiceImpl implements ParticipantService {
     @Override
     public boolean participantBelongsToExperiment(Long experimentId, Long participantId) {
         return allRepositories.participantRepository.existsByExperiment_ExperimentIdAndParticipantId(experimentId,participantId);
+    }
+
+    @Override
+    public void prepareParticipation(Long experimentId, SecurityInfo securityInfo) throws ParticipantNotUpdatedException {
+
+        List<Participant> currentParticipantList =
+                findAllByExperimentId(experimentId);
+        refreshParticipants(experimentId,securityInfo,currentParticipantList);
     }
 }

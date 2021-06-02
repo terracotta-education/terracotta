@@ -133,10 +133,9 @@ public class ExperimentServiceImpl implements ExperimentService {
         }
         experiment.setTitle(experimentDto.getTitle());
         experiment.setDescription(experimentDto.getDescription());
-        //TODO, ask ben what should be the default types for an experiment.
-        experiment.setExposureType(EnumUtils.getEnum(ExposureTypes.class, experimentDto.getExposureType(), ExposureTypes.BETWEEN));
-        experiment.setParticipationType(EnumUtils.getEnum(ParticipationTypes.class, experimentDto.getParticipationType(), ParticipationTypes.AUTO));
-        experiment.setDistributionType(EnumUtils.getEnum(DistributionTypes.class, experimentDto.getDistributionType(), DistributionTypes.EVEN));
+        experiment.setExposureType(EnumUtils.getEnum(ExposureTypes.class, experimentDto.getExposureType(), ExposureTypes.NOSET));
+        experiment.setParticipationType(EnumUtils.getEnum(ParticipationTypes.class, experimentDto.getParticipationType(), ParticipationTypes.NOSET));
+        experiment.setDistributionType(EnumUtils.getEnum(DistributionTypes.class, experimentDto.getDistributionType(), DistributionTypes.NOSET));
         experiment.setStarted(experimentDto.getStarted());
         LtiUserEntity user = allRepositories.users.findByUserIdAndPlatformDeployment_KeyId(experimentDto.getCreatedBy(),platformDeployment.get().getKeyId());
         if (user!=null){
@@ -208,6 +207,12 @@ public class ExperimentServiceImpl implements ExperimentService {
             }
         }
         return null;
+    }
+
+    @Override
+    public boolean experimentStarted(Experiment experiment){
+        // TODO add the condition to consider the experiment started
+        return false;
     }
 
 

@@ -13,4 +13,12 @@ public interface GroupRepository extends JpaRepository<Group, Long> {
     Optional<Group> findByGroupId(Long groupId);
 
     boolean existsByExperiment_ExperimentIdAndGroupId(Long experimentId, Long groupId);
+
+    long countByExperiment_ExperimentId(Long experimentId);
+
+    long deleteByExperiment_ExperimentId(Long experimentId);
+
+
+
+
 }
