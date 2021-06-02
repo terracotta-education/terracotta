@@ -68,5 +68,10 @@ public class AssignmentServiceImpl implements AssignmentService {
 
     @Override
     public boolean assignmentBelongsToExperimentAndExposure(Long experimentId, Long exposureId, Long assignmentId) {
-        return allRepositories.assignmentRepository.existsByExposure_Experiment_ExperimentIdAndExposure_ExposureIdAndAssignmentId(experimentId, exposureId, assignmentId); }
+        return allRepositories.assignmentRepository.existsByExposure_Experiment_ExperimentIdAndExposure_ExposureIdAndAssignmentId(experimentId, exposureId, assignmentId);
+    }
+
+    @Override
+    public boolean assignmentBelongsToExperiment(Long experimentId, Long assignmentId) {
+        return allRepositories.assignmentRepository.existsByExposure_Experiment_ExperimentIdAndAssignmentId(experimentId,assignmentId); }
 }

@@ -317,6 +317,13 @@ public class APIJWTServiceImpl implements APIJWTService {
     }
 
     @Override
+    public void assignmentAllowed(SecurityInfo securityInfo, Long experimentId, Long assignmentId) throws AssignmentNotMatchingException {
+        if(!assignmentService.assignmentBelongsToExperiment(experimentId, assignmentId)) {
+            throw new AssignmentNotMatchingException(TextConstants.ASSIGNMENT_NOT_MATCHING);
+        }
+    }
+
+    @Override
     public void assignmentAllowed(SecurityInfo securityInfo, Long experimentId, Long exposureId, Long assignmentId) throws AssignmentNotMatchingException {
         if(!assignmentService.assignmentBelongsToExperimentAndExposure(experimentId, exposureId, assignmentId)) {
             throw new AssignmentNotMatchingException(TextConstants.ASSIGNMENT_NOT_MATCHING);

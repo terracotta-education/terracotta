@@ -26,4 +26,6 @@ public interface AssignmentService {
 
     boolean assignmentBelongsToExperimentAndExposure(Long experimentId, Long exposureId, Long assignmentId);
 
+    boolean assignmentBelongsToExperiment(Long experimentId, Long assignmentId);
+
 }

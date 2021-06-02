@@ -1,12 +1,14 @@
 package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.model.app.Assignment;
 import edu.iu.terracotta.model.app.Treatment;
 import edu.iu.terracotta.model.app.dto.TreatmentDto;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.AssessmentService;
 import edu.iu.terracotta.service.app.TreatmentService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Component;
 import edu.iu.terracotta.model.app.Condition;
 
@@ -35,7 +37,7 @@ public class TreatmentServiceImpl implements TreatmentService {
             treatmentDto.setAssessmentDto(assessmentService.toDto(treatment.getAssessment()));
         }
         treatmentDto.setConditionId(treatment.getCondition().getConditionId());
-        treatmentDto.setTreatmentOrder(treatment.getTreatmentOrder());
+        treatmentDto.setAssignmentId(treatment.getAssignment().getAssignmentId());
 
         return treatmentDto;
     }
@@ -44,7 +46,12 @@ public class TreatmentServiceImpl implements TreatmentService {
     public Treatment fromDto(TreatmentDto treatmentDto) throws DataServiceException{
         Treatment treatment = new Treatment();
         treatment.setTreatmentId(treatmentDto.getTreatmentId());
-        treatment.setTreatmentOrder(treatmentDto.getTreatmentOrder());
+        Optional<Assignment> assignment= allRepositories.assignmentRepository.findById(treatmentDto.getAssignmentId());
+        if (assignment.isPresent()) {
+            treatment.setAssignment(assignment.get());
+        } else {
+            throw new DataServiceException("The assignment for the treatment does not exist");
+        }
         Optional<Condition> condition = allRepositories.conditionRepository.findById(treatmentDto.getConditionId());
         if(condition.isPresent()) {
             treatment.setCondition(condition.get());

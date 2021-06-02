@@ -26,9 +26,17 @@ public class Treatment {
     @OneToOne(orphanRemoval = true)
     private Assessment assessment;
 
-    @Column(name = "treatment_order")
-    private Integer treatmentOrder;
+    @JoinColumn(name = "assignment_assignment_id", nullable = false)
+    @ManyToOne(optional = false)
+    private Assignment assignment;
 
+    public Assignment getAssignment() {
+        return assignment;
+    }
+
+    public void setAssignment(Assignment assignment) {
+        this.assignment = assignment;
+    }
 
     public Long getTreatmentId() { return treatmentId; }
 
@@ -42,7 +50,4 @@ public class Treatment {
 
     public void setCondition(Condition condition) { this.condition = condition; }
 
-    public Integer getTreatmentOrder() { return treatmentOrder; }
-
-    public void setTreatmentOrder(Integer treatmentOrder) { this.treatmentOrder = treatmentOrder; }
 }

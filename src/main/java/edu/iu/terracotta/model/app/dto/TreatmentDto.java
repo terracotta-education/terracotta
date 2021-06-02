@@ -5,7 +5,7 @@ public class TreatmentDto {
     private Long treatmentId;
     private AssessmentDto assessmentDto;
     private Long conditionId;
-    private Integer treatmentOrder;
+    private Long assignmentId;
 
 
     public Long getTreatmentId() { return treatmentId; }
@@ -20,7 +20,11 @@ public class TreatmentDto {
 
     public void setConditionId(Long conditionId) { this.conditionId = conditionId; }
 
-    public Integer getTreatmentOrder() { return treatmentOrder; }
+    public Long getAssignmentId() {
+        return assignmentId;
+    }
 
-    public void setTreatmentOrder(Integer treatmentOrder) { this.treatmentOrder = treatmentOrder; }
+    public void setAssignmentId(Long assignmentId) {
+        this.assignmentId = assignmentId;
+    }
 }
