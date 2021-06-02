@@ -107,21 +107,6 @@ public class APIJWTServiceImpl implements APIJWTService {
     @Autowired
     AnswerService answerService;
 
-    @Autowired
-    GroupService groupService;
-
-    @Autowired
-    TreatmentService treatmentService;
-
-    @Autowired
-    AssessmentService assessmentService;
-
-    @Autowired
-    QuestionService questionService;
-
-    @Autowired
-    AnswerService answerService;
-
     private static final String JWT_REQUEST_HEADER_NAME = "Authorization";
     private static final String JWT_BEARER_TYPE = "Bearer";
     private static final String QUERY_PARAM_NAME = "token";
