@@ -36,4 +36,6 @@ public interface ExperimentService {
     void deleteConsentDocument(ConsentDocument consentDocument);
 
     ExperimentDto getEmptyExperiment(SecurityInfo securityInfo, ExperimentDto experimentDto);
+
+    boolean experimentStarted(Experiment experiment);
 }

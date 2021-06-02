@@ -1,6 +1,7 @@
 package edu.iu.terracotta.service.app;
 
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.dto.ParticipantDto;
 import edu.iu.terracotta.model.oauth2.SecurityInfo;
@@ -23,7 +24,9 @@ public interface ParticipantService {
 
     void deleteById(Long id);
 
-    List<Participant> refreshParticipants(long experimentId, SecurityInfo securityInfo, List<Participant> currentParticipantList);
+    List<Participant> refreshParticipants(long experimentId, SecurityInfo securityInfo, List<Participant> currentParticipantList) throws ParticipantNotUpdatedException;
 
     boolean participantBelongsToExperiment(Long experimentId, Long participantId);
+
+    void prepareParticipation(Long experimentId, SecurityInfo securityInfo) throws ParticipantNotUpdatedException;
 }

@@ -68,6 +68,9 @@ public class AllRepositories {
     public ExposureRepository exposureRepository;
 
     @Autowired
+    public GroupRepository groupRepository;
+
+    @Autowired
     public AssignmentRepository assignmentRepository;
 
     @Autowired
@@ -81,6 +84,10 @@ public class AllRepositories {
 
     @Autowired
     public TreatmentRepository treatmentRepository;
+
+    @Autowired
+    public ExposureGroupConditionRepository exposureGroupConditionRepository;
+
 
     @PersistenceContext
     public EntityManager entityManager;

@@ -8,7 +8,7 @@ import java.util.Optional;
 
 public interface CanvasAPIClient {
 
-    Optional<Assignment> createCanvasAssignment(Assignment canvasAssignment, String courseId, PlatformDeployment platformDeployment ) throws CanvasApiException;
+    Optional<Assignment> createCanvasAssignment(Assignment canvasAssignment, String contextMembershipUrl, PlatformDeployment platformDeployment ) throws CanvasApiException;
 
 
 }

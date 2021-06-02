@@ -4,6 +4,7 @@ import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
+import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.dto.ParticipantDto;
@@ -66,7 +67,9 @@ public class ParticipantController {
      */
     @RequestMapping(value = "/{experimentId}/participants", method = RequestMethod.GET, produces = "application/json;")
     @ResponseBody
-    public ResponseEntity<List<ParticipantDto>> allParticipantsByExperiment(@PathVariable("experimentId") long experimentId, @RequestParam(name = "refresh", defaultValue = "true") boolean refresh, HttpServletRequest req)  throws ExperimentNotMatchingException, BadTokenException {
+    public ResponseEntity<List<ParticipantDto>> allParticipantsByExperiment(@PathVariable("experimentId") long experimentId,
+                                                                            @RequestParam(name = "refresh", defaultValue = "true") boolean refresh,
+                                                                            HttpServletRequest req) throws ExperimentNotMatchingException, BadTokenException, ParticipantNotUpdatedException {
 
         SecurityInfo securityInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securityInfo, experimentId);

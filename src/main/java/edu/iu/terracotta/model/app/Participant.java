@@ -53,6 +53,18 @@ public class Participant {
     @Column(name = "dropped")
     private Boolean dropped;
 
+    @JoinColumn(name = "group_group_id")
+    @OneToOne
+    private Group group;
+
+    public Group getGroup() {
+        return group;
+    }
+
+    public void setGroup(Group group) {
+        this.group = group;
+    }
+
     public LtiUserEntity getLtiUserEntity() {
         return ltiUserEntity;
     }
