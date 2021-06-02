@@ -7,7 +7,9 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
+import javax.persistence.OneToMany;
 import javax.persistence.Table;
+import java.util.List;
 
 @Table(name = "terr_assignment")
 @Entity
@@ -30,6 +32,17 @@ public class Assignment {
     @Column(name = "assignment_order")
     private Integer assignmentOrder;
 
+    @JoinColumn(name = "assignment_assignment_id")
+    @OneToMany(orphanRemoval = true)
+    private List<Treatment> treatments;
+
+    public List<Treatment> getTreatments() {
+        return treatments;
+    }
+
+    public void setTreatments(List<Treatment> treatments) {
+        this.treatments = treatments;
+    }
 
     //methods
     public Long getAssignmentId() { return assignmentId; }

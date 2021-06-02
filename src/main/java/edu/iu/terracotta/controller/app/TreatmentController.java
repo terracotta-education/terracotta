@@ -1,15 +1,18 @@
 package edu.iu.terracotta.controller.app;
 
+import edu.iu.terracotta.exceptions.AssignmentNotMatchingException;
 import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.ConditionNotMatchingException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
+import edu.iu.terracotta.model.app.Assignment;
 import edu.iu.terracotta.model.app.Treatment;
 import edu.iu.terracotta.model.app.dto.TreatmentDto;
 import edu.iu.terracotta.model.oauth2.SecurityInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.AssessmentService;
+import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.app.TreatmentService;
 import edu.iu.terracotta.utils.TextConstants;
 import org.slf4j.Logger;
@@ -29,6 +32,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.swing.text.html.Option;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -42,6 +46,9 @@ public class TreatmentController {
 
     @Autowired
     TreatmentService treatmentService;
+
+    @Autowired
+    AssignmentService assignmentService;
 
     @Autowired
     APIJWTService apijwtService;
@@ -154,7 +161,7 @@ public class TreatmentController {
                                                 @PathVariable("treatment_id") Long treatmentId,
                                                 @RequestBody TreatmentDto treatmentDto,
                                                 HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, TreatmentNotMatchingException {
+            throws ExperimentNotMatchingException, BadTokenException, TreatmentNotMatchingException, AssignmentNotMatchingException, DataServiceException {
 
         log.info("Updating treatment with id: {}", treatmentId);
         SecurityInfo securityInfo = apijwtService.extractValues(req, false);
@@ -169,8 +176,14 @@ public class TreatmentController {
                 return new ResponseEntity("Unable to update. Treatment with id " + treatmentId + TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
             }
             Treatment treatmentToChange = treatmentSearchResult.get();
-            treatmentToChange.setTreatmentOrder(treatmentDto.getTreatmentOrder());
 
+            Optional<Assignment> assignment= assignmentService.findById(treatmentDto.getAssignmentId());
+            if (assignment.isPresent()) {
+                apijwtService.assignmentAllowed(securityInfo, experimentId, treatmentDto.getAssignmentId());
+                treatmentToChange.setAssignment(assignment.get());
+            } else {
+                throw new DataServiceException("The assignment for the treatment does not exist");
+            }
             treatmentService.saveAndFlush(treatmentToChange);
             return new ResponseEntity<>(HttpStatus.OK);
         } else {

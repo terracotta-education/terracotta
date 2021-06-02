@@ -54,6 +54,8 @@ public interface APIJWTService {
 
     void groupAllowed(SecurityInfo securityInfo, Long experimentId, Long groupId) throws GroupNotMatchingException;
 
+    void assignmentAllowed(SecurityInfo securityInfo, Long experimentId, Long assignmentId) throws AssignmentNotMatchingException;
+
     void assignmentAllowed(SecurityInfo securityInfo, Long experimentId, Long exposureId, Long assignmentId) throws AssignmentNotMatchingException;
 
     void treatmentAllowed(SecurityInfo securityInfo, Long experimentId, Long conditionId, Long treatmentId) throws TreatmentNotMatchingException;
