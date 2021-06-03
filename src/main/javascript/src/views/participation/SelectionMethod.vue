@@ -5,27 +5,27 @@
 
 		<v-expansion-panels class="v-expansion-panels--icon" flat>
 
-			<v-expansion-panel :class="{'v-expansion-panel--selected':experiment.participation_type===0}">
+			<v-expansion-panel :class="{'v-expansion-panel--selected':experiment.participationType==='CONSENT'}">
 				<v-expansion-panel-header hide-actions><img src="@/assets/consent_invite.svg" alt="invite students"> <strong>Students will be invited to consent</strong></v-expansion-panel-header>
 				<v-expansion-panel-content>
 					<p>Select this option if you would like to create a consent assignment within Canvas</p>
-					<v-btn @click="participationType(0)" color="primary" elevation="0">Select</v-btn>
+					<v-btn @click="setParticipationType('CONSENT')" color="primary" elevation="0">Select</v-btn>
 				</v-expansion-panel-content>
 			</v-expansion-panel>
 
-			<v-expansion-panel :class="{'v-expansion-panel--selected':experiment.participation_type===1}">
+			<v-expansion-panel :class="{'v-expansion-panel--selected':experiment.participationType==='MANUAL'}">
 				<v-expansion-panel-header hide-actions><img src="@/assets/consent_manual.svg" alt="manually decide students"> <strong>Teacher will manually decide</strong></v-expansion-panel-header>
 				<v-expansion-panel-content>
 					<p>Select this option if you are working with minors or will be collecting parental consent</p>
-					<v-btn @click="participationType(1)" color="primary" elevation="0">Select</v-btn>
+					<v-btn @click="setParticipationType('MANUAL')" color="primary" elevation="0">Select</v-btn>
 				</v-expansion-panel-content>
 			</v-expansion-panel>
 
-			<v-expansion-panel :class="{'v-expansion-panel--selected':experiment.participation_type===2}">
+			<v-expansion-panel :class="{'v-expansion-panel--selected':experiment.participationType==='AUTO'}">
 				<v-expansion-panel-header hide-actions><img src="@/assets/consent_automatic.svg" alt="automatically include all students"> <strong>Automatically include all students</strong></v-expansion-panel-header>
 				<v-expansion-panel-content>
 					<p>Select this option if informed consent is not needed to run the study</p>
-					<v-btn @click="participationType(2)" color="primary" elevation="0">Select</v-btn>
+					<v-btn @click="setParticipationType('AUTO')" color="primary" elevation="0">Select</v-btn>
 				</v-expansion-panel-content>
 			</v-expansion-panel>
 
@@ -35,14 +35,37 @@
 </template>
 
 <script>
-// import {mapActions} from "vuex";
+import { mapActions } from "vuex";
 
 export default {
 	name: 'ParticipationSelectionMethod',
 	props: ['experiment'],
 	methods: {
-		participationType(type) {
-			console.log(type)
+		...mapActions({
+			updateExperiment: 'experiment/updateExperiment',
+		}),
+		setParticipationType(type) {
+			const _this = this
+			const e = _this.experiment
+			e.participationType = type
+
+			this.updateExperiment(e)
+					.then(response => {
+						if (response.status === 200) {
+							if (this.experiment.participationType==='CONSENT') {
+								this.$router.push({name:'ExperimentParticipationConsent', params:{experiment: this.experiment.experiment_id}})
+							} else if(this.experiment.participationType==='MANUAL') {
+								this.$router.push({name:'ExperimentParticipationManual', params:{experiment: this.experiment.experiment_id}})
+							} else if(this.experiment.participationType==='AUTO') {
+								this.$router.push({name:'ExperimentParticipationAutoConfirm', params:{experiment: this.experiment.experiment_id}})
+							}
+						} else {
+							alert("error: ", response.statusText || response.status)
+						}
+					})
+					.catch(response => {
+						console.log("updateExperiment | catch", {response})
+					})
 		}
 	}
 }

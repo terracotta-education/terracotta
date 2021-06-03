@@ -1,46 +1,52 @@
-.v-expansion-panels--icon {
-
+.v-expansion-panels {
     .v-expansion-panel {
-        padding: 30px;
-        border: 2px solid map-get($grey, 'lighten-2');
-        border-radius: 10px;
-        margin-bottom: 10px;
-
-
-        &-header {
-            padding: 0 !important;
-            min-height: 1em !important;
-
-            > img {
-                max-width: 20px;
-                margin-right: 10px;
-            }
+        &--selected {
+            border-color: map-get($light-blue, 'base') !important;
         }
-        &-content {
-            font-size: 14px;
-            color: rgba(0,0,0,0.6);
+    }
+    &--icon {
+        .v-expansion-panel {
+            padding: 30px;
+            border: 2px solid map-get($grey, 'lighten-2');
+            border-radius: 10px;
+            margin-bottom: 10px;
 
-            .v-expansion-panel-content__wrap {
-                padding: 10px 0 0 0 !important;
+
+            &-header {
+                padding: 0 !important;
+                min-height: 1em !important;
+
+                > img {
+                    max-width: 20px;
+                    margin-right: 10px;
+                }
             }
-        }
-        &--active {
-            margin: 0 !important;
-            border-color: map-get($light-blue, 'base');
-            text-align:center;
+            &-content {
+                font-size: 14px;
+                color: rgba(0,0,0,0.6);
 
-            .v-expansion-panel-header{
-                text-align: center;
-                flex-direction: column;
-                font-weight: bold;
-                transition: all 250ms ease-in-out;
+                .v-expansion-panel-content__wrap {
+                    padding: 10px 0 0 0 !important;
+                }
+            }
+            &--active {
+                margin: 0 !important;
+                border-color: map-get($light-blue, 'base');
+                text-align:center;
 
-                img {
-                    display: block;
-                    opacity: 0.6;
-                    min-width: 40px;
-                    max-width: 40px;
-                    margin: 0 auto 20px;
+                .v-expansion-panel-header{
+                    text-align: center;
+                    flex-direction: column;
+                    font-weight: bold;
+                    transition: all 250ms ease-in-out;
+
+                    img {
+                        display: block;
+                        opacity: 0.6;
+                        min-width: 40px;
+                        max-width: 40px;
+                        margin: 0 auto 20px;
+                    }
                 }
             }
         }

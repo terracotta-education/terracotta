@@ -119,6 +119,15 @@ const routes = [
               currentStep: "participation_selection_method"
             }
           },
+          {
+            path: 'participation-type-auto-confirm',
+            name: 'ExperimentParticipationAutoConfirm',
+            component: () => import('../views/participation/ParticipationTypeAutoConfirm.vue'),
+            meta: {
+              currentSection: "participation",
+              currentStep: "participation_selection_method"
+            }
+          },
         ]
       },
       {
