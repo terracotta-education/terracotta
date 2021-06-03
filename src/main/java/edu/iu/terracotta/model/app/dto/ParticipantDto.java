@@ -20,6 +20,7 @@ public class ParticipantDto {
     private Timestamp dateRevoked;
     private String source;
     private Boolean dropped;
+    private Long groupId;
 
 
     public ParticipantDto() {}
@@ -86,5 +87,13 @@ public class ParticipantDto {
 
     public void setDropped(Boolean dropped) {
         this.dropped = dropped;
+    }
+
+    public Long getGroupId() {
+        return groupId;
+    }
+
+    public void setGroupId(Long groupId) {
+        this.groupId = groupId;
     }
 }

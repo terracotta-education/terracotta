@@ -7,6 +7,7 @@ import edu.iu.terracotta.model.LtiContextEntity;
 import edu.iu.terracotta.model.LtiMembershipEntity;
 import edu.iu.terracotta.model.LtiUserEntity;
 import edu.iu.terracotta.model.app.Experiment;
+import edu.iu.terracotta.model.app.Group;
 import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.dto.ParticipantDto;
 import edu.iu.terracotta.model.app.dto.UserDto;
@@ -21,6 +22,7 @@ import edu.iu.terracotta.service.app.ParticipantService;
 import edu.iu.terracotta.service.lti.AdvantageMembershipService;
 import edu.iu.terracotta.service.lti.LTIDataService;
 import net.bytebuddy.implementation.bytecode.Throw;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -59,6 +61,9 @@ public class ParticipantServiceImpl implements ParticipantService {
         participantDto.setDateRevoked(participant.getDateRevoked());
         participantDto.setSource(participant.getSource().name());
         participantDto.setDropped(participant.getDropped());
+        if (participant.getGroup()!=null) {
+            participantDto.setGroupId(participant.getGroup().getGroupId());
+        }
         return participantDto;
     }
 
@@ -94,7 +99,9 @@ public class ParticipantServiceImpl implements ParticipantService {
         } catch (Exception e){
             throw new DataServiceException("The user for the participant is not valid");
         }
-
+        if (participantDto.getGroupId()!=null && allRepositories.groupRepository.existsByExperiment_ExperimentIdAndGroupId(experiment.get().getExperimentId(), participantDto.getGroupId())){
+            participant.setGroup(allRepositories.groupRepository.getOne(participantDto.getGroupId()));
+        }
         participant.setParticipantId(participant.getParticipantId());
         participant.setConsent(participantDto.getConsent());
         participant.setDateGiven(participantDto.getDateGiven());

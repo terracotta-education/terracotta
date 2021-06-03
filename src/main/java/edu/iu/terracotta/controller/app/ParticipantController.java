@@ -11,6 +11,7 @@ import edu.iu.terracotta.model.app.dto.ParticipantDto;
 import edu.iu.terracotta.model.oauth2.SecurityInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.ExperimentService;
+import edu.iu.terracotta.service.app.GroupService;
 import edu.iu.terracotta.service.app.ParticipantService;
 import edu.iu.terracotta.service.lti.AdvantageMembershipService;
 import edu.iu.terracotta.service.lti.LTIDataService;
@@ -60,6 +61,9 @@ public class ParticipantController {
 
     @Autowired
     LTIDataService ltiDataService;
+
+    @Autowired
+    GroupService groupService;
 
 
     /**
@@ -207,11 +211,9 @@ public class ParticipantController {
             if (participantDto.getDropped()!=null) {
                 participantToChange.setDropped(participantDto.getDropped());
             }
-            //TODO: Not sure if we must use that value or use the one in the experiment.
-            //if(participantDto.getSource() != null) {
-            //    participantToChange.setSource(
-            //            EnumUtils.getEnum(ParticipationTypes.class, participantDto.getSource()));
-            //}*/
+            if (participantDto.getGroupId()!=null && groupService.existsByExperiment_ExperimentIdAndGroupId(experiment.get().getExperimentId(), participantDto.getGroupId())){
+                participantToChange.setGroup(groupService.findById(participantDto.getGroupId()).get());
+            }
             //This will never happen, but is here to avoid complains from the code sniffers.
             if (!experiment.isPresent()) {
                 log.error("Unable to update. Experiment with id {} not found.", experimentId);

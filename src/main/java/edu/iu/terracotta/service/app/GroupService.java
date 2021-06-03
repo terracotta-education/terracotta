@@ -32,4 +32,6 @@ public interface GroupService {
     boolean groupBelongsToExperiment(Long experimentId, Long groupId);
 
     void createAndAssignGroupsToConditionsAndExposures(Long experimentId, SecurityInfo securityInfo, boolean isCustom) throws DataServiceException;
+
+    boolean existsByExperiment_ExperimentIdAndGroupId(Long experimentId, Long groupId);
 }
