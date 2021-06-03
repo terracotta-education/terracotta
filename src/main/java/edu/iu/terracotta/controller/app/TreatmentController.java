@@ -135,6 +135,9 @@ public class TreatmentController {
             }
 
             treatmentDto.setConditionId(conditionId);
+            if (treatmentDto.getAssignmentId()==null){
+                return new ResponseEntity("Unable to create Treatment: The assignmentId is mandatory", HttpStatus.BAD_REQUEST);
+            }
             Treatment treatment = null;
             try{
                 treatment = treatmentService.fromDto(treatmentDto);
@@ -176,7 +179,9 @@ public class TreatmentController {
                 return new ResponseEntity("Unable to update. Treatment with id " + treatmentId + TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
             }
             Treatment treatmentToChange = treatmentSearchResult.get();
-
+            if (treatmentDto.getAssignmentId()==null){
+                return new ResponseEntity("Unable to create Treatment: The assignmentId is mandatory", HttpStatus.BAD_REQUEST);
+            }
             Optional<Assignment> assignment= assignmentService.findById(treatmentDto.getAssignmentId());
             if (assignment.isPresent()) {
                 apijwtService.assignmentAllowed(securityInfo, experimentId, treatmentDto.getAssignmentId());

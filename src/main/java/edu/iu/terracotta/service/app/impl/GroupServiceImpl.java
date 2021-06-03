@@ -8,6 +8,7 @@ import edu.iu.terracotta.model.app.ExposureGroupCondition;
 import edu.iu.terracotta.model.app.Group;
 import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.dto.GroupDto;
+import edu.iu.terracotta.model.app.dto.ParticipantDto;
 import edu.iu.terracotta.model.oauth2.SecurityInfo;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.ExperimentService;
@@ -52,10 +53,14 @@ public class GroupServiceImpl implements GroupService {
 
         GroupDto groupDto = new GroupDto();
         groupDto.setGroupId(group.getGroupId());
-        //TODO check null?
         groupDto.setExperimentId(group.getExperiment().getExperimentId());
         groupDto.setName(group.getName());
-
+        List<Participant> participantList = allRepositories.participantRepository.findByExperiment_ExperimentIdAndGroup_GroupId(groupDto.getExperimentId(), group.getGroupId());
+        List<ParticipantDto> participantDtoList = new ArrayList<>();
+        for (Participant participant:participantList){
+            participantDtoList.add(participantService.toDto(participant));
+        }
+        groupDto.setParticipants(participantDtoList);
         return groupDto;
     }
 
@@ -146,6 +151,11 @@ public class GroupServiceImpl implements GroupService {
         } else {
             throw new DataServiceException("The experiment for the group does not exist");
         }
+    }
+
+    @Override
+    public boolean existsByExperiment_ExperimentIdAndGroupId(Long experimentId, Long groupId) {
+        return allRepositories.groupRepository.existsByExperiment_ExperimentIdAndGroupId(experimentId,groupId);
     }
 
     //A little weird code but it assigns the right Experiments, Groups and Conditions without repetition.

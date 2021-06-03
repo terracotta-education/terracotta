@@ -2,12 +2,15 @@ package edu.iu.terracotta.model.app.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
+import java.util.List;
+
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class GroupDto {
 
     private Long groupId;
     private Long experimentId;
     private String name;
+    private List<ParticipantDto> participants;
 
     public GroupDto() {}
 
@@ -31,4 +34,11 @@ public class GroupDto {
 
     public void setExperimentId(Long experimentId) {this.experimentId = experimentId;}
 
+    public List<ParticipantDto> getParticipants() {
+        return participants;
+    }
+
+    public void setParticipants(List<ParticipantDto> participants) {
+        this.participants = participants;
+    }
 }
