@@ -107,8 +107,6 @@ public class ParticipantServiceImpl implements ParticipantService {
         participant.setDateGiven(participantDto.getDateGiven());
         participant.setDateRevoked(participantDto.getDateRevoked());
         participant.setDropped(participantDto.getDropped());
-        //Default value will be the defined in the Experiment ParticipationType
-        //TODO, not here, but we need to write code to manage changes in the experiment participation type. (In the exepriment/PUT)
         participant.setSource(experiment.get().getParticipationType());
         return participant;
     }

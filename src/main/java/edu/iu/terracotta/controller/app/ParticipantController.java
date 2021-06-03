@@ -213,6 +213,8 @@ public class ParticipantController {
             }
             if (participantDto.getGroupId()!=null && groupService.existsByExperiment_ExperimentIdAndGroupId(experiment.get().getExperimentId(), participantDto.getGroupId())){
                 participantToChange.setGroup(groupService.findById(participantDto.getGroupId()).get());
+            } else {
+                participantToChange.setGroup(null);
             }
             //This will never happen, but is here to avoid complains from the code sniffers.
             if (!experiment.isPresent()) {
