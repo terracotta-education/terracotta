@@ -33,6 +33,7 @@ public class AssignmentServiceImpl implements AssignmentService {
         assignmentDto.setTitle(assignment.getTitle());
         assignmentDto.setAssignmentOrder(assignment.getAssignmentOrder());
         assignmentDto.setExposureId(assignment.getExposure().getExposureId());
+        assignmentDto.setResourceLinkId(assignment.getResourceLinkId());
 
         return assignmentDto;
     }
@@ -41,8 +42,10 @@ public class AssignmentServiceImpl implements AssignmentService {
     public Assignment fromDto(AssignmentDto assignmentDto) throws DataServiceException {
 
         Assignment assignment = new Assignment();
-        assignment.setAssignmentId(assignmentDto.getExposureId());
-        assignment.setLmsAssignmentId(assignmentDto.getLmsAssignmentId());
+        assignment.setAssignmentId(assignmentDto.getAssignmentId());
+        //We don't need these in the object.
+        //assignment.setLmsAssignmentId(assignmentDto.getLmsAssignmentId());
+        //assignment.setResourceLinkId(assignmentDto.getResourceLinkId());
         assignment.setTitle(assignmentDto.getTitle());
         assignment.setAssignmentOrder(assignmentDto.getAssignmentOrder());
         Optional<Exposure> exposure = allRepositories.exposureRepository.findById(assignmentDto.getExposureId());

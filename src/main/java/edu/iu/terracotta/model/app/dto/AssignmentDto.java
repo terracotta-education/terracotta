@@ -10,6 +10,7 @@ public class AssignmentDto {
     private String title;
     private String lmsAssignmentId;
     private Integer assignmentOrder;
+    private String resourceLinkId;
 
     public AssignmentDto() {}
 
@@ -32,4 +33,12 @@ public class AssignmentDto {
     public Integer getAssignmentOrder() { return assignmentOrder; }
 
     public void setAssignmentOrder(Integer assignmentOrder) { this.assignmentOrder = assignmentOrder; }
+
+    public String getResourceLinkId() {
+        return resourceLinkId;
+    }
+
+    public void setResourceLinkId(String resourceLinkId) {
+        this.resourceLinkId = resourceLinkId;
+    }
 }
