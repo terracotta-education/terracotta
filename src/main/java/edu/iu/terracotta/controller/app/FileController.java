@@ -115,6 +115,7 @@ public class FileController {
                     try {
                         Optional<Assignment> assignment = canvasAPIClient.createCanvasAssignment(canvasAssignment,experiment.getLtiContextEntity().getContext_memberships_url(), experiment.getPlatformDeployment());
                         consentDocument.setLmsAssignmentId(Integer.toString(assignment.get().getId()));
+                        consentDocument.setResourceLinkId(assignment.get().getExternalToolTagAttributes().getResourceLinkId());
                     } catch (CanvasApiException e) {
                         log.info("Create the assignment failed");
                         e.printStackTrace();

@@ -34,6 +34,9 @@ public class ConsentDocument {
     @Column(name = "lms_assignment_id")
     private String lmsAssignmentId;
 
+    @Column(name = "resource_link_id")
+    private String resourceLinkId;
+
     public String getLmsAssignmentId() {
         return lmsAssignmentId;
     }
@@ -80,5 +83,13 @@ public class ConsentDocument {
 
     public void setConsentDocumentId(Long consentDocumentId) {
         this.consentDocumentId = consentDocumentId;
+    }
+
+    public String getResourceLinkId() {
+        return resourceLinkId;
+    }
+
+    public void setResourceLinkId(String resourceLinkId) {
+        this.resourceLinkId = resourceLinkId;
     }
 }

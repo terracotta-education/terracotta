@@ -7,9 +7,7 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
-import javax.persistence.OneToMany;
 import javax.persistence.Table;
-import java.util.List;
 
 @Table(name = "terr_assignment")
 @Entity
@@ -26,23 +24,14 @@ public class Assignment {
     @Column(name = "lms_assignment_id")
     private String lmsAssignmentId;
 
+    @Column(name = "resource_link_id")
+    private String resourceLinkId;
+
     @Column(name = "title")
     private String title;
 
     @Column(name = "assignment_order")
     private Integer assignmentOrder;
-
-    @JoinColumn(name = "assignment_assignment_id")
-    @OneToMany(orphanRemoval = true)
-    private List<Treatment> treatments;
-
-    public List<Treatment> getTreatments() {
-        return treatments;
-    }
-
-    public void setTreatments(List<Treatment> treatments) {
-        this.treatments = treatments;
-    }
 
     //methods
     public Long getAssignmentId() { return assignmentId; }
@@ -64,4 +53,12 @@ public class Assignment {
     public Integer getAssignmentOrder() { return assignmentOrder; }
 
     public void setAssignmentOrder(Integer assignmentOrder) { this.assignmentOrder = assignmentOrder; }
+
+    public String getResourceLinkId() {
+        return resourceLinkId;
+    }
+
+    public void setResourceLinkId(String resourceLinkId) {
+        this.resourceLinkId = resourceLinkId;
+    }
 }

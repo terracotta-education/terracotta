@@ -2,6 +2,7 @@ package edu.iu.terracotta.controller.app;
 
 import edu.iu.terracotta.exceptions.AssignmentNotMatchingException;
 import edu.iu.terracotta.exceptions.BadTokenException;
+import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.ExposureNotMatchingException;
@@ -9,6 +10,7 @@ import edu.iu.terracotta.model.app.dto.AssignmentDto;
 import edu.iu.terracotta.model.oauth2.SecurityInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.AssignmentService;
+import edu.iu.terracotta.service.canvas.CanvasAPIClient;
 import edu.iu.terracotta.utils.TextConstants;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,6 +19,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -24,11 +27,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 import edu.iu.terracotta.model.app.Assignment;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.http.HttpHeaders;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Optional;
 import java.util.List;
 
@@ -45,6 +50,9 @@ public class AssignmentController {
 
     @Autowired
     APIJWTService apijwtService;
+
+    @Autowired
+    CanvasAPIClient canvasAPIClient;
 
 
     @RequestMapping(value = "/{experiment_id}/exposures/{exposure_id}/assignments", method = RequestMethod.GET, produces = "application/json;")
@@ -106,6 +114,7 @@ public class AssignmentController {
         }
     }
 
+    @Transactional
     @RequestMapping(value = "/{experiment_id}/exposures/{exposure_id}/assignments", method = RequestMethod.POST)
     public ResponseEntity<AssignmentDto> postAssignment(@PathVariable("experiment_id") long experimentId,
                                                         @PathVariable("exposure_id") long exposureId,
@@ -130,8 +139,31 @@ public class AssignmentController {
             } catch (DataServiceException e) {
                 return new ResponseEntity("Unable to create Assignment: " + e.getMessage(), HttpStatus.BAD_REQUEST);
             }
-
             Assignment assignmentSaved = assignmentService.save(assignment);
+
+            edu.ksu.canvas.model.assignment.Assignment canvasAssignment = new edu.ksu.canvas.model.assignment.Assignment();
+            edu.ksu.canvas.model.assignment.Assignment.ExternalToolTagAttribute canvasExternalToolTagAttributes = canvasAssignment.new ExternalToolTagAttribute();
+            canvasExternalToolTagAttributes.setUrl(ServletUriComponentsBuilder.fromCurrentContextPath().path("/lti3?assignment=" + assignmentSaved.getAssignmentId()).build().toUriString());
+            canvasAssignment.setExternalToolTagAttributes(canvasExternalToolTagAttributes);
+            canvasAssignment.setName(assignmentSaved.getTitle());
+            //TODO: Think about the description of the assignment.
+            canvasAssignment.setDescription("Hardcoded description to be updated");
+            canvasAssignment.setPublished(false);
+            //TODO: This is interesting...because each condition assessment maybe has different points... so... what should we send here? 0? 100 and send a percent always????
+            canvasAssignment.setPointsPossible(0.0);
+            canvasAssignment.setSubmissionTypes(Collections.singletonList("external_tool"));
+            try {
+                Optional<edu.ksu.canvas.model.assignment.Assignment> canvasAssignmentReturned = canvasAPIClient.createCanvasAssignment(canvasAssignment,
+                        assignmentSaved.getExposure().getExperiment().getLtiContextEntity().getContext_memberships_url(),
+                        assignmentSaved.getExposure().getExperiment().getPlatformDeployment());
+                assignmentSaved.setLmsAssignmentId(Integer.toString(canvasAssignmentReturned.get().getId()));
+                assignmentSaved.setResourceLinkId(canvasAssignmentReturned.get().getExternalToolTagAttributes().getResourceLinkId());
+            } catch (CanvasApiException e) {
+                log.info("Create the assignment failed");
+                e.printStackTrace();
+                return new ResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+            assignmentService.saveAndFlush(assignmentSaved);
             AssignmentDto returnedDto = assignmentService.toDto(assignmentSaved);
 
             HttpHeaders headers = new HttpHeaders();
@@ -166,7 +198,10 @@ public class AssignmentController {
             Assignment assignmentToChange = assignmentSearchResult.get();
             assignmentToChange.setTitle(assignmentDto.getTitle());
             assignmentToChange.setAssignmentOrder(assignmentDto.getAssignmentOrder());
-            assignmentToChange.setLmsAssignmentId(assignmentDto.getLmsAssignmentId());
+            //We don't want to change these values with a PUT.
+            //assignmentToChange.setLmsAssignmentId(assignmentDto.getLmsAssignmentId());
+            //assignmentToChange.setResourceLinkId(assignmentDto.getResourceLinkId());
+
 
             assignmentService.saveAndFlush(assignmentToChange);
             return new ResponseEntity<>(HttpStatus.OK);
