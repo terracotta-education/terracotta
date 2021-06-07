@@ -45,3 +45,10 @@ mysql> create database xxDATABASENAMExxx DEFAULT CHARACTER SET utf8 ; Query OK, 
 mysql> create user 'xxxuserNamexxx'@'%' identified by 'xxxPasswordxxx'; Query OK, 0 rows affected (0.00 sec)
 
 mysql> grant all on terracotta.* to 'terracotta'@'localhost'; Query OK, 0 rows affected (0.00 sec)
+
+
+Developing the interface
+---------
+You will need to run the local development script in addition to the back-end java server. 
+
+Navigate to the `src/main/javascript` directory to view the README for the front-end.

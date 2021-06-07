@@ -12,6 +12,7 @@ const actions = {
         dispatch('setApiToken', token)
     },
     setApiToken: ({commit}, token) => {
+        // send a token to the API to receive an API token for the bearer auth header
         return apiService.getApiToken(token)
                 .then(data => {
                     if (typeof data === 'string') {
@@ -23,6 +24,7 @@ const actions = {
                 })
     },
     refreshToken: ({commit}) => {
+        // send a refresh to the API and receive an API token for the bearer auth header
         return apiService.refreshToken()
                 .then(data => {
                     if (typeof data === 'string') {
@@ -46,7 +48,8 @@ const mutations = {
 
 const getters = {
     hasTokens(state) {
-        return state.lti_token && state.api_token
+        // check if both tokens are set in the state
+        return state.lti_token.length>0 && state.api_token.length>0
     }
 }
 
