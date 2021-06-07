@@ -12,6 +12,7 @@ import edu.iu.terracotta.exceptions.AssignmentNotMatchingException;
 import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
 import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
 import edu.iu.terracotta.model.oauth2.SecurityInfo;
+import edu.iu.terracotta.utils.lti.LTI3Request;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 
@@ -24,7 +25,9 @@ public interface APIJWTService {
     //Here we could add other checks like expiration of the state (not implemented)
     Jws<Claims> validateToken(String token);
 
-    String buildJwt(boolean oneUse, List<String> roles, Long contextId, Long platformDeploymentId, String userId) throws GeneralSecurityException, IOException;
+    String buildJwt(boolean oneUse, List<String> roles, Long contextId, Long platformDeploymentId, String userId, Long assignmentId, Long experimentId, Boolean consent) throws GeneralSecurityException, IOException;
+
+    String buildJwt(boolean oneUse, LTI3Request lti3Request) throws GeneralSecurityException, IOException;
 
     String refreshToken(String token) throws GeneralSecurityException, IOException, BadTokenException;
 

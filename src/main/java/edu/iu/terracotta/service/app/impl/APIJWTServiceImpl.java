@@ -38,6 +38,7 @@ import edu.iu.terracotta.service.app.ParticipantService;
 import edu.iu.terracotta.service.app.QuestionService;
 import edu.iu.terracotta.service.app.TreatmentService;
 import edu.iu.terracotta.service.lti.LTIDataService;
+import edu.iu.terracotta.utils.lti.LTI3Request;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.JwsHeader;
@@ -47,12 +48,14 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.SigningKeyResolverAdapter;
 import edu.iu.terracotta.utils.oauth.OAuthUtils;
 import edu.iu.terracotta.utils.TextConstants;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.DateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
@@ -140,14 +143,8 @@ public class APIJWTServiceImpl implements APIJWTService {
         // If we are on this point, then the state signature has been validated. We can start other tasks now.
     }
 
-
-
-
-    /**
-     * This JWT will contain the token request
-     */
     @Override
-    public String buildJwt(boolean oneUse, List<String> roles, Long contextId, Long platformDeploymentId, String userId) throws GeneralSecurityException, IOException {
+    public String buildJwt(boolean oneUse, List<String> roles, Long contextId, Long platformDeploymentId, String userId, Long assignmentId, Long experimentId, Boolean consent) throws GeneralSecurityException, IOException {
 
         int length = 3600;
         //We only allow 30 seconds (surely we can low that) for the one time token, because that one must be traded
@@ -170,6 +167,9 @@ public class APIJWTServiceImpl implements APIJWTService {
                 .claim("platformDeploymentId", platformDeploymentId)  //This is an specific claim to ask for tokens.
                 .claim("userId", userId)  //This is an specific claim to ask for tokens.
                 .claim("roles", roles)
+                .claim("assignmentId", assignmentId)
+                .claim("consent", consent.toString())
+                .claim("experimentId", experimentId)
                 .claim("oneUse", oneUse)  //This is an specific claim to ask for tokens.
                 .signWith(SignatureAlgorithm.RS256, toolPrivateKey);  //We sign it with our own private key. The platform has the public one.
         String token = builder.compact();
@@ -178,6 +178,39 @@ public class APIJWTServiceImpl implements APIJWTService {
         }
         log.debug("Token Request: \n {} \n", token);
         return token;
+    }
+
+
+    /**
+     * This JWT will contain the token request
+     */
+    @Override
+    public String buildJwt(boolean oneUse, LTI3Request lti3Request) throws GeneralSecurityException, IOException {
+
+        String targetLinkUrl = lti3Request.getLtiTargetLinkUrl();
+        MultiValueMap<String, String> queryParams =
+                UriComponentsBuilder.fromUriString(targetLinkUrl).build().getQueryParams();
+        String assignmentIdText = queryParams.getFirst("assignment");
+        Long assignmentId = null;
+        if (StringUtils.isNotBlank(assignmentIdText)){
+            assignmentId = Long.parseLong(assignmentIdText);
+        }
+        String consentText = queryParams.getFirst("consent");
+        Boolean consent = false;
+        if (StringUtils.isNotBlank(consentText)){
+            if (consentText.equals("true")){
+                consent = true;
+            }
+        }
+        String experimentIdText = queryParams.getFirst("experiment");
+        Long experimentId = null;
+        if (StringUtils.isNotBlank(experimentIdText)){
+            experimentId = Long.parseLong(experimentIdText);
+        }
+
+
+
+        return buildJwt(oneUse, lti3Request.getLtiRoles(), lti3Request.getContext().getContextId(),lti3Request.getKey().getKeyId(), lti3Request.getUser().getUserKey(), assignmentId, experimentId, consent);
     }
 
     @Override
@@ -198,9 +231,14 @@ public class APIJWTServiceImpl implements APIJWTService {
                 .setExpiration(DateUtils.addDays(date, length)) //a java.util.Date
                 .setNotBefore(date) //a java.util.Date
                 .setIssuedAt(date) // for example, now
-                .claim("something",tokenClaims.getBody().get("something"))  //This is an specific claim to ask for tokens.
-                .claim("roles", tokenClaims.getBody().get("roles"))  //This is an specific claim to ask for tokens.
-                .claim("oneUse", false)  //This is an specific claim to ask for tokens.
+                .claim("contextId", tokenClaims.getBody().get("contextId"))
+                .claim("platformDeploymentId", tokenClaims.getBody().get("platformDeploymentId"))
+                .claim("userId", tokenClaims.getBody().get("userId"))
+                .claim("roles", tokenClaims.getBody().get("roles"))
+                .claim("assignmentId", tokenClaims.getBody().get("assignmentId"))
+                .claim("consent", tokenClaims.getBody().get("consent"))
+                .claim("experimentId", tokenClaims.getBody().get("experimentId"))
+                .claim("oneUse", false)
                 .signWith(SignatureAlgorithm.RS256, toolPrivateKey);  //We sign it with our own private key. The platform has the public one.
         String newToken = builder.compact();
         log.debug("Token Request: \n {} \n", newToken);
@@ -209,10 +247,10 @@ public class APIJWTServiceImpl implements APIJWTService {
 
     @Override
     public String extractJwtStringValue(HttpServletRequest request, boolean allowQueryParam) {
-        String rawHeaderValue = StringUtils.trimAllWhitespace(request.getHeader(JWT_REQUEST_HEADER_NAME));
+        String rawHeaderValue = StringUtils.trimToNull(request.getHeader(JWT_REQUEST_HEADER_NAME));
         if (rawHeaderValue == null) {
             if (allowQueryParam) {
-                String param = StringUtils.trimAllWhitespace(request.getParameter(QUERY_PARAM_NAME));
+                String param = StringUtils.trimToNull(request.getParameter(QUERY_PARAM_NAME));
                 return param;
             }
         }

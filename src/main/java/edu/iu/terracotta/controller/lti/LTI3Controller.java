@@ -124,10 +124,7 @@ public class LTI3Controller {
             } else {
                 String oneTimeToken = apiJWTService.buildJwt(
                         true,
-                        lti3Request.getLtiRoles(),
-                        lti3Request.getContext().getContextId(),
-                        lti3Request.getKey().getKeyId(),
-                        lti3Request.getUser().getUserKey());
+                        lti3Request);
                 return "redirect:/app/app.html?token=" + oneTimeToken;
             }
         } catch (SignatureException ex) {
