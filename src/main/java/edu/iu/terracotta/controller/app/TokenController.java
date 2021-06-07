@@ -46,20 +46,29 @@ public class TokenController {
         Jws<Claims> claims = apijwtService.validateToken(token);
         if ((Boolean)claims.getBody().get("oneUse")) {
             try {
+                //ExperimentId and assignmentId are optionals so I need to check the null.
+                Long assignmentId = null;
+                if (claims.getBody().get("assignmentId")!=null){
+                    assignmentId = Long.parseLong(claims.getBody().get("assignmentId").toString());
+                }
+                Long experimentId = null;
+                if (claims.getBody().get("experimentId")!=null){
+                    experimentId = Long.parseLong(claims.getBody().get("experimentId").toString());
+                }
                 return new ResponseEntity<>(apijwtService.buildJwt(false,
                         (List<String>)claims.getBody().get("roles"),
                         Long.parseLong(claims.getBody().get("contextId").toString()),
                         Long.parseLong(claims.getBody().get("platformDeploymentId").toString()),
-                        claims.getBody().get("userId").toString()), HttpStatus.OK);
-            } catch (GeneralSecurityException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
+                        claims.getBody().get("userId").toString(),
+                        assignmentId,
+                        experimentId,
+                        Boolean.getBoolean(claims.getBody().get("consent").toString())), HttpStatus.OK);
+            } catch (GeneralSecurityException | IOException e) {
+                return new ResponseEntity<>("Error generating token: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
             }
         } else {
             return new ResponseEntity<>("Token passed was not a one time valid token", HttpStatus.UNAUTHORIZED);
         }
-        return new ResponseEntity<>("Error generating token", HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     @SuppressWarnings("rawtypes")
