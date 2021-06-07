@@ -1,7 +1,9 @@
 import { authHeader } from "@/helpers";
 
 const TEMP_canvas_url = "https://test-lti.unicon.net"
-const base_url = `${window.location.protocol}//${window.location.host}`
+// const base_url = `${window.location.protocol}//${window.location.host}`
+// TODO - set environment variable for base_url
+const base_url = "http://localhost:8081"
 
 /**
  * Register methods
