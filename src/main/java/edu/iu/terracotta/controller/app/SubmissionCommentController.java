@@ -184,7 +184,7 @@ public class SubmissionCommentController {
         apijwtService.assessmentAllowed(securityInfo, experimentId, conditionId, treatmentId, assessmentId);
         apijwtService.submissionCommentAllowed(securityInfo, assessmentId, submissionId, submissionCommentId);
 
-        if(apijwtService.isInstructorOrHigher(securityInfo)) {
+        if(apijwtService.isLearnerOrHigher(securityInfo)) {
             Optional<SubmissionComment> submissionCommentSearchResult = submissionCommentService.findById(submissionCommentId);
 
             if(!submissionCommentSearchResult.isPresent()) {

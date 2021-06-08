@@ -47,6 +47,7 @@ public class TextConstants {
     public static final String SUBMISSION_NOT_MATCHING = "The submission does not belong to the experiment, condition, treatment,or assignment defined in path.";
     public static final String QUESTION_SUBMISSION_NOT_MATCHING = "The question submission does not belong to the experiment, condition, treatment, assignment, or submission defined in path.";
     public static final String SUBMISSION_COMMENT_NOT_MATCHING = "The question submission does not belong to the experiment, condition, treatment, assignment, or submission defined in path.";
+    public static final String QUESTION_SUBMISSION_COMMENT_NOT_MATCHING = "The question submission comment does not belong to the experiment, condition, treatment, assignment, submission, or question submission defined in path.";
     public static final String BAD_CONSENT_FILETYPE = "The consent must be a pdf file.";
     public static final String ID_MISSING = "A valid question id must be included in a submission post.";
     public static final String GROUP_NOT_MATCHING = "The group does not belong to experiment defined in the path.";

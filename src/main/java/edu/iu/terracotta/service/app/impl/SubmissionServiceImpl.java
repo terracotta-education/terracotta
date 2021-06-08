@@ -54,7 +54,7 @@ public class SubmissionServiceImpl implements SubmissionService {
         if(questionSubmissions) {
             List<QuestionSubmission> questionSubmissionList = allRepositories.questionSubmissionRepository.findBySubmission_SubmissionId(submission.getSubmissionId());
             for(QuestionSubmission questionSubmission : questionSubmissionList) {
-                questionSubmissionDtoList.add(questionSubmissionService.toDto(questionSubmission));
+                questionSubmissionDtoList.add(questionSubmissionService.toDto(questionSubmission, false));
             }
         }
         submissionDto.setQuestionSubmissionDtos(questionSubmissionDtoList);

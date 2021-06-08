@@ -4,14 +4,18 @@ import edu.iu.terracotta.model.app.Answer;
 import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.Question;
 import edu.iu.terracotta.model.app.QuestionSubmission;
+import edu.iu.terracotta.model.app.QuestionSubmissionComment;
 import edu.iu.terracotta.model.app.Submission;
+import edu.iu.terracotta.model.app.dto.QuestionSubmissionCommentDto;
 import edu.iu.terracotta.model.app.dto.QuestionSubmissionDto;
 import edu.iu.terracotta.repository.AllRepositories;
+import edu.iu.terracotta.service.app.QuestionSubmissionCommentService;
 import edu.iu.terracotta.service.app.QuestionSubmissionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -21,13 +25,16 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
     @Autowired
     AllRepositories allRepositories;
 
+    @Autowired
+    QuestionSubmissionCommentService questionSubmissionCommentService;
+
     @Override
     public List<QuestionSubmission> findAllBySubmissionId(Long submissionId) {
         return allRepositories.questionSubmissionRepository.findBySubmission_SubmissionId(submissionId);
     }
 
     @Override
-    public QuestionSubmissionDto toDto(QuestionSubmission questionSubmission) {
+    public QuestionSubmissionDto toDto(QuestionSubmission questionSubmission, boolean questionSubmissionComments) {
 
         QuestionSubmissionDto questionSubmissionDto = new QuestionSubmissionDto();
         questionSubmissionDto.setQuestionSubmissionId(questionSubmission.getQuestionSubmissionId());
@@ -38,6 +45,15 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
         if(questionSubmission.getAnswer() != null){
             questionSubmissionDto.setAnswerId(questionSubmission.getAnswer().getAnswerId());
         }
+        List<QuestionSubmissionCommentDto> questionSubmissionCommentDtoList = new ArrayList<>();
+        if(questionSubmissionComments){
+            List<QuestionSubmissionComment> questionSubmissionCommentList =
+                    allRepositories.questionSubmissionCommentRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmission.getQuestionSubmissionId());
+            for(QuestionSubmissionComment questionSubmissionComment : questionSubmissionCommentList) {
+                questionSubmissionCommentDtoList.add(questionSubmissionCommentService.toDto(questionSubmissionComment));
+            }
+        }
+        questionSubmissionDto.setQuestionSubmissionCommentDtoList(questionSubmissionCommentDtoList);
         return questionSubmissionDto;
     }
 
