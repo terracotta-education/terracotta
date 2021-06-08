@@ -64,7 +64,6 @@ function reportStep(experiment_id, step) {
     }
 
     return fetch(`${base_url}/api/experiments/${experiment_id}/step`, requestOptions).then(response => {
-        console.log({response})
         if (response.ok) {
             console.log(response.text())
             return response.text()
