@@ -1,7 +1,8 @@
 package edu.iu.terracotta.model.app.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import edu.iu.terracotta.model.app.Question;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import edu.iu.terracotta.model.app.Submission;
 
 import java.util.List;
 
@@ -10,9 +11,14 @@ public class AssessmentDto {
 
     private Long assessmentId;
     private String html;
-    private List<QuestionDto> questions;
     private Long treatmentId;
     private String title;
+    private boolean autoSubmit;
+    private Integer numOfSubmissions;
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private List<SubmissionDto> submissions;
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private List<QuestionDto> questions;
 
     public Long getAssessmentId() { return assessmentId; }
 
@@ -22,13 +28,9 @@ public class AssessmentDto {
 
     public void setHtml(String html) { this.html = html; }
 
-    public List<QuestionDto> getQuestions() {
-        return questions;
-    }
+    public List<QuestionDto> getQuestions() { return questions; }
 
-    public void setQuestions(List<QuestionDto> questions) {
-        this.questions = questions;
-    }
+    public void setQuestions(List<QuestionDto> questions) { this.questions = questions; }
 
     public Long getTreatmentId() { return treatmentId; }
 
@@ -37,4 +39,16 @@ public class AssessmentDto {
     public String getTitle() { return title; }
 
     public void setTitle(String title) { this.title = title; }
+
+    public boolean getAutoSubmit() { return autoSubmit; }
+
+    public void setAutoSubmit(boolean autoSubmit) { this.autoSubmit = autoSubmit; }
+
+    public Integer getNumOfSubmissions() { return numOfSubmissions; }
+
+    public void setNumOfSubmissions(Integer numOfSubmissions) { this.numOfSubmissions = numOfSubmissions; }
+
+    public List<SubmissionDto> getSubmissions() { return submissions; }
+
+    public void setSubmissions(List<SubmissionDto> submissions) { this.submissions = submissions; }
 }

@@ -13,5 +13,4 @@ public interface AssessmentRepository extends JpaRepository<Assessment, Long> {
 
     boolean existsByTreatment_Condition_Experiment_ExperimentIdAndTreatment_Condition_ConditionIdAndTreatment_TreatmentIdAndAssessmentId(Long experimentId, Long conditionId, Long treatmentId, Long assessmentId);
 
-
 }

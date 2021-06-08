@@ -34,6 +34,15 @@ public class Assessment {
     @Column(name = "title")
     private String title;
 
+    @Column(name = "auto_submit", nullable = false)
+    private boolean autoSubmit;
+
+    @Column(name = "num_of_submissions")
+    private Integer numOfSubmissions;
+
+    @OneToMany(mappedBy = "assessment", orphanRemoval = true)
+    private List<Submission> submissions;
+
     public Long getAssessmentId() { return assessmentId; }
 
     public void setAssessmentId(Long assessmentId) { this.assessmentId = assessmentId; }
@@ -53,4 +62,16 @@ public class Assessment {
     public String getTitle() { return title; }
 
     public void setTitle(String title) { this.title = title; }
+
+    public boolean getAutoSubmit() { return autoSubmit; }
+
+    public void setAutoSubmit(boolean autoSubmit) { this.autoSubmit = autoSubmit; }
+
+    public Integer getNumOfSubmissions() { return numOfSubmissions; }
+
+    public void setNumOfSubmissions(Integer numOfSubmissions) { this.numOfSubmissions = numOfSubmissions; }
+
+    public List<Submission> getSubmissions() { return submissions; }
+
+    public void setSubmissions(List<Submission> submissions) { this.submissions = submissions; }
 }

@@ -22,21 +22,13 @@ import edu.iu.terracotta.exceptions.ExposureNotMatchingException;
 import edu.iu.terracotta.exceptions.GroupNotMatchingException;
 import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
 import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
+import edu.iu.terracotta.exceptions.QuestionSubmissionNotMatchingException;
+import edu.iu.terracotta.exceptions.SubmissionCommentNotMatchingException;
+import edu.iu.terracotta.exceptions.SubmissionNotMatchingException;
 import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
 import edu.iu.terracotta.model.oauth2.Roles;
 import edu.iu.terracotta.model.oauth2.SecurityInfo;
-import edu.iu.terracotta.service.app.APIDataService;
-import edu.iu.terracotta.service.app.APIJWTService;
-import edu.iu.terracotta.service.app.AnswerService;
-import edu.iu.terracotta.service.app.AssessmentService;
-import edu.iu.terracotta.service.app.AssignmentService;
-import edu.iu.terracotta.service.app.ConditionService;
-import edu.iu.terracotta.service.app.ExperimentService;
-import edu.iu.terracotta.service.app.ExposureService;
-import edu.iu.terracotta.service.app.GroupService;
-import edu.iu.terracotta.service.app.ParticipantService;
-import edu.iu.terracotta.service.app.QuestionService;
-import edu.iu.terracotta.service.app.TreatmentService;
+import edu.iu.terracotta.service.app.*;
 import edu.iu.terracotta.service.lti.LTIDataService;
 import edu.iu.terracotta.utils.lti.LTI3Request;
 import io.jsonwebtoken.Claims;
@@ -109,6 +101,15 @@ public class APIJWTServiceImpl implements APIJWTService {
 
     @Autowired
     AnswerService answerService;
+
+    @Autowired
+    SubmissionService submissionService;
+
+    @Autowired
+    QuestionSubmissionService questionSubmissionService;
+
+    @Autowired
+    SubmissionCommentService submissionCommentService;
 
     private static final String JWT_REQUEST_HEADER_NAME = "Authorization";
     private static final String JWT_BEARER_TYPE = "Bearer";
@@ -393,6 +394,27 @@ public class APIJWTServiceImpl implements APIJWTService {
     public void answerAllowed(SecurityInfo securityInfo, Long assessmentId, Long questionId, Long answerId) throws AnswerNotMatchingException {
         if(!answerService.answerBelongsToAssessmentAndQuestion(assessmentId, questionId, answerId)) {
             throw new AnswerNotMatchingException(TextConstants.ANSWER_NOT_MATCHING);
+        }
+    }
+
+    @Override
+    public void submissionAllowed(SecurityInfo securityInfo, Long assessmentId, Long submissionId) throws SubmissionNotMatchingException {
+        if(!submissionService.submissionBelongsToAssessment(assessmentId, submissionId)) {
+            throw new SubmissionNotMatchingException(TextConstants.SUBMISSION_NOT_MATCHING);
+        }
+    }
+
+    @Override
+    public void questionSubmissionAllowed(SecurityInfo securityInfo, Long assessmentId, Long submissionId, Long questionSubmissionId) throws QuestionSubmissionNotMatchingException {
+        if(!questionSubmissionService.questionSubmissionBelongsToAssessmentAndSubmission(assessmentId, submissionId, questionSubmissionId)) {
+            throw new QuestionSubmissionNotMatchingException(TextConstants.QUESTION_SUBMISSION_NOT_MATCHING);
+        }
+    }
+
+    @Override
+    public void submissionCommentAllowed(SecurityInfo securityInfo, Long assessmentId, Long submissionId, Long submissionCommentId) throws SubmissionCommentNotMatchingException {
+        if(!submissionCommentService.submissionCommentBelongsToAssessmentAndSubmission(assessmentId, submissionId, submissionCommentId)) {
+            throw new SubmissionCommentNotMatchingException(TextConstants.SUBMISSION_COMMENT_NOT_MATCHING);
         }
     }
 }

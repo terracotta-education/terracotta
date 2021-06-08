@@ -32,7 +32,7 @@ public class TextConstants {
     public static final String ERROR_DEEP_RESPONSE = "Error creating the DeepLinking Response";
     public static final String NOT_FOUND_SUFFIX = " not found";
     public static final String LTI3ERROR = "lti3Error";
-    public static final String NOT_ENOUGH_PERMISSIONS = "Not enough permissions to access to this endpoint";
+    public static final String NOT_ENOUGH_PERMISSIONS = "Not enough permissions to access to this endpoint.";
     public static final String BAD_TOKEN = "The token does not contain the expected information";
     public static final String ID_IN_POST_ERROR = "Unable to create. The POST endpoint does not accept objects with id";
     public static final String EXPERIMENT_NOT_MATCHING = "The experiment does not belong to the course defined in the JWT token.";
@@ -44,7 +44,11 @@ public class TextConstants {
     public static final String ASSESSMENT_NOT_MATCHING = "The assessment does not belong to the experiment, condition, or treatment defined in path.";
     public static final String QUESTION_NOT_MATCHING = "The question does not belong to the experiment, condition, treatment, or assignment defined in path.";
     public static final String ANSWER_NOT_MATCHING = "The answer does not belong to the experiment, condition, treatment, assignment, or question defined in path.";
+    public static final String SUBMISSION_NOT_MATCHING = "The submission does not belong to the experiment, condition, treatment,or assignment defined in path.";
+    public static final String QUESTION_SUBMISSION_NOT_MATCHING = "The question submission does not belong to the experiment, condition, treatment, assignment, or submission defined in path.";
+    public static final String SUBMISSION_COMMENT_NOT_MATCHING = "The question submission does not belong to the experiment, condition, treatment, assignment, or submission defined in path.";
     public static final String BAD_CONSENT_FILETYPE = "The consent must be a pdf file.";
+    public static final String ID_MISSING = "A valid question id must be included in a submission post.";
     public static final String GROUP_NOT_MATCHING = "The group does not belong to experiment defined in the path.";
 
 }

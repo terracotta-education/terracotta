@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd"
+        objectQuotingStrategy="QUOTE_ONLY_RESERVED_WORDS">
+    <changeSet id="1622758629160-27" author="josh (generated)">
+        <createTable tableName="terr_question_submission">
+            <column autoIncrement="true" name="question_submission_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="PK_TERR_QUESTION_SUBMISSION"/>
+            </column>
+            <column name="submission_submission_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="calculated_points" type="FLOAT"/>
+            <column name="altered_grade" type="FLOAT"/>
+            <column name="question_question_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="answer_answer_id" type="BIGINT"/>
+        </createTable>
+    </changeSet>
+    <changeSet id="1622758629160-28" author="josh (generated)">
+        <createTable tableName="terr_submission">
+            <column autoIncrement="true" name="submission_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="PK_TERR_SUBMISSION"/>
+            </column>
+            <column name="participant_participant_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="assessment_assessment_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="calculated_grade" type="FLOAT"/>
+            <column name="altered_calculated_grade" type="FLOAT"/>
+            <column name="total_altered_grade" type="FLOAT"/>
+            <column name="date_submitted" type="DATETIME"/>
+            <column name="late_submission" type="BOOLEAN"/>
+        </createTable>
+    </changeSet>
+    <changeSet id="1622758629160-29" author="josh (generated)">
+        <createTable tableName="terr_submission_comment">
+            <column name="submission_comment_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="PK_TERR_SUBMISSION_COMMENT"/>
+            </column>
+            <column name="submission_submission_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="comment" type="CLOB"/>
+            <column name="creator" type="VARCHAR(255)"/>
+        </createTable>
+    </changeSet>
+    <changeSet id="1622758629160-30" author="josh (generated)">
+        <addColumn tableName="terr_assessment">
+            <column name="auto_submit" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="num_of_submissions" type="INT"/>
+        </addColumn>
+    </changeSet>
+    <changeSet id="1622758629160-32" author="josh (generated)">
+        <addForeignKeyConstraint baseColumnNames="answer_answer_id" baseTableName="terr_question_submission"
+                                 constraintName="FK_TERR_QUESTION_SUBMISSION_ON_ANSWER_ANSWER"
+                                 referencedColumnNames="answer_id" referencedTableName="terr_answer"/>
+    </changeSet>
+    <changeSet id="1622758629160-33" author="josh (generated)">
+        <addForeignKeyConstraint baseColumnNames="question_question_id" baseTableName="terr_question_submission"
+                                 constraintName="FK_TERR_QUESTION_SUBMISSION_ON_QUESTION_QUESTION"
+                                 referencedColumnNames="question_id" referencedTableName="terr_question"/>
+    </changeSet>
+    <changeSet id="1622758629160-34" author="josh (generated)">
+        <addForeignKeyConstraint baseColumnNames="submission_submission_id" baseTableName="terr_question_submission"
+                                 constraintName="FK_TERR_QUESTION_SUBMISSION_ON_SUBMISSION_SUBMISSION"
+                                 referencedColumnNames="submission_id" referencedTableName="terr_submission"/>
+    </changeSet>
+    <changeSet id="1622758629160-35" author="josh (generated)">
+        <addForeignKeyConstraint baseColumnNames="submission_submission_id" baseTableName="terr_submission_comment"
+                                 constraintName="FK_TERR_SUBMISSION_COMMENT_ON_SUBMISSION_SUBMISSION"
+                                 referencedColumnNames="submission_id" referencedTableName="terr_submission"/>
+    </changeSet>
+    <changeSet id="1622758629160-36" author="josh (generated)">
+        <addForeignKeyConstraint baseColumnNames="assessment_assessment_id" baseTableName="terr_submission"
+                                 constraintName="FK_TERR_SUBMISSION_ON_ASSESSMENT_ASSESSMENT"
+                                 referencedColumnNames="assessment_id" referencedTableName="terr_assessment"/>
+    </changeSet>
+    <changeSet id="1622758629160-37" author="josh (generated)">
+        <addForeignKeyConstraint baseColumnNames="participant_participant_id" baseTableName="terr_submission"
+                                 constraintName="FK_TERR_SUBMISSION_ON_PARTICIPANT_PARTICIPANT"
+                                 referencedColumnNames="participant_id" referencedTableName="terr_participant"/>
+    </changeSet>
+    <changeSet id="1622758629160-23" author="josh (generated)">
+        <dropColumn columnName="created_at" tableName="terr_exposure_group_condition"/>
+    </changeSet>
+    <changeSet id="1622758629160-24" author="josh (generated)">
+        <addColumn tableName="terr_exposure_group_condition">
+            <column name="created_at" type="TIMESTAMP DEFAULT CURRENT_TIMESTAMP"/>
+        </addColumn>
+    </changeSet>
+    <changeSet id="1622758629160-25" author="josh (generated)">
+        <dropColumn columnName="created_at" tableName="terr_group"/>
+    </changeSet>
+    <changeSet id="1622758629160-26" author="josh (generated)">
+        <addColumn tableName="terr_group">
+            <column name="created_at" type="TIMESTAMP DEFAULT CURRENT_TIMESTAMP"/>
+        </addColumn>
+    </changeSet>
+
+</databaseChangeLog>

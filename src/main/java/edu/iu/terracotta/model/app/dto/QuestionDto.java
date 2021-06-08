@@ -1,6 +1,7 @@
 package edu.iu.terracotta.model.app.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import edu.iu.terracotta.model.app.Answer;
 
 import java .util.List;
@@ -10,6 +11,7 @@ public class QuestionDto {
 
     private Long questionId;
     private String html;
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<AnswerDto> answers;
     private Float points;
     private Long assessmentId;

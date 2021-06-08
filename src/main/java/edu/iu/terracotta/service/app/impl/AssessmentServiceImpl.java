@@ -3,12 +3,15 @@ package edu.iu.terracotta.service.app.impl;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.model.app.Assessment;
 import edu.iu.terracotta.model.app.Question;
+import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.Treatment;
 import edu.iu.terracotta.model.app.dto.AssessmentDto;
 import edu.iu.terracotta.model.app.dto.QuestionDto;
+import edu.iu.terracotta.model.app.dto.SubmissionDto;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.AssessmentService;
 import edu.iu.terracotta.service.app.QuestionService;
+import edu.iu.terracotta.service.app.SubmissionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.stereotype.Component;
@@ -26,23 +29,39 @@ public class AssessmentServiceImpl implements AssessmentService {
     @Autowired
     QuestionService questionService;
 
+    @Autowired
+    SubmissionService submissionService;
+
     @Override
     public List<Assessment> findAllByTreatmentId(Long treatmentId){
         return allRepositories.assessmentRepository.findByTreatment_TreatmentId(treatmentId);
     }
 
     @Override
-    public AssessmentDto toDto(Assessment assessment) {
+    public AssessmentDto toDto(Assessment assessment, boolean questions, boolean submissions) {
 
         AssessmentDto assessmentDto = new AssessmentDto();
         assessmentDto.setAssessmentId(assessment.getAssessmentId());
         assessmentDto.setHtml(assessment.getHtml());
         assessmentDto.setTitle(assessment.getTitle());
-        List<QuestionDto> questions = new ArrayList<>();
-        for(Question question : assessment.getQuestions()){
-            questions.add(questionService.toDto(question));
+        assessmentDto.setAutoSubmit(assessment.getAutoSubmit());
+        assessmentDto.setNumOfSubmissions(assessment.getNumOfSubmissions());
+        List<QuestionDto> questionDtoList = new ArrayList<>();
+        if(questions){
+            List<Question> questionList = allRepositories.questionRepository.findByAssessment_AssessmentId(assessment.getAssessmentId());
+            for(Question question : questionList) {
+                questionDtoList.add(questionService.toDto(question, false));
+            }
         }
-        assessmentDto.setQuestions(questions);
+        assessmentDto.setQuestions(questionDtoList);
+        List<SubmissionDto> submissionDtoList = new ArrayList<>();
+        if(submissions){
+            List<Submission> submissionList =  allRepositories.submissionRepository.findByAssessment_AssessmentId(assessment.getAssessmentId());
+            for(Submission submission : submissionList){
+                submissionDtoList.add(submissionService.toDto(submission, false,false));
+            }
+        }
+        assessmentDto.setSubmissions(submissionDtoList);
         assessmentDto.setTreatmentId(assessment.getTreatment().getTreatmentId());
 
         return assessmentDto;
@@ -56,6 +75,8 @@ public class AssessmentServiceImpl implements AssessmentService {
         assessment.setAssessmentId(assessmentDto.getAssessmentId());
         assessment.setHtml(assessmentDto.getHtml());
         assessment.setTitle(assessmentDto.getTitle());
+        assessment.setAutoSubmit(assessmentDto.getAutoSubmit());
+        assessment.setNumOfSubmissions(assessmentDto.getNumOfSubmissions());
         Optional<Treatment> treatment = allRepositories.treatmentRepository.findById(assessmentDto.getTreatmentId());
         if(treatment.isPresent()) {
             assessment.setTreatment(treatment.get());

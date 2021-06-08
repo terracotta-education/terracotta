@@ -26,9 +26,9 @@ public interface LtiUserRepository extends JpaRepository<LtiUserEntity, Long> {
 
     LtiUserEntity findByUserIdAndPlatformDeployment_KeyId(long userId, long keyId);
 
+    LtiUserEntity findByUserId(long userId);
 
-
-
+    LtiUserEntity findByUserKey(String userKey);
 
 
 }
