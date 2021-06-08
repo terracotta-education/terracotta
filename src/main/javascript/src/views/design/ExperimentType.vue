@@ -54,20 +54,23 @@ export default {
 	},
 	methods: {
 		...mapActions({
+			reportStep: 'api/reportStep',
 			updateExperiment: 'experiment/updateExperiment',
 		}),
 		saveType(type) {
-			const _this = this
-			const e = _this.experiment
+			const e = this.experiment
 			e.exposureType = type
 
 			this.updateExperiment(e)
 					.then(response => {
 						if (response.status === 200) {
+							// report the current step
+							// TODO - uncomment following line after sorting out local/dev server back-end environments
+							// this.reportStep(e.experimentId, "exposure_type")
 							if (this.experiment.exposureType==='WITHIN') {
-								this.$router.push({name:'ExperimentDesignDefaultCondition', params:{experiment: this.experiment.experiment_id}})
+								this.$router.push({name:'ExperimentDesignDefaultCondition', params:{experiment: e.experimentId}})
 							} else if(this.experiment.exposureType==='BETWEEN') {
-								this.$router.push({name:'ExperimentDesignSummary', params:{experiment: this.experiment.experiment_id}})
+								this.$router.push({name:'ExperimentDesignSummary', params:{experiment: e.experimentId}})
 							}
 						} else {
 							alert("error: ", response.statusText || response.status)

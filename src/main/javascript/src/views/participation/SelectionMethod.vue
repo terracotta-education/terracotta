@@ -42,22 +42,25 @@ export default {
 	props: ['experiment'],
 	methods: {
 		...mapActions({
+			reportStep: 'api/reportStep',
 			updateExperiment: 'experiment/updateExperiment',
 		}),
 		setParticipationType(type) {
-			const _this = this
-			const e = _this.experiment
+			const e = this.experiment
 			e.participationType = type
 
 			this.updateExperiment(e)
 					.then(response => {
 						if (response.status === 200) {
-							if (this.experiment.participationType==='CONSENT') {
-								this.$router.push({name:'ExperimentParticipationConsent', params:{experiment: this.experiment.experiment_id}})
-							} else if(this.experiment.participationType==='MANUAL') {
-								this.$router.push({name:'ExperimentParticipationManual', params:{experiment: this.experiment.experiment_id}})
-							} else if(this.experiment.participationType==='AUTO') {
-								this.$router.push({name:'ExperimentParticipationAutoConfirm', params:{experiment: this.experiment.experiment_id}})
+							// report the current step
+							// TODO - uncomment following line after sorting out local/dev server back-end environments
+							// this.reportStep(e.experimentId, "participation_type")
+							if (e.participationType==='CONSENT') {
+								this.$router.push({name:'ParticipationTypeConsentOverview', params:{experiment: e.experimentId}})
+							} else if(e.participationType==='MANUAL') {
+								this.$router.push({name:'ParticipationTypeManual', params:{experiment: e.experimentId}})
+							} else if(e.participationType==='AUTO') {
+								this.$router.push({name:'ParticipationTypeAutoConfirm', params:{experiment:e.experimentId}})
 							}
 						} else {
 							alert("error: ", response.statusText || response.status)

@@ -128,6 +128,24 @@ const routes = [
               currentStep: "participation_selection_method"
             }
           },
+          {
+            path: 'participation-type-consent/intro',
+            name: 'ParticipationTypeConsentOverview',
+            component: () => import('../views/participation/ParticipationTypeConsentOverview.vue'),
+            meta: {
+              currentSection: "participation",
+              currentStep: "participation_selection_method"
+            }
+          },
+          {
+            path: 'participation-type-consent/title',
+            name: 'ParticipationTypeConsentTitle',
+            component: () => import('../views/participation/ParticipationTypeConsentTitle.vue'),
+            meta: {
+              currentSection: "participation",
+              currentStep: "participation_selection_assignment_title"
+            }
+          },
         ]
       },
       {

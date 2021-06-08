@@ -20,7 +20,7 @@ const actions = {
                     }
                 })
                 .catch(response => {
-                    console.log("fetchExperimentById | catch",{response})
+                    console.log("setApiToken | catch",{response})
                 })
     },
     refreshToken: ({commit}) => {
@@ -32,9 +32,19 @@ const actions = {
                     }
                 })
                 .catch(response => {
-                    console.log("fetchExperimentById | catch",{response})
+                    console.log("refreshToken | catch",{response})
                 })
     },
+    reportStep: ({state}, experiment_id, step) => {
+        // send a refresh to the API and receive an API token for the bearer auth header
+        return apiService.reportStep(experiment_id, step)
+                .then(data => {
+                    console.log("reportStep | then",{state, data})
+                })
+                .catch(response => {
+                    console.log("reportStep | catch",{response})
+                })
+    }
 }
 
 const mutations = {

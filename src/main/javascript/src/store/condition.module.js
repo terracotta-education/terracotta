@@ -67,6 +67,8 @@ const actions = {
             dispatch('updateCondition', condition)
             return condition
         })
+        // Needs to be asynchronous, but forEach doesn't support this yet.
+        // Possibly build out a promise/response
         return {status: 200}
     },
     deleteCondition: ({commit}, condition) => {
