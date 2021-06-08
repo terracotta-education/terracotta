@@ -74,6 +74,8 @@ export default {
 								this.$router.push({name:'ExperimentDesignDefaultCondition', params:{experiment: experimentId}})
 							} else if(this.experiment.exposureType==='BETWEEN') {
 								this.$router.push({name:'ExperimentDesignSummary', params:{experiment: experimentId}})
+							} else {
+								alert("Select an experiment type")
 							}
 						} else {
 							alert("error: ", response.statusText || response.status)
