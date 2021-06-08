@@ -68,7 +68,6 @@ export default {
 					.then(response => {
 						if (response.status === 200) {
 							// report the current step
-							// TODO - uncomment following line after sorting out local/dev server back-end environments
 							this.reportStep({experimentId, step})
 							if (this.experiment.exposureType==='WITHIN') {
 								this.$router.push({name:'ExperimentDesignDefaultCondition', params:{experiment: experimentId}})
