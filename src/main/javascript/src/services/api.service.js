@@ -10,7 +10,8 @@ const base_url = "http://localhost:8081"
  */
 export const apiService = {
     getApiToken,
-    refreshToken
+    refreshToken,
+    reportStep
 }
 
 /**
@@ -42,6 +43,27 @@ function refreshToken() {
     }
 
     return fetch(`${base_url}/api/oauth/refresh`, requestOptions).then(response => {
+        console.log({response})
+        if (response.ok) {
+            console.log(response.text())
+            return response.text()
+        }
+    })
+}
+
+/**
+ * Report to the server which step has been completed
+ */
+function reportStep(experiment_id, step) {
+    const requestOptions = {
+        method: 'POST',
+        headers: { ...authHeader() },
+        body: JSON.stringify({
+            "step": step
+        })
+    }
+
+    return fetch(`${base_url}/api/experiments/${experiment_id}/step`, requestOptions).then(response => {
         console.log({response})
         if (response.ok) {
             console.log(response.text())
