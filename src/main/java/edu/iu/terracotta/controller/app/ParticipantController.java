@@ -197,13 +197,15 @@ public class ParticipantController {
             Participant participantToChange = participantSearchResult.get();
             //If they had no consent, and now they have, we change the dategiven to now.
             //In any other case, we leave the date as it was. Ignoring any value in the PUT
-            if (!participantToChange.getConsent() && participantDto.getConsent()) {
+            if ((participantToChange.getConsent()==null || !participantToChange.getConsent()) &&
+                    (participantDto.getConsent() !=null || participantDto.getConsent())) {
                 participantToChange.setDateGiven(Timestamp.valueOf(LocalDateTime.now()));
                 participantToChange.setDateRevoked(null);
             }
             //If they had consent, and now they don't have, we change the dateRevoked to now.
             //In any other case, we leave the date as it is. Ignoring any value in the PUT
-            if (participantToChange.getConsent() && !participantDto.getConsent()) {
+            if (participantToChange.getConsent() !=null && participantToChange.getConsent() &&
+                    (participantDto.getConsent()==null || !participantDto.getConsent())) {
                 participantToChange.setDateRevoked(Timestamp.valueOf(LocalDateTime.now()));
             }
             participantToChange.setConsent((participantDto.getConsent()));
