@@ -1,6 +1,5 @@
 package edu.iu.terracotta.service.app.impl;
 
-import edu.iu.terracotta.controller.app.AssessmentController;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.model.app.Answer;
 import edu.iu.terracotta.model.app.Assessment;
@@ -10,8 +9,6 @@ import edu.iu.terracotta.model.app.dto.QuestionDto;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.AnswerService;
 import edu.iu.terracotta.service.app.QuestionService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.stereotype.Component;
@@ -36,17 +33,20 @@ public class QuestionServiceImpl implements QuestionService {
     }
 
     @Override
-    public QuestionDto toDto(Question question) {
+    public QuestionDto toDto(Question question, boolean answers) {
 
         QuestionDto questionDto = new QuestionDto();
         questionDto.setQuestionId(question.getQuestionId());
         questionDto.setHtml(question.getHtml());
         questionDto.setQuestionOrder(question.getQuestionOrder());
-        List<AnswerDto> answers = new ArrayList<>();
-        for(Answer answer : question.getAnswers()) {
-            answers.add(answerService.toDto(answer));
+        List<AnswerDto> answerDtoList = new ArrayList<>();
+        if(answers){
+            List<Answer> answerList = allRepositories.answerRepository.findByQuestion_QuestionId(question.getQuestionId());
+            for(Answer answer : answerList) {
+                answerDtoList.add(answerService.toDto(answer));
+            }
         }
-        questionDto.setAnswers(answers);
+        questionDto.setAnswers(answerDtoList);
         questionDto.setPoints(question.getPoints());
         questionDto.setAssessmentId(question.getAssessment().getAssessmentId());
 

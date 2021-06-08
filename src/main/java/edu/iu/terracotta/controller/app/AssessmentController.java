@@ -10,6 +10,7 @@ import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
 import edu.iu.terracotta.model.app.Answer;
 import edu.iu.terracotta.model.app.Assessment;
 import edu.iu.terracotta.model.app.Question;
+import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.Treatment;
 import edu.iu.terracotta.model.app.dto.AnswerDto;
 import edu.iu.terracotta.model.app.dto.AssessmentDto;
@@ -19,6 +20,7 @@ import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.AnswerService;
 import edu.iu.terracotta.service.app.AssessmentService;
 import edu.iu.terracotta.service.app.QuestionService;
+import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.service.app.TreatmentService;
 import edu.iu.terracotta.utils.TextConstants;
 import org.slf4j.Logger;
@@ -30,10 +32,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -62,6 +66,9 @@ public class AssessmentController {
     TreatmentService treatmentService;
 
     @Autowired
+    SubmissionService submissionService;
+
+    @Autowired
     APIJWTService apijwtService;
 
 
@@ -85,7 +92,7 @@ public class AssessmentController {
             }
             List<AssessmentDto> assessmentDtos = new ArrayList<>();
             for(Assessment assessment : assessmentList){
-                assessmentDtos.add(assessmentService.toDto(assessment));
+                assessmentDtos.add(assessmentService.toDto(assessment,false, false));
             }
             return new ResponseEntity<>(assessmentDtos, HttpStatus.OK);
         } else {
@@ -100,6 +107,8 @@ public class AssessmentController {
                                                        @PathVariable("condition_id") Long conditionId,
                                                        @PathVariable("treatment_id") Long treatmentId,
                                                        @PathVariable("assessment_id") Long assessmentId,
+                                                       @RequestParam(name = "questions", defaultValue = "false") boolean questions,
+                                                       @RequestParam(name = "submissions", defaultValue = "false") boolean submissions,
                                                        HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, AssessmentNotMatchingException {
 
@@ -117,7 +126,7 @@ public class AssessmentController {
                         " and context " + securityInfo.getContextId() + " and experiment with id " + experimentId + " and condition id " + conditionId +
                         " and treatment id " + treatmentId + " with id " + assessmentId + TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
             } else {
-                AssessmentDto assessmentDto = assessmentService.toDto(assessmentSearchResult.get());
+                AssessmentDto assessmentDto = assessmentService.toDto(assessmentSearchResult.get(), questions, submissions);
                 return new ResponseEntity<>(assessmentDto, HttpStatus.OK);
             }
         } else {
@@ -142,11 +151,13 @@ public class AssessmentController {
 
         if(apijwtService.isInstructorOrHigher(securityInfo)) {
             if(assessmentDto.getAssessmentId() != null) {
-                log.error("Cannot include id in the POST endpoint. To modify existing assessment you must use PUT");
-                return new ResponseEntity("Cannot include id in the POST endpoint. To modify existing assessment you must use PUT", HttpStatus.CONFLICT);
+                log.error(TextConstants.ID_IN_POST_ERROR);
+                return new ResponseEntity(TextConstants.ID_IN_POST_ERROR, HttpStatus.CONFLICT);
             }
 
             assessmentDto.setTreatmentId(treatmentId);
+            assessmentDto.setNumOfSubmissions(1);
+            assessmentDto.setAutoSubmit(true);
             Assessment assessment = null;
             try {
                 assessment = assessmentService.fromDto(assessmentDto);
@@ -162,7 +173,7 @@ public class AssessmentController {
                 treatment1.setAssessment(assessmentSaved);
                 treatmentService.saveAndFlush(treatment1);
             }
-            AssessmentDto returnedDto = assessmentService.toDto(assessmentSaved);
+            AssessmentDto returnedDto = assessmentService.toDto(assessmentSaved, false,false);
 
             HttpHeaders headers = new HttpHeaders();
             headers.setLocation(ucBuilder.path("/api/experiments/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}")
@@ -198,6 +209,8 @@ public class AssessmentController {
             Assessment assessmentToChange = assessmentSearchResult.get();
             assessmentToChange.setHtml(assessmentDto.getHtml());
             assessmentToChange.setTitle(assessmentDto.getTitle());
+            assessmentToChange.setAutoSubmit(assessmentDto.getAutoSubmit());
+            assessmentToChange.setNumOfSubmissions(assessmentDto.getNumOfSubmissions());
 
             assessmentService.saveAndFlush(assessmentToChange);
             return new ResponseEntity<>(HttpStatus.OK);
@@ -207,6 +220,7 @@ public class AssessmentController {
     }
 
 
+    @Transactional
     @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}", method = RequestMethod.DELETE)
     public ResponseEntity<Void> deleteAssessment(@PathVariable("experiment_id") Long experimentId,
                                                  @PathVariable("condition_id") Long conditionId,
@@ -221,6 +235,12 @@ public class AssessmentController {
 
         if(apijwtService.isInstructorOrHigher(securityInfo)) {
             try{
+                Optional<Assessment> assessment = assessmentService.findById(assessmentId);
+                if(assessment.isPresent()){
+                    for(Submission submission : assessment.get().getSubmissions()){
+                        submissionService.deleteById(submission.getSubmissionId());
+                    }
+                }
                 Optional<Treatment> treatment = treatmentService.findById(treatmentId);
                 if(treatment.isPresent()){
                     Treatment treatment1 = treatment.get();
@@ -266,7 +286,7 @@ public class AssessmentController {
             }
             List<QuestionDto> questionDtos = new ArrayList<>();
             for(Question question : questionList) {
-                questionDtos.add(questionService.toDto(question));
+                questionDtos.add(questionService.toDto(question, false));
             }
             return new ResponseEntity<>(questionDtos, HttpStatus.OK);
         } else {
@@ -282,6 +302,7 @@ public class AssessmentController {
                                                    @PathVariable("treatment_id") Long treatmentId,
                                                    @PathVariable("assessment_id") Long assessmentId,
                                                    @PathVariable("question_id") Long questionId,
+                                                   @RequestParam(name = "answers", defaultValue = "false") boolean answers,
                                                    HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionNotMatchingException, BadTokenException {
 
@@ -300,7 +321,7 @@ public class AssessmentController {
                 + " and experiment with id " + experimentId + " and condition id " + conditionId + " and treatment id " + treatmentId + " and assessment id " + assessmentId
                 + " with id " + questionId + TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
             } else {
-                QuestionDto questionDto = questionService.toDto(questionSearchResult.get());
+                QuestionDto questionDto = questionService.toDto(questionSearchResult.get(), answers);
                 return new ResponseEntity<>(questionDto, HttpStatus.OK);
             }
         } else {
@@ -314,6 +335,7 @@ public class AssessmentController {
                                                     @PathVariable("condition_id") Long conditionId,
                                                     @PathVariable("treatment_id") Long treatmentId,
                                                     @PathVariable("assessment_id") Long assessmentId,
+                                                    @RequestParam(name = "submissions", defaultValue = "false") boolean answers,
                                                     @RequestBody QuestionDto questionDto,
                                                     UriComponentsBuilder ucBuilder,
                                                     HttpServletRequest req)
@@ -340,7 +362,7 @@ public class AssessmentController {
             }
 
             Question questionSaved = questionService.save(question);
-            QuestionDto returnedDto = questionService.toDto(questionSaved);
+            QuestionDto returnedDto = questionService.toDto(questionSaved, answers);
 
             HttpHeaders headers = new HttpHeaders();
             headers.setLocation(ucBuilder.path("/api/experiments/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/questions/{question_id}")
@@ -444,7 +466,7 @@ public class AssessmentController {
         apijwtService.assessmentAllowed(securityInfo, experimentId, conditionId, treatmentId, assessmentId);
         apijwtService.questionAllowed(securityInfo, assessmentId, questionId);
 
-        if(apijwtService.isLearnerOrHigher(securityInfo)) {
+        if(apijwtService.isInstructorOrHigher(securityInfo)) {
             try{
                 questionService.deleteById(questionId);
                 return new ResponseEntity<>(HttpStatus.OK);

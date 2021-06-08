@@ -60,6 +60,11 @@ public class AnswerServiceImpl implements AnswerService {
     public Optional<Answer> findById(Long id) { return allRepositories.answerRepository.findById(id); }
 
     @Override
+    public Optional<Answer> findByQuestionIdAndAnswerId(Long questionId, Long answerId) {
+        return allRepositories.answerRepository.findByQuestion_QuestionIdAndAnswerId(questionId, answerId);
+    }
+
+    @Override
     public void saveAndFlush(Answer answerTOChange) { allRepositories.answerRepository.saveAndFlush(answerTOChange); }
 
     @Override

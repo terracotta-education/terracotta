@@ -10,5 +10,7 @@ public interface AnswerRepository extends JpaRepository<Answer, Long> {
 
     List<Answer> findByQuestion_QuestionId(Long questionId);
 
+    Optional<Answer> findByQuestion_QuestionIdAndAnswerId(Long questionId, Long answerId);
+
     boolean existsByQuestion_Assessment_AssessmentIdAndQuestion_QuestionIdAndAnswerId(Long assessmentId, Long questionId, Long answerId);
 }

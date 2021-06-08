@@ -1,20 +1,6 @@
 package edu.iu.terracotta.controller.app;
 
-import edu.iu.terracotta.exceptions.AnswerNotMatchingException;
-import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
-import edu.iu.terracotta.exceptions.AssignmentNotMatchingException;
-import edu.iu.terracotta.exceptions.BadConsentFileTypeException;
-import edu.iu.terracotta.exceptions.BadTokenException;
-import edu.iu.terracotta.exceptions.ConditionNotMatchingException;
-import edu.iu.terracotta.exceptions.DataServiceException;
-import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
-import edu.iu.terracotta.exceptions.ExposureNotMatchingException;
-import edu.iu.terracotta.exceptions.GroupNotMatchingException;
-import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
-import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
-import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
-import edu.iu.terracotta.model.app.Assessment;
-import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
+import edu.iu.terracotta.exceptions.*;
 import edu.iu.terracotta.utils.TextConstants;
 import io.jsonwebtoken.ExpiredJwtException;
 import org.springframework.http.HttpHeaders;
@@ -127,6 +113,44 @@ public class RestResponseEntityExceptionHandler
         return handleExceptionInternal(ex, bodyOfResponse,
                 new HttpHeaders(), HttpStatus.UNAUTHORIZED, request);
     }
+
+    @ExceptionHandler(value
+            = {SubmissionNotMatchingException.class})
+    protected ResponseEntity<Object> handleSubmissionNotMatchingException(
+            SubmissionNotMatchingException ex, WebRequest request) {
+        String bodyOfResponse = TextConstants.SUBMISSION_NOT_MATCHING;
+        return handleExceptionInternal(ex, bodyOfResponse,
+                new HttpHeaders(), HttpStatus.UNAUTHORIZED, request);
+    }
+
+    @ExceptionHandler(value
+            = {QuestionSubmissionNotMatchingException.class})
+    protected ResponseEntity<Object> handleQuestionSubmissionNotMatchingException(
+            QuestionSubmissionNotMatchingException ex, WebRequest request) {
+        String bodyOfResponse = TextConstants.QUESTION_SUBMISSION_NOT_MATCHING;
+        return handleExceptionInternal(ex, bodyOfResponse,
+                new HttpHeaders(), HttpStatus.UNAUTHORIZED, request);
+    }
+
+    @ExceptionHandler(value
+            = {SubmissionCommentNotMatchingException.class})
+    protected ResponseEntity<Object> handleSubmissionCommentNotMatchingException(
+            SubmissionCommentNotMatchingException ex, WebRequest request) {
+        String bodyOfResponse = TextConstants.SUBMISSION_COMMENT_NOT_MATCHING;
+        return handleExceptionInternal(ex, bodyOfResponse,
+                new HttpHeaders(), HttpStatus.UNAUTHORIZED, request);
+    }
+
+    @ExceptionHandler(value
+            = {IdMissingException.class})
+    protected ResponseEntity<Object> handleIdMissingException(
+            IdMissingException ex, WebRequest request) {
+        String bodyOfResponse = TextConstants.ID_MISSING;
+        return handleExceptionInternal(ex, bodyOfResponse,
+                new HttpHeaders(), HttpStatus.BAD_REQUEST, request);
+    }
+
+
 
     @ExceptionHandler(value
             = {BadConsentFileTypeException.class})

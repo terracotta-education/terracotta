@@ -12,7 +12,7 @@ public interface QuestionService {
 
     List<Question> findAllByAssessmentId(Long assessmentId);
 
-    QuestionDto toDto(Question question);
+    QuestionDto toDto(Question question, boolean answers);
 
     Question fromDto(QuestionDto questionDto) throws DataServiceException;
 

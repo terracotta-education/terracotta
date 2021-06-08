@@ -20,6 +20,8 @@ public interface AnswerService {
 
     Optional<Answer> findById(Long id);
 
+    Optional<Answer> findByQuestionIdAndAnswerId(Long questionId, Long answerId);
+
     void saveAndFlush(Answer answerToChange);
 
     void saveAllAnswers(List<Answer> answerList);

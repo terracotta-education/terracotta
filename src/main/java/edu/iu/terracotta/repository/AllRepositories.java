@@ -88,6 +88,18 @@ public class AllRepositories {
     @Autowired
     public ExposureGroupConditionRepository exposureGroupConditionRepository;
 
+    @Autowired
+    public SubmissionRepository submissionRepository;
+
+    @Autowired
+    public QuestionSubmissionRepository questionSubmissionRepository;
+
+    @Autowired
+    public SubmissionCommentRepository submissionCommentRepository;
+
+    @Autowired
+    public LtiUserRepository ltiUserRepository;
+
 
     @PersistenceContext
     public EntityManager entityManager;
