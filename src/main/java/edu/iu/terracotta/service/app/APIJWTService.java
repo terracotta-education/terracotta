@@ -1,19 +1,6 @@
 package edu.iu.terracotta.service.app;
 
-import edu.iu.terracotta.exceptions.AnswerNotMatchingException;
-import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
-import edu.iu.terracotta.exceptions.BadTokenException;
-import edu.iu.terracotta.exceptions.ConditionNotMatchingException;
-import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
-import edu.iu.terracotta.exceptions.ExposureNotMatchingException;
-import edu.iu.terracotta.exceptions.GroupNotMatchingException;
-import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
-import edu.iu.terracotta.exceptions.AssignmentNotMatchingException;
-import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
-import edu.iu.terracotta.exceptions.QuestionSubmissionNotMatchingException;
-import edu.iu.terracotta.exceptions.SubmissionCommentNotMatchingException;
-import edu.iu.terracotta.exceptions.SubmissionNotMatchingException;
-import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
+import edu.iu.terracotta.exceptions.*;
 import edu.iu.terracotta.model.oauth2.SecurityInfo;
 import edu.iu.terracotta.utils.lti.LTI3Request;
 import io.jsonwebtoken.Claims;
@@ -77,4 +64,6 @@ public interface APIJWTService {
     void questionSubmissionAllowed(SecurityInfo securityInfo, Long assessmentId, Long submissionId, Long questionSubmissionId) throws QuestionSubmissionNotMatchingException;
 
     void submissionCommentAllowed(SecurityInfo securityInfo, Long assessmentId, Long submissionId, Long submissionCommentId) throws SubmissionCommentNotMatchingException;
+
+    void questionSubmissionCommentAllowed(SecurityInfo securityInfo, Long questionSubmissionId, Long questionSubmissionCommentId) throws QuestionSubmissionCommentNotMatchingException;
 }

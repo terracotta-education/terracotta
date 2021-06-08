@@ -29,6 +29,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -77,7 +78,7 @@ public class QuestionSubmissionController {
             }
             List<QuestionSubmissionDto> questionSubmissionDtos = new ArrayList<>();
             for (QuestionSubmission questionSubmission : questionSubmissionList) {
-                questionSubmissionDtos.add(questionSubmissionService.toDto(questionSubmission));
+                questionSubmissionDtos.add(questionSubmissionService.toDto(questionSubmission, false));
             }
             return new ResponseEntity<>(questionSubmissionDtos, HttpStatus.OK);
         } else {
@@ -95,6 +96,7 @@ public class QuestionSubmissionController {
                                                                        @PathVariable("assessment_id") Long assessmentId,
                                                                        @PathVariable("submission_id") Long submissionId,
                                                                        @PathVariable("question_submission_id") Long questionSubmissionId,
+                                                                       @RequestParam(name = "question_submission_comments", defaultValue = "false") boolean questionSubmissionComments,
                                                                        HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, BadTokenException {
 
@@ -113,7 +115,7 @@ public class QuestionSubmissionController {
                         " and experiment with id " + experimentId + " and condition id " + conditionId + " and treatment id " + treatmentId + " and assessment id " + assessmentId +
                         " and submission id " + submissionId + " with id " + questionSubmissionId + TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
             } else {
-                QuestionSubmissionDto questionSubmissionDto = questionSubmissionService.toDto(questionSubmissionSearchResult.get());
+                QuestionSubmissionDto questionSubmissionDto = questionSubmissionService.toDto(questionSubmissionSearchResult.get(), questionSubmissionComments);
                 return new ResponseEntity<>(questionSubmissionDto, HttpStatus.OK);
             }
         } else {
@@ -161,7 +163,7 @@ public class QuestionSubmissionController {
             }
 
             QuestionSubmission questionSubmissionSaved = questionSubmissionService.save(questionSubmission);
-            QuestionSubmissionDto returnedDto = questionSubmissionService.toDto(questionSubmissionSaved);
+            QuestionSubmissionDto returnedDto = questionSubmissionService.toDto(questionSubmissionSaved, false);
 
             HttpHeaders headers = new HttpHeaders();
             headers.setLocation(ucBuilder.path("/api/experiments/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}/question_submissions/{question_submission_id}")

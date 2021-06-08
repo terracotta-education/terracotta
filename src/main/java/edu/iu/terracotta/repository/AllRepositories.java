@@ -100,6 +100,9 @@ public class AllRepositories {
     @Autowired
     public LtiUserRepository ltiUserRepository;
 
+    @Autowired
+    public QuestionSubmissionCommentRepository questionSubmissionCommentRepository;
+
 
     @PersistenceContext
     public EntityManager entityManager;

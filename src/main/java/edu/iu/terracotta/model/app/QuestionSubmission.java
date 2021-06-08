@@ -7,8 +7,10 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
+import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
 import javax.persistence.Table;
+import java.util.List;
 
 @Table(name = "terr_question_submission")
 @Entity
@@ -36,6 +38,10 @@ public class QuestionSubmission {
     @ManyToOne
     private Answer answer;
 
+    @OneToMany(mappedBy = "questionSubmission", orphanRemoval = true)
+    private List<QuestionSubmissionComment> questionSubmissionComments;
+
+
     public Long getQuestionSubmissionId() { return questionSubmissionId; }
 
     public void setQuestionSubmissionId(Long questionSubmissionId) { this.questionSubmissionId = questionSubmissionId; }
@@ -59,4 +65,8 @@ public class QuestionSubmission {
     public Submission getSubmission() { return submission; }
 
     public void setSubmission(Submission submission) { this.submission = submission; }
+
+    public List<QuestionSubmissionComment> getQuestionSubmissionComments() { return questionSubmissionComments; }
+
+    public void setQuestionSubmissionComments(List<QuestionSubmissionComment> questionSubmissionComments) { this.questionSubmissionComments = questionSubmissionComments; }
 }

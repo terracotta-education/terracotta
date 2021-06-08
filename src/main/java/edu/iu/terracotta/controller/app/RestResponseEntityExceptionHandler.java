@@ -142,6 +142,15 @@ public class RestResponseEntityExceptionHandler
     }
 
     @ExceptionHandler(value
+            = {QuestionSubmissionCommentNotMatchingException.class})
+    protected ResponseEntity<Object> handleQuestionSubmissionCommentNotMatchingException(
+            QuestionSubmissionCommentNotMatchingException ex, WebRequest request) {
+        String bodyOfResponse = TextConstants.QUESTION_SUBMISSION_COMMENT_NOT_MATCHING;
+        return handleExceptionInternal(ex, bodyOfResponse,
+                new HttpHeaders(), HttpStatus.UNAUTHORIZED, request);
+    }
+
+    @ExceptionHandler(value
             = {IdMissingException.class})
     protected ResponseEntity<Object> handleIdMissingException(
             IdMissingException ex, WebRequest request) {

@@ -12,20 +12,7 @@
  */
 package edu.iu.terracotta.service.app.impl;
 
-import edu.iu.terracotta.exceptions.AnswerNotMatchingException;
-import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
-import edu.iu.terracotta.exceptions.AssignmentNotMatchingException;
-import edu.iu.terracotta.exceptions.BadTokenException;
-import edu.iu.terracotta.exceptions.ConditionNotMatchingException;
-import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
-import edu.iu.terracotta.exceptions.ExposureNotMatchingException;
-import edu.iu.terracotta.exceptions.GroupNotMatchingException;
-import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
-import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
-import edu.iu.terracotta.exceptions.QuestionSubmissionNotMatchingException;
-import edu.iu.terracotta.exceptions.SubmissionCommentNotMatchingException;
-import edu.iu.terracotta.exceptions.SubmissionNotMatchingException;
-import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
+import edu.iu.terracotta.exceptions.*;
 import edu.iu.terracotta.model.oauth2.Roles;
 import edu.iu.terracotta.model.oauth2.SecurityInfo;
 import edu.iu.terracotta.service.app.*;
@@ -110,6 +97,9 @@ public class APIJWTServiceImpl implements APIJWTService {
 
     @Autowired
     SubmissionCommentService submissionCommentService;
+
+    @Autowired
+    QuestionSubmissionCommentService questionSubmissionCommentService;
 
     private static final String JWT_REQUEST_HEADER_NAME = "Authorization";
     private static final String JWT_BEARER_TYPE = "Bearer";
@@ -415,6 +405,13 @@ public class APIJWTServiceImpl implements APIJWTService {
     public void submissionCommentAllowed(SecurityInfo securityInfo, Long assessmentId, Long submissionId, Long submissionCommentId) throws SubmissionCommentNotMatchingException {
         if(!submissionCommentService.submissionCommentBelongsToAssessmentAndSubmission(assessmentId, submissionId, submissionCommentId)) {
             throw new SubmissionCommentNotMatchingException(TextConstants.SUBMISSION_COMMENT_NOT_MATCHING);
+        }
+    }
+
+    @Override
+    public void questionSubmissionCommentAllowed(SecurityInfo securityInfo, Long questionSubmissionId, Long questionSubmissionCommentId) throws QuestionSubmissionCommentNotMatchingException {
+        if(!questionSubmissionCommentService.questionSubmissionCommentBelongsToQuestionSubmission(questionSubmissionId, questionSubmissionCommentId)){
+            throw new QuestionSubmissionCommentNotMatchingException(TextConstants.QUESTION_SUBMISSION_COMMENT_NOT_MATCHING);
         }
     }
 }

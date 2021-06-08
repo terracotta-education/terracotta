@@ -13,7 +13,7 @@ public interface QuestionSubmissionService {
 
     List<QuestionSubmission> findAllBySubmissionId(Long submissionId);
 
-    QuestionSubmissionDto toDto(QuestionSubmission questionSubmission);
+    QuestionSubmissionDto toDto(QuestionSubmission questionSubmission, boolean questionSubmissionComments);
 
     QuestionSubmission fromDto(QuestionSubmissionDto questionSubmissionDto) throws DataServiceException;
 
