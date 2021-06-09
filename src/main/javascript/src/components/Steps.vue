@@ -82,6 +82,10 @@
 							{
 								key: "participation_selection_method",
 								name: "Selection Method"
+							}, 
+							{
+								key: "select_participants",
+								name: "Select Participants"
 							}
 						]
 					},

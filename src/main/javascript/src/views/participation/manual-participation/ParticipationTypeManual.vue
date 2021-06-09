@@ -10,12 +10,10 @@
       <p>
         <strong>Tip:</strong> If you are working with minors, we suggest you
         collect parental consents before proceeding. You can
-        <router-link
-          class="plain-link"
-          :to="{ name: 'ExperimentParticipationSummary' }"
-        >
+        <!-- Update the link when the actual template is available -->
+        <a href="https://www.google.com" target="_blank">
           download a template permission from here
-        </router-link>
+        </a>
         .
       </p>
     </v-card>
@@ -29,7 +27,7 @@
       </v-btn>
       <router-link
         class="plain-link ml-3"
-        :to="{ name: 'ExperimentParticipationSummary' }"
+        :to="{ name: 'ParticipationSummary' }"
       >
         Skip participant selection for now
       </router-link>
