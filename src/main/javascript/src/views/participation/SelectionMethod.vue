@@ -49,18 +49,24 @@ export default {
 			const e = this.experiment
 			e.participationType = type
 
+			const experimentId = e.experimentId
+			const step = "participation_type"
+
 			this.updateExperiment(e)
 					.then(response => {
 						if (response.status === 200) {
 							// report the current step
-							// TODO - uncomment following line after sorting out local/dev server back-end environments
-							// this.reportStep(e.experimentId, "participation_type")
+							this.reportStep({experimentId, step})
+
+							// route based on participation type selection
 							if (e.participationType==='CONSENT') {
-								this.$router.push({name:'ParticipationTypeConsentOverview', params:{experiment: e.experimentId}})
+								this.$router.push({name:'ParticipationTypeConsentOverview', params:{experiment: experimentId}})
 							} else if(e.participationType==='MANUAL') {
-								this.$router.push({name:'ParticipationTypeManual', params:{experiment: e.experimentId}})
+								this.$router.push({name:'ParticipationTypeManual', params:{experiment: experimentId}})
 							} else if(e.participationType==='AUTO') {
-								this.$router.push({name:'ParticipationTypeAutoConfirm', params:{experiment:e.experimentId}})
+								this.$router.push({name:'ParticipationTypeAutoConfirm', params:{experiment:experimentId}})
+							} else {
+								alert("Select a participation type")
 							}
 						} else {
 							alert("error: ", response.statusText || response.status)

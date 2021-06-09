@@ -35,9 +35,10 @@ const actions = {
                     console.log("refreshToken | catch",{response})
                 })
     },
-    reportStep: ({state}, experiment_id, step) => {
-        // send a refresh to the API and receive an API token for the bearer auth header
-        return apiService.reportStep(experiment_id, step)
+    reportStep: ({state}, {experimentId, step}) => {
+        // report the current step to the server to do some magic
+        // used for exposure_type, participation_type, and distribution_type selection steps
+        return apiService.reportStep(experimentId, step)
                 .then(data => {
                     console.log("reportStep | then",{state, data})
                 })

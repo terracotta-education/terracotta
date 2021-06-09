@@ -61,16 +61,20 @@ export default {
 			const e = this.experiment
 			e.exposureType = type
 
+			const experimentId = e.experimentId
+			const step = "exposure_type"
+
 			this.updateExperiment(e)
 					.then(response => {
 						if (response.status === 200) {
 							// report the current step
-							// TODO - uncomment following line after sorting out local/dev server back-end environments
-							// this.reportStep(e.experimentId, "exposure_type")
+							this.reportStep({experimentId, step})
 							if (this.experiment.exposureType==='WITHIN') {
-								this.$router.push({name:'ExperimentDesignDefaultCondition', params:{experiment: e.experimentId}})
+								this.$router.push({name:'ExperimentDesignDefaultCondition', params:{experiment: experimentId}})
 							} else if(this.experiment.exposureType==='BETWEEN') {
-								this.$router.push({name:'ExperimentDesignSummary', params:{experiment: e.experimentId}})
+								this.$router.push({name:'ExperimentDesignSummary', params:{experiment: experimentId}})
+							} else {
+								alert("Select an experiment type")
 							}
 						} else {
 							alert("error: ", response.statusText || response.status)
