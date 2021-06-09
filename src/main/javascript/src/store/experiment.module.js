@@ -34,6 +34,18 @@ const mutations = {
     setExperiment(state, data) {
         state.experiment = data
     },
+    createConsent(state) {
+        state.experiment.consent = state.experiment.consent || {
+            title: "",
+            file: null
+        }
+    },
+    setConsent(state, consent) {
+        state.experiment.consent = consent
+    },
+    setConsentTitle(state, title) {
+        state.experiment.consent.title = title
+    },
     setConditions(state, conditions) {
         state.experiment.conditions = conditions
     },
@@ -56,6 +68,12 @@ const mutations = {
 };
 
 const getters = {
+    consent(state) {
+        return state.experiment.consent
+    },
+    conditions(state) {
+        return state.experiment.conditions
+    }
 };
 
 export const experiment = {

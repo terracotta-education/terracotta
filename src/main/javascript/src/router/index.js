@@ -143,7 +143,16 @@ const routes = [
             component: () => import('../views/participation/ParticipationTypeConsentTitle.vue'),
             meta: {
               currentSection: "participation",
-              currentStep: "participation_selection_assignment_title"
+              currentStep: "participation_selection_consent_title"
+            }
+          },
+          {
+            path: 'participation-type-consent/file',
+            name: 'ParticipationTypeConsentFile',
+            component: () => import('../views/participation/ParticipationTypeConsentFile.vue'),
+            meta: {
+              currentSection: "participation",
+              currentStep: "participation_selection_consent_file"
             }
           },
           {
