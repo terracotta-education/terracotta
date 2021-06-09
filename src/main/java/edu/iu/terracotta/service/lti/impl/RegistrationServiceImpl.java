@@ -26,7 +26,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.BufferingClientHttpRequestFactory;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -46,7 +45,7 @@ public class RegistrationServiceImpl implements RegistrationService {
     @Override
     public String callDynamicRegistration(String token, ToolRegistrationDTO toolRegistrationDTO, String endpoint) throws ConnectionException {
         //TODO figure the answer to the post
-        String answer = null;
+        String answer;
         try {
             RestTemplate restTemplate = new RestTemplate(
                     new BufferingClientHttpRequestFactory(new SimpleClientHttpRequestFactory()));

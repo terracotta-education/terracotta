@@ -66,13 +66,13 @@ public class SubmissionController {
             List<Submission> submissionList = submissionService.findAllByAssessmentId(assessmentId);
 
             if(submissionList.isEmpty()) {
-                return new ResponseEntity(HttpStatus.NO_CONTENT);
+                return new ResponseEntity<>(HttpStatus.NO_CONTENT);
             }
-            List<SubmissionDto> submissionDtos = new ArrayList<>();
+            List<SubmissionDto> submissionDtoList = new ArrayList<>();
             for(Submission submission : submissionList) {
-                submissionDtos.add(submissionService.toDto(submission, false,false));
+                submissionDtoList.add(submissionService.toDto(submission, false,false));
             }
-            return new ResponseEntity<>(submissionDtos, HttpStatus.OK);
+            return new ResponseEntity<>(submissionDtoList, HttpStatus.OK);
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
@@ -111,7 +111,6 @@ public class SubmissionController {
                 return new ResponseEntity<>(submissionDto, HttpStatus.OK);
             }
         } else {
-            //TODO I've seen some of these include the TextConstants, others don't.
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
     }
@@ -142,7 +141,7 @@ public class SubmissionController {
             submissionDto.setAssessmentId(assessmentId);
             Participant participant = submissionService.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, securityInfo.getUserId());
             submissionDto.setParticipantId(participant.getParticipantId());
-            Submission submission = null;
+            Submission submission;
             try {
                 if(submissionDto.getAlteredCalculatedGrade() != null || submissionDto.getTotalAlteredGrade() != null){
                     if(!apijwtService.isInstructorOrHigher(securityInfo)){

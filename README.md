@@ -28,9 +28,9 @@ with a valid certificate.
 
 Customizing
 -----------
-Use the application.properties to control various aspects of the Spring Boot application (like setup your own database
-connection). The example file has some section with a self-explanatory title. Of course it is recommended to 
-use a properties file external to the jar to avoid to store sensitive values in your code: 
+Use the application.properties to control various aspects of the Spring Boot application (like setting up your own database
+connection). The example file has some sections with a self-explanatory title. It is recommended to 
+use a properties file external to the jar to avoid storing sensitive values in your code: 
 
 ```--spring.config.location=/home/yourhomefolder/application-local.properties```
 

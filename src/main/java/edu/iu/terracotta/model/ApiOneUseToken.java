@@ -71,8 +71,7 @@ public class ApiOneUseToken extends BaseEntity {
 
     @Override
     public int hashCode() {
-        int result = 31 * (token != null ? token.hashCode() : 0);
-        return result;
+        return 31 * (token != null ? token.hashCode() : 0);
     }
 
 }

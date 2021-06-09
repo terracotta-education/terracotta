@@ -66,16 +66,16 @@ public class ExperimentController {
                     experimentService.findAllByDeploymentIdAndCourseId(
                             securityInfo.getPlatformDeploymentId(), securityInfo.getContextId());
             if (experimentList.isEmpty()) {
-                return new ResponseEntity(HttpStatus.NO_CONTENT);
+                return new ResponseEntity<>(HttpStatus.NO_CONTENT);
                 // You many decide to return HttpStatus.NOT_FOUND
             }
-            List<ExperimentDto> experimentDtos = new ArrayList<>();
+            List<ExperimentDto> experimentDtoList = new ArrayList<>();
             for (Experiment experiment : experimentList) {
-                experimentDtos.add(experimentService.toDto(experiment, false, false, false));
+                experimentDtoList.add(experimentService.toDto(experiment, false, false, false));
             }
-            return new ResponseEntity<>(experimentDtos, HttpStatus.OK);
+            return new ResponseEntity<>(experimentDtoList, HttpStatus.OK);
         } else {
-            return new ResponseEntity(HttpStatus.UNAUTHORIZED);
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
     }
 
@@ -138,8 +138,7 @@ public class ExperimentController {
             // We check that it does not exist
             if (experimentDto.getExperimentId() != null) {
                 log.error(TextConstants.ID_IN_POST_ERROR);
-                return new ResponseEntity(
-                        TextConstants.ID_IN_POST_ERROR, HttpStatus.CONFLICT);
+                return new ResponseEntity(TextConstants.ID_IN_POST_ERROR, HttpStatus.CONFLICT);
             }
             ExperimentDto existingEmpty = experimentService.getEmptyExperiment(securityInfo, experimentDto);
             if (existingEmpty!=null){

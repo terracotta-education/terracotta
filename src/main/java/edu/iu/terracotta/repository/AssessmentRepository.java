@@ -1,11 +1,9 @@
 package edu.iu.terracotta.repository;
 
 import edu.iu.terracotta.model.app.Assessment;
-import edu.iu.terracotta.model.app.Experiment;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
-import java.util.Optional;
 
 public interface AssessmentRepository extends JpaRepository<Assessment, Long> {
 

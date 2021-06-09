@@ -16,7 +16,7 @@ public interface GroupRepository extends JpaRepository<Group, Long> {
 
     long countByExperiment_ExperimentId(Long experimentId);
 
-    long deleteByExperiment_ExperimentId(Long experimentId);
+    void deleteByExperiment_ExperimentId(Long experimentId);
 
 
 

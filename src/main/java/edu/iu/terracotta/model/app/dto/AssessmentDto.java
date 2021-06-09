@@ -2,7 +2,6 @@ package edu.iu.terracotta.model.app.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import edu.iu.terracotta.model.app.Submission;
 
 import java.util.List;
 

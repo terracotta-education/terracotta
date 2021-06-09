@@ -187,7 +187,7 @@ public class APIJWTServiceImpl implements APIJWTService {
             assignmentId = Long.parseLong(assignmentIdText);
         }
         String consentText = queryParams.getFirst("consent");
-        Boolean consent = false;
+        boolean consent = false;
         if (StringUtils.isNotBlank(consentText)){
             if (consentText.equals("true")){
                 consent = true;
@@ -241,8 +241,7 @@ public class APIJWTServiceImpl implements APIJWTService {
         String rawHeaderValue = StringUtils.trimToNull(request.getHeader(JWT_REQUEST_HEADER_NAME));
         if (rawHeaderValue == null) {
             if (allowQueryParam) {
-                String param = StringUtils.trimToNull(request.getParameter(QUERY_PARAM_NAME));
-                return param;
+                return StringUtils.trimToNull(request.getParameter(QUERY_PARAM_NAME));
             }
         }
         if (rawHeaderValue == null) {
@@ -250,8 +249,7 @@ public class APIJWTServiceImpl implements APIJWTService {
         }
         // very similar to BearerTokenExtractor.java in Spring spring-security-oauth2
         if (isBearerToken(rawHeaderValue)) {
-            String jwtValue = rawHeaderValue.substring(JWT_BEARER_TYPE.length()).trim();
-            return jwtValue;
+            return rawHeaderValue.substring(JWT_BEARER_TYPE.length()).trim();
         }
         return null;
     }

@@ -56,15 +56,15 @@ public class ExposureController {
             List<Exposure> exposureList =
                     exposureService.findAllByExperimentId(experimentId);
             if(exposureList.isEmpty()) {
-                return new ResponseEntity(HttpStatus.NO_CONTENT);
+                return new ResponseEntity<>(HttpStatus.NO_CONTENT);
             }
-            List<ExposureDto> exposureDtos = new ArrayList<>();
+            List<ExposureDto> exposureDtoList = new ArrayList<>();
             for(Exposure exposure : exposureList) {
-                exposureDtos.add(exposureService.toDto(exposure));
+                exposureDtoList.add(exposureService.toDto(exposure));
             }
-            return new ResponseEntity<>(exposureDtos, HttpStatus.OK);
+            return new ResponseEntity<>(exposureDtoList, HttpStatus.OK);
         }else {
-            return new ResponseEntity(HttpStatus.UNAUTHORIZED);
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
     }
 
@@ -112,7 +112,7 @@ public class ExposureController {
             }
 
             exposureDto.setExperimentId(experimentId);
-            Exposure exposure = null;
+            Exposure exposure;
             try{
                 exposure = exposureService.fromDto(exposureDto);
             } catch (DataServiceException e) {

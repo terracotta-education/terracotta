@@ -69,11 +69,11 @@ public class SubmissionCommentController {
             if(submissionCommentList.isEmpty()) {
                 return new ResponseEntity<>(HttpStatus.NO_CONTENT);
             }
-            List<SubmissionCommentDto> submissionCommentDtos = new ArrayList<>();
+            List<SubmissionCommentDto> submissionCommentDtoList = new ArrayList<>();
             for(SubmissionComment submissionComment : submissionCommentList) {
-                submissionCommentDtos.add(submissionCommentService.toDto(submissionComment));
+                submissionCommentDtoList.add(submissionCommentService.toDto(submissionComment));
             }
-            return new ResponseEntity<>(submissionCommentDtos, HttpStatus.OK);
+            return new ResponseEntity<>(submissionCommentDtoList, HttpStatus.OK);
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }

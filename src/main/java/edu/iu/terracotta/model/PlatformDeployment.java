@@ -23,6 +23,7 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
+import java.util.Objects;
 import java.util.Set;
 
 @Entity
@@ -163,9 +164,9 @@ public class PlatformDeployment extends BaseEntity {
         PlatformDeployment that = (PlatformDeployment) o;
 
         if (keyId != that.keyId) return false;
-        if (iss != null ? !iss.equals(that.iss) : that.iss != null) return false;
-        if (clientId != null ? !clientId.equals(that.clientId) : that.clientId != null) return false;
-        return deploymentId != null ? deploymentId.equals(that.deploymentId) : that.deploymentId == null;
+        if (!Objects.equals(iss, that.iss)) return false;
+        if (!Objects.equals(clientId, that.clientId)) return false;
+        return Objects.equals(deploymentId, that.deploymentId);
     }
 
     @Override

@@ -88,15 +88,15 @@ public class AssessmentController {
             List<Assessment> assessmentList = assessmentService.findAllByTreatmentId(treatmentId);
 
             if(assessmentList.isEmpty()) {
-                return new ResponseEntity(HttpStatus.NO_CONTENT);
+                return new ResponseEntity<>(HttpStatus.NO_CONTENT);
             }
-            List<AssessmentDto> assessmentDtos = new ArrayList<>();
+            List<AssessmentDto> assessmentDtoList = new ArrayList<>();
             for(Assessment assessment : assessmentList){
-                assessmentDtos.add(assessmentService.toDto(assessment,false, false));
+                assessmentDtoList.add(assessmentService.toDto(assessment,false, false));
             }
-            return new ResponseEntity<>(assessmentDtos, HttpStatus.OK);
+            return new ResponseEntity<>(assessmentDtoList, HttpStatus.OK);
         } else {
-            return new ResponseEntity(HttpStatus.UNAUTHORIZED);
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
     }
 
@@ -130,7 +130,7 @@ public class AssessmentController {
                 return new ResponseEntity<>(assessmentDto, HttpStatus.OK);
             }
         } else {
-            return new ResponseEntity(HttpStatus.UNAUTHORIZED);
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
     }
 
@@ -158,7 +158,7 @@ public class AssessmentController {
             assessmentDto.setTreatmentId(treatmentId);
             assessmentDto.setNumOfSubmissions(1);
             assessmentDto.setAutoSubmit(true);
-            Assessment assessment = null;
+            Assessment assessment;
             try {
                 assessment = assessmentService.fromDto(assessmentDto);
                 assessment.setQuestions(new ArrayList<>());
@@ -282,15 +282,15 @@ public class AssessmentController {
             List<Question> questionList = questionService.findAllByAssessmentId(assessmentId);
 
             if(questionList.isEmpty()) {
-                return new ResponseEntity(HttpStatus.NO_CONTENT);
+                return new ResponseEntity<>(HttpStatus.NO_CONTENT);
             }
-            List<QuestionDto> questionDtos = new ArrayList<>();
+            List<QuestionDto> questionDtoList = new ArrayList<>();
             for(Question question : questionList) {
-                questionDtos.add(questionService.toDto(question, false));
+                questionDtoList.add(questionService.toDto(question, false));
             }
-            return new ResponseEntity<>(questionDtos, HttpStatus.OK);
+            return new ResponseEntity<>(questionDtoList, HttpStatus.OK);
         } else {
-            return new ResponseEntity(HttpStatus.UNAUTHORIZED);
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
     }
 
@@ -325,7 +325,7 @@ public class AssessmentController {
                 return new ResponseEntity<>(questionDto, HttpStatus.OK);
             }
         } else {
-            return new ResponseEntity(HttpStatus.UNAUTHORIZED);
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
     }
 
@@ -353,7 +353,7 @@ public class AssessmentController {
             }
 
             questionDto.setAssessmentId(assessmentId);
-            Question question = null;
+            Question question;
             try {
                 question = questionService.fromDto(questionDto);
                 question.setAnswers(new ArrayList<>());
@@ -380,7 +380,7 @@ public class AssessmentController {
                                                 @PathVariable("condition_id") Long conditionId,
                                                 @PathVariable("treatment_id") Long treatmentId,
                                                 @PathVariable("assessment_id") Long assessmentId,
-                                                @RequestBody List<QuestionDto> questionDtos,
+                                                @RequestBody List<QuestionDto> questionDtoList,
                                                 HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionNotMatchingException, BadTokenException, DataServiceException {
 
@@ -391,7 +391,7 @@ public class AssessmentController {
         if(apijwtService.isInstructorOrHigher(securityInfo)) {
             List<Question> questionList = new ArrayList<>();
 
-            for(QuestionDto questionDto : questionDtos){
+            for(QuestionDto questionDto : questionDtoList){
                 apijwtService.questionAllowed(securityInfo, assessmentId, questionDto.getQuestionId());
                 Optional<Question> question = questionService.findById(questionDto.getQuestionId());
                 if(question.isPresent()){
@@ -504,15 +504,15 @@ public class AssessmentController {
             List<Answer> answerList = answerService.findAllByQuestionId(questionId);
 
             if(answerList.isEmpty()) {
-                return new ResponseEntity(HttpStatus.NO_CONTENT);
+                return new ResponseEntity<>(HttpStatus.NO_CONTENT);
             }
-            List<AnswerDto> answerDtos= new ArrayList<>();
+            List<AnswerDto> answerDtoList= new ArrayList<>();
             for(Answer answer : answerList) {
-                answerDtos.add(answerService.toDto(answer));
+                answerDtoList.add(answerService.toDto(answer));
             }
-            return new ResponseEntity<>(answerDtos, HttpStatus.OK);
+            return new ResponseEntity<>(answerDtoList, HttpStatus.OK);
         } else {
-            return new ResponseEntity(HttpStatus.UNAUTHORIZED);
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
     }
 
@@ -548,7 +548,7 @@ public class AssessmentController {
                 return new ResponseEntity<>(answerDto, HttpStatus.OK);
             }
         } else {
-            return new ResponseEntity(HttpStatus.UNAUTHORIZED);
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
     }
 
@@ -578,7 +578,7 @@ public class AssessmentController {
             }
 
             answerDto.setQuestionId(questionId);
-            Answer answer = null;
+            Answer answer;
             try {
                 answer = answerService.fromDto(answerDto);
             } catch (DataServiceException ex) {
@@ -607,7 +607,7 @@ public class AssessmentController {
                                               @PathVariable("treatment_id") Long treatmentId,
                                               @PathVariable("assessment_id") Long assessmentId,
                                               @PathVariable("question_id") Long questionId,
-                                              @RequestBody List<AnswerDto> answerDtos,
+                                              @RequestBody List<AnswerDto> answerDtoList,
                                               HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, AnswerNotMatchingException, BadTokenException, DataServiceException {
 
@@ -618,7 +618,7 @@ public class AssessmentController {
         if(apijwtService.isInstructorOrHigher(securityInfo)){
             List<Answer> answerList = new ArrayList<>();
 
-            for(AnswerDto answerDto : answerDtos) {
+            for(AnswerDto answerDto : answerDtoList) {
                 apijwtService.answerAllowed(securityInfo, assessmentId, questionId, answerDto.getAnswerId());
                 Optional<Answer> answer = answerService.findById(answerDto.getAnswerId());
                 if(answer.isPresent()) {

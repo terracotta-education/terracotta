@@ -86,16 +86,16 @@ public class ParticipantController {
                 currentParticipantList = participantService.refreshParticipants(experimentId, securityInfo, currentParticipantList);
             }
             if (currentParticipantList.isEmpty()) {
-                return new ResponseEntity(HttpStatus.NO_CONTENT);
+                return new ResponseEntity<>(HttpStatus.NO_CONTENT);
                 // You many decide to return HttpStatus.NOT_FOUND
             }
-            List<ParticipantDto> participantDtos = new ArrayList<>();
+            List<ParticipantDto> participantDtoList = new ArrayList<>();
             for (Participant participant : currentParticipantList) {
-                participantDtos.add(participantService.toDto(participant));
+                participantDtoList.add(participantService.toDto(participant));
             }
-            return new ResponseEntity<>(participantDtos, HttpStatus.OK);
+            return new ResponseEntity<>(participantDtoList, HttpStatus.OK);
         } else {
-            return new ResponseEntity(HttpStatus.UNAUTHORIZED);
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
     }
 
@@ -129,7 +129,7 @@ public class ParticipantController {
                 return new ResponseEntity<>(participantDto, HttpStatus.OK);
             }
         } else {
-            return new ResponseEntity(HttpStatus.UNAUTHORIZED);
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
     }
 
@@ -154,7 +154,7 @@ public class ParticipantController {
                         HttpStatus.CONFLICT);
             }
 
-            Participant participant = null;
+            Participant participant;
             participantDto.setExperimentId(experimentId);
             try {
                 participant = participantService.fromDto(participantDto);
@@ -169,7 +169,7 @@ public class ParticipantController {
             headers.setLocation(ucBuilder.path("/api/experiments/{experimentId}/participant/{participantId}").buildAndExpand(experimentId, participantSaved.getParticipantId()).toUri());
             return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
         } else {
-            return new ResponseEntity(HttpStatus.UNAUTHORIZED);
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
     }
 
@@ -195,7 +195,7 @@ public class ParticipantController {
                         HttpStatus.NOT_FOUND);
             }
             Participant participantToChange = participantSearchResult.get();
-            //If they had no consent, and now they have, we change the dategiven to now.
+            //If they had no consent, and now they have, we change the date given to now.
             //In any other case, we leave the date as it was. Ignoring any value in the PUT
             if ((participantToChange.getConsent()==null || !participantToChange.getConsent()) &&
                     (participantDto.getConsent() !=null || participantDto.getConsent())) {
@@ -229,7 +229,7 @@ public class ParticipantController {
             participantService.saveAndFlush(participantToChange);
             return new ResponseEntity<>(HttpStatus.OK);
         } else {
-            return new ResponseEntity(HttpStatus.UNAUTHORIZED);
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
     }
 
@@ -252,7 +252,7 @@ public class ParticipantController {
                 return new ResponseEntity<>(HttpStatus.NOT_FOUND);
             }
         } else {
-            return new ResponseEntity(HttpStatus.UNAUTHORIZED);
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
     }
 }

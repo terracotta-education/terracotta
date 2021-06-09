@@ -106,7 +106,7 @@ public class LTI3Controller {
                     model.addAttribute(TextConstants.HTML_CONTENT, "<b> No element was requested or it doesn't exists </b>");
                 }
                 if (lti3Request.getLtiMessageType().equals(LtiStrings.LTI_MESSAGE_TYPE_DEEP_LINKING)) {
-                    //Let's create the LtilinkEntity's in our database
+                    //Let's create the LtiLinkEntity's in our database
                     //This should be done AFTER the user selects the link in the content selector, and we are doing it before
                     //just to keep it simple. The ideal process would be, the user selects a link, sends it to the platform and
                     // we create the LtiLinkEntity in our code after that.

@@ -14,7 +14,7 @@ public interface ExposureGroupConditionRepository extends JpaRepository<Exposure
 
 
 
-    long deleteByExposure_Experiment_ExperimentId(Long experimentId);
+    void deleteByExposure_Experiment_ExperimentId(Long experimentId);
 
 
 

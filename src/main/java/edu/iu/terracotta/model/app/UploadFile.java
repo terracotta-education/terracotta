@@ -1,10 +1,5 @@
 package edu.iu.terracotta.model.app;
 
-import edu.iu.terracotta.model.BaseEntity;
-
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Table;
 /*
 @Table(name = "terr_upload_file")
 @Entity*/

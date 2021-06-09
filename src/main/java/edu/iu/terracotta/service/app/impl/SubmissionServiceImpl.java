@@ -57,7 +57,7 @@ public class SubmissionServiceImpl implements SubmissionService {
                 questionSubmissionDtoList.add(questionSubmissionService.toDto(questionSubmission, false));
             }
         }
-        submissionDto.setQuestionSubmissionDtos(questionSubmissionDtoList);
+        submissionDto.setQuestionSubmissionDtoList(questionSubmissionDtoList);
         List<SubmissionCommentDto> submissionCommentDtoList = new ArrayList<>();
         if(submissionComments) {
             List<SubmissionComment> submissionCommentList = allRepositories.submissionCommentRepository.findBySubmission_SubmissionId(submission.getSubmissionId());
@@ -65,7 +65,7 @@ public class SubmissionServiceImpl implements SubmissionService {
                 submissionCommentDtoList.add(submissionCommentService.toDto(submissionComment));
             }
         }
-        submissionDto.setSubmissionCommentDtos(submissionCommentDtoList);
+        submissionDto.setSubmissionCommentDtoList(submissionCommentDtoList);
 
         return submissionDto;
     }

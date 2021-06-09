@@ -72,21 +72,21 @@ public class StepsController {
                 }else {
                     return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
                 }
-                return new ResponseEntity(HttpStatus.OK);
+                return new ResponseEntity<>(HttpStatus.OK);
             case PARTICIPATION_TYPE: //We prepare the participants with the right consent and consent related dates.
                 if(apijwtService.isInstructorOrHigher(securityInfo)) {
                     participantService.prepareParticipation(experimentId, securityInfo);
                 }else {
                     return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
                 }
-                return new ResponseEntity(HttpStatus.OK);
+                return new ResponseEntity<>(HttpStatus.OK);
             case DISTRIBUTION_TYPE: //We prepare the groups once the distribution type is selected.
                 if(apijwtService.isInstructorOrHigher(securityInfo)) {
                     groupService.createAndAssignGroupsToConditionsAndExposures(experimentId,securityInfo,false);
                 }else {
                     return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
                 }
-                return new ResponseEntity(HttpStatus.OK);
+                return new ResponseEntity<>(HttpStatus.OK);
             case DISTRIBUTION_CUSTOM: //For the custom case, we prepare the groups and assign people based on the custom percents.
                 /*if(apijwtService.isInstructorOrHigher(securityInfo)) {
                     groupService.createAndAssignGroupsToConditionsAndExposures(experimentId,securityInfo,true);
@@ -94,9 +94,9 @@ public class StepsController {
                     return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
                 }*/
                 //NOT DOING ANYTHING NOW...
-                return new ResponseEntity(HttpStatus.OK);
+                return new ResponseEntity<>(HttpStatus.OK);
             default:
-                return new ResponseEntity(HttpStatus.BAD_REQUEST);
+                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
     }
 }

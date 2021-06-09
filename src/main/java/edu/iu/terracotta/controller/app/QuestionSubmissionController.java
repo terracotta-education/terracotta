@@ -4,11 +4,9 @@ import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
-import edu.iu.terracotta.exceptions.IdMissingException;
 import edu.iu.terracotta.exceptions.QuestionSubmissionNotMatchingException;
 import edu.iu.terracotta.exceptions.SubmissionNotMatchingException;
 import edu.iu.terracotta.model.app.Answer;
-import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.QuestionSubmission;
 import edu.iu.terracotta.model.app.dto.QuestionSubmissionDto;
 import edu.iu.terracotta.model.oauth2.SecurityInfo;
@@ -74,13 +72,13 @@ public class QuestionSubmissionController {
             List<QuestionSubmission> questionSubmissionList = questionSubmissionService.findAllBySubmissionId(submissionId);
 
             if (questionSubmissionList.isEmpty()) {
-                return new ResponseEntity(HttpStatus.NO_CONTENT);
+                return new ResponseEntity<>(HttpStatus.NO_CONTENT);
             }
-            List<QuestionSubmissionDto> questionSubmissionDtos = new ArrayList<>();
+            List<QuestionSubmissionDto> questionSubmissionDtoList = new ArrayList<>();
             for (QuestionSubmission questionSubmission : questionSubmissionList) {
-                questionSubmissionDtos.add(questionSubmissionService.toDto(questionSubmission, false));
+                questionSubmissionDtoList.add(questionSubmissionService.toDto(questionSubmission, false));
             }
-            return new ResponseEntity<>(questionSubmissionDtos, HttpStatus.OK);
+            return new ResponseEntity<>(questionSubmissionDtoList, HttpStatus.OK);
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
@@ -134,7 +132,7 @@ public class QuestionSubmissionController {
                                                                         @RequestBody QuestionSubmissionDto questionSubmissionDto,
                                                                         UriComponentsBuilder ucBuilder,
                                                                         HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, SubmissionNotMatchingException, IdMissingException, BadTokenException {
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, SubmissionNotMatchingException, BadTokenException {
 
         log.info("Creating question submission: {}", questionSubmissionDto);
         SecurityInfo securityInfo = apijwtService.extractValues(req, false);
@@ -149,7 +147,7 @@ public class QuestionSubmissionController {
             }
 
             questionSubmissionDto.setSubmissionId(submissionId);
-            QuestionSubmission questionSubmission = null;
+            QuestionSubmission questionSubmission;
             try {
                 if(questionSubmissionDto.getQuestionId() == null){
                     return new ResponseEntity(TextConstants.ID_MISSING, HttpStatus.BAD_REQUEST);
@@ -231,7 +229,7 @@ public class QuestionSubmissionController {
                                                           @PathVariable("treatment_id") Long treatmentId,
                                                           @PathVariable("assessment_id") Long assessmentId,
                                                           @PathVariable("submission_id") Long submissionId,
-                                                          @RequestBody List<QuestionSubmissionDto> questionSubmissionDtos,
+                                                          @RequestBody List<QuestionSubmissionDto> questionSubmissionDtoList,
                                                           HttpServletRequest req)
                 throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, BadTokenException, DataServiceException {
 
@@ -242,7 +240,7 @@ public class QuestionSubmissionController {
         if(apijwtService.isLearnerOrHigher(securityInfo)){
           List<QuestionSubmission> questionSubmissionList = new ArrayList<>();
 
-          for(QuestionSubmissionDto questionSubmissionDto : questionSubmissionDtos) {
+          for(QuestionSubmissionDto questionSubmissionDto : questionSubmissionDtoList) {
               apijwtService.questionSubmissionAllowed(securityInfo, assessmentId, submissionId, questionSubmissionDto.getQuestionSubmissionId());
               Optional<QuestionSubmission> questionSubmission = questionSubmissionService.findById(questionSubmissionDto.getQuestionSubmissionId());
               if(questionSubmission.isPresent()){
