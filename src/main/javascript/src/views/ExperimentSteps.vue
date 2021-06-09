@@ -68,9 +68,13 @@
 		},
 
 		beforeRouteEnter (to, from, next) {
+			// don't load new data after consent title screen
+			if (from.name==='ParticipationTypeConsentTitle' && to.name==='ParticipationTypeConsentFile') { next(); return;}
 			return store.dispatch('experiment/fetchExperimentById', to.params.experiment_id).then(next, next)
 		},
 		beforeRouteUpdate (to, from, next) {
+			// don't load new data after consent title screen
+			if (from.name==='ParticipationTypeConsentTitle' && to.name==='ParticipationTypeConsentFile') { next(); return;}
 			return store.dispatch('experiment/fetchExperimentById', to.params.experiment_id).then(next, next)
 		},
 

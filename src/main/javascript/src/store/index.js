@@ -6,6 +6,7 @@ import { api } from './api.module'
 import { alert } from './alert.module'
 import { experiment } from './experiment.module'
 import { condition } from './condition.module'
+import { consent } from './consent.module'
 
 Vue.use(Vuex)
 
@@ -17,7 +18,8 @@ const store = new Vuex.Store({
         api,
         alert,
         experiment,
-        condition
+        condition,
+        consent,
     }
 })
 
