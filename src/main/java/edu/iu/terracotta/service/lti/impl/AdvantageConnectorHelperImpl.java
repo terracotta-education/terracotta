@@ -34,7 +34,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.BufferingClientHttpRequestFactory;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -114,7 +113,7 @@ public class AdvantageConnectorHelperImpl implements AdvantageConnectorHelper {
                 log.warn("Problem getting the token");
             }
         } catch (Exception e) {
-            log.error("ERROR GETING THE TOKEN", e);
+            log.error("ERROR GETTING THE TOKEN", e);
             StringBuilder exceptionMsg = new StringBuilder();
             exceptionMsg.append("Can't get the token. Exception");
             log.error(exceptionMsg.toString());
@@ -131,7 +130,7 @@ public class AdvantageConnectorHelperImpl implements AdvantageConnectorHelper {
             reportPostResponse = restTemplate.
                     postForEntity(POST_TOKEN_URL, request, LTIToken.class);
         } catch (Exception ex) {
-            log.error("ERROR GETING THE TOKEN", ex);
+            log.error("ERROR GETTING THE TOKEN", ex);
             log.error("Can't get the token. Exception. We will try again with a JSON Payload");
             HttpEntity request2 = createTokenRequestJSON(scope, platformDeployment);
             reportPostResponse = restTemplate.
@@ -183,7 +182,7 @@ public class AdvantageConnectorHelperImpl implements AdvantageConnectorHelper {
         if (CollectionUtils.isNotEmpty(links)) {
             String link = links.get(0);
             String[] tokens = StringUtils.split(link, ",");
-            String url = indexOf(tokens, "rel=\"next\"");
+            String url = indexOf(tokens);
             if (StringUtils.isNotEmpty(url)) {
                 try {
                     return URLDecoder.decode(url, "UTF-8");
@@ -195,9 +194,9 @@ public class AdvantageConnectorHelperImpl implements AdvantageConnectorHelper {
         return null;
     }
 
-    private String indexOf(String[] tokens, String searchString) {
+    private String indexOf(String[] tokens) {
         for (String token : tokens) {
-            if (StringUtils.contains(token, searchString)) {
+            if (StringUtils.contains(token, "rel=\"next\"")) {
                 return StringUtils.substring(token, token.indexOf("<") + 1, token.indexOf(">"));
             }
         }

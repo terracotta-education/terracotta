@@ -29,7 +29,6 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -139,7 +138,7 @@ public class AdvantageAGSServiceImpl implements AdvantageAGSService {
     @Override
     public LineItem putLineItem(LTIToken LTIToken, LtiContextEntity context, LineItem lineItem) throws ConnectionException {
         log.debug(TextConstants.TOKEN + LTIToken.getAccess_token());
-        LineItem resultlineItem = null;
+        LineItem resultlineItem;
         try {
             RestTemplate restTemplate = advantageConnectorHelper.createRestTemplate();
             //We add the token in the request with this.
@@ -170,7 +169,7 @@ public class AdvantageAGSServiceImpl implements AdvantageAGSService {
 
     @Override
     public LineItem getLineItem(LTIToken LTIToken, LtiContextEntity context, String id) throws ConnectionException {
-        LineItem lineItem = null;
+        LineItem lineItem;
         log.debug(TextConstants.TOKEN + LTIToken.getAccess_token());
         try {
             RestTemplate restTemplate = advantageConnectorHelper.createRestTemplate();

@@ -57,15 +57,15 @@ public class ConditionController {
             List<Condition> conditionList =
                     conditionService.findAllByExperimentId(experimentId);
             if(conditionList.isEmpty()){
-                return new ResponseEntity(HttpStatus.NO_CONTENT);
+                return new ResponseEntity<>(HttpStatus.NO_CONTENT);
             }
-            List<ConditionDto> conditionDtos = new ArrayList<>();
+            List<ConditionDto> conditionDtoList = new ArrayList<>();
             for(Condition condition : conditionList) {
-                conditionDtos.add(conditionService.toDto(condition));
+                conditionDtoList.add(conditionService.toDto(condition));
             }
-            return new ResponseEntity<>(conditionDtos, HttpStatus.OK);
+            return new ResponseEntity<>(conditionDtoList, HttpStatus.OK);
         } else {
-            return new ResponseEntity(HttpStatus.UNAUTHORIZED);
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
     }
 
@@ -113,7 +113,7 @@ public class ConditionController {
             }
 
             conditionDto.setExperimentId(experimentId);
-            Condition condition = null;
+            Condition condition;
             try{
                 condition = conditionService.fromDto(conditionDto);
             } catch (DataServiceException e) {

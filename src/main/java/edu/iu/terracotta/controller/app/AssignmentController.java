@@ -70,15 +70,15 @@ public class AssignmentController {
             List<Assignment> assignmentList = assignmentService.findAllByExposureId(exposureId);
 
             if (assignmentList.isEmpty()) {
-                return new ResponseEntity(HttpStatus.NO_CONTENT);
+                return new ResponseEntity<>(HttpStatus.NO_CONTENT);
             }
-            List<AssignmentDto> assignmentDtos = new ArrayList<>();
+            List<AssignmentDto> assignmentDtoList = new ArrayList<>();
             for (Assignment assignment : assignmentList) {
-                assignmentDtos.add(assignmentService.toDto(assignment));
+                assignmentDtoList.add(assignmentService.toDto(assignment));
             }
-            return new ResponseEntity<>(assignmentDtos, HttpStatus.OK);
+            return new ResponseEntity<>(assignmentDtoList, HttpStatus.OK);
         } else {
-            return new ResponseEntity(HttpStatus.UNAUTHORIZED);
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
     }
 
@@ -110,7 +110,7 @@ public class AssignmentController {
                 return new ResponseEntity<>(assignmentDto, HttpStatus.OK);
             }
         } else {
-            return new ResponseEntity(HttpStatus.UNAUTHORIZED);
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
     }
 
@@ -133,7 +133,7 @@ public class AssignmentController {
                 return new ResponseEntity("Cannot include id in the POST endpoint. To modify existing exposures you must use PUT", HttpStatus.CONFLICT);
             }
             assignmentDto.setExposureId(exposureId);
-            Assignment assignment = null;
+            Assignment assignment;
             try {
                 assignment = assignmentService.fromDto(assignmentDto);
             } catch (DataServiceException e) {
@@ -161,7 +161,7 @@ public class AssignmentController {
             } catch (CanvasApiException e) {
                 log.info("Create the assignment failed");
                 e.printStackTrace();
-                return new ResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR);
+                return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
             }
             assignmentService.saveAndFlush(assignmentSaved);
             AssignmentDto returnedDto = assignmentService.toDto(assignmentSaved);
@@ -198,10 +198,6 @@ public class AssignmentController {
             Assignment assignmentToChange = assignmentSearchResult.get();
             assignmentToChange.setTitle(assignmentDto.getTitle());
             assignmentToChange.setAssignmentOrder(assignmentDto.getAssignmentOrder());
-            //We don't want to change these values with a PUT.
-            //assignmentToChange.setLmsAssignmentId(assignmentDto.getLmsAssignmentId());
-            //assignmentToChange.setResourceLinkId(assignmentDto.getResourceLinkId());
-
 
             assignmentService.saveAndFlush(assignmentToChange);
             return new ResponseEntity<>(HttpStatus.OK);

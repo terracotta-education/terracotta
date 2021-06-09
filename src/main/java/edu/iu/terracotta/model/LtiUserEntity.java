@@ -28,6 +28,7 @@ import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import java.sql.Timestamp;
 import java.util.Date;
+import java.util.Objects;
 import java.util.Set;
 
 @Entity
@@ -176,8 +177,8 @@ public class LtiUserEntity extends BaseEntity {
         LtiUserEntity that = (LtiUserEntity) o;
 
         if (userId != that.userId) return false;
-        if (email != null ? !email.equals(that.email) : that.email != null) return false;
-        return userKey != null ? userKey.equals(that.userKey) : that.userKey == null;
+        if (!Objects.equals(email, that.email)) return false;
+        return Objects.equals(userKey, that.userKey);
     }
 
     @Override

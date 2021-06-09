@@ -61,15 +61,15 @@ public class GroupController {
             List<Group> groupList =
                     groupService.findAllByExperimentId(experimentId);
             if(groupList.isEmpty()) {
-                return new ResponseEntity(HttpStatus.NO_CONTENT);
+                return new ResponseEntity<>(HttpStatus.NO_CONTENT);
             }
-            List<GroupDto> groupDtos = new ArrayList<>();
+            List<GroupDto> groupDtoList = new ArrayList<>();
             for(Group group : groupList) {
-                groupDtos.add(groupService.toDto(group));
+                groupDtoList.add(groupService.toDto(group));
             }
-            return new ResponseEntity<>(groupDtos, HttpStatus.OK);
+            return new ResponseEntity<>(groupDtoList, HttpStatus.OK);
         }else {
-            return new ResponseEntity(HttpStatus.UNAUTHORIZED);
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
     }
 
@@ -117,7 +117,7 @@ public class GroupController {
             }
 
             groupDto.setExperimentId(experimentId);
-            Group group = null;
+            Group group;
             try{
                 group = groupService.fromDto(groupDto);
             } catch (DataServiceException e) {

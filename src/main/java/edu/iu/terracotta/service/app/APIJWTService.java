@@ -59,7 +59,7 @@ public interface APIJWTService {
 
     void answerAllowed(SecurityInfo securityInfo, Long assessmentId, Long questionId, Long answerId) throws AnswerNotMatchingException;
 
-    void submissionAllowed(SecurityInfo securityInfo, Long assessmendId, Long submissionId) throws SubmissionNotMatchingException;
+    void submissionAllowed(SecurityInfo securityInfo, Long assessmentId, Long submissionId) throws SubmissionNotMatchingException;
 
     void questionSubmissionAllowed(SecurityInfo securityInfo, Long assessmentId, Long submissionId, Long questionSubmissionId) throws QuestionSubmissionNotMatchingException;
 

@@ -41,11 +41,9 @@ public class AssignmentServiceImpl implements AssignmentService {
     @Override
     public Assignment fromDto(AssignmentDto assignmentDto) throws DataServiceException {
 
+        //Note: we don't want to allow the dto to change the LmsAssignmentId or the ResourceLinkId
         Assignment assignment = new Assignment();
         assignment.setAssignmentId(assignmentDto.getAssignmentId());
-        //We don't need these in the object.
-        //assignment.setLmsAssignmentId(assignmentDto.getLmsAssignmentId());
-        //assignment.setResourceLinkId(assignmentDto.getResourceLinkId());
         assignment.setTitle(assignmentDto.getTitle());
         assignment.setAssignmentOrder(assignmentDto.getAssignmentOrder());
         Optional<Exposure> exposure = allRepositories.exposureRepository.findById(assignmentDto.getExposureId());

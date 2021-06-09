@@ -3,15 +3,12 @@ package edu.iu.terracotta.service.app.impl;
 import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
-import edu.iu.terracotta.model.LtiContextEntity;
 import edu.iu.terracotta.model.LtiMembershipEntity;
 import edu.iu.terracotta.model.LtiUserEntity;
 import edu.iu.terracotta.model.app.Experiment;
-import edu.iu.terracotta.model.app.Group;
 import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.dto.ParticipantDto;
 import edu.iu.terracotta.model.app.dto.UserDto;
-import edu.iu.terracotta.model.app.enumerator.ParticipationTypes;
 import edu.iu.terracotta.model.membership.CourseUser;
 import edu.iu.terracotta.model.membership.CourseUsers;
 import edu.iu.terracotta.model.oauth2.LTIToken;
@@ -21,8 +18,6 @@ import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.ParticipantService;
 import edu.iu.terracotta.service.lti.AdvantageMembershipService;
 import edu.iu.terracotta.service.lti.LTIDataService;
-import net.bytebuddy.implementation.bytecode.Throw;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -129,14 +124,13 @@ public class ParticipantServiceImpl implements ParticipantService {
     @Override
     public List<Participant> refreshParticipants(long experimentId, SecurityInfo securityInfo, List<Participant> currentParticipantList) throws ParticipantNotUpdatedException {
 
-        List<Participant> newParticipantList = new ArrayList<>();
         //We don't want to delete participants if they drop the course, so... we will keep the all participants
         //But we will need to mark them as dropped if they are not in the next list. So... a way to do it is to mark
         //all as dropped and then refresh the list with the new ones.
         for (Participant participant:currentParticipantList){
             participant.setDropped(true);
         }
-        newParticipantList.addAll(currentParticipantList);
+        List<Participant> newParticipantList = new ArrayList<>(currentParticipantList);
         try {
             Experiment experiment =  allRepositories.experimentRepository.findById(experimentId).get();
             LTIToken ltiToken = advantageMembershipService.getToken(experiment.getPlatformDeployment());
@@ -162,14 +156,14 @@ public class ParticipantServiceImpl implements ParticipantService {
                         ltiMembershipEntity = new LtiMembershipEntity(experiment.getLtiContextEntity(), ltiUserEntity, 0);
                         ltiMembershipEntity = ltiDataService.saveLtiMembershipEntity(ltiMembershipEntity);
                     }
-                    boolean alredyInList = false;
+                    boolean alreadyInList = false;
                     for (Participant participant : currentParticipantList) {
                         if (participant.getLtiMembershipEntity().getUser().getUserKey().equals(ltiUserEntity.getUserKey())) {
-                            alredyInList = true;
+                            alreadyInList = true;
                             participant.setDropped(false);
                         }
                     }
-                    if (!alredyInList) {
+                    if (!alreadyInList) {
                         Participant newParticipant = new Participant();
                         newParticipant.setExperiment(experiment);
                         newParticipant.setLtiUserEntity(ltiUserEntity);

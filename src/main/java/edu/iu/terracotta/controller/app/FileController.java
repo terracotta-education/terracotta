@@ -31,7 +31,6 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.core.io.Resource;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
-import org.w3c.dom.Text;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
@@ -119,7 +118,7 @@ public class FileController {
                     } catch (CanvasApiException e) {
                         log.info("Create the assignment failed");
                         e.printStackTrace();
-                        return new ResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR);
+                        return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
                     }
 
                     log.info("Here we will create the assignment");
@@ -133,7 +132,7 @@ public class FileController {
             }
             return new ResponseEntity<>(consentUploaded, HttpStatus.OK);
         }  else {
-            return new ResponseEntity(HttpStatus.UNAUTHORIZED);
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
     }
 
@@ -148,9 +147,9 @@ public class FileController {
         apijwtService.experimentAllowed(securityInfo, experimentId);
 
         if (apijwtService.isLearnerOrHigher(securityInfo)) {
-            return new ResponseEntity<>(Arrays.asList(files).stream().map(file -> uploadFile(file, "/" + experimentId + "/", false)).collect(Collectors.toList()), HttpStatus.OK);
+            return new ResponseEntity<>(Arrays.stream(files).map(file -> uploadFile(file, "/" + experimentId + "/", false)).collect(Collectors.toList()), HttpStatus.OK);
         }  else {
-            return new ResponseEntity(HttpStatus.UNAUTHORIZED);
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
     }
 
@@ -182,7 +181,7 @@ public class FileController {
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + resource.getFilename() + "\"")
                     .body(resource);
         }  else {
-            return new ResponseEntity(HttpStatus.UNAUTHORIZED);
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
     }
 
@@ -213,7 +212,7 @@ public class FileController {
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + resource.getFilename() + "\"")
                     .body(resource);
         }  else {
-            return new ResponseEntity(HttpStatus.UNAUTHORIZED);
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
     }
 
@@ -237,7 +236,7 @@ public class FileController {
                 return new ResponseEntity<>(HttpStatus.NOT_FOUND);
             }
         }  else {
-            return new ResponseEntity(HttpStatus.UNAUTHORIZED);
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
     }
 
@@ -268,7 +267,7 @@ public class FileController {
                 return new ResponseEntity<>(HttpStatus.NOT_FOUND);
             }
         }  else {
-            return new ResponseEntity(HttpStatus.UNAUTHORIZED);
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
     }
 

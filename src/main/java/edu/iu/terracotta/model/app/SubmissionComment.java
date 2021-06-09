@@ -1,7 +1,5 @@
 package edu.iu.terracotta.model.app;
 
-import edu.iu.terracotta.model.LtiUserEntity;
-
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;

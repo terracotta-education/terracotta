@@ -26,6 +26,7 @@ import javax.persistence.Lob;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
+import java.util.Objects;
 import java.util.Set;
 
 @Entity
@@ -174,7 +175,7 @@ public class LtiContextEntity extends BaseEntity {
         LtiContextEntity that = (LtiContextEntity) o;
 
         if (contextId != that.contextId) return false;
-        return contextKey != null ? contextKey.equals(that.contextKey) : that.contextKey == null;
+        return Objects.equals(contextKey, that.contextKey);
     }
 
     @Override

@@ -15,7 +15,6 @@ package edu.iu.terracotta.utils.oauth;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.KeyFactory;
 import java.security.PrivateKey;
@@ -45,7 +44,7 @@ public class OAuthUtils {
         return (RSAPublicKey) kf.generatePublic(keySpecX509);
     }
 
-    public static PrivateKey loadPrivateKey(String privateKeyPem) throws GeneralSecurityException, IOException {
+    public static PrivateKey loadPrivateKey(String privateKeyPem) throws GeneralSecurityException {
         // PKCS#8 format
         final String PEM_PRIVATE_START = "-----BEGIN PRIVATE KEY-----";
         final String PEM_PRIVATE_END = "-----END PRIVATE KEY-----";

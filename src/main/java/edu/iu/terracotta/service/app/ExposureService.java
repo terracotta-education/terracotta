@@ -4,7 +4,6 @@ import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentStartedException;
 import edu.iu.terracotta.model.app.Exposure;
 import edu.iu.terracotta.model.app.dto.ExposureDto;
-import edu.iu.terracotta.model.oauth2.SecurityInfo;
 import org.springframework.dao.EmptyResultDataAccessException;
 
 import java.util.List;

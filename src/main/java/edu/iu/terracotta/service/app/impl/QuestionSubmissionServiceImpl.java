@@ -1,7 +1,7 @@
 package edu.iu.terracotta.service.app.impl;
 
+import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.model.app.Answer;
-import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.Question;
 import edu.iu.terracotta.model.app.QuestionSubmission;
 import edu.iu.terracotta.model.app.QuestionSubmissionComment;
@@ -58,25 +58,28 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
     }
 
     @Override
-    public QuestionSubmission fromDto(QuestionSubmissionDto questionSubmissionDto) {
+    public QuestionSubmission fromDto(QuestionSubmissionDto questionSubmissionDto) throws DataServiceException {
 
         QuestionSubmission questionSubmission = new QuestionSubmission();
         questionSubmission.setQuestionSubmissionId(questionSubmissionDto.getQuestionSubmissionId());
         questionSubmission.setCalculatedPoints(questionSubmissionDto.getCalculatedPoints());
         questionSubmission.setAlteredGrade(questionSubmissionDto.getAlteredGrade());
         Optional<Question> question = allRepositories.questionRepository.findById(questionSubmissionDto.getQuestionId());
-        if(question.isPresent()) {
-            questionSubmission.setQuestion(question.get());
-        }
+        question.ifPresent(questionSubmission::setQuestion);
         if(questionSubmission.getAnswer() != null) {
             Optional<Answer> answer = allRepositories.answerRepository.findById(questionSubmissionDto.getAnswerId());
-            if(answer.isPresent()) {
+            if(answer.isPresent()){
                 questionSubmission.setAnswer(answer.get());
+            } else {
+                throw new DataServiceException("The answer with the id provided does not exist for given question.");
             }
+            answer.ifPresent(questionSubmission::setAnswer);
         }
         Optional<Submission> submission = allRepositories.submissionRepository.findById(questionSubmissionDto.getSubmissionId());
-        if(submission.isPresent()) {
+        if(submission.isPresent()){
             questionSubmission.setSubmission(submission.get());
+        } else {
+            throw new DataServiceException("The submission for the question submission does not exist.");
         }
 
         return questionSubmission;

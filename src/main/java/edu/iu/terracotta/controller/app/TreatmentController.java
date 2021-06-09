@@ -32,7 +32,6 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.HttpServletRequest;
-import javax.swing.text.html.Option;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -71,15 +70,15 @@ public class TreatmentController {
             List<Treatment> treatmentList = treatmentService.findAllByConditionId(conditionId);
 
             if(treatmentList.isEmpty()) {
-                return new ResponseEntity(HttpStatus.NO_CONTENT);
+                return new ResponseEntity<>(HttpStatus.NO_CONTENT);
             }
-            List<TreatmentDto> treatmentDtos = new ArrayList<>();
+            List<TreatmentDto> treatmentDtoList = new ArrayList<>();
             for(Treatment treatment : treatmentList) {
-                treatmentDtos.add(treatmentService.toDto(treatment));
+                treatmentDtoList.add(treatmentService.toDto(treatment));
             }
-            return new ResponseEntity<>(treatmentDtos, HttpStatus.OK);
+            return new ResponseEntity<>(treatmentDtoList, HttpStatus.OK);
         } else {
-            return new ResponseEntity(HttpStatus.UNAUTHORIZED);
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
     }
 
@@ -110,7 +109,7 @@ public class TreatmentController {
                 return new ResponseEntity<>(treatmentDto, HttpStatus.OK);
             }
         } else {
-            return new ResponseEntity(HttpStatus.UNAUTHORIZED);
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
     }
 
@@ -138,7 +137,7 @@ public class TreatmentController {
             if (treatmentDto.getAssignmentId()==null){
                 return new ResponseEntity("Unable to create Treatment: The assignmentId is mandatory", HttpStatus.BAD_REQUEST);
             }
-            Treatment treatment = null;
+            Treatment treatment;
             try{
                 treatment = treatmentService.fromDto(treatmentDto);
             } catch (DataServiceException ex) {

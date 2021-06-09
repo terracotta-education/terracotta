@@ -4,7 +4,6 @@ import edu.iu.terracotta.model.app.Exposure;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
-import java.util.Optional;
 
 public interface ExposureRepository extends JpaRepository<Exposure, Long> {
 
@@ -12,7 +11,7 @@ public interface ExposureRepository extends JpaRepository<Exposure, Long> {
 
     boolean existsByExperiment_ExperimentIdAndExposureId(Long experimentId, Long exposureId);
 
-    long deleteByExperiment_ExperimentId(Long experimentId);
+    void deleteByExperiment_ExperimentId(Long experimentId);
 
 
 }

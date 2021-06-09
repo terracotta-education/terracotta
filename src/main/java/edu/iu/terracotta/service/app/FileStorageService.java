@@ -11,9 +11,4 @@ public interface FileStorageService {
 
     boolean deleteFile(String fileName , String extraPath);
 
-    /*
-    String getFileStorageLocation();
-
-    void setFileStorageLocation(String fileStorageLocation);
-     */
 }

@@ -16,9 +16,9 @@ public class SubmissionDto {
     private Timestamp dateSubmitted;
     private boolean lateSubmission;
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    private List<QuestionSubmissionDto>  questionSubmissionDtos;
+    private List<QuestionSubmissionDto> questionSubmissionDtoList;
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    private List<SubmissionCommentDto> submissionCommentDtos;
+    private List<SubmissionCommentDto> submissionCommentDtoList;
 
     public Long getSubmissionId() { return submissionId; }
 
@@ -52,11 +52,11 @@ public class SubmissionDto {
 
     public void setLateSubmission(boolean lateSubmission) { this.lateSubmission = lateSubmission; }
 
-    public List<QuestionSubmissionDto> getQuestionSubmissionDtos() { return questionSubmissionDtos; }
+    public List<QuestionSubmissionDto> getQuestionSubmissionDtoList() { return questionSubmissionDtoList; }
 
-    public void setQuestionSubmissionDtos(List<QuestionSubmissionDto> questionSubmissionDtos) { this.questionSubmissionDtos = questionSubmissionDtos; }
+    public void setQuestionSubmissionDtoList(List<QuestionSubmissionDto> questionSubmissionDtoList) { this.questionSubmissionDtoList = questionSubmissionDtoList; }
 
-    public List<SubmissionCommentDto> getSubmissionCommentDtos() { return submissionCommentDtos; }
+    public List<SubmissionCommentDto> getSubmissionCommentDtoList() { return submissionCommentDtoList; }
 
-    public void setSubmissionCommentDtos(List<SubmissionCommentDto> submissionCommentDtos) { this.submissionCommentDtos = submissionCommentDtos; }
+    public void setSubmissionCommentDtoList(List<SubmissionCommentDto> submissionCommentDtoList) { this.submissionCommentDtoList = submissionCommentDtoList; }
 }

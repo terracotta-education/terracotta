@@ -30,8 +30,7 @@ public class CanvasAPIClientImpl implements CanvasAPIClient {
             OauthToken oauthToken = new NonRefreshableOauthToken(platformDeployment.getApiToken());
             CanvasApiFactory apiFactory = new CanvasApiFactory(canvasBaseUrl);
             AssignmentWriter assignmentWriter = apiFactory.getWriter(AssignmentWriter.class, oauthToken);
-            Optional<Assignment> assignment = assignmentWriter.createAssignment(extractCourseId(contextMembershipUrl), canvasAssignment);
-            return assignment;
+            return assignmentWriter.createAssignment(extractCourseId(contextMembershipUrl), canvasAssignment);
         } catch (IOException ex){
             throw new CanvasApiException(
                     "Failed to create Assignment in Canvas course by ID [" + extractCourseId(contextMembershipUrl) + "]", ex);

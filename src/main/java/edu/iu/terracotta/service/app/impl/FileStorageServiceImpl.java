@@ -7,7 +7,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.core.io.Resource;
 
@@ -101,13 +100,4 @@ public class FileStorageServiceImpl implements FileStorageService {
         }
     }
 
-
-
-    /*
-    @Override
-    public String getFileStorageLocation() {return fileStorageLocation; }
-
-    @Override
-    public void setFileStorageLocation(String fileStorageLocation) { this.fileStorageLocation = fileStorageLocation; }
-     */
 }

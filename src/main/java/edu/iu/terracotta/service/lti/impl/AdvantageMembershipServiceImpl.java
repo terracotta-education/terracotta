@@ -29,7 +29,6 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -62,7 +61,7 @@ public class AdvantageMembershipServiceImpl implements AdvantageMembershipServic
     //Calling the membership service and getting a paginated result of users.
     @Override
     public CourseUsers callMembershipService(LTIToken LTIToken, LtiContextEntity context) throws ConnectionException {
-        CourseUsers courseUsers = new CourseUsers();
+        CourseUsers courseUsers;
         log.debug(TextConstants.TOKEN + LTIToken.getAccess_token());
         try {
             RestTemplate restTemplate = advantageConnectorHelper.createRestTemplate();
