@@ -106,7 +106,7 @@ public class FileController {
                     Assignment.ExternalToolTagAttribute canvasExternalToolTagAttributes = canvasAssignment.new ExternalToolTagAttribute();
                     canvasExternalToolTagAttributes.setUrl(ServletUriComponentsBuilder.fromCurrentContextPath().path("/lti3?consent=true&experiment=" + experimentId).build().toUriString());
                     canvasAssignment.setExternalToolTagAttributes(canvasExternalToolTagAttributes);
-                    canvasAssignment.setName("Consent: " + experiment.getTitle());
+                    canvasAssignment.setName(title);
                     //TODO: Think about the description of the assignment.
                     canvasAssignment.setDescription(experiment.getDescription());
                     canvasAssignment.setPublished(false);
