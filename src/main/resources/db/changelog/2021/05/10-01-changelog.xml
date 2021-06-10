@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd"
+        objectQuotingStrategy="QUOTE_ONLY_RESERVED_WORDS">
+    <changeSet id="1623338690761-27" author="josh (generated)">
+        <addColumn tableName="terr_answer">
+            <column name="created_at" type="TIMESTAMP DEFAULT CURRENT_TIMESTAMP"/>
+            <column name="entity_version" type="INT" defaultValue="1"/>
+            <column name="updated_at" type="DATETIME DEFAULT CURRENT_TIMESTAMP"/>
+        </addColumn>
+    </changeSet>
+    <changeSet id="1623338690761-28" author="josh (generated)">
+        <dropDefaultValue tableName="terr_answer" columnName="entity_version"></dropDefaultValue>
+        <dropDefaultValue tableName="terr_answer" columnName="updated_at"></dropDefaultValue>
+    </changeSet>
+    <changeSet id="1623338690761-29" author="josh (generated)">
+        <addColumn tableName="terr_assessment">
+            <column name="created_at" type="TIMESTAMP DEFAULT CURRENT_TIMESTAMP"/>
+            <column name="entity_version" type="INT" defaultValue="1"/>
+            <column name="updated_at" type="DATETIME DEFAULT CURRENT_TIMESTAMP"/>
+        </addColumn>
+    </changeSet>
+    <changeSet id="1623338690761-30" author="josh (generated)">
+        <dropDefaultValue tableName="terr_assessment" columnName="entity_version"></dropDefaultValue>
+        <dropDefaultValue tableName="terr_assessment" columnName="updated_at"></dropDefaultValue>
+    </changeSet>
+    <changeSet id="1623338690761-31" author="josh (generated)">
+        <addColumn tableName="terr_assignment">
+            <column name="created_at" type="TIMESTAMP DEFAULT CURRENT_TIMESTAMP"/>
+            <column name="entity_version" type="INT" defaultValue="1"/>
+            <column name="updated_at" type="DATETIME DEFAULT CURRENT_TIMESTAMP"/>
+        </addColumn>
+    </changeSet>
+    <changeSet id="1623338690761-32" author="josh (generated)">
+        <dropDefaultValue tableName="terr_assessment" columnName="entity_version"></dropDefaultValue>
+        <dropDefaultValue tableName="terr_assessment" columnName="updated_at"></dropDefaultValue>
+    </changeSet>
+    <changeSet id="1623338690761-33" author="josh (generated)">
+        <addColumn tableName="terr_consent_document">
+            <column name="created_at" type="TIMESTAMP DEFAULT CURRENT_TIMESTAMP"/>
+            <column name="entity_version" type="INT" defaultValue="1"/>
+            <column name="updated_at" type="DATETIME DEFAULT CURRENT_TIMESTAMP"/>
+        </addColumn>
+    </changeSet>
+    <changeSet id="1623338690761-34" author="josh (generated)">
+        <dropDefaultValue tableName="terr_consent_document" columnName="entity_version"></dropDefaultValue>
+        <dropDefaultValue tableName="terr_consent_document" columnName="updated_at"></dropDefaultValue>
+    </changeSet>
+    <changeSet id="1623338690761-35" author="josh (generated)">
+        <addColumn tableName="terr_participant">
+            <column name="created_at" type="TIMESTAMP DEFAULT CURRENT_TIMESTAMP"/>
+            <column name="entity_version" type="INT" defaultValue="1"/>
+            <column name="updated_at" type="DATETIME DEFAULT CURRENT_TIMESTAMP"/>
+        </addColumn>
+    </changeSet>
+    <changeSet id="1623338690761-36" author="josh (generated)">
+        <dropDefaultValue tableName="terr_participant" columnName="entity_version"></dropDefaultValue>
+        <dropDefaultValue tableName="terr_participant" columnName="updated_at"></dropDefaultValue>
+    </changeSet>
+    <changeSet id="1623338690761-37" author="josh (generated)">
+        <addColumn tableName="terr_question">
+            <column name="created_at" type="TIMESTAMP DEFAULT CURRENT_TIMESTAMP"/>
+            <column name="entity_version" type="INT" defaultValue="1"/>
+            <column name="updated_at" type="DATETIME DEFAULT CURRENT_TIMESTAMP"/>
+        </addColumn>
+    </changeSet>
+    <changeSet id="1623338690761-38" author="josh (generated)">
+        <dropDefaultValue tableName="terr_question" columnName="entity_version"></dropDefaultValue>
+        <dropDefaultValue tableName="terr_question" columnName="updated_at"></dropDefaultValue>
+    </changeSet>
+    <changeSet id="1623338690761-39" author="josh (generated)">
+        <addColumn tableName="terr_question_submission">
+            <column name="created_at" type="TIMESTAMP DEFAULT CURRENT_TIMESTAMP"/>
+            <column name="entity_version" type="INT" defaultValue="1"/>
+            <column name="updated_at" type="DATETIME DEFAULT CURRENT_TIMESTAMP"/>
+        </addColumn>
+    </changeSet>
+    <changeSet id="1623338690761-40" author="josh (generated)">
+        <dropDefaultValue tableName="terr_question_submission" columnName="entity_version"></dropDefaultValue>
+        <dropDefaultValue tableName="terr_question_submission" columnName="updated_at"></dropDefaultValue>
+    </changeSet>
+    <changeSet id="1623338690761-41" author="josh (generated)">
+        <addColumn tableName="terr_question_submission_comment">
+            <column name="created_at" type="TIMESTAMP DEFAULT CURRENT_TIMESTAMP"/>
+            <column name="entity_version" type="INT" defaultValue="1"/>
+            <column name="updated_at" type="DATETIME DEFAULT CURRENT_TIMESTAMP"/>
+        </addColumn>
+    </changeSet>
+    <changeSet id="1623338690761-42" author="josh (generated)">
+        <dropDefaultValue tableName="terr_question_submission_comment" columnName="entity_version"></dropDefaultValue>
+        <dropDefaultValue tableName="terr_question_submission_comment" columnName="updated_at"></dropDefaultValue>
+    </changeSet>
+    <changeSet id="1623338690761-43" author="josh (generated)">
+        <addColumn tableName="terr_submission">
+            <column name="created_at" type="TIMESTAMP DEFAULT CURRENT_TIMESTAMP"/>
+            <column name="entity_version" type="INT" defaultValue="1"/>
+            <column name="updated_at" type="DATETIME DEFAULT CURRENT_TIMESTAMP"/>
+        </addColumn>
+    </changeSet>
+    <changeSet id="1623338690761-44" author="josh (generated)">
+        <dropDefaultValue tableName="terr_submission" columnName="entity_version"></dropDefaultValue>
+        <dropDefaultValue tableName="terr_submission" columnName="updated_at"></dropDefaultValue>
+    </changeSet>
+    <changeSet id="1623338690761-45" author="josh (generated)">
+        <addColumn tableName="terr_submission_comment">
+            <column name="created_at" type="TIMESTAMP DEFAULT CURRENT_TIMESTAMP"/>
+            <column name="entity_version" type="INT" defaultValue="1"/>
+            <column name="updated_at" type="DATETIME DEFAULT CURRENT_TIMESTAMP"/>
+        </addColumn>
+    </changeSet>
+    <changeSet id="1623338690761-46" author="josh (generated)">
+        <dropDefaultValue tableName="terr_submission_comment" columnName="entity_version"></dropDefaultValue>
+        <dropDefaultValue tableName="terr_submission_comment" columnName="updated_at"></dropDefaultValue>
+    </changeSet>
+    <changeSet id="1623338690761-47" author="josh (generated)">
+        <addColumn tableName="terr_treatment">
+            <column name="created_at" type="TIMESTAMP DEFAULT CURRENT_TIMESTAMP"/>
+            <column name="entity_version" type="INT" defaultValue="1"/>
+            <column name="updated_at" type="DATETIME DEFAULT CURRENT_TIMESTAMP"/>
+        </addColumn>
+    </changeSet>
+    <changeSet id="1623338690761-48" author="josh (generated)">
+        <dropDefaultValue tableName="terr_treatment" columnName="entity_version"></dropDefaultValue>
+        <dropDefaultValue tableName="terr_treatment" columnName="updated_at"></dropDefaultValue>
+    </changeSet>
+
+</databaseChangeLog>

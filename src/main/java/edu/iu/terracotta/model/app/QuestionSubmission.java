@@ -1,5 +1,7 @@
 package edu.iu.terracotta.model.app;
 
+import edu.iu.terracotta.model.BaseEntity;
+
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
@@ -14,7 +16,7 @@ import java.util.List;
 
 @Table(name = "terr_question_submission")
 @Entity
-public class QuestionSubmission {
+public class QuestionSubmission extends BaseEntity {
     @Column(name = "question_submission_id", nullable = false)
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
