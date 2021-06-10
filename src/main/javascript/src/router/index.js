@@ -165,6 +165,15 @@ const routes = [
             }
           },
           {
+            path: 'manual-participant-selection',
+            name: 'ParticipationTypeManualSelection',
+            component: () => import('../views/participation/manual-participation/ParticipationTypeManualSelection.vue'),
+            meta: {
+              currentSection: "participation",
+              currentStep: "select_participants"
+            }
+          },
+          {
             path: 'participation-summary',
             name: 'ParticipationSummary',
             component: () => import('../views/participation/ParticipationSummary.vue'),

@@ -22,7 +22,7 @@
       <v-btn
         elevation="0"
         color="primary"
-        :to="{ name: 'ExperimentManualParticipant' }"
+        :to="{ name: 'ParticipationTypeManualSelection' }"
         >Continue
       </v-btn>
       <router-link
