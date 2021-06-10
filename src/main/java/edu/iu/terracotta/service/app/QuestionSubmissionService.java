@@ -27,4 +27,6 @@ public interface QuestionSubmissionService {
     void deleteById(Long id) throws EmptyResultDataAccessException;
 
     boolean questionSubmissionBelongsToAssessmentAndSubmission(Long assessmentId, Long submissionId, Long questionSubmissionId);
+
+    QuestionSubmission automaticGrading(QuestionSubmission questionSubmission);
 }

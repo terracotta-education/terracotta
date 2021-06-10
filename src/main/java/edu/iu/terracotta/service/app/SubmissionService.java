@@ -4,6 +4,7 @@ import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.dto.SubmissionDto;
+import edu.iu.terracotta.model.oauth2.SecurityInfo;
 import org.springframework.dao.EmptyResultDataAccessException;
 
 import java.util.List;
@@ -28,4 +29,10 @@ public interface SubmissionService {
     void deleteById(Long id) throws EmptyResultDataAccessException;
 
     boolean submissionBelongsToAssessment(Long assessmentId, Long SubmissionId);
+
+    void finalizeAndGrade(Long submissionId, SecurityInfo securityInfo) throws DataServiceException;
+
+    void grade(Long submissionId, SecurityInfo securityInfo) throws DataServiceException;
+
+    Submission gradeSubmission(Submission submission);
 }

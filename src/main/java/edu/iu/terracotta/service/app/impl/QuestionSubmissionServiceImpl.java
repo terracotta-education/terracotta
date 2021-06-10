@@ -12,6 +12,7 @@ import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.QuestionSubmissionCommentService;
 import edu.iu.terracotta.service.app.QuestionSubmissionService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -64,23 +65,28 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
         questionSubmission.setQuestionSubmissionId(questionSubmissionDto.getQuestionSubmissionId());
         questionSubmission.setCalculatedPoints(questionSubmissionDto.getCalculatedPoints());
         questionSubmission.setAlteredGrade(questionSubmissionDto.getAlteredGrade());
-        Optional<Question> question = allRepositories.questionRepository.findById(questionSubmissionDto.getQuestionId());
-        question.ifPresent(questionSubmission::setQuestion);
-        if(questionSubmission.getAnswer() != null) {
-            Optional<Answer> answer = allRepositories.answerRepository.findById(questionSubmissionDto.getAnswerId());
-            if(answer.isPresent()){
+        Optional<Submission> submission = allRepositories.submissionRepository.findById(questionSubmissionDto.getSubmissionId());
+        if(submission.isPresent()) {
+            questionSubmission.setSubmission(submission.get());
+        } else {
+            throw new DataServiceException("Submission with submissionID: " + questionSubmissionDto.getQuestionSubmissionId() +  "  does not exist");
+        }
+        Optional<Question> question = allRepositories.questionRepository.findByAssessment_AssessmentIdAndQuestionId(submission.get().getAssessment().getAssessmentId(), questionSubmissionDto.getQuestionId());
+        if(question.isPresent()) {
+            questionSubmission.setQuestion(question.get());
+        } else {
+            throw new DataServiceException("Question does not exist or does not belong to the submission assessment");
+        }
+        if(questionSubmissionDto.getAnswerId() != null) {
+            Optional<Answer> answer = allRepositories.answerRepository.findByQuestion_QuestionIdAndAnswerId(questionSubmissionDto.getQuestionId(), questionSubmissionDto.getAnswerId());
+            if(answer.isPresent()) {
                 questionSubmission.setAnswer(answer.get());
             } else {
-                throw new DataServiceException("The answer with the id provided does not exist for given question.");
+                throw new DataServiceException("AnswerId does not exist or does not belong to the question");
             }
             answer.ifPresent(questionSubmission::setAnswer);
         }
-        Optional<Submission> submission = allRepositories.submissionRepository.findById(questionSubmissionDto.getSubmissionId());
-        if(submission.isPresent()){
-            questionSubmission.setSubmission(submission.get());
-        } else {
-            throw new DataServiceException("The submission for the question submission does not exist.");
-        }
+
 
         return questionSubmission;
     }
@@ -105,6 +111,20 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
     public boolean questionSubmissionBelongsToAssessmentAndSubmission(Long assessmentId, Long submissionId, Long questionSubmissionId) {
         return allRepositories.questionSubmissionRepository.existsBySubmission_Assessment_AssessmentIdAndSubmission_SubmissionIdAndQuestionSubmissionId(
                 assessmentId, submissionId, questionSubmissionId);
+    }
+
+    @Override
+    @Transactional
+    public QuestionSubmission automaticGrading(QuestionSubmission questionSubmission){
+        //TODO: we need to do this based on the question type (once we add a question type...)
+        //at this moment, only MC
+        if (questionSubmission.getAnswer().getCorrect()){
+            questionSubmission.setCalculatedPoints(questionSubmission.getQuestion().getPoints());
+        } else {
+            questionSubmission.setCalculatedPoints(Float.valueOf("0"));
+        }
+        allRepositories.questionSubmissionRepository.save(questionSubmission);
+        return questionSubmission;
     }
 
 }
