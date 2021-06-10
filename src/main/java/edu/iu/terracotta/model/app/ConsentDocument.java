@@ -1,5 +1,7 @@
 package edu.iu.terracotta.model.app;
 
+import edu.iu.terracotta.model.BaseEntity;
+
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
@@ -11,7 +13,7 @@ import javax.persistence.Table;
 
 @Table(name = "terr_consent_document")
 @Entity
-public class ConsentDocument {
+public class ConsentDocument extends BaseEntity {
     @Column(name = "consent_document_id", nullable = false)
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

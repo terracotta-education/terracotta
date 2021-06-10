@@ -1,5 +1,7 @@
 package edu.iu.terracotta.model.app;
 
+import edu.iu.terracotta.model.BaseEntity;
+
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
@@ -12,7 +14,7 @@ import javax.persistence.Table;
 
 @Table(name = "terr_treatment")
 @Entity
-public class Treatment {
+public class Treatment extends BaseEntity {
     @Column(name = "treatment_id", nullable = false)
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

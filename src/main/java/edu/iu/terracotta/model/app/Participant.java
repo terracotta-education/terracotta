@@ -1,5 +1,6 @@
 package edu.iu.terracotta.model.app;
 
+import edu.iu.terracotta.model.BaseEntity;
 import edu.iu.terracotta.model.LtiMembershipEntity;
 import edu.iu.terracotta.model.LtiUserEntity;
 import edu.iu.terracotta.model.app.enumerator.ParticipationTypes;
@@ -19,7 +20,7 @@ import java.sql.Timestamp;
 
 @Table(name = "terr_participant")
 @Entity
-public class Participant {
+public class Participant extends BaseEntity {
     @Column(name = "participant_id", nullable = false)
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
