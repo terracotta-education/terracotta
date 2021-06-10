@@ -9,6 +9,7 @@ import edu.iu.terracotta.model.app.SubmissionComment;
 import edu.iu.terracotta.model.app.dto.QuestionSubmissionDto;
 import edu.iu.terracotta.model.app.dto.SubmissionCommentDto;
 import edu.iu.terracotta.model.app.dto.SubmissionDto;
+import edu.iu.terracotta.model.oauth2.SecurityInfo;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.QuestionSubmissionService;
 import edu.iu.terracotta.service.app.SubmissionCommentService;
@@ -16,9 +17,13 @@ import edu.iu.terracotta.service.app.SubmissionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Component
@@ -116,5 +121,55 @@ public class SubmissionServiceImpl implements SubmissionService {
     @Override
     public boolean submissionBelongsToAssessment(Long assessmentId, Long submissionId) {
         return allRepositories.submissionRepository.existsByAssessment_AssessmentIdAndSubmissionId(assessmentId, submissionId);
+    }
+
+    @Override
+    @Transactional
+    public void finalizeAndGrade(Long submissionId, SecurityInfo securityInfo) throws DataServiceException {
+        Optional<Submission> submissionOptional =  allRepositories.submissionRepository.findById(submissionId);
+        if (submissionOptional.isPresent()){
+            //TODO, manage late submissions.
+            //We are not changing the submission date once it is set.
+            if (submissionOptional.get().getDateSubmitted()==null) {
+                submissionOptional.get().setDateSubmitted(submissionOptional.get().getUpdatedAt());
+            }
+            saveAndFlush(gradeSubmission(submissionOptional.get()));
+        } else {
+            throw new DataServiceException("Submission not found");
+        }
+    }
+
+    @Override
+    @Transactional
+    public void grade(Long submissionId, SecurityInfo securityInfo) throws DataServiceException {
+        Optional<Submission> submissionOptional =  allRepositories.submissionRepository.findById(submissionId);
+        if (submissionOptional.isPresent()){
+            saveAndFlush(gradeSubmission(submissionOptional.get()));
+        } else {
+            throw new DataServiceException("Submission not found");
+        }
+    }
+
+
+    @Override
+    public Submission gradeSubmission(Submission submission){
+        //We need to calculate the 2 the possible grades. Automatic and manual
+        Float automatic = Float.parseFloat("0");
+        Float manual = Float.parseFloat("0");
+        for (QuestionSubmission questionSubmission:submission.getQuestionSubmissions()) {
+            //We need to grade the question first automatically it it was not graded before.
+            //If multiple choice, we take the automatic score for automatic and the manual if any for manual, and if no manual, then the automatic for manual
+            QuestionSubmission questionGraded = questionSubmissionService.automaticGrading(questionSubmission);
+            automatic = automatic + questionGraded.getCalculatedPoints();
+            if (questionGraded.getAlteredGrade()!=null && !questionGraded.getAlteredGrade().isNaN()) {
+                manual = manual + questionSubmission.getAlteredGrade();
+            } else {
+                manual = manual + questionSubmission.getCalculatedPoints();
+            }
+            //TODO: If open question, we take the manual score for both, because the automatic will be always 0
+        }
+        submission.setCalculatedGrade(automatic);
+        submission.setAlteredCalculatedGrade(manual);
+        return submission;
     }
 }

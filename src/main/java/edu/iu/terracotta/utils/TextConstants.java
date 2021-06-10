@@ -13,7 +13,11 @@
 
 package edu.iu.terracotta.utils;
 
+import org.springframework.util.MultiValueMap;
+
 public class TextConstants {
+
+
 
 
     private TextConstants() {
@@ -51,5 +55,7 @@ public class TextConstants {
     public static final String BAD_CONSENT_FILETYPE = "The consent must be a pdf file.";
     public static final String ID_MISSING = "A valid question id must be included in a submission post.";
     public static final String GROUP_NOT_MATCHING = "The group does not belong to experiment defined in the path.";
+    public static final String SUBMISSION_IDS_MISSING = "The request requires at least one submissionId in the list of submissions";
+    public static final String SUBMISSION_IDS_STUDENT_GT1 = "A student can only submit one submission at a time";
 
 }

@@ -140,6 +140,9 @@ public class SubmissionController {
 
             submissionDto.setAssessmentId(assessmentId);
             Participant participant = submissionService.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, securityInfo.getUserId());
+            if (participant==null){
+                return new ResponseEntity(TextConstants.PARTICIPANT_NOT_MATCHING + " Participant not in this experiment.", HttpStatus.UNAUTHORIZED);
+            }
             submissionDto.setParticipantId(participant.getParticipantId());
             Submission submission;
             try {

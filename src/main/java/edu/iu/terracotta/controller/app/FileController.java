@@ -147,7 +147,7 @@ public class FileController {
         apijwtService.experimentAllowed(securityInfo, experimentId);
 
         if (apijwtService.isLearnerOrHigher(securityInfo)) {
-            return new ResponseEntity<>(Arrays.stream(files).map(file -> uploadFile(file, "/" + experimentId + "/", false)).collect(Collectors.toList()), HttpStatus.OK);
+            return new ResponseEntity<>(Arrays.asList(files).stream().map(file -> uploadFile(file, "/" + experimentId + "/files/", false)).collect(Collectors.toList()), HttpStatus.OK);
         }  else {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }

@@ -13,7 +13,10 @@ import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.ExposureService;
 import edu.iu.terracotta.service.app.GroupService;
 import edu.iu.terracotta.service.app.ParticipantService;
+import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.utils.TextConstants;
+import io.jsonwebtoken.lang.Collections;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +30,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.ArrayList;
+import java.util.List;
 
 @Controller
 @RequestMapping(value = StepsController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
@@ -45,6 +50,9 @@ public class StepsController {
     GroupService groupService;
 
     @Autowired
+    SubmissionService submissionService;
+
+    @Autowired
     APIJWTService apijwtService;
 
     @Autowired
@@ -53,7 +61,7 @@ public class StepsController {
     final static String EXPOSURE_TYPE = "exposure_type";
     final static String PARTICIPATION_TYPE = "participation_type";
     final static String DISTRIBUTION_TYPE = "distribution_type";
-    final static String DISTRIBUTION_CUSTOM = "distribution_type_custom";
+    final static String STUDENT_SUBMISSION = "student_submission";
 
 
     @RequestMapping(value = "/{experiment_id}/step", method = RequestMethod.POST)
@@ -87,13 +95,32 @@ public class StepsController {
                     return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
                 }
                 return new ResponseEntity<>(HttpStatus.OK);
-            case DISTRIBUTION_CUSTOM: //For the custom case, we prepare the groups and assign people based on the custom percents.
-                /*if(apijwtService.isInstructorOrHigher(securityInfo)) {
-                    groupService.createAndAssignGroupsToConditionsAndExposures(experimentId,securityInfo,true);
-                }else {
+            case STUDENT_SUBMISSION: //Mark the submission as finished and calculate the automatic grade.
+                List<String> submissionsId = new ArrayList<>();
+                if (stepDto.getParameters()!=null) {
+                    submissionsId = Collections.arrayToList(StringUtils.split(stepDto.getParameters().get("submissionIds"),","));
+                    if (submissionsId.isEmpty()){
+                        return new ResponseEntity(TextConstants.SUBMISSION_IDS_MISSING, HttpStatus.BAD_REQUEST);
+                    }
+                } else {
+                    return new ResponseEntity(TextConstants.SUBMISSION_IDS_MISSING, HttpStatus.BAD_REQUEST);
+                }
+
+                if(apijwtService.isLearner(securityInfo)) {
+                    if (submissionsId.size()>1) {
+                        return new ResponseEntity(TextConstants.SUBMISSION_IDS_MISSING, HttpStatus.BAD_REQUEST);
+                    } else {
+                        Long submissionId = Long.getLong(submissionsId.get(0));
+                        submissionService.finalizeAndGrade(submissionId, securityInfo);
+                    }
+                }else if (apijwtService.isInstructorOrHigher(securityInfo)){
+                        for (String submissionIdString:submissionsId){
+                            Long submissionId = Long.parseLong(submissionIdString);
+                            submissionService.finalizeAndGrade(submissionId, securityInfo);
+                        }
+                } else {
                     return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-                }*/
-                //NOT DOING ANYTHING NOW...
+                }
                 return new ResponseEntity<>(HttpStatus.OK);
             default:
                 return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
