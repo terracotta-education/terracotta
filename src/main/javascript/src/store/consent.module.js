@@ -23,7 +23,7 @@ const mutations = {};
 
 const getters = {};
 
-export const assignment = {
+export const consent = {
     namespaced: true,
     state,
     actions,
