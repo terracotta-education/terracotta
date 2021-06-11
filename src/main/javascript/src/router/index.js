@@ -121,9 +121,10 @@ const routes = [
           },
           {
             path: 'participation-type-auto-confirm',
-            name: 'ExperimentParticipationAutoConfirm',
+            name: 'ParticipationTypeAutoConfirm',
             component: () => import('../views/participation/ParticipationTypeAutoConfirm.vue'),
             meta: {
+              selectionType: 'auto',
               currentSection: "participation",
               currentStep: "participation_selection_method"
             }
@@ -133,6 +134,7 @@ const routes = [
             name: 'ParticipationTypeConsentOverview',
             component: () => import('../views/participation/ParticipationTypeConsentOverview.vue'),
             meta: {
+              selectionType: 'consent',
               currentSection: "participation",
               currentStep: "participation_selection_method"
             }
@@ -142,6 +144,7 @@ const routes = [
             name: 'ParticipationTypeConsentTitle',
             component: () => import('../views/participation/ParticipationTypeConsentTitle.vue'),
             meta: {
+              selectionType: 'consent',
               currentSection: "participation",
               currentStep: "participation_selection_consent_title"
             }
@@ -151,6 +154,7 @@ const routes = [
             name: 'ParticipationTypeConsentFile',
             component: () => import('../views/participation/ParticipationTypeConsentFile.vue'),
             meta: {
+              selectionType: 'consent',
               currentSection: "participation",
               currentStep: "participation_selection_consent_file"
             }
@@ -160,6 +164,7 @@ const routes = [
             name: 'ParticipationTypeManual',
             component: () => import('../views/participation/manual-participation/ParticipationTypeManual.vue'),
             meta: {
+              selectionType: 'manual',
               currentSection: "participation",
               currentStep: "participation_selection_method"
             }
@@ -169,6 +174,7 @@ const routes = [
             name: 'ParticipationTypeManualSelection',
             component: () => import('../views/participation/manual-participation/ParticipationTypeManualSelection.vue'),
             meta: {
+              selectionType: 'manual',
               currentSection: "participation",
               currentStep: "select_participants"
             }
@@ -179,7 +185,7 @@ const routes = [
             component: () => import('../views/participation/ParticipationSummary.vue'),
             meta: {
               currentSection: "participation",
-              currentStep: "select_participants"
+              currentStep: "select_participants",
             }
           }
         ]
