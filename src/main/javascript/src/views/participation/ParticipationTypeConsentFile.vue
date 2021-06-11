@@ -6,7 +6,7 @@
 
 		<v-btn :disabled="!consent.file" class="mt-3 mb-6" color="primary" elevation="0" @click="saveConsent">Next</v-btn>
 
-		<p>You can <router-link to="#">download an informed consent template here.</router-link></p>
+		<p>You can <router-link :to="{ name: 'ParticipationSummary' }">download an informed consent template here.</router-link></p>
 	</div>
 </template>
 
