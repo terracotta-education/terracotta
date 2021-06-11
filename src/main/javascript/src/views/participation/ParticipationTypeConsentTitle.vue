@@ -5,7 +5,7 @@
 		<form
 			@submit.prevent="saveTitle"
 			class="my-5"
-			v-if="experiment && experiment.consent"
+			v-if="experiment && consent"
 		>
 			<v-text-field
 				v-model="title"
@@ -30,22 +30,22 @@
 </template>
 
 <script>
-import { mapMutations } from "vuex";
+import {mapGetters} from "vuex";
 
 export default {
 	name: 'ParticipationTypeConsentTitle',
 	props: ['experiment'],
-	created() {
-		this.createConsent()
-	},
 	computed: {
+		...mapGetters({
+			consent: 'consent/consent',
+		}),
 		title: {
 			get () {
-				return this.$store.state.experiment.experiment.consent.title
+				return this.$store.state.consent.title
 			},
 			set (value) {
 				this.titleProxy = value
-				this.$store.commit('experiment/setConsentTitle', value)
+				this.$store.commit('consent/setConsentTitle', value)
 			}
 		}
 	},
@@ -56,9 +56,6 @@ export default {
 		],
 	}),
 	methods: {
-		...mapMutations({
-			createConsent: 'experiment/createConsent',
-		}),
 		saveTitle() {
 			this.$router.push({name:'ParticipationTypeConsentFile', params:{experiment: this.experiment.experimentId}})
 		}

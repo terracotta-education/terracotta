@@ -1,4 +1,5 @@
 import { authHeader } from '@/helpers'
+import axios from 'axios';
 // import store from '@/store/index.js'
 
 const base_url = "http://localhost:8081"
@@ -17,14 +18,17 @@ export const consentService = {
  */
 function create(experiment_id, consent) {
     const requestOptions = {
-        method: 'POST',
-        headers: { ...authHeader(), 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            "consent":consent.file
-        })
+        headers: {
+            'Content-Type': 'multipart/form-data',
+            ...authHeader()
+        }
     }
 
-    return fetch(`${base_url}/api/experiments/${experiment_id}/consent?title=${consent.title}`, requestOptions).then(handleResponse)
+    let formData = new FormData();
+    formData.append('consent', consent.file);
+
+    // Axios was required for correct formData boundary
+    return axios.post(`${base_url}/api/experiments/${experiment_id}/consent?title=${consent.title}`, formData, requestOptions).then(handleResponse)
 }
 
 /**
