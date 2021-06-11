@@ -17,8 +17,6 @@ export default {
   beforeRouteEnter(to, from, next) {
     // Updating selection type for custom steps
     to.meta.selectionType = from.meta.selectionType;
-    console.log(to.meta);
-    console.log(from.meta);
     next();
   },
 };
