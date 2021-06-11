@@ -181,7 +181,7 @@ public class TreatmentController {
             if (treatmentDto.getAssignmentId()==null){
                 return new ResponseEntity("Unable to create Treatment: The assignmentId is mandatory", HttpStatus.BAD_REQUEST);
             }
-            Optional<Assignment> assignment= assignmentService.findById(treatmentDto.getAssignmentId());
+            Optional<Assignment> assignment = assignmentService.findById(treatmentDto.getAssignmentId());
             if (assignment.isPresent()) {
                 apijwtService.assignmentAllowed(securityInfo, experimentId, treatmentDto.getAssignmentId());
                 treatmentToChange.setAssignment(assignment.get());

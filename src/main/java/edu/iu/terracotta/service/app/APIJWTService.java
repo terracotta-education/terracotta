@@ -9,6 +9,7 @@ import io.jsonwebtoken.Jws;
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.sql.PseudoColumnUsage;
 import java.util.List;
 
 public interface APIJWTService {
@@ -66,4 +67,8 @@ public interface APIJWTService {
     void submissionCommentAllowed(SecurityInfo securityInfo, Long assessmentId, Long submissionId, Long submissionCommentId) throws SubmissionCommentNotMatchingException;
 
     void questionSubmissionCommentAllowed(SecurityInfo securityInfo, Long questionSubmissionId, Long questionSubmissionCommentId) throws QuestionSubmissionCommentNotMatchingException;
+
+    void outcomeAllowed(SecurityInfo securityInfo, Long experimentId, Long exposureId, Long outcomeId) throws OutcomeNotMatchingException;
+
+    void outcomeScoreAllowed(SecurityInfo securityInfo, Long outcomeId, Long outcomeScoreId) throws OutcomeScoreNotMatchingException;
 }

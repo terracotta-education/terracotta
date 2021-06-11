@@ -101,6 +101,12 @@ public class APIJWTServiceImpl implements APIJWTService {
     @Autowired
     QuestionSubmissionCommentService questionSubmissionCommentService;
 
+    @Autowired
+    OutcomeService outcomeService;
+
+    @Autowired
+    OutcomeScoreService outcomeScoreService;
+
     private static final String JWT_REQUEST_HEADER_NAME = "Authorization";
     private static final String JWT_BEARER_TYPE = "Bearer";
     private static final String QUERY_PARAM_NAME = "token";
@@ -410,6 +416,20 @@ public class APIJWTServiceImpl implements APIJWTService {
     public void questionSubmissionCommentAllowed(SecurityInfo securityInfo, Long questionSubmissionId, Long questionSubmissionCommentId) throws QuestionSubmissionCommentNotMatchingException {
         if(!questionSubmissionCommentService.questionSubmissionCommentBelongsToQuestionSubmission(questionSubmissionId, questionSubmissionCommentId)){
             throw new QuestionSubmissionCommentNotMatchingException(TextConstants.QUESTION_SUBMISSION_COMMENT_NOT_MATCHING);
+        }
+    }
+
+    @Override
+    public void outcomeAllowed(SecurityInfo securityInfo, Long experimentId, Long exposureId, Long outcomeId) throws OutcomeNotMatchingException {
+        if(!outcomeService.outcomeBelongsToExperimentAndExposure(experimentId, exposureId, outcomeId)){
+            throw new OutcomeNotMatchingException(TextConstants.OUTCOME_NOT_MATCHING);
+        }
+    }
+
+    @Override
+    public void outcomeScoreAllowed(SecurityInfo securityInfo, Long outcomeId, Long outcomeScoreId) throws OutcomeScoreNotMatchingException {
+        if(!outcomeScoreService.outcomeScoreBelongsToOutcome(outcomeId, outcomeScoreId)){
+            throw new OutcomeScoreNotMatchingException(TextConstants.OUTCOME_SCORE_NOT_MATCHING);
         }
     }
 }

@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd"
+        objectQuotingStrategy="QUOTE_ONLY_RESERVED_WORDS">
+    <changeSet id="1623367331090-49" author="josh (generated)">
+        <createTable tableName="terr_outcome">
+            <column autoIncrement="true" name="outcome_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="PK_TERR_OUTCOME"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP DEFAULT CURRENT_TIMESTAMP"/>
+            <column name="updated_at" type="DATETIME"/>
+            <column name="entity_version" type="INT"/>
+            <column name="exposure_exposure_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="title" type="VARCHAR(255)"/>
+            <column name="lms_type" type="VARCHAR(255)"/>
+            <column name="external" type="BOOLEAN"/>
+            <column name="lms_outcome_id" type="VARCHAR(255)"/>
+            <column name="max_points" type="FLOAT"/>
+        </createTable>
+    </changeSet>
+    <changeSet id="1623367331090-50" author="josh (generated)">
+        <createTable tableName="terr_outcome_score">
+            <column autoIncrement="true" name="outcome_score_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="PK_TERR_OUTCOME_SCORE"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP DEFAULT CURRENT_TIMESTAMP"/>
+            <column name="updated_at" type="DATETIME"/>
+            <column name="entity_version" type="INT"/>
+            <column name="outcome_outcome_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="participant_participant_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="score_numeric" type="FLOAT"/>
+        </createTable>
+    </changeSet>
+    <changeSet id="1623367331090-51" author="josh (generated)">
+        <addForeignKeyConstraint baseColumnNames="exposure_exposure_id" baseTableName="terr_outcome"
+                                 constraintName="FK_TERR_OUTCOME_ON_EXPOSURE_EXPOSURE"
+                                 referencedColumnNames="exposure_id" referencedTableName="terr_exposure"/>
+    </changeSet>
+    <changeSet id="1623367331090-52" author="josh (generated)">
+        <addForeignKeyConstraint baseColumnNames="outcome_outcome_id" baseTableName="terr_outcome_score"
+                                 constraintName="FK_TERR_OUTCOME_SCORE_ON_OUTCOME_OUTCOME"
+                                 referencedColumnNames="outcome_id" referencedTableName="terr_outcome"/>
+    </changeSet>
+    <changeSet id="1623367331090-53" author="josh (generated)">
+        <addForeignKeyConstraint baseColumnNames="participant_participant_id" baseTableName="terr_outcome_score"
+                                 constraintName="FK_TERR_OUTCOME_SCORE_ON_PARTICIPANT_PARTICIPANT"
+                                 referencedColumnNames="participant_id" referencedTableName="terr_participant"/>
+    </changeSet>
+
+</databaseChangeLog>

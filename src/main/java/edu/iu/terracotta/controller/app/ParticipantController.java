@@ -19,7 +19,6 @@ import edu.iu.terracotta.utils.TextConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -243,12 +242,14 @@ public class ParticipantController {
         apijwtService.experimentAllowed(securityInfo, experimentId);
         apijwtService.participantAllowed(securityInfo, experimentId, participantId);
 
-        if (apijwtService.isLearnerOrHigher(securityInfo)) {
-            try {
-                participantService.deleteById(participantId);
+        if (apijwtService.isInstructorOrHigher(securityInfo)) {
+            Optional<Participant> participant = participantService.findById(participantId);
+            if(participant.isPresent()){
+                participant.get().setDropped(true);
+                participantService.saveAndFlush(participant.get());
                 return new ResponseEntity<>(HttpStatus.OK);
-            } catch (EmptyResultDataAccessException ex) {
-                log.error(ex.getMessage());
+            } else {
+                log.error("The participant was not found in current experiment.");
                 return new ResponseEntity<>(HttpStatus.NOT_FOUND);
             }
         } else {

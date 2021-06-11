@@ -103,6 +103,12 @@ public class AllRepositories {
     @Autowired
     public QuestionSubmissionCommentRepository questionSubmissionCommentRepository;
 
+    @Autowired
+    public OutcomeRepository outcomeRepository;
+
+    @Autowired
+    public OutcomeScoreRepository outcomeScoreRepository;
+
 
     @PersistenceContext
     public EntityManager entityManager;
