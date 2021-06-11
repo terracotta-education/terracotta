@@ -16,6 +16,8 @@ public interface ParticipantService {
 
     Optional<Participant> findById(Long id);
 
+    Optional<Participant> findByParticipantIdAndExperimentId(Long participantId, Long experimentId);
+
     Participant fromDto(ParticipantDto participantDto) throws DataServiceException;
 
     void saveAndFlush(Participant participantToChange);

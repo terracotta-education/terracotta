@@ -2,6 +2,7 @@ package edu.iu.terracotta.model.app;
 
 import edu.iu.terracotta.model.BaseEntity;
 
+import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import javax.persistence.Entity;
 import javax.persistence.Column;
@@ -10,6 +11,7 @@ import javax.persistence.GenerationType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
+import java.util.List;
 
 @Table(name = "terr_exposure")
 @Entity
@@ -30,6 +32,10 @@ public class Exposure extends BaseEntity {
     @Column(name = "title")
     private String title;
 
+    @OneToMany(mappedBy = "exposure", orphanRemoval = true)
+    private List<Outcome> outcomes;
+
+
     //methods
     public Long getExposureId() { return exposureId; }
 
@@ -42,4 +48,8 @@ public class Exposure extends BaseEntity {
     public String getTitle() { return title; }
 
     public void setTitle(String title) { this.title = title; }
+
+    public List<Outcome> getOutcomes() { return outcomes; }
+
+    public void setOutcomes(List<Outcome> outcomes) { this.outcomes = outcomes; }
 }

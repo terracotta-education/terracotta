@@ -76,6 +76,11 @@ public class ParticipantServiceImpl implements ParticipantService {
     }
 
     @Override
+    public Optional<Participant> findByParticipantIdAndExperimentId(Long participantId, Long experimentId){
+        return allRepositories.participantRepository.findByParticipantIdAndExperiment_ExperimentId(participantId, experimentId);
+    }
+
+    @Override
     public Participant fromDto(ParticipantDto participantDto) throws DataServiceException {
         Participant participant = new Participant();
         Optional<Experiment> experiment = allRepositories.experimentRepository.findById(participantDto.getExperimentId());

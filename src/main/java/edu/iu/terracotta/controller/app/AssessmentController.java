@@ -156,7 +156,10 @@ public class AssessmentController {
             }
 
             assessmentDto.setTreatmentId(treatmentId);
-            assessmentDto.setNumOfSubmissions(1);
+            if(assessmentDto.getNumOfSubmissions() == null) {
+                assessmentDto.setNumOfSubmissions(1);
+            }
+            //TODO how to check if autoSubmit is not present in the dto
             assessmentDto.setAutoSubmit(true);
             Assessment assessment;
             try {

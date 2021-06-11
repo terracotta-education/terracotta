@@ -151,6 +151,24 @@ public class RestResponseEntityExceptionHandler
     }
 
     @ExceptionHandler(value
+            = {OutcomeNotMatchingException.class})
+    protected ResponseEntity<Object> handleOutcomeNotMatchingException(
+            OutcomeNotMatchingException ex, WebRequest request) {
+        String bodyOfResponse = TextConstants.OUTCOME_NOT_MATCHING;
+        return handleExceptionInternal(ex, bodyOfResponse,
+                new HttpHeaders(), HttpStatus.UNAUTHORIZED, request);
+    }
+
+    @ExceptionHandler(value
+            = {OutcomeScoreNotMatchingException.class})
+    protected ResponseEntity<Object> handleOutcomeScoreNotMatchingException(
+            OutcomeScoreNotMatchingException ex, WebRequest request) {
+        String bodyOfResponse = TextConstants.OUTCOME_SCORE_NOT_MATCHING;
+        return handleExceptionInternal(ex, bodyOfResponse,
+                new HttpHeaders(), HttpStatus.UNAUTHORIZED, request);
+    }
+
+    @ExceptionHandler(value
             = {IdMissingException.class})
     protected ResponseEntity<Object> handleIdMissingException(
             IdMissingException ex, WebRequest request) {
