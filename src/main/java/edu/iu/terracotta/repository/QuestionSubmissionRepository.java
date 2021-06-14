@@ -9,5 +9,7 @@ public interface QuestionSubmissionRepository extends JpaRepository<QuestionSubm
 
     List<QuestionSubmission> findBySubmission_SubmissionId(Long submissionId);
 
+    boolean existsBySubmission_Assessment_AssessmentIdAndQuestion_QuestionId(Long assessmentId, Long questionId);
+
     boolean existsBySubmission_Assessment_AssessmentIdAndSubmission_SubmissionIdAndQuestionSubmissionId(Long assessmentId, Long submissionId, Long questionSubmissionId);
 }

@@ -7,12 +7,15 @@ import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.QuestionSubmissionNotMatchingException;
 import edu.iu.terracotta.exceptions.SubmissionNotMatchingException;
 import edu.iu.terracotta.model.app.Answer;
+import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.QuestionSubmission;
+import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.dto.QuestionSubmissionDto;
 import edu.iu.terracotta.model.oauth2.SecurityInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.AnswerService;
 import edu.iu.terracotta.service.app.QuestionSubmissionService;
+import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.utils.TextConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,6 +53,9 @@ public class QuestionSubmissionController {
     QuestionSubmissionService questionSubmissionService;
 
     @Autowired
+    SubmissionService submissionService;
+
+    @Autowired
     AnswerService answerService;
 
     @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}/question_submissions",
@@ -69,6 +75,15 @@ public class QuestionSubmissionController {
         apijwtService.submissionAllowed(securityInfo, assessmentId, submissionId);
 
         if (apijwtService.isLearnerOrHigher(securityInfo)) {
+
+            if(!apijwtService.isInstructorOrHigher(securityInfo)){
+                Participant participant = submissionService.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, securityInfo.getUserId());
+                Optional<Submission> submission = submissionService.findByParticipantIdAndSubmissionId(participant.getParticipantId(), submissionId);
+                if(!submission.isPresent()){
+                    return new ResponseEntity("Students can only access question submissions from their own submissions. Submission with id "
+                            + submissionId + " does not belong to participant with id " + participant.getParticipantId(), HttpStatus.UNAUTHORIZED);
+                }
+            }
             List<QuestionSubmission> questionSubmissionList = questionSubmissionService.findAllBySubmissionId(submissionId);
 
             if (questionSubmissionList.isEmpty()) {
@@ -104,6 +119,15 @@ public class QuestionSubmissionController {
         apijwtService.questionSubmissionAllowed(securityInfo, assessmentId, submissionId, questionSubmissionId);
 
         if (apijwtService.isLearnerOrHigher(securityInfo)) {
+
+            if(!apijwtService.isInstructorOrHigher(securityInfo)){
+                Participant participant = submissionService.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, securityInfo.getUserId());
+                Optional<Submission> submission = submissionService.findByParticipantIdAndSubmissionId(participant.getParticipantId(), submissionId);
+                if(!submission.isPresent()){
+                    return new ResponseEntity("Students can only access question submissions from their own submissions. Submission with id "
+                            + submissionId + " does not belong to participant with id " + participant.getParticipantId(), HttpStatus.UNAUTHORIZED);
+                }
+            }
             Optional<QuestionSubmission> questionSubmissionSearchResult = questionSubmissionService.findById(questionSubmissionId);
 
             if (!questionSubmissionSearchResult.isPresent()) {
@@ -146,11 +170,24 @@ public class QuestionSubmissionController {
                 return new ResponseEntity(TextConstants.ID_IN_POST_ERROR, HttpStatus.CONFLICT);
             }
 
+            if(!apijwtService.isInstructorOrHigher(securityInfo)){
+                Participant participant = submissionService.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, securityInfo.getUserId());
+                Optional<Submission> submission = submissionService.findByParticipantIdAndSubmissionId(participant.getParticipantId(), submissionId);
+                if(!submission.isPresent()){
+                    return new ResponseEntity("Students can only post question submissions to their own submissions. Submission with id "
+                            + submissionId + " does not belong to participant with id " + participant.getParticipantId(), HttpStatus.UNAUTHORIZED);
+                }
+            }
+
             questionSubmissionDto.setSubmissionId(submissionId);
             QuestionSubmission questionSubmission;
             try {
                 if(questionSubmissionDto.getQuestionId() == null){
                     return new ResponseEntity(TextConstants.ID_MISSING, HttpStatus.BAD_REQUEST);
+                }
+                if(questionSubmissionService.existsByAssessmentIdAndQuestionId(assessmentId, questionSubmissionDto.getQuestionId())){
+                    return new ResponseEntity("A question submission with question id " + questionSubmissionDto.getQuestionId() + " already exists in assessment with id " + assessmentId,
+                            HttpStatus.CONFLICT);
                 }
                 if(questionSubmissionDto.getAlteredGrade() != null && !apijwtService.isInstructorOrHigher(securityInfo)){
                     return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS + " Students cannot alter the grades.", HttpStatus.UNAUTHORIZED);
@@ -196,6 +233,16 @@ public class QuestionSubmissionController {
         apijwtService.questionSubmissionAllowed(securityInfo, assessmentId, submissionId, questionSubmissionId);
 
         if(apijwtService.isLearnerOrHigher(securityInfo)) {
+
+            if(!apijwtService.isInstructorOrHigher(securityInfo)){
+                Participant participant = submissionService.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, securityInfo.getUserId());
+                Optional<Submission> submission = submissionService.findByParticipantIdAndSubmissionId(participant.getParticipantId(), submissionId);
+                if(!submission.isPresent()){
+                    return new ResponseEntity("Students can only change a question submissions from their own submissions. Submission with id "
+                            + submissionId + " does not belong to participant with id " + participant.getParticipantId(), HttpStatus.UNAUTHORIZED);
+                }
+            }
+
             Optional<QuestionSubmission> questionSubmissionSearchResult = questionSubmissionService.findById(questionSubmissionId);
 
             if(!questionSubmissionSearchResult.isPresent()) {
@@ -237,33 +284,42 @@ public class QuestionSubmissionController {
         apijwtService.experimentAllowed(securityInfo, experimentId);
         apijwtService.assessmentAllowed(securityInfo, experimentId, conditionId, treatmentId, assessmentId);
 
-        if(apijwtService.isLearnerOrHigher(securityInfo)){
-          List<QuestionSubmission> questionSubmissionList = new ArrayList<>();
+        if(!apijwtService.isInstructorOrHigher(securityInfo)){
+            Participant participant = submissionService.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, securityInfo.getUserId());
+            Optional<Submission> submission = submissionService.findByParticipantIdAndSubmissionId(participant.getParticipantId(), submissionId);
+            if(!submission.isPresent()){
+                return new ResponseEntity("Students can only access question submissions from their own submissions. Submission with id "
+                        + submissionId + " does not belong to participant with id " + participant.getParticipantId(), HttpStatus.UNAUTHORIZED);
+            }
+        }
 
-          for(QuestionSubmissionDto questionSubmissionDto : questionSubmissionDtoList) {
-              apijwtService.questionSubmissionAllowed(securityInfo, assessmentId, submissionId, questionSubmissionDto.getQuestionSubmissionId());
-              Optional<QuestionSubmission> questionSubmission = questionSubmissionService.findById(questionSubmissionDto.getQuestionSubmissionId());
-              if(questionSubmission.isPresent()){
-                  QuestionSubmission questionSubmissionToChange = questionSubmission.get();
-                  if(questionSubmissionDto.getAlteredGrade() != null && !apijwtService.isInstructorOrHigher(securityInfo)){
-                      return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS + " Students cannot alter the grades.", HttpStatus.UNAUTHORIZED);
-                  }
-                  questionSubmissionToChange.setAlteredGrade(questionSubmissionDto.getAlteredGrade());
-                  Optional<Answer> answer = answerService.findByQuestionIdAndAnswerId(questionSubmissionToChange.getQuestion().getQuestionId(), questionSubmissionDto.getAnswerId());
-                  if(answer.isPresent()) {
-                      questionSubmissionToChange.setAnswer(answer.get());
-                  } else {
-                      log.error("An answer with id {} does not exist or does not belong to the question with id {}", questionSubmissionDto.getAnswerId(), questionSubmissionToChange.getQuestion().getQuestionId());
-                  }
-                  questionSubmissionList.add(questionSubmissionToChange);
-              }
-          }
-          try{
-              questionSubmissionService.saveAllQuestionSubmissions(questionSubmissionList);
-              return new ResponseEntity<>(HttpStatus.OK);
-          } catch (Exception ex) {
-              throw new DataServiceException("An error occurred try to update the question submission list. No question submissions were updated. " + ex.getMessage());
-          }
+        if(apijwtService.isLearnerOrHigher(securityInfo)){
+            List<QuestionSubmission> questionSubmissionList = new ArrayList<>();
+
+            for(QuestionSubmissionDto questionSubmissionDto : questionSubmissionDtoList) {
+                apijwtService.questionSubmissionAllowed(securityInfo, assessmentId, submissionId, questionSubmissionDto.getQuestionSubmissionId());
+                Optional<QuestionSubmission> questionSubmission = questionSubmissionService.findById(questionSubmissionDto.getQuestionSubmissionId());
+                if(questionSubmission.isPresent()){
+                    QuestionSubmission questionSubmissionToChange = questionSubmission.get();
+                    if(questionSubmissionDto.getAlteredGrade() != null && !apijwtService.isInstructorOrHigher(securityInfo)){
+                        return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS + " Students cannot alter the grades.", HttpStatus.UNAUTHORIZED);
+                    }
+                    questionSubmissionToChange.setAlteredGrade(questionSubmissionDto.getAlteredGrade());
+                    Optional<Answer> answer = answerService.findByQuestionIdAndAnswerId(questionSubmissionToChange.getQuestion().getQuestionId(), questionSubmissionDto.getAnswerId());
+                    if(answer.isPresent()) {
+                        questionSubmissionToChange.setAnswer(answer.get());
+                    } else {
+                        log.error("An answer with id {} does not exist or does not belong to the question with id {}", questionSubmissionDto.getAnswerId(), questionSubmissionToChange.getQuestion().getQuestionId());
+                    }
+                    questionSubmissionList.add(questionSubmissionToChange);
+                }
+            }
+            try{
+                questionSubmissionService.saveAllQuestionSubmissions(questionSubmissionList);
+                return new ResponseEntity<>(HttpStatus.OK);
+            } catch (Exception ex) {
+                throw new DataServiceException("An error occurred try to update the question submission list. No question submissions were updated. " + ex.getMessage());
+            }
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }

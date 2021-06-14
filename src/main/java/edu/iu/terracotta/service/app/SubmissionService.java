@@ -22,6 +22,10 @@ public interface SubmissionService {
 
     Optional<Submission> findById(Long id);
 
+    List<Submission> findByParticipantId(Long participantId);
+
+    Optional<Submission> findByParticipantIdAndSubmissionId(Long participantId, Long submissionId);
+
     Participant findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(Long experimentId, String userId);
 
     void saveAndFlush(Submission submissionToChange);

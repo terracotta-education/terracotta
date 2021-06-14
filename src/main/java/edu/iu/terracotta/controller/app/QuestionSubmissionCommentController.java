@@ -7,11 +7,14 @@ import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.QuestionSubmissionCommentNotMatchingException;
 import edu.iu.terracotta.exceptions.QuestionSubmissionNotMatchingException;
 import edu.iu.terracotta.model.LtiUserEntity;
+import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.QuestionSubmissionComment;
+import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.dto.QuestionSubmissionCommentDto;
 import edu.iu.terracotta.model.oauth2.SecurityInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.QuestionSubmissionCommentService;
+import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.utils.TextConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,6 +48,9 @@ public class QuestionSubmissionCommentController {
     APIJWTService apijwtService;
 
     @Autowired
+    SubmissionService submissionService;
+
+    @Autowired
     QuestionSubmissionCommentService questionSubmissionCommentService;
 
     @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}/question_submissions/{question_submission_id}/question_submission_comments",
@@ -66,6 +72,14 @@ public class QuestionSubmissionCommentController {
         apijwtService.questionSubmissionAllowed(securityInfo, assessmentId, submissionId, questionSubmissionId);
 
         if(apijwtService.isLearnerOrHigher(securityInfo)) {
+            if(!apijwtService.isInstructorOrHigher(securityInfo)){
+                Participant participant = submissionService.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, securityInfo.getUserId());
+                Optional<Submission> submission = submissionService.findByParticipantIdAndSubmissionId(participant.getParticipantId(), submissionId);
+                if(!submission.isPresent()){
+                    return new ResponseEntity("Students can only access question submission comments from their own submissions. Submission with id "
+                            + submissionId + " does not belong to participant with id " + participant.getParticipantId(), HttpStatus.UNAUTHORIZED);
+                }
+            }
             List<QuestionSubmissionComment> questionSubmissionCommentList = questionSubmissionCommentService.findAllByQuestionSubmissionId(questionSubmissionId);
 
             if(questionSubmissionCommentList.isEmpty()) {
@@ -102,6 +116,16 @@ public class QuestionSubmissionCommentController {
         apijwtService.questionSubmissionCommentAllowed(securityInfo, questionSubmissionId, questionSubmissionCommentId);
 
         if(apijwtService.isLearnerOrHigher(securityInfo)) {
+
+            if(!apijwtService.isInstructorOrHigher(securityInfo)){
+                Participant participant = submissionService.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, securityInfo.getUserId());
+                Optional<Submission> submission = submissionService.findByParticipantIdAndSubmissionId(participant.getParticipantId(), submissionId);
+                if(!submission.isPresent()){
+                    return new ResponseEntity("Students can only access question submission comments from their own submissions. Submission with id "
+                            + submissionId + " does not belong to participant with id " + participant.getParticipantId(), HttpStatus.UNAUTHORIZED);
+                }
+            }
+
             Optional<QuestionSubmissionComment> questionSubmissionCommentSearchResult = questionSubmissionCommentService.findById(questionSubmissionCommentId);
 
             if(!questionSubmissionCommentSearchResult.isPresent()) {
@@ -142,6 +166,15 @@ public class QuestionSubmissionCommentController {
             if(questionSubmissionCommentDto.getQuestionSubmissionCommentId() != null) {
                 log.error(TextConstants.ID_IN_POST_ERROR);
                 return new ResponseEntity(TextConstants.ID_IN_POST_ERROR, HttpStatus.CONFLICT);
+            }
+
+            if(!apijwtService.isInstructorOrHigher(securityInfo)){
+                Participant participant = submissionService.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, securityInfo.getUserId());
+                Optional<Submission> submission = submissionService.findByParticipantIdAndSubmissionId(participant.getParticipantId(), submissionId);
+                if(!submission.isPresent()){
+                    return new ResponseEntity("Students can only post question submission comments to their own submissions. Submission with id "
+                            + submissionId + " does not belong to participant with id " + participant.getParticipantId(), HttpStatus.UNAUTHORIZED);
+                }
             }
 
             questionSubmissionCommentDto.setQuestionSubmissionId(questionSubmissionId);
@@ -192,11 +225,26 @@ public class QuestionSubmissionCommentController {
         apijwtService.questionSubmissionCommentAllowed(securityInfo, questionSubmissionId, questionSubmissionCommentId);
 
         if(apijwtService.isLearnerOrHigher(securityInfo)) {
+
+            if(!apijwtService.isInstructorOrHigher(securityInfo)){
+                Participant participant = submissionService.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, securityInfo.getUserId());
+                Optional<Submission> submission = submissionService.findByParticipantIdAndSubmissionId(participant.getParticipantId(), submissionId);
+                if(!submission.isPresent()){
+                    return new ResponseEntity("Students can only edit question submission comments from their own submissions. Submission with id "
+                            + submissionId + " does not belong to participant with id " + participant.getParticipantId(), HttpStatus.UNAUTHORIZED);
+                }
+            }
+
             Optional<QuestionSubmissionComment> questionSubmissionCommentSearchResult = questionSubmissionCommentService.findById(questionSubmissionCommentId);
 
             if(!questionSubmissionCommentSearchResult.isPresent()) {
                 log.error("Unable to update. Question submission comment with id {} not found.", questionSubmissionCommentId);
                 return new ResponseEntity("Unable to update. Question submission comment with id " + questionSubmissionCommentId + TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
+            }
+
+            LtiUserEntity user = questionSubmissionCommentService.findByUserKey(securityInfo.getUserId());
+            if(!user.getDisplayName().equals(questionSubmissionCommentSearchResult.get().getCreator())){
+                return new ResponseEntity("Only the creator of a comment can edit their own comment.", HttpStatus.UNAUTHORIZED);
             }
 
             QuestionSubmissionComment questionSubmissionCommentToChange = questionSubmissionCommentSearchResult.get();

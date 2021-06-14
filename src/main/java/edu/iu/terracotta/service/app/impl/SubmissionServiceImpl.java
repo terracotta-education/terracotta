@@ -108,6 +108,14 @@ public class SubmissionServiceImpl implements SubmissionService {
     public Optional<Submission> findById(Long id) { return allRepositories.submissionRepository.findById(id); }
 
     @Override
+    public List<Submission> findByParticipantId(Long participantId) { return allRepositories.submissionRepository.findByParticipant_ParticipantId(participantId); }
+
+    @Override
+    public Optional<Submission> findByParticipantIdAndSubmissionId(Long participantId, Long submissionId) {
+        return allRepositories.submissionRepository.findByParticipant_ParticipantIdAndSubmissionId(participantId, submissionId);
+    }
+
+    @Override
     public Participant findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(Long experimentId, String userId) {
         return allRepositories.participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, userId);
     }

@@ -21,6 +21,8 @@ public interface SubmissionCommentService {
 
     Optional<SubmissionComment> findById(Long id);
 
+    Optional<SubmissionComment> findBySubmissionIdAndSubmissionCommentId(Long submissionId, Long submissionCommentId);
+
     LtiUserEntity findByUserKey(String key);
 
     void saveAndFlush(SubmissionComment submissionCommentToChange);

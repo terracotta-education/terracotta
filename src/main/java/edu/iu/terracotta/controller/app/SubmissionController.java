@@ -62,7 +62,7 @@ public class SubmissionController {
         apijwtService.experimentAllowed(securityInfo, experimentId);
         apijwtService.assessmentAllowed(securityInfo, experimentId, conditionId, treatmentId, assessmentId);
 
-        if(apijwtService.isLearnerOrHigher(securityInfo)) {
+        if(apijwtService.isInstructorOrHigher(securityInfo)) {
             List<Submission> submissionList = submissionService.findAllByAssessmentId(assessmentId);
 
             if(submissionList.isEmpty()) {
@@ -73,6 +73,18 @@ public class SubmissionController {
                 submissionDtoList.add(submissionService.toDto(submission, false,false));
             }
             return new ResponseEntity<>(submissionDtoList, HttpStatus.OK);
+        } else if(apijwtService.isLearnerOrHigher(securityInfo)) {
+            Participant participant = submissionService.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, securityInfo.getUserId());
+            List<Submission> submissions = submissionService.findByParticipantId(participant.getParticipantId());
+            if(!submissions.isEmpty()) {
+                List<SubmissionDto> submissionDtoList = new ArrayList<>();
+                for(Submission submission : submissions) {
+                    submissionDtoList.add(submissionService.toDto(submission, false, false));
+                }
+                return new ResponseEntity(submissionDtoList, HttpStatus.OK);
+            } else {
+                return new ResponseEntity("There are no existing submissions for current user.", HttpStatus.NO_CONTENT);
+            }
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
@@ -97,7 +109,7 @@ public class SubmissionController {
         apijwtService.assessmentAllowed(securityInfo, experimentId, conditionId, treatmentId, assessmentId);
         apijwtService.submissionAllowed(securityInfo, assessmentId, submissionId);
 
-        if(apijwtService.isLearnerOrHigher(securityInfo)) {
+        if(apijwtService.isInstructorOrHigher(securityInfo)) {
             Optional<Submission> submissionSearchResult = submissionService.findById(submissionId);
 
             if(!submissionSearchResult.isPresent()) {
@@ -109,6 +121,16 @@ public class SubmissionController {
             } else {
                 SubmissionDto submissionDto = submissionService.toDto(submissionSearchResult.get(), questionSubmissions, submissionComments);
                 return new ResponseEntity<>(submissionDto, HttpStatus.OK);
+            }
+        } else if(apijwtService.isLearnerOrHigher(securityInfo)) {
+            Participant participant = submissionService.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, securityInfo.getUserId());
+            Optional<Submission> submission = submissionService.findByParticipantIdAndSubmissionId(participant.getParticipantId(), submissionId);
+            if(submission.isPresent()){
+                return new ResponseEntity<>(submissionService.toDto(submission.get(), questionSubmissions, submissionComments), HttpStatus.OK);
+            } else {
+                log.error("A submission for participant with id " + participant.getParticipantId() + " not found");
+                return new ResponseEntity("There are no existing submissions with id " + submissionId + " for participant with id " +
+                        participant.getParticipantId(), HttpStatus.NOT_FOUND);
             }
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
@@ -147,9 +169,7 @@ public class SubmissionController {
             Submission submission;
             try {
                 if(submissionDto.getAlteredCalculatedGrade() != null || submissionDto.getTotalAlteredGrade() != null){
-                    if(!apijwtService.isInstructorOrHigher(securityInfo)){
-                        return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS + " Students cannot alter the grades.", HttpStatus.UNAUTHORIZED);
-                    }
+                    return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS + " Students cannot alter the grades.", HttpStatus.UNAUTHORIZED);
                 }
                 submission = submissionService.fromDto(submissionDto);
             } catch (DataServiceException ex) {

@@ -12,7 +12,6 @@ import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.QuestionSubmissionCommentService;
 import edu.iu.terracotta.service.app.QuestionSubmissionService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -96,6 +95,11 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
 
     @Override
     public Optional<QuestionSubmission> findById(Long id) { return allRepositories.questionSubmissionRepository.findById(id); }
+
+    @Override
+    public boolean existsByAssessmentIdAndQuestionId(Long assessmentId, Long questionId) {
+        return allRepositories.questionSubmissionRepository.existsBySubmission_Assessment_AssessmentIdAndQuestion_QuestionId(assessmentId, questionId);
+    }
 
     @Override
     public void saveAndFlush(QuestionSubmission questionSubmissionToChange) { allRepositories.questionSubmissionRepository.saveAndFlush(questionSubmissionToChange); }
