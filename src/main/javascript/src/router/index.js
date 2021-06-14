@@ -198,6 +198,25 @@ const routes = [
         },
         children: [
           // Experiment | Assignments Steps paths
+          {
+            path: '',
+            alias: 'intro',
+            name: 'AssignmentIntro',
+            component: () => import('../views/assignment/Intro.vue'),
+            meta: {
+              currentSection: "assignments",
+              currentStep: "assignment_intro"
+            }
+          },
+          {
+            path: 'exposure-sets',
+            name: 'AssignmentExposureSets',
+            component: () => import('../views/assignment/ExposureSets.vue'),
+            meta: {
+              currentSection: "assignments",
+              currentStep: "assignment_intro"
+            }
+          },
         ]
       },
       {

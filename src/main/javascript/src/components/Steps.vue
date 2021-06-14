@@ -145,8 +145,8 @@ export default {
           name: "Section 3: Assignments",
           steps: [
             {
-              key: "design_title",
-              name: "Title",
+              key: "assignment_intro",
+              name: "Introduction",
             },
           ],
         },
