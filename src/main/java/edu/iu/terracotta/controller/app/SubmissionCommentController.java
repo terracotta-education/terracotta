@@ -7,11 +7,14 @@ import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.SubmissionCommentNotMatchingException;
 import edu.iu.terracotta.exceptions.SubmissionNotMatchingException;
 import edu.iu.terracotta.model.LtiUserEntity;
+import edu.iu.terracotta.model.app.Participant;
+import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.SubmissionComment;
 import edu.iu.terracotta.model.app.dto.SubmissionCommentDto;
 import edu.iu.terracotta.model.oauth2.SecurityInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.SubmissionCommentService;
+import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.utils.TextConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,6 +48,9 @@ public class SubmissionCommentController {
     APIJWTService apijwtService;
 
     @Autowired
+    SubmissionService submissionService;
+
+    @Autowired
     SubmissionCommentService submissionCommentService;
 
     @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}/submission_comments", method = RequestMethod.GET,
@@ -64,6 +70,15 @@ public class SubmissionCommentController {
         apijwtService.submissionAllowed(securityInfo, assessmentId, submissionId);
 
         if(apijwtService.isLearnerOrHigher(securityInfo)) {
+
+            if(!apijwtService.isInstructorOrHigher(securityInfo)){
+                Participant participant = submissionService.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, securityInfo.getUserId());
+                Optional<Submission> submission = submissionService.findByParticipantIdAndSubmissionId(participant.getParticipantId(), submissionId);
+                if(!submission.isPresent()){
+                    return new ResponseEntity("Students can only access comments from their own submissions. Submission with id " + submissionId + " does not belong to participant with id " +
+                            participant.getParticipantId(), HttpStatus.UNAUTHORIZED);
+                }
+            }
             List<SubmissionComment> submissionCommentList = submissionCommentService.findAllBySubmissionId(submissionId);
 
             if(submissionCommentList.isEmpty()) {
@@ -98,7 +113,16 @@ public class SubmissionCommentController {
         apijwtService.submissionCommentAllowed(securityInfo, assessmentId, submissionId, submissionCommentId);
 
         if(apijwtService.isLearnerOrHigher(securityInfo)) {
-            Optional<SubmissionComment> submissionCommentSearchResult = submissionCommentService.findById(submissionCommentId);
+
+            if(!apijwtService.isInstructorOrHigher(securityInfo)){
+                Participant participant = submissionService.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, securityInfo.getUserId());
+                Optional<Submission> submission = submissionService.findByParticipantIdAndSubmissionId(participant.getParticipantId(), submissionId);
+                if(!submission.isPresent()){
+                    return new ResponseEntity("Students can only access comments from their own submissions. Submission with id " + submissionId + " does not belong to participant with id " +
+                            participant.getParticipantId(), HttpStatus.UNAUTHORIZED);
+                }
+            }
+            Optional<SubmissionComment> submissionCommentSearchResult = submissionCommentService.findBySubmissionIdAndSubmissionCommentId(submissionId, submissionCommentId);
 
             if(!submissionCommentSearchResult.isPresent()) {
                 log.error("Submission comment in platform {} and context {} and experiment {} and condition {} and treatment {}  and assessment {} and submission {} with id {} not found",
@@ -138,7 +162,14 @@ public class SubmissionCommentController {
                 log.error(TextConstants.ID_IN_POST_ERROR);
                 return new ResponseEntity(TextConstants.ID_IN_POST_ERROR, HttpStatus.CONFLICT);
             }
-
+            if(!apijwtService.isInstructorOrHigher(securityInfo)){
+                Participant participant = submissionService.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, securityInfo.getUserId());
+                Optional<Submission> submission = submissionService.findByParticipantIdAndSubmissionId(participant.getParticipantId(), submissionId);
+                if(!submission.isPresent()){
+                    return new ResponseEntity("Students can only post comments to their own submissions. Submission with id " + submissionId + " does not belong to participant with id " +
+                            participant.getParticipantId(), HttpStatus.UNAUTHORIZED);
+                }
+            }
             submissionCommentDto.setSubmissionId(submissionId);
             LtiUserEntity user = submissionCommentService.findByUserKey(securityInfo.getUserId());
             submissionCommentDto.setCreator(user.getDisplayName());
@@ -184,12 +215,30 @@ public class SubmissionCommentController {
         apijwtService.assessmentAllowed(securityInfo, experimentId, conditionId, treatmentId, assessmentId);
         apijwtService.submissionCommentAllowed(securityInfo, assessmentId, submissionId, submissionCommentId);
 
+        //if the current user is a student, make sure that the submission defined in the path is their submission.
         if(apijwtService.isLearnerOrHigher(securityInfo)) {
+            if(!apijwtService.isInstructorOrHigher(securityInfo)){
+                Participant participant = submissionService.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, securityInfo.getUserId());
+                Optional<Submission> submission = submissionService.findByParticipantIdAndSubmissionId(participant.getParticipantId(), submissionId);
+                if(submission.isPresent()){
+                    if(!submission.get().getSubmissionId().equals(submissionId)){
+                        return new ResponseEntity("Students can only edit comments to their own submissions. Submission with id " + submissionId + " does not belong to participant with id " +
+                                participant.getParticipantId(), HttpStatus.UNAUTHORIZED);
+                    }
+                }
+            }
+
             Optional<SubmissionComment> submissionCommentSearchResult = submissionCommentService.findById(submissionCommentId);
 
             if(!submissionCommentSearchResult.isPresent()) {
                 log.error("Unable to update. Submission comment with id {} not found.", submissionCommentId);
                 return new ResponseEntity("Unable to update. Submission comment with id " + TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
+            }
+
+            //check if current user is the original creator of the comment. If not, don't allow them to update the comment.
+            LtiUserEntity user = submissionCommentService.findByUserKey(securityInfo.getUserId());
+            if(!user.getDisplayName().equals(submissionCommentSearchResult.get().getCreator())){
+                return new ResponseEntity("Only the creator of a comment can edit their own comment.", HttpStatus.UNAUTHORIZED);
             }
 
             SubmissionComment submissionCommentToChange = submissionCommentSearchResult.get();

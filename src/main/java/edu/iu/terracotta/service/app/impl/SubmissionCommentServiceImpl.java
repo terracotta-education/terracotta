@@ -61,6 +61,11 @@ public class SubmissionCommentServiceImpl implements SubmissionCommentService {
     public Optional<SubmissionComment> findById(Long id) { return allRepositories.submissionCommentRepository.findById(id); }
 
     @Override
+    public Optional<SubmissionComment> findBySubmissionIdAndSubmissionCommentId(Long submissionId, Long submissionCommentId) {
+        return allRepositories.submissionCommentRepository.findBySubmission_SubmissionIdAndSubmissionCommentId(submissionId, submissionCommentId);
+    }
+
+    @Override
     public LtiUserEntity findByUserKey(String key) { return allRepositories.ltiUserRepository.findByUserKey(key); }
 
     @Override
