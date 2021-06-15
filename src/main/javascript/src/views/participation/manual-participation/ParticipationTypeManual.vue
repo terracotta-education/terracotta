@@ -27,7 +27,7 @@
       </v-btn>
       <router-link
         class="plain-link ml-3"
-        :to="{ name: 'ParticipationSummary' }"
+        :to="{ name: 'ParticipationDistribution' }"
       >
         Skip participant selection for now
       </router-link>

@@ -45,6 +45,8 @@
 </template>
 
 <script>
+// import store from "@/store";
+
 export default {
   name: "Steps",
   props: ["currentSection", "currentStep"],
@@ -69,44 +71,42 @@ export default {
 
   methods: {
     generateSteps() {
-      const selectionType = this.$route.meta.selectionType;
+      const selectionType = this.$route.meta.selectionType
+      let steps = [
+        {
+          key: "participation_selection_method",
+          name: "Selection Method",
+        },
+      ]
 
-      if (selectionType === undefined || selectionType === "auto") {
-        return [
-          {
-            key: "participation_selection_method",
-            name: "Selection Method",
+      if (selectionType === "consent") {
+        steps.push({
+            key: "participation_selection_consent_title",
+            name: "Assignment Title",
           },
-        ];
-      } else {
-        if (selectionType === "consent") {
-          return [
-            {
-              key: "participation_selection_method",
-              name: "Selection Method",
-            },
-            {
-              key: "participation_selection_consent_title",
-              name: "Assignment Title",
-            },
-            {
-              key: "participation_selection_consent_file",
-              name: "Informed Consent",
-            },
-          ];
-        } else {
-          return [
-            {
-              key: "participation_selection_method",
-              name: "Selection Method",
-            },
-            {
-              key: "select_participants",
-              name: "Select Participants",
-            },
-          ];
-        }
+          {
+            key: "participation_selection_consent_file",
+            name: "Informed Consent",
+          })
+      } else if(selectionType === "manual") {
+        steps.push({
+            key: "select_participants",
+            name: "Select Participants",
+          })
       }
+
+      if (
+        selectionType === "any" ||
+        selectionType === "consent" ||
+        selectionType === "manual"
+      ) {
+        steps.push({
+          key: "participation_distribution",
+          name: "Distribution"
+        })
+      }
+
+      return steps
     },
   },
 
@@ -152,6 +152,17 @@ export default {
         },
       ],
     };
+  },
+
+  beforeRouteEnter(to,from,next) {
+      console.log(from.meta.currentStep)
+      console.log(to.meta.currentStep)
+      next()
+  },
+  beforeRouteUpdate(to,from,next) {
+      console.log(from.meta.currentStep)
+      console.log(to.meta.currentStep)
+      next()
   },
 };
 </script>

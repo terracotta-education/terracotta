@@ -10,7 +10,7 @@
 		</v-card>
 		<v-btn elevation="0" color="primary" class="mb-4" @click="setType">Yes, I want to proceed</v-btn>
 		<br>
-		<router-link class="plain-link" :to="{name: 'ParticipationSummary'}">No, I want to create a consent assignment instead</router-link>
+		<router-link class="plain-link" :to="{name: 'ParticipationDistribution'}">No, I want to create a consent assignment instead</router-link>
 	</div>
 </template>
 
