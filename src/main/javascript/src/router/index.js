@@ -180,6 +180,16 @@ const routes = [
             }
           },
           {
+            path: 'participant-distribution',
+            name: 'ParticipationDistribution',
+            component: () => import('../views/participation/distribution/ParticipationDistribution.vue'),
+            meta: {
+              selectionType: 'any',
+              currentSection: "participation",
+              currentStep: "participation_distribution"
+            }
+          },
+          {
             path: 'participation-summary',
             name: 'ParticipationSummary',
             component: () => import('../views/participation/ParticipationSummary.vue'),

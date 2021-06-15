@@ -77,7 +77,7 @@
       <v-btn
         elevation="0"
         color="primary"
-        :to="{ name: 'ParticipationSummary' }"
+        :to="{ name: 'ParticipationDistribution' }"
         >Continue
       </v-btn>
     </div>

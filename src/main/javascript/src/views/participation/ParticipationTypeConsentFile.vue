@@ -6,7 +6,8 @@
 
 		<v-btn :disabled="!consent.file" class="mt-3 mb-6" color="primary" elevation="0" @click="saveConsent">Next</v-btn>
 
-		<p>You can <router-link :to="{ name: 'ParticipationSummary' }">download an informed consent template here.</router-link></p>
+		<!-- TODO - update with file url when it arrives -->
+		<p>You can <router-link :to="{ name: 'ParticipationDistribution' }">download an informed consent template here.</router-link></p>
 	</div>
 </template>
 
@@ -34,7 +35,7 @@ export default {
 		},
 		saveConsent() {
 			this.createConsent(this.experiment.experimentId).then(
-				this.$router.push({name:'ParticipationSummary', params:{experiment: this.experiment.experimentId}})
+				this.$router.push({name:'ParticipationDistribution', params:{experiment: this.experiment.experimentId}})
 			)
 		}
 	},
