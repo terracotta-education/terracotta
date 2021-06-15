@@ -7,6 +7,7 @@ import { alert } from './alert.module'
 import { experiment } from './experiment.module'
 import { condition } from './condition.module'
 import { consent } from './consent.module'
+import { exposures } from './exposures.module';
 
 Vue.use(Vuex)
 
@@ -20,6 +21,7 @@ const store = new Vuex.Store({
         experiment,
         condition,
         consent,
+        exposures
     }
 })
 
