@@ -153,17 +153,6 @@ export default {
       ],
     };
   },
-
-  beforeRouteEnter(to,from,next) {
-      console.log(from.meta.currentStep)
-      console.log(to.meta.currentStep)
-      next()
-  },
-  beforeRouteUpdate(to,from,next) {
-      console.log(from.meta.currentStep)
-      console.log(to.meta.currentStep)
-      next()
-  },
 };
 </script>
 
