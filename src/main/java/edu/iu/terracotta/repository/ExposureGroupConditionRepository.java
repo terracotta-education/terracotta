@@ -12,7 +12,7 @@ public interface ExposureGroupConditionRepository extends JpaRepository<Exposure
 
     List<ExposureGroupCondition> findByCondition_Experiment_ExperimentId(Long experimentId);
 
-
+    List<ExposureGroupCondition> findByExposure_ExposureId(Long exposureId);
 
     void deleteByExposure_Experiment_ExperimentId(Long experimentId);
 

@@ -2,18 +2,25 @@ package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentStartedException;
+import edu.iu.terracotta.model.app.Condition;
 import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.Exposure;
+import edu.iu.terracotta.model.app.ExposureGroupCondition;
+import edu.iu.terracotta.model.app.Group;
 import edu.iu.terracotta.model.app.dto.ExposureDto;
+import edu.iu.terracotta.model.app.dto.GroupConditionDto;
 import edu.iu.terracotta.model.app.enumerator.ExposureTypes;
 import edu.iu.terracotta.repository.AllRepositories;
+import edu.iu.terracotta.service.app.ConditionService;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.ExposureService;
+import edu.iu.terracotta.service.app.GroupService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -38,7 +45,19 @@ public class ExposureServiceImpl implements ExposureService {
         exposureDto.setExposureId(exposure.getExposureId());
         exposureDto.setExperimentId(exposure.getExperiment().getExperimentId());
         exposureDto.setTitle(exposure.getTitle());
-
+        List<ExposureGroupCondition> exposureGroupConditionList = allRepositories.exposureGroupConditionRepository.findByExposure_ExposureId(exposure.getExposureId());
+        List<GroupConditionDto> conditionDtoGroupDtoList = new ArrayList<>();
+        for (ExposureGroupCondition exposureGroupCondition:exposureGroupConditionList){
+            Group group = exposureGroupCondition.getGroup();
+            Condition condition = exposureGroupCondition.getCondition();
+            GroupConditionDto groupConditionDto = new GroupConditionDto();
+            groupConditionDto.setConditionId(condition.getConditionId());
+            groupConditionDto.setConditionName(condition.getName());
+            groupConditionDto.setGroupId(group.getGroupId());
+            groupConditionDto.setGroupName(group.getName());
+            conditionDtoGroupDtoList.add(groupConditionDto);
+        }
+        exposureDto.setGroupConditionList(conditionDtoGroupDtoList);
         return exposureDto;
     }
 
