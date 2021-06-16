@@ -63,11 +63,11 @@ export default {
           this.reportStep({experimentId, step})
           // forward to correct path after selection
           if (this.experiment.exposureType==='EVEN') {
-            // this.$router.push({name:'ExperimentDesignSummary', params:{experiment: experimentId}})
+            this.$router.push({name:'ParticipationSummary', params:{experiment: experimentId}})
           } else if(this.experiment.exposureType==='CUSTOM') {
-            // this.$router.push({name:'ExperimentDesignSummary', params:{experiment: experimentId}})
+            // this.$router.push({name:'ParticipationSummary', params:{experiment: experimentId}})
           }  else if(this.experiment.exposureType==='MANUAL') {
-            // this.$router.push({name:'ExperimentDesignSummary', params:{experiment: experimentId}})
+            // this.$router.push({name:'ParticipationSummary', params:{experiment: experimentId}})
           } else {
             alert("Select a distribution type")
           }
