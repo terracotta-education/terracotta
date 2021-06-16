@@ -2,7 +2,12 @@ package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.exceptions.app.FileStorageException;
 import edu.iu.terracotta.exceptions.app.MyFileNotFoundException;
+import edu.iu.terracotta.model.app.Experiment;
+import edu.iu.terracotta.model.app.FileInfo;
+import edu.iu.terracotta.repository.AllRepositories;
+import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.FileStorageService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
@@ -17,6 +22,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class FileStorageServiceImpl implements FileStorageService {
@@ -24,6 +31,11 @@ public class FileStorageServiceImpl implements FileStorageService {
     @Value("${upload.path}")
     private String uploadDir;
 
+    @Autowired
+    ExperimentService experimentService;
+
+    @Autowired
+    AllRepositories allRepositories;
 
     @PostConstruct
     public void init() {
@@ -35,7 +47,7 @@ public class FileStorageServiceImpl implements FileStorageService {
     }
 
     @Override
-    public String storeFile(MultipartFile file, String extraPath, boolean consent) {
+    public String storeFile(MultipartFile file, String extraPath, Long experimentId, boolean consent) {
         String fileName = "consent.pdf";
         if (!consent) {
             fileName = StringUtils.cleanPath(file.getOriginalFilename());
@@ -82,12 +94,45 @@ public class FileStorageServiceImpl implements FileStorageService {
     }
 
     @Override
+    public Resource getFileAsResource(String fileId){
+        Optional<FileInfo> fileInfo = allRepositories.fileInfoRepository.findByFileId(fileId);
+        if(fileInfo.isPresent()){
+            try{
+                String finalPath = uploadDir + "/" + fileInfo.get().getExperiment().getExperimentId() + "/files/" + fileInfo.get().getFilename();
+                Path filePath = Paths.get(finalPath).normalize();
+                Resource resource = new UrlResource(filePath.toUri());
+                if(resource.exists()){
+                    return resource;
+                } else {
+                    throw new MyFileNotFoundException("File not found.");
+                }
+            } catch (MalformedURLException ex) {
+                throw new MyFileNotFoundException("File not found.", ex);
+            }
+        } else {
+            throw new MyFileNotFoundException("File not found in repository.");
+        }
+    }
+
+    @Override
+    public void saveFile(MultipartFile multipartFile, String extraPath, Long experimentId){
+        FileInfo file = new FileInfo();
+        file.setFilename(extraPath + multipartFile.getOriginalFilename());
+        file.setFileId(UUID.randomUUID().toString());
+        Optional<Experiment> experiment = experimentService.findById(experimentId);
+        experiment.ifPresent(file::setExperiment);
+        allRepositories.fileInfoRepository.save(file);
+    }
+
+    @Override
     public boolean deleteFile(String fileName, String extraPath) {
         try {
+
             String finalPath = uploadDir;
             if (StringUtils.hasText(extraPath)){
                 finalPath = finalPath + extraPath;
             }
+
             Path filePath = Paths.get(finalPath).resolve(fileName).normalize();
             Resource resource = new UrlResource(filePath.toUri());
             if(resource.exists()) {
@@ -96,8 +141,32 @@ public class FileStorageServiceImpl implements FileStorageService {
                 throw new MyFileNotFoundException("File not found " + fileName);
             }
         } catch (MalformedURLException ex) {
-            throw new MyFileNotFoundException("File not found " + fileName, ex);
+            throw new MyFileNotFoundException("File not found.", ex);
         }
     }
 
+    @Override
+    public boolean deleteByFileId(String fileId) {
+        try{
+            Optional<FileInfo> fileInfo = allRepositories.fileInfoRepository.findById(fileId);
+            if (fileInfo.isPresent()) {
+                String finalPath = uploadDir + "/" + fileInfo.get().getExperiment().getExperimentId() + "/files/" + fileInfo.get().getFilename();
+                Path filePath = Paths.get(finalPath).normalize();
+                Resource resource = new UrlResource(filePath.toUri());
+                if (resource.exists()) {
+                    allRepositories.fileInfoRepository.deleteByFileId(fileId);
+                    return filePath.toFile().delete();
+                } else {
+                    throw new MyFileNotFoundException("File not found.");
+                }
+            } else {
+                throw new MyFileNotFoundException("File not found.");
+            }
+        } catch (MalformedURLException ex){
+            throw new MyFileNotFoundException("File Not found.", ex);
+        }
+    }
+
+    @Override
+    public Optional<FileInfo> findByFileId(String fileId) { return allRepositories.fileInfoRepository.findById(fileId); }
 }
