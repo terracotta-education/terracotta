@@ -8,6 +8,7 @@ import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.app.MyFileNotFoundException;
 import edu.iu.terracotta.model.app.ConsentDocument;
 import edu.iu.terracotta.model.app.Experiment;
+import edu.iu.terracotta.model.app.FileInfo;
 import edu.iu.terracotta.model.app.UploadFile;
 import edu.iu.terracotta.model.oauth2.SecurityInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
@@ -23,6 +24,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -59,13 +61,14 @@ public class FileController {
     @Autowired
     CanvasAPIClient canvasAPIClient;
 
-    private UploadFile uploadFile(MultipartFile file, String extraPath, boolean consent) {
-        String fileName = fileStorageService.storeFile(file, extraPath, consent);
+    private UploadFile uploadFile(MultipartFile file, String prefix, String extraPath, Long experimentId, boolean consent) {
+        String path = prefix + extraPath;
+        String fileName = fileStorageService.storeFile(file, path, experimentId, consent);
         String fileDownloadUri;
         if (consent) {
-            fileDownloadUri = ServletUriComponentsBuilder.fromCurrentContextPath().path("/api/experiment" + extraPath).build().toUriString();
+            fileDownloadUri = ServletUriComponentsBuilder.fromCurrentContextPath().path("/api/experiment" + prefix + extraPath).build().toUriString();
         } else {
-            fileDownloadUri = ServletUriComponentsBuilder.fromCurrentContextPath().path("/api/experiment" + extraPath).path(fileName).build().toUriString();
+            fileDownloadUri = ServletUriComponentsBuilder.fromCurrentContextPath().path("/api/experiment" + prefix + extraPath).path(fileName).build().toUriString();
         }
         return new UploadFile(fileName, fileDownloadUri, file.getContentType(), file.getSize());
     }
@@ -85,7 +88,7 @@ public class FileController {
             if (!file.getContentType().equals(MediaType.APPLICATION_PDF_VALUE)) {
                 throw new BadConsentFileTypeException(TextConstants.BAD_CONSENT_FILETYPE);
             }
-            UploadFile consentUploaded = uploadFile(file, "/" + experimentId + "/consent", true);
+            UploadFile consentUploaded = uploadFile(file, "/" + experimentId + "/consent", "", experimentId,true);
             //TODO, if we upload a consent we need:
             Optional<Experiment> experimentOptional = experimentService.findById(experimentId);
             if (experimentOptional.isPresent()) {
@@ -140,6 +143,7 @@ public class FileController {
     @ResponseBody
     public ResponseEntity<List<UploadFile>> uploadFiles(@RequestParam("files") MultipartFile[] files,
                                                         @PathVariable("experiment_id") long experimentId,
+                                                        @RequestParam(name = "extra_path", defaultValue = "") String extraPath,
                                                         HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException {
 
@@ -147,16 +151,19 @@ public class FileController {
         apijwtService.experimentAllowed(securityInfo, experimentId);
 
         if (apijwtService.isLearnerOrHigher(securityInfo)) {
-            return new ResponseEntity<>(Arrays.asList(files).stream().map(file -> uploadFile(file, "/" + experimentId + "/files/", false)).collect(Collectors.toList()), HttpStatus.OK);
+            for(MultipartFile file : files){
+                fileStorageService.saveFile(file, extraPath, experimentId);
+            }
+            return new ResponseEntity<>(Arrays.stream(files).map(file -> uploadFile(file, "/" + experimentId + "/files/",  extraPath, experimentId,false)).collect(Collectors.toList()), HttpStatus.OK);
         }  else {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
     }
 
-    @RequestMapping(value = "/{experiment_id}/files/{file:.+}", method = RequestMethod.GET)
+    @RequestMapping(value = "/{experiment_id}/files/{file_id}", method = RequestMethod.GET)
     @ResponseBody
     public ResponseEntity<Resource> downloadFile(@PathVariable("experiment_id") long experimentId,
-                                                 @PathVariable String file,
+                                                 @PathVariable("file_id") String fileId,
                                                   HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException {
 
@@ -164,7 +171,7 @@ public class FileController {
         apijwtService.experimentAllowed(securityInfo, experimentId);
 
         if (apijwtService.isLearnerOrHigher(securityInfo)) {
-            Resource resource = fileStorageService.loadFileAsResource(file, "/" + experimentId);
+            Resource resource = fileStorageService.getFileAsResource(fileId);
 
             String contentType = null;
             try {
@@ -216,10 +223,11 @@ public class FileController {
         }
     }
 
-    @RequestMapping(value = "/{experiment_id}/files/{file:.+}", method = RequestMethod.DELETE)
+    @RequestMapping(value = "/{experiment_id}/files/{file_id}", method = RequestMethod.DELETE)
     @ResponseBody
+    @Transactional
     public ResponseEntity<Void> deleteFile(@PathVariable("experiment_id") long experimentId,
-                                           @PathVariable String file,
+                                           @PathVariable("file_id") String fileId,
                                            HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException {
         SecurityInfo securityInfo = apijwtService.extractValues(req,false);
@@ -227,13 +235,18 @@ public class FileController {
 
         if (apijwtService.isInstructorOrHigher(securityInfo)) {
             try {
-                if (fileStorageService.deleteFile(file, "/" + experimentId)) {
-                    return new ResponseEntity<>(HttpStatus.OK);
+                Optional<FileInfo> fileInfo = fileStorageService.findByFileId(fileId);
+                if(fileInfo.isPresent()){
+                    if(fileStorageService.deleteByFileId(fileId)) {
+                        return new ResponseEntity<>(HttpStatus.OK);
+                    } else {
+                        return new ResponseEntity<>(HttpStatus.NOT_MODIFIED);
+                    }
                 } else {
-                    return new ResponseEntity<>(HttpStatus.NOT_MODIFIED);
+                    throw new MyFileNotFoundException("File not found.");
                 }
             } catch (MyFileNotFoundException ex){
-                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+                return new ResponseEntity("Point reached",HttpStatus.NOT_FOUND);
             }
         }  else {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);

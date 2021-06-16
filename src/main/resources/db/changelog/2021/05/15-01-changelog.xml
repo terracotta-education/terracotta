@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd"
+        objectQuotingStrategy="QUOTE_ONLY_RESERVED_WORDS">
+    <changeSet id="1623775528901-53" author="josh (generated)">
+        <createTable tableName="terr_file_info">
+            <column name="file_id" type="VARCHAR(255)">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="PK_TERR_FILE_INFO"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP DEFAULT CURRENT_TIMESTAMP"/>
+            <column name="updated_at" type="DATETIME"/>
+            <column name="entity_version" type="INT"/>
+            <column name="filename" type="VARCHAR(255)"/>
+            <column name="experiment_experiment_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+    <changeSet id="1623775528901-54" author="josh (generated)">
+        <addForeignKeyConstraint baseColumnNames="experiment_experiment_id" baseTableName="terr_file_info"
+                                 constraintName="FK_TERR_FILE_INFO_ON_EXPERIMENT_EXPERIMENT"
+                                 referencedColumnNames="experiment_id" referencedTableName="terr_experiment"/>
+    </changeSet>
+
+</databaseChangeLog>

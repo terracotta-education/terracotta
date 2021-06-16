@@ -109,6 +109,9 @@ public class AllRepositories {
     @Autowired
     public OutcomeScoreRepository outcomeScoreRepository;
 
+    @Autowired
+    public FileInfoRepository fileInfoRepository;
+
 
     @PersistenceContext
     public EntityManager entityManager;
