@@ -1,5 +1,6 @@
 package edu.iu.terracotta.service.app;
 
+import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.model.app.Assignment;
 import edu.iu.terracotta.model.app.dto.AssignmentDto;
@@ -27,5 +28,10 @@ public interface AssignmentService {
     boolean assignmentBelongsToExperimentAndExposure(Long experimentId, Long exposureId, Long assignmentId);
 
     boolean assignmentBelongsToExperiment(Long experimentId, Long assignmentId);
+
+    String lineItemId(Assignment assignment) throws ConnectionException;
+
+    void sendAssignmentGradeToCanvas(Assignment assignment) throws ConnectionException, DataServiceException;
+
 
 }

@@ -2,6 +2,8 @@ package edu.iu.terracotta.service.canvas.impl;
 
 import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.model.PlatformDeployment;
+import edu.iu.terracotta.model.canvas.AssignmentExtended;
+import edu.iu.terracotta.service.canvas.AssignmentWriterExtended;
 import edu.iu.terracotta.service.canvas.CanvasAPIClient;
 
 import java.io.IOException;
@@ -22,14 +24,14 @@ public class CanvasAPIClientImpl implements CanvasAPIClient {
 
 
     @Override
-    public Optional<Assignment> createCanvasAssignment(Assignment canvasAssignment, String contextMembershipUrl, PlatformDeployment platformDeployment ) throws CanvasApiException {
+    public Optional<AssignmentExtended> createCanvasAssignment(AssignmentExtended canvasAssignment, String contextMembershipUrl, PlatformDeployment platformDeployment ) throws CanvasApiException {
         //https://github.com/kstateome/canvas-api/tree/master
 
         try {
             String canvasBaseUrl = platformDeployment.getBaseUrl();
             OauthToken oauthToken = new NonRefreshableOauthToken(platformDeployment.getApiToken());
-            CanvasApiFactory apiFactory = new CanvasApiFactory(canvasBaseUrl);
-            AssignmentWriter assignmentWriter = apiFactory.getWriter(AssignmentWriter.class, oauthToken);
+            CanvasApiFactoryExtended apiFactory = new CanvasApiFactoryExtended(canvasBaseUrl);
+            AssignmentWriterExtended assignmentWriter = apiFactory.getWriter(AssignmentWriterExtended.class, oauthToken);
             return assignmentWriter.createAssignment(extractCourseId(contextMembershipUrl), canvasAssignment);
         } catch (IOException ex){
             throw new CanvasApiException(

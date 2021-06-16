@@ -1,5 +1,6 @@
 package edu.iu.terracotta.service.app;
 
+import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.Submission;
@@ -39,4 +40,6 @@ public interface SubmissionService {
     void grade(Long submissionId, SecurityInfo securityInfo) throws DataServiceException;
 
     Submission gradeSubmission(Submission submission);
+
+    void sendSubmissionGradeToCanvas(Submission submission) throws ConnectionException, DataServiceException;
 }

@@ -4,7 +4,9 @@ import edu.iu.terracotta.exceptions.*;
 import edu.iu.terracotta.model.oauth2.SecurityInfo;
 import edu.iu.terracotta.utils.lti.LTI3Request;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Header;
 import io.jsonwebtoken.Jws;
+import io.jsonwebtoken.Jwt;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
@@ -15,6 +17,8 @@ import java.util.List;
 public interface APIJWTService {
     //Here we could add other checks like expiration of the state (not implemented)
     Jws<Claims> validateToken(String token);
+
+    Jwt<Header, Claims> unsecureToken(String token);
 
     String buildJwt(boolean oneUse, List<String> roles, Long contextId, Long platformDeploymentId, String userId, Long assignmentId, Long experimentId, Boolean consent) throws GeneralSecurityException, IOException;
 

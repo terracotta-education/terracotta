@@ -25,4 +25,6 @@ public interface AssessmentService {
     void deleteById(Long id) throws EmptyResultDataAccessException;
 
     boolean assessmentBelongsToExperimentAndConditionAndTreatment(Long experimentId, Long conditionId, Long treatmentId, Long assessmentId);
+
+    Float calculateMaxScore(Assessment assessment);
 }

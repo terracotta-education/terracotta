@@ -1,9 +1,17 @@
 package edu.iu.terracotta.service.app.impl;
 
+import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.model.ags.LineItem;
+import edu.iu.terracotta.model.ags.LineItems;
+import edu.iu.terracotta.model.app.Experiment;
+import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.dto.AssignmentDto;
+import edu.iu.terracotta.model.oauth2.LTIToken;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.AssignmentService;
+import edu.iu.terracotta.service.app.SubmissionService;
+import edu.iu.terracotta.service.lti.AdvantageAGSService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.stereotype.Component;
@@ -18,6 +26,12 @@ public class AssignmentServiceImpl implements AssignmentService {
 
     @Autowired
     AllRepositories allRepositories;
+
+    @Autowired
+    AdvantageAGSService advantageAGSService;
+
+    @Autowired
+    SubmissionService submissionService;
 
     @Override
     public List<Assignment> findAllByExposureId(long exposureId) {
@@ -75,4 +89,27 @@ public class AssignmentServiceImpl implements AssignmentService {
     @Override
     public boolean assignmentBelongsToExperiment(Long experimentId, Long assignmentId) {
         return allRepositories.assignmentRepository.existsByExposure_Experiment_ExperimentIdAndAssignmentId(experimentId,assignmentId); }
+
+    @Override
+    public String lineItemId(Assignment assignment) throws ConnectionException {
+        Experiment experiment = assignment.getExposure().getExperiment();
+        LTIToken ltiToken = advantageAGSService.getToken("lineitems", experiment.getPlatformDeployment());
+        //find the right id to pass based on the assignment
+        LineItems lineItems = advantageAGSService.getLineItems(ltiToken, experiment.getLtiContextEntity());
+        for (LineItem lineItem:lineItems.getLineItemList()){
+            if (lineItem.getResourceLinkId().equals(assignment.getResourceLinkId())){
+                return lineItem.getId();
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public void sendAssignmentGradeToCanvas(Assignment assignment) throws ConnectionException, DataServiceException {
+        List<Submission> submissionList = allRepositories.submissionRepository.findByAssessment_Treatment_Assignment_AssignmentId(assignment.getAssignmentId());
+        for (Submission submission:submissionList){
+            submissionService.sendSubmissionGradeToCanvas(submission);
+        }
+    }
+
 }
