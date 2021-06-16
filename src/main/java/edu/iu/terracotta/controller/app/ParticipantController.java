@@ -33,8 +33,6 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.HttpServletRequest;
-import java.sql.Timestamp;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -187,36 +185,16 @@ public class ParticipantController {
         if (apijwtService.isLearnerOrHigher(securityInfo)) {
 
             Optional<Participant> participantSearchResult = participantService.findById(participantId);
-            Optional<Experiment> experiment = experimentService.findById(experimentId);
             if (!participantSearchResult.isPresent()) {
                 log.error("Unable to update. Participant with id {} not found.", participantId);
                 return new ResponseEntity("Unable to update. Participant with id " + participantId + TextConstants.NOT_FOUND_SUFFIX,
                         HttpStatus.NOT_FOUND);
             }
+
             Participant participantToChange = participantSearchResult.get();
-            //If they had no consent, and now they have, we change the date given to now.
-            //In any other case, we leave the date as it was. Ignoring any value in the PUT
-            if ((participantToChange.getConsent()==null || !participantToChange.getConsent()) &&
-                    (participantDto.getConsent() !=null || participantDto.getConsent())) {
-                participantToChange.setDateGiven(Timestamp.valueOf(LocalDateTime.now()));
-                participantToChange.setDateRevoked(null);
-            }
-            //If they had consent, and now they don't have, we change the dateRevoked to now.
-            //In any other case, we leave the date as it is. Ignoring any value in the PUT
-            if (participantToChange.getConsent() !=null && participantToChange.getConsent() &&
-                    (participantDto.getConsent()==null || !participantDto.getConsent())) {
-                participantToChange.setDateRevoked(Timestamp.valueOf(LocalDateTime.now()));
-            }
-            participantToChange.setConsent((participantDto.getConsent()));
-            //NOTE: we do this... but this will be updated in the next GET participants with the real data and dropped will be overwritten.
-            if (participantDto.getDropped()!=null) {
-                participantToChange.setDropped(participantDto.getDropped());
-            }
-            if (participantDto.getGroupId()!=null && groupService.existsByExperiment_ExperimentIdAndGroupId(experiment.get().getExperimentId(), participantDto.getGroupId())){
-                participantToChange.setGroup(groupService.findById(participantDto.getGroupId()).get());
-            } else {
-                participantToChange.setGroup(null);
-            }
+            participantService.changeParticipant(participantToChange, participantDto, experimentId);
+
+            Optional<Experiment> experiment = experimentService.findById(experimentId);
             //This will never happen, but is here to avoid complains from the code sniffers.
             if (!experiment.isPresent()) {
                 log.error("Unable to update. Experiment with id {} not found.", experimentId);
@@ -231,6 +209,44 @@ public class ParticipantController {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
     }
+
+
+    @RequestMapping(value = "/{experimentId}/participants", method = RequestMethod.PUT)
+    public ResponseEntity<Void> updateParticipants(@PathVariable("experimentId") long experimentId,
+                                                   @RequestBody List<ParticipantDto> participantDtoList,
+                                                   HttpServletRequest req)
+            throws ExperimentNotMatchingException, BadTokenException, ParticipantNotMatchingException, DataServiceException {
+
+        SecurityInfo securityInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securityInfo, experimentId);
+
+        if(apijwtService.isInstructorOrHigher(securityInfo)){
+            List<Participant> participantList = new ArrayList<>();
+
+            for(ParticipantDto participantDto : participantDtoList) {
+                apijwtService.participantAllowed(securityInfo, experimentId, participantDto.getParticipantId());
+                Optional<Participant> participant = participantService.findById(participantDto.getParticipantId());
+                if (!participant.isPresent()) {
+                    log.error("Unable to update. Participant with id {} not found.", participantDto.getParticipantId());
+                    return new ResponseEntity("Unable to update. Participant with id " + participantDto.getParticipantId() + " not found.", HttpStatus.NOT_FOUND);
+                }
+                Participant participantToChange = participant.get();
+                participantService.changeParticipant(participantToChange, participantDto, experimentId);
+                participantList.add(participantToChange);
+            }
+
+                try {
+                    participantService.saveAllParticipants(participantList);
+                    return new ResponseEntity<>(HttpStatus.OK);
+                } catch (Exception ex) {
+                    throw new DataServiceException("There was an error updating the participants. No changes were made." + ex.getMessage());
+                }
+        } else {
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        }
+    }
+
+
 
     @RequestMapping(value = "/{experimentId}/participants/{participant_id}", method = RequestMethod.DELETE)
     public ResponseEntity<Void> deleteParticipant(@PathVariable("experimentId") long experimentId,

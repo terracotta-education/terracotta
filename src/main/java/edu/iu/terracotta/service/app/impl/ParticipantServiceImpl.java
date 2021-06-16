@@ -15,13 +15,17 @@ import edu.iu.terracotta.model.oauth2.LTIToken;
 import edu.iu.terracotta.model.oauth2.Roles;
 import edu.iu.terracotta.model.oauth2.SecurityInfo;
 import edu.iu.terracotta.repository.AllRepositories;
+import edu.iu.terracotta.service.app.ExperimentService;
+import edu.iu.terracotta.service.app.GroupService;
 import edu.iu.terracotta.service.app.ParticipantService;
 import edu.iu.terracotta.service.lti.AdvantageMembershipService;
 import edu.iu.terracotta.service.lti.LTIDataService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -38,6 +42,12 @@ public class ParticipantServiceImpl implements ParticipantService {
 
     @Autowired
     LTIDataService ltiDataService;
+
+    @Autowired
+    GroupService groupService;
+
+    @Autowired
+    ExperimentService experimentService;
 
 
     @Override
@@ -214,4 +224,29 @@ public class ParticipantServiceImpl implements ParticipantService {
                 findAllByExperimentId(experimentId);
         refreshParticipants(experimentId,securityInfo,currentParticipantList);
     }
+
+    @Override
+    public void changeParticipant(Participant participantToChange, ParticipantDto participantDto, Long experimentId){
+        Optional<Experiment> experiment = experimentService.findById(experimentId);
+        //If they had consent, and now they don't have, we change the dateRevoked to now.
+        //In any other case, we leave the date as it is. Ignoring any value in the PUT
+        if (participantToChange.getConsent() !=null && participantToChange.getConsent() &&
+                (participantDto.getConsent()==null || !participantDto.getConsent())) {
+            participantToChange.setDateRevoked(Timestamp.valueOf(LocalDateTime.now()));
+        }
+        participantToChange.setConsent((participantDto.getConsent()));
+        //NOTE: we do this... but this will be updated in the next GET participants with the real data and dropped will be overwritten.
+        if (participantDto.getDropped()!=null) {
+            participantToChange.setDropped(participantDto.getDropped());
+        }
+        if (participantDto.getGroupId()!=null && groupService.existsByExperiment_ExperimentIdAndGroupId(experiment.get().getExperimentId(), participantDto.getGroupId())){
+            participantToChange.setGroup(groupService.findById(participantDto.getGroupId()).get());
+        } else {
+            participantToChange.setGroup(null);
+        }
+    }
+
+    @Override
+    @Transactional
+    public void saveAllParticipants(List<Participant> participantList) { allRepositories.participantRepository.saveAll(participantList); }
 }
