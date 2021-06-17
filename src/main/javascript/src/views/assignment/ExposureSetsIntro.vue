@@ -11,7 +11,7 @@
     <v-btn
       elevation="0"
       color="primary"
-      :to="{ name: 'AssignmentExposureSets' }"
+      :to="{ name: 'AssignmentCreateAssignment' }"
       >Continue</v-btn
     >
 

@@ -236,6 +236,15 @@ const routes = [
               currentStep: "assignment_intro"
             }
           },
+          {
+            path: 'create-assignment',
+            name: 'AssignmentCreateAssignment',
+            component: () => import('../views/assignment/CreateAssignment.vue'),
+            meta: {
+              currentSection: "assignments",
+              currentStep: "your_assignments"
+            }
+          },
         ]
       },
       {
