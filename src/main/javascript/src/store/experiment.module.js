@@ -21,6 +21,15 @@ const actions = {
                     console.log("fetchExperimentById | catch",{response})
                 })
     },
+    fetchExperiments: ({commit}) => {
+        return experimentService.getAll()
+                .then(data => {
+                    commit('setExperiments', data)
+                })
+                .catch(response => {
+                    console.log("fetchExperimentById | catch",{response})
+                })
+    },
     updateExperiment: ({commit}, experiment) => {
         return experimentService.update(experiment)
                 .then(commit('setExperiment', experiment))
@@ -33,6 +42,9 @@ const actions = {
 const mutations = {
     setExperiment(state, data) {
         state.experiment = data
+    },
+    setExperiments(state, data) {
+        state.experiments = data
     },
     setConditions(state, conditions) {
         state.experiment.conditions = conditions
@@ -58,6 +70,9 @@ const mutations = {
 const getters = {
     conditions(state) {
         return state.experiment.conditions
+    },
+    experiments(state) {
+        return state.experiments
     }
 };
 
