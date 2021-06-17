@@ -214,5 +214,9 @@ public class ExperimentServiceImpl implements ExperimentService {
         return false;
     }
 
+    @Override
+    public boolean titleAlreadyExists(String title, Long contextId){
+        return allRepositories.experimentRepository.existsByTitleAndLtiContextEntity_ContextId(title, contextId);
+    }
 
 }

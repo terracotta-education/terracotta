@@ -94,7 +94,7 @@ public class FileController {
     @ResponseBody
     public ResponseEntity<FileInfoDto> uploadConsentFiles(@RequestParam("consent") MultipartFile file,
                                                         @PathVariable("experiment_id") long experimentId,
-                                                         @RequestParam(name = "title", defaultValue = "Terracotta Consent") String title,
+                                                         @RequestParam(name = "title", defaultValue = "Invitation to Participate in a Research Study") String title,
                                                         HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, BadConsentFileTypeException {
 
