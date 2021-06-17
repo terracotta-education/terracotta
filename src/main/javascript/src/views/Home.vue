@@ -7,7 +7,7 @@
 
         <p class="mb-10">Welcome to Terracotta, the platform that supports teachers' and researchers' abilities to
           easily run experiments in live classes.
-          <br>New to Terracotta? <a href="#">Read an overview of the tool</a>.</p>
+          <br>New to Terracotta? <a href="https://terracotta.education/terracotta-overview" target="_blank">Read an overview of the tool</a>.</p>
 
         <p class="mb-0">Ready to get started?</p>
         <v-btn @click="startExperiment" color="primary" elevation="0">Create your first experiment</v-btn>
