@@ -4,6 +4,7 @@ import edu.iu.terracotta.exceptions.app.FileStorageException;
 import edu.iu.terracotta.exceptions.app.MyFileNotFoundException;
 import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.FileInfo;
+import edu.iu.terracotta.model.app.dto.FileInfoDto;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.FileStorageService;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.core.io.Resource;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import javax.annotation.PostConstruct;
 import java.io.IOException;
@@ -22,6 +24,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -59,7 +62,7 @@ public class FileStorageServiceImpl implements FileStorageService {
             }
             String finalPath = uploadDir;
             if (StringUtils.hasText(extraPath)){
-                finalPath = finalPath + extraPath;
+                finalPath = finalPath + extraPath + "/";
             }
 
             if (!Files.exists(Paths.get(finalPath))){
@@ -117,8 +120,10 @@ public class FileStorageServiceImpl implements FileStorageService {
     @Override
     public void saveFile(MultipartFile multipartFile, String extraPath, Long experimentId){
         FileInfo file = new FileInfo();
-        file.setFilename(extraPath + multipartFile.getOriginalFilename());
+        file.setFilename(extraPath + "/" + multipartFile.getOriginalFilename());
         file.setFileId(UUID.randomUUID().toString());
+        file.setFileType(multipartFile.getContentType());
+        file.setSize(multipartFile.getSize());
         Optional<Experiment> experiment = experimentService.findById(experimentId);
         experiment.ifPresent(file::setExperiment);
         allRepositories.fileInfoRepository.save(file);
@@ -169,4 +174,27 @@ public class FileStorageServiceImpl implements FileStorageService {
 
     @Override
     public Optional<FileInfo> findByFileId(String fileId) { return allRepositories.fileInfoRepository.findById(fileId); }
+
+    @Override
+    public List<FileInfo> findByExperimentId(Long experimentId){ return allRepositories.fileInfoRepository.findByExperiment_ExperimentId(experimentId); }
+
+    @Override
+    public FileInfo findByExperimentIdAndFilename(Long experimentId, String filename){
+        return allRepositories.fileInfoRepository.findByExperiment_ExperimentIdAndFilename(experimentId, filename);
+    }
+
+    @Override
+    public FileInfoDto toDto(FileInfo fileInfo) {
+        FileInfoDto fileInfoDto = new FileInfoDto();
+        fileInfoDto.setFileId(fileInfo.getFileId());
+        fileInfoDto.setExperimentId(fileInfo.getExperiment().getExperimentId());
+        fileInfoDto.setPath(fileInfo.getFilename());
+        fileInfoDto.setDateCreated(fileInfo.getCreatedAt());
+        fileInfoDto.setDateUpdated(fileInfo.getUpdatedAt());
+        fileInfoDto.setFileType(fileInfo.getFileType());
+        fileInfoDto.setSize(fileInfo.getSize());
+        fileInfoDto.setUrl(ServletUriComponentsBuilder.fromCurrentContextPath().path("/api/experiments/" + fileInfoDto.getExperimentId() + "/files/" + fileInfo.getFileId()).build().toUriString());
+
+        return fileInfoDto;
+    }
 }

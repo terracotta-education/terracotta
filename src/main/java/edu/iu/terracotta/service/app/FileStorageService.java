@@ -1,10 +1,11 @@
 package edu.iu.terracotta.service.app;
 
-import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.model.app.FileInfo;
+import edu.iu.terracotta.model.app.dto.FileInfoDto;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.core.io.Resource;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface FileStorageService {
@@ -19,8 +20,13 @@ public interface FileStorageService {
 
     Optional<FileInfo> findByFileId(String fileId);
 
+    FileInfo findByExperimentIdAndFilename(Long experimentId, String filename);
+
     boolean deleteByFileId(String fileId);
 
     boolean deleteFile(String fileName, String extraPath);
 
+    List<FileInfo> findByExperimentId(Long experimentId);
+
+    FileInfoDto toDto(FileInfo fileInfo);
 }

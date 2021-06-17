@@ -23,6 +23,12 @@ public class FileInfo extends BaseEntity {
     @ManyToOne(optional = false)
     private Experiment experiment;
 
+    @Column(name = "size")
+    private Long size;
+
+    @Column(name = "file_type")
+    private String fileType;
+
 
     public String getFileId() {
         return fileId;
@@ -39,4 +45,12 @@ public class FileInfo extends BaseEntity {
     public Experiment getExperiment() { return experiment; }
 
     public void setExperiment(Experiment experiment) { this.experiment = experiment; }
+
+    public Long getSize() { return size; }
+
+    public void setSize(Long size) { this.size = size; }
+
+    public String getFileType() { return fileType; }
+
+    public void setFileType(String fileType) { this.fileType = fileType; }
 }
