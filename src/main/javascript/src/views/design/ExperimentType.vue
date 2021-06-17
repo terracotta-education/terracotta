@@ -49,7 +49,7 @@ export default {
 	props: ['experiment'],
 	computed: {
 		numConditions() {
-			return this.experiment.conditions.length
+			return this.experiment?.conditions?.length || 0
 		}
 	},
 	methods: {
