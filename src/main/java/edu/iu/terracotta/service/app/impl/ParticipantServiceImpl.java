@@ -187,13 +187,10 @@ public class ParticipantServiceImpl implements ParticipantService {
                         newParticipant.setSource(experiment.getParticipationType());
                         switch (experiment.getParticipationType()){
                             case MANUAL:
-                                newParticipant.setConsent(false);
-                                newParticipant.setDateGiven(new Timestamp(System.currentTimeMillis()));
+                                newParticipant.setConsent(null);
                                 break;
                             case CONSENT:
                                 newParticipant.setConsent(false);
-                                //We don't set date here, because the date will be used to know if the students
-                                //ever checked a value. so a value with date means that the student answered the consent form assignment.
                                 break;
                             case AUTO:
                                 newParticipant.setConsent(true);
