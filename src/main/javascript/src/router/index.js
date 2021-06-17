@@ -227,6 +227,24 @@ const routes = [
               currentStep: "assignment_intro"
             }
           },
+          {
+            path: 'exposure-sets/intro',
+            name: 'AssignmentExposureSetsIntro',
+            component: () => import('../views/assignment/ExposureSetsIntro.vue'),
+            meta: {
+              currentSection: "assignments",
+              currentStep: "assignment_intro"
+            }
+          },
+          {
+            path: 'create-assignment',
+            name: 'AssignmentCreateAssignment',
+            component: () => import('../views/assignment/CreateAssignment.vue'),
+            meta: {
+              currentSection: "assignments",
+              currentStep: "your_assignments"
+            }
+          },
         ]
       },
       {
