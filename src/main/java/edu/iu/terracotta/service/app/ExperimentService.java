@@ -38,4 +38,6 @@ public interface ExperimentService {
     ExperimentDto getEmptyExperiment(SecurityInfo securityInfo, ExperimentDto experimentDto);
 
     boolean experimentStarted(Experiment experiment);
+
+    boolean titleAlreadyExists(String title, Long contextId);
 }

@@ -13,6 +13,7 @@ import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.utils.TextConstants;
 import org.apache.commons.lang3.EnumUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -153,6 +154,11 @@ public class ExperimentController {
             Experiment experiment;
             experimentDto = experimentService.fillContextInfo(experimentDto, securityInfo);
             try {
+                if(!StringUtils.isBlank(experimentDto.getTitle())){
+                    if(experimentService.titleAlreadyExists(experimentDto.getTitle(), securityInfo.getContextId())){
+                        return new ResponseEntity("Unable to create the experiment. An experiment with title \"" + experimentDto.getTitle() + "\" already exists in this course.", HttpStatus.CONFLICT);
+                    }
+                }
                 experiment = experimentService.fromDto(experimentDto);
             } catch (DataServiceException e) {
                 return new ResponseEntity(
