@@ -9,7 +9,7 @@ import edu.iu.terracotta.exceptions.app.MyFileNotFoundException;
 import edu.iu.terracotta.model.app.ConsentDocument;
 import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.FileInfo;
-import edu.iu.terracotta.model.app.UploadFile;
+import edu.iu.terracotta.model.app.dto.FileInfoDto;
 import edu.iu.terracotta.model.oauth2.SecurityInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.ExperimentService;
@@ -36,6 +36,9 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -61,21 +64,35 @@ public class FileController {
     @Autowired
     CanvasAPIClient canvasAPIClient;
 
-    private UploadFile uploadFile(MultipartFile file, String prefix, String extraPath, Long experimentId, boolean consent) {
+    private FileInfoDto uploadFile(MultipartFile file, String prefix, String extraPath, Long experimentId, boolean consent) {
         String path = prefix + extraPath;
         String fileName = fileStorageService.storeFile(file, path, experimentId, consent);
-        String fileDownloadUri;
+        FileInfoDto fileInfoDto = new FileInfoDto();
         if (consent) {
-            fileDownloadUri = ServletUriComponentsBuilder.fromCurrentContextPath().path("/api/experiment" + prefix + extraPath).build().toUriString();
+            fileInfoDto.setFileId(null);
+            fileInfoDto.setDateCreated(Timestamp.valueOf(LocalDateTime.now()));
+            fileInfoDto.setExperimentId(experimentId);
+            fileInfoDto.setUrl(ServletUriComponentsBuilder.fromCurrentContextPath().path("/api/experiments" + prefix + extraPath).build().toUriString());
+            fileInfoDto.setFileType(file.getContentType());
+            fileInfoDto.setSize(file.getSize());
+            fileInfoDto.setDateUpdated(fileInfoDto.getDateCreated());
         } else {
-            fileDownloadUri = ServletUriComponentsBuilder.fromCurrentContextPath().path("/api/experiment" + prefix + extraPath).path(fileName).build().toUriString();
+            FileInfo fileInfo = fileStorageService.findByExperimentIdAndFilename(experimentId, extraPath + "/" + fileName);
+            fileInfoDto.setFileId(fileInfo.getFileId());
+            fileInfoDto.setExperimentId(experimentId);
+            fileInfoDto.setPath(fileInfo.getFilename());
+            fileInfoDto.setSize(fileInfo.getSize());
+            fileInfoDto.setFileType(fileInfo.getFileType());
+            fileInfoDto.setDateCreated(fileInfo.getCreatedAt());
+            fileInfoDto.setDateUpdated(fileInfo.getUpdatedAt());
+            fileInfoDto.setUrl(ServletUriComponentsBuilder.fromCurrentContextPath().path("/api/experiments" + prefix + fileInfo.getFileId()).build().toUriString());
         }
-        return new UploadFile(fileName, fileDownloadUri, file.getContentType(), file.getSize());
+        return fileInfoDto;
     }
 
     @RequestMapping(value = "/{experiment_id}/consent", method = RequestMethod.POST, produces = "application/json")
     @ResponseBody
-    public ResponseEntity<UploadFile> uploadConsentFiles(@RequestParam("consent") MultipartFile file,
+    public ResponseEntity<FileInfoDto> uploadConsentFiles(@RequestParam("consent") MultipartFile file,
                                                         @PathVariable("experiment_id") long experimentId,
                                                          @RequestParam(name = "title", defaultValue = "Terracotta Consent") String title,
                                                         HttpServletRequest req)
@@ -88,7 +105,7 @@ public class FileController {
             if (!file.getContentType().equals(MediaType.APPLICATION_PDF_VALUE)) {
                 throw new BadConsentFileTypeException(TextConstants.BAD_CONSENT_FILETYPE);
             }
-            UploadFile consentUploaded = uploadFile(file, "/" + experimentId + "/consent", "", experimentId,true);
+            FileInfoDto consentUploaded = uploadFile(file, "/" + experimentId + "/consent", "", experimentId,true);
             //TODO, if we upload a consent we need:
             Optional<Experiment> experimentOptional = experimentService.findById(experimentId);
             if (experimentOptional.isPresent()) {
@@ -96,11 +113,11 @@ public class FileController {
                 ConsentDocument consentDocument = experiment.getConsentDocument();
                 if (consentDocument == null){
                     consentDocument = new ConsentDocument();
-                    consentDocument.setFilePointer(consentUploaded.getFileDownloadUri());
+                    consentDocument.setFilePointer(consentUploaded.getUrl());
                     consentDocument.setExperiment(experiment);
                     consentDocument.setTitle(title);
                 } else {
-                    consentDocument.setFilePointer(consentUploaded.getFileDownloadUri());
+                    consentDocument.setFilePointer(consentUploaded.getUrl());
                 }
                 //Let's see if we have the assignment generated in Canvas
                 if (consentDocument.getLmsAssignmentId()==null){
@@ -141,7 +158,7 @@ public class FileController {
 
     @RequestMapping(value = "/{experiment_id}/files", method = RequestMethod.POST, produces = "application/json")
     @ResponseBody
-    public ResponseEntity<List<UploadFile>> uploadFiles(@RequestParam("files") MultipartFile[] files,
+    public ResponseEntity<List<FileInfoDto>> uploadFiles(@RequestParam("files") MultipartFile[] files,
                                                         @PathVariable("experiment_id") long experimentId,
                                                         @RequestParam(name = "extra_path", defaultValue = "") String extraPath,
                                                         HttpServletRequest req)
@@ -156,6 +173,31 @@ public class FileController {
             }
             return new ResponseEntity<>(Arrays.stream(files).map(file -> uploadFile(file, "/" + experimentId + "/files/",  extraPath, experimentId,false)).collect(Collectors.toList()), HttpStatus.OK);
         }  else {
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        }
+    }
+
+
+    @RequestMapping(value = "/{experiment_id}/files", method = RequestMethod.GET)
+    @ResponseBody
+    public ResponseEntity<List<FileInfoDto>> getFilesByExperiment(@PathVariable("experiment_id") long experimentId,
+                                                                  HttpServletRequest req)
+            throws ExperimentNotMatchingException, BadTokenException {
+
+        SecurityInfo securityInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securityInfo, experimentId);
+
+        if(apijwtService.isInstructorOrHigher(securityInfo)){
+            List<FileInfo> fileInfoList = fileStorageService.findByExperimentId(experimentId);
+            if(fileInfoList.isEmpty()){
+                return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+            }
+            List<FileInfoDto> fileInfoDtoList = new ArrayList<>();
+            for(FileInfo fileInfo : fileInfoList){
+                fileInfoDtoList.add(fileStorageService.toDto(fileInfo));
+            }
+            return new ResponseEntity<>(fileInfoDtoList, HttpStatus.OK);
+        } else {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
     }
@@ -246,7 +288,7 @@ public class FileController {
                     throw new MyFileNotFoundException("File not found.");
                 }
             } catch (MyFileNotFoundException ex){
-                return new ResponseEntity("Point reached",HttpStatus.NOT_FOUND);
+                return new ResponseEntity(HttpStatus.NOT_FOUND);
             }
         }  else {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
