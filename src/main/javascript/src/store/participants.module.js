@@ -17,8 +17,8 @@ const actions = {
       });
   },
 
-  updateParticipantsGroup: ({ commit }, participantsList) => {
-    commit("updateParticipantsGroup", participantsList);
+  setParticipantsGroup: ({ commit }, participantsList) => {
+    commit("setParticipantsGroup", participantsList);
   },
 
   updateParticipants: ({ state }, experimentId) => {
@@ -57,7 +57,7 @@ const mutations = {
     state.participants = data;
   },
 
-  updateParticipantsGroup(state, data) {
+  setParticipantsGroup(state, data) {
     state.participants = data;
   },
 };

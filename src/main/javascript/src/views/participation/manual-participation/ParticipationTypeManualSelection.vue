@@ -98,7 +98,7 @@ export default {
   methods: {
     ...mapActions({
       fetchParticipants: "participants/fetchParticipants",
-      updateParticipantsGroup: "participants/updateParticipantsGroup",
+      setParticipantsGroup: "participants/setParticipantsGroup",
       updateParticipants: "participants/updateParticipants",
     }),
 
@@ -122,25 +122,24 @@ export default {
     },
 
     moveToHandler(option, tempSelected) {
-      const _this = this;
-      const selectedIds = _this.getParticipantIds(tempSelected);
+      const selectedIds = this.getParticipantIds(tempSelected);
       let updatedParticipants = [];
       
       if (option === "Participating") {
-        updatedParticipants = _this.updateParticipantConsent(selectedIds, true);
+        updatedParticipants = this.updateParticipantConsent(selectedIds, true);
       }
 
       if (option === "Not Participating") {
-        updatedParticipants = _this.updateParticipantConsent(
+        updatedParticipants = this.updateParticipantConsent(
           selectedIds,
           false
         );
       }
 
       if (option === "Unassigned") {
-        updatedParticipants = _this.updateParticipantConsent(selectedIds, null);
+        updatedParticipants = this.updateParticipantConsent(selectedIds, null);
       }
-      this.updateParticipantsGroup(updatedParticipants);
+      this.setParticipantsGroup(updatedParticipants);
     },
 
     submitParticipants() {

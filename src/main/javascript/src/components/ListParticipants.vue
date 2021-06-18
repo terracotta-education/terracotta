@@ -75,9 +75,8 @@ export default {
   },
   methods: {
     moveToHandlerComponent(option, tempSelectedInAGroup) {
-      const _this = this;
-      _this.moveToHandler(option, tempSelectedInAGroup);
-      _this.tempSelectedInAGroup = [];
+      this.moveToHandler(option, tempSelectedInAGroup);
+      this.tempSelectedInAGroup = [];
     },
   },
 };
