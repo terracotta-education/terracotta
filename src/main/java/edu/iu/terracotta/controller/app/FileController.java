@@ -8,8 +8,10 @@ import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.app.MyFileNotFoundException;
 import edu.iu.terracotta.model.app.ConsentDocument;
 import edu.iu.terracotta.model.app.Experiment;
+import edu.iu.terracotta.model.canvas.AssignmentExtended;
 import edu.iu.terracotta.model.app.FileInfo;
 import edu.iu.terracotta.model.app.dto.FileInfoDto;
+import edu.iu.terracotta.model.canvas.AssignmentExtended;
 import edu.iu.terracotta.model.oauth2.SecurityInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.ExperimentService;
@@ -121,7 +123,7 @@ public class FileController {
                 }
                 //Let's see if we have the assignment generated in Canvas
                 if (consentDocument.getLmsAssignmentId()==null){
-                    Assignment canvasAssignment = new Assignment();
+                    AssignmentExtended canvasAssignment = new AssignmentExtended();
                     Assignment.ExternalToolTagAttribute canvasExternalToolTagAttributes = canvasAssignment.new ExternalToolTagAttribute();
                     canvasExternalToolTagAttributes.setUrl(ServletUriComponentsBuilder.fromCurrentContextPath().path("/lti3?consent=true&experiment=" + experimentId).build().toUriString());
                     canvasAssignment.setExternalToolTagAttributes(canvasExternalToolTagAttributes);
@@ -132,7 +134,7 @@ public class FileController {
                     canvasAssignment.setPointsPossible(0.0);
                     canvasAssignment.setSubmissionTypes(Collections.singletonList("external_tool"));
                     try {
-                        Optional<Assignment> assignment = canvasAPIClient.createCanvasAssignment(canvasAssignment,experiment.getLtiContextEntity().getContext_memberships_url(), experiment.getPlatformDeployment());
+                        Optional<AssignmentExtended> assignment = canvasAPIClient.createCanvasAssignment(canvasAssignment,experiment.getLtiContextEntity().getContext_memberships_url(), experiment.getPlatformDeployment());
                         consentDocument.setLmsAssignmentId(Integer.toString(assignment.get().getId()));
                         consentDocument.setResourceLinkId(assignment.get().getExternalToolTagAttributes().getResourceLinkId());
                     } catch (CanvasApiException e) {

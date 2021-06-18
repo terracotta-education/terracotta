@@ -19,8 +19,10 @@ import edu.iu.terracotta.service.app.*;
 import edu.iu.terracotta.service.lti.LTIDataService;
 import edu.iu.terracotta.utils.lti.LTI3Request;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Header;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.JwsHeader;
+import io.jsonwebtoken.Jwt;
 import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -138,6 +140,13 @@ public class APIJWTServiceImpl implements APIJWTService {
             }
         }).parseClaimsJws(token);
         // If we are on this point, then the state signature has been validated. We can start other tasks now.
+    }
+
+    @Override
+    public Jwt<Header, Claims> unsecureToken(String token){
+        int i = token.lastIndexOf('.');
+        String withoutSignature = token.substring(0, i+1);
+        return Jwts.parser().parseClaimsJwt(withoutSignature);
     }
 
     @Override

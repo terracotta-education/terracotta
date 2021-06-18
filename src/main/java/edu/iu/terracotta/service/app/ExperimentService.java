@@ -40,4 +40,6 @@ public interface ExperimentService {
     boolean experimentStarted(Experiment experiment);
 
     boolean titleAlreadyExists(String title, Long contextId);
+
+    void copyDto(ExperimentDto existingEmpty, ExperimentDto experimentDto);
 }

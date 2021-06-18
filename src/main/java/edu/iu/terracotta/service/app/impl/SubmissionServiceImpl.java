@@ -1,7 +1,11 @@
 package edu.iu.terracotta.service.app.impl;
 
+import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.model.ags.Score;
 import edu.iu.terracotta.model.app.Assessment;
+import edu.iu.terracotta.model.app.Assignment;
+import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.QuestionSubmission;
 import edu.iu.terracotta.model.app.Submission;
@@ -9,21 +13,22 @@ import edu.iu.terracotta.model.app.SubmissionComment;
 import edu.iu.terracotta.model.app.dto.QuestionSubmissionDto;
 import edu.iu.terracotta.model.app.dto.SubmissionCommentDto;
 import edu.iu.terracotta.model.app.dto.SubmissionDto;
+import edu.iu.terracotta.model.oauth2.LTIToken;
 import edu.iu.terracotta.model.oauth2.SecurityInfo;
 import edu.iu.terracotta.repository.AllRepositories;
+import edu.iu.terracotta.service.app.AssessmentService;
+import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.app.QuestionSubmissionService;
 import edu.iu.terracotta.service.app.SubmissionCommentService;
 import edu.iu.terracotta.service.app.SubmissionService;
+import edu.iu.terracotta.service.lti.AdvantageAGSService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 @Component
@@ -37,6 +42,15 @@ public class SubmissionServiceImpl implements SubmissionService {
 
     @Autowired
     SubmissionCommentService submissionCommentService;
+
+    @Autowired
+    AssignmentService assignmentService;
+
+    @Autowired
+    AssessmentService assessmentService;
+
+    @Autowired
+    AdvantageAGSService advantageAGSService;
 
     @Override
     public List<Submission> findAllByAssessmentId(Long assessmentId) {
@@ -179,5 +193,34 @@ public class SubmissionServiceImpl implements SubmissionService {
         submission.setCalculatedGrade(automatic);
         submission.setAlteredCalculatedGrade(manual);
         return submission;
+    }
+
+    @Override
+    public void sendSubmissionGradeToCanvas(Submission submission) throws ConnectionException, DataServiceException {
+        //We need, the assignment, and the iss configuration...
+        Assignment assignment = submission.getAssessment().getTreatment().getAssignment();
+        Experiment experiment = assignment.getExposure().getExperiment();
+        LTIToken ltiTokenScore = advantageAGSService.getToken("scores", experiment.getPlatformDeployment());
+        LTIToken ltiTokenResults = advantageAGSService.getToken("results", experiment.getPlatformDeployment());
+        //find the right id to pass based on the assignment
+        String lineitemId = assignmentService.lineItemId(assignment);
+        if (lineitemId==null){
+            throw new DataServiceException("The assignment is not linked to any Canvas assignment");
+        }
+        Score score = new Score();
+        score.setUserId(submission.getParticipant().getLtiUserEntity().getUserKey());
+        if (submission.getTotalAlteredGrade()!=null) {
+            score.setScoreGiven(submission.getTotalAlteredGrade().toString());
+        } else {
+            score.setScoreGiven(submission.getAlteredCalculatedGrade().toString());
+        }
+        score.setScoreMaximum(assessmentService.calculateMaxScore(submission.getAssessment()).toString());
+        score.setActivityProgress("Completed");
+        score.setGradingProgress("FullyGraded");
+        //TODO, check if this value is ok
+        score.setTimestamp("2021-06-10T18:54:36.736+00:00");
+        advantageAGSService.postScore(ltiTokenScore, ltiTokenResults, experiment.getLtiContextEntity(), lineitemId, score);
+
+
     }
 }

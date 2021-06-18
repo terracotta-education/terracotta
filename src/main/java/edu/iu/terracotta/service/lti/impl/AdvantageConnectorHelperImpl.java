@@ -17,6 +17,7 @@ import edu.iu.terracotta.exceptions.helper.ExceptionMessageGenerator;
 import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.model.ags.LineItem;
 import edu.iu.terracotta.model.ags.LineItems;
+import edu.iu.terracotta.model.ags.Score;
 import edu.iu.terracotta.model.oauth2.LTIToken;
 import edu.iu.terracotta.service.lti.AdvantageConnectorHelper;
 import edu.iu.terracotta.service.lti.LTIJWTService;
@@ -86,6 +87,15 @@ public class AdvantageConnectorHelperImpl implements AdvantageConnectorHelper {
         HttpHeaders headers = new HttpHeaders();
         headers.set(HttpHeaders.AUTHORIZATION, TextConstants.BEARER + LTIToken.getAccess_token());
         return new HttpEntity<>(lineItems, headers);
+    }
+
+    // We put the token in the Authorization as a simple Bearer one.
+    @Override
+    public HttpEntity<Score> createTokenizedRequestEntity(LTIToken LTIToken, Score score) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(HttpHeaders.AUTHORIZATION, TextConstants.BEARER + LTIToken.getAccess_token());
+        headers.set(HttpHeaders.CONTENT_TYPE, "application/vnd.ims.lis.v2.score+json");
+        return new HttpEntity<>(score, headers);
     }
 
     //Asking for a token. The scope will come in the scope parameter
