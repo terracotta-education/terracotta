@@ -51,7 +51,7 @@ export default {
     }),
     saveType(type) {
       const e = this.experiment
-      e.exposureType = type
+      e.distributionType = type
 
       const experimentId = e.experimentId
       const step = "distribution_type"
