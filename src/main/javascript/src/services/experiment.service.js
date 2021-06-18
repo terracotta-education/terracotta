@@ -23,7 +23,7 @@ function getAll() {
         headers: authHeader()
     }
 
-    return fetch(`${base_url}/api/experiments?conditions=true`, requestOptions).then(handleResponse)
+    return fetch(`${base_url}/api/experiments`, requestOptions).then(handleResponse)
 }
 
 /**

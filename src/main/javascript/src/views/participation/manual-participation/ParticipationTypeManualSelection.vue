@@ -158,7 +158,7 @@ export default {
           }
         })
         .catch((response) => {
-          console.log("updateConditions | catch", { response });
+          console.log("submitParticipants | catch", { response });
         });
     },
   },
