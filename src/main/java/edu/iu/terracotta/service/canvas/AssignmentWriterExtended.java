@@ -13,5 +13,5 @@ public interface AssignmentWriterExtended extends CanvasWriter<AssignmentExtende
 
     Optional<AssignmentExtended> deleteAssignment(String var1, Integer var2) throws IOException;
 
-    Optional<AssignmentExtended> editAssignment(String var1, Assignment var2) throws IOException;
+    Optional<AssignmentExtended> editAssignment(String var1, AssignmentExtended var2) throws IOException;
 }

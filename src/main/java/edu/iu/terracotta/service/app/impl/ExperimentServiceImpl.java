@@ -218,5 +218,15 @@ public class ExperimentServiceImpl implements ExperimentService {
     public boolean titleAlreadyExists(String title, Long contextId){
         return allRepositories.experimentRepository.existsByTitleAndLtiContextEntity_ContextId(title, contextId);
     }
+    @Override
+    public void copyDto(ExperimentDto existingEmpty, ExperimentDto experimentDto){
+        existingEmpty.setDescription(experimentDto.getDescription());
+        existingEmpty.setDistributionType(experimentDto.getDistributionType());
+        existingEmpty.setParticipationType(experimentDto.getParticipationType());
+        existingEmpty.setExposureType(experimentDto.getExposureType());
+        existingEmpty.setTitle(experimentDto.getTitle());
+        existingEmpty.setStarted(experimentDto.getStarted());
+    }
+
 
 }

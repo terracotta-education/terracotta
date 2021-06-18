@@ -143,6 +143,7 @@ public class ExperimentController {
             }
             ExperimentDto existingEmpty = experimentService.getEmptyExperiment(securityInfo, experimentDto);
             if (existingEmpty!=null){
+                experimentService.copyDto(existingEmpty, experimentDto);
                 HttpHeaders headers = new HttpHeaders();
                 headers.setLocation(
                         ucBuilder

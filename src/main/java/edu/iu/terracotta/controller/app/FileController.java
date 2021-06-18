@@ -11,6 +11,7 @@ import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.canvas.AssignmentExtended;
 import edu.iu.terracotta.model.app.FileInfo;
 import edu.iu.terracotta.model.app.dto.FileInfoDto;
+import edu.iu.terracotta.model.canvas.AssignmentExtended;
 import edu.iu.terracotta.model.oauth2.SecurityInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.ExperimentService;

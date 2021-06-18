@@ -3,13 +3,22 @@ package edu.iu.terracotta.service.canvas.impl;
 import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.model.canvas.AssignmentExtended;
+import edu.iu.terracotta.service.canvas.AssignmentReaderExtended;
 import edu.iu.terracotta.service.canvas.AssignmentWriterExtended;
 import edu.iu.terracotta.service.canvas.CanvasAPIClient;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 import edu.ksu.canvas.interfaces.AssignmentWriter;
+import edu.ksu.canvas.interfaces.SubmissionReader;
+import edu.ksu.canvas.model.assignment.Submission;
+import edu.ksu.canvas.requestOptions.GetSubmissionsOptions;
+import edu.ksu.canvas.requestOptions.ListCourseAssignmentsOptions;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
@@ -38,6 +47,33 @@ public class CanvasAPIClientImpl implements CanvasAPIClient {
                     "Failed to create Assignment in Canvas course by ID [" + extractCourseId(contextMembershipUrl) + "]", ex);
         }
     }
+
+    @Override
+    public List<AssignmentExtended> listAssignments(String contextMembershipUrl, PlatformDeployment platformDeployment) throws CanvasApiException {
+        try {
+            String canvasBaseUrl = platformDeployment.getBaseUrl();
+            OauthToken oauthToken = new NonRefreshableOauthToken(platformDeployment.getApiToken());
+            CanvasApiFactoryExtended apiFactory = new CanvasApiFactoryExtended(canvasBaseUrl);
+            AssignmentReaderExtended assignmentReader = apiFactory.getReader(AssignmentReaderExtended.class, oauthToken);
+            ListCourseAssignmentsOptions listCourseAssignmentsOptions = new ListCourseAssignmentsOptions(extractCourseId(contextMembershipUrl));
+            return assignmentReader.listCourseAssignments(listCourseAssignmentsOptions);
+        } catch (IOException ex){
+            throw new CanvasApiException(
+                    "Failed to create Assignment in Canvas course by ID [" + extractCourseId(contextMembershipUrl) + "]", ex);
+        }
+    }
+
+    @Override
+    public List<Submission> listSubmissions(Integer assignmentId, String contextMembershipUrl, PlatformDeployment platformDeployment) throws CanvasApiException, IOException {
+        String canvasBaseUrl = platformDeployment.getBaseUrl();
+        OauthToken oauthToken = new NonRefreshableOauthToken(platformDeployment.getApiToken());
+        CanvasApiFactoryExtended apiFactory = new CanvasApiFactoryExtended(canvasBaseUrl);
+        SubmissionReader submissionReader = apiFactory.getReader(SubmissionReader.class,oauthToken);
+        GetSubmissionsOptions submissionsOptions = new GetSubmissionsOptions(extractCourseId(contextMembershipUrl),assignmentId);
+        submissionsOptions.includes(Collections.singletonList(GetSubmissionsOptions.Include.USER));
+        return submissionReader.getCourseSubmissions(submissionsOptions);
+    }
+
 
     private String extractCourseId (String contextMembershipUrl){
             //TODO deal with exceptions

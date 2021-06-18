@@ -73,14 +73,14 @@ public class AssignmentExtendedImpl  extends BaseImpl<AssignmentExtended, Assign
         }
     }
 
-    public Optional<AssignmentExtended> editAssignment(String courseId, Assignment assignment) throws IOException {
+    public Optional<AssignmentExtended> editAssignment(String courseId, AssignmentExtended assignment) throws IOException {
         String url = this.buildCanvasUrl("courses/" + courseId + "/assignments/" + assignment.getId(), Collections.emptyMap());
         Response response = this.canvasMessenger.sendJsonPutToCanvas(this.oauthToken, url, assignment.toJsonObject(this.serializeNulls));
         return this.responseParser.parseToObject(AssignmentExtended.class, response);
     }
 
     protected Type listType() {
-        return (new TypeToken<List<Assignment>>() {
+        return (new TypeToken<List<AssignmentExtended>>() {
         }).getType();
     }
 

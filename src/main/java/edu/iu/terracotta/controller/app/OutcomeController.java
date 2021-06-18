@@ -1,12 +1,15 @@
 package edu.iu.terracotta.controller.app;
 
 import edu.iu.terracotta.exceptions.BadTokenException;
+import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.ExposureNotMatchingException;
 import edu.iu.terracotta.exceptions.OutcomeNotMatchingException;
+import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.model.app.Outcome;
 import edu.iu.terracotta.model.app.dto.OutcomeDto;
+import edu.iu.terracotta.model.app.dto.OutcomePotentialDto;
 import edu.iu.terracotta.model.app.enumerator.LmsType;
 import edu.iu.terracotta.model.oauth2.SecurityInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
@@ -32,6 +35,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.HttpServletRequest;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -84,14 +88,19 @@ public class OutcomeController {
                                                  @PathVariable("exposure_id") Long exposureId,
                                                  @PathVariable("outcome_id") Long outcomeId,
                                                  @RequestParam(name = "outcome_scores", defaultValue = "false") boolean outcomeScores,
+                                                 @RequestParam(name = "update_scores", defaultValue = "true") boolean updateScores,
                                                  HttpServletRequest req)
-            throws ExperimentNotMatchingException, OutcomeNotMatchingException, BadTokenException {
+            throws ExperimentNotMatchingException, OutcomeNotMatchingException, BadTokenException, CanvasApiException, ParticipantNotUpdatedException, IOException {
 
         SecurityInfo securityInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securityInfo, experimentId);
         apijwtService.outcomeAllowed(securityInfo, experimentId, exposureId, outcomeId);
 
         if(apijwtService.isLearnerOrHigher(securityInfo)){
+            //if we are here, the outcome exists...
+            if (updateScores) {
+                outcomeService.updateOutcomeGrades(outcomeId, securityInfo);
+            }
             Optional<Outcome> outcomeSearchResult = outcomeService.findById(outcomeId);
 
             if(!outcomeSearchResult.isPresent()){
@@ -100,6 +109,8 @@ public class OutcomeController {
                 return new ResponseEntity("Outcome in platform " + securityInfo.getPlatformDeploymentId() + " and context " + securityInfo.getContextId() +
                         " and experiment with id " + experimentId + " and exposure id " + exposureId + " with id " + outcomeId +  TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
             } else {
+
+
                 OutcomeDto outcomeDto = outcomeService.toDto(outcomeSearchResult.get(), outcomeScores);
                 return new ResponseEntity<>(outcomeDto, HttpStatus.OK);
             }
@@ -181,7 +192,7 @@ public class OutcomeController {
                 outcomeToChange.setExternal(outcomeDto.getExternal());
                 if(!outcomeDto.getExternal()){
                     outcomeToChange.setLmsOutcomeId(null);
-                    outcomeToChange.setLmsType(EnumUtils.getEnum(LmsType.class, LmsType.NONE.name()));
+                    outcomeToChange.setLmsType(EnumUtils.getEnum(LmsType.class, LmsType.none.name()));
                 } else {
                     outcomeToChange.setLmsOutcomeId(outcomeDto.getLmsOutcomeId());
                     outcomeToChange.setLmsType(EnumUtils.getEnum(LmsType.class, outcomeDto.getLmsType()));
@@ -221,4 +232,19 @@ public class OutcomeController {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
     }
+
+    @RequestMapping(value = "/{experiment_id}/outcome_potentials", method = RequestMethod.GET, produces = "application/json;")
+    public ResponseEntity<List<OutcomePotentialDto>> outcomePotentials(@PathVariable("experiment_id") Long experimentId,
+                                                                       HttpServletRequest req)
+            throws ExperimentNotMatchingException, BadTokenException, DataServiceException, CanvasApiException {
+        SecurityInfo securityInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securityInfo, experimentId);
+        if(apijwtService.isInstructorOrHigher(securityInfo)){
+            List<OutcomePotentialDto> potentialDtos = outcomeService.potentialOutcomes(experimentId);
+            return new ResponseEntity<>(potentialDtos, HttpStatus.OK);
+        } else {
+            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
+        }
+    }
+
 }
