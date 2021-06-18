@@ -9,75 +9,49 @@
     <v-expansion-panels class="v-expansion-panels--icon" flat>
       <v-expansion-panel>
         <v-expansion-panel-header>
-          Participating (0)
+          Participating ({{ participating.length }})
         </v-expansion-panel-header>
         <v-expansion-panel-content>
-          <p>
-            Participating Students list goes here
-          </p>
+          <ListParticipants
+            :listOfParticipants="participating"
+            :moveToHandler="moveToHandler"
+            :moveToOptions="moveToOptions"
+            selectedOption="0"
+          />
         </v-expansion-panel-content>
       </v-expansion-panel>
 
       <v-expansion-panel>
         <v-expansion-panel-header>
-          Not Participating (0)
+          Not Participating ({{ notParticipating.length }})
         </v-expansion-panel-header>
         <v-expansion-panel-content>
-          <p>
-            Not Participating Students list goes here
-          </p>
+          <ListParticipants
+            :listOfParticipants="notParticipating"
+            :moveToOptions="moveToOptions"
+            :moveToHandler="moveToHandler"
+            selectedOption="1"
+          />
+        </v-expansion-panel-content>
+      </v-expansion-panel>
+
+      <v-expansion-panel>
+        <v-expansion-panel-header>
+          Unassigned ({{ unassigned.length }})
+        </v-expansion-panel-header>
+        <v-expansion-panel-content>
+          <ListParticipants
+            :listOfParticipants="unassigned"
+            :moveToOptions="moveToOptions"
+            :moveToHandler="moveToHandler"
+            selectedOption="2"
+          />
         </v-expansion-panel-content>
       </v-expansion-panel>
     </v-expansion-panels>
 
-    <p class="mt-3">Students (0)</p>
-    <v-row class="mx-3">
-      <v-row align="center" class="mx-3">
-        <v-checkbox on-icon="$checkboxIndeterminate" color="primary" />
-        0 Selected
-      </v-row>
-      <!-- Dropdown Menu -->
-      <v-menu offset-y>
-        <template v-slot:activator="{ on, attrs }">
-          <v-btn color="primary" v-bind="attrs" v-on="on">MOVE TO</v-btn>
-        </template>
-        <v-list>
-          <v-list-item-group>
-            <template v-for="item in ['Participating', 'Not Participating']">
-              <v-list-item :key="item">
-                <v-list-item-content>
-                  <v-list-item-title> {{ item }}</v-list-item-title>
-                </v-list-item-content>
-              </v-list-item>
-            </template>
-          </v-list-item-group>
-        </v-list>
-      </v-menu>
-    </v-row>
-
-    <!-- List of available participants -->
-    <v-list class="mt-5" outlined rounded>
-      <v-list-item-group v-model="settings" multiple>
-        <template v-for="(item, index) in ['1', '2', '3', '4']">
-          <v-list-item :key="item">
-            <v-list-item-action>
-              <v-checkbox :input-value="active" color="primary"></v-checkbox>
-            </v-list-item-action>
-
-            <v-list-item-content>
-              <v-list-item-title>{{ item }}</v-list-item-title>
-            </v-list-item-content>
-          </v-list-item>
-          <v-divider v-if="index !== 3" class="mx-4" :key="item" />
-        </template>
-      </v-list-item-group>
-    </v-list>
-
     <div class="mt-5">
-      <v-btn
-        elevation="0"
-        color="primary"
-        :to="{ name: 'ParticipationDistribution' }"
+      <v-btn elevation="0" color="primary" @click="submitParticipants()"
         >Continue
       </v-btn>
     </div>
@@ -85,8 +59,121 @@
 </template>
 
 <script>
+import ListParticipants from "../../../components/ListParticipants.vue";
+import { mapActions, mapGetters } from "vuex";
+import store from "@/store";
+
 export default {
   name: "ParticipationTypeManualSelection",
   props: ["experiment"],
+  components: {
+    ListParticipants,
+  },
+  data() {
+    return {
+      moveToOptions: ["Participating", "Not Participating", "Unassigned"],
+    };
+  },
+  computed: {
+    ...mapGetters({
+      participants: "participants/participants",
+    }),
+
+    experimentId() {
+      return this.experiment.experimentId;
+    },
+
+    participating() {
+      return this.groupParticipants(true);
+    },
+
+    notParticipating() {
+      return this.groupParticipants(false);
+    },
+
+    unassigned() {
+      return this.groupParticipants(null);
+    },
+  },
+  methods: {
+    ...mapActions({
+      fetchParticipants: "participants/fetchParticipants",
+      updateParticipantsGroup: "participants/updateParticipantsGroup",
+      updateParticipants: "participants/updateParticipants",
+    }),
+
+    groupParticipants(value) {
+      return this.participants.filter(
+        (participant) => participant.consent === value
+      );
+    },
+
+    getParticipantIds(participants) {
+      return participants.map((participant) => participant.user.userId);
+    },
+
+    updateParticipantConsent(selectedIds, value) {
+      return this.participants.map((participant) => {
+        if (selectedIds.includes(participant.user.userId)) {
+          participant.consent = value;
+        }
+        return participant;
+      });
+    },
+
+    moveToHandler(option, tempSelected) {
+      const _this = this;
+      const selectedIds = _this.getParticipantIds(tempSelected);
+      let updatedParticipants = [];
+      
+      if (option === "Participating") {
+        updatedParticipants = _this.updateParticipantConsent(selectedIds, true);
+      }
+
+      if (option === "Not Participating") {
+        updatedParticipants = _this.updateParticipantConsent(
+          selectedIds,
+          false
+        );
+      }
+
+      if (option === "Unassigned") {
+        updatedParticipants = _this.updateParticipantConsent(selectedIds, null);
+      }
+      this.updateParticipantsGroup(updatedParticipants);
+    },
+
+    submitParticipants() {
+      const _this = this;
+
+      _this
+        .updateParticipants(_this.experiment.experimentId)
+        .then((response) => {
+          if (response?.status === 200) {
+            _this.$router.push({
+              name: "ParticipationDistribution",
+              params: { experiment: this.experiment.experimentId },
+            });
+          } else {
+            alert(response.error);
+          }
+        })
+        .catch((response) => {
+          console.log("updateConditions | catch", { response });
+        });
+    },
+  },
+  beforeRouteEnter(to, from, next) {
+    // don't load new data after participant selection screen
+    return store
+      .dispatch("participants/fetchParticipants", to.params.experiment_id)
+      .then(next, next);
+  },
+  beforeRouteUpdate(to, from, next) {
+    // don't load new data after participant selection screen
+    return store
+      .dispatch("participants/fetchParticipants", to.params.experiment_id)
+      .then(next, next);
+  },
 };
 </script>
