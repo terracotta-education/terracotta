@@ -7,6 +7,7 @@ import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.ExposureNotMatchingException;
 import edu.iu.terracotta.model.app.dto.AssignmentDto;
+import edu.iu.terracotta.model.canvas.AssignmentExtended;
 import edu.iu.terracotta.model.oauth2.SecurityInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.AssignmentService;
@@ -141,7 +142,7 @@ public class AssignmentController {
             }
             Assignment assignmentSaved = assignmentService.save(assignment);
 
-            edu.ksu.canvas.model.assignment.Assignment canvasAssignment = new edu.ksu.canvas.model.assignment.Assignment();
+            AssignmentExtended canvasAssignment = new AssignmentExtended();
             edu.ksu.canvas.model.assignment.Assignment.ExternalToolTagAttribute canvasExternalToolTagAttributes = canvasAssignment.new ExternalToolTagAttribute();
             canvasExternalToolTagAttributes.setUrl(ServletUriComponentsBuilder.fromCurrentContextPath().path("/lti3?assignment=" + assignmentSaved.getAssignmentId()).build().toUriString());
             canvasAssignment.setExternalToolTagAttributes(canvasExternalToolTagAttributes);
@@ -150,14 +151,16 @@ public class AssignmentController {
             canvasAssignment.setDescription("Hardcoded description to be updated");
             canvasAssignment.setPublished(false);
             //TODO: This is interesting...because each condition assessment maybe has different points... so... what should we send here? 0? 100 and send a percent always????
-            canvasAssignment.setPointsPossible(0.0);
+            canvasAssignment.setPointsPossible(100.0);
             canvasAssignment.setSubmissionTypes(Collections.singletonList("external_tool"));
             try {
-                Optional<edu.ksu.canvas.model.assignment.Assignment> canvasAssignmentReturned = canvasAPIClient.createCanvasAssignment(canvasAssignment,
+                Optional<AssignmentExtended> canvasAssignmentReturned = canvasAPIClient.createCanvasAssignment(canvasAssignment,
                         assignmentSaved.getExposure().getExperiment().getLtiContextEntity().getContext_memberships_url(),
                         assignmentSaved.getExposure().getExperiment().getPlatformDeployment());
                 assignmentSaved.setLmsAssignmentId(Integer.toString(canvasAssignmentReturned.get().getId()));
-                assignmentSaved.setResourceLinkId(canvasAssignmentReturned.get().getExternalToolTagAttributes().getResourceLinkId());
+                String jwtTokenAssignment = canvasAssignmentReturned.get().getSecureParams();
+                String resourceLinkId = apijwtService.unsecureToken(jwtTokenAssignment).getBody().get("lti_assignment_id").toString();
+                assignmentSaved.setResourceLinkId(resourceLinkId);
             } catch (CanvasApiException e) {
                 log.info("Create the assignment failed");
                 e.printStackTrace();

@@ -1,14 +1,16 @@
 package edu.iu.terracotta.controller.app;
 
 import edu.iu.terracotta.exceptions.BadTokenException;
+import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.ExperimentStartedException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
-import edu.iu.terracotta.model.app.dto.ExposureDto;
+import edu.iu.terracotta.model.app.Assignment;
 import edu.iu.terracotta.model.app.dto.StepDto;
 import edu.iu.terracotta.model.oauth2.SecurityInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
+import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.ExposureService;
 import edu.iu.terracotta.service.app.GroupService;
@@ -32,6 +34,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import javax.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Controller
 @RequestMapping(value = StepsController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
@@ -53,6 +56,9 @@ public class StepsController {
     SubmissionService submissionService;
 
     @Autowired
+    AssignmentService assignmentService;
+
+    @Autowired
     APIJWTService apijwtService;
 
     @Autowired
@@ -62,13 +68,14 @@ public class StepsController {
     final static String PARTICIPATION_TYPE = "participation_type";
     final static String DISTRIBUTION_TYPE = "distribution_type";
     final static String STUDENT_SUBMISSION = "student_submission";
+    final static String POST_ASSIGNMENT = "post_assignment";
 
 
     @RequestMapping(value = "/{experiment_id}/step", method = RequestMethod.POST)
-    public ResponseEntity<ExposureDto> postExposure(@PathVariable("experiment_id") Long experimentId,
+    public ResponseEntity<String> postStep(@PathVariable("experiment_id") Long experimentId,
                                                     @RequestBody StepDto stepDto,
                                                     HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, DataServiceException, ParticipantNotUpdatedException, ExperimentStartedException {
+            throws ExperimentNotMatchingException, BadTokenException, DataServiceException, ParticipantNotUpdatedException, ExperimentStartedException, ConnectionException {
 
         SecurityInfo securityInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securityInfo, experimentId);
@@ -118,6 +125,32 @@ public class StepsController {
                             Long submissionId = Long.parseLong(submissionIdString);
                             submissionService.finalizeAndGrade(submissionId, securityInfo);
                         }
+                } else {
+                    return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
+                }
+                return new ResponseEntity<>(HttpStatus.OK);
+
+            case POST_ASSIGNMENT:
+                List<String> assignmentsId = new ArrayList<>();
+                if (stepDto.getParameters()!=null) {
+                    assignmentsId = Collections.arrayToList(StringUtils.split(stepDto.getParameters().get("assignmentIds"),","));
+                    if (assignmentsId.isEmpty()){
+                        return new ResponseEntity(TextConstants.SUBMISSION_IDS_MISSING, HttpStatus.BAD_REQUEST);
+                    }
+                } else {
+                    return new ResponseEntity(TextConstants.SUBMISSION_IDS_MISSING, HttpStatus.BAD_REQUEST);
+                }
+
+                if (apijwtService.isInstructorOrHigher(securityInfo)){
+                    for (String assignmentIdString:assignmentsId) {
+                        Long assignmentId = Long.parseLong(assignmentIdString);
+                        Optional<Assignment> assignment = assignmentService.findById(assignmentId);
+                        if (assignment.isPresent()) {
+                            assignmentService.sendAssignmentGradeToCanvas(assignmentService.findById(assignmentId).get());
+                        } else {
+                            return new ResponseEntity<>(TextConstants.ASSIGNMENT_NOT_MATCHING + ":" + assignmentId, HttpStatus.NOT_FOUND);
+                        }
+                    }
                 } else {
                     return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
                 }

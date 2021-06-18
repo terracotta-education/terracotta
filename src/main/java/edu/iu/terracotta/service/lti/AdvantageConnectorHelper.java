@@ -4,6 +4,7 @@ import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.model.ags.LineItem;
 import edu.iu.terracotta.model.ags.LineItems;
+import edu.iu.terracotta.model.ags.Score;
 import edu.iu.terracotta.model.oauth2.LTIToken;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -20,6 +21,9 @@ public interface AdvantageConnectorHelper {
 
     // We put the token in the Authorization as a simple Bearer one.
     HttpEntity<LineItems> createTokenizedRequestEntity(LTIToken LTIToken, LineItems lineItems);
+
+    // We put the token in the Authorization as a simple Bearer one.
+    HttpEntity<Score> createTokenizedRequestEntity(LTIToken LTIToken, Score score);
 
     //Asking for a token. The scope will come in the scope parameter
     //The platformDeployment has the URL to ask for the token.

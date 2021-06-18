@@ -104,4 +104,14 @@ public class AssessmentServiceImpl implements AssessmentService {
                 .existsByTreatment_Condition_Experiment_ExperimentIdAndTreatment_Condition_ConditionIdAndTreatment_TreatmentIdAndAssessmentId(
                         experimentId, conditionId, treatmentId, assessmentId);
     }
+
+    @Override
+    public Float calculateMaxScore(Assessment assessment){
+        Float score = Float.parseFloat("0");
+        for (Question question:assessment.getQuestions()){
+            score = score + question.getPoints();
+        }
+        return score;
+
+    }
 }
