@@ -3,6 +3,7 @@ package edu.iu.terracotta.controller.app;
 import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.exceptions.WrongValueException;
 import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.dto.ExperimentDto;
 import edu.iu.terracotta.model.app.enumerator.DistributionTypes;
@@ -186,7 +187,7 @@ public class ExperimentController {
     public ResponseEntity<Void> updateExperiment(@PathVariable("id") Long id,
                                                  @RequestBody ExperimentDto experimentDto,
                                                  HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException {
+            throws ExperimentNotMatchingException, BadTokenException, WrongValueException {
         log.info("Updating Experiment with id {}", id);
         SecurityInfo securityInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securityInfo, id);
@@ -204,16 +205,28 @@ public class ExperimentController {
             experimentToChange.setDescription(experimentDto.getDescription());
             experimentToChange.setTitle(experimentDto.getTitle());
             if (experimentDto.getExposureType() != null) {
+                if (EnumUtils.isValidEnum(ExposureTypes.class, experimentDto.getExposureType())) {
                 experimentToChange.setExposureType(
                         EnumUtils.getEnum(ExposureTypes.class, experimentDto.getExposureType()));
+                } else {
+                    throw new WrongValueException(experimentDto.getExposureType() + " is not a valid Exposure value");
+                }
             }
             if (experimentDto.getDistributionType() != null) {
-                experimentToChange.setDistributionType(
-                        EnumUtils.getEnum(DistributionTypes.class, experimentDto.getDistributionType()));
+                if (EnumUtils.isValidEnum(DistributionTypes.class, experimentDto.getDistributionType())) {
+                    experimentToChange.setDistributionType(
+                            EnumUtils.getEnum(DistributionTypes.class, experimentDto.getDistributionType()));
+                } else {
+                    throw new WrongValueException(experimentDto.getDistributionType() + " is not a valid Distribution value");
+                }
             }
             if (experimentDto.getParticipationType() != null) {
+                if (EnumUtils.isValidEnum(ParticipationTypes.class, experimentDto.getParticipationType())) {
                 experimentToChange.setParticipationType(
                         EnumUtils.getEnum(ParticipationTypes.class, experimentDto.getParticipationType()));
+                } else {
+                    throw new WrongValueException(experimentDto.getParticipationType() + " is not a valid Participation value");
+                }
             }
             experimentToChange.setStarted(experimentDto.getStarted());
 
