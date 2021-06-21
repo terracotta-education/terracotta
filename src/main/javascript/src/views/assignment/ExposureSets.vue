@@ -14,7 +14,7 @@
     </h1>
 
     <div class="mt-3">
-      <strong> Exposre Set: </strong>
+      <strong> Exposure Set: </strong>
       <v-btn-toggle
         v-model="selectedExposure"
         class="ml-3"

@@ -1,6 +1,5 @@
-import { authHeader } from "@/helpers";
-
-const base_url = "http://localhost:8081";
+import { authHeader } from '@/helpers'
+import store from '@/store/index.js'
 
 // /**
 //  * Register methods
@@ -8,21 +7,21 @@ const base_url = "http://localhost:8081";
 export const exposuresService = {
   getAll,
   getById,
-};
+}
 
 /**
  * Get all Exposures
  */
 function getAll(experiment_id) {
   const requestOptions = {
-    method: "GET",
+    method: 'GET',
     headers: authHeader(),
-  };
+  }
 
   return fetch(
-    `${base_url}/api/experiments/${experiment_id}/exposures`,
+    `${store.getters['api/aud']}/api/experiments/${experiment_id}/exposures`,
     requestOptions
-  ).then(handleResponse);
+  ).then(handleResponse)
 }
 
 /**
@@ -30,14 +29,14 @@ function getAll(experiment_id) {
  */
 function getById(experiment_id, exposure_id) {
   const requestOptions = {
-    method: "GET",
+    method: 'GET',
     headers: authHeader(),
-  };
+  }
 
   return fetch(
-    `${base_url}/api/experiments/${experiment_id}/exposures/${exposure_id}`,
+    `${store.getters['api/aud']}/api/experiments/${experiment_id}/exposures/${exposure_id}`,
     requestOptions
-  ).then(handleResponse);
+  ).then(handleResponse)
 }
 
 /**
@@ -47,7 +46,7 @@ function handleResponse(response) {
   return response
     .text()
     .then((text) => {
-      const data = text && JSON.parse(text);
+      const data = text && JSON.parse(text)
 
       if (!response || !response.ok) {
         if (
@@ -55,18 +54,18 @@ function handleResponse(response) {
           response.status === 402 ||
           response.status === 500
         ) {
-          console.log("handleResponse | 401/402/500", { response });
+          console.log('handleResponse | 401/402/500', { response })
         } else if (response.status === 404) {
-          console.log("handleResponse | 404", { response });
+          console.log('handleResponse | 404', { response })
         }
 
-        return response;
+        return response
       }
 
-      console.log("handleResponse | then", { text, data, response });
-      return data || response;
+      console.log('handleResponse | then', { text, data, response })
+      return data || response
     })
     .catch((text) => {
-      console.log("handleResponse | catch", { text });
-    });
+      console.log('handleResponse | catch', { text })
+    })
 }

@@ -1,6 +1,6 @@
 import { conditionService } from '@/services'
 
-const state = {};
+const state = {}
 
 const actions = {
     resetCondition: ({ commit }) => {
@@ -9,11 +9,11 @@ const actions = {
     createDefaultConditions:({dispatch}, experimentId) => {
         const defaultConditions = [
             {
-                name:"",
+                name:'',
                 experiment_experiment_id: experimentId
             },
             {
-                name:"",
+                name:'',
                 experiment_experiment_id: experimentId
             },
         ]
@@ -33,7 +33,7 @@ const actions = {
                         commit('experiment/setCondition', condition, {root:true})
                     })
                     .catch(response => {
-                        console.log("createCondition | catch",{response})
+                        console.log('createCondition | catch',{response})
                     })
     },
     updateConditions: ({dispatch}, conditions) => {
@@ -55,7 +55,7 @@ const actions = {
                         }
                     })
                     .catch(response => {
-                        console.log("setCondition | catch",{response})
+                        console.log('setCondition | catch',{response})
                     })
     },
     setDefaultCondition({dispatch}, payload) {
@@ -78,15 +78,15 @@ const actions = {
                         commit('experiment/deleteCondition', condition, {root:true})
                     })
                     .catch(response => {
-                        console.log("setCondition | catch",{response})
+                        console.log('setCondition | catch',{response})
                     })
     }
-};
+}
 
 const mutations = {
-};
+}
 
-const getters = {};
+const getters = {}
 
 export const condition = {
     namespaced: true,
@@ -94,4 +94,4 @@ export const condition = {
     actions,
     mutations,
     getters
-};
+}

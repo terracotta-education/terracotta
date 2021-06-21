@@ -1,6 +1,5 @@
-// import { authHeader } from '@/helpers';
-
-// const base_url = "http://localhost:8081"
+// import { authHeader } from '@/helpers'
+// import store from '@/store/index.js'
 
 /**
  * Register methods

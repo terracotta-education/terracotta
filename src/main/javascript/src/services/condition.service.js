@@ -1,7 +1,5 @@
 import { authHeader } from '@/helpers'
-// import store from '@/store/index.js'
-
-const base_url = "http://localhost:8081"
+import store from '@/store/index'
 
 /**
  * Register methods
@@ -22,7 +20,7 @@ function create(condition) {
         body: JSON.stringify(condition)
     }
 
-    return fetch(`${base_url}/api/experiments/${condition.experiment_experiment_id}/conditions`, requestOptions).then(handleResponse)
+    return fetch(`${store.getters['api/aud']}/api/experiments/${condition.experiment_experiment_id}/conditions`, requestOptions).then(handleResponse)
 }
 
 /**
@@ -35,7 +33,7 @@ function update(condition) {
         body: JSON.stringify(condition)
     }
 
-    return fetch(`${base_url}/api/experiments/${condition.experimentId}/conditions/${condition.conditionId}`, requestOptions).then(handleResponse)
+    return fetch(`${store.getters['api/aud']}/api/experiments/${condition.experimentId}/conditions/${condition.conditionId}`, requestOptions).then(handleResponse)
 }
 
 /**
@@ -49,7 +47,7 @@ function _delete(condition) {
         headers: { ...authHeader(), 'Content-Type': 'application/json' },
     }
 
-    return fetch(`${base_url}/api/experiments/${condition.experimentId}/conditions/${condition.conditionId}`, requestOptions).then(handleResponse)
+    return fetch(`${store.getters['api/aud']}/api/experiments/${condition.experimentId}/conditions/${condition.conditionId}`, requestOptions).then(handleResponse)
 }
 
 /**
@@ -62,17 +60,17 @@ function handleResponse(response) {
 
         if (!response || !response.ok) {
             if (response.status === 401 || response.status === 402 || response.status === 500) {
-                console.log("handleResponse | 401/402/500",{response})
+                console.log('handleResponse | 401/402/500',{response})
             } else if (response.status===404) {
-                console.log("handleResponse | 404",{response})
+                console.log('handleResponse | 404',{response})
             }
 
             return response
         }
 
-        console.log("handleResponse | then",{text,data,response})
+        console.log('handleResponse | then',{text,data,response})
         return data || response
     }).catch(text => {
-        console.log("handleResponse | catch",{text})
+        console.log('handleResponse | catch',{text})
     })
 }

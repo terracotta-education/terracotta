@@ -1,7 +1,5 @@
 import { authHeader } from '@/helpers'
-// import store from '@/store/index.js'
-
-const base_url = "http://localhost:8081"
+import store from '@/store/index.js'
 
 /**
  * Register methods
@@ -23,7 +21,7 @@ function getAll() {
         headers: authHeader()
     }
 
-    return fetch(`${base_url}/api/experiments`, requestOptions).then(handleResponse)
+    return fetch(`${store.getters['api/aud']}/api/experiments`, requestOptions).then(handleResponse)
 }
 
 /**
@@ -36,7 +34,7 @@ function create() {
         body: JSON.stringify({})
     }
 
-    return fetch(`${base_url}/api/experiments`, requestOptions).then(handleResponse)
+    return fetch(`${store.getters['api/aud']}/api/experiments`, requestOptions).then(handleResponse)
 }
 
 /**
@@ -48,7 +46,7 @@ function getById(experiment_id) {
         headers: { ...authHeader() },
     }
 
-    return fetch(`${base_url}/api/experiments/${experiment_id}?conditions=true`, requestOptions).then(handleResponse)
+    return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}?conditions=true`, requestOptions).then(handleResponse)
 }
 /**
  * Update Experiment
@@ -60,7 +58,7 @@ function update(experiment) {
         body: JSON.stringify(experiment)
     }
 
-    return fetch(`${base_url}/api/experiments/${experiment.experimentId}`, requestOptions).then(handleResponse)
+    return fetch(`${store.getters['api/aud']}/api/experiments/${experiment.experimentId}`, requestOptions).then(handleResponse)
 }
 
 /**
@@ -74,7 +72,7 @@ function _delete(id) {
         headers: authHeader()
     }
 
-    return fetch(`${base_url}/api/experiments/${id}`, requestOptions).then(handleResponse)
+    return fetch(`${store.getters['api/aud']}/api/experiments/${id}`, requestOptions).then(handleResponse)
 }
 
 /**
@@ -87,17 +85,19 @@ function handleResponse(response) {
 
             if (!response || !response.ok) {
                 if (response.status === 401 || response.status === 402 || response.status === 500) {
-                    console.log("handleResponse | 401/402/500",{response})
+                    console.log('handleResponse | 401/402/500',{response})
                 } else if (response.status===404) {
-                    console.log("handleResponse | 404",{response})
+                    console.log('handleResponse | 404',{response})
                 }
 
                 return response
+            } else if (response.status===204) {
+                console.log('handleResponse | 204',{text,data,response})
+                return []
             }
 
-            console.log("handleResponse | then",{text,data,response})
             return data || response
         }).catch(text => {
-            console.log("handleResponse | catch",{text})
+            console.log('handleResponse | catch',{text})
         })
 }

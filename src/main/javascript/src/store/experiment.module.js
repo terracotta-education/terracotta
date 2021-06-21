@@ -3,7 +3,7 @@ import {experimentService} from '@/services'
 const state = {
   experiment: null,
   experiments: null
-};
+}
 
 const actions = {
   resetExperiment: ({commit}) => {
@@ -18,7 +18,7 @@ const actions = {
         commit('setExperiment', data)
       })
       .catch(response => {
-        console.log("fetchExperimentById | catch", {response})
+        console.log('fetchExperimentById | catch', {response})
       })
   },
   fetchExperiments: ({commit}) => {
@@ -27,14 +27,14 @@ const actions = {
         commit('setExperiments', data)
       })
       .catch(response => {
-        console.log("fetchExperimentById | catch", {response})
+        console.log('fetchExperimentById | catch', {response})
       })
   },
   updateExperiment: ({commit}, experiment) => {
     return experimentService.update(experiment)
       .then(commit('setExperiment', experiment))
       .catch(response => {
-        console.log("updateExperiment | catch", {response})
+        console.log('updateExperiment | catch', {response})
       })
   },
   deleteExperiment: ({commit}, experimentId) => {
@@ -45,10 +45,10 @@ const actions = {
         }
       })
       .catch(response => {
-        console.log("deleteExperiment | catch", {response})
+        console.log('deleteExperiment | catch', {response})
       })
   }
-};
+}
 
 const mutations = {
   setExperiment(state, data) {
@@ -78,7 +78,7 @@ const mutations = {
       return item.conditionId !== condition.conditionId
     })
   }
-};
+}
 
 const getters = {
   conditions(state) {
@@ -87,7 +87,7 @@ const getters = {
   experiments(state) {
     return state.experiments
   }
-};
+}
 
 export const experiment = {
   namespaced: true,
@@ -95,4 +95,4 @@ export const experiment = {
   actions,
   mutations,
   getters
-};
+}
