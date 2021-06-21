@@ -7,6 +7,8 @@ import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.model.app.enumerator.DistributionTypes;
 import edu.iu.terracotta.model.app.enumerator.ExposureTypes;
 import edu.iu.terracotta.model.app.enumerator.ParticipationTypes;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -34,10 +36,12 @@ public class Experiment extends BaseEntity {
 
     @JoinColumn(name = "platform_deployment_key_id", nullable = false)
     @ManyToOne(optional = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private PlatformDeployment platformDeployment;
 
     @JoinColumn(name = "lti_context_entity_context_id", nullable = false)
     @ManyToOne(optional = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private LtiContextEntity ltiContextEntity;
 
     @Column(name = "title")

@@ -1,7 +1,10 @@
 package edu.iu.terracotta.model.app;
 
 import edu.iu.terracotta.model.BaseEntity;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
+import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
@@ -22,6 +25,7 @@ public class Treatment extends BaseEntity {
 
     @JoinColumn(name = "condition_condition_id", nullable = false)
     @ManyToOne(optional = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Condition condition;
 
     @JoinColumn(name = "assessment_assessment_id")
@@ -30,6 +34,7 @@ public class Treatment extends BaseEntity {
 
     @JoinColumn(name = "assignment_assignment_id", nullable = false)
     @ManyToOne(optional = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Assignment assignment;
 
     public Assignment getAssignment() {

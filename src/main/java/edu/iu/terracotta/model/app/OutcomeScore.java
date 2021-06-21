@@ -1,6 +1,8 @@
 package edu.iu.terracotta.model.app;
 
 import edu.iu.terracotta.model.BaseEntity;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -25,6 +27,7 @@ public class OutcomeScore extends BaseEntity {
 
     @JoinColumn(name = "participant_participant_id", nullable = false)
     @ManyToOne(optional = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Participant participant;
 
     @Column(name = "score_numeric")

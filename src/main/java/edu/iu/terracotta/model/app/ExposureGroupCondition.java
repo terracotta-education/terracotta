@@ -4,6 +4,8 @@ import edu.iu.terracotta.model.BaseEntity;
 import edu.iu.terracotta.model.app.Condition;
 import edu.iu.terracotta.model.app.Exposure;
 import edu.iu.terracotta.model.app.Group;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -30,14 +32,17 @@ public class ExposureGroupCondition extends BaseEntity {
 
     @JoinColumn(name = "condition_condition_id", nullable = false)
     @ManyToOne(optional = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Condition condition;
 
     @JoinColumn(name = "group_group_id", nullable = false)
     @ManyToOne(optional = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Group group;
 
     @JoinColumn(name = "exposure_exposure_id", nullable = false)
     @ManyToOne(optional = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Exposure exposure;
 
     public Exposure getExposure() {
