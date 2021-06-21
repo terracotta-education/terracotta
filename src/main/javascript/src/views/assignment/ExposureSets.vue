@@ -89,10 +89,10 @@ export default {
     }),
 
     sortedGroups() {
-      const a = this.selectedExposure?.groupConditionList?.map(
+      const newGroups = this.selectedExposure?.groupConditionList?.map(
         (group) => group.groupName
       );
-      return a?.sort();
+      return newGroups?.sort();
     },
   },
   beforeRouteEnter(to, from, next) {
