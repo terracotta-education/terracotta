@@ -23,7 +23,11 @@ const mutations = {
   },
 };
 
-const getters = {};
+const getters = {
+  exposures(state) {
+    return state.exposures;
+  },
+};
 
 export const exposures = {
   namespaced: true,
