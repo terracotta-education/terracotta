@@ -52,7 +52,9 @@ export default {
 		}
 	},
 	mounted() {
-		this.refreshToken()
+    if (store.state.api.api_token) {
+      this.refreshToken()
+    }
 	}
 };
 </script>

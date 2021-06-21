@@ -1,8 +1,6 @@
 import { authHeader } from '@/helpers'
-import axios from 'axios';
-// import store from '@/store/index.js'
-
-const base_url = "http://localhost:8081"
+import axios from 'axios'
+import store from '@/store/index.js'
 
 /**
  * Register methods
@@ -24,11 +22,11 @@ function create(experiment_id, consent) {
         }
     }
 
-    let formData = new FormData();
-    formData.append('consent', consent.file);
+    let formData = new FormData()
+    formData.append('consent', consent.file)
 
     // Axios was required for correct formData boundary
-    return axios.post(`${base_url}/api/experiments/${experiment_id}/consent?title=${consent.title}`, formData, requestOptions).then(handleResponse)
+    return axios.post(`${store.getters['api/aud']}/api/experiments/${experiment_id}/consent?title=${consent.title}`, formData, requestOptions).then(handleResponse)
 }
 
 /**
@@ -41,7 +39,7 @@ function update(experiment_id) {
         // body: JSON.stringify(assignment)
     }
 
-    return fetch(`${base_url}/api/experiments/${experiment_id}/consent`, requestOptions).then(handleResponse)
+    return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/consent`, requestOptions).then(handleResponse)
 }
 
 /**
@@ -55,7 +53,7 @@ function _delete(experiment_id) {
         headers: { ...authHeader(), 'Content-Type': 'application/json' },
     }
 
-    return fetch(`${base_url}/api/experiments/${experiment_id}/consent`, requestOptions).then(handleResponse)
+    return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/consent`, requestOptions).then(handleResponse)
 }
 
 /**
@@ -68,17 +66,17 @@ function handleResponse(response) {
 
         if (!response || !response.ok) {
             if (response.status === 401 || response.status === 402 || response.status === 500) {
-                console.log("handleResponse | 401/402/500",{response})
+                console.log('handleResponse | 401/402/500',{response})
             } else if (response.status===404) {
-                console.log("handleResponse | 404",{response})
+                console.log('handleResponse | 404',{response})
             }
 
             return response
         }
 
-        console.log("handleResponse | then",{text,data,response})
+        console.log('handleResponse | then',{text,data,response})
         return data || response
     }).catch(text => {
-        console.log("handleResponse | catch",{text})
+        console.log('handleResponse | catch',{text})
     })
 }
