@@ -1,8 +1,8 @@
 <template>
   <div>
     <h1 class="mb-5">
-      Because you have <strong>{{ numExposureSets }} exposure sets</strong>,
-      you’ll need to include a minimum of <strong>{{ numExposureSets }} assignments</strong> in this experiment,
+      Because you have <strong>{{ this.numExposureSets }} exposure sets</strong>,
+      you’ll need to include a minimum of <strong>{{ this.numExposureSets }} assignments</strong> in this experiment,
       one for each set.
       <br><br>
       Let’s create your assignments now.
@@ -26,11 +26,11 @@
 
 <script>
 export default {
-  name: "ExposureSetsIntro",
+  name: "AssignmentExposureSetsIntro",
   props: ['experiment'],
   computed: {
     numExposureSets() {
-      return this.experiment?.exposures?.length || 0
+      return this.$route.params.numberOfExperimentSets;
     }
   }
 };
