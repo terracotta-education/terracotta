@@ -4,6 +4,8 @@ import edu.iu.terracotta.model.BaseEntity;
 import edu.iu.terracotta.model.LtiMembershipEntity;
 import edu.iu.terracotta.model.LtiUserEntity;
 import edu.iu.terracotta.model.app.enumerator.ParticipationTypes;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -32,10 +34,12 @@ public class Participant extends BaseEntity {
 
     @JoinColumn(name = "lti_user_entity_user_id", nullable = false)
     @ManyToOne(optional = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private LtiUserEntity ltiUserEntity;
 
     @JoinColumn(name = "lti_membership_entity_membership_id", nullable = false)
     @OneToOne(optional = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private LtiMembershipEntity ltiMembershipEntity;
 
     @Column(name = "consent")

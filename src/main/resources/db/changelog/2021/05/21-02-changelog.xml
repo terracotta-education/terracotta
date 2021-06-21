@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd">
+    <changeSet id="1622667000000-01" author="ddelblanco">
+        <dropForeignKeyConstraint baseTableName="terr_treatment"
+                                  constraintName="FK_TERR_TREATMENT_ON_ASSIGNMENT_ASSIGNMENT"/>
+    </changeSet>
+    <changeSet id="1622667000000-02" author="ddelblanco">
+        <addForeignKeyConstraint baseColumnNames="assignment_assignment_id" baseTableName="terr_treatment"
+                                 constraintName="FK_TERR_TREATMENT_ON_ASSIGNMENT_ASSIGNMENT"
+                                 onDelete="CASCADE"
+                                 referencedColumnNames="assignment_id" referencedTableName="terr_assignment"/>
+    </changeSet>
+    <changeSet id="1622667000000-03" author="ddelblanco">
+        <dropForeignKeyConstraint baseTableName="terr_outcome_score"
+                                  constraintName="FK_TERR_OUTCOME_SCORE_ON_PARTICIPANT_PARTICIPANT"/>
+    </changeSet>
+    <changeSet id="1622667000000-04" author="ddelblanco">
+        <addForeignKeyConstraint baseColumnNames="participant_participant_id" baseTableName="terr_outcome_score"
+                                 constraintName="FK_TERR_OUTCOME_SCORE_ON_PARTICIPANT_PARTICIPANT"
+                                 onDelete="CASCADE"
+                                 referencedColumnNames="participant_id" referencedTableName="terr_participant"/>
+    </changeSet>
+    <changeSet id="1622667000000-05" author="ddelblanco">
+        <dropForeignKeyConstraint baseTableName="terr_file_info"
+                                  constraintName="FK_TERR_FILE_INFO_ON_EXPERIMENT_EXPERIMENT"/>
+    </changeSet>
+    <changeSet id="1622667000000-06" author="ddelblanco">
+        <addForeignKeyConstraint baseColumnNames="experiment_experiment_id" baseTableName="terr_file_info"
+                                 constraintName="FK_TERR_FILE_INFO_ON_EXPERIMENT_EXPERIMENT"
+                                 onDelete="CASCADE"
+                                 referencedColumnNames="experiment_id" referencedTableName="terr_experiment"/>
+    </changeSet>
+    <changeSet id="1622667000000-07" author="ddelblanco">
+        <dropForeignKeyConstraint baseTableName="terr_experiment"
+                                  constraintName="FK_TERR_EXPERIMENT_ON_LTI_CONTEXT_ENTITY_CONTEXT"/>
+    </changeSet>
+    <changeSet id="1622667000000-08" author="ddelblanco">
+        <addForeignKeyConstraint baseColumnNames="lti_context_entity_context_id" baseTableName="terr_experiment"
+                                 constraintName="FK_TERR_EXPERIMENT_ON_LTI_CONTEXT_ENTITY_CONTEXT"
+                                 onDelete="CASCADE"
+                                 referencedColumnNames="context_id" referencedTableName="lti_context"/>
+    </changeSet>
+    <changeSet id="1622667000000-09" author="ddelblanco">
+        <dropForeignKeyConstraint baseTableName="terr_experiment"
+                                  constraintName="FK_TERR_EXPERIMENT_ON_PLATFORM_DEPLOYMENT_KEY"/>
+    </changeSet>
+    <changeSet id="1622667000000-10" author="ddelblanco">
+        <addForeignKeyConstraint baseColumnNames="platform_deployment_key_id" baseTableName="terr_experiment"
+                                 constraintName="FK_TERR_EXPERIMENT_ON_PLATFORM_DEPLOYMENT_KEY"
+                                 onDelete="CASCADE"
+                                 referencedColumnNames="key_id" referencedTableName="iss_configuration"/>
+    </changeSet>
+    <changeSet id="1622667000000-11" author="ddelblanco">
+        <dropForeignKeyConstraint baseTableName="terr_participant"
+                                  constraintName="FK_TERR_PARTICIPANT_ON_LTI_MEMBERSHIP_ENTITY_MEMBERSHIP"/>
+    </changeSet>
+    <changeSet id="1622667000000-12" author="ddelblanco">
+        <addForeignKeyConstraint baseColumnNames="lti_membership_entity_membership_id" baseTableName="terr_participant"
+                                 constraintName="FK_TERR_PARTICIPANT_ON_LTI_MEMBERSHIP_ENTITY_MEMBERSHIP"
+                                 onDelete="CASCADE"
+                                 referencedColumnNames="membership_id" referencedTableName="lti_membership"/>
+    </changeSet>
+    <changeSet id="1622667000000-13" author="ddelblanco">
+        <dropForeignKeyConstraint baseTableName="terr_participant"
+                                  constraintName="FK_TERR_PARTICIPANT_ON_LTI_USER_ENTITY_USER"/>
+    </changeSet>
+    <changeSet id="1622667000000-14" author="ddelblanco">
+        <addForeignKeyConstraint baseColumnNames="lti_user_entity_user_id" baseTableName="terr_participant"
+                                 constraintName="FK_TERR_PARTICIPANT_ON_LTI_USER_ENTITY_USER"
+                                 onDelete="CASCADE"
+                                 referencedColumnNames="user_id" referencedTableName="lti_user"/>
+    </changeSet>
+    <changeSet id="1622667000000-15" author="ddelblanco">
+        <dropForeignKeyConstraint baseTableName="terr_assignment"
+                                  constraintName="FK_TERR_ASSIGNMENT_ON_EXPOSURE_EXPOSURE"/>
+    </changeSet>
+    <changeSet id="1622667000000-16" author="ddelblanco">
+        <addForeignKeyConstraint baseColumnNames="exposure_exposure_id" baseTableName="terr_assignment"
+                                 constraintName="FK_TERR_ASSIGNMENT_ON_EXPOSURE_EXPOSURE"
+                                 onDelete="CASCADE"
+                                 referencedColumnNames="exposure_id" referencedTableName="terr_exposure"/>
+    </changeSet>
+    <changeSet id="1622667000000-17" author="ddelblanco">
+        <dropForeignKeyConstraint baseTableName="terr_exposure_group_condition"
+                                  constraintName="FK_TERR_EXPOSURE_GROUP_CONDITION_ON_CONDITION_CONDITION"/>
+    </changeSet>
+    <changeSet id="1622667000000-18" author="ddelblanco">
+        <addForeignKeyConstraint baseColumnNames="condition_condition_id" baseTableName="terr_exposure_group_condition"
+                                 constraintName="FK_TERR_EXPOSURE_GROUP_CONDITION_ON_CONDITION_CONDITION"
+                                 onDelete="CASCADE"
+                                 referencedColumnNames="condition_id" referencedTableName="terr_condition"/>
+    </changeSet>
+    <changeSet id="1622667000000-19" author="ddelblanco">
+        <dropForeignKeyConstraint baseTableName="terr_exposure_group_condition"
+                                  constraintName="FK_TERR_EXPOSURE_GROUP_CONDITION_ON_EXPOSURE_EXPOSURE"/>
+    </changeSet>
+    <changeSet id="1622667000000-20" author="ddelblanco">
+        <addForeignKeyConstraint baseColumnNames="exposure_exposure_id" baseTableName="terr_exposure_group_condition"
+                                 constraintName="FK_TERR_EXPOSURE_GROUP_CONDITION_ON_EXPOSURE_EXPOSURE"
+                                 onDelete="CASCADE"
+                                 referencedColumnNames="exposure_id" referencedTableName="terr_exposure"/>
+    </changeSet>
+    <changeSet id="1622667000000-21" author="ddelblanco">
+        <dropForeignKeyConstraint baseTableName="terr_exposure_group_condition"
+                                  constraintName="FK_TERR_EXPOSURE_GROUP_CONDITION_ON_GROUP_GROUP"/>
+    </changeSet>
+    <changeSet id="1622667000000-22" author="ddelblanco">
+        <addForeignKeyConstraint baseColumnNames="group_group_id" baseTableName="terr_exposure_group_condition"
+                                 constraintName="FK_TERR_EXPOSURE_GROUP_CONDITION_ON_GROUP_GROUP"
+                                 onDelete="CASCADE"
+                                 referencedColumnNames="group_id" referencedTableName="terr_group"/>
+    </changeSet>
+    <changeSet id="1622667000000-23" author="ddelblanco">
+        <dropForeignKeyConstraint baseTableName="terr_group"
+                                  constraintName="FK_TERR_GROUP_ON_EXPERIMENT_EXPERIMENT"/>
+    </changeSet>
+    <changeSet id="1622667000000-24" author="ddelblanco">
+        <addForeignKeyConstraint baseColumnNames="experiment_experiment_id" baseTableName="terr_group"
+                                 constraintName="FK_TERR_GROUP_ON_EXPERIMENT_EXPERIMENT"
+                                 onDelete="CASCADE"
+                                 referencedColumnNames="experiment_id" referencedTableName="terr_experiment"/>
+    </changeSet>
+</databaseChangeLog>
+
+
+
