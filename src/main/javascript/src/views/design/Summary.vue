@@ -22,7 +22,7 @@
 					</v-expansion-panel-content>
 				</v-expansion-panel>
 			</v-expansion-panels>
-			<v-expansion-panels flat>
+			<v-expansion-panels flat v-if="experiment.conditions && experiment.conditions.length>0">
 				<v-expansion-panel class="py-3 mb-3">
 					<v-expansion-panel-header><strong>Conditions</strong></v-expansion-panel-header>
 					<v-expansion-panel-content>
@@ -73,7 +73,7 @@ export default {
 	props: ['experiment'],
 	computed: {
 		exposureType() {
-			return (this.experiment.exposureType==='BETWEEN')?'All conditions':'One condition'
+			return (this.experiment.exposureType==='BETWEEN')?'One condition':'All conditions'
 		}
 	},
 	methods: {
