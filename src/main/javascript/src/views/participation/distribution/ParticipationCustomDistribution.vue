@@ -13,7 +13,7 @@
       </div>
     </div>
 
-    <v-card class="mt-2 pt-5 px-5 mx-auto lighten-5 rounded-lg" outlined>
+    <v-card class="mt-2 pt-5 pr-5 mx-auto lighten-5 rounded-lg" outlined>
       <v-card-text
         v-for="(condition, index) in this.conditions"
         :key="condition.conditionId"
@@ -59,7 +59,6 @@ export default {
 
   data() {
     return {
-      conditions: this.experiment.conditions,
       distributionValue: this.experiment.conditions.map(
         (condition) => condition.distributionPct
       ),
@@ -67,6 +66,9 @@ export default {
   },
 
   computed: {
+    conditions() {
+      return this.experiment.conditions;
+    },
     totalDistribution() {
       return this.distributionValue
         .map((value) => +value)
