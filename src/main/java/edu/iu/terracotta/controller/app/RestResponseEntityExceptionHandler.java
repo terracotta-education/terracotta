@@ -232,4 +232,13 @@ public class RestResponseEntityExceptionHandler
                 new HttpHeaders(), HttpStatus.CONFLICT, request);
     }
 
+    @ExceptionHandler(value
+            = {AssignmentDatesException.class})
+    protected ResponseEntity<Object> handleAssignmentDatesException(
+            AssignmentDatesException ex, WebRequest request) {
+        String bodyOfResponse = ex.getMessage();
+        return handleExceptionInternal(ex, bodyOfResponse,
+                new HttpHeaders(), HttpStatus.UNAUTHORIZED, request);
+    }
+
 }

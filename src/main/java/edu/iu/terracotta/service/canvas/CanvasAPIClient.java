@@ -6,6 +6,7 @@ import edu.iu.terracotta.model.canvas.AssignmentExtended;
 import edu.ksu.canvas.model.assignment.Submission;
 
 import java.io.IOException;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -17,5 +18,9 @@ public interface CanvasAPIClient {
 
     List<Submission> listSubmissions(Integer assignmentId, String contextMembershipUrl, PlatformDeployment platformDeployment) throws CanvasApiException, IOException;
 
+    Date getDueAt(String contextMembershipUrl, PlatformDeployment platformDeployment, String lmsAssignmentId) throws IOException, CanvasApiException;
 
+    Date getLockAt(String contextMembershipUrl, PlatformDeployment platformDeployment, String lmsAssignmentId) throws IOException, CanvasApiException;
+
+    Date getUnlockAt(String contextMembershipUrl, PlatformDeployment platformDeployment, String lmsAssignmentId) throws IOException, CanvasApiException;
 }
