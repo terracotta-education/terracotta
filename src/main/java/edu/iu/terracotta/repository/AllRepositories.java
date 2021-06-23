@@ -74,7 +74,7 @@ public class AllRepositories {
     public AssignmentRepository assignmentRepository;
 
     @Autowired
-    public AnswerRepository answerRepository;
+    public AnswerMcRepository answerMcRepository;
 
     @Autowired
     public QuestionRepository questionRepository;
@@ -111,6 +111,12 @@ public class AllRepositories {
 
     @Autowired
     public FileInfoRepository fileInfoRepository;
+
+    @Autowired
+    public AnswerMcSubmissionRepository answerMcSubmissionRepository;
+
+    @Autowired
+    public AnswerEssaySubmissionRepository answerEssaySubmissionRepository;
 
 
     @PersistenceContext

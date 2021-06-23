@@ -36,10 +36,6 @@ public class QuestionSubmission extends BaseEntity {
     @OneToOne(optional = false)
     private Question question;
 
-    @JoinColumn(name = "answer_answer_id")
-    @ManyToOne
-    private Answer answer;
-
     @OneToMany(mappedBy = "questionSubmission", orphanRemoval = true)
     private List<QuestionSubmissionComment> questionSubmissionComments;
 
@@ -59,10 +55,6 @@ public class QuestionSubmission extends BaseEntity {
     public Question getQuestion() { return question; }
 
     public void setQuestion(Question question) { this.question = question; }
-
-    public Answer getAnswer() { return answer; }
-
-    public void setAnswer(Answer answer) { this.answer = answer; }
 
     public Submission getSubmission() { return submission; }
 

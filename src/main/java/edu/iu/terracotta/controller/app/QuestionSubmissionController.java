@@ -6,7 +6,7 @@ import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.QuestionSubmissionNotMatchingException;
 import edu.iu.terracotta.exceptions.SubmissionNotMatchingException;
-import edu.iu.terracotta.model.app.Answer;
+import edu.iu.terracotta.model.app.AnswerMc;
 import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.QuestionSubmission;
 import edu.iu.terracotta.model.app.Submission;
@@ -55,8 +55,6 @@ public class QuestionSubmissionController {
     @Autowired
     SubmissionService submissionService;
 
-    @Autowired
-    AnswerService answerService;
 
     @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}/question_submissions",
             method = RequestMethod.GET)
@@ -254,12 +252,6 @@ public class QuestionSubmissionController {
                 return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS + " Students cannot alter the grades.", HttpStatus.UNAUTHORIZED);
             }
             questionSubmissionToChange.setAlteredGrade(questionSubmissionDto.getAlteredGrade());
-            Optional<Answer> answer = answerService.findByQuestionIdAndAnswerId(questionSubmissionToChange.getQuestion().getQuestionId(), questionSubmissionDto.getAnswerId());
-            if(answer.isPresent()) {
-                questionSubmissionToChange.setAnswer(answer.get());
-            } else {
-                log.error("An answer with that id does not exist or does not exist in the question with id {}.", questionSubmissionToChange.getQuestion().getQuestionId());
-            }
 
             questionSubmissionService.saveAndFlush(questionSubmissionToChange);
             return new ResponseEntity<>(HttpStatus.OK);
@@ -305,12 +297,6 @@ public class QuestionSubmissionController {
                         return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS + " Students cannot alter the grades.", HttpStatus.UNAUTHORIZED);
                     }
                     questionSubmissionToChange.setAlteredGrade(questionSubmissionDto.getAlteredGrade());
-                    Optional<Answer> answer = answerService.findByQuestionIdAndAnswerId(questionSubmissionToChange.getQuestion().getQuestionId(), questionSubmissionDto.getAnswerId());
-                    if(answer.isPresent()) {
-                        questionSubmissionToChange.setAnswer(answer.get());
-                    } else {
-                        log.error("An answer with id {} does not exist or does not belong to the question with id {}", questionSubmissionDto.getAnswerId(), questionSubmissionToChange.getQuestion().getQuestionId());
-                    }
                     questionSubmissionList.add(questionSubmissionToChange);
                 }
             }

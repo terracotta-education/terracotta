@@ -62,7 +62,7 @@ public interface APIJWTService {
 
     void questionAllowed(SecurityInfo securityInfo, Long assessmentId, Long questionId) throws QuestionNotMatchingException;
 
-    void answerAllowed(SecurityInfo securityInfo, Long assessmentId, Long questionId, Long answerId) throws AnswerNotMatchingException;
+    void answerAllowed(SecurityInfo securityInfo, Long assessmentId, Long questionId, String answerType, Long answerId) throws AnswerNotMatchingException;
 
     void submissionAllowed(SecurityInfo securityInfo, Long assessmentId, Long submissionId) throws SubmissionNotMatchingException;
 
@@ -75,4 +75,6 @@ public interface APIJWTService {
     void outcomeAllowed(SecurityInfo securityInfo, Long experimentId, Long exposureId, Long outcomeId) throws OutcomeNotMatchingException;
 
     void outcomeScoreAllowed(SecurityInfo securityInfo, Long outcomeId, Long outcomeScoreId) throws OutcomeScoreNotMatchingException;
+
+    void answerSubmissionAllowed(SecurityInfo securityInfo, Long QuestionSubmissionId, String answerType, Long answerSubmissionId) throws AnswerSubmissionNotMatchingException;
 }

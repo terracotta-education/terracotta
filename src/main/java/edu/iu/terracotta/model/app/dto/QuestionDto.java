@@ -10,11 +10,10 @@ public class QuestionDto {
 
     private Long questionId;
     private String html;
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    private List<AnswerDto> answers;
     private Float points;
     private Long assessmentId;
     private Integer questionOrder;
+    private String questionType;
 
 
     public Long getQuestionId() { return questionId; }
@@ -24,12 +23,6 @@ public class QuestionDto {
     public String getHtml() { return html; }
 
     public void setHtml(String html) { this.html = html; }
-
-    public List<AnswerDto> getAnswers() { return answers; }
-
-    public void setAnswers(List<AnswerDto> answers) {
-        this.answers = answers;
-    }
 
     public Float getPoints() { return points; }
 
@@ -42,4 +35,8 @@ public class QuestionDto {
     public Integer getQuestionOrder() { return questionOrder; }
 
     public void setQuestionOrder(Integer questionOrder) { this.questionOrder = questionOrder; }
+
+    public String getQuestionType() { return questionType; }
+
+    public void setQuestionType(String questionType) { this.questionType = questionType; }
 }

@@ -202,8 +202,13 @@ public class ExperimentController {
                         HttpStatus.NOT_FOUND);
             }
             Experiment experimentToChange = experimentSearchResult.get();
-            experimentToChange.setDescription(experimentDto.getDescription());
+            if(!StringUtils.isBlank(experimentDto.getTitle())) {
+                if (experimentService.titleAlreadyExists(experimentDto.getTitle(), securityInfo.getContextId())) {
+                    return new ResponseEntity("Unable to update the experiment. An experiment with title \"" + experimentDto.getTitle() + "\" already exists in this course.", HttpStatus.CONFLICT);
+                }
+            }
             experimentToChange.setTitle(experimentDto.getTitle());
+            experimentToChange.setDescription(experimentDto.getDescription());
             if (experimentDto.getExposureType() != null) {
                 if (EnumUtils.isValidEnum(ExposureTypes.class, experimentDto.getExposureType())) {
                 experimentToChange.setExposureType(

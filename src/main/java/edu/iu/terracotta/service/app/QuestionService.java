@@ -20,6 +20,8 @@ public interface QuestionService {
 
     Optional<Question> findById(Long id);
 
+    Question findByQuestionId(Long id);
+
     void saveAndFlush(Question questionToChange);
 
     void saveAllQuestions(List<Question> questionList);

@@ -106,6 +106,14 @@ public class RestResponseEntityExceptionHandler
     }
 
     @ExceptionHandler(value
+            = {AnswerSubmissionNotMatchingException.class})
+    protected ResponseEntity<Object> handleAnswerSubmissionNotMatchingException(
+            AnswerSubmissionNotMatchingException ex, WebRequest request) {
+        String bodyOfResponse = TextConstants.ANSWER_SUBMISSION_NOT_MATCHING;
+        return handleExceptionInternal(ex, bodyOfResponse,
+                new HttpHeaders(), HttpStatus.UNAUTHORIZED, request);
+    }
+    @ExceptionHandler(value
             = {GroupNotMatchingException.class})
     protected ResponseEntity<Object> handleGroupNotMatchingException(
             GroupNotMatchingException ex, WebRequest request) {

@@ -1,32 +1,40 @@
 package edu.iu.terracotta.service.app;
 
 import edu.iu.terracotta.exceptions.DataServiceException;
-import edu.iu.terracotta.model.app.Answer;
+import edu.iu.terracotta.model.app.AnswerMc;
 import edu.iu.terracotta.model.app.dto.AnswerDto;
+import edu.iu.terracotta.model.oauth2.SecurityInfo;
+import org.apache.http.HttpHeaders;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
 import java.util.Optional;
 
 public interface AnswerService {
 
-    List<Answer> findAllByQuestionId(Long questionId);
+    //METHODS FOR MC ANSWERS
+    List<AnswerMc> findAllByQuestionIdMC(Long questionId);
 
-    AnswerDto toDto(Answer answer);
+    AnswerDto toDtoMC(AnswerMc answer);
 
-    Answer fromDto(AnswerDto answerDto) throws DataServiceException;
+    AnswerMc fromDtoMC(AnswerDto answerDto) throws DataServiceException;
 
-    Answer save(Answer answer);
+    AnswerMc saveMC(AnswerMc answer);
 
-    Optional<Answer> findById(Long id);
+    Optional<AnswerMc> findByIdMC(Long id);
 
-    Optional<Answer> findByQuestionIdAndAnswerId(Long questionId, Long answerId);
+    Optional<AnswerMc> findByQuestionIdAndAnswerId(Long questionId, Long answerId);
 
-    void saveAndFlush(Answer answerToChange);
+    void saveAndFlushMC(AnswerMc answerToChange);
 
-    void saveAllAnswers(List<Answer> answerList);
+    void saveAllAnswersMC(List<AnswerMc> answerList);
 
-    void deleteById(Long id) throws EmptyResultDataAccessException;
+    void deleteByIdMC(Long id) throws EmptyResultDataAccessException;
 
-    boolean answerBelongsToAssessmentAndQuestion(Long assessmentId, Long questionId, Long answerId);
+    boolean mcAnswerBelongsToQuestionAndAssessment(Long assessmentId, Long questionId, Long answerId);
+
+
+    //METHODS FOR ALL ANSWER TYPES
+    String answerNotFound(SecurityInfo securityInfo, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId, Long questionId, Long answerId);
 }

@@ -1,15 +1,17 @@
 package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.exceptions.DataServiceException;
-import edu.iu.terracotta.model.app.Answer;
+import edu.iu.terracotta.model.app.AnswerMc;
 import edu.iu.terracotta.model.app.Question;
 import edu.iu.terracotta.model.app.dto.AnswerDto;
+import edu.iu.terracotta.model.oauth2.SecurityInfo;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.AnswerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import org.springframework.transaction.annotation.Transactional;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -19,28 +21,33 @@ public class AnswerServiceImpl implements AnswerService {
     @Autowired
     AllRepositories allRepositories;
 
+
+    /*
+    MULTIPLE CHOICE
+     */
     @Override
-    public List<Answer> findAllByQuestionId(Long questionId) {
-        return allRepositories.answerRepository.findByQuestion_QuestionId(questionId);
+    public List<AnswerMc> findAllByQuestionIdMC(Long questionId) {
+        return allRepositories.answerMcRepository.findByQuestion_QuestionId(questionId);
     }
 
     @Override
-    public AnswerDto toDto(Answer answer) {
+    public AnswerDto toDtoMC(AnswerMc answer) {
         AnswerDto answerDto = new AnswerDto();
-        answerDto.setAnswerId(answer.getAnswerId());
+        answerDto.setAnswerId(answer.getAnswerMcId());
         answerDto.setHtml(answer.getHtml());
         answerDto.setCorrect(answer.getCorrect());
         answerDto.setAnswerOrder(answer.getAnswerOrder());
         answerDto.setQuestionId(answer.getQuestion().getQuestionId());
+        answerDto.setAnswerType("MC");
 
         return answerDto;
     }
 
     @Override
-    public Answer fromDto(AnswerDto answerDto) throws DataServiceException {
+    public AnswerMc fromDtoMC(AnswerDto answerDto) throws DataServiceException {
 
-        Answer answer = new Answer();
-        answer.setAnswerId(answerDto.getAnswerId());
+        AnswerMc answer = new AnswerMc();
+        answer.setAnswerMcId(answerDto.getAnswerId());
         answer.setHtml(answerDto.getHtml());
         answer.setCorrect(answerDto.getCorrect());
         answer.setAnswerOrder(answerDto.getAnswerOrder());
@@ -54,28 +61,36 @@ public class AnswerServiceImpl implements AnswerService {
     }
 
     @Override
-    public Answer save(Answer answer) { return allRepositories.answerRepository.save(answer); }
+    public AnswerMc saveMC(AnswerMc answer) { return allRepositories.answerMcRepository.save(answer); }
 
     @Override
-    public Optional<Answer> findById(Long id) { return allRepositories.answerRepository.findById(id); }
+    public Optional<AnswerMc> findByIdMC(Long id) { return allRepositories.answerMcRepository.findById(id); }
 
     @Override
-    public Optional<Answer> findByQuestionIdAndAnswerId(Long questionId, Long answerId) {
-        return allRepositories.answerRepository.findByQuestion_QuestionIdAndAnswerId(questionId, answerId);
+    public Optional<AnswerMc> findByQuestionIdAndAnswerId(Long questionId, Long answerId) {
+        return allRepositories.answerMcRepository.findByQuestion_QuestionIdAndAnswerMcId(questionId, answerId);
     }
 
     @Override
-    public void saveAndFlush(Answer answerTOChange) { allRepositories.answerRepository.saveAndFlush(answerTOChange); }
+    public void saveAndFlushMC(AnswerMc answerTOChange) { allRepositories.answerMcRepository.saveAndFlush(answerTOChange); }
 
     @Override
     @Transactional
-    public void saveAllAnswers(List<Answer> answerList) { allRepositories.answerRepository.saveAll(answerList); }
+    public void saveAllAnswersMC(List<AnswerMc> answerList) { allRepositories.answerMcRepository.saveAll(answerList); }
 
     @Override
-    public void deleteById(Long id) { allRepositories.answerRepository.deleteById(id); }
+    public void deleteByIdMC(Long id) { allRepositories.answerMcRepository.deleteById(id); }
 
     @Override
-    public boolean answerBelongsToAssessmentAndQuestion(Long assessmentId, Long questionId, Long answerId) {
-        return allRepositories.answerRepository.existsByQuestion_Assessment_AssessmentIdAndQuestion_QuestionIdAndAnswerId(assessmentId, questionId, answerId);
+    public boolean mcAnswerBelongsToQuestionAndAssessment(Long assessmentId, Long questionId, Long answerId) {
+        return allRepositories.answerMcRepository.existsByQuestion_Assessment_AssessmentIdAndQuestion_QuestionIdAndAnswerMcId(assessmentId, questionId, answerId);
     }
+
+    @Override
+    public String answerNotFound(SecurityInfo securityInfo, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId, Long questionId, Long answerId) {
+        return "Answer in platform " + securityInfo.getPlatformDeploymentId() + " and context " + securityInfo.getContextId()
+                + " and experiment with id " + experimentId + " and condition id " + conditionId + " and treatment id " + treatmentId + " and assessment id " + assessmentId
+                + " and question id " + questionId + " with id " + answerId + " not found.";
+    }
+
 }

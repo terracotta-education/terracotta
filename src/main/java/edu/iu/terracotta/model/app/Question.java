@@ -1,9 +1,12 @@
 package edu.iu.terracotta.model.app;
 
 import edu.iu.terracotta.model.BaseEntity;
+import edu.iu.terracotta.model.app.enumerator.QuestionTypes;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
@@ -26,9 +29,6 @@ public class Question extends BaseEntity {
     @Lob
     private String html;
 
-    @OneToMany(mappedBy = "question", orphanRemoval = true)
-    private List<Answer> answers;
-
     @Column(name = "points")
     private Float points;
 
@@ -39,6 +39,10 @@ public class Question extends BaseEntity {
     @Column(name = "question_order")
     private Integer questionOrder;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "question_type")
+    private QuestionTypes questionType;
+
 
     public Long getQuestionId() { return questionId; }
 
@@ -47,10 +51,6 @@ public class Question extends BaseEntity {
     public String getHtml() { return html; }
 
     public void setHtml(String html) { this.html = html; }
-
-    public List<Answer> getAnswers() { return answers; }
-
-    public void setAnswers(List<Answer> answers) { this.answers = answers; }
 
     public Float getPoints() { return points; }
 
@@ -63,4 +63,8 @@ public class Question extends BaseEntity {
     public Integer getQuestionOrder() { return questionOrder; }
 
     public void setQuestionOrder(Integer questionOrder) { this.questionOrder = questionOrder; }
+
+    public QuestionTypes getQuestionType() { return questionType; }
+
+    public void setQuestionType(QuestionTypes questionType) { this.questionType = questionType; }
 }
