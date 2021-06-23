@@ -109,6 +109,9 @@ public class APIJWTServiceImpl implements APIJWTService {
     @Autowired
     OutcomeScoreService outcomeScoreService;
 
+    @Autowired
+    AnswerSubmissionService answerSubmissionService;
+
     private static final String JWT_REQUEST_HEADER_NAME = "Authorization";
     private static final String JWT_BEARER_TYPE = "Bearer";
     private static final String QUERY_PARAM_NAME = "token";
@@ -394,10 +397,26 @@ public class APIJWTServiceImpl implements APIJWTService {
     }
 
     @Override
-    public void answerAllowed(SecurityInfo securityInfo, Long assessmentId, Long questionId, Long answerId) throws AnswerNotMatchingException {
-        if(!answerService.answerBelongsToAssessmentAndQuestion(assessmentId, questionId, answerId)) {
-            throw new AnswerNotMatchingException(TextConstants.ANSWER_NOT_MATCHING);
+    public void answerAllowed(SecurityInfo securityInfo, Long assessmentId, Long questionId, String answerType, Long answerId) throws AnswerNotMatchingException {
+        if(answerType.equals("MC")){
+            if(!answerService.mcAnswerBelongsToQuestionAndAssessment(assessmentId, questionId, answerId)) {
+                throw new AnswerNotMatchingException(TextConstants.ANSWER_NOT_MATCHING);
+            }
+        } //Note: as more answer types are added, continue checking. Same exception can be thrown.
+    }
+
+    @Override
+    public void answerSubmissionAllowed(SecurityInfo securityInfo, Long questionSubmissionId, String answerType, Long answerSubmissionId) throws AnswerSubmissionNotMatchingException{
+        if(answerType.equals("MC")){
+            if(!answerSubmissionService.mcAnswerSubmissionBelongsToQuestionSubmission(questionSubmissionId, answerSubmissionId)){
+                throw new AnswerSubmissionNotMatchingException(TextConstants.ANSWER_SUBMISSION_NOT_MATCHING);
+            }
+        } else if(answerType.equals("ESSAY")){
+            if(!answerSubmissionService.essayAnswerSubmissionBelongsToQuestionSubmission(questionSubmissionId, answerSubmissionId)){
+                throw new AnswerSubmissionNotMatchingException(TextConstants.ANSWER_SUBMISSION_NOT_MATCHING);
+            }
         }
+        //Note: as more answer submission types are added, continue checking. Same exception can be thrown.
     }
 
     @Override
@@ -441,4 +460,5 @@ public class APIJWTServiceImpl implements APIJWTService {
             throw new OutcomeScoreNotMatchingException(TextConstants.OUTCOME_SCORE_NOT_MATCHING);
         }
     }
+
 }

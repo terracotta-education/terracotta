@@ -14,4 +14,6 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
 
     Optional<Question> findByAssessment_AssessmentIdAndQuestionId(Long assessmentId, Long questionId);
 
+    Question findByQuestionId(Long questionId);
+
 }

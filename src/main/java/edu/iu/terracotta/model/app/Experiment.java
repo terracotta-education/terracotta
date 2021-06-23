@@ -195,6 +195,4 @@ TODO: consentDocId (future, when consent table is created)
     public void setParticipants(List<Participant> participants) {
         this.participants = participants;
     }
-
-
 }

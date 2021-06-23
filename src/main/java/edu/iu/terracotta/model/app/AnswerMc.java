@@ -12,13 +12,13 @@ import javax.persistence.Lob;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 
-@Table(name = "terr_answer")
+@Table(name = "terr_answer_mc")
 @Entity
-public class Answer extends BaseEntity {
+public class AnswerMc extends BaseEntity {
     @Column(name = "answer_id", nullable = false)
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long answerId;
+    private Long answerMcId;
 
     @Column(name = "html")
     @Lob
@@ -35,9 +35,9 @@ public class Answer extends BaseEntity {
     private Integer answerOrder;
 
 
-    public Long getAnswerId() { return answerId; }
+    public Long getAnswerMcId() { return answerMcId; }
 
-    public void setAnswerId(Long answerId) { this.answerId = answerId; }
+    public void setAnswerMcId(Long answerMcId) { this.answerMcId = answerMcId; }
 
     public String getHtml() { return html; }
 

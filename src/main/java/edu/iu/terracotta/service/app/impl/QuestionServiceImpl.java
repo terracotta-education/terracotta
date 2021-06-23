@@ -1,20 +1,20 @@
 package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.exceptions.DataServiceException;
-import edu.iu.terracotta.model.app.Answer;
 import edu.iu.terracotta.model.app.Assessment;
 import edu.iu.terracotta.model.app.Question;
-import edu.iu.terracotta.model.app.dto.AnswerDto;
 import edu.iu.terracotta.model.app.dto.QuestionDto;
+import edu.iu.terracotta.model.app.enumerator.QuestionTypes;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.AnswerService;
 import edu.iu.terracotta.service.app.QuestionService;
+import org.apache.commons.lang3.EnumUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.stereotype.Component;
 
 import org.springframework.transaction.annotation.Transactional;
-import java.util.ArrayList;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -39,16 +39,9 @@ public class QuestionServiceImpl implements QuestionService {
         questionDto.setQuestionId(question.getQuestionId());
         questionDto.setHtml(question.getHtml());
         questionDto.setQuestionOrder(question.getQuestionOrder());
-        List<AnswerDto> answerDtoList = new ArrayList<>();
-        if(answers){
-            List<Answer> answerList = allRepositories.answerRepository.findByQuestion_QuestionId(question.getQuestionId());
-            for(Answer answer : answerList) {
-                answerDtoList.add(answerService.toDto(answer));
-            }
-        }
-        questionDto.setAnswers(answerDtoList);
         questionDto.setPoints(question.getPoints());
         questionDto.setAssessmentId(question.getAssessment().getAssessmentId());
+        questionDto.setQuestionType(question.getQuestionType().name());
 
         return questionDto;
     }
@@ -61,6 +54,7 @@ public class QuestionServiceImpl implements QuestionService {
         question.setHtml(questionDto.getHtml());
         question.setPoints(questionDto.getPoints());
         question.setQuestionOrder(questionDto.getQuestionOrder());
+        question.setQuestionType(EnumUtils.getEnum(QuestionTypes.class, questionDto.getQuestionType()));
         Optional<Assessment> assessment = allRepositories.assessmentRepository.findById(questionDto.getAssessmentId());
         if(assessment.isPresent()) {
             question.setAssessment(assessment.get());
@@ -89,5 +83,10 @@ public class QuestionServiceImpl implements QuestionService {
     @Override
     public boolean questionBelongsToAssessment(Long assessmentId, Long questionId) {
         return allRepositories.questionRepository.existsByAssessment_AssessmentIdAndQuestionId(assessmentId, questionId);
+    }
+
+    @Override
+    public Question findByQuestionId(Long id) {
+        return allRepositories.questionRepository.findByQuestionId(id);
     }
 }

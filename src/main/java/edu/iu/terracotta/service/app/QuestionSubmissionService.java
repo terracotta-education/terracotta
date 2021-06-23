@@ -20,6 +20,8 @@ public interface QuestionSubmissionService {
 
     Optional<QuestionSubmission> findById(Long id);
 
+    QuestionSubmission findByQuestionSubmissionId(Long id);
+
     boolean existsByAssessmentIdAndQuestionId(Long assessmentId, Long questionId);
 
     void saveAndFlush(QuestionSubmission questionSubmissionToChange);
