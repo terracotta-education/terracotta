@@ -8,7 +8,7 @@
 		>
 			<v-text-field
 				v-model="experiment.title"
-				:rules="requiredText"
+				:rules="rules"
 				label="Experiment title"
 				placeholder="e.g. Lorem ipsum"
 				autofocus
@@ -41,8 +41,9 @@ export default {
 	name: 'DesignTitle',
 	props: ['experiment'],
 	data: () => ({
-		requiredText: [
-			v => !!v || 'Title is required'
+		rules: [
+      v => v && !!v.trim() || 'Title is required',
+      v => (v || '').length <= 255 || 'A maximum of 255 characters is allowed'
 		],
 	}),
 	methods: {

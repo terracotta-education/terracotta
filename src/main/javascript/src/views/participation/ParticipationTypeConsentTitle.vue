@@ -11,7 +11,7 @@
     >
       <v-text-field
         v-model="title"
-        :rules="requiredText"
+        :rules="rules"
         label="Assignment title"
         placeholder="e.g. Lorem ipsum"
         autofocus
@@ -32,7 +32,7 @@
 </template>
 
 <script>
-import {mapGetters} from "vuex";
+import {mapGetters} from 'vuex';
 
 export default {
   name: 'ParticipationTypeConsentTitle',
@@ -43,7 +43,6 @@ export default {
     }),
     title: {
       get() {
-        console.log(this.consent)
         return this.consent.title
       },
       set(value) {
@@ -53,9 +52,10 @@ export default {
     }
   },
   data: () => ({
-    titleProxy: "",
-    requiredText: [
-      v => !!v || 'Title is required'
+    titleProxy: '',
+    rules: [
+      v => v && !!v.trim() || 'Title is required',
+      v => (v || '').length <= 255 || 'A maximum of 255 characters is allowed'
     ],
   }),
   methods: {
