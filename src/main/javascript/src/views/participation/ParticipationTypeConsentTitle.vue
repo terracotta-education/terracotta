@@ -11,7 +11,7 @@
     >
       <v-text-field
         v-model="title"
-        :rules="requiredText"
+        :rules="rules"
         label="Assignment title"
         placeholder="e.g. Lorem ipsum"
         autofocus
@@ -54,8 +54,9 @@ export default {
   },
   data: () => ({
     titleProxy: "",
-    requiredText: [
-      v => !!v || 'Title is required'
+    rules: [
+      v => !!v || 'Title is required',
+      v => (v || '').length <= 255 || 'A maximum of 255 characters is allowed'
     ],
   }),
   methods: {
