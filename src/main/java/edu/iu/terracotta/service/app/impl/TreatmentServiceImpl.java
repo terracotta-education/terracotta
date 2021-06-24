@@ -70,7 +70,7 @@ public class TreatmentServiceImpl implements TreatmentService {
     public void saveAndFlush(Treatment treatmentToChange) { allRepositories.treatmentRepository.saveAndFlush(treatmentToChange); }
 
     @Override
-    public void deleteById(Long id) { allRepositories.treatmentRepository.deleteById(id); }
+    public void deleteById(Long id) { allRepositories.treatmentRepository.deleteByTreatmentId(id); }
 
     @Override
     public boolean treatmentBelongsToExperimentAndCondition(Long experimentId, Long conditionId, Long treatmentId) {

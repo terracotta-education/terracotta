@@ -23,6 +23,7 @@ public class OutcomeScore extends BaseEntity {
 
     @JoinColumn(name = "outcome_outcome_id", nullable = false)
     @ManyToOne(optional = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Outcome outcome;
 
     @JoinColumn(name = "participant_participant_id", nullable = false)

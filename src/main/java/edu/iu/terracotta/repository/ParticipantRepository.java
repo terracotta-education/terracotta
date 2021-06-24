@@ -2,6 +2,9 @@ package edu.iu.terracotta.repository;
 
 import edu.iu.terracotta.model.app.Participant;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -18,5 +21,8 @@ public interface ParticipantRepository extends JpaRepository<Participant, Long> 
 
   boolean existsByExperiment_ExperimentIdAndParticipantId(Long experimentId, Long participantId);
 
-
+  @Transactional
+  @Modifying
+  @Query("delete from Participant s where s.participantId = ?1")
+  void deleteByParticipantId(Long participantId);
 }

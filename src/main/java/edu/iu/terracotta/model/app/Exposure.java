@@ -1,6 +1,8 @@
 package edu.iu.terracotta.model.app;
 
 import edu.iu.terracotta.model.BaseEntity;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
@@ -26,13 +28,14 @@ public class Exposure extends BaseEntity {
     // Experiment ID
     @JoinColumn(name = "experiment_experiment_id", nullable = false)
     @ManyToOne(optional = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Experiment experiment;
 
     // Title
     @Column(name = "title")
     private String title;
 
-    @OneToMany(mappedBy = "exposure", orphanRemoval = true)
+    @OneToMany(mappedBy = "exposure")
     private List<Outcome> outcomes;
 
 

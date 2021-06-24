@@ -71,7 +71,7 @@ public class QuestionSubmissionCommentServiceImpl implements QuestionSubmissionC
     }
 
     @Override
-    public void deleteById(Long id) throws EmptyResultDataAccessException { allRepositories.questionSubmissionCommentRepository.deleteById(id); }
+    public void deleteById(Long id) throws EmptyResultDataAccessException { allRepositories.questionSubmissionCommentRepository.deleteByQuestionSubmissionCommentId(id); }
 
     @Override
     public boolean questionSubmissionCommentBelongsToQuestionSubmission(Long questionSubmissionId, Long questionSubmissionCommentId){

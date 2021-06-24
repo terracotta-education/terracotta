@@ -149,7 +149,9 @@ public class SubmissionServiceImpl implements SubmissionService {
     public void saveAndFlush(Submission submissionToChange) { allRepositories.submissionRepository.saveAndFlush(submissionToChange); }
 
     @Override
-    public void deleteById(Long id) throws EmptyResultDataAccessException { allRepositories.submissionRepository.deleteById(id); }
+    public void deleteById(Long id) throws EmptyResultDataAccessException {
+        allRepositories.submissionRepository.deleteBySubmissionId(id);
+    }
 
     @Override
     public boolean submissionBelongsToAssessment(Long assessmentId, Long submissionId) {

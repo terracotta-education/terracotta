@@ -79,7 +79,7 @@ public class AssignmentServiceImpl implements AssignmentService {
     public void saveAndFlush(Assignment assignmentToChange) { allRepositories.assignmentRepository.saveAndFlush(assignmentToChange); }
 
     @Override
-    public void deleteById(Long id) throws EmptyResultDataAccessException { allRepositories.assignmentRepository.deleteById(id); }
+    public void deleteById(Long id) throws EmptyResultDataAccessException { allRepositories.assignmentRepository.deleteByAssignmentId(id); }
 
     @Override
     public boolean assignmentBelongsToExperimentAndExposure(Long experimentId, Long exposureId, Long assignmentId) {

@@ -124,7 +124,7 @@ public class ExposureServiceImpl implements ExposureService {
     public void saveAndFlush(Exposure exposureToChange) { allRepositories.exposureRepository.saveAndFlush(exposureToChange); }
 
     @Override
-    public void deleteById(Long id) throws EmptyResultDataAccessException { allRepositories.exposureRepository.deleteById(id); }
+    public void deleteById(Long id) throws EmptyResultDataAccessException { allRepositories.exposureRepository.deleteByExposureId(id); }
 
     @Override
     public boolean exposureBelongsToExperiment(Long experimentId, Long exposureId) {

@@ -79,7 +79,7 @@ public class AnswerServiceImpl implements AnswerService {
     public void saveAllAnswersMC(List<AnswerMc> answerList) { allRepositories.answerMcRepository.saveAll(answerList); }
 
     @Override
-    public void deleteByIdMC(Long id) { allRepositories.answerMcRepository.deleteById(id); }
+    public void deleteByIdMC(Long id) { allRepositories.answerMcRepository.deleteByAnswerMcId(id); }
 
     @Override
     public boolean mcAnswerBelongsToQuestionAndAssessment(Long assessmentId, Long questionId, Long answerId) {

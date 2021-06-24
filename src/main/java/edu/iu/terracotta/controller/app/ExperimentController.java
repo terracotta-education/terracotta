@@ -157,7 +157,7 @@ public class ExperimentController {
             experimentDto = experimentService.fillContextInfo(experimentDto, securityInfo);
             try {
                 if(!StringUtils.isBlank(experimentDto.getTitle())){
-                    if(experimentService.titleAlreadyExists(experimentDto.getTitle(), securityInfo.getContextId())){
+                    if(experimentService.titleAlreadyExists(experimentDto.getTitle(), securityInfo.getContextId(), 0l)){
                         return new ResponseEntity("Unable to create the experiment. An experiment with title \"" + experimentDto.getTitle() + "\" already exists in this course.", HttpStatus.CONFLICT);
                     }
                 }
@@ -203,7 +203,7 @@ public class ExperimentController {
             }
             Experiment experimentToChange = experimentSearchResult.get();
             if(!StringUtils.isBlank(experimentDto.getTitle())) {
-                if (experimentService.titleAlreadyExists(experimentDto.getTitle(), securityInfo.getContextId())) {
+                if (experimentService.titleAlreadyExists(experimentDto.getTitle(), securityInfo.getContextId(), experimentToChange.getExperimentId())) {
                     return new ResponseEntity("Unable to update the experiment. An experiment with title \"" + experimentDto.getTitle() + "\" already exists in this course.", HttpStatus.CONFLICT);
                 }
             }

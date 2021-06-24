@@ -82,7 +82,7 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
     public void saveAllAnswersMC(List<AnswerMcSubmission> answerMcSubmissions) { allRepositories.answerMcSubmissionRepository.saveAll(answerMcSubmissions); }
 
     @Override
-    public void deleteByIdMC(Long id) throws EmptyResultDataAccessException{ allRepositories.answerMcSubmissionRepository.deleteById(id); }
+    public void deleteByIdMC(Long id) throws EmptyResultDataAccessException{ allRepositories.answerMcSubmissionRepository.deleteByAnswerMcSubId(id); }
 
     @Override
     public boolean mcAnswerSubmissionBelongsToQuestionSubmission(Long questionSubmissionId, Long answerMcSubmissionId){
@@ -136,7 +136,7 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
     public void saveAllAnswersEssay(List<AnswerEssaySubmission> answerList) { allRepositories.answerEssaySubmissionRepository.saveAll(answerList); }
 
     @Override
-    public void deleteByIdEssay(Long id) { allRepositories.answerEssaySubmissionRepository.deleteById(id); }
+    public void deleteByIdEssay(Long id) { allRepositories.answerEssaySubmissionRepository.deleteByAnswerEssaySubmissionId(id); }
 
     @Override
     public boolean essayAnswerSubmissionBelongsToQuestionSubmission(Long questionSubmissionId, Long answerSubmissionId){
