@@ -25,7 +25,7 @@
       </fieldset>
 
       <v-btn
-        :disabled="!selectedDefault"
+        :disabled="!inputConditionId"
         :to="{name: 'ExperimentDesignSummary', params:{experiment: experiment.experimentId}}"
         elevation="0"
         color="primary"
