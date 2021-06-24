@@ -31,14 +31,18 @@ public class AnswerServiceImpl implements AnswerService {
     }
 
     @Override
-    public AnswerDto toDtoMC(AnswerMc answer) {
+    public AnswerDto toDtoMC(AnswerMc answer, boolean student) {
         AnswerDto answerDto = new AnswerDto();
         answerDto.setAnswerId(answer.getAnswerMcId());
         answerDto.setHtml(answer.getHtml());
-        answerDto.setCorrect(answer.getCorrect());
         answerDto.setAnswerOrder(answer.getAnswerOrder());
         answerDto.setQuestionId(answer.getQuestion().getQuestionId());
         answerDto.setAnswerType("MC");
+        if(student){
+            answerDto.setCorrect(null);
+        } else {
+            answerDto.setCorrect(answer.getCorrect());
+        }
 
         return answerDto;
     }

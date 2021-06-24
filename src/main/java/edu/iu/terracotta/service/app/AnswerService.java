@@ -16,7 +16,7 @@ public interface AnswerService {
     //METHODS FOR MC ANSWERS
     List<AnswerMc> findAllByQuestionIdMC(Long questionId);
 
-    AnswerDto toDtoMC(AnswerMc answer);
+    AnswerDto toDtoMC(AnswerMc answer, boolean student);
 
     AnswerMc fromDtoMC(AnswerDto answerDto) throws DataServiceException;
 

@@ -184,8 +184,7 @@ public class SubmissionController {
 
                 HttpHeaders headers = new HttpHeaders();
                 headers.setLocation(ucBuilder.path("/api/experiments/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}")
-                        .buildAndExpand(submission.getAssessment().getTreatment().getCondition().getExperiment().getExperimentId(), submission.getAssessment().getTreatment().getCondition().getConditionId(),
-                                submission.getAssessment().getTreatment().getTreatmentId(), submission.getAssessment().getAssessmentId(), submission.getSubmissionId()).toUri());
+                        .buildAndExpand(experimentId, conditionId, treatmentId, assessmentId, submission.getSubmissionId()).toUri());
                 return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
             } else {
                 return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);

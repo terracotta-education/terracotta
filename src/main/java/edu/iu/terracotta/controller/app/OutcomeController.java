@@ -161,7 +161,7 @@ public class OutcomeController {
 
             HttpHeaders headers = new HttpHeaders();
             headers.setLocation(ucBuilder.path("/api/experiments/{experiment_id}/exposures/{exposure_id}/outcomes/{outcome_id}")
-                    .buildAndExpand(outcome.getExposure().getExperiment().getExperimentId(), outcome.getExposure().getExposureId(), outcome.getOutcomeId()).toUri());
+                    .buildAndExpand(experimentId, exposureId, outcome.getOutcomeId()).toUri());
             return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
