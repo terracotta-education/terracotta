@@ -181,8 +181,7 @@ public class AssessmentController {
 
             HttpHeaders headers = new HttpHeaders();
             headers.setLocation(ucBuilder.path("/api/experiments/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}")
-                    .buildAndExpand(assessment.getTreatment().getCondition().getExperiment().getExperimentId(), assessment.getTreatment().getCondition().getConditionId(),
-                                    assessment.getTreatment().getTreatmentId(), assessment.getAssessmentId()).toUri());
+                    .buildAndExpand(experimentId, conditionId, treatmentId, assessment.getAssessmentId()).toUri());
             return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
@@ -380,8 +379,7 @@ public class AssessmentController {
 
             HttpHeaders headers = new HttpHeaders();
             headers.setLocation(ucBuilder.path("/api/experiments/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/questions/{question_id}")
-                    .buildAndExpand(question.getAssessment().getTreatment().getCondition().getExperiment().getExperimentId(), question.getAssessment().getTreatment().getCondition().getConditionId(),
-                            question.getAssessment().getTreatment().getTreatmentId(), question.getAssessment().getAssessmentId(), question.getQuestionId()).toUri());
+                    .buildAndExpand(experimentId, conditionId, treatmentId, assessmentId, question.getQuestionId()).toUri());
             return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);

@@ -192,11 +192,7 @@ public class QuestionSubmissionCommentController {
 
             HttpHeaders headers = new HttpHeaders();
             headers.setLocation(ucBuilder.path("/api/experiments/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}/question_submissions/{question_submission_id}/question_submission_comments/{question_submission_comment_id}")
-                    .buildAndExpand(questionSubmissionComment.getQuestionSubmission().getSubmission().getAssessment().getTreatment().getCondition().getExperiment().getExperimentId(),
-                            questionSubmissionComment.getQuestionSubmission().getSubmission().getAssessment().getTreatment().getCondition().getConditionId(),
-                            questionSubmissionComment.getQuestionSubmission().getSubmission().getAssessment().getTreatment().getTreatmentId(),
-                            questionSubmissionComment.getQuestionSubmission().getSubmission().getAssessment().getAssessmentId(), questionSubmissionComment.getQuestionSubmission().getSubmission().getSubmissionId(),
-                            questionSubmissionComment.getQuestionSubmission().getQuestionSubmissionId(), questionSubmissionComment.getQuestionSubmissionCommentId()).toUri());
+                    .buildAndExpand(experimentId, conditionId, treatmentId, assessmentId, submissionId, questionSubmissionId, questionSubmissionComment.getQuestionSubmissionCommentId()).toUri());
             return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);

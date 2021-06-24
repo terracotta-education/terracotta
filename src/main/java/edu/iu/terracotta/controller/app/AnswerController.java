@@ -75,6 +75,7 @@ public class AnswerController {
         apijwtService.questionAllowed(securityInfo, assessmentId, questionId);
 
         if(apijwtService.isLearnerOrHigher(securityInfo)) {
+            boolean student = !apijwtService.isInstructorOrHigher(securityInfo);
             Optional<Question> question = questionService.findById(questionId);
             if(question.isPresent()){
                 if (question.get().getQuestionType() == QuestionTypes.MC) {
@@ -82,9 +83,10 @@ public class AnswerController {
                     if (mcAnswerList.isEmpty()) {
                         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
                     }
+
                     List<AnswerDto> answerDtoList = new ArrayList<>();
                     for (AnswerMc mcAnswer : mcAnswerList) {
-                        answerDtoList.add(answerService.toDtoMC(mcAnswer));
+                        answerDtoList.add(answerService.toDtoMC(mcAnswer, student));
                     }
                     return new ResponseEntity<>(answerDtoList, HttpStatus.OK);
                 }
@@ -120,6 +122,7 @@ public class AnswerController {
         apijwtService.answerAllowed(securityInfo, assessmentId, questionId, answerType, answerId);
 
         if(apijwtService.isLearnerOrHigher(securityInfo)) {
+            boolean student = !apijwtService.isInstructorOrHigher(securityInfo);
             if(answerType.equals("MC")){
                 Optional<AnswerMc> mcAnswerSearchResult = answerService.findByIdMC(answerId);
 
@@ -127,7 +130,7 @@ public class AnswerController {
                     log.error(answerService.answerNotFound(securityInfo, experimentId, conditionId, treatmentId, assessmentId, questionId, answerId));
                     return new ResponseEntity(answerService.answerNotFound(securityInfo, experimentId, conditionId, treatmentId, assessmentId, questionId, answerId), HttpStatus.NOT_FOUND);
                 } else {
-                    AnswerDto answerDto = answerService.toDtoMC(mcAnswerSearchResult.get());
+                    AnswerDto answerDto = answerService.toDtoMC(mcAnswerSearchResult.get(), student);
                     return new ResponseEntity<>(answerDto, HttpStatus.OK);
                 }
             } else {
@@ -179,13 +182,11 @@ public class AnswerController {
                     return new ResponseEntity("Unable to create Answer: " + ex.getMessage(), HttpStatus.BAD_REQUEST);
                 }
                 AnswerMc answerMcSaved = answerService.saveMC(answerMc);
-                AnswerDto returnedMcdDto = answerService.toDtoMC(answerMcSaved);
+                AnswerDto returnedMcdDto = answerService.toDtoMC(answerMcSaved, false);
                 HttpHeaders McHeaders = new HttpHeaders();
                 McHeaders.setLocation(ucBuilder.path(
                         "/api/experiments/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/questions/{question_id}/answers/{answer_id}")
-                        .buildAndExpand(answerMc.getQuestion().getAssessment().getTreatment().getCondition().getExperiment().getExperimentId(),
-                                answerMc.getQuestion().getAssessment().getTreatment().getCondition(), answerMc.getQuestion().getAssessment().getTreatment().getTreatmentId(),
-                                answerMc.getQuestion().getAssessment().getAssessmentId(), answerMc.getQuestion().getQuestionId(), answerMc.getAnswerMcId()).toUri());
+                        .buildAndExpand(experimentId, conditionId, treatmentId, assessmentId, questionId, answerMc.getAnswerMcId()).toUri());
                 return new ResponseEntity<>(returnedMcdDto, McHeaders, HttpStatus.CREATED);
             }
             return new ResponseEntity("Answer type not supported.", HttpStatus.BAD_REQUEST);

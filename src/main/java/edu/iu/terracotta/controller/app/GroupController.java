@@ -133,7 +133,7 @@ public class GroupController {
             GroupDto returnedDto = groupService.toDto(groupSaved);
 
             HttpHeaders headers = new HttpHeaders();
-            headers.setLocation(ucBuilder.path("/api/experiment/{experiment_id}/groups/{id}").buildAndExpand(group.getExperiment().getExperimentId(), group.getGroupId()).toUri());
+            headers.setLocation(ucBuilder.path("/api/experiment/{experiment_id}/groups/{id}").buildAndExpand(experimentId, group.getGroupId()).toUri());
             return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
         }else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);

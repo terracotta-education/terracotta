@@ -175,7 +175,7 @@ public class AssignmentController {
 
             HttpHeaders headers = new HttpHeaders();
             headers.setLocation(ucBuilder.path("/api/experiments/{experiment_id}/exposures/{exposure_id}/assignments/{assignment_id}")
-                    .buildAndExpand(assignment.getExposure().getExperiment().getExperimentId(), assignment.getExposure().getExposureId(), assignment.getAssignmentId()).toUri());
+                    .buildAndExpand(experimentId, exposureId, assignment.getAssignmentId()).toUri());
             return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);

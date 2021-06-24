@@ -149,7 +149,7 @@ public class TreatmentController {
 
             HttpHeaders headers = new HttpHeaders();
             headers.setLocation(ucBuilder.path("/api/experiments/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}")
-                .buildAndExpand(treatment.getCondition().getExperiment().getExperimentId(), treatment.getCondition().getConditionId(), treatment.getTreatmentId()).toUri());
+                .buildAndExpand(experimentId, conditionId, treatment.getTreatmentId()).toUri());
             return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
