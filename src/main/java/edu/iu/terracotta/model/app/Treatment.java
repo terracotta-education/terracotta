@@ -29,7 +29,7 @@ public class Treatment extends BaseEntity {
     private Condition condition;
 
     @JoinColumn(name = "assessment_assessment_id")
-    @OneToOne(orphanRemoval = true)
+    @OneToOne
     private Assessment assessment;
 
     @JoinColumn(name = "assignment_assignment_id", nullable = false)

@@ -1,5 +1,7 @@
 package edu.iu.terracotta.service.app;
 
+import edu.iu.terracotta.exceptions.AssignmentDatesException;
+import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.model.app.Participant;
@@ -8,6 +10,7 @@ import edu.iu.terracotta.model.app.dto.SubmissionDto;
 import edu.iu.terracotta.model.oauth2.SecurityInfo;
 import org.springframework.dao.EmptyResultDataAccessException;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 
@@ -35,11 +38,13 @@ public interface SubmissionService {
 
     boolean submissionBelongsToAssessment(Long assessmentId, Long SubmissionId);
 
-    void finalizeAndGrade(Long submissionId, SecurityInfo securityInfo) throws DataServiceException;
+    void finalizeAndGrade(Long submissionId, SecurityInfo securityInfo) throws DataServiceException, CanvasApiException, IOException, AssignmentDatesException;
 
     void grade(Long submissionId, SecurityInfo securityInfo) throws DataServiceException;
 
     Submission gradeSubmission(Submission submission);
 
     void sendSubmissionGradeToCanvas(Submission submission) throws ConnectionException, DataServiceException;
+
+    boolean datesAllowed(Long experimentId, Long treatmentId) throws CanvasApiException, IOException, DataServiceException;
 }

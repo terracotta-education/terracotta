@@ -71,7 +71,7 @@ public class OutcomeScoreServiceImpl implements OutcomeScoreService {
     public void saveAndFlush(OutcomeScore outcomeScoreToChange) { allRepositories.outcomeScoreRepository.saveAndFlush(outcomeScoreToChange); }
 
     @Override
-    public void deleteById(Long id) { allRepositories.outcomeScoreRepository.deleteById(id); }
+    public void deleteById(Long id) { allRepositories.outcomeScoreRepository.deleteByOutcomeScoreId(id); }
 
     @Override
     public boolean outcomeScoreBelongsToOutcome(Long outcomeId, Long outcomeScoreId) {

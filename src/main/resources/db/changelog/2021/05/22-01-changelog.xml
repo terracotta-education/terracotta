@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd">
+
+    <changeSet id="1622668000000-01" author="ddelblanco">
+        <dropForeignKeyConstraint baseTableName="terr_exposure"
+                                  constraintName="FK_TERR_EXPOSURE_ON_EXPERIMENT_EXPERIMENT"/>
+    </changeSet>
+    <changeSet id="1622668000000-02" author="ddelblanco">
+        <addForeignKeyConstraint baseColumnNames="experiment_experiment_id" baseTableName="terr_exposure"
+                                 constraintName="FK_TERR_EXPOSURE_ON_EXPERIMENT_EXPERIMENT"
+                                 onDelete="CASCADE"
+                                 referencedColumnNames="experiment_id" referencedTableName="terr_experiment"/>
+    </changeSet>
+    <changeSet id="1622668000000-03" author="ddelblanco">
+        <dropForeignKeyConstraint baseTableName="terr_participant"
+                                  constraintName="FK_TERR_PARTICIPANT_ON_EXPERIMENT_EXPERIMENT"/>
+    </changeSet>
+    <changeSet id="1622668000000-04" author="ddelblanco">
+        <addForeignKeyConstraint baseColumnNames="experiment_experiment_id" baseTableName="terr_participant"
+                                 constraintName="FK_TERR_PARTICIPANT_ON_EXPERIMENT_EXPERIMENT"
+                                 onDelete="CASCADE"
+                                 referencedColumnNames="experiment_id" referencedTableName="terr_experiment"/>
+    </changeSet>
+    <changeSet id="1622668000000-05" author="ddelblanco">
+        <dropForeignKeyConstraint baseTableName="terr_condition"
+                                  constraintName="FK_TERR_CONDITION_ON_EXPERIMENT_EXPERIMENT"/>
+    </changeSet>
+    <changeSet id="1622668000000-06" author="ddelblanco">
+        <addForeignKeyConstraint baseColumnNames="experiment_experiment_id" baseTableName="terr_condition"
+                                 constraintName="FK_TERR_CONDITION_ON_EXPERIMENT_EXPERIMENT"
+                                 onDelete="CASCADE"
+                                 referencedColumnNames="experiment_id" referencedTableName="terr_experiment"/>
+    </changeSet>
+    <changeSet id="1622668000000-07" author="ddelblanco">
+        <dropForeignKeyConstraint baseTableName="terr_outcome"
+                                  constraintName="FK_TERR_OUTCOME_ON_EXPOSURE_EXPOSURE"/>
+    </changeSet>
+    <changeSet id="1622668000000-08" author="ddelblanco">
+        <addForeignKeyConstraint baseColumnNames="exposure_exposure_id" baseTableName="terr_outcome"
+                                 constraintName="FK_TERR_OUTCOME_ON_EXPOSURE_EXPOSURE"
+                                 onDelete="CASCADE"
+                                 referencedColumnNames="exposure_id" referencedTableName="terr_exposure"/>
+    </changeSet>
+    <changeSet id="1622668000000-09" author="ddelblanco">
+        <dropForeignKeyConstraint baseTableName="terr_outcome_score"
+                                  constraintName="FK_TERR_OUTCOME_SCORE_ON_OUTCOME_OUTCOME"/>
+    </changeSet>
+    <changeSet id="1622668000000-10" author="ddelblanco">
+        <addForeignKeyConstraint baseColumnNames="outcome_outcome_id" baseTableName="terr_outcome_score"
+                                 constraintName="FK_TERR_OUTCOME_SCORE_ON_OUTCOME_OUTCOME"
+                                 onDelete="CASCADE"
+                                 referencedColumnNames="outcome_id" referencedTableName="terr_outcome"/>
+    </changeSet>
+    <changeSet id="1622667000000-03" author="ddelblanco">
+        <dropForeignKeyConstraint baseTableName="terr_outcome_score"
+                                  constraintName="FK_TERR_OUTCOME_SCORE_ON_PARTICIPANT_PARTICIPANT"/>
+    </changeSet>
+    <changeSet id="1622667000000-04" author="ddelblanco">
+        <addForeignKeyConstraint baseColumnNames="participant_participant_id" baseTableName="terr_outcome_score"
+                                 constraintName="FK_TERR_OUTCOME_SCORE_ON_PARTICIPANT_PARTICIPANT"
+                                 referencedColumnNames="participant_id" referencedTableName="terr_participant"/>
+    </changeSet>
+
+</databaseChangeLog>

@@ -113,7 +113,7 @@ public class OutcomeServiceImpl implements OutcomeService {
     public void saveAndFlush(Outcome outcomeToChange) { allRepositories.outcomeRepository.saveAndFlush(outcomeToChange); }
 
     @Override
-    public void deleteById(Long id) { allRepositories.outcomeRepository.deleteById(id); }
+    public void deleteById(Long id) { allRepositories.outcomeRepository.deleteByOutcomeId(id); }
 
     @Override
     public boolean outcomeBelongsToExperimentAndExposure(Long experimentId, Long exposureId, Long outcomeId){

@@ -75,7 +75,7 @@ public class ConditionServiceImpl implements ConditionService {
 
     @Override
     public void deleteById(Long id) throws EmptyResultDataAccessException {
-        allRepositories.conditionRepository.deleteById(id);
+        allRepositories.conditionRepository.deleteByConditionId(id);
     }
 
     @Override

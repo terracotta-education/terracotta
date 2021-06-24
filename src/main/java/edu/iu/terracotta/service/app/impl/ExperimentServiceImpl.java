@@ -163,7 +163,7 @@ public class ExperimentServiceImpl implements ExperimentService {
 
     @Override
     public void deleteById(Long id) throws EmptyResultDataAccessException {
-        allRepositories.experimentRepository.deleteById(id);
+        allRepositories.experimentRepository.deleteByExperimentId(id);
     }
 
     @Override
@@ -215,8 +215,8 @@ public class ExperimentServiceImpl implements ExperimentService {
     }
 
     @Override
-    public boolean titleAlreadyExists(String title, Long contextId){
-        return allRepositories.experimentRepository.existsByTitleAndLtiContextEntity_ContextId(title, contextId);
+    public boolean titleAlreadyExists(String title, Long contextId, Long experimentId){
+        return allRepositories.experimentRepository.existsByTitleAndLtiContextEntity_ContextIdAndExperimentIdIsNot(title, contextId, experimentId);
     }
     @Override
     public void copyDto(ExperimentDto existingEmpty, ExperimentDto experimentDto){

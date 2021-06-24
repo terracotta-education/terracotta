@@ -78,7 +78,9 @@ public class QuestionServiceImpl implements QuestionService {
     public void saveAllQuestions(List<Question> questionList) { allRepositories.questionRepository.saveAll(questionList); }
 
     @Override
-    public void deleteById(Long id) throws EmptyResultDataAccessException { allRepositories.questionRepository.deleteById(id); }
+    public void deleteById(Long id) throws EmptyResultDataAccessException {
+        allRepositories.questionRepository.deleteByQuestionId(id);
+    }
 
     @Override
     public boolean questionBelongsToAssessment(Long assessmentId, Long questionId) {

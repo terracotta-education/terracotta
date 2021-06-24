@@ -133,7 +133,7 @@ public class ParticipantServiceImpl implements ParticipantService {
 
     @Override
     public void deleteById(Long id) {
-        allRepositories.participantRepository.deleteById(id);
+        allRepositories.participantRepository.deleteByParticipantId(id);
     }
 
     @Override

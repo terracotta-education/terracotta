@@ -67,19 +67,19 @@ public class Experiment extends BaseEntity {
     private Timestamp started;
 
     @JoinColumn(name = "experiment_experiment_id")
-    @OneToMany(orphanRemoval = true)
+    @OneToMany
     private List<Condition> conditions;
 
     @JoinColumn(name = "experiment_experiment_id")
-    @OneToMany(orphanRemoval = true)
+    @OneToMany
     private List<Exposure> exposures;
 
     @JoinColumn(name = "experiment_experiment_id")
-    @OneToMany(orphanRemoval = true)
+    @OneToMany
     private List<Participant> participants;
 
     @JoinColumn(name = "consent_document_consent_document_id")
-    @OneToOne(orphanRemoval = true)
+    @OneToOne
     private ConsentDocument consentDocument;
 
     @JoinColumn(name = "created_by")
@@ -101,10 +101,6 @@ public class Experiment extends BaseEntity {
     public void setConsentDocument(ConsentDocument consentDocument) {
         this.consentDocument = consentDocument;
     }
-
-/*
-TODO: consentDocId (future, when consent table is created)
-*/
 
     public Timestamp getStarted() {
         return started;

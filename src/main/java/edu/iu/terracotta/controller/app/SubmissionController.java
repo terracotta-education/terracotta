@@ -2,6 +2,7 @@ package edu.iu.terracotta.controller.app;
 
 import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.exceptions.BadTokenException;
+import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.SubmissionNotMatchingException;
@@ -30,6 +31,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.HttpServletRequest;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -147,45 +149,49 @@ public class SubmissionController {
                                                         @RequestBody SubmissionDto submissionDto,
                                                         UriComponentsBuilder ucBuilder,
                                                         HttpServletRequest req)
-                throws ExperimentNotMatchingException, AssessmentNotMatchingException, BadTokenException {
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, BadTokenException, DataServiceException, CanvasApiException, IOException {
 
         log.info("Creating Submission: {}", submissionDto);
         SecurityInfo securityInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securityInfo, experimentId);
         apijwtService.assessmentAllowed(securityInfo, experimentId, conditionId, treatmentId, assessmentId);
 
-        if(apijwtService.isLearnerOrHigher(securityInfo)) {
-            if(submissionDto.getSubmissionId() != null) {
-                log.error(TextConstants.ID_IN_POST_ERROR);
-                return new ResponseEntity(TextConstants.ID_IN_POST_ERROR, HttpStatus.CONFLICT);
-            }
-
-            submissionDto.setAssessmentId(assessmentId);
-            Participant participant = submissionService.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, securityInfo.getUserId());
-            if (participant==null){
-                return new ResponseEntity(TextConstants.PARTICIPANT_NOT_MATCHING + " Participant not in this experiment.", HttpStatus.UNAUTHORIZED);
-            }
-            submissionDto.setParticipantId(participant.getParticipantId());
-            Submission submission;
-            try {
-                if(submissionDto.getAlteredCalculatedGrade() != null || submissionDto.getTotalAlteredGrade() != null){
-                    return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS + " Students cannot alter the grades.", HttpStatus.UNAUTHORIZED);
+        if (submissionService.datesAllowed(experimentId,treatmentId)) {
+            if (apijwtService.isLearnerOrHigher(securityInfo)) {
+                if (submissionDto.getSubmissionId() != null) {
+                    log.error(TextConstants.ID_IN_POST_ERROR);
+                    return new ResponseEntity(TextConstants.ID_IN_POST_ERROR, HttpStatus.CONFLICT);
                 }
-                submission = submissionService.fromDto(submissionDto);
-            } catch (DataServiceException ex) {
-                return new ResponseEntity("Unable to create Submission: " + ex.getMessage(), HttpStatus.BAD_REQUEST);
+
+                submissionDto.setAssessmentId(assessmentId);
+                Participant participant = submissionService.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, securityInfo.getUserId());
+                if (participant == null) {
+                    return new ResponseEntity(TextConstants.PARTICIPANT_NOT_MATCHING + " Participant not in this experiment.", HttpStatus.UNAUTHORIZED);
+                }
+                submissionDto.setParticipantId(participant.getParticipantId());
+                Submission submission;
+                try {
+                    if (submissionDto.getAlteredCalculatedGrade() != null || submissionDto.getTotalAlteredGrade() != null) {
+                        return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS + " Students cannot alter the grades.", HttpStatus.UNAUTHORIZED);
+                    }
+                    submission = submissionService.fromDto(submissionDto);
+                } catch (DataServiceException ex) {
+                    return new ResponseEntity("Unable to create Submission: " + ex.getMessage(), HttpStatus.BAD_REQUEST);
+                }
+
+                Submission submissionSaved = submissionService.save(submission);
+                SubmissionDto returnedDto = submissionService.toDto(submissionSaved, false, false);
+
+                HttpHeaders headers = new HttpHeaders();
+                headers.setLocation(ucBuilder.path("/api/experiments/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}")
+                        .buildAndExpand(submission.getAssessment().getTreatment().getCondition().getExperiment().getExperimentId(), submission.getAssessment().getTreatment().getCondition().getConditionId(),
+                                submission.getAssessment().getTreatment().getTreatmentId(), submission.getAssessment().getAssessmentId(), submission.getSubmissionId()).toUri());
+                return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
+            } else {
+                return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
             }
-
-            Submission submissionSaved = submissionService.save(submission);
-            SubmissionDto returnedDto = submissionService.toDto(submissionSaved, false,false);
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setLocation(ucBuilder.path("/api/experiments/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}")
-                    .buildAndExpand(submission.getAssessment().getTreatment().getCondition().getExperiment().getExperimentId(), submission.getAssessment().getTreatment().getCondition().getConditionId(),
-                                    submission.getAssessment().getTreatment().getTreatmentId(), submission.getAssessment().getAssessmentId(), submission.getSubmissionId()).toUri());
-            return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
         } else {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
+            return new ResponseEntity("Assignment locked", HttpStatus.UNAUTHORIZED);
         }
     }
 
@@ -207,7 +213,8 @@ public class SubmissionController {
         apijwtService.assessmentAllowed(securityInfo, experimentId, conditionId, treatmentId, assessmentId);
         apijwtService.submissionAllowed(securityInfo, assessmentId, submissionId);
 
-        if(apijwtService.isInstructorOrHigher(securityInfo)) {
+        //TODO, does student need to put the submission?
+        if(apijwtService.isLearnerOrHigher(securityInfo)) {
             Optional<Submission> submissionSearchResult = submissionService.findById(submissionId);
 
             if(!submissionSearchResult.isPresent()){
@@ -215,11 +222,14 @@ public class SubmissionController {
                 return new ResponseEntity("Unable to update. Submission with id " + submissionId + TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
             }
             Submission submissionToChange = submissionSearchResult.get();
-            submissionToChange.setAlteredCalculatedGrade(submissionDto.getAlteredCalculatedGrade());
-            submissionToChange.setTotalAlteredGrade(submissionDto.getTotalAlteredGrade());
-            submissionToChange.setLateSubmission(submissionDto.getLateSubmission());
-            submissionToChange.setDateSubmitted(submissionDto.getDateSubmitted());
-
+            if(apijwtService.isInstructorOrHigher(securityInfo)) {
+                submissionToChange.setAlteredCalculatedGrade(submissionDto.getAlteredCalculatedGrade());
+                submissionToChange.setTotalAlteredGrade(submissionDto.getTotalAlteredGrade());
+                // TODO, do we really need to PUT this here? I don't think so.
+                //submissionToChange.setLateSubmission(submissionDto.getLateSubmission());
+                //submissionToChange.setDateSubmitted(submissionDto.getDateSubmitted());
+            }
+            //We still do this with the student because we want to update the last update date.
             submissionService.saveAndFlush(submissionToChange);
             return new ResponseEntity<>(HttpStatus.OK);
         } else {

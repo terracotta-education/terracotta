@@ -91,7 +91,7 @@ public class GroupServiceImpl implements GroupService {
     public void saveAndFlush(Group groupToChange) { allRepositories.groupRepository.saveAndFlush(groupToChange); }
 
     @Override
-    public void deleteById(Long id) throws EmptyResultDataAccessException { allRepositories.groupRepository.deleteById(id); }
+    public void deleteById(Long id) throws EmptyResultDataAccessException { allRepositories.groupRepository.deleteByGroupId(id); }
 
     @Override
     public boolean groupBelongsToExperiment(Long experimentId, Long groupId) {

@@ -96,7 +96,7 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
     public void saveAllQuestionSubmissions(List<QuestionSubmission> questionSubmissionList) { allRepositories.questionSubmissionRepository.saveAll(questionSubmissionList); }
 
     @Override
-    public void deleteById(Long id) { allRepositories.questionSubmissionRepository.deleteById(id); }
+    public void deleteById(Long id) { allRepositories.questionSubmissionRepository.deleteByQuestionSubmissionId(id); }
 
     @Override
     public boolean questionSubmissionBelongsToAssessmentAndSubmission(Long assessmentId, Long submissionId, Long questionSubmissionId) {
