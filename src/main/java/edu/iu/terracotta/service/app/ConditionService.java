@@ -24,4 +24,8 @@ public interface ConditionService {
     void deleteById(Long id) throws EmptyResultDataAccessException;
 
     boolean conditionBelongsToExperiment(Long experimentId, Long conditionId);
+
+    boolean nameAlreadyExists(String name, Long experimentId, Long conditionId);
+
+    boolean isDefaultCondition(Long conditionId);
 }

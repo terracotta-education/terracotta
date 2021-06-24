@@ -15,6 +15,10 @@ public interface ConditionRepository extends JpaRepository<Condition, Long> {
 
     boolean existsByExperiment_ExperimentIdAndConditionId(Long experimentId, Long conditionId);
 
+    boolean existsByNameAndExperiment_ExperimentIdAndConditionIdIsNot(String name, Long experimentId, Long conditionId);
+
+    boolean existsByConditionIdAndDefaultCondition(Long conditionId, Boolean defaultCondition);
+
     @Transactional
     @Modifying
     @Query("delete from Condition s where s.conditionId = ?1")

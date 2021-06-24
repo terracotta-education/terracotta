@@ -16,6 +16,7 @@ import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.OutcomeService;
 import edu.iu.terracotta.utils.TextConstants;
 import org.apache.commons.lang3.EnumUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,7 +25,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -138,6 +138,9 @@ public class OutcomeController {
                 log.error(TextConstants.ID_IN_POST_ERROR);
                 return new ResponseEntity(TextConstants.ID_IN_POST_ERROR, HttpStatus.CONFLICT);
             }
+            if(!StringUtils.isAllBlank(outcomeDto.getTitle()) && outcomeDto.getTitle().length() > 255){
+                return new ResponseEntity("The title must be 255 characters or less.", HttpStatus.BAD_REQUEST);
+            }
 
             outcomeDto.setExposureId(exposureId);
             if(outcomeDto.getExternal() != null) {
@@ -186,8 +189,14 @@ public class OutcomeController {
                 log.error("Unable to update. Outcome with id {} not found.", outcomeId);
                 return new ResponseEntity("Unable to update. Outcome with id " + outcomeId + TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
             }
+            if(StringUtils.isAllBlank(outcomeDto.getTitle()) && StringUtils.isAllBlank(outcomeSearchResult.get().getTitle())){
+                return new ResponseEntity("Please give the outcome a title.", HttpStatus.CONFLICT);
+            }
+            if(!StringUtils.isAllBlank(outcomeDto.getTitle()) && outcomeDto.getTitle().length() > 255){
+                return new ResponseEntity("The title must be 255 characters or less.", HttpStatus.BAD_REQUEST);
+            }
             Outcome outcomeToChange = outcomeSearchResult.get();
-            //only allow external to be changed if the current value is null
+            //only allow external to be changed if the current value is null. (Only allow it to be changed once)
             if(outcomeToChange.getExternal() == null && outcomeDto.getExternal() != null){
                 outcomeToChange.setExternal(outcomeDto.getExternal());
                 if(!outcomeDto.getExternal()){
@@ -240,8 +249,8 @@ public class OutcomeController {
         SecurityInfo securityInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securityInfo, experimentId);
         if(apijwtService.isInstructorOrHigher(securityInfo)){
-            List<OutcomePotentialDto> potentialDtos = outcomeService.potentialOutcomes(experimentId);
-            return new ResponseEntity<>(potentialDtos, HttpStatus.OK);
+            List<OutcomePotentialDto> potentialDtoList = outcomeService.potentialOutcomes(experimentId);
+            return new ResponseEntity<>(potentialDtoList, HttpStatus.OK);
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
