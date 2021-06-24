@@ -36,7 +36,7 @@ export default {
 	data: () => ({
     title: "",
 		rules: [
-			v => !!v || 'Assignment Name is required',
+			v => v && !!v.trim() || 'Assignment Name is required',
       v => (v || '').length <= 255 || 'A maximum of 255 characters is allowed'
 		],
 	}),

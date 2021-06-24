@@ -42,7 +42,7 @@ export default {
 	props: ['experiment'],
 	data: () => ({
 		rules: [
-			v => !!v || 'Title is required',
+      v => v && !!v.trim() || 'Title is required',
       v => (v || '').length <= 255 || 'A maximum of 255 characters is allowed'
 		],
 	}),
