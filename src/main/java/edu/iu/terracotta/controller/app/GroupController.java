@@ -11,6 +11,7 @@ import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.GroupService;
 import edu.iu.terracotta.utils.TextConstants;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -116,6 +117,10 @@ public class GroupController {
                 return new ResponseEntity("Cannot include id in the POST endpoint. To modify existing groups you must use PUT", HttpStatus.CONFLICT);
             }
 
+            if(!StringUtils.isAllBlank(groupDto.getName()) && groupDto.getName().length() > 255){
+                return new ResponseEntity("Title must be 255 characters or less.", HttpStatus.BAD_REQUEST);
+            }
+
             groupDto.setExperimentId(experimentId);
             Group group;
             try{
@@ -153,6 +158,13 @@ public class GroupController {
             if(!groupSearchResult.isPresent()) {
                 log.error("Unable to update. Group with id {} not found.", groupId);
                 return new ResponseEntity("Unable to update. Group with id  " + groupId + TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
+            }
+
+            if(StringUtils.isAllBlank(groupDto.getName()) && StringUtils.isAllBlank(groupSearchResult.get().getName())){
+                return new ResponseEntity("Please give the group a name.", HttpStatus.CONFLICT);
+            }
+            if(!StringUtils.isAllBlank(groupDto.getName()) && groupDto.getName().length() > 255){
+                return new ResponseEntity("The title must be 255 characters or less.", HttpStatus.BAD_REQUEST);
             }
             Group groupToChange = groupSearchResult.get();
             groupToChange.setName(groupDto.getName());

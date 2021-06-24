@@ -21,6 +21,7 @@ import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.service.app.TreatmentService;
 import edu.iu.terracotta.utils.TextConstants;
 import org.apache.commons.lang3.EnumUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -146,16 +147,20 @@ public class AssessmentController {
         apijwtService.treatmentAllowed(securityInfo, experimentId, conditionId, treatmentId);
 
         if(apijwtService.isInstructorOrHigher(securityInfo)) {
-            if(assessmentDto.getAssessmentId() != null) {
+            if (assessmentDto.getAssessmentId() != null) {
                 log.error(TextConstants.ID_IN_POST_ERROR);
                 return new ResponseEntity(TextConstants.ID_IN_POST_ERROR, HttpStatus.CONFLICT);
+            }
+
+            if(!StringUtils.isAllBlank(assessmentDto.getTitle()) && assessmentDto.getTitle().length() > 255){
+                return new ResponseEntity("Assessment title must be 255 characters or less.", HttpStatus.BAD_REQUEST);
             }
 
             assessmentDto.setTreatmentId(treatmentId);
             if(assessmentDto.getNumOfSubmissions() == null) {
                 assessmentDto.setNumOfSubmissions(1);
             }
-            //TODO how to check if autoSubmit is not present in the dto
+
             assessmentDto.setAutoSubmit(true);
             Assessment assessment;
             try {
@@ -204,6 +209,12 @@ public class AssessmentController {
             if(!assessmentSearchResult.isPresent()) {
                 log.error("Unable to update. Assessment with id {} not found.", assessmentId);
                 return new ResponseEntity("Unable to update. Assessment with id " + assessmentId + TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
+            }
+            if(StringUtils.isAllBlank(assessmentDto.getTitle()) && StringUtils.isAllBlank(assessmentSearchResult.get().getTitle())){
+                return new ResponseEntity("Please give the assessment a title.", HttpStatus.CONFLICT);
+            }
+            if(!StringUtils.isAllBlank(assessmentDto.getTitle()) && assessmentDto.getTitle().length() > 255){
+                return new ResponseEntity("Assessment title must be 255 characters or less.", HttpStatus.BAD_REQUEST);
             }
             Assessment assessmentToChange = assessmentSearchResult.get();
             assessmentToChange.setHtml(assessmentDto.getHtml());

@@ -11,6 +11,7 @@ import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.ConditionService;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.utils.TextConstants;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
@@ -112,6 +113,15 @@ public class ConditionController {
                 return new ResponseEntity(TextConstants.ID_IN_POST_ERROR, HttpStatus.CONFLICT);
             }
 
+            if(!StringUtils.isAllBlank(conditionDto.getName())){
+                if(conditionDto.getName().length() >= 255){
+                    return new ResponseEntity("A condition name must be less than 255 characters in length.", HttpStatus.BAD_REQUEST);
+                }
+                if(conditionService.nameAlreadyExists(conditionDto.getName(), experimentId, 0L)){
+                    return new ResponseEntity("Cannot create condition. A condition with name \"" + conditionDto.getName() + "\" already exists.", HttpStatus.CONFLICT);
+                }
+            }
+
             conditionDto.setExperimentId(experimentId);
             Condition condition;
             try{
@@ -150,6 +160,17 @@ public class ConditionController {
                 log.error("Unable to update. Condition with id {} not found.", conditionId);
                 return new ResponseEntity("Unable to update, Condition with id " + conditionId + TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
             }
+            if(StringUtils.isAllBlank(conditionDto.getName()) && StringUtils.isAllBlank(conditionSearchResult.get().getName())){
+                return new ResponseEntity("Please give the condition a name.", HttpStatus.CONFLICT);
+            }
+            if(!StringUtils.isBlank(conditionDto.getName())){
+                if(conditionDto.getName().length() > 255){
+                    return new ResponseEntity("Experiment title must be less than 255 characters in length.", HttpStatus.BAD_REQUEST);
+                }
+                if(conditionService.nameAlreadyExists(conditionDto.getName(), experimentId, conditionId)){
+                    return new ResponseEntity("Unable to create the condition. A condition with title \"" + conditionDto.getName() + "\" already exists in this experiment.", HttpStatus.CONFLICT);
+                }
+            }
             Condition conditionToChange = conditionSearchResult.get();
             conditionToChange.setName(conditionDto.getName());
             conditionToChange.setDefaultCondition(conditionDto.getDefaultCondition());
@@ -172,6 +193,9 @@ public class ConditionController {
         apijwtService.conditionAllowed(securityInfo, experimentId, conditionId);
 
         if(apijwtService.isInstructorOrHigher(securityInfo)) {
+            if(conditionService.isDefaultCondition(conditionId)){
+                return new ResponseEntity("Cannot delete default condition. If you would like to delete this condition, please select another condition to be the default condition.", HttpStatus.CONFLICT);
+            }
             try {
                 conditionService.deleteById(conditionId);
                 return new ResponseEntity<>(HttpStatus.OK);

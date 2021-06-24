@@ -20,8 +20,6 @@ public interface ExperimentRepository extends JpaRepository<Experiment, Long> {
 
     boolean existsByExperimentIdAndPlatformDeployment_KeyIdAndLtiContextEntity_ContextId(Long experimentId, long keyId, long contextId);
 
-    boolean existsByTitleAndLtiContextEntity_ContextId(String title, long contextId);
-
     boolean existsByTitleAndLtiContextEntity_ContextIdAndExperimentIdIsNot(String title, long contextId, Long experimentId);
 
     @Transactional

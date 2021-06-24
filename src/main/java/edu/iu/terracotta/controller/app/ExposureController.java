@@ -11,6 +11,7 @@ import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.ExposureService;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.utils.TextConstants;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -111,6 +112,9 @@ public class ExposureController {
                 return new ResponseEntity("Cannot include id in the POST endpoint. To modify existing exposures you must use PUT", HttpStatus.CONFLICT);
             }
 
+            if(!StringUtils.isAllBlank(exposureDto.getTitle()) && exposureDto.getTitle().length() > 255){
+                return new ResponseEntity("Title must be 255 characters or less.", HttpStatus.BAD_REQUEST);
+            }
             exposureDto.setExperimentId(experimentId);
             Exposure exposure;
             try{
@@ -148,6 +152,12 @@ public class ExposureController {
             if(!exposureSearchResult.isPresent()) {
                 log.error("Unable to update. Exposure with id {} not found.", exposureId);
                 return new ResponseEntity("Unable to update. Exposure with id  " + exposureId + TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
+            }
+            if(StringUtils.isAllBlank(exposureDto.getTitle()) && StringUtils.isAllBlank(exposureSearchResult.get().getTitle())){
+                return new ResponseEntity("Please give the exposure a title.", HttpStatus.CONFLICT);
+            }
+            if(!StringUtils.isAllBlank(exposureDto.getTitle()) && exposureDto.getTitle().length() > 255) {
+                return new ResponseEntity("Title must be 255 characters or less.", HttpStatus.BAD_REQUEST);
             }
             Exposure exposureToChange = exposureSearchResult.get();
             exposureToChange.setTitle(exposureDto.getTitle());
