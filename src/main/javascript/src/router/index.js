@@ -16,7 +16,7 @@ const routes = [
     component: () => import('../views/Experiment.vue'),
     children: [
       {
-        path: 'summary',
+        path: 'experiment-summary',
         name: 'ExperimentSummary',
         component: () => import('../views/ExperimentSummary.vue')
       },

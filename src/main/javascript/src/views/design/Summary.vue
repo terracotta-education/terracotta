@@ -22,13 +22,13 @@
 					</v-expansion-panel-content>
 				</v-expansion-panel>
 			</v-expansion-panels>
-			<v-expansion-panels flat v-if="experiment.conditions && experiment.conditions.length>0">
+			<v-expansion-panels flat v-if="conditions && conditions.length>0">
 				<v-expansion-panel class="py-3 mb-3">
 					<v-expansion-panel-header><strong>Conditions</strong></v-expansion-panel-header>
 					<v-expansion-panel-content>
 						<v-list class="m-0 p-0">
 							<v-list-item
-								v-for="condition in experiment.conditions"
+								v-for="condition in conditions"
 								:key="condition.conditionId"
 								class="mx-0 px-0"
 							>
@@ -66,12 +66,15 @@
 </template>
 
 <script>
-// import {mapActions} from "vuex";
+import {mapGetters} from 'vuex';
 
 export default {
 	name: 'DesignSummary',
 	props: ['experiment'],
 	computed: {
+    ...mapGetters({
+      conditions: 'experiment/conditions'
+    }),
 		exposureType() {
 			return (this.experiment.exposureType==='BETWEEN')?'One condition':'All conditions'
 		}
