@@ -84,6 +84,9 @@ const getters = {
   conditions(state) {
     return state.experiment.conditions
   },
+  experiment(state) {
+    return state.experiment
+  },
   experiments(state) {
     return state.experiments
   }
