@@ -42,7 +42,7 @@ public interface SubmissionService {
 
     void grade(Long submissionId, SecurityInfo securityInfo) throws DataServiceException;
 
-    Submission gradeSubmission(Submission submission);
+    Submission gradeSubmission(Submission submission) throws DataServiceException;
 
     void sendSubmissionGradeToCanvas(Submission submission) throws ConnectionException, DataServiceException;
 

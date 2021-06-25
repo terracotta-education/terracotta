@@ -212,7 +212,6 @@ public class SubmissionController {
         apijwtService.assessmentAllowed(securityInfo, experimentId, conditionId, treatmentId, assessmentId);
         apijwtService.submissionAllowed(securityInfo, assessmentId, submissionId);
 
-        //TODO, does student need to put the submission?
         if(apijwtService.isLearnerOrHigher(securityInfo)) {
             Optional<Submission> submissionSearchResult = submissionService.findById(submissionId);
 
@@ -224,9 +223,6 @@ public class SubmissionController {
             if(apijwtService.isInstructorOrHigher(securityInfo)) {
                 submissionToChange.setAlteredCalculatedGrade(submissionDto.getAlteredCalculatedGrade());
                 submissionToChange.setTotalAlteredGrade(submissionDto.getTotalAlteredGrade());
-                // TODO, do we really need to PUT this here? I don't think so.
-                //submissionToChange.setLateSubmission(submissionDto.getLateSubmission());
-                //submissionToChange.setDateSubmitted(submissionDto.getDateSubmitted());
             }
             //We still do this with the student because we want to update the last update date.
             submissionService.saveAndFlush(submissionToChange);

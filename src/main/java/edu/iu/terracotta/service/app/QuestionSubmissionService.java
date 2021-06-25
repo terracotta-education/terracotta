@@ -1,6 +1,7 @@
 package edu.iu.terracotta.service.app;
 
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.model.app.AnswerMcSubmission;
 import edu.iu.terracotta.model.app.QuestionSubmission;
 import edu.iu.terracotta.model.app.dto.QuestionSubmissionDto;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -32,5 +33,5 @@ public interface QuestionSubmissionService {
 
     boolean questionSubmissionBelongsToAssessmentAndSubmission(Long assessmentId, Long submissionId, Long questionSubmissionId);
 
-    QuestionSubmission automaticGrading(QuestionSubmission questionSubmission);
+    QuestionSubmission automaticGradingMC(QuestionSubmission questionSubmission, AnswerMcSubmission answerMcSubmission);
 }
