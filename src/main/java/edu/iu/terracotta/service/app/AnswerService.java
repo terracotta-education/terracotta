@@ -3,10 +3,8 @@ package edu.iu.terracotta.service.app;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.model.app.AnswerMc;
 import edu.iu.terracotta.model.app.dto.AnswerDto;
-import edu.iu.terracotta.model.oauth2.SecurityInfo;
-import org.apache.http.HttpHeaders;
+import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import org.springframework.dao.EmptyResultDataAccessException;
-import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
 import java.util.Optional;
@@ -36,5 +34,5 @@ public interface AnswerService {
 
 
     //METHODS FOR ALL ANSWER TYPES
-    String answerNotFound(SecurityInfo securityInfo, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId, Long questionId, Long answerId);
+    String answerNotFound(SecuredInfo securedInfo, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId, Long questionId, Long answerId);
 }

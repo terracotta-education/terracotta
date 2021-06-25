@@ -8,7 +8,7 @@ import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.ExposureNotMatchingException;
 import edu.iu.terracotta.model.app.dto.AssignmentDto;
 import edu.iu.terracotta.model.canvas.AssignmentExtended;
-import edu.iu.terracotta.model.oauth2.SecurityInfo;
+import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.canvas.CanvasAPIClient;
@@ -64,11 +64,11 @@ public class AssignmentController {
                                                                         HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ExposureNotMatchingException {
 
-        SecurityInfo securityInfo = apijwtService.extractValues(req, false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.exposureAllowed(securityInfo, experimentId, exposureId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
 
-        if (apijwtService.isLearnerOrHigher(securityInfo)) {
+        if (apijwtService.isLearnerOrHigher(securedInfo)) {
             List<Assignment> assignmentList = assignmentService.findAllByExposureId(exposureId);
 
             if (assignmentList.isEmpty()) {
@@ -92,20 +92,20 @@ public class AssignmentController {
                                                        HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, AssignmentNotMatchingException {
 
-        SecurityInfo securityInfo = apijwtService.extractValues(req, false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.assignmentAllowed(securityInfo, experimentId, exposureId, assignmentId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.assignmentAllowed(securedInfo, experimentId, exposureId, assignmentId);
         //student access? Or should it be instructorOrHigher?
-        if (apijwtService.isLearnerOrHigher(securityInfo)) {
+        if (apijwtService.isLearnerOrHigher(securedInfo)) {
 
             Optional<Assignment> assignmentSearchResult = assignmentService.findById(assignmentId);
 
             if (!assignmentSearchResult.isPresent()) {
                 log.error("assignment in platform {} and context {} and experiment {} and exposure {} with id {} not found",
-                        securityInfo.getPlatformDeploymentId(), securityInfo.getContextId(), experimentId, experimentId, assignmentId);
+                        securedInfo.getPlatformDeploymentId(), securedInfo.getContextId(), experimentId, experimentId, assignmentId);
 
-                return new ResponseEntity("assignment in platform " + securityInfo.getPlatformDeploymentId()
-                        + " and context " + securityInfo.getContextId() + " and experiment with id " + experimentId + " and exposure id " + exposureId
+                return new ResponseEntity("assignment in platform " + securedInfo.getPlatformDeploymentId()
+                        + " and context " + securedInfo.getContextId() + " and experiment with id " + experimentId + " and exposure id " + exposureId
                         + " with id " + assignmentId + TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
             } else {
                 AssignmentDto assignmentDto = assignmentService.toDto(assignmentSearchResult.get());
@@ -125,11 +125,11 @@ public class AssignmentController {
                                                         HttpServletRequest req)
             throws ExperimentNotMatchingException, ExposureNotMatchingException, BadTokenException {
         log.info("Creating Assignment: {}", assignmentDto);
-        SecurityInfo securityInfo = apijwtService.extractValues(req, false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.exposureAllowed(securityInfo, experimentId, exposureId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
 
-        if (apijwtService.isInstructorOrHigher(securityInfo)) {
+        if (apijwtService.isInstructorOrHigher(securedInfo)) {
             if (assignmentDto.getAssignmentId() != null) {
                 log.error("Cannot include id in the POST endpoint. To modify existing exposures you must use PUT");
                 return new ResponseEntity("Cannot include id in the POST endpoint. To modify existing exposures you must use PUT", HttpStatus.CONFLICT);
@@ -159,7 +159,7 @@ public class AssignmentController {
             canvasAssignment.setSubmissionTypes(Collections.singletonList("external_tool"));
             try {
                 Optional<AssignmentExtended> canvasAssignmentReturned = canvasAPIClient.createCanvasAssignment(canvasAssignment,
-                        assignmentSaved.getExposure().getExperiment().getLtiContextEntity().getContext_memberships_url(),
+                        securedInfo.getCanvasCourseId(),
                         assignmentSaved.getExposure().getExperiment().getPlatformDeployment());
                 assignmentSaved.setLmsAssignmentId(Integer.toString(canvasAssignmentReturned.get().getId()));
                 String jwtTokenAssignment = canvasAssignmentReturned.get().getSecureParams();
@@ -191,11 +191,11 @@ public class AssignmentController {
             throws ExperimentNotMatchingException, BadTokenException, AssignmentNotMatchingException {
 
         log.info("Updating assignment with id: {}", assignmentId);
-        SecurityInfo securityInfo = apijwtService.extractValues(req, false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.assignmentAllowed(securityInfo, experimentId, exposureId, assignmentId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.assignmentAllowed(securedInfo, experimentId, exposureId, assignmentId);
 
-        if(apijwtService.isInstructorOrHigher(securityInfo)) {
+        if(apijwtService.isInstructorOrHigher(securedInfo)) {
             Optional<Assignment> assignmentSearchResult = assignmentService.findById(assignmentId);
 
             if(!assignmentSearchResult.isPresent()) {
@@ -226,11 +226,11 @@ public class AssignmentController {
                                                  HttpServletRequest req)
             throws ExperimentNotMatchingException, AssignmentNotMatchingException, BadTokenException {
 
-        SecurityInfo securityInfo = apijwtService.extractValues(req, false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.assignmentAllowed(securityInfo, experimentId, exposureId, assignmentId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.assignmentAllowed(securedInfo, experimentId, exposureId, assignmentId);
 
-        if(apijwtService.isInstructorOrHigher(securityInfo)) {
+        if(apijwtService.isInstructorOrHigher(securedInfo)) {
             try{
                 assignmentService.deleteById(assignmentId);
                 return new ResponseEntity<>(HttpStatus.OK);

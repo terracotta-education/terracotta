@@ -19,7 +19,7 @@ import edu.iu.terracotta.model.app.dto.QuestionSubmissionDto;
 import edu.iu.terracotta.model.app.dto.SubmissionCommentDto;
 import edu.iu.terracotta.model.app.dto.SubmissionDto;
 import edu.iu.terracotta.model.oauth2.LTIToken;
-import edu.iu.terracotta.model.oauth2.SecurityInfo;
+import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.AnswerSubmissionService;
 import edu.iu.terracotta.service.app.AssessmentService;
@@ -30,6 +30,7 @@ import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.service.canvas.CanvasAPIClient;
 import edu.iu.terracotta.service.lti.AdvantageAGSService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,6 +43,9 @@ import java.util.Optional;
 
 @Component
 public class SubmissionServiceImpl implements SubmissionService {
+
+    @Value("${application.url}")
+    private String localUrl;
 
     @Autowired
     AllRepositories allRepositories;
@@ -100,7 +104,16 @@ public class SubmissionServiceImpl implements SubmissionService {
             }
         }
         submissionDto.setSubmissionCommentDtoList(submissionCommentDtoList);
-
+        String path = localUrl +
+                "/api/experiments/" +
+                submission.getAssessment().getTreatment().getCondition().getExperiment().getExperimentId() +
+                "/conditions/" +
+                submission.getAssessment().getTreatment().getCondition().getConditionId() +
+                "/treatments/" +
+                submission.getAssessment().getTreatment().getTreatmentId() +
+                "/assessments/" +
+                submission.getAssessment().getAssessmentId();
+        submissionDto.setAssessmentLink(path);
         return submissionDto;
     }
 
@@ -145,6 +158,11 @@ public class SubmissionServiceImpl implements SubmissionService {
     }
 
     @Override
+    public List<Submission> findByParticipantIdAndAssessmentId(Long participantId, Long assessmentId) {
+        return allRepositories.submissionRepository.findByParticipant_ParticipantIdAndAssessment_AssessmentId(participantId, assessmentId);
+    }
+
+    @Override
     public Participant findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(Long experimentId, String userId) {
         return allRepositories.participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, userId);
     }
@@ -164,24 +182,18 @@ public class SubmissionServiceImpl implements SubmissionService {
 
     @Override
     @Transactional
-    public void finalizeAndGrade(Long submissionId, SecurityInfo securityInfo) throws DataServiceException, CanvasApiException, IOException, AssignmentDatesException {
+    public void finalizeAndGrade(Long submissionId, SecuredInfo securedInfo) throws DataServiceException, CanvasApiException, IOException, AssignmentDatesException {
         Optional<Submission> submissionOptional =  allRepositories.submissionRepository.findById(submissionId);
         if (submissionOptional.isPresent()){
-            Experiment experiment = submissionOptional.get().getAssessment().getTreatment().getCondition().getExperiment();
-            String contextInfo = experiment.getLtiContextEntity().getContext_memberships_url();
-            PlatformDeployment platformDeployment = experiment.getPlatformDeployment();
-            String lmsAssignmentId = submissionOptional.get().getAssessment().getTreatment().getAssignment().getLmsAssignmentId();
-            Date dueAt = canvasAPIClient.getDueAt(contextInfo, platformDeployment, lmsAssignmentId);
-            Date lockAt = canvasAPIClient.getLockAt(contextInfo, platformDeployment, lmsAssignmentId);
             //We are not changing the submission date once it is set.
             //^^^ maybe if we are allowing resubmissions we should allow this to change?
             if (submissionOptional.get().getDateSubmitted()==null) {
-                if (dueAt != null && submissionOptional.get().getUpdatedAt().after(dueAt)){
+                if (securedInfo.getDueAt() != null && submissionOptional.get().getUpdatedAt().after(securedInfo.getDueAt())){
                     submissionOptional.get().setLateSubmission(true);
                 }
                     submissionOptional.get().setDateSubmitted(submissionOptional.get().getUpdatedAt());
             }
-            if (lockAt == null || submissionOptional.get().getUpdatedAt().after(lockAt)) {
+            if (securedInfo.getLockAt() == null || submissionOptional.get().getUpdatedAt().after(securedInfo.getLockAt())) {
                 saveAndFlush(gradeSubmission(submissionOptional.get()));
             } else {
                 throw new AssignmentDatesException("Canvas Assignment is locked, we can not generate a submission with a date later than the lock date");
@@ -192,19 +204,10 @@ public class SubmissionServiceImpl implements SubmissionService {
     }
 
     @Override
-    public boolean datesAllowed(Long experimentId, Long treatmentId) throws CanvasApiException, IOException, DataServiceException {
+    public boolean datesAllowed(Long experimentId, Long treatmentId, SecuredInfo securedInfo) {
 
-        Optional<Experiment> experiment = allRepositories.experimentRepository.findById(experimentId);
-        Optional<Treatment> treatment = allRepositories.treatmentRepository.findById(treatmentId);
-        if (!experiment.isPresent() || !treatment.isPresent()){
-            throw new DataServiceException("Experiment or Treatment don't exist");
-        }
-        String contextInfo = experiment.get().getLtiContextEntity().getContext_memberships_url();
-        String lmsAssignmentId = treatment.get().getAssignment().getLmsAssignmentId();
-        Date unlock = canvasAPIClient.getUnlockAt(contextInfo, experiment.get().getPlatformDeployment(), lmsAssignmentId);
-        Date lock = canvasAPIClient.getLockAt(contextInfo, experiment.get().getPlatformDeployment(), lmsAssignmentId);
-        if (unlock== null || unlock.before(new Date())){
-            if (lock == null || lock.after(new Date())) {
+        if (securedInfo.getUnlockAt()== null || securedInfo.getUnlockAt().before(new Date())){
+            if (securedInfo.getLockAt() == null || securedInfo.getLockAt().after(new Date())) {
                 return true;
             } else {
                 return false;
@@ -215,8 +218,17 @@ public class SubmissionServiceImpl implements SubmissionService {
     }
 
     @Override
+    public Submission createNewSubmission(Assessment assessment, Participant participant, SecuredInfo securedInfo) {
+        Submission submission = new Submission();
+        submission.setAssessment(assessment);
+        submission.setParticipant(participant);
+        submission = save(submission);
+        return submission;
+    }
+
+    @Override
     @Transactional
-    public void grade(Long submissionId, SecurityInfo securityInfo) throws DataServiceException {
+    public void grade(Long submissionId, SecuredInfo securedInfo) throws DataServiceException {
         Optional<Submission> submissionOptional =  allRepositories.submissionRepository.findById(submissionId);
         if (submissionOptional.isPresent()){
             saveAndFlush(gradeSubmission(submissionOptional.get()));

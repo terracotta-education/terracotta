@@ -10,7 +10,7 @@ import edu.iu.terracotta.model.app.AnswerMc;
 import edu.iu.terracotta.model.app.Question;
 import edu.iu.terracotta.model.app.dto.AnswerDto;
 import edu.iu.terracotta.model.app.enumerator.QuestionTypes;
-import edu.iu.terracotta.model.oauth2.SecurityInfo;
+import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.AnswerService;
 import edu.iu.terracotta.service.app.QuestionService;
@@ -69,13 +69,13 @@ public class AnswerController {
                                                                 HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionNotMatchingException, BadTokenException {
 
-        SecurityInfo securityInfo = apijwtService.extractValues(req, false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.assessmentAllowed(securityInfo, experimentId, conditionId, treatmentId, assessmentId);
-        apijwtService.questionAllowed(securityInfo, assessmentId, questionId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
+        apijwtService.questionAllowed(securedInfo, assessmentId, questionId);
 
-        if(apijwtService.isLearnerOrHigher(securityInfo)) {
-            boolean student = !apijwtService.isInstructorOrHigher(securityInfo);
+        if(apijwtService.isLearnerOrHigher(securedInfo)) {
+            boolean student = !apijwtService.isInstructorOrHigher(securedInfo);
             Optional<Question> question = questionService.findById(questionId);
             if(question.isPresent()){
                 if (question.get().getQuestionType() == QuestionTypes.MC) {
@@ -113,22 +113,22 @@ public class AnswerController {
                                                HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionNotMatchingException, AnswerNotMatchingException, BadTokenException {
 
-        SecurityInfo securityInfo = apijwtService.extractValues(req, false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.assessmentAllowed(securityInfo, experimentId, conditionId, treatmentId, assessmentId);
-        apijwtService.questionAllowed(securityInfo, assessmentId, questionId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
+        apijwtService.questionAllowed(securedInfo, assessmentId, questionId);
         Question question = questionService.findByQuestionId(questionId);
         String answerType = question.getQuestionType().toString();
-        apijwtService.answerAllowed(securityInfo, assessmentId, questionId, answerType, answerId);
+        apijwtService.answerAllowed(securedInfo, assessmentId, questionId, answerType, answerId);
 
-        if(apijwtService.isLearnerOrHigher(securityInfo)) {
-            boolean student = !apijwtService.isInstructorOrHigher(securityInfo);
+        if(apijwtService.isLearnerOrHigher(securedInfo)) {
+            boolean student = !apijwtService.isInstructorOrHigher(securedInfo);
             if(answerType.equals("MC")){
                 Optional<AnswerMc> mcAnswerSearchResult = answerService.findByIdMC(answerId);
 
                 if(!mcAnswerSearchResult.isPresent()) {
-                    log.error(answerService.answerNotFound(securityInfo, experimentId, conditionId, treatmentId, assessmentId, questionId, answerId));
-                    return new ResponseEntity(answerService.answerNotFound(securityInfo, experimentId, conditionId, treatmentId, assessmentId, questionId, answerId), HttpStatus.NOT_FOUND);
+                    log.error(answerService.answerNotFound(securedInfo, experimentId, conditionId, treatmentId, assessmentId, questionId, answerId));
+                    return new ResponseEntity(answerService.answerNotFound(securedInfo, experimentId, conditionId, treatmentId, assessmentId, questionId, answerId), HttpStatus.NOT_FOUND);
                 } else {
                     AnswerDto answerDto = answerService.toDtoMC(mcAnswerSearchResult.get(), student);
                     return new ResponseEntity<>(answerDto, HttpStatus.OK);
@@ -155,12 +155,12 @@ public class AnswerController {
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionNotMatchingException, BadTokenException {
 
         log.info("Creating Answer: {}", answerDto);
-        SecurityInfo securityInfo = apijwtService.extractValues(req, false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.assessmentAllowed(securityInfo, experimentId, conditionId, treatmentId, assessmentId);
-        apijwtService.questionAllowed(securityInfo, assessmentId, questionId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
+        apijwtService.questionAllowed(securedInfo, assessmentId, questionId);
 
-        if(apijwtService.isInstructorOrHigher(securityInfo)) {
+        if(apijwtService.isInstructorOrHigher(securedInfo)) {
 
             if (answerDto.getAnswerId() != null) {
                 log.error(TextConstants.ID_IN_POST_ERROR);
@@ -207,19 +207,19 @@ public class AnswerController {
                                               HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionNotMatchingException, AnswerNotMatchingException, BadTokenException, DataServiceException {
 
-        SecurityInfo securityInfo = apijwtService.extractValues(req, false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.assessmentAllowed(securityInfo, experimentId, conditionId, treatmentId, assessmentId);
-        apijwtService.questionAllowed(securityInfo, assessmentId, questionId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
+        apijwtService.questionAllowed(securedInfo, assessmentId, questionId);
 
-        if(apijwtService.isInstructorOrHigher(securityInfo)){
+        if(apijwtService.isInstructorOrHigher(securedInfo)){
             Optional<Question> question = questionService.findById(questionId);
             if(question.isPresent()){
                 if(question.get().getQuestionType() == QuestionTypes.MC){
                     List<AnswerMc> answerList = new ArrayList<>();
 
                     for(AnswerDto answerDto : answerDtoList) {
-                        apijwtService.answerAllowed(securityInfo, assessmentId, questionId, question.get().getQuestionType().toString(), answerDto.getAnswerId());
+                        apijwtService.answerAllowed(securedInfo, assessmentId, questionId, question.get().getQuestionType().toString(), answerDto.getAnswerId());
                         Optional<AnswerMc> mcAnswer = answerService.findByIdMC(answerDto.getAnswerId());
                         if(mcAnswer.isPresent()) {
                             AnswerMc mcAnswerToChange = mcAnswer.get();
@@ -260,15 +260,15 @@ public class AnswerController {
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionNotMatchingException, AnswerNotMatchingException, BadTokenException {
 
         log.info("Updating answer with id: {}", answerId);
-        SecurityInfo securityInfo = apijwtService.extractValues(req, false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.assessmentAllowed(securityInfo, experimentId, conditionId, treatmentId, assessmentId);
-        apijwtService.questionAllowed(securityInfo, assessmentId, questionId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
+        apijwtService.questionAllowed(securedInfo, assessmentId, questionId);
         Question question = questionService.findByQuestionId(questionId);
         String answerType = question.getQuestionType().toString();
-        apijwtService.answerAllowed(securityInfo, assessmentId, questionId, answerType, answerId);
+        apijwtService.answerAllowed(securedInfo, assessmentId, questionId, answerType, answerId);
 
-        if(apijwtService.isInstructorOrHigher(securityInfo)) {
+        if(apijwtService.isInstructorOrHigher(securedInfo)) {
             if(answerType.equals("MC")){
                 Optional<AnswerMc> mcAnswerSearchResult = answerService.findByIdMC(answerId);
 
@@ -306,15 +306,15 @@ public class AnswerController {
                                              HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionNotMatchingException, AnswerNotMatchingException, BadTokenException {
 
-        SecurityInfo securityInfo = apijwtService.extractValues(req, false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.assessmentAllowed(securityInfo, experimentId, conditionId, treatmentId, assessmentId);
-        apijwtService.questionAllowed(securityInfo, assessmentId, questionId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
+        apijwtService.questionAllowed(securedInfo, assessmentId, questionId);
         Question question = questionService.findByQuestionId(questionId);
         String answerType = question.getQuestionType().toString();
-        apijwtService.answerAllowed(securityInfo, assessmentId, questionId, answerType, answerId);
+        apijwtService.answerAllowed(securedInfo, assessmentId, questionId, answerType, answerId);
 
-        if(apijwtService.isInstructorOrHigher(securityInfo)) {
+        if(apijwtService.isInstructorOrHigher(securedInfo)) {
             if(answerType.equals("MC")){
                 try{
                     answerService.deleteByIdMC(answerId);

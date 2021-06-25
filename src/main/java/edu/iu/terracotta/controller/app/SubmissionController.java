@@ -9,7 +9,7 @@ import edu.iu.terracotta.exceptions.SubmissionNotMatchingException;
 import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.dto.SubmissionDto;
-import edu.iu.terracotta.model.oauth2.SecurityInfo;
+import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.utils.TextConstants;
@@ -60,11 +60,11 @@ public class SubmissionController {
                                                                           HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, BadTokenException {
 
-        SecurityInfo securityInfo = apijwtService.extractValues(req, false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.assessmentAllowed(securityInfo, experimentId, conditionId, treatmentId, assessmentId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
 
-        if(apijwtService.isInstructorOrHigher(securityInfo)) {
+        if(apijwtService.isInstructorOrHigher(securedInfo)) {
             List<Submission> submissionList = submissionService.findAllByAssessmentId(assessmentId);
 
             if(submissionList.isEmpty()) {
@@ -75,8 +75,8 @@ public class SubmissionController {
                 submissionDtoList.add(submissionService.toDto(submission, false,false));
             }
             return new ResponseEntity<>(submissionDtoList, HttpStatus.OK);
-        } else if(apijwtService.isLearnerOrHigher(securityInfo)) {
-            Participant participant = submissionService.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, securityInfo.getUserId());
+        } else if(apijwtService.isLearnerOrHigher(securedInfo)) {
+            Participant participant = submissionService.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, securedInfo.getUserId());
             List<Submission> submissions = submissionService.findByParticipantId(participant.getParticipantId());
             if(!submissions.isEmpty()) {
                 List<SubmissionDto> submissionDtoList = new ArrayList<>();
@@ -106,26 +106,26 @@ public class SubmissionController {
                                                        HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, SubmissionNotMatchingException, BadTokenException {
 
-        SecurityInfo securityInfo = apijwtService.extractValues(req, false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.assessmentAllowed(securityInfo, experimentId, conditionId, treatmentId, assessmentId);
-        apijwtService.submissionAllowed(securityInfo, assessmentId, submissionId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
+        apijwtService.submissionAllowed(securedInfo, assessmentId, submissionId);
 
-        if(apijwtService.isInstructorOrHigher(securityInfo)) {
+        if(apijwtService.isInstructorOrHigher(securedInfo)) {
             Optional<Submission> submissionSearchResult = submissionService.findById(submissionId);
 
             if(!submissionSearchResult.isPresent()) {
                 log.error("Submission in platform {} and context {} and experiment {} and condition {} and treatment {}  and assessment {} with id {} not found",
-                        securityInfo.getPlatformDeploymentId(), securityInfo.getContextId(), experimentId, conditionId, treatmentId, assessmentId, submissionId);
-                return new ResponseEntity("Submission in platform " + securityInfo.getPlatformDeploymentId() + " and context " + securityInfo.getContextId() +
+                        securedInfo.getPlatformDeploymentId(), securedInfo.getContextId(), experimentId, conditionId, treatmentId, assessmentId, submissionId);
+                return new ResponseEntity("Submission in platform " + securedInfo.getPlatformDeploymentId() + " and context " + securedInfo.getContextId() +
                         " and experiment with id " + experimentId + " and condition id " + conditionId + " and treatment id " + treatmentId + " and assessment id " +
                         assessmentId + " with id " + submissionId + TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
             } else {
                 SubmissionDto submissionDto = submissionService.toDto(submissionSearchResult.get(), questionSubmissions, submissionComments);
                 return new ResponseEntity<>(submissionDto, HttpStatus.OK);
             }
-        } else if(apijwtService.isLearnerOrHigher(securityInfo)) {
-            Participant participant = submissionService.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, securityInfo.getUserId());
+        } else if(apijwtService.isLearnerOrHigher(securedInfo)) {
+            Participant participant = submissionService.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, securedInfo.getUserId());
             Optional<Submission> submission = submissionService.findByParticipantIdAndSubmissionId(participant.getParticipantId(), submissionId);
             if(submission.isPresent()){
                 return new ResponseEntity<>(submissionService.toDto(submission.get(), questionSubmissions, submissionComments), HttpStatus.OK);
@@ -152,19 +152,19 @@ public class SubmissionController {
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, BadTokenException, DataServiceException, CanvasApiException, IOException {
 
         log.info("Creating Submission: {}", submissionDto);
-        SecurityInfo securityInfo = apijwtService.extractValues(req, false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.assessmentAllowed(securityInfo, experimentId, conditionId, treatmentId, assessmentId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
 
-        if (submissionService.datesAllowed(experimentId,treatmentId)) {
-            if (apijwtService.isLearnerOrHigher(securityInfo)) {
+        if (submissionService.datesAllowed(experimentId,treatmentId, securedInfo)) {
+            if (apijwtService.isLearnerOrHigher(securedInfo)) {
                 if (submissionDto.getSubmissionId() != null) {
                     log.error(TextConstants.ID_IN_POST_ERROR);
                     return new ResponseEntity(TextConstants.ID_IN_POST_ERROR, HttpStatus.CONFLICT);
                 }
 
                 submissionDto.setAssessmentId(assessmentId);
-                Participant participant = submissionService.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, securityInfo.getUserId());
+                Participant participant = submissionService.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, securedInfo.getUserId());
                 if (participant == null) {
                     return new ResponseEntity(TextConstants.PARTICIPANT_NOT_MATCHING + " Participant not in this experiment.", HttpStatus.UNAUTHORIZED);
                 }
@@ -207,12 +207,12 @@ public class SubmissionController {
                 throws ExperimentNotMatchingException, AssessmentNotMatchingException, SubmissionNotMatchingException, BadTokenException {
 
         log.info("Updating submission with id {}", submissionId);
-        SecurityInfo securityInfo = apijwtService.extractValues(req, false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.assessmentAllowed(securityInfo, experimentId, conditionId, treatmentId, assessmentId);
-        apijwtService.submissionAllowed(securityInfo, assessmentId, submissionId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
+        apijwtService.submissionAllowed(securedInfo, assessmentId, submissionId);
 
-        if(apijwtService.isLearnerOrHigher(securityInfo)) {
+        if(apijwtService.isLearnerOrHigher(securedInfo)) {
             Optional<Submission> submissionSearchResult = submissionService.findById(submissionId);
 
             if(!submissionSearchResult.isPresent()){
@@ -220,7 +220,7 @@ public class SubmissionController {
                 return new ResponseEntity("Unable to update. Submission with id " + submissionId + TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
             }
             Submission submissionToChange = submissionSearchResult.get();
-            if(apijwtService.isInstructorOrHigher(securityInfo)) {
+            if(apijwtService.isInstructorOrHigher(securedInfo)) {
                 submissionToChange.setAlteredCalculatedGrade(submissionDto.getAlteredCalculatedGrade());
                 submissionToChange.setTotalAlteredGrade(submissionDto.getTotalAlteredGrade());
             }
@@ -243,12 +243,12 @@ public class SubmissionController {
                                                  HttpServletRequest req)
                 throws ExperimentNotMatchingException, AssessmentNotMatchingException, SubmissionNotMatchingException, BadTokenException {
 
-        SecurityInfo securityInfo = apijwtService.extractValues(req, false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.assessmentAllowed(securityInfo, experimentId, conditionId, treatmentId, assessmentId);
-        apijwtService.submissionAllowed(securityInfo, assessmentId, submissionId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
+        apijwtService.submissionAllowed(securedInfo, assessmentId, submissionId);
 
-        if(apijwtService.isInstructorOrHigher(securityInfo)) {
+        if(apijwtService.isInstructorOrHigher(securedInfo)) {
             try{
                 submissionService.deleteById(submissionId);
                 return new ResponseEntity<>(HttpStatus.OK);

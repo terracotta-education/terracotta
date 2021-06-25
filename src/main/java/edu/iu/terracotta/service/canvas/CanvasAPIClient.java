@@ -12,15 +12,10 @@ import java.util.Optional;
 
 public interface CanvasAPIClient {
 
-    Optional<AssignmentExtended> createCanvasAssignment(AssignmentExtended canvasAssignment, String contextMembershipUrl, PlatformDeployment platformDeployment ) throws CanvasApiException;
+    Optional<AssignmentExtended> createCanvasAssignment(AssignmentExtended canvasAssignment, String canvasCourseId, PlatformDeployment platformDeployment ) throws CanvasApiException;
 
-    List<AssignmentExtended> listAssignments(String contextMembershipUrl, PlatformDeployment platformDeployment) throws CanvasApiException;
+    List<AssignmentExtended> listAssignments(String canvasCourseId, PlatformDeployment platformDeployment) throws CanvasApiException;
 
-    List<Submission> listSubmissions(Integer assignmentId, String contextMembershipUrl, PlatformDeployment platformDeployment) throws CanvasApiException, IOException;
+    List<Submission> listSubmissions(Integer assignmentId, String canvasCourseId, PlatformDeployment platformDeployment) throws CanvasApiException, IOException;
 
-    Date getDueAt(String contextMembershipUrl, PlatformDeployment platformDeployment, String lmsAssignmentId) throws IOException, CanvasApiException;
-
-    Date getLockAt(String contextMembershipUrl, PlatformDeployment platformDeployment, String lmsAssignmentId) throws IOException, CanvasApiException;
-
-    Date getUnlockAt(String contextMembershipUrl, PlatformDeployment platformDeployment, String lmsAssignmentId) throws IOException, CanvasApiException;
 }

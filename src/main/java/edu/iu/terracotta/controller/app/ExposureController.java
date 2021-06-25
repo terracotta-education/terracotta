@@ -6,7 +6,7 @@ import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.ExposureNotMatchingException;
 import edu.iu.terracotta.model.app.Exposure;
 import edu.iu.terracotta.model.app.dto.ExposureDto;
-import edu.iu.terracotta.model.oauth2.SecurityInfo;
+import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.ExposureService;
 import edu.iu.terracotta.service.app.ExperimentService;
@@ -50,10 +50,10 @@ public class ExposureController {
     public ResponseEntity<List<ExposureDto>> allExposuresByExperiment(@PathVariable("experiment_id") Long experimentId,
                                                                       HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException {
-        SecurityInfo securityInfo = apijwtService.extractValues(req,false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req,false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
 
-        if(apijwtService.isLearnerOrHigher(securityInfo)) {
+        if(apijwtService.isLearnerOrHigher(securedInfo)) {
             List<Exposure> exposureList =
                     exposureService.findAllByExperimentId(experimentId);
             if(exposureList.isEmpty()) {
@@ -76,11 +76,11 @@ public class ExposureController {
                                                    HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ExposureNotMatchingException {
 
-        SecurityInfo securityInfo = apijwtService.extractValues(req,false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.exposureAllowed(securityInfo, experimentId, exposureId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req,false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
 
-        if(apijwtService.isLearnerOrHigher(securityInfo)) {
+        if(apijwtService.isLearnerOrHigher(securedInfo)) {
             Optional<Exposure> exposure = exposureService.findById(exposureId);
 
             if(!exposure.isPresent()) {
@@ -103,10 +103,10 @@ public class ExposureController {
             throws ExperimentNotMatchingException, BadTokenException {
 
         log.info("Creating Exposure : {}", exposureDto);
-        SecurityInfo securityInfo = apijwtService.extractValues(req,false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req,false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
 
-        if(apijwtService.isInstructorOrHigher(securityInfo)) {
+        if(apijwtService.isInstructorOrHigher(securedInfo)) {
             if(exposureDto.getExposureId() != null) {
                 log.error("Cannot include id in the POST endpoint. To modify existing exposures you must use PUT");
                 return new ResponseEntity("Cannot include id in the POST endpoint. To modify existing exposures you must use PUT", HttpStatus.CONFLICT);
@@ -142,11 +142,11 @@ public class ExposureController {
             throws ExperimentNotMatchingException, BadTokenException, ExposureNotMatchingException {
 
         log.info("Updating exposure with id {}", exposureId);
-        SecurityInfo securityInfo = apijwtService.extractValues(req,false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.exposureAllowed(securityInfo, experimentId, exposureId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req,false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
 
-        if(apijwtService.isInstructorOrHigher(securityInfo)) {
+        if(apijwtService.isInstructorOrHigher(securedInfo)) {
             Optional<Exposure> exposureSearchResult = exposureService.findById(exposureId);
 
             if(!exposureSearchResult.isPresent()) {
@@ -175,11 +175,11 @@ public class ExposureController {
                                                HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ExposureNotMatchingException {
 
-        SecurityInfo securityInfo = apijwtService.extractValues(req,false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.exposureAllowed(securityInfo, experimentId, exposureId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req,false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
 
-        if(apijwtService.isInstructorOrHigher(securityInfo)) {
+        if(apijwtService.isInstructorOrHigher(securedInfo)) {
             try{
                 exposureService.deleteById(exposureId);
                 return new ResponseEntity<>(HttpStatus.OK);

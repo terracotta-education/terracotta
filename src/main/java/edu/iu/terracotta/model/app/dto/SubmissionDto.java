@@ -15,6 +15,16 @@ public class SubmissionDto {
     private Float totalAlteredGrade;
     private Timestamp dateSubmitted;
     private boolean lateSubmission;
+
+    public String getAssessmentLink() {
+        return assessmentLink;
+    }
+
+    public void setAssessmentLink(String assessmentLink) {
+        this.assessmentLink = assessmentLink;
+    }
+
+    private String assessmentLink;
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<QuestionSubmissionDto> questionSubmissionDtoList;
     @JsonInclude(JsonInclude.Include.NON_NULL)

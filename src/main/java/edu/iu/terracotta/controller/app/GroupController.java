@@ -6,7 +6,7 @@ import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.GroupNotMatchingException;
 import edu.iu.terracotta.model.app.Group;
 import edu.iu.terracotta.model.app.dto.GroupDto;
-import edu.iu.terracotta.model.oauth2.SecurityInfo;
+import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.GroupService;
@@ -54,11 +54,11 @@ public class GroupController {
     public ResponseEntity<List<GroupDto>> allGroupsByExperiment(@PathVariable("experiment_id") Long experimentId,
                                                                       HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException {
-        SecurityInfo securityInfo = apijwtService.extractValues(req,false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req,false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
 
         //TODO should this be Learner or higher? Is there a reason a student would need to see group?
-        if(apijwtService.isLearnerOrHigher(securityInfo)) {
+        if(apijwtService.isLearnerOrHigher(securedInfo)) {
             List<Group> groupList =
                     groupService.findAllByExperimentId(experimentId);
             if(groupList.isEmpty()) {
@@ -81,11 +81,11 @@ public class GroupController {
                                                    HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, GroupNotMatchingException {
 
-        SecurityInfo securityInfo = apijwtService.extractValues(req,false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.groupAllowed(securityInfo, experimentId, groupId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req,false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.groupAllowed(securedInfo, experimentId, groupId);
 
-        if(apijwtService.isLearnerOrHigher(securityInfo)) {
+        if(apijwtService.isLearnerOrHigher(securedInfo)) {
             Optional<Group> group = groupService.findOneByGroupId(groupId);
 
             if(!group.isPresent()) {
@@ -108,10 +108,10 @@ public class GroupController {
             throws ExperimentNotMatchingException, BadTokenException {
 
         log.info("Creating Group : {}", groupDto);
-        SecurityInfo securityInfo = apijwtService.extractValues(req,false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req,false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
 
-        if(apijwtService.isInstructorOrHigher(securityInfo)) {
+        if(apijwtService.isInstructorOrHigher(securedInfo)) {
             if(groupDto.getGroupId() != null) {
                 log.error("Cannot include id in the POST endpoint. To modify existing groups you must use PUT");
                 return new ResponseEntity("Cannot include id in the POST endpoint. To modify existing groups you must use PUT", HttpStatus.CONFLICT);
@@ -148,11 +148,11 @@ public class GroupController {
             throws ExperimentNotMatchingException, BadTokenException, GroupNotMatchingException {
 
         log.info("Updating group with id {}", groupId);
-        SecurityInfo securityInfo = apijwtService.extractValues(req,false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.groupAllowed(securityInfo, experimentId, groupId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req,false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.groupAllowed(securedInfo, experimentId, groupId);
 
-        if(apijwtService.isInstructorOrHigher(securityInfo)) {
+        if(apijwtService.isInstructorOrHigher(securedInfo)) {
             Optional<Group> groupSearchResult = groupService.findById(groupId);
 
             if(!groupSearchResult.isPresent()) {
@@ -182,11 +182,11 @@ public class GroupController {
                                                HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, GroupNotMatchingException {
 
-        SecurityInfo securityInfo = apijwtService.extractValues(req,false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.groupAllowed(securityInfo, experimentId, groupId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req,false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.groupAllowed(securedInfo, experimentId, groupId);
 
-        if(apijwtService.isInstructorOrHigher(securityInfo)) {
+        if(apijwtService.isInstructorOrHigher(securedInfo)) {
             try{
                 groupService.deleteById(groupId);
                 return new ResponseEntity<>(HttpStatus.OK);

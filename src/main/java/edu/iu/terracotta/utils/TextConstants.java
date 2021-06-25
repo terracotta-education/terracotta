@@ -59,6 +59,11 @@ public class TextConstants {
     public static final String ID_MISSING = "A valid question id must be included in a submission post.";
     public static final String GROUP_NOT_MATCHING = "The group does not belong to experiment defined in the path.";
     public static final String SUBMISSION_IDS_MISSING = "The request requires at least one submissionId in the list of submissions";
+    public static final String SUBMISSION_ID_MISSING = "The request requires one submissionId";
     public static final String SUBMISSION_IDS_STUDENT_GT1 = "A student can only submit one submission at a time";
+    public static final String CONSENT_PENDING = "Consent_Pending: The student has not signed the consent";
+    public static final String GROUP_PENDING = "Group_Pending: The student has not been assigned to a group";
+    public static final String ASSIGNMENT_LOCKED = "The assignment is not open at this moment";
+    public static final String LIMIT_OF_SUBMISSIONS_REACHED ="You can't answer this assignment again";
 
 }

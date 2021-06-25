@@ -9,7 +9,7 @@ import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
 import edu.iu.terracotta.model.app.Assignment;
 import edu.iu.terracotta.model.app.Treatment;
 import edu.iu.terracotta.model.app.dto.TreatmentDto;
-import edu.iu.terracotta.model.oauth2.SecurityInfo;
+import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.AssessmentService;
 import edu.iu.terracotta.service.app.AssignmentService;
@@ -62,11 +62,11 @@ public class TreatmentController {
                                                                        HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ConditionNotMatchingException {
 
-        SecurityInfo securityInfo = apijwtService.extractValues(req, false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.conditionAllowed(securityInfo, experimentId,conditionId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.conditionAllowed(securedInfo, experimentId,conditionId);
 
-        if(apijwtService.isLearnerOrHigher(securityInfo)) {
+        if(apijwtService.isLearnerOrHigher(securedInfo)) {
             List<Treatment> treatmentList = treatmentService.findAllByConditionId(conditionId);
 
             if(treatmentList.isEmpty()) {
@@ -91,18 +91,18 @@ public class TreatmentController {
                                                      HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, TreatmentNotMatchingException {
 
-        SecurityInfo securityInfo = apijwtService.extractValues(req, false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.treatmentAllowed(securityInfo, experimentId, conditionId, treatmentId);
-        if(apijwtService.isLearnerOrHigher(securityInfo)) {
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.treatmentAllowed(securedInfo, experimentId, conditionId, treatmentId);
+        if(apijwtService.isLearnerOrHigher(securedInfo)) {
             Optional<Treatment> treatmentSearchResult = treatmentService.findById(treatmentId);
 
             if(!treatmentSearchResult.isPresent()) {
                 log.error("treatment in platform {} and context {} and experiment {} and condition {} with id {} not found",
-                        securityInfo.getPlatformDeploymentId(), securityInfo.getContextId(), experimentId, conditionId, treatmentId);
+                        securedInfo.getPlatformDeploymentId(), securedInfo.getContextId(), experimentId, conditionId, treatmentId);
 
-                return new ResponseEntity("treatment in platform " + securityInfo.getPlatformDeploymentId()
-                        + " and context " + securityInfo.getContextId() + " and experiment with id " + experimentId + " and condition id " + conditionId
+                return new ResponseEntity("treatment in platform " + securedInfo.getPlatformDeploymentId()
+                        + " and context " + securedInfo.getContextId() + " and experiment with id " + experimentId + " and condition id " + conditionId
                         + " with id " + treatmentId + TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
             } else {
                 TreatmentDto treatmentDto = treatmentService.toDto(treatmentSearchResult.get());
@@ -123,11 +123,11 @@ public class TreatmentController {
             throws ExperimentNotMatchingException, BadTokenException, ConditionNotMatchingException {
 
         log.info("Creating Treatment: {}", treatmentDto);
-        SecurityInfo securityInfo = apijwtService.extractValues(req, false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.conditionAllowed(securityInfo, experimentId, conditionId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.conditionAllowed(securedInfo, experimentId, conditionId);
 
-        if(apijwtService.isInstructorOrHigher(securityInfo)) {
+        if(apijwtService.isInstructorOrHigher(securedInfo)) {
             if(treatmentDto.getTreatmentId() != null) {
                 log.error("Cannot include id in the POST endpoint. To modify existing treatments you must use PUT");
                 return new ResponseEntity("Cannot include id in the POST endpoint. To modify existing treatments you must use PUT", HttpStatus.CONFLICT);
@@ -166,11 +166,11 @@ public class TreatmentController {
             throws ExperimentNotMatchingException, BadTokenException, TreatmentNotMatchingException, AssignmentNotMatchingException, DataServiceException {
 
         log.info("Updating treatment with id: {}", treatmentId);
-        SecurityInfo securityInfo = apijwtService.extractValues(req, false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.treatmentAllowed(securityInfo, experimentId, conditionId, treatmentId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.treatmentAllowed(securedInfo, experimentId, conditionId, treatmentId);
 
-        if(apijwtService.isInstructorOrHigher(securityInfo)) {
+        if(apijwtService.isInstructorOrHigher(securedInfo)) {
             Optional<Treatment> treatmentSearchResult = treatmentService.findById(treatmentId);
 
             if(!treatmentSearchResult.isPresent()) {
@@ -183,7 +183,7 @@ public class TreatmentController {
             }
             Optional<Assignment> assignment = assignmentService.findById(treatmentDto.getAssignmentId());
             if (assignment.isPresent()) {
-                apijwtService.assignmentAllowed(securityInfo, experimentId, treatmentDto.getAssignmentId());
+                apijwtService.assignmentAllowed(securedInfo, experimentId, treatmentDto.getAssignmentId());
                 treatmentToChange.setAssignment(assignment.get());
             } else {
                 throw new DataServiceException("The assignment for the treatment does not exist");
@@ -203,11 +203,11 @@ public class TreatmentController {
                                                 HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, TreatmentNotMatchingException {
 
-        SecurityInfo securityInfo = apijwtService.extractValues(req, false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.treatmentAllowed(securityInfo, experimentId, conditionId, treatmentId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.treatmentAllowed(securedInfo, experimentId, conditionId, treatmentId);
 
-        if(apijwtService.isInstructorOrHigher(securityInfo)) {
+        if(apijwtService.isInstructorOrHigher(securedInfo)) {
             try{
                 Optional<Treatment> treatment = treatmentService.findById(treatmentId);
                 if(treatment.isPresent()){

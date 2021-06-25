@@ -8,7 +8,7 @@ import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.dto.ParticipantDto;
-import edu.iu.terracotta.model.oauth2.SecurityInfo;
+import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.GroupService;
@@ -72,15 +72,15 @@ public class ParticipantController {
                                                                             @RequestParam(name = "refresh", defaultValue = "true") boolean refresh,
                                                                             HttpServletRequest req) throws ExperimentNotMatchingException, BadTokenException, ParticipantNotUpdatedException {
 
-        SecurityInfo securityInfo = apijwtService.extractValues(req,false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req,false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
 
-        if (apijwtService.isLearnerOrHigher(securityInfo)) {
+        if (apijwtService.isLearnerOrHigher(securedInfo)) {
 
             List<Participant> currentParticipantList =
                     participantService.findAllByExperimentId(experimentId);
-            if (apijwtService.isInstructorOrHigher(securityInfo) && refresh) {
-                currentParticipantList = participantService.refreshParticipants(experimentId, securityInfo, currentParticipantList);
+            if (apijwtService.isInstructorOrHigher(securedInfo) && refresh) {
+                currentParticipantList = participantService.refreshParticipants(experimentId, securedInfo, currentParticipantList);
             }
             if (currentParticipantList.isEmpty()) {
                 return new ResponseEntity<>(HttpStatus.NO_CONTENT);
@@ -106,20 +106,20 @@ public class ParticipantController {
                                                         HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ParticipantNotMatchingException {
 
-        SecurityInfo securityInfo = apijwtService.extractValues(req,false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.participantAllowed(securityInfo, experimentId, participantId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req,false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.participantAllowed(securedInfo, experimentId, participantId);
 
-        if (apijwtService.isLearnerOrHigher(securityInfo)) {
+        if (apijwtService.isLearnerOrHigher(securedInfo)) {
 
             Optional<Participant> participantSearchResult = participantService.findById(participantId);
 
             if (!participantSearchResult.isPresent()) {
                 log.error("participant in platform {} and context {} and experiment {} with id {} not found.",
-                        securityInfo.getPlatformDeploymentId(), securityInfo.getContextId(), experimentId, participantId);
+                        securedInfo.getPlatformDeploymentId(), securedInfo.getContextId(), experimentId, participantId);
 
-                return new ResponseEntity("participant in platform " + securityInfo.getPlatformDeploymentId()
-                        + " and context " + securityInfo.getContextId() + " experiment with id " + experimentId + " with id " + participantId
+                return new ResponseEntity("participant in platform " + securedInfo.getPlatformDeploymentId()
+                        + " and context " + securedInfo.getContextId() + " experiment with id " + experimentId + " with id " + participantId
                         + TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
             } else {
                 ParticipantDto participantDto = participantService.toDto(participantSearchResult.get());
@@ -137,10 +137,10 @@ public class ParticipantController {
                                                          HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException {
 
-        SecurityInfo securityInfo = apijwtService.extractValues(req,false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req,false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
 
-        if (apijwtService.isLearnerOrHigher(securityInfo)) {
+        if (apijwtService.isLearnerOrHigher(securedInfo)) {
 
             log.info("Creating Participant : {}", participantDto);
             //We check that it does not exist
@@ -178,11 +178,11 @@ public class ParticipantController {
                                                   HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ParticipantNotMatchingException {
         log.info("Updating Participant with id {}", participantId);
-        SecurityInfo securityInfo = apijwtService.extractValues(req,false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.participantAllowed(securityInfo, experimentId, participantId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req,false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.participantAllowed(securedInfo, experimentId, participantId);
 
-        if (apijwtService.isLearnerOrHigher(securityInfo)) {
+        if (apijwtService.isLearnerOrHigher(securedInfo)) {
 
             Optional<Participant> participantSearchResult = participantService.findById(participantId);
             if (!participantSearchResult.isPresent()) {
@@ -217,14 +217,14 @@ public class ParticipantController {
                                                    HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ParticipantNotMatchingException, DataServiceException {
 
-        SecurityInfo securityInfo = apijwtService.extractValues(req, false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
 
-        if(apijwtService.isInstructorOrHigher(securityInfo)){
+        if(apijwtService.isInstructorOrHigher(securedInfo)){
             List<Participant> participantList = new ArrayList<>();
 
             for(ParticipantDto participantDto : participantDtoList) {
-                apijwtService.participantAllowed(securityInfo, experimentId, participantDto.getParticipantId());
+                apijwtService.participantAllowed(securedInfo, experimentId, participantDto.getParticipantId());
                 Optional<Participant> participant = participantService.findById(participantDto.getParticipantId());
                 if (!participant.isPresent()) {
                     log.error("Unable to update. Participant with id {} not found.", participantDto.getParticipantId());
@@ -254,11 +254,11 @@ public class ParticipantController {
                                                   HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ParticipantNotMatchingException {
 
-        SecurityInfo securityInfo = apijwtService.extractValues(req,false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.participantAllowed(securityInfo, experimentId, participantId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req,false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.participantAllowed(securedInfo, experimentId, participantId);
 
-        if (apijwtService.isInstructorOrHigher(securityInfo)) {
+        if (apijwtService.isInstructorOrHigher(securedInfo)) {
             Optional<Participant> participant = participantService.findById(participantId);
             if(participant.isPresent()){
                 participant.get().setDropped(true);

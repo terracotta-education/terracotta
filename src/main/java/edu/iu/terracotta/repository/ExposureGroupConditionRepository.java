@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ExposureGroupConditionRepository extends JpaRepository<ExposureGroupCondition, Long> {
-    Optional<Condition> getByGroup_GroupIdAndExposure_ExposureId(Long groupId, Long exposureId);
+    Optional<ExposureGroupCondition> getByGroup_GroupIdAndExposure_ExposureId(Long groupId, Long exposureId);
 
     List<ExposureGroupCondition> findByCondition_Experiment_ExperimentId(Long experimentId);
 

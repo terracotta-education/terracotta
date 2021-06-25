@@ -1,10 +1,11 @@
 package edu.iu.terracotta.service.app;
 
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.ExposureGroupCondition;
 import edu.iu.terracotta.model.app.Group;
 import edu.iu.terracotta.model.app.dto.GroupDto;
-import edu.iu.terracotta.model.oauth2.SecurityInfo;
+import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import org.springframework.dao.EmptyResultDataAccessException;
 
 import java.util.List;
@@ -31,7 +32,9 @@ public interface GroupService {
 
     boolean groupBelongsToExperiment(Long experimentId, Long groupId);
 
-    void createAndAssignGroupsToConditionsAndExposures(Long experimentId, SecurityInfo securityInfo, boolean isCustom) throws DataServiceException;
+    void createAndAssignGroupsToConditionsAndExposures(Long experimentId, SecuredInfo securedInfo, boolean isCustom) throws DataServiceException;
 
     boolean existsByExperiment_ExperimentIdAndGroupId(Long experimentId, Long groupId);
+
+    Group nextGroup(Experiment experiment);
 }

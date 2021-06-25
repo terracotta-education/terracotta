@@ -13,7 +13,7 @@ import edu.iu.terracotta.model.app.dto.OutcomePotentialDto;
 import edu.iu.terracotta.model.app.dto.OutcomeScoreDto;
 import edu.iu.terracotta.model.app.enumerator.LmsType;
 import edu.iu.terracotta.model.canvas.AssignmentExtended;
-import edu.iu.terracotta.model.oauth2.SecurityInfo;
+import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.ExposureService;
@@ -147,14 +147,14 @@ public class OutcomeServiceImpl implements OutcomeService {
 
     @Override
     @Transactional
-    public void updateOutcomeGrades(Long outcomeId, SecurityInfo securityInfo) throws CanvasApiException, IOException, ParticipantNotUpdatedException {
+    public void updateOutcomeGrades(Long outcomeId, SecuredInfo securedInfo) throws CanvasApiException, IOException, ParticipantNotUpdatedException {
         Optional<Outcome> outcomeSearchResult = this.findById(outcomeId);
         Outcome outcome = outcomeSearchResult.get();
         //If this is not external we don't need to check the scores.
         if (!outcome.getExternal()){
             return;
         }
-        participantService.refreshParticipants(outcome.getExposure().getExperiment().getExperimentId(),securityInfo,outcome.getExposure().getExperiment().getParticipants());
+        participantService.refreshParticipants(outcome.getExposure().getExperiment().getExperimentId(), securedInfo,outcome.getExposure().getExperiment().getParticipants());
         List<OutcomeScore> newScores = new ArrayList<>();
         List<Submission> submissions = canvasAPIClient.listSubmissions(Integer.parseInt(outcome.getLmsOutcomeId()),outcome.getExposure().getExperiment().getLtiContextEntity().getContext_memberships_url(),outcome.getExposure().getExperiment().getPlatformDeployment());
         for (Submission submission:submissions){

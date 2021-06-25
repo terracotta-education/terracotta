@@ -9,7 +9,7 @@ import edu.iu.terracotta.model.app.dto.ExperimentDto;
 import edu.iu.terracotta.model.app.enumerator.DistributionTypes;
 import edu.iu.terracotta.model.app.enumerator.ExposureTypes;
 import edu.iu.terracotta.model.app.enumerator.ParticipationTypes;
-import edu.iu.terracotta.model.oauth2.SecurityInfo;
+import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.utils.TextConstants;
@@ -58,15 +58,15 @@ public class ExperimentController {
     @ResponseBody
     public ResponseEntity<List<ExperimentDto>> allExperimentsByCourse(HttpServletRequest req) throws BadTokenException {
 
-        SecurityInfo securityInfo = apijwtService.extractValues(req,false);
-        if (securityInfo==null){
+        SecuredInfo securedInfo = apijwtService.extractValues(req,false);
+        if (securedInfo ==null){
             throw new BadTokenException(TextConstants.BAD_TOKEN);
         }
 
-        if (apijwtService.isLearnerOrHigher(securityInfo)) {
+        if (apijwtService.isLearnerOrHigher(securedInfo)) {
             List<Experiment> experimentList =
                     experimentService.findAllByDeploymentIdAndCourseId(
-                            securityInfo.getPlatformDeploymentId(), securityInfo.getContextId());
+                            securedInfo.getPlatformDeploymentId(), securedInfo.getContextId());
             if (experimentList.isEmpty()) {
                 return new ResponseEntity<>(HttpStatus.NO_CONTENT);
                 // You many decide to return HttpStatus.NOT_FOUND
@@ -93,25 +93,25 @@ public class ExperimentController {
                                                        HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException {
 
-        SecurityInfo securityInfo = apijwtService.extractValues(req,false);
-        apijwtService.experimentAllowed(securityInfo, id);
+        SecuredInfo securedInfo = apijwtService.extractValues(req,false);
+        apijwtService.experimentAllowed(securedInfo, id);
 
-        if (apijwtService.isLearnerOrHigher(securityInfo)) {
+        if (apijwtService.isLearnerOrHigher(securedInfo)) {
             Optional<Experiment> experiment =
                     experimentService.findOneByDeploymentIdAndCourseIdAndExperimentId(
-                            securityInfo.getPlatformDeploymentId(), securityInfo.getContextId(), id);
+                            securedInfo.getPlatformDeploymentId(), securedInfo.getContextId(), id);
 
             if (!experiment.isPresent()) {
                 log.error(
                         "experiment in platform {} and context {} with id {} not found.",
-                        securityInfo.getPlatformDeploymentId(),
-                        securityInfo.getContextId(),
+                        securedInfo.getPlatformDeploymentId(),
+                        securedInfo.getContextId(),
                         id);
                 return new ResponseEntity(
                         "experiment in platform "
-                                + securityInfo.getPlatformDeploymentId()
+                                + securedInfo.getPlatformDeploymentId()
                                 + " and context "
-                                + securityInfo.getContextId()
+                                + securedInfo.getContextId()
                                 + " with id "
                                 + id
                                 + TextConstants.NOT_FOUND_SUFFIX,
@@ -131,18 +131,18 @@ public class ExperimentController {
                                                         HttpServletRequest req)
             throws BadTokenException {
         log.debug("Creating Experiment : {}", experimentDto);
-        SecurityInfo securityInfo = apijwtService.extractValues(req,false);
-        if (securityInfo==null){
+        SecuredInfo securedInfo = apijwtService.extractValues(req,false);
+        if (securedInfo ==null){
             throw new BadTokenException(TextConstants.BAD_TOKEN);
         }
 
-        if (apijwtService.isInstructorOrHigher(securityInfo)) {
+        if (apijwtService.isInstructorOrHigher(securedInfo)) {
             // We check that it does not exist
             if (experimentDto.getExperimentId() != null) {
                 log.error(TextConstants.ID_IN_POST_ERROR);
                 return new ResponseEntity(TextConstants.ID_IN_POST_ERROR, HttpStatus.CONFLICT);
             }
-            ExperimentDto existingEmpty = experimentService.getEmptyExperiment(securityInfo, experimentDto);
+            ExperimentDto existingEmpty = experimentService.getEmptyExperiment(securedInfo, experimentDto);
             if (existingEmpty!=null){
                 experimentService.copyDto(existingEmpty, experimentDto);
                 HttpHeaders headers = new HttpHeaders();
@@ -157,14 +157,19 @@ public class ExperimentController {
                 if(experimentDto.getTitle().length() > 255){
                     return new ResponseEntity("Experiment title must be less than 255 characters in length.", HttpStatus.BAD_REQUEST);
                 }
-                if(experimentService.titleAlreadyExists(experimentDto.getTitle(), securityInfo.getContextId(), 0l)){
+                if(experimentService.titleAlreadyExists(experimentDto.getTitle(), securedInfo.getContextId(), 0l)){
                     return new ResponseEntity("Unable to create the experiment. An experiment with title \"" + experimentDto.getTitle() + "\" already exists in this course.", HttpStatus.CONFLICT);
                 }
             }
 
             Experiment experiment;
-            experimentDto = experimentService.fillContextInfo(experimentDto, securityInfo);
+            experimentDto = experimentService.fillContextInfo(experimentDto, securedInfo);
             try {
+                if(!StringUtils.isBlank(experimentDto.getTitle())){
+                    if(experimentService.titleAlreadyExists(experimentDto.getTitle(), securedInfo.getContextId(), 0l)){
+                        return new ResponseEntity("Unable to create the experiment. An experiment with title \"" + experimentDto.getTitle() + "\" already exists in this course.", HttpStatus.CONFLICT);
+                    }
+                }
                 experiment = experimentService.fromDto(experimentDto);
             } catch (DataServiceException e) {
                 return new ResponseEntity(
@@ -193,10 +198,10 @@ public class ExperimentController {
                                                  HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, WrongValueException {
         log.info("Updating Experiment with id {}", id);
-        SecurityInfo securityInfo = apijwtService.extractValues(req,false);
-        apijwtService.experimentAllowed(securityInfo, id);
+        SecuredInfo securedInfo = apijwtService.extractValues(req,false);
+        apijwtService.experimentAllowed(securedInfo, id);
 
-        if (apijwtService.isInstructorOrHigher(securityInfo)) {
+        if (apijwtService.isInstructorOrHigher(securedInfo)) {
             Optional<Experiment> experimentSearchResult = experimentService.findById(id);
 
             if (!experimentSearchResult.isPresent()) {
@@ -213,7 +218,7 @@ public class ExperimentController {
                 if(experimentDto.getTitle().length() > 255){
                     return new ResponseEntity("Experiment title must be less than 255 characters in length.", HttpStatus.BAD_REQUEST);
                 }
-                if(experimentService.titleAlreadyExists(experimentDto.getTitle(), securityInfo.getContextId(), id)){
+                if(experimentService.titleAlreadyExists(experimentDto.getTitle(), securedInfo.getContextId(), id)){
                     return new ResponseEntity("Unable to create the experiment. An experiment with title \"" + experimentDto.getTitle() + "\" already exists in this course.", HttpStatus.CONFLICT);
                 }
             }
@@ -259,10 +264,10 @@ public class ExperimentController {
     public ResponseEntity<Void> deleteExperiment(@PathVariable("id") Long id,
                                                  HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException {
-        SecurityInfo securityInfo = apijwtService.extractValues(req,false);
-        apijwtService.experimentAllowed(securityInfo, id);
+        SecuredInfo securedInfo = apijwtService.extractValues(req,false);
+        apijwtService.experimentAllowed(securedInfo, id);
 
-        if (apijwtService.isInstructorOrHigher(securityInfo)) {
+        if (apijwtService.isInstructorOrHigher(securedInfo)) {
             try {
                 experimentService.deleteById(id);
                 return new ResponseEntity<>(HttpStatus.OK);

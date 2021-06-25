@@ -1,7 +1,7 @@
 package edu.iu.terracotta.service.app;
 
 import edu.iu.terracotta.exceptions.*;
-import edu.iu.terracotta.model.oauth2.SecurityInfo;
+import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.utils.lti.LTI3Request;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Header;
@@ -11,7 +11,6 @@ import io.jsonwebtoken.Jwt;
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
-import java.sql.PseudoColumnUsage;
 import java.util.List;
 
 public interface APIJWTService {
@@ -20,7 +19,22 @@ public interface APIJWTService {
 
     Jwt<Header, Claims> unsecureToken(String token);
 
-    String buildJwt(boolean oneUse, List<String> roles, Long contextId, Long platformDeploymentId, String userId, Long assignmentId, Long experimentId, Boolean consent) throws GeneralSecurityException, IOException;
+    String buildJwt(boolean oneUse,
+                    List<String> roles,
+                    Long contextId,
+                    Long platformDeploymentId,
+                    String userId,
+                    Long assignmentId,
+                    Long experimentId,
+                    Boolean consent,
+                    String canvasUserId,
+                    String canvasLoginId,
+                    String canvasUserName,
+                    String canvasCourseId,
+                    String canvasAssignmentId,
+                    String dueAt,
+                    String lockAt,
+                    String unlockAt) throws GeneralSecurityException, IOException;
 
     String buildJwt(boolean oneUse, LTI3Request lti3Request) throws GeneralSecurityException, IOException;
 
@@ -28,53 +42,53 @@ public interface APIJWTService {
 
     String extractJwtStringValue(HttpServletRequest request, boolean allowQueryParam);
 
-    SecurityInfo extractValues(HttpServletRequest request, boolean allowQueryParam);
+    SecuredInfo extractValues(HttpServletRequest request, boolean allowQueryParam);
 
-    boolean isAdmin(SecurityInfo securityInfo);
+    boolean isAdmin(SecuredInfo securedInfo);
 
-    boolean isInstructor(SecurityInfo securityInfo);
+    boolean isInstructor(SecuredInfo securedInfo);
 
-    boolean isInstructorOrHigher(SecurityInfo securityInfo);
+    boolean isInstructorOrHigher(SecuredInfo securedInfo);
 
-    boolean isLearner(SecurityInfo securityInfo);
+    boolean isLearner(SecuredInfo securedInfo);
 
-    boolean isLearnerOrHigher(SecurityInfo securityInfo);
+    boolean isLearnerOrHigher(SecuredInfo securedInfo);
 
-    boolean isGeneral(SecurityInfo securityInfo);
+    boolean isGeneral(SecuredInfo securedInfo);
 
-    void experimentAllowed(SecurityInfo securityInfo, Long experimentId) throws BadTokenException, ExperimentNotMatchingException;
+    void experimentAllowed(SecuredInfo securedInfo, Long experimentId) throws BadTokenException, ExperimentNotMatchingException;
 
-    void conditionAllowed(SecurityInfo securityInfo, Long experimentId, Long conditionId) throws ConditionNotMatchingException;
+    void conditionAllowed(SecuredInfo securedInfo, Long experimentId, Long conditionId) throws ConditionNotMatchingException;
 
-    void participantAllowed(SecurityInfo securityInfo, Long experimentId, Long participantId) throws ParticipantNotMatchingException;
+    void participantAllowed(SecuredInfo securedInfo, Long experimentId, Long participantId) throws ParticipantNotMatchingException;
 
-    void exposureAllowed(SecurityInfo securityInfo, Long experimentId, Long exposureId) throws ExposureNotMatchingException;
+    void exposureAllowed(SecuredInfo securedInfo, Long experimentId, Long exposureId) throws ExposureNotMatchingException;
 
-    void groupAllowed(SecurityInfo securityInfo, Long experimentId, Long groupId) throws GroupNotMatchingException;
+    void groupAllowed(SecuredInfo securedInfo, Long experimentId, Long groupId) throws GroupNotMatchingException;
 
-    void assignmentAllowed(SecurityInfo securityInfo, Long experimentId, Long assignmentId) throws AssignmentNotMatchingException;
+    void assignmentAllowed(SecuredInfo securedInfo, Long experimentId, Long assignmentId) throws AssignmentNotMatchingException;
 
-    void assignmentAllowed(SecurityInfo securityInfo, Long experimentId, Long exposureId, Long assignmentId) throws AssignmentNotMatchingException;
+    void assignmentAllowed(SecuredInfo securedInfo, Long experimentId, Long exposureId, Long assignmentId) throws AssignmentNotMatchingException;
 
-    void treatmentAllowed(SecurityInfo securityInfo, Long experimentId, Long conditionId, Long treatmentId) throws TreatmentNotMatchingException;
+    void treatmentAllowed(SecuredInfo securedInfo, Long experimentId, Long conditionId, Long treatmentId) throws TreatmentNotMatchingException;
 
-    void assessmentAllowed(SecurityInfo securityInfo, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId) throws AssessmentNotMatchingException;
+    void assessmentAllowed(SecuredInfo securedInfo, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId) throws AssessmentNotMatchingException;
 
-    void questionAllowed(SecurityInfo securityInfo, Long assessmentId, Long questionId) throws QuestionNotMatchingException;
+    void questionAllowed(SecuredInfo securedInfo, Long assessmentId, Long questionId) throws QuestionNotMatchingException;
 
-    void answerAllowed(SecurityInfo securityInfo, Long assessmentId, Long questionId, String answerType, Long answerId) throws AnswerNotMatchingException;
+    void answerAllowed(SecuredInfo securedInfo, Long assessmentId, Long questionId, String answerType, Long answerId) throws AnswerNotMatchingException;
 
-    void submissionAllowed(SecurityInfo securityInfo, Long assessmentId, Long submissionId) throws SubmissionNotMatchingException;
+    void submissionAllowed(SecuredInfo securedInfo, Long assessmentId, Long submissionId) throws SubmissionNotMatchingException;
 
-    void questionSubmissionAllowed(SecurityInfo securityInfo, Long assessmentId, Long submissionId, Long questionSubmissionId) throws QuestionSubmissionNotMatchingException;
+    void questionSubmissionAllowed(SecuredInfo securedInfo, Long assessmentId, Long submissionId, Long questionSubmissionId) throws QuestionSubmissionNotMatchingException;
 
-    void submissionCommentAllowed(SecurityInfo securityInfo, Long assessmentId, Long submissionId, Long submissionCommentId) throws SubmissionCommentNotMatchingException;
+    void submissionCommentAllowed(SecuredInfo securedInfo, Long assessmentId, Long submissionId, Long submissionCommentId) throws SubmissionCommentNotMatchingException;
 
-    void questionSubmissionCommentAllowed(SecurityInfo securityInfo, Long questionSubmissionId, Long questionSubmissionCommentId) throws QuestionSubmissionCommentNotMatchingException;
+    void questionSubmissionCommentAllowed(SecuredInfo securedInfo, Long questionSubmissionId, Long questionSubmissionCommentId) throws QuestionSubmissionCommentNotMatchingException;
 
-    void outcomeAllowed(SecurityInfo securityInfo, Long experimentId, Long exposureId, Long outcomeId) throws OutcomeNotMatchingException;
+    void outcomeAllowed(SecuredInfo securedInfo, Long experimentId, Long exposureId, Long outcomeId) throws OutcomeNotMatchingException;
 
-    void outcomeScoreAllowed(SecurityInfo securityInfo, Long outcomeId, Long outcomeScoreId) throws OutcomeScoreNotMatchingException;
+    void outcomeScoreAllowed(SecuredInfo securedInfo, Long outcomeId, Long outcomeScoreId) throws OutcomeScoreNotMatchingException;
 
-    void answerSubmissionAllowed(SecurityInfo securityInfo, Long QuestionSubmissionId, String answerType, Long answerSubmissionId) throws AnswerSubmissionNotMatchingException;
+    void answerSubmissionAllowed(SecuredInfo securedInfo, Long QuestionSubmissionId, String answerType, Long answerSubmissionId) throws AnswerSubmissionNotMatchingException;
 }

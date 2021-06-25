@@ -6,7 +6,7 @@ import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.model.app.Outcome;
 import edu.iu.terracotta.model.app.dto.OutcomeDto;
 import edu.iu.terracotta.model.app.dto.OutcomePotentialDto;
-import edu.iu.terracotta.model.oauth2.SecurityInfo;
+import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import org.springframework.dao.EmptyResultDataAccessException;
 
 import java.io.IOException;
@@ -33,5 +33,5 @@ public interface OutcomeService {
 
     List<OutcomePotentialDto> potentialOutcomes(Long experimentId) throws DataServiceException, CanvasApiException;
 
-    void updateOutcomeGrades(Long outcomeId, SecurityInfo securityInfo) throws CanvasApiException, IOException, ParticipantNotUpdatedException;
+    void updateOutcomeGrades(Long outcomeId, SecuredInfo securedInfo) throws CanvasApiException, IOException, ParticipantNotUpdatedException;
 }

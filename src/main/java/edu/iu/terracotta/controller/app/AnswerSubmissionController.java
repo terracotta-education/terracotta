@@ -14,7 +14,7 @@ import edu.iu.terracotta.model.app.Question;
 import edu.iu.terracotta.model.app.QuestionSubmission;
 import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.dto.AnswerSubmissionDto;
-import edu.iu.terracotta.model.oauth2.SecurityInfo;
+import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.AnswerSubmissionService;
@@ -78,14 +78,14 @@ public class AnswerSubmissionController {
                                                                                       HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, BadTokenException{
 
-        SecurityInfo securityInfo = apijwtService.extractValues(req, false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.assessmentAllowed(securityInfo, experimentId, conditionId, treatmentId, assessmentId);
-        apijwtService.questionSubmissionAllowed(securityInfo, assessmentId, submissionId, questionSubmissionId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
+        apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, questionSubmissionId);
 
-        if(apijwtService.isLearnerOrHigher(securityInfo)){
-            if(!apijwtService.isInstructorOrHigher(securityInfo)){
-                Participant participant = submissionService.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, securityInfo.getUserId());
+        if(apijwtService.isLearnerOrHigher(securedInfo)){
+            if(!apijwtService.isInstructorOrHigher(securedInfo)){
+                Participant participant = submissionService.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, securedInfo.getUserId());
                 Optional<Submission> submission = submissionService.findByParticipantIdAndSubmissionId(participant.getParticipantId(), submissionId);
                 if(!submission.isPresent()){
                     return new ResponseEntity("Students can only access answer submissions from their own submissions. Submission with id "
@@ -147,19 +147,19 @@ public class AnswerSubmissionController {
                                                                    HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, AnswerSubmissionNotMatchingException, BadTokenException{
 
-        SecurityInfo securityInfo = apijwtService.extractValues(req, false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.assessmentAllowed(securityInfo, experimentId, conditionId, treatmentId, assessmentId);
-        apijwtService.questionSubmissionAllowed(securityInfo, assessmentId, submissionId, questionSubmissionId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
+        apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, questionSubmissionId);
         QuestionSubmission questionSubmission = allRepositories.questionSubmissionRepository.findByQuestionSubmissionId(questionSubmissionId);
         Question question = allRepositories.questionRepository.findByQuestionId(questionSubmission.getQuestion().getQuestionId());
         String answerType = question.getQuestionType().toString();
-        apijwtService.answerSubmissionAllowed(securityInfo, questionSubmissionId, answerType, answerSubmissionId);
+        apijwtService.answerSubmissionAllowed(securedInfo, questionSubmissionId, answerType, answerSubmissionId);
 
-        if(apijwtService.isLearnerOrHigher(securityInfo)){
+        if(apijwtService.isLearnerOrHigher(securedInfo)){
 
-            if(!apijwtService.isInstructorOrHigher(securityInfo)){
-                Participant participant = submissionService.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, securityInfo.getUserId());
+            if(!apijwtService.isInstructorOrHigher(securedInfo)){
+                Participant participant = submissionService.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, securedInfo.getUserId());
                 Optional<Submission> submission = submissionService.findByParticipantIdAndSubmissionId(participant.getParticipantId(), submissionId);
                 if(!submission.isPresent()){
                     return new ResponseEntity("Students can only access answer submissions from their own submissions. Submission with id "
@@ -169,8 +169,8 @@ public class AnswerSubmissionController {
             if(answerType.equals("MC")){
                 Optional<AnswerMcSubmission> mcAnswerSearchResult = answerSubmissionService.findByIdMC(answerSubmissionId);
                 if(!mcAnswerSearchResult.isPresent()){
-                    log.error(answerSubmissionService.answerSubmissionNotFound(securityInfo, experimentId, conditionId, treatmentId, assessmentId, submissionId, questionSubmissionId, answerSubmissionId));
-                    return new ResponseEntity(answerSubmissionService.answerSubmissionNotFound(securityInfo, experimentId, conditionId, treatmentId, assessmentId, submissionId, questionSubmissionId, answerSubmissionId),
+                    log.error(answerSubmissionService.answerSubmissionNotFound(securedInfo, experimentId, conditionId, treatmentId, assessmentId, submissionId, questionSubmissionId, answerSubmissionId));
+                    return new ResponseEntity(answerSubmissionService.answerSubmissionNotFound(securedInfo, experimentId, conditionId, treatmentId, assessmentId, submissionId, questionSubmissionId, answerSubmissionId),
                             HttpStatus.NOT_FOUND);
                 }
                 AnswerSubmissionDto mcAnswerSubmissionDto = answerSubmissionService.toDtoMC(mcAnswerSearchResult.get());
@@ -178,8 +178,8 @@ public class AnswerSubmissionController {
             } else if (answerType.equals("ESSAY")){
                 Optional<AnswerEssaySubmission> essayAnswerSearchResult = answerSubmissionService.findByIdEssay(answerSubmissionId);
                 if(!essayAnswerSearchResult.isPresent()){
-                    log.error(answerSubmissionService.answerSubmissionNotFound(securityInfo, experimentId, conditionId, treatmentId, assessmentId, submissionId, questionSubmissionId, answerSubmissionId));
-                    return new ResponseEntity(answerSubmissionService.answerSubmissionNotFound(securityInfo, experimentId, conditionId, treatmentId, assessmentId, submissionId, questionSubmissionId, answerSubmissionId),
+                    log.error(answerSubmissionService.answerSubmissionNotFound(securedInfo, experimentId, conditionId, treatmentId, assessmentId, submissionId, questionSubmissionId, answerSubmissionId));
+                    return new ResponseEntity(answerSubmissionService.answerSubmissionNotFound(securedInfo, experimentId, conditionId, treatmentId, assessmentId, submissionId, questionSubmissionId, answerSubmissionId),
                             HttpStatus.NOT_FOUND);
                 }
                 AnswerSubmissionDto essayAnswerSubmissionDto = answerSubmissionService.toDtoEssay(essayAnswerSearchResult.get());
@@ -207,19 +207,19 @@ public class AnswerSubmissionController {
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, BadTokenException {
 
         log.info("Creating answer submission: {}", answerSubmissionDto);
-        SecurityInfo securityInfo = apijwtService.extractValues(req, false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.assessmentAllowed(securityInfo, experimentId, conditionId, treatmentId, assessmentId);
-        apijwtService.questionSubmissionAllowed(securityInfo, assessmentId, submissionId, questionSubmissionId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
+        apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, questionSubmissionId);
 
-        if(apijwtService.isLearnerOrHigher(securityInfo)){
+        if(apijwtService.isLearnerOrHigher(securedInfo)){
             if(answerSubmissionDto.getAnswerSubmissionId() != null){
                 log.error(TextConstants.ID_IN_POST_ERROR);
                 return new ResponseEntity(TextConstants.ID_IN_POST_ERROR, HttpStatus.CONFLICT);
             }
 
-            if(!apijwtService.isInstructorOrHigher(securityInfo)){
-                Participant participant = submissionService.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, securityInfo.getUserId());
+            if(!apijwtService.isInstructorOrHigher(securedInfo)){
+                Participant participant = submissionService.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, securedInfo.getUserId());
                 Optional<Submission> submission = submissionService.findByParticipantIdAndSubmissionId(participant.getParticipantId(), submissionId);
                 if(!submission.isPresent()){
                     return new ResponseEntity("Students can only access answer submissions from their own submissions. Submission with id "
@@ -285,17 +285,17 @@ public class AnswerSubmissionController {
                                                        HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, AnswerSubmissionNotMatchingException, BadTokenException {
 
-        SecurityInfo securityInfo = apijwtService.extractValues(req, false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.assessmentAllowed(securityInfo, experimentId, conditionId, treatmentId, assessmentId);
-        apijwtService.questionSubmissionAllowed(securityInfo, assessmentId, submissionId, questionSubmissionId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
+        apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, questionSubmissionId);
         QuestionSubmission questionSubmission = allRepositories.questionSubmissionRepository.findByQuestionSubmissionId(questionSubmissionId);
         String answerType = questionSubmission.getQuestion().getQuestionType().toString();
-        apijwtService.answerSubmissionAllowed(securityInfo, questionSubmissionId, answerType, answerSubmissionId);
+        apijwtService.answerSubmissionAllowed(securedInfo, questionSubmissionId, answerType, answerSubmissionId);
 
-        if (apijwtService.isLearnerOrHigher(securityInfo)) {
-            if(!apijwtService.isInstructorOrHigher(securityInfo)){
-                Participant participant = submissionService.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, securityInfo.getUserId());
+        if (apijwtService.isLearnerOrHigher(securedInfo)) {
+            if(!apijwtService.isInstructorOrHigher(securedInfo)){
+                Participant participant = submissionService.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, securedInfo.getUserId());
                 Optional<Submission> submission = submissionService.findByParticipantIdAndSubmissionId(participant.getParticipantId(), submissionId);
                 if(!submission.isPresent()){
                     return new ResponseEntity("Students can only access question submissions from their own submissions. Submission with id "
@@ -350,15 +350,15 @@ public class AnswerSubmissionController {
                                                        HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, AnswerSubmissionNotMatchingException, BadTokenException {
 
-        SecurityInfo securityInfo = apijwtService.extractValues(req, false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.assessmentAllowed(securityInfo, experimentId, conditionId, treatmentId, assessmentId);
-        apijwtService.questionSubmissionAllowed(securityInfo, assessmentId, submissionId, questionSubmissionId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
+        apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, questionSubmissionId);
         QuestionSubmission questionSubmission = allRepositories.questionSubmissionRepository.findByQuestionSubmissionId(questionSubmissionId);
         String answerType = questionSubmission.getQuestion().getQuestionType().toString();
-        apijwtService.answerSubmissionAllowed(securityInfo, questionSubmissionId, answerType, answerSubmissionId);
+        apijwtService.answerSubmissionAllowed(securedInfo, questionSubmissionId, answerType, answerSubmissionId);
 
-        if(apijwtService.isInstructorOrHigher(securityInfo)){
+        if(apijwtService.isInstructorOrHigher(securedInfo)){
             switch(answerType){
                 case "MC":
                     try{

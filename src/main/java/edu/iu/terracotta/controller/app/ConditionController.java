@@ -6,7 +6,7 @@ import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.model.app.Condition;
 import edu.iu.terracotta.model.app.dto.ConditionDto;
-import edu.iu.terracotta.model.oauth2.SecurityInfo;
+import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.ConditionService;
 import edu.iu.terracotta.service.app.ExperimentService;
@@ -51,10 +51,10 @@ public class ConditionController {
                                                                         HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException {
 
-        SecurityInfo securityInfo = apijwtService.extractValues(req,false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req,false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
 
-        if(apijwtService.isLearnerOrHigher(securityInfo)) {
+        if(apijwtService.isLearnerOrHigher(securedInfo)) {
             List<Condition> conditionList =
                     conditionService.findAllByExperimentId(experimentId);
             if(conditionList.isEmpty()){
@@ -77,11 +77,11 @@ public class ConditionController {
                                                      HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ConditionNotMatchingException {
 
-        SecurityInfo securityInfo = apijwtService.extractValues(req,false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.conditionAllowed(securityInfo, experimentId, conditionId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req,false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.conditionAllowed(securedInfo, experimentId, conditionId);
 
-        if(apijwtService.isLearnerOrHigher(securityInfo)){
+        if(apijwtService.isLearnerOrHigher(securedInfo)){
             Optional<Condition> condition = conditionService.findById(conditionId);
 
             if(!condition.isPresent()) {
@@ -104,10 +104,10 @@ public class ConditionController {
             throws ExperimentNotMatchingException, BadTokenException {
 
         log.info("Creating Condition : {}", conditionDto);
-        SecurityInfo securityInfo = apijwtService.extractValues(req,false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req,false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
 
-        if(apijwtService.isInstructorOrHigher(securityInfo)) {
+        if(apijwtService.isInstructorOrHigher(securedInfo)) {
             if (conditionDto.getConditionId() != null){
                 log.error(TextConstants.ID_IN_POST_ERROR);
                 return new ResponseEntity(TextConstants.ID_IN_POST_ERROR, HttpStatus.CONFLICT);
@@ -150,11 +150,11 @@ public class ConditionController {
             throws ExperimentNotMatchingException, BadTokenException, ConditionNotMatchingException {
 
         log.info("Updating condition with id {}", conditionId);
-        SecurityInfo securityInfo = apijwtService.extractValues(req,false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.conditionAllowed(securityInfo, experimentId, conditionId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req,false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.conditionAllowed(securedInfo, experimentId, conditionId);
 
-        if(apijwtService.isInstructorOrHigher(securityInfo)) {
+        if(apijwtService.isInstructorOrHigher(securedInfo)) {
             Optional<Condition> conditionSearchResult = conditionService.findById(conditionId);
 
             if(!conditionSearchResult.isPresent()) {
@@ -189,11 +189,11 @@ public class ConditionController {
                                                  @PathVariable("condition_id") Long conditionId,
                                                  HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ConditionNotMatchingException {
-        SecurityInfo securityInfo = apijwtService.extractValues(req,false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.conditionAllowed(securityInfo, experimentId, conditionId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req,false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.conditionAllowed(securedInfo, experimentId, conditionId);
 
-        if(apijwtService.isInstructorOrHigher(securityInfo)) {
+        if(apijwtService.isInstructorOrHigher(securedInfo)) {
             if(conditionService.isDefaultCondition(conditionId)){
                 return new ResponseEntity("Cannot delete default condition. If you would like to delete this condition, please select another condition to be the default condition.", HttpStatus.CONFLICT);
             }

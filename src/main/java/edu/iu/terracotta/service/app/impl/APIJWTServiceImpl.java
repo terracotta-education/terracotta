@@ -14,7 +14,7 @@ package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.exceptions.*;
 import edu.iu.terracotta.model.oauth2.Roles;
-import edu.iu.terracotta.model.oauth2.SecurityInfo;
+import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.*;
 import edu.iu.terracotta.service.lti.LTIDataService;
 import edu.iu.terracotta.utils.lti.LTI3Request;
@@ -43,6 +43,9 @@ import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.Key;
 import java.security.PublicKey;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
 
@@ -153,7 +156,23 @@ public class APIJWTServiceImpl implements APIJWTService {
     }
 
     @Override
-    public String buildJwt(boolean oneUse, List<String> roles, Long contextId, Long platformDeploymentId, String userId, Long assignmentId, Long experimentId, Boolean consent) throws GeneralSecurityException, IOException {
+    public String buildJwt(boolean oneUse,
+                           List<String> roles,
+                           Long contextId,
+                           Long platformDeploymentId,
+                           String userId,
+                           Long assignmentId,
+                           Long experimentId,
+                           Boolean consent,
+                           String canvasUserId,
+                           String canvasLoginId,
+                           String canvasUserName,
+                           String canvasCourseId,
+                           String canvasAssignmentId,
+                           String dueAt,
+                           String lockAt,
+                           String unlockAt
+    ) throws GeneralSecurityException, IOException {
 
         int length = 3600;
         //We only allow 30 seconds (surely we can low that) for the one time token, because that one must be traded
@@ -180,6 +199,14 @@ public class APIJWTServiceImpl implements APIJWTService {
                 .claim("consent", consent.toString())
                 .claim("experimentId", experimentId)
                 .claim("oneUse", oneUse)  //This is an specific claim to ask for tokens.
+                .claim("canvasUserId", canvasUserId)
+                .claim("canvasLoginId", canvasLoginId)
+                .claim("canvasUserName", canvasUserName)
+                .claim("canvasCourseId", canvasCourseId)
+                .claim("canvasAssignmentId", canvasAssignmentId)
+                .claim("dueAt", dueAt)
+                .claim("lockAt", lockAt)
+                .claim("unlockAt", unlockAt)
                 .signWith(SignatureAlgorithm.RS256, toolPrivateKey);  //We sign it with our own private key. The platform has the public one.
         String token = builder.compact();
         if (oneUse){
@@ -219,7 +246,21 @@ public class APIJWTServiceImpl implements APIJWTService {
 
 
 
-        return buildJwt(oneUse, lti3Request.getLtiRoles(), lti3Request.getContext().getContextId(),lti3Request.getKey().getKeyId(), lti3Request.getUser().getUserKey(), assignmentId, experimentId, consent);
+        return buildJwt(oneUse, lti3Request.getLtiRoles(),
+                lti3Request.getContext().getContextId(),
+                lti3Request.getKey().getKeyId(),
+                lti3Request.getUser().getUserKey(),
+                assignmentId,
+                experimentId,
+                consent,
+                lti3Request.getLtiCustom().get("canvas_user_id").toString(),
+                lti3Request.getLtiCustom().get("canvas_login_id").toString(),
+                lti3Request.getLtiCustom().get("canvas_user_name").toString(),
+                lti3Request.getLtiCustom().get("canvas_course_id").toString(),
+                lti3Request.getLtiCustom().get("canvas_assignment_id").toString(),
+                lti3Request.getLtiCustom().get("due_at").toString(),
+                lti3Request.getLtiCustom().get("lock_at").toString(),
+                lti3Request.getLtiCustom().get("unlock_at").toString());
     }
 
     @Override
@@ -248,6 +289,14 @@ public class APIJWTServiceImpl implements APIJWTService {
                 .claim("consent", tokenClaims.getBody().get("consent"))
                 .claim("experimentId", tokenClaims.getBody().get("experimentId"))
                 .claim("oneUse", false)
+                .claim("canvasUserId", tokenClaims.getBody().get("canvasUserId"))
+                .claim("canvasLoginId", tokenClaims.getBody().get("canvasLoginId"))
+                .claim("canvasUserName", tokenClaims.getBody().get("canvasUserName"))
+                .claim("canvasCourseId", tokenClaims.getBody().get("canvasCourseId"))
+                .claim("canvasAssignmentId", tokenClaims.getBody().get("canvasAssignmentId"))
+                .claim("dueAt", tokenClaims.getBody().get("dueAt"))
+                .claim("lockAt", tokenClaims.getBody().get("lockAt"))
+                .claim("unlockAt", tokenClaims.getBody().get("unlockAt"))
                 .signWith(SignatureAlgorithm.RS256, toolPrivateKey);  //We sign it with our own private key. The platform has the public one.
         String newToken = builder.compact();
         log.debug("Token Request: \n {} \n", newToken);
@@ -273,49 +322,67 @@ public class APIJWTServiceImpl implements APIJWTService {
     }
 
     @Override
-    public SecurityInfo extractValues(HttpServletRequest request, boolean allowQueryParam) {
+    public SecuredInfo extractValues(HttpServletRequest request, boolean allowQueryParam) {
         String token = extractJwtStringValue(request,allowQueryParam);
         Jws<Claims> claims = validateToken(token);
         if (claims != null) {
-          SecurityInfo securityInfo = new SecurityInfo();
-          securityInfo.setUserId(claims.getBody().get("userId").toString());
-          securityInfo.setPlatformDeploymentId(Long.valueOf((Integer) claims.getBody().get("platformDeploymentId")));
-          securityInfo.setContextId(Long.valueOf((Integer) claims.getBody().get("contextId")));
-          securityInfo.setRoles((List<String>) claims.getBody().get("roles"));
-          return securityInfo;
+          SecuredInfo securedInfo = new SecuredInfo();
+          securedInfo.setUserId(claims.getBody().get("userId").toString());
+          securedInfo.setPlatformDeploymentId(Long.valueOf((Integer) claims.getBody().get("platformDeploymentId")));
+          securedInfo.setContextId(Long.valueOf((Integer) claims.getBody().get("contextId")));
+          securedInfo.setRoles((List<String>) claims.getBody().get("roles"));
+          securedInfo.setCanvasUserId(claims.getBody().get("canvasUserId").toString());
+          securedInfo.setCanvasLoginId(claims.getBody().get("canvasLoginId").toString());
+          securedInfo.setCanvasUserName(claims.getBody().get("canvasUserName").toString());
+          securedInfo.setCanvasCourseId(claims.getBody().get("canvasCourseId").toString());
+          securedInfo.setCanvasAssignmentId(claims.getBody().get("canvasAssignmentId").toString());
+          securedInfo.setDueAt(extractTimestamp(claims,"dueAt"));
+          securedInfo.setLockAt(extractTimestamp(claims,"lockAt"));
+          securedInfo.setUnlockAt(extractTimestamp(claims,"unlockAt"));
+          return securedInfo;
         } else {
           return null;
         }
     }
 
-    @Override
-    public boolean isAdmin(SecurityInfo securityInfo){
-        return securityInfo.getRoles().contains(Roles.ADMIN);
+    private Timestamp extractTimestamp(Jws<Claims> claims, String id){
+        Timestamp extracted;
+        try {
+            extracted = Timestamp.valueOf(LocalDateTime.parse(claims.getBody().get(id).toString()));
+        } catch (Exception ex){
+            return null;
+        }
+        return extracted;
     }
 
     @Override
-    public boolean isInstructor(SecurityInfo securityInfo){
-        return (securityInfo.getRoles().contains(Roles.INSTRUCTOR) || securityInfo.getRoles().contains(Roles.MEMBERSHIP_INSTRUCTOR));
+    public boolean isAdmin(SecuredInfo securedInfo){
+        return securedInfo.getRoles().contains(Roles.ADMIN);
     }
 
     @Override
-    public boolean isLearner(SecurityInfo securityInfo){
-        return (securityInfo.getRoles().contains(Roles.LEARNER) || securityInfo.getRoles().contains(Roles.MEMBERSHIP_LEARNER));
+    public boolean isInstructor(SecuredInfo securedInfo){
+        return (securedInfo.getRoles().contains(Roles.INSTRUCTOR) || securedInfo.getRoles().contains(Roles.MEMBERSHIP_INSTRUCTOR));
     }
 
     @Override
-    public boolean isGeneral(SecurityInfo securityInfo){
-        return securityInfo.getRoles().contains(Roles.GENERAL);
+    public boolean isLearner(SecuredInfo securedInfo){
+        return (securedInfo.getRoles().contains(Roles.LEARNER) || securedInfo.getRoles().contains(Roles.MEMBERSHIP_LEARNER));
     }
 
     @Override
-    public boolean isInstructorOrHigher(SecurityInfo securityInfo){
-        return (isInstructor(securityInfo) || isAdmin(securityInfo));
+    public boolean isGeneral(SecuredInfo securedInfo){
+        return securedInfo.getRoles().contains(Roles.GENERAL);
     }
 
     @Override
-    public boolean isLearnerOrHigher(SecurityInfo securityInfo){
-        return (isLearner(securityInfo) || isInstructorOrHigher(securityInfo));
+    public boolean isInstructorOrHigher(SecuredInfo securedInfo){
+        return (isInstructor(securedInfo) || isAdmin(securedInfo));
+    }
+
+    @Override
+    public boolean isLearnerOrHigher(SecuredInfo securedInfo){
+        return (isLearner(securedInfo) || isInstructorOrHigher(securedInfo));
     }
 
     private boolean isBearerToken(String rawHeaderValue) {
@@ -323,81 +390,81 @@ public class APIJWTServiceImpl implements APIJWTService {
     }
 
     @Override
-    public void experimentAllowed(SecurityInfo securityInfo, Long experimentId) throws BadTokenException, ExperimentNotMatchingException {
-        if (securityInfo==null){
+    public void experimentAllowed(SecuredInfo securedInfo, Long experimentId) throws BadTokenException, ExperimentNotMatchingException {
+        if (securedInfo ==null){
             log.error(TextConstants.BAD_TOKEN);
             throw new BadTokenException(TextConstants.BAD_TOKEN);
         }
-        if (!experimentService.experimentBelongsToDeploymentAndCourse(experimentId, securityInfo.getPlatformDeploymentId(), securityInfo.getContextId())){
+        if (!experimentService.experimentBelongsToDeploymentAndCourse(experimentId, securedInfo.getPlatformDeploymentId(), securedInfo.getContextId())){
             throw new ExperimentNotMatchingException(TextConstants.EXPERIMENT_NOT_MATCHING);
         }
     }
 
     @Override
-    public void conditionAllowed(SecurityInfo securityInfo, Long experimentId, Long conditionId) throws ConditionNotMatchingException {
+    public void conditionAllowed(SecuredInfo securedInfo, Long experimentId, Long conditionId) throws ConditionNotMatchingException {
         if(!conditionService.conditionBelongsToExperiment(experimentId, conditionId)) {
             throw new ConditionNotMatchingException(TextConstants.CONDITION_NOT_MATCHING);
         }
     }
 
     @Override
-    public void participantAllowed(SecurityInfo securityInfo, Long experimentId, Long participantId) throws ParticipantNotMatchingException {
+    public void participantAllowed(SecuredInfo securedInfo, Long experimentId, Long participantId) throws ParticipantNotMatchingException {
         if(!participantService.participantBelongsToExperiment(experimentId, participantId)) {
             throw new ParticipantNotMatchingException(TextConstants.PARTICIPANT_NOT_MATCHING);
         }
     }
 
     @Override
-    public void exposureAllowed(SecurityInfo securityInfo, Long experimentId, Long exposureId) throws ExposureNotMatchingException {
+    public void exposureAllowed(SecuredInfo securedInfo, Long experimentId, Long exposureId) throws ExposureNotMatchingException {
         if(!exposureService.exposureBelongsToExperiment(experimentId, exposureId)) {
             throw new ExposureNotMatchingException(TextConstants.EXPOSURE_NOT_MATCHING);
         }
     }
 
     @Override
-    public void groupAllowed(SecurityInfo securityInfo, Long experimentId, Long groupId) throws GroupNotMatchingException {
+    public void groupAllowed(SecuredInfo securedInfo, Long experimentId, Long groupId) throws GroupNotMatchingException {
         if(!groupService.groupBelongsToExperiment(experimentId, groupId)) {
             throw new GroupNotMatchingException(TextConstants.GROUP_NOT_MATCHING);
         }
     }
 
     @Override
-    public void assignmentAllowed(SecurityInfo securityInfo, Long experimentId, Long assignmentId) throws AssignmentNotMatchingException {
+    public void assignmentAllowed(SecuredInfo securedInfo, Long experimentId, Long assignmentId) throws AssignmentNotMatchingException {
         if(!assignmentService.assignmentBelongsToExperiment(experimentId, assignmentId)) {
             throw new AssignmentNotMatchingException(TextConstants.ASSIGNMENT_NOT_MATCHING);
         }
     }
 
     @Override
-    public void assignmentAllowed(SecurityInfo securityInfo, Long experimentId, Long exposureId, Long assignmentId) throws AssignmentNotMatchingException {
+    public void assignmentAllowed(SecuredInfo securedInfo, Long experimentId, Long exposureId, Long assignmentId) throws AssignmentNotMatchingException {
         if(!assignmentService.assignmentBelongsToExperimentAndExposure(experimentId, exposureId, assignmentId)) {
             throw new AssignmentNotMatchingException(TextConstants.ASSIGNMENT_NOT_MATCHING);
         }
     }
 
     @Override
-    public void treatmentAllowed(SecurityInfo securityInfo, Long experimentId, Long conditionId, Long treatmentId) throws TreatmentNotMatchingException {
+    public void treatmentAllowed(SecuredInfo securedInfo, Long experimentId, Long conditionId, Long treatmentId) throws TreatmentNotMatchingException {
         if(!treatmentService.treatmentBelongsToExperimentAndCondition(experimentId, conditionId, treatmentId)) {
             throw new TreatmentNotMatchingException(TextConstants.TREATMENT_NOT_MATCHING);
         }
     }
 
     @Override
-    public void assessmentAllowed(SecurityInfo securityInfo, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId) throws AssessmentNotMatchingException {
+    public void assessmentAllowed(SecuredInfo securedInfo, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId) throws AssessmentNotMatchingException {
         if(!assessmentService.assessmentBelongsToExperimentAndConditionAndTreatment(experimentId, conditionId, treatmentId, assessmentId)) {
             throw new AssessmentNotMatchingException(TextConstants.ASSESSMENT_NOT_MATCHING);
         }
     }
 
     @Override
-    public void questionAllowed(SecurityInfo securityInfo, Long assessmentId, Long questionId) throws QuestionNotMatchingException {
+    public void questionAllowed(SecuredInfo securedInfo, Long assessmentId, Long questionId) throws QuestionNotMatchingException {
         if(!questionService.questionBelongsToAssessment(assessmentId, questionId)) {
             throw new QuestionNotMatchingException(TextConstants.QUESTION_NOT_MATCHING);
         }
     }
 
     @Override
-    public void answerAllowed(SecurityInfo securityInfo, Long assessmentId, Long questionId, String answerType, Long answerId) throws AnswerNotMatchingException {
+    public void answerAllowed(SecuredInfo securedInfo, Long assessmentId, Long questionId, String answerType, Long answerId) throws AnswerNotMatchingException {
         if(answerType.equals("MC")){
             if(!answerService.mcAnswerBelongsToQuestionAndAssessment(assessmentId, questionId, answerId)) {
                 throw new AnswerNotMatchingException(TextConstants.ANSWER_NOT_MATCHING);
@@ -406,7 +473,7 @@ public class APIJWTServiceImpl implements APIJWTService {
     }
 
     @Override
-    public void answerSubmissionAllowed(SecurityInfo securityInfo, Long questionSubmissionId, String answerType, Long answerSubmissionId) throws AnswerSubmissionNotMatchingException{
+    public void answerSubmissionAllowed(SecuredInfo securedInfo, Long questionSubmissionId, String answerType, Long answerSubmissionId) throws AnswerSubmissionNotMatchingException{
         if(answerType.equals("MC")){
             if(!answerSubmissionService.mcAnswerSubmissionBelongsToQuestionSubmission(questionSubmissionId, answerSubmissionId)){
                 throw new AnswerSubmissionNotMatchingException(TextConstants.ANSWER_SUBMISSION_NOT_MATCHING);
@@ -420,42 +487,42 @@ public class APIJWTServiceImpl implements APIJWTService {
     }
 
     @Override
-    public void submissionAllowed(SecurityInfo securityInfo, Long assessmentId, Long submissionId) throws SubmissionNotMatchingException {
+    public void submissionAllowed(SecuredInfo securedInfo, Long assessmentId, Long submissionId) throws SubmissionNotMatchingException {
         if(!submissionService.submissionBelongsToAssessment(assessmentId, submissionId)) {
             throw new SubmissionNotMatchingException(TextConstants.SUBMISSION_NOT_MATCHING);
         }
     }
 
     @Override
-    public void questionSubmissionAllowed(SecurityInfo securityInfo, Long assessmentId, Long submissionId, Long questionSubmissionId) throws QuestionSubmissionNotMatchingException {
+    public void questionSubmissionAllowed(SecuredInfo securedInfo, Long assessmentId, Long submissionId, Long questionSubmissionId) throws QuestionSubmissionNotMatchingException {
         if(!questionSubmissionService.questionSubmissionBelongsToAssessmentAndSubmission(assessmentId, submissionId, questionSubmissionId)) {
             throw new QuestionSubmissionNotMatchingException(TextConstants.QUESTION_SUBMISSION_NOT_MATCHING);
         }
     }
 
     @Override
-    public void submissionCommentAllowed(SecurityInfo securityInfo, Long assessmentId, Long submissionId, Long submissionCommentId) throws SubmissionCommentNotMatchingException {
+    public void submissionCommentAllowed(SecuredInfo securedInfo, Long assessmentId, Long submissionId, Long submissionCommentId) throws SubmissionCommentNotMatchingException {
         if(!submissionCommentService.submissionCommentBelongsToAssessmentAndSubmission(assessmentId, submissionId, submissionCommentId)) {
             throw new SubmissionCommentNotMatchingException(TextConstants.SUBMISSION_COMMENT_NOT_MATCHING);
         }
     }
 
     @Override
-    public void questionSubmissionCommentAllowed(SecurityInfo securityInfo, Long questionSubmissionId, Long questionSubmissionCommentId) throws QuestionSubmissionCommentNotMatchingException {
+    public void questionSubmissionCommentAllowed(SecuredInfo securedInfo, Long questionSubmissionId, Long questionSubmissionCommentId) throws QuestionSubmissionCommentNotMatchingException {
         if(!questionSubmissionCommentService.questionSubmissionCommentBelongsToQuestionSubmission(questionSubmissionId, questionSubmissionCommentId)){
             throw new QuestionSubmissionCommentNotMatchingException(TextConstants.QUESTION_SUBMISSION_COMMENT_NOT_MATCHING);
         }
     }
 
     @Override
-    public void outcomeAllowed(SecurityInfo securityInfo, Long experimentId, Long exposureId, Long outcomeId) throws OutcomeNotMatchingException {
+    public void outcomeAllowed(SecuredInfo securedInfo, Long experimentId, Long exposureId, Long outcomeId) throws OutcomeNotMatchingException {
         if(!outcomeService.outcomeBelongsToExperimentAndExposure(experimentId, exposureId, outcomeId)){
             throw new OutcomeNotMatchingException(TextConstants.OUTCOME_NOT_MATCHING);
         }
     }
 
     @Override
-    public void outcomeScoreAllowed(SecurityInfo securityInfo, Long outcomeId, Long outcomeScoreId) throws OutcomeScoreNotMatchingException {
+    public void outcomeScoreAllowed(SecuredInfo securedInfo, Long outcomeId, Long outcomeScoreId) throws OutcomeScoreNotMatchingException {
         if(!outcomeScoreService.outcomeScoreBelongsToOutcome(outcomeId, outcomeScoreId)){
             throw new OutcomeScoreNotMatchingException(TextConstants.OUTCOME_SCORE_NOT_MATCHING);
         }

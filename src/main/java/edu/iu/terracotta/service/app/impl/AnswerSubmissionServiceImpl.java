@@ -6,7 +6,7 @@ import edu.iu.terracotta.model.app.AnswerMc;
 import edu.iu.terracotta.model.app.AnswerMcSubmission;
 import edu.iu.terracotta.model.app.QuestionSubmission;
 import edu.iu.terracotta.model.app.dto.AnswerSubmissionDto;
-import edu.iu.terracotta.model.oauth2.SecurityInfo;
+import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.AnswerSubmissionService;
 import edu.iu.terracotta.service.app.QuestionSubmissionService;
@@ -144,8 +144,8 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
     }
 
     @Override
-    public String answerSubmissionNotFound(SecurityInfo securityInfo, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId, Long submissionId, Long questionSubmissionId, Long answerSubmissionId){
-        return "Answer submission in platform " + securityInfo.getPlatformDeploymentId() + " and context " + securityInfo.getContextId() + " and experiment with id " + experimentId + " and condition id " +
+    public String answerSubmissionNotFound(SecuredInfo securedInfo, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId, Long submissionId, Long questionSubmissionId, Long answerSubmissionId){
+        return "Answer submission in platform " + securedInfo.getPlatformDeploymentId() + " and context " + securedInfo.getContextId() + " and experiment with id " + experimentId + " and condition id " +
                 conditionId + " and treatment id " + treatmentId + " and assessment id " + assessmentId + " and submission id " + submissionId + " and question submission id " + questionSubmissionId +
                 " with id " + answerSubmissionId + " not found.";
     }
