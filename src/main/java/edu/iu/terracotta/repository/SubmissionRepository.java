@@ -24,7 +24,5 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long> {
     @Query("delete from Submission s where s.submissionId = ?1")
     void deleteBySubmissionId(Long submissionId);
 
-
-
     boolean existsByAssessment_AssessmentIdAndSubmissionId(Long assessmentId, Long submissionId);
 }

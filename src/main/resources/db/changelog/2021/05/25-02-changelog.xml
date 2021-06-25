@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd">
+    <changeSet id = "1622667000000-25" author = "josh">
+        <dropForeignKeyConstraint baseTableName="terr_assessment"
+                                  constraintName="FK_TERR_ASSESSMENT_ON_TREATMENT_TREATMENT"/>
+    </changeSet>
+    <changeSet id="1622667000000-26" author="josh">
+        <addForeignKeyConstraint baseTableName="terr_assessment" baseColumnNames="treatment_treatment_id"
+                                 constraintName="FK_TERR_ASSESSMENT_ON_TREATMENT_TREATMENT"
+                                 onDelete="CASCADE"
+                                 referencedTableName="terr_treatment" referencedColumnNames="treatment_id"/>
+    </changeSet>
+    <changeSet id="1622667000000-27" author="josh">
+        <dropForeignKeyConstraint baseTableName="terr_question"
+                                  constraintName="FK_TERR_QUESTION_ON_ASSESSMENT_ASSESSMENT"/>
+    </changeSet>
+    <changeSet id="1622667000000-28" author="josh">
+        <addForeignKeyConstraint baseTableName="terr_question" baseColumnNames="assessment_assessment_id"
+                                 constraintName="FK_TERR_QUESTION_ON_ASSESSMENT_ASSESSMENT"
+                                 onDelete="CASCADE"
+                                 referencedTableName="terr_assessment" referencedColumnNames="assessment_id"/>
+    </changeSet>
+    <changeSet id="1622667000000-29" author="josh">
+        <dropForeignKeyConstraint baseTableName="terr_answer_mc"
+                                  constraintName="FK_TERR_ANSWER_MC_ON_QUESTION_QUESTION"/>
+    </changeSet>
+    <changeSet id="1622667000000-30" author="josh">
+        <addForeignKeyConstraint baseTableName="terr_answer_mc" baseColumnNames="question_question_id"
+                                 constraintName="FK_TERR_ANSWER_MC_ON_QUESTION_QUESTION"
+                                 onDelete="CASCADE"
+                                 referencedTableName="terr_question" referencedColumnNames="question_id"/>
+    </changeSet>
+    <changeSet id="1622667000000-31" author="josh">
+        <dropForeignKeyConstraint baseTableName="terr_submission"
+                                  constraintName="FK_TERR_SUBMISSION_ON_ASSESSMENT_ASSESSMENT"/>
+    </changeSet>
+    <changeSet id="1622667000000-32" author="josh">
+        <addForeignKeyConstraint baseColumnNames="assessment_assessment_id" baseTableName="terr_submission"
+                                 constraintName="FK_TERR_SUBMISSION_ON_ASSESSMENT_ASSESSMENT"
+                                 onDelete="CASCADE"
+                                 referencedColumnNames="assessment_id" referencedTableName="terr_assessment"/>
+    </changeSet>
+    <changeSet id="1622667000000-33" author="josh">
+        <dropForeignKeyConstraint baseTableName="terr_question_submission"
+                                  constraintName="FK_TERR_QUESTION_SUBMISSION_ON_SUBMISSION_SUBMISSION"/>
+    </changeSet>
+    <changeSet id="1622667000000-34" author="josh">
+        <addForeignKeyConstraint baseTableName="terr_question_submission" baseColumnNames="submission_submission_id"
+                                 constraintName="FK_TERR_QUESTION_SUBMISSION_ON_SUBMISSION_SUBMISSION"
+                                 onDelete="CASCADE"
+                                 referencedTableName="terr_submission" referencedColumnNames="submission_id"/>
+    </changeSet>
+    <changeSet id="1622667000000-35" author="josh">
+        <dropForeignKeyConstraint baseTableName="terr_submission_comment"
+                                  constraintName="FK_TERR_SUBMISSION_COMMENT_ON_SUBMISSION_SUBMISSION"/>
+    </changeSet>
+    <changeSet id="1622667000000-36" author="josh">
+        <addForeignKeyConstraint baseTableName="terr_submission_comment" baseColumnNames="submission_submission_id"
+                                 constraintName="FK_TERR_SUBMISSION_COMMENT_ON_SUBMISSION_SUBMISSION"
+                                 onDelete="CASCADE"
+                                 referencedTableName="terr_submission" referencedColumnNames="submission_id"/>
+    </changeSet>
+    <changeSet id="1622667000000-37" author="josh">
+        <dropForeignKeyConstraint baseTableName="terr_submission"
+                                  constraintName="FK_TERR_SUBMISSION_ON_PARTICIPANT_PARTICIPANT"/>
+    </changeSet>
+    <changeSet id="1622667000000-38" author="josh">
+        <addForeignKeyConstraint baseTableName="terr_submission" baseColumnNames="participant_participant_id"
+                                 constraintName="FK_TERR_SUBMISSION_ON_PARTICIPANT_PARTICIPANT"
+                                 onDelete="CASCADE"
+                                 referencedTableName="terr_participant" referencedColumnNames="participant_id"/>
+    </changeSet>
+    <changeSet id="1622667000000-39" author="josh">
+        <dropForeignKeyConstraint baseTableName="terr_question_submission"
+                                  constraintName="FK_TERR_QUESTION_SUBMISSION_ON_QUESTION_QUESTION"/>
+    </changeSet>
+    <changeSet id="1622667000000-40" author="josh">
+        <addForeignKeyConstraint baseTableName="terr_question_submission" baseColumnNames="question_question_id"
+                                 constraintName="FK_TERR_QUESTION_SUBMISSION_ON_QUESTION_QUESTION"
+                                 onDelete="CASCADE"
+                                 referencedTableName="terr_question" referencedColumnNames="question_id"/>
+    </changeSet>
+    <changeSet id="1622667000000-41" author="josh">
+        <dropForeignKeyConstraint baseTableName="terr_question_submission_comment"
+                                  constraintName="FK_TERR_QUE_SUBM_COMMENT_ON_QUE_SUBM_QUE_SUBM"/>
+    </changeSet>
+    <changeSet id="1622667000000-42" author="josh">
+        <addForeignKeyConstraint baseTableName="terr_question_submission_comment"
+                                 baseColumnNames="question_submission_question_submission_id" constraintName="FK_TERR_QUE_SUBM_ON_QUE_SUBM_QUE_SUBM"
+                                 onDelete="CASCADE"
+                                 referencedTableName="terr_question_submission" referencedColumnNames="question_submission_id"/>
+    </changeSet>
+    <changeSet id="1622667000000-43" author="josh">
+        <dropForeignKeyConstraint baseTableName="terr_answer_mc_submission"
+                                  constraintName="FK_TERR_ANSWER_MC_SUBMISSION_ON_QUEST_SUB_QUEST_SUB"/>
+    </changeSet>
+    <changeSet id="1622667000000-44" author="josh">
+        <addForeignKeyConstraint baseTableName="terr_answer_mc_submission" baseColumnNames="quest_sub_quest_sub_id"
+                                 constraintName="FK_TERR_ANSWER_MC_SUBMISSION_ON_QUEST_SUB_QUEST_SUB"
+                                 onDelete="CASCADE"
+                                 referencedTableName="terr_question_submission" referencedColumnNames="question_submission_id"/>
+    </changeSet>
+    <changeSet id="1622667000000-45" author="josh">
+        <dropForeignKeyConstraint baseTableName="terr_answer_mc_submission"
+                                  constraintName="FK_TERR_ANSWER_MC_SUBMISSION_ON_ANSWER_MC_ANSWER"/>
+    </changeSet>
+    <changeSet id="1622667000000-46" author="josh">
+        <addForeignKeyConstraint baseTableName="terr_answer_mc_submission" baseColumnNames="answer_mc_answer_id"
+                                 constraintName="FK_TERR_ANSWER_MC_SUBMISSION_ON_ANSWER_MC_ANSWER"
+                                 onDelete="CASCADE"
+                                 referencedTableName="terr_answer_mc" referencedColumnNames="answer_id"/>
+    </changeSet>
+    <changeSet id="1622667000000-47" author="josh">
+        <dropForeignKeyConstraint baseTableName="terr_answer_essay_submission"
+                                  constraintName="FK_TERR_ANSWER_ESSAY_SUBMISSION_ON_QUEST_SUB_QUEST_SUB"/>
+    </changeSet>
+    <changeSet id="1622667000000-48" author="josh">
+        <addForeignKeyConstraint baseTableName="terr_answer_essay_submission" baseColumnNames="quest_sub_quest_sub_id"
+                                 constraintName="FK_TERR_ANSWER_ESSAY_SUBMISSION_ON_QUEST_SUB_QUEST_SUB"
+                                 onDelete="CASCADE"
+                                 referencedTableName="terr_question_submission" referencedColumnNames="question_submission_id"/>
+    </changeSet>
+
+</databaseChangeLog>
