@@ -191,14 +191,14 @@ public class ConditionController {
                                                  HttpServletRequest req)
             throws ExperimentNotMatchingException, ConditionNotMatchingException, BadTokenException, DataServiceException {
 
-        SecurityInfo securityInfo = apijwtService.extractValues(req, false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
 
-        if(apijwtService.isInstructorOrHigher(securityInfo)){
+        if(apijwtService.isInstructorOrHigher(securedInfo)){
             List<Condition> conditionList = new ArrayList<>();
 
             for(ConditionDto conditionDto : conditionDtoList){
-                apijwtService.conditionAllowed(securityInfo, experimentId,conditionDto.getConditionId());
+                apijwtService.conditionAllowed(securedInfo, experimentId,conditionDto.getConditionId());
                 Optional<Condition> condition = conditionService.findById(conditionDto.getConditionId());
                 if(condition.isPresent()){
                     Condition conditionToChange = condition.get();
