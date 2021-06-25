@@ -1,7 +1,7 @@
 package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.exceptions.DataServiceException;
-import edu.iu.terracotta.model.app.Answer;
+import edu.iu.terracotta.model.app.AnswerMc;
 import edu.iu.terracotta.model.app.Question;
 import edu.iu.terracotta.model.app.QuestionSubmission;
 import edu.iu.terracotta.model.app.QuestionSubmissionComment;
@@ -42,9 +42,6 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
         questionSubmissionDto.setQuestionId(questionSubmission.getQuestion().getQuestionId());
         questionSubmissionDto.setCalculatedPoints(questionSubmission.getCalculatedPoints());
         questionSubmissionDto.setAlteredGrade(questionSubmission.getAlteredGrade());
-        if(questionSubmission.getAnswer() != null){
-            questionSubmissionDto.setAnswerId(questionSubmission.getAnswer().getAnswerId());
-        }
         List<QuestionSubmissionCommentDto> questionSubmissionCommentDtoList = new ArrayList<>();
         if(questionSubmissionComments){
             List<QuestionSubmissionComment> questionSubmissionCommentList =
@@ -76,16 +73,6 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
         } else {
             throw new DataServiceException("Question does not exist or does not belong to the submission assessment");
         }
-        if(questionSubmissionDto.getAnswerId() != null) {
-            Optional<Answer> answer = allRepositories.answerRepository.findByQuestion_QuestionIdAndAnswerId(questionSubmissionDto.getQuestionId(), questionSubmissionDto.getAnswerId());
-            if(answer.isPresent()) {
-                questionSubmission.setAnswer(answer.get());
-            } else {
-                throw new DataServiceException("AnswerId does not exist or does not belong to the question");
-            }
-            answer.ifPresent(questionSubmission::setAnswer);
-        }
-
 
         return questionSubmission;
     }
@@ -109,7 +96,7 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
     public void saveAllQuestionSubmissions(List<QuestionSubmission> questionSubmissionList) { allRepositories.questionSubmissionRepository.saveAll(questionSubmissionList); }
 
     @Override
-    public void deleteById(Long id) { allRepositories.questionSubmissionRepository.deleteById(id); }
+    public void deleteById(Long id) { allRepositories.questionSubmissionRepository.deleteByQuestionSubmissionId(id); }
 
     @Override
     public boolean questionSubmissionBelongsToAssessmentAndSubmission(Long assessmentId, Long submissionId, Long questionSubmissionId) {
@@ -122,13 +109,18 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
     public QuestionSubmission automaticGrading(QuestionSubmission questionSubmission){
         //TODO: we need to do this based on the question type (once we add a question type...)
         //at this moment, only MC
-        if (questionSubmission.getAnswer().getCorrect()){
+        /*if (questionSubmission.getAnswer().getCorrect()){
             questionSubmission.setCalculatedPoints(questionSubmission.getQuestion().getPoints());
         } else {
             questionSubmission.setCalculatedPoints(Float.valueOf("0"));
-        }
+        }*/
         allRepositories.questionSubmissionRepository.save(questionSubmission);
         return questionSubmission;
+    }
+
+    @Override
+    public QuestionSubmission findByQuestionSubmissionId(Long id){
+        return allRepositories.questionSubmissionRepository.findByQuestionSubmissionId(id);
     }
 
 }

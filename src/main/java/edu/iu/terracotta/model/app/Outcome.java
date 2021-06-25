@@ -2,6 +2,8 @@ package edu.iu.terracotta.model.app;
 
 import edu.iu.terracotta.model.BaseEntity;
 import edu.iu.terracotta.model.app.enumerator.LmsType;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -26,6 +28,7 @@ public class Outcome extends BaseEntity {
 
     @JoinColumn(name = "exposure_exposure_id", nullable = false)
     @ManyToOne(optional = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Exposure exposure;
 
     @Column(name = "title")
@@ -44,7 +47,7 @@ public class Outcome extends BaseEntity {
     @Column(name = "max_points")
     private Float maxPoints;
 
-    @OneToMany(mappedBy = "outcome", orphanRemoval = true)
+    @OneToMany(mappedBy = "outcome")
     private List<OutcomeScore> outcomeScores;
 
 

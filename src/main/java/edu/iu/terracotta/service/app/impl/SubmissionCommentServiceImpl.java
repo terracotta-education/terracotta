@@ -72,7 +72,7 @@ public class SubmissionCommentServiceImpl implements SubmissionCommentService {
     public void saveAndFlush(SubmissionComment submissionCommentToChange) { allRepositories.submissionCommentRepository.saveAndFlush(submissionCommentToChange); }
 
     @Override
-    public void deleteById(Long id) throws EmptyResultDataAccessException { allRepositories.submissionCommentRepository.deleteById(id); }
+    public void deleteById(Long id) throws EmptyResultDataAccessException { allRepositories.submissionCommentRepository.deleteBySubmissionCommentId(id); }
 
     @Override
     public boolean submissionCommentBelongsToAssessmentAndSubmission(Long assessmentId, Long submissionId, Long submissionCommentId) {

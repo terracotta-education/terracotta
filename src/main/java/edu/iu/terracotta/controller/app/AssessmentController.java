@@ -1,28 +1,27 @@
 package edu.iu.terracotta.controller.app;
 
-import edu.iu.terracotta.exceptions.AnswerNotMatchingException;
 import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
 import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
-import edu.iu.terracotta.model.app.Answer;
 import edu.iu.terracotta.model.app.Assessment;
 import edu.iu.terracotta.model.app.Question;
 import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.Treatment;
-import edu.iu.terracotta.model.app.dto.AnswerDto;
 import edu.iu.terracotta.model.app.dto.AssessmentDto;
 import edu.iu.terracotta.model.app.dto.QuestionDto;
+import edu.iu.terracotta.model.app.enumerator.QuestionTypes;
 import edu.iu.terracotta.model.oauth2.SecurityInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
-import edu.iu.terracotta.service.app.AnswerService;
 import edu.iu.terracotta.service.app.AssessmentService;
 import edu.iu.terracotta.service.app.QuestionService;
 import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.service.app.TreatmentService;
 import edu.iu.terracotta.utils.TextConstants;
+import org.apache.commons.lang3.EnumUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -59,8 +58,6 @@ public class AssessmentController {
     @Autowired
     QuestionService questionService;
 
-    @Autowired
-    AnswerService answerService;
 
     @Autowired
     TreatmentService treatmentService;
@@ -150,16 +147,20 @@ public class AssessmentController {
         apijwtService.treatmentAllowed(securityInfo, experimentId, conditionId, treatmentId);
 
         if(apijwtService.isInstructorOrHigher(securityInfo)) {
-            if(assessmentDto.getAssessmentId() != null) {
+            if (assessmentDto.getAssessmentId() != null) {
                 log.error(TextConstants.ID_IN_POST_ERROR);
                 return new ResponseEntity(TextConstants.ID_IN_POST_ERROR, HttpStatus.CONFLICT);
+            }
+
+            if(!StringUtils.isAllBlank(assessmentDto.getTitle()) && assessmentDto.getTitle().length() > 255){
+                return new ResponseEntity("Assessment title must be 255 characters or less.", HttpStatus.BAD_REQUEST);
             }
 
             assessmentDto.setTreatmentId(treatmentId);
             if(assessmentDto.getNumOfSubmissions() == null) {
                 assessmentDto.setNumOfSubmissions(1);
             }
-            //TODO how to check if autoSubmit is not present in the dto
+
             assessmentDto.setAutoSubmit(true);
             Assessment assessment;
             try {
@@ -180,8 +181,7 @@ public class AssessmentController {
 
             HttpHeaders headers = new HttpHeaders();
             headers.setLocation(ucBuilder.path("/api/experiments/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}")
-                    .buildAndExpand(assessment.getTreatment().getCondition().getExperiment().getExperimentId(), assessment.getTreatment().getCondition().getConditionId(),
-                                    assessment.getTreatment().getTreatmentId(), assessment.getAssessmentId()).toUri());
+                    .buildAndExpand(experimentId, conditionId, treatmentId, assessment.getAssessmentId()).toUri());
             return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
@@ -208,6 +208,12 @@ public class AssessmentController {
             if(!assessmentSearchResult.isPresent()) {
                 log.error("Unable to update. Assessment with id {} not found.", assessmentId);
                 return new ResponseEntity("Unable to update. Assessment with id " + assessmentId + TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
+            }
+            if(StringUtils.isAllBlank(assessmentDto.getTitle()) && StringUtils.isAllBlank(assessmentSearchResult.get().getTitle())){
+                return new ResponseEntity("Please give the assessment a title.", HttpStatus.CONFLICT);
+            }
+            if(!StringUtils.isAllBlank(assessmentDto.getTitle()) && assessmentDto.getTitle().length() > 255){
+                return new ResponseEntity("Assessment title must be 255 characters or less.", HttpStatus.BAD_REQUEST);
             }
             Assessment assessmentToChange = assessmentSearchResult.get();
             assessmentToChange.setHtml(assessmentDto.getHtml());
@@ -277,7 +283,6 @@ public class AssessmentController {
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, BadTokenException {
 
         SecurityInfo securityInfo = apijwtService.extractValues(req, false);
-        //TODO I've noticed that in these methods, security info isn't actually used.
         apijwtService.experimentAllowed(securityInfo, experimentId);
         apijwtService.assessmentAllowed(securityInfo, experimentId, conditionId, treatmentId, assessmentId);
 
@@ -358,8 +363,13 @@ public class AssessmentController {
             questionDto.setAssessmentId(assessmentId);
             Question question;
             try {
+                if(questionDto.getQuestionType() == null){
+                    return new ResponseEntity("Must include a question type in the post.", HttpStatus.BAD_REQUEST);
+                }
+                if(!EnumUtils.isValidEnum(QuestionTypes.class, questionDto.getQuestionType())){
+                    return new ResponseEntity("Please use a supported question type.", HttpStatus.BAD_REQUEST);
+                }
                 question = questionService.fromDto(questionDto);
-                question.setAnswers(new ArrayList<>());
             } catch (DataServiceException ex) {
                 return new ResponseEntity("Unable to create Question: " + ex.getMessage(), HttpStatus.BAD_REQUEST);
             }
@@ -369,8 +379,7 @@ public class AssessmentController {
 
             HttpHeaders headers = new HttpHeaders();
             headers.setLocation(ucBuilder.path("/api/experiments/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/questions/{question_id}")
-                    .buildAndExpand(question.getAssessment().getTreatment().getCondition().getExperiment().getExperimentId(), question.getAssessment().getTreatment().getCondition().getConditionId(),
-                            question.getAssessment().getTreatment().getTreatmentId(), question.getAssessment().getAssessmentId(), question.getQuestionId()).toUri());
+                    .buildAndExpand(experimentId, conditionId, treatmentId, assessmentId, question.getQuestionId()).toUri());
             return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
@@ -472,235 +481,6 @@ public class AssessmentController {
         if(apijwtService.isInstructorOrHigher(securityInfo)) {
             try{
                 questionService.deleteById(questionId);
-                return new ResponseEntity<>(HttpStatus.OK);
-            } catch (EmptyResultDataAccessException ex) {
-                log.error(ex.getMessage());
-                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-            }
-        } else {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
-    }
-
-
-    /**
-     * Begin endpoints for Answer
-     */
-
-    @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/questions/{question_id}/answers",
-            method = RequestMethod.GET, produces = "application/json;")
-    @ResponseBody
-    public ResponseEntity<List<AnswerDto>> getAnswersByQuestion(@PathVariable("experiment_id") Long experimentId,
-                                                                @PathVariable("condition_id") Long conditionId,
-                                                                @PathVariable("treatment_id") Long treatmentId,
-                                                                @PathVariable("assessment_id") Long assessmentId,
-                                                                @PathVariable("question_id") Long questionId,
-                                                                HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionNotMatchingException, BadTokenException {
-
-        SecurityInfo securityInfo = apijwtService.extractValues(req, false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.assessmentAllowed(securityInfo, experimentId, conditionId, treatmentId, assessmentId);
-        apijwtService.questionAllowed(securityInfo, assessmentId, questionId);
-
-        if(apijwtService.isLearnerOrHigher(securityInfo)) {
-            List<Answer> answerList = answerService.findAllByQuestionId(questionId);
-
-            if(answerList.isEmpty()) {
-                return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-            }
-            List<AnswerDto> answerDtoList= new ArrayList<>();
-            for(Answer answer : answerList) {
-                answerDtoList.add(answerService.toDto(answer));
-            }
-            return new ResponseEntity<>(answerDtoList, HttpStatus.OK);
-        } else {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
-    }
-
-
-    @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/questions/{question_id}/answers/{answer_id}",
-                    method = RequestMethod.GET, produces = "application/json;")
-    @ResponseBody
-    public ResponseEntity<AnswerDto> getAnswer(@PathVariable("experiment_id") Long experimentId,
-                                               @PathVariable("condition_id") Long conditionId,
-                                               @PathVariable("treatment_id") Long treatmentId,
-                                               @PathVariable("assessment_id") Long assessmentId,
-                                               @PathVariable("question_id") Long questionId,
-                                               @PathVariable("answer_id") Long answerId,
-                                               HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, AnswerNotMatchingException, BadTokenException {
-
-        SecurityInfo securityInfo = apijwtService.extractValues(req, false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.assessmentAllowed(securityInfo, experimentId, conditionId, treatmentId, assessmentId);
-        apijwtService.answerAllowed(securityInfo, assessmentId, questionId, answerId);
-
-        if(apijwtService.isLearnerOrHigher(securityInfo)) {
-            Optional<Answer> answerSearchResult = answerService.findById(answerId);
-
-            if(!answerSearchResult.isPresent()) {
-                log.error("answer in platform {} and context {} and experiment {} and condition {} and treatment {} and assessment {} and question {}with id {} not found",
-                        securityInfo.getPlatformDeploymentId(), securityInfo.getContextId(), experimentId, conditionId, treatmentId, assessmentId, questionId, answerId);
-                return new ResponseEntity("Answer in platform " + securityInfo.getPlatformDeploymentId() + " and context " + securityInfo.getContextId()
-                        + " and experiment with id " + experimentId + " and condition id " + conditionId + " and treatment id " + treatmentId + " and assessment id " + assessmentId
-                        + " and question id " + questionId + " with id " + answerId + TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
-            } else {
-                AnswerDto answerDto = answerService.toDto(answerSearchResult.get());
-                return new ResponseEntity<>(answerDto, HttpStatus.OK);
-            }
-        } else {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
-    }
-
-
-    @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/questions/{question_id}/answers",
-                    method = RequestMethod.POST)
-    public ResponseEntity<AnswerDto> postAnswer(@PathVariable("experiment_id") Long experimentId,
-                                                @PathVariable("condition_id") Long conditionId,
-                                                @PathVariable("treatment_id") Long treatmentId,
-                                                @PathVariable("assessment_id") Long assessmentId,
-                                                @PathVariable("question_id") Long questionId,
-                                                @RequestBody AnswerDto answerDto,
-                                                UriComponentsBuilder ucBuilder,
-                                                HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionNotMatchingException, BadTokenException {
-
-        log.info("Creating Answer: {}", answerDto);
-        SecurityInfo securityInfo = apijwtService.extractValues(req, false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.assessmentAllowed(securityInfo, experimentId, conditionId, treatmentId, assessmentId);
-        apijwtService.questionAllowed(securityInfo, assessmentId, questionId);
-
-        if(apijwtService.isInstructorOrHigher(securityInfo)) {
-            if(answerDto.getAnswerId() != null){
-                log.error("Cannot include id in the POST endpoint. To modify existing answer you must use PUT");
-                return new ResponseEntity("Cannot include id in the POST endpoint. To modify existing question you must use PUT", HttpStatus.CONFLICT);
-            }
-
-            answerDto.setQuestionId(questionId);
-            Answer answer;
-            try {
-                answer = answerService.fromDto(answerDto);
-            } catch (DataServiceException ex) {
-                return new ResponseEntity("Unable to create Answer: " + ex.getMessage(), HttpStatus.BAD_REQUEST);
-            }
-
-            Answer answerSaved = answerService.save(answer);
-            AnswerDto returnedDto = answerService.toDto(answerSaved);
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setLocation(ucBuilder.path("/api/experiments/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/questions/{question_id}/answers/{answer_id}")
-                    .buildAndExpand(answer.getQuestion().getAssessment().getTreatment().getCondition().getExperiment().getExperimentId(),
-                            answer.getQuestion().getAssessment().getTreatment().getCondition(), answer.getQuestion().getAssessment().getTreatment().getTreatmentId(),
-                            answer.getQuestion().getAssessment().getAssessmentId(), answer.getQuestion().getQuestionId(), answer.getAnswerId()).toUri());
-            return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
-        } else {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
-    }
-
-
-    @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/questions/{question_id}/answers",
-                    method = RequestMethod.PUT)
-    public ResponseEntity<Void> updateAnswers(@PathVariable("experiment_id") Long experimentId,
-                                              @PathVariable("condition_id") Long conditionId,
-                                              @PathVariable("treatment_id") Long treatmentId,
-                                              @PathVariable("assessment_id") Long assessmentId,
-                                              @PathVariable("question_id") Long questionId,
-                                              @RequestBody List<AnswerDto> answerDtoList,
-                                              HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, AnswerNotMatchingException, BadTokenException, DataServiceException {
-
-        SecurityInfo securityInfo = apijwtService.extractValues(req, false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.assessmentAllowed(securityInfo, experimentId, conditionId, treatmentId, assessmentId);
-
-        if(apijwtService.isInstructorOrHigher(securityInfo)){
-            List<Answer> answerList = new ArrayList<>();
-
-            for(AnswerDto answerDto : answerDtoList) {
-                apijwtService.answerAllowed(securityInfo, assessmentId, questionId, answerDto.getAnswerId());
-                Optional<Answer> answer = answerService.findById(answerDto.getAnswerId());
-                if(answer.isPresent()) {
-                    Answer answerToChange = answer.get();
-                    answerToChange.setHtml(answerDto.getHtml());
-                    answerToChange.setAnswerOrder(answerDto.getAnswerOrder());
-                    answerToChange.setCorrect(answerDto.getCorrect());
-                    answerList.add(answerToChange);
-                }
-            }
-            try{
-                answerService.saveAllAnswers(answerList);
-                return new ResponseEntity<>(HttpStatus.OK);
-            } catch (Exception ex) {
-                throw new DataServiceException("An error occurred trying to update the answer list. No answers were updated. " + ex.getMessage());
-            }
-        } else {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
-    }
-
-
-    @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/questions/{question_id}/answers/{answer_id}",
-                    method = RequestMethod.PUT)
-    public ResponseEntity<Void> updateAnswer(@PathVariable("experiment_id") Long experimentId,
-                                             @PathVariable("condition_id") Long conditionId,
-                                             @PathVariable("treatment_id") Long treatmentId,
-                                             @PathVariable("assessment_id") Long assessmentId,
-                                             @PathVariable("question_id") Long questionId,
-                                             @PathVariable("answer_id") Long answerId,
-                                             @RequestBody AnswerDto answerDto,
-                                             HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, AnswerNotMatchingException, BadTokenException {
-
-        log.info("Updating answer with id: {}", answerId);
-        SecurityInfo securityInfo = apijwtService.extractValues(req, false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.assessmentAllowed(securityInfo, experimentId, conditionId, treatmentId, assessmentId);
-        apijwtService.answerAllowed(securityInfo, assessmentId, questionId, answerId);
-
-        if(apijwtService.isInstructorOrHigher(securityInfo)) {
-            Optional<Answer> answerSearchResult = answerService.findById(answerId);
-
-            if(!answerSearchResult.isPresent()) {
-                log.error("Unable to update. Answer with id {} not found.", answerId);
-                return new ResponseEntity("Unable to update. Answer with id {} not found " + answerId + TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
-            }
-            Answer answerToChange = answerSearchResult.get();
-            answerToChange.setHtml(answerDto.getHtml());
-            answerToChange.setAnswerOrder(answerDto.getAnswerOrder());
-            answerToChange.setCorrect(answerDto.getCorrect());
-
-            answerService.saveAndFlush(answerToChange);
-            return new ResponseEntity<>(HttpStatus.OK);
-        } else {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
-    }
-
-
-    @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/questions/{question_id}/answers/{answer_id}",
-                    method = RequestMethod.DELETE)
-    public ResponseEntity<Void> deleteAnswer(@PathVariable("experiment_id") Long experimentId,
-                                             @PathVariable("condition_id") Long conditionId,
-                                             @PathVariable("treatment_id") Long treatmentId,
-                                             @PathVariable("assessment_id") Long assessmentId,
-                                             @PathVariable("question_id") Long questionId,
-                                             @PathVariable("answer_id") Long answerId,
-                                             HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, AnswerNotMatchingException, BadTokenException {
-
-        SecurityInfo securityInfo = apijwtService.extractValues(req, false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.assessmentAllowed(securityInfo, experimentId, conditionId, treatmentId, assessmentId);
-        apijwtService.answerAllowed(securityInfo, assessmentId, questionId, answerId);
-
-        if(apijwtService.isInstructorOrHigher(securityInfo)) {
-            try{
-                answerService.deleteById(answerId);
                 return new ResponseEntity<>(HttpStatus.OK);
             } catch (EmptyResultDataAccessException ex) {
                 log.error(ex.getMessage());

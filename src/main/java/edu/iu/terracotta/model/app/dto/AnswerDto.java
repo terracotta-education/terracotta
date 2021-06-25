@@ -6,15 +6,20 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 public class AnswerDto {
 
     private Long answerId;
+    private String answerType;
+    private Long questionId;
     private String html;
     private Boolean correct;
-    private Long questionId;
     private Integer answerOrder;
 
 
     public Long getAnswerId() { return answerId; }
 
     public void setAnswerId(Long answerId) { this.answerId = answerId; }
+
+    public String getAnswerType() { return answerType; }
+
+    public void setAnswerType(String answerType) { this.answerType = answerType; }
 
     public String getHtml() { return html; }
 

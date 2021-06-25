@@ -1,6 +1,8 @@
 package edu.iu.terracotta.model.app;
 
 import edu.iu.terracotta.model.BaseEntity;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -30,6 +32,7 @@ public class ConsentDocument extends BaseEntity {
     private String html;
 
     @OneToOne(mappedBy = "consentDocument")
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Experiment experiment;
 
     @Column(name = "lms_assignment_id")

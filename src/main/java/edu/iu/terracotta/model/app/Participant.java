@@ -30,6 +30,7 @@ public class Participant extends BaseEntity {
 
     @JoinColumn(name = "experiment_experiment_id", nullable = false)
     @ManyToOne(optional = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Experiment experiment;
 
     @JoinColumn(name = "lti_user_entity_user_id", nullable = false)

@@ -101,7 +101,7 @@ public class ParticipantController {
      */
     @RequestMapping(value = "/{experimentId}/participants/{participant_id}", method = RequestMethod.GET, produces = "application/json;")
     @ResponseBody
-    public ResponseEntity<ParticipantDto> getExperiment(@PathVariable("experimentId") long experimentId,
+    public ResponseEntity<ParticipantDto> getParticipant(@PathVariable("experimentId") long experimentId,
                                                         @PathVariable("participant_id") long participantId,
                                                         HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ParticipantNotMatchingException {
@@ -131,7 +131,7 @@ public class ParticipantController {
     }
 
     @RequestMapping(value = "/{experimentId}/participants", method = RequestMethod.POST)
-    public ResponseEntity<ParticipantDto> postExperiment(@PathVariable("experimentId") long experimentId,
+    public ResponseEntity<ParticipantDto> postParticipant(@PathVariable("experimentId") long experimentId,
                                                          @RequestBody ParticipantDto participantDto,
                                                          UriComponentsBuilder ucBuilder,
                                                          HttpServletRequest req)

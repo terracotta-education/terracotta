@@ -1,7 +1,10 @@
 package edu.iu.terracotta.service.app.impl;
 
+import edu.iu.terracotta.exceptions.AssignmentDatesException;
+import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.model.ags.Score;
 import edu.iu.terracotta.model.app.Assessment;
 import edu.iu.terracotta.model.app.Assignment;
@@ -10,6 +13,7 @@ import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.QuestionSubmission;
 import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.SubmissionComment;
+import edu.iu.terracotta.model.app.Treatment;
 import edu.iu.terracotta.model.app.dto.QuestionSubmissionDto;
 import edu.iu.terracotta.model.app.dto.SubmissionCommentDto;
 import edu.iu.terracotta.model.app.dto.SubmissionDto;
@@ -21,13 +25,17 @@ import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.app.QuestionSubmissionService;
 import edu.iu.terracotta.service.app.SubmissionCommentService;
 import edu.iu.terracotta.service.app.SubmissionService;
+import edu.iu.terracotta.service.canvas.CanvasAPIClient;
 import edu.iu.terracotta.service.lti.AdvantageAGSService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -51,6 +59,9 @@ public class SubmissionServiceImpl implements SubmissionService {
 
     @Autowired
     AdvantageAGSService advantageAGSService;
+
+    @Autowired
+    CanvasAPIClient canvasAPIClient;
 
     @Override
     public List<Submission> findAllByAssessmentId(Long assessmentId) {
@@ -138,7 +149,9 @@ public class SubmissionServiceImpl implements SubmissionService {
     public void saveAndFlush(Submission submissionToChange) { allRepositories.submissionRepository.saveAndFlush(submissionToChange); }
 
     @Override
-    public void deleteById(Long id) throws EmptyResultDataAccessException { allRepositories.submissionRepository.deleteById(id); }
+    public void deleteById(Long id) throws EmptyResultDataAccessException {
+        allRepositories.submissionRepository.deleteBySubmissionId(id);
+    }
 
     @Override
     public boolean submissionBelongsToAssessment(Long assessmentId, Long submissionId) {
@@ -147,17 +160,52 @@ public class SubmissionServiceImpl implements SubmissionService {
 
     @Override
     @Transactional
-    public void finalizeAndGrade(Long submissionId, SecurityInfo securityInfo) throws DataServiceException {
+    public void finalizeAndGrade(Long submissionId, SecurityInfo securityInfo) throws DataServiceException, CanvasApiException, IOException, AssignmentDatesException {
         Optional<Submission> submissionOptional =  allRepositories.submissionRepository.findById(submissionId);
         if (submissionOptional.isPresent()){
-            //TODO, manage late submissions.
+            Experiment experiment = submissionOptional.get().getAssessment().getTreatment().getCondition().getExperiment();
+            String contextInfo = experiment.getLtiContextEntity().getContext_memberships_url();
+            PlatformDeployment platformDeployment = experiment.getPlatformDeployment();
+            String lmsAssignmentId = submissionOptional.get().getAssessment().getTreatment().getAssignment().getLmsAssignmentId();
+            Date dueAt = canvasAPIClient.getDueAt(contextInfo, platformDeployment, lmsAssignmentId);
+            Date lockAt = canvasAPIClient.getLockAt(contextInfo, platformDeployment, lmsAssignmentId);
             //We are not changing the submission date once it is set.
             if (submissionOptional.get().getDateSubmitted()==null) {
-                submissionOptional.get().setDateSubmitted(submissionOptional.get().getUpdatedAt());
+                if (dueAt != null && submissionOptional.get().getUpdatedAt().after(dueAt)){
+                    submissionOptional.get().setLateSubmission(true);
+                }
+                    submissionOptional.get().setDateSubmitted(submissionOptional.get().getUpdatedAt());
             }
-            saveAndFlush(gradeSubmission(submissionOptional.get()));
+            if (lockAt == null || submissionOptional.get().getUpdatedAt().after(lockAt)) {
+                saveAndFlush(gradeSubmission(submissionOptional.get()));
+            } else {
+                throw new AssignmentDatesException("Canvas Assignment is locked, we can not generate a submission with a date later than the lock date");
+            }
         } else {
             throw new DataServiceException("Submission not found");
+        }
+    }
+
+    @Override
+    public boolean datesAllowed(Long experimentId, Long treatmentId) throws CanvasApiException, IOException, DataServiceException {
+
+        Optional<Experiment> experiment = allRepositories.experimentRepository.findById(experimentId);
+        Optional<Treatment> treatment = allRepositories.treatmentRepository.findById(treatmentId);
+        if (!experiment.isPresent() || !treatment.isPresent()){
+            throw new DataServiceException("Experiment or Treatment don't exist");
+        }
+        String contextInfo = experiment.get().getLtiContextEntity().getContext_memberships_url();
+        String lmsAssignmentId = treatment.get().getAssignment().getLmsAssignmentId();
+        Date unlock = canvasAPIClient.getUnlockAt(contextInfo, experiment.get().getPlatformDeployment(), lmsAssignmentId);
+        Date lock = canvasAPIClient.getLockAt(contextInfo, experiment.get().getPlatformDeployment(), lmsAssignmentId);
+        if (unlock== null || unlock.before(new Date())){
+            if (lock == null || lock.after(new Date())) {
+                return true;
+            } else {
+                return false;
+            }
+        } else {
+            return false;
         }
     }
 

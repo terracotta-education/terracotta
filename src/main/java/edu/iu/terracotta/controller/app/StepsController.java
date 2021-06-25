@@ -1,6 +1,8 @@
 package edu.iu.terracotta.controller.app;
 
+import edu.iu.terracotta.exceptions.AssignmentDatesException;
 import edu.iu.terracotta.exceptions.BadTokenException;
+import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
@@ -32,6 +34,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
 import javax.servlet.http.HttpServletRequest;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -75,7 +78,7 @@ public class StepsController {
     public ResponseEntity<String> postStep(@PathVariable("experiment_id") Long experimentId,
                                                     @RequestBody StepDto stepDto,
                                                     HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, DataServiceException, ParticipantNotUpdatedException, ExperimentStartedException, ConnectionException {
+            throws ExperimentNotMatchingException, BadTokenException, DataServiceException, ParticipantNotUpdatedException, ExperimentStartedException, ConnectionException, CanvasApiException, IOException, AssignmentDatesException {
 
         SecurityInfo securityInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securityInfo, experimentId);
@@ -117,7 +120,7 @@ public class StepsController {
                     if (submissionsId.size()>1) {
                         return new ResponseEntity(TextConstants.SUBMISSION_IDS_MISSING, HttpStatus.BAD_REQUEST);
                     } else {
-                        Long submissionId = Long.getLong(submissionsId.get(0));
+                        Long submissionId = Long.parseLong(submissionsId.get(0));
                         submissionService.finalizeAndGrade(submissionId, securityInfo);
                     }
                 }else if (apijwtService.isInstructorOrHigher(securityInfo)){

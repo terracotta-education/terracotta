@@ -75,12 +75,22 @@ public class ConditionServiceImpl implements ConditionService {
 
     @Override
     public void deleteById(Long id) throws EmptyResultDataAccessException {
-        allRepositories.conditionRepository.deleteById(id);
+        allRepositories.conditionRepository.deleteByConditionId(id);
     }
 
     @Override
     public boolean conditionBelongsToExperiment(Long experimentId, Long conditionId) {
         return allRepositories.conditionRepository.existsByExperiment_ExperimentIdAndConditionId(experimentId,conditionId);
+    }
+
+    @Override
+    public boolean nameAlreadyExists(String name, Long experimentId, Long conditionId){
+        return allRepositories.conditionRepository.existsByNameAndExperiment_ExperimentIdAndConditionIdIsNot(name, experimentId, conditionId);
+    }
+
+    @Override
+    public boolean isDefaultCondition(Long conditionId){
+        return allRepositories.conditionRepository.existsByConditionIdAndDefaultCondition(conditionId, true);
     }
 
 }

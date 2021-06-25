@@ -13,6 +13,7 @@ import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.canvas.CanvasAPIClient;
 import edu.iu.terracotta.utils.TextConstants;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -133,6 +134,9 @@ public class AssignmentController {
                 log.error("Cannot include id in the POST endpoint. To modify existing exposures you must use PUT");
                 return new ResponseEntity("Cannot include id in the POST endpoint. To modify existing exposures you must use PUT", HttpStatus.CONFLICT);
             }
+            if(!StringUtils.isAllBlank(assignmentDto.getTitle()) && assignmentDto.getTitle().length() > 255){
+                return new ResponseEntity("Assignment title must be 255 characters or less.", HttpStatus.BAD_REQUEST);
+            }
             assignmentDto.setExposureId(exposureId);
             Assignment assignment;
             try {
@@ -171,7 +175,7 @@ public class AssignmentController {
 
             HttpHeaders headers = new HttpHeaders();
             headers.setLocation(ucBuilder.path("/api/experiments/{experiment_id}/exposures/{exposure_id}/assignments/{assignment_id}")
-                    .buildAndExpand(assignment.getExposure().getExperiment().getExperimentId(), assignment.getExposure().getExposureId(), assignment.getAssignmentId()).toUri());
+                    .buildAndExpand(experimentId, exposureId, assignment.getAssignmentId()).toUri());
             return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
@@ -197,6 +201,12 @@ public class AssignmentController {
             if(!assignmentSearchResult.isPresent()) {
                 log.error("Unable to update. Assignment with id {} not found.", assignmentId);
                 return new ResponseEntity("Unable to update. Assignment with id " + assignmentId + TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
+            }
+            if(StringUtils.isAllBlank(assignmentDto.getTitle()) && StringUtils.isAllBlank(assignmentSearchResult.get().getTitle())){
+                return new ResponseEntity("Please give the assignment a name.", HttpStatus.BAD_REQUEST);
+            }
+            if(!StringUtils.isAllBlank(assignmentDto.getTitle()) && assignmentDto.getTitle().length() > 255) {
+                return new ResponseEntity("The title must be 255 characters or less.", HttpStatus.BAD_REQUEST);
             }
             Assignment assignmentToChange = assignmentSearchResult.get();
             assignmentToChange.setTitle(assignmentDto.getTitle());

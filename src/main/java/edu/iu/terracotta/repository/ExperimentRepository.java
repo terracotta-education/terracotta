@@ -2,6 +2,9 @@ package edu.iu.terracotta.repository;
 
 import edu.iu.terracotta.model.app.Experiment;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -17,6 +20,11 @@ public interface ExperimentRepository extends JpaRepository<Experiment, Long> {
 
     boolean existsByExperimentIdAndPlatformDeployment_KeyIdAndLtiContextEntity_ContextId(Long experimentId, long keyId, long contextId);
 
-    boolean existsByTitleAndLtiContextEntity_ContextId(String title, long contextId);
+    boolean existsByTitleAndLtiContextEntity_ContextIdAndExperimentIdIsNot(String title, long contextId, Long experimentId);
+
+    @Transactional
+    @Modifying
+    @Query("delete from Experiment e where e.experimentId = ?1")
+    void deleteByExperimentId(Long experimentId);
 
 }

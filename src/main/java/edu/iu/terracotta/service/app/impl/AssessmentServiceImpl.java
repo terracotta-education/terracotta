@@ -96,7 +96,7 @@ public class AssessmentServiceImpl implements AssessmentService {
     public void saveAndFlush(Assessment assessmentToChange) { allRepositories.assessmentRepository.saveAndFlush(assessmentToChange); }
 
     @Override
-    public void deleteById(Long id) throws EmptyResultDataAccessException { allRepositories.assessmentRepository.deleteById(id); }
+    public void deleteById(Long id) throws EmptyResultDataAccessException { allRepositories.assessmentRepository.deleteByAssessmentId(id); }
 
     @Override
     public boolean assessmentBelongsToExperimentAndConditionAndTreatment(Long experimentId, Long conditionId, Long treatmentId, Long assessmentId) {

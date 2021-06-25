@@ -42,6 +42,7 @@ const actions = {
       .then(response => {
         if (response?.status === 200) {
           commit('deleteExperiment', experimentId)
+          return response
         }
       })
       .catch(response => {
@@ -83,6 +84,9 @@ const mutations = {
 const getters = {
   conditions(state) {
     return state.experiment.conditions
+  },
+  experiment(state) {
+    return state.experiment
   },
   experiments(state) {
     return state.experiments

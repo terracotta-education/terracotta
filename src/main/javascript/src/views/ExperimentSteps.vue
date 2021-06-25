@@ -45,7 +45,7 @@
 <script>
 	import Steps from '../components/Steps'
 	import store from '@/store'
-	import {mapActions} from "vuex";
+  import {mapActions, mapGetters} from "vuex";
 
 	export default {
 		name: 'ExperimentSteps',
@@ -53,18 +53,18 @@
 		data: () => ({}),
 
 		computed: {
+      ...mapGetters({
+        experiment: 'experiment/experiment',
+      }),
 			currentSection() {
 				return this.$router.currentRoute.meta.currentSection
 			},
 			currentStep() {
 				return this.$router.currentRoute.meta.currentStep
 			},
-			experiment() {
-				return this.$store.state.experiment.experiment
-			},
-			routeExperimentId() {
-				return this.$route.params.experiment_id
-			}
+      routeExperimentId() {
+        return this.$route.params.experiment_id
+      }
 		},
 
 		beforeRouteEnter (to, from, next) {

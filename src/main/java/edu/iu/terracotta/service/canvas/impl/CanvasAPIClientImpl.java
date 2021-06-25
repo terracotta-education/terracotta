@@ -8,15 +8,14 @@ import edu.iu.terracotta.service.canvas.AssignmentWriterExtended;
 import edu.iu.terracotta.service.canvas.CanvasAPIClient;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
-import edu.ksu.canvas.interfaces.AssignmentWriter;
 import edu.ksu.canvas.interfaces.SubmissionReader;
 import edu.ksu.canvas.model.assignment.Submission;
+import edu.ksu.canvas.requestOptions.GetSingleAssignmentOptions;
 import edu.ksu.canvas.requestOptions.GetSubmissionsOptions;
 import edu.ksu.canvas.requestOptions.ListCourseAssignmentsOptions;
 import org.apache.commons.lang3.StringUtils;
@@ -72,6 +71,51 @@ public class CanvasAPIClientImpl implements CanvasAPIClient {
         GetSubmissionsOptions submissionsOptions = new GetSubmissionsOptions(extractCourseId(contextMembershipUrl),assignmentId);
         submissionsOptions.includes(Collections.singletonList(GetSubmissionsOptions.Include.USER));
         return submissionReader.getCourseSubmissions(submissionsOptions);
+    }
+
+    @Override
+    public Date getDueAt(String contextMembershipUrl, PlatformDeployment platformDeployment, String lmsAssignmentId) throws IOException, CanvasApiException {
+        String canvasBaseUrl = platformDeployment.getBaseUrl();
+        OauthToken oauthToken = new NonRefreshableOauthToken(platformDeployment.getApiToken());
+        CanvasApiFactoryExtended apiFactory = new CanvasApiFactoryExtended(canvasBaseUrl);
+        AssignmentReaderExtended assignmentReader = apiFactory.getReader(AssignmentReaderExtended.class, oauthToken);
+        GetSingleAssignmentOptions singleAssignmentOptions = new GetSingleAssignmentOptions(extractCourseId(contextMembershipUrl), Integer.parseInt(lmsAssignmentId));
+        Optional<AssignmentExtended> assignmentExtended = assignmentReader.getSingleAssignment(singleAssignmentOptions);
+        if (assignmentExtended.isPresent()){
+            return assignmentExtended.get().getDueAt();
+        } else {
+            throw new CanvasApiException("Assignment with id : " + lmsAssignmentId + "can't be retrieved");
+        }
+    }
+
+    @Override
+    public Date getLockAt(String contextMembershipUrl, PlatformDeployment platformDeployment, String lmsAssignmentId) throws IOException, CanvasApiException  {
+        String canvasBaseUrl = platformDeployment.getBaseUrl();
+        OauthToken oauthToken = new NonRefreshableOauthToken(platformDeployment.getApiToken());
+        CanvasApiFactoryExtended apiFactory = new CanvasApiFactoryExtended(canvasBaseUrl);
+        AssignmentReaderExtended assignmentReader = apiFactory.getReader(AssignmentReaderExtended.class, oauthToken);
+        GetSingleAssignmentOptions singleAssignmentOptions = new GetSingleAssignmentOptions(extractCourseId(contextMembershipUrl), Integer.parseInt(lmsAssignmentId));
+        Optional<AssignmentExtended> assignmentExtended = assignmentReader.getSingleAssignment(singleAssignmentOptions);
+        if (assignmentExtended.isPresent()){
+            return assignmentExtended.get().getLockAt();
+        } else {
+            throw new CanvasApiException("Assignment with id : " + lmsAssignmentId + "can't be retrieved");
+        }
+    }
+
+    @Override
+    public Date getUnlockAt(String contextMembershipUrl, PlatformDeployment platformDeployment, String lmsAssignmentId) throws IOException, CanvasApiException  {
+        String canvasBaseUrl = platformDeployment.getBaseUrl();
+        OauthToken oauthToken = new NonRefreshableOauthToken(platformDeployment.getApiToken());
+        CanvasApiFactoryExtended apiFactory = new CanvasApiFactoryExtended(canvasBaseUrl);
+        AssignmentReaderExtended assignmentReader = apiFactory.getReader(AssignmentReaderExtended.class, oauthToken);
+        GetSingleAssignmentOptions singleAssignmentOptions = new GetSingleAssignmentOptions(extractCourseId(contextMembershipUrl), Integer.parseInt(lmsAssignmentId));
+        Optional<AssignmentExtended> assignmentExtended = assignmentReader.getSingleAssignment(singleAssignmentOptions);
+        if (assignmentExtended.isPresent()){
+            return assignmentExtended.get().getUnlockAt();
+        } else {
+            throw new CanvasApiException("Assignment with id : " + lmsAssignmentId + "can't be retrieved");
+        }
     }
 
 

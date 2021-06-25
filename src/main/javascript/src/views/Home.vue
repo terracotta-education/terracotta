@@ -130,7 +130,6 @@ export default {
             .then(response => {
               if (response?.status !== 200) {
                 alert('Could not delete experiment.')
-                console.log({response})
               }
             })
       }

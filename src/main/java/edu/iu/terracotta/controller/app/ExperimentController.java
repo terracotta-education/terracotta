@@ -153,14 +153,18 @@ public class ExperimentController {
                                 .toUri());
                 return new ResponseEntity<>(existingEmpty, headers, HttpStatus.ALREADY_REPORTED);
             }
+            if(!StringUtils.isBlank(experimentDto.getTitle())){
+                if(experimentDto.getTitle().length() > 255){
+                    return new ResponseEntity("Experiment title must be less than 255 characters in length.", HttpStatus.BAD_REQUEST);
+                }
+                if(experimentService.titleAlreadyExists(experimentDto.getTitle(), securityInfo.getContextId(), 0l)){
+                    return new ResponseEntity("Unable to create the experiment. An experiment with title \"" + experimentDto.getTitle() + "\" already exists in this course.", HttpStatus.CONFLICT);
+                }
+            }
+
             Experiment experiment;
             experimentDto = experimentService.fillContextInfo(experimentDto, securityInfo);
             try {
-                if(!StringUtils.isBlank(experimentDto.getTitle())){
-                    if(experimentService.titleAlreadyExists(experimentDto.getTitle(), securityInfo.getContextId())){
-                        return new ResponseEntity("Unable to create the experiment. An experiment with title \"" + experimentDto.getTitle() + "\" already exists in this course.", HttpStatus.CONFLICT);
-                    }
-                }
                 experiment = experimentService.fromDto(experimentDto);
             } catch (DataServiceException e) {
                 return new ResponseEntity(
@@ -202,8 +206,19 @@ public class ExperimentController {
                         HttpStatus.NOT_FOUND);
             }
             Experiment experimentToChange = experimentSearchResult.get();
-            experimentToChange.setDescription(experimentDto.getDescription());
+            if(StringUtils.isAllBlank(experimentDto.getTitle()) && StringUtils.isAllBlank(experimentToChange.getTitle())){
+                return new ResponseEntity("Please give the experiment a title.", HttpStatus.CONFLICT);
+            }
+            if(!StringUtils.isBlank(experimentDto.getTitle())){
+                if(experimentDto.getTitle().length() > 255){
+                    return new ResponseEntity("Experiment title must be less than 255 characters in length.", HttpStatus.BAD_REQUEST);
+                }
+                if(experimentService.titleAlreadyExists(experimentDto.getTitle(), securityInfo.getContextId(), id)){
+                    return new ResponseEntity("Unable to create the experiment. An experiment with title \"" + experimentDto.getTitle() + "\" already exists in this course.", HttpStatus.CONFLICT);
+                }
+            }
             experimentToChange.setTitle(experimentDto.getTitle());
+            experimentToChange.setDescription(experimentDto.getDescription());
             if (experimentDto.getExposureType() != null) {
                 if (EnumUtils.isValidEnum(ExposureTypes.class, experimentDto.getExposureType())) {
                 experimentToChange.setExposureType(
