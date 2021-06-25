@@ -25,4 +25,9 @@ public interface ParticipantRepository extends JpaRepository<Participant, Long> 
   @Modifying
   @Query("delete from Participant s where s.participantId = ?1")
   void deleteByParticipantId(Long participantId);
+
+  long countByGroup_GroupId(Long groupId);
+
+
+
 }

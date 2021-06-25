@@ -4,7 +4,7 @@ import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.model.app.AnswerMc;
 import edu.iu.terracotta.model.app.Question;
 import edu.iu.terracotta.model.app.dto.AnswerDto;
-import edu.iu.terracotta.model.oauth2.SecurityInfo;
+import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.AnswerService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -91,8 +91,8 @@ public class AnswerServiceImpl implements AnswerService {
     }
 
     @Override
-    public String answerNotFound(SecurityInfo securityInfo, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId, Long questionId, Long answerId) {
-        return "Answer in platform " + securityInfo.getPlatformDeploymentId() + " and context " + securityInfo.getContextId()
+    public String answerNotFound(SecuredInfo securedInfo, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId, Long questionId, Long answerId) {
+        return "Answer in platform " + securedInfo.getPlatformDeploymentId() + " and context " + securedInfo.getContextId()
                 + " and experiment with id " + experimentId + " and condition id " + conditionId + " and treatment id " + treatmentId + " and assessment id " + assessmentId
                 + " and question id " + questionId + " with id " + answerId + " not found.";
     }

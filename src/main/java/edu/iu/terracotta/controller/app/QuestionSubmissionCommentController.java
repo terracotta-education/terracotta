@@ -11,7 +11,7 @@ import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.QuestionSubmissionComment;
 import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.dto.QuestionSubmissionCommentDto;
-import edu.iu.terracotta.model.oauth2.SecurityInfo;
+import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.QuestionSubmissionCommentService;
 import edu.iu.terracotta.service.app.SubmissionService;
@@ -66,14 +66,14 @@ public class QuestionSubmissionCommentController {
                                                                                             HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, BadTokenException {
 
-        SecurityInfo securityInfo = apijwtService.extractValues(req, false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.assessmentAllowed(securityInfo, experimentId, conditionId, treatmentId, assessmentId);
-        apijwtService.questionSubmissionAllowed(securityInfo, assessmentId, submissionId, questionSubmissionId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
+        apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, questionSubmissionId);
 
-        if(apijwtService.isLearnerOrHigher(securityInfo)) {
-            if(!apijwtService.isInstructorOrHigher(securityInfo)){
-                Participant participant = submissionService.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, securityInfo.getUserId());
+        if(apijwtService.isLearnerOrHigher(securedInfo)) {
+            if(!apijwtService.isInstructorOrHigher(securedInfo)){
+                Participant participant = submissionService.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, securedInfo.getUserId());
                 Optional<Submission> submission = submissionService.findByParticipantIdAndSubmissionId(participant.getParticipantId(), submissionId);
                 if(!submission.isPresent()){
                     return new ResponseEntity("Students can only access question submission comments from their own submissions. Submission with id "
@@ -109,16 +109,16 @@ public class QuestionSubmissionCommentController {
                                                                                      HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, QuestionSubmissionCommentNotMatchingException, BadTokenException{
 
-        SecurityInfo securityInfo = apijwtService.extractValues(req,false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.assessmentAllowed(securityInfo, experimentId, conditionId, treatmentId, assessmentId);
-        apijwtService.questionSubmissionAllowed(securityInfo, assessmentId, submissionId, questionSubmissionId);
-        apijwtService.questionSubmissionCommentAllowed(securityInfo, questionSubmissionId, questionSubmissionCommentId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req,false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
+        apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, questionSubmissionId);
+        apijwtService.questionSubmissionCommentAllowed(securedInfo, questionSubmissionId, questionSubmissionCommentId);
 
-        if(apijwtService.isLearnerOrHigher(securityInfo)) {
+        if(apijwtService.isLearnerOrHigher(securedInfo)) {
 
-            if(!apijwtService.isInstructorOrHigher(securityInfo)){
-                Participant participant = submissionService.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, securityInfo.getUserId());
+            if(!apijwtService.isInstructorOrHigher(securedInfo)){
+                Participant participant = submissionService.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, securedInfo.getUserId());
                 Optional<Submission> submission = submissionService.findByParticipantIdAndSubmissionId(participant.getParticipantId(), submissionId);
                 if(!submission.isPresent()){
                     return new ResponseEntity("Students can only access question submission comments from their own submissions. Submission with id "
@@ -130,8 +130,8 @@ public class QuestionSubmissionCommentController {
 
             if(!questionSubmissionCommentSearchResult.isPresent()) {
                 log.error("Question submission comment in platform {} and context {} and experiment {} and condition {} and treatment {}  and assessment {} and submission {} and question submission {} with id {} not found",
-                        securityInfo.getPlatformDeploymentId(), securityInfo.getContextId(), experimentId, conditionId, treatmentId, assessmentId, submissionId, questionSubmissionId, questionSubmissionCommentId);
-                return new ResponseEntity("Question submission comment in platform " + securityInfo.getPlatformDeploymentId() + " and context " + securityInfo.getContextId() +
+                        securedInfo.getPlatformDeploymentId(), securedInfo.getContextId(), experimentId, conditionId, treatmentId, assessmentId, submissionId, questionSubmissionId, questionSubmissionCommentId);
+                return new ResponseEntity("Question submission comment in platform " + securedInfo.getPlatformDeploymentId() + " and context " + securedInfo.getContextId() +
                         " and experiment with id " + experimentId + " and condition id " + conditionId + " and treatment id " + treatmentId + " and assessment id " + assessmentId +
                         " and submission id " + submissionId + " and question submission id " + questionSubmissionId + " with id " + questionSubmissionCommentId + TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
             } else {
@@ -157,19 +157,19 @@ public class QuestionSubmissionCommentController {
                                                                                       HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, BadTokenException {
 
-        SecurityInfo securityInfo = apijwtService.extractValues(req, false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.assessmentAllowed(securityInfo, experimentId, conditionId, treatmentId, assessmentId);
-        apijwtService.questionSubmissionAllowed(securityInfo, assessmentId, submissionId, questionSubmissionId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
+        apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, questionSubmissionId);
 
-        if(apijwtService.isLearnerOrHigher(securityInfo)) {
+        if(apijwtService.isLearnerOrHigher(securedInfo)) {
             if(questionSubmissionCommentDto.getQuestionSubmissionCommentId() != null) {
                 log.error(TextConstants.ID_IN_POST_ERROR);
                 return new ResponseEntity(TextConstants.ID_IN_POST_ERROR, HttpStatus.CONFLICT);
             }
 
-            if(!apijwtService.isInstructorOrHigher(securityInfo)){
-                Participant participant = submissionService.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, securityInfo.getUserId());
+            if(!apijwtService.isInstructorOrHigher(securedInfo)){
+                Participant participant = submissionService.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, securedInfo.getUserId());
                 Optional<Submission> submission = submissionService.findByParticipantIdAndSubmissionId(participant.getParticipantId(), submissionId);
                 if(!submission.isPresent()){
                     return new ResponseEntity("Students can only post question submission comments to their own submissions. Submission with id "
@@ -178,7 +178,7 @@ public class QuestionSubmissionCommentController {
             }
 
             questionSubmissionCommentDto.setQuestionSubmissionId(questionSubmissionId);
-            LtiUserEntity user = questionSubmissionCommentService.findByUserKey(securityInfo.getUserId());
+            LtiUserEntity user = questionSubmissionCommentService.findByUserKey(securedInfo.getUserId());
             questionSubmissionCommentDto.setCreator(user.getDisplayName());
             QuestionSubmissionComment questionSubmissionComment;
             try {
@@ -214,16 +214,16 @@ public class QuestionSubmissionCommentController {
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, QuestionSubmissionCommentNotMatchingException, BadTokenException {
 
         log.info("Updating question submission comment with id {}", questionSubmissionCommentId);
-        SecurityInfo securityInfo = apijwtService.extractValues(req, false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.assessmentAllowed(securityInfo, experimentId, conditionId, treatmentId, assessmentId);
-        apijwtService.questionSubmissionAllowed(securityInfo, assessmentId, submissionId, questionSubmissionId);
-        apijwtService.questionSubmissionCommentAllowed(securityInfo, questionSubmissionId, questionSubmissionCommentId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
+        apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, questionSubmissionId);
+        apijwtService.questionSubmissionCommentAllowed(securedInfo, questionSubmissionId, questionSubmissionCommentId);
 
-        if(apijwtService.isLearnerOrHigher(securityInfo)) {
+        if(apijwtService.isLearnerOrHigher(securedInfo)) {
 
-            if(!apijwtService.isInstructorOrHigher(securityInfo)){
-                Participant participant = submissionService.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, securityInfo.getUserId());
+            if(!apijwtService.isInstructorOrHigher(securedInfo)){
+                Participant participant = submissionService.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, securedInfo.getUserId());
                 Optional<Submission> submission = submissionService.findByParticipantIdAndSubmissionId(participant.getParticipantId(), submissionId);
                 if(!submission.isPresent()){
                     return new ResponseEntity("Students can only edit question submission comments from their own submissions. Submission with id "
@@ -238,7 +238,7 @@ public class QuestionSubmissionCommentController {
                 return new ResponseEntity("Unable to update. Question submission comment with id " + questionSubmissionCommentId + TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
             }
 
-            LtiUserEntity user = questionSubmissionCommentService.findByUserKey(securityInfo.getUserId());
+            LtiUserEntity user = questionSubmissionCommentService.findByUserKey(securedInfo.getUserId());
             if(!user.getDisplayName().equals(questionSubmissionCommentSearchResult.get().getCreator())){
                 return new ResponseEntity("Only the creator of a comment can edit their own comment.", HttpStatus.UNAUTHORIZED);
             }
@@ -266,13 +266,13 @@ public class QuestionSubmissionCommentController {
                                                                 HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, QuestionSubmissionCommentNotMatchingException, BadTokenException {
 
-        SecurityInfo securityInfo = apijwtService.extractValues(req,false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.assessmentAllowed(securityInfo, experimentId, conditionId, treatmentId, assessmentId);
-        apijwtService.questionSubmissionAllowed(securityInfo, assessmentId, submissionId, questionSubmissionId);
-        apijwtService.questionSubmissionCommentAllowed(securityInfo, questionSubmissionId, questionSubmissionCommentId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req,false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
+        apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, questionSubmissionId);
+        apijwtService.questionSubmissionCommentAllowed(securedInfo, questionSubmissionId, questionSubmissionCommentId);
 
-        if(apijwtService.isInstructorOrHigher(securityInfo)) {
+        if(apijwtService.isInstructorOrHigher(securedInfo)) {
             try{
                 questionSubmissionCommentService.deleteById(questionSubmissionCommentId);
                 return new ResponseEntity<>(HttpStatus.OK);

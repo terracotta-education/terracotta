@@ -5,11 +5,10 @@ import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.OutcomeNotMatchingException;
 import edu.iu.terracotta.exceptions.OutcomeScoreNotMatchingException;
-import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
 import edu.iu.terracotta.model.app.OutcomeScore;
 import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.dto.OutcomeScoreDto;
-import edu.iu.terracotta.model.oauth2.SecurityInfo;
+import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.OutcomeScoreService;
 import edu.iu.terracotta.service.app.ParticipantService;
@@ -60,11 +59,11 @@ public class OutcomeScoreController {
                                                                               HttpServletRequest req)
             throws ExperimentNotMatchingException, OutcomeNotMatchingException, BadTokenException {
 
-        SecurityInfo securityInfo = apijwtService.extractValues(req, false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.outcomeAllowed(securityInfo, experimentId, exposureId, outcomeId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.outcomeAllowed(securedInfo, experimentId, exposureId, outcomeId);
 
-        if (apijwtService.isLearnerOrHigher(securityInfo)) {
+        if (apijwtService.isLearnerOrHigher(securedInfo)) {
             List<OutcomeScore> outcomeScoreList = outcomeScoreService.findAllByOutcomeId(outcomeId);
 
             if (outcomeScoreList.isEmpty()) {
@@ -90,18 +89,18 @@ public class OutcomeScoreController {
                                                            HttpServletRequest req)
             throws ExperimentNotMatchingException, OutcomeNotMatchingException, OutcomeScoreNotMatchingException, BadTokenException {
 
-        SecurityInfo securityInfo = apijwtService.extractValues(req, false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.outcomeAllowed(securityInfo, experimentId, exposureId, outcomeId);
-        apijwtService.outcomeScoreAllowed(securityInfo, outcomeId, outcomeScoreId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.outcomeAllowed(securedInfo, experimentId, exposureId, outcomeId);
+        apijwtService.outcomeScoreAllowed(securedInfo, outcomeId, outcomeScoreId);
 
-        if (apijwtService.isLearnerOrHigher(securityInfo)) {
+        if (apijwtService.isLearnerOrHigher(securedInfo)) {
             Optional<OutcomeScore> outcomeScoreSearchResult = outcomeScoreService.findById(outcomeScoreId);
 
             if (!outcomeScoreSearchResult.isPresent()) {
                 log.error("Outcome score in platform {} and context {} and experiment {} and exposure {} and outcome {} with id {} not found",
-                        securityInfo.getPlatformDeploymentId(), securityInfo.getContextId(), experimentId, exposureId, outcomeId, outcomeScoreId);
-                return new ResponseEntity("Outcome score in platform " + securityInfo.getPlatformDeploymentId() + " and context " + securityInfo.getContextId() +
+                        securedInfo.getPlatformDeploymentId(), securedInfo.getContextId(), experimentId, exposureId, outcomeId, outcomeScoreId);
+                return new ResponseEntity("Outcome score in platform " + securedInfo.getPlatformDeploymentId() + " and context " + securedInfo.getContextId() +
                         " and experiment with id " + experimentId + " and exposure id " + experimentId + " and outcome id " + outcomeId + " with id " + outcomeScoreId +
                         TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
             } else {
@@ -123,11 +122,11 @@ public class OutcomeScoreController {
                                                             HttpServletRequest req)
             throws ExperimentNotMatchingException, OutcomeNotMatchingException, BadTokenException {
 
-        SecurityInfo securityInfo = apijwtService.extractValues(req, false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.outcomeAllowed(securityInfo, experimentId, exposureId, outcomeId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.outcomeAllowed(securedInfo, experimentId, exposureId, outcomeId);
 
-        if(apijwtService.isInstructorOrHigher(securityInfo)){
+        if(apijwtService.isInstructorOrHigher(securedInfo)){
             if(outcomeScoreDto.getOutcomeScoreId() != null) {
                 log.error(TextConstants.ID_IN_POST_ERROR);
                 return new ResponseEntity(TextConstants.ID_IN_POST_ERROR, HttpStatus.CONFLICT);
@@ -172,12 +171,12 @@ public class OutcomeScoreController {
             throws ExperimentNotMatchingException, OutcomeNotMatchingException, OutcomeScoreNotMatchingException, BadTokenException {
 
         log.info("Updating outcome score with id {}", outcomeScoreId);
-        SecurityInfo securityInfo = apijwtService.extractValues(req, false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.outcomeAllowed(securityInfo, experimentId, exposureId, outcomeId);
-        apijwtService.outcomeScoreAllowed(securityInfo, outcomeId, outcomeScoreId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.outcomeAllowed(securedInfo, experimentId, exposureId, outcomeId);
+        apijwtService.outcomeScoreAllowed(securedInfo, outcomeId, outcomeScoreId);
 
-        if(apijwtService.isInstructorOrHigher(securityInfo)){
+        if(apijwtService.isInstructorOrHigher(securedInfo)){
             Optional<OutcomeScore> outcomeScoreSearchResult = outcomeScoreService.findById(outcomeScoreId);
 
             if(!outcomeScoreSearchResult.isPresent()){
@@ -203,12 +202,12 @@ public class OutcomeScoreController {
                                                    HttpServletRequest req)
             throws ExperimentNotMatchingException, OutcomeNotMatchingException, OutcomeScoreNotMatchingException, BadTokenException {
 
-        SecurityInfo securityInfo = apijwtService.extractValues(req, false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
-        apijwtService.outcomeAllowed(securityInfo, experimentId, exposureId, outcomeId);
-        apijwtService.outcomeScoreAllowed(securityInfo, outcomeId, outcomeScoreId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.outcomeAllowed(securedInfo, experimentId, exposureId, outcomeId);
+        apijwtService.outcomeScoreAllowed(securedInfo, outcomeId, outcomeScoreId);
 
-        if(apijwtService.isInstructorOrHigher(securityInfo)){
+        if(apijwtService.isInstructorOrHigher(securedInfo)){
             try{
                 outcomeScoreService.deleteById(outcomeScoreId);
                 return new ResponseEntity<>(HttpStatus.OK);

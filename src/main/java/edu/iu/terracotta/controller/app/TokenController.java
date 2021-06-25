@@ -62,7 +62,16 @@ public class TokenController {
                         claims.getBody().get("userId").toString(),
                         assignmentId,
                         experimentId,
-                        Boolean.getBoolean(claims.getBody().get("consent").toString())), HttpStatus.OK);
+                        Boolean.getBoolean(claims.getBody().get("consent").toString()),
+                        claims.getBody().get("canvasUserId").toString(),
+                        claims.getBody().get("canvasLoginId").toString(),
+                        claims.getBody().get("canvasUserName").toString(),
+                        claims.getBody().get("canvasCourseId").toString(),
+                        claims.getBody().get("canvasAssignmentId").toString(),
+                        claims.getBody().get("dueAt").toString(),
+                        claims.getBody().get("lockAt").toString(),
+                        claims.getBody().get("unlockAt").toString())
+                        , HttpStatus.OK);
             } catch (GeneralSecurityException | IOException e) {
                 return new ResponseEntity<>("Error generating token: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
             }

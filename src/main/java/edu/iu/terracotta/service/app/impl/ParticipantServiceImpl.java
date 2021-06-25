@@ -13,7 +13,7 @@ import edu.iu.terracotta.model.membership.CourseUser;
 import edu.iu.terracotta.model.membership.CourseUsers;
 import edu.iu.terracotta.model.oauth2.LTIToken;
 import edu.iu.terracotta.model.oauth2.Roles;
-import edu.iu.terracotta.model.oauth2.SecurityInfo;
+import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.GroupService;
@@ -137,7 +137,7 @@ public class ParticipantServiceImpl implements ParticipantService {
     }
 
     @Override
-    public List<Participant> refreshParticipants(long experimentId, SecurityInfo securityInfo, List<Participant> currentParticipantList) throws ParticipantNotUpdatedException {
+    public List<Participant> refreshParticipants(long experimentId, SecuredInfo securedInfo, List<Participant> currentParticipantList) throws ParticipantNotUpdatedException {
 
         //We don't want to delete participants if they drop the course, so... we will keep the all participants
         //But we will need to mark them as dropped if they are not in the next list. So... a way to do it is to mark
@@ -215,11 +215,11 @@ public class ParticipantServiceImpl implements ParticipantService {
     }
 
     @Override
-    public void prepareParticipation(Long experimentId, SecurityInfo securityInfo) throws ParticipantNotUpdatedException {
+    public void prepareParticipation(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException {
 
         List<Participant> currentParticipantList =
                 findAllByExperimentId(experimentId);
-        refreshParticipants(experimentId,securityInfo,currentParticipantList);
+        refreshParticipants(experimentId, securedInfo,currentParticipantList);
     }
 
     @Override
@@ -241,6 +241,16 @@ public class ParticipantServiceImpl implements ParticipantService {
         } else {
             participantToChange.setGroup(null);
         }
+    }
+
+    @Override
+    public Participant findParticipant(List<Participant> participants, String userId){
+        for (Participant participant:participants){
+            if (participant.getLtiUserEntity().getUserKey().equals(userId)) {
+                return participant;
+            }
+        }
+        return null;
     }
 
     @Override

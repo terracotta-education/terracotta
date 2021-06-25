@@ -9,18 +9,24 @@ import edu.iu.terracotta.model.app.Group;
 import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.dto.GroupDto;
 import edu.iu.terracotta.model.app.dto.ParticipantDto;
-import edu.iu.terracotta.model.oauth2.SecurityInfo;
+import edu.iu.terracotta.model.app.enumerator.DistributionTypes;
+import edu.iu.terracotta.model.app.enumerator.ExposureTypes;
+import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.GroupService;
 import edu.iu.terracotta.service.app.ParticipantService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.persistence.criteria.CriteriaBuilder;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Component
@@ -52,7 +58,8 @@ public class GroupServiceImpl implements GroupService {
         groupDto.setGroupId(group.getGroupId());
         groupDto.setExperimentId(group.getExperiment().getExperimentId());
         groupDto.setName(group.getName());
-        List<Participant> participantList = allRepositories.participantRepository.findByExperiment_ExperimentIdAndGroup_GroupId(groupDto.getExperimentId(), group.getGroupId());
+        List<Participant> participantList =
+                allRepositories.participantRepository.findByExperiment_ExperimentIdAndGroup_GroupId(groupDto.getExperimentId(), group.getGroupId());
         List<ParticipantDto> participantDtoList = new ArrayList<>();
         for (Participant participant:participantList){
             participantDtoList.add(participantService.toDto(participant));
@@ -82,7 +89,9 @@ public class GroupServiceImpl implements GroupService {
     public Group save(Group group) { return allRepositories.groupRepository.save(group); }
 
     @Override
-    public ExposureGroupCondition saveExposureGroupCondition(ExposureGroupCondition exposureGroupCondition) { return allRepositories.exposureGroupConditionRepository.save(exposureGroupCondition); }
+    public ExposureGroupCondition saveExposureGroupCondition(ExposureGroupCondition exposureGroupCondition) {
+        return allRepositories.exposureGroupConditionRepository.save(exposureGroupCondition);
+    }
 
     @Override
     public Optional<Group> findById(Long id) { return allRepositories.groupRepository.findById(id); }
@@ -103,7 +112,7 @@ public class GroupServiceImpl implements GroupService {
 
     @Override
     @Transactional
-    public void createAndAssignGroupsToConditionsAndExposures(Long experimentId, SecurityInfo securityInfo, boolean isCustom) throws DataServiceException {
+    public void createAndAssignGroupsToConditionsAndExposures(Long experimentId, SecuredInfo securedInfo, boolean isCustom) throws DataServiceException {
         Optional<Experiment> experiment = allRepositories.experimentRepository.findById(experimentId);
         if(experiment.isPresent()) {
             int numberOfGroups = experiment.get().getConditions().size();
@@ -131,13 +140,15 @@ public class GroupServiceImpl implements GroupService {
                 }
             }
             //We assign the groups to the conditions and exposures
-            List<ExposureGroupCondition> exposureGroupConditionList = allRepositories.exposureGroupConditionRepository.findByCondition_Experiment_ExperimentId(experimentId);
+            List<ExposureGroupCondition> exposureGroupConditionList =
+                    allRepositories.exposureGroupConditionRepository.findByCondition_Experiment_ExperimentId(experimentId);
             if (exposureGroupConditionList.isEmpty()) {
                 assignGroups(groups, experiment.get());
             } else {
                 if (exposureGroupConditionList.size()!=experiment.get().getConditions().size()*experiment.get().getExposures().size()) {
                     if (experimentService.experimentStarted(experiment.get())) {
-                        throw new DataServiceException("The experiment has started but there is an error with the group/exposure/condition associations amount");
+                        throw new DataServiceException("The experiment has started but there is an error with the " +
+                                "group/exposure/condition associations amount");
                     } else {
                         allRepositories.exposureGroupConditionRepository.deleteByExposure_Experiment_ExperimentId(experimentId);
                         assignGroups(groups, experiment.get());
@@ -188,5 +199,44 @@ public class GroupServiceImpl implements GroupService {
         }
         return groups;
     }
+
+    @Override
+    public Group nextGroup(Experiment experiment){
+
+        float evenPercent =  (100 / (float) experiment.getConditions().size());
+        long totalParticipants = 0L;
+        Group moreUnbalanced = null;
+        float unbalancement = Float.parseFloat("0");
+        Map<Group, Long> count = new HashMap<>();
+        List<Group> groups = allRepositories.groupRepository.findByExperiment_ExperimentId(experiment.getExperimentId());
+        for (Group group:groups){
+            long groupCount = allRepositories.participantRepository.countByGroup_GroupId(group.getGroupId());
+            totalParticipants = totalParticipants + groupCount;
+            count.put(group,groupCount);
+        }
+
+        //If the experiment has just one exposure... we look at the groups/Exposures/etc...
+        // to see the group assigned to the condition
+        //If the experiment has more than one exposure... we shouldn't be doing this....
+        List<ExposureGroupCondition> exposureGroupConditionList =
+                allRepositories.exposureGroupConditionRepository.findByExposure_ExposureId(experiment.getExposures().get(0).getExposureId());
+        for (ExposureGroupCondition exposureGroupCondition:exposureGroupConditionList){
+            Long countGroup = count.get(exposureGroupCondition.getGroup());
+            float groupUnbalancement;
+            if (experiment.getDistributionType().equals(DistributionTypes.EVEN)) {
+                groupUnbalancement = evenPercent - (countGroup / (float) totalParticipants);
+            } else {
+                groupUnbalancement = exposureGroupCondition.getCondition().getDistributionPct() - (countGroup / (float) totalParticipants);
+            }
+            if ((groupUnbalancement)>0){
+                if (groupUnbalancement>unbalancement){
+                    unbalancement = groupUnbalancement;
+                    moreUnbalanced = exposureGroupCondition.getGroup();
+                }
+            }
+        }
+        return moreUnbalanced;
+    }
+
 
 }

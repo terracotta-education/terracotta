@@ -16,7 +16,7 @@ import edu.iu.terracotta.model.app.dto.ParticipantDto;
 import edu.iu.terracotta.model.app.enumerator.DistributionTypes;
 import edu.iu.terracotta.model.app.enumerator.ExposureTypes;
 import edu.iu.terracotta.model.app.enumerator.ParticipationTypes;
-import edu.iu.terracotta.model.oauth2.SecurityInfo;
+import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.ConditionService;
 import edu.iu.terracotta.service.app.ExperimentService;
@@ -167,12 +167,12 @@ public class ExperimentServiceImpl implements ExperimentService {
     }
 
     @Override
-    public ExperimentDto fillContextInfo(ExperimentDto experimentDto, SecurityInfo securityInfo) {
+    public ExperimentDto fillContextInfo(ExperimentDto experimentDto, SecuredInfo securedInfo) {
         //Doing this ALWAYS for security reasons. In this way we will never edit or create experiments on other context
         //than the one in the token.
-        experimentDto.setContextId(securityInfo.getContextId());
-        experimentDto.setPlatformDeploymentId(securityInfo.getPlatformDeploymentId());
-        LtiUserEntity user = allRepositories.users.findByUserKeyAndPlatformDeployment_KeyId(securityInfo.getUserId(),securityInfo.getPlatformDeploymentId());
+        experimentDto.setContextId(securedInfo.getContextId());
+        experimentDto.setPlatformDeploymentId(securedInfo.getPlatformDeploymentId());
+        LtiUserEntity user = allRepositories.users.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
         if (user!=null){
             experimentDto.setCreatedBy(user.getUserId());
         }
@@ -195,11 +195,11 @@ public class ExperimentServiceImpl implements ExperimentService {
     }
 
     @Override
-    public ExperimentDto getEmptyExperiment(SecurityInfo securityInfo, ExperimentDto experimentDto) {
+    public ExperimentDto getEmptyExperiment(SecuredInfo securedInfo, ExperimentDto experimentDto) {
         if (!StringUtils.isBlank(experimentDto.getTitle())){
             return null;
         }
-        List<Experiment> experimentList = allRepositories.experimentRepository.findByPlatformDeployment_KeyIdAndLtiContextEntity_ContextIdAndCreatedBy_UserKey(securityInfo.getPlatformDeploymentId(), securityInfo.getContextId(), securityInfo.getUserId());
+        List<Experiment> experimentList = allRepositories.experimentRepository.findByPlatformDeployment_KeyIdAndLtiContextEntity_ContextIdAndCreatedBy_UserKey(securedInfo.getPlatformDeploymentId(), securedInfo.getContextId(), securedInfo.getUserId());
         for (Experiment experiment:experimentList){
             if (StringUtils.isBlank(experiment.getTitle())) {
                 return toDto(experiment, false, false, false);

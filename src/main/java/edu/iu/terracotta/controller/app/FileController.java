@@ -11,8 +11,7 @@ import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.canvas.AssignmentExtended;
 import edu.iu.terracotta.model.app.FileInfo;
 import edu.iu.terracotta.model.app.dto.FileInfoDto;
-import edu.iu.terracotta.model.canvas.AssignmentExtended;
-import edu.iu.terracotta.model.oauth2.SecurityInfo;
+import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.FileStorageService;
@@ -100,10 +99,10 @@ public class FileController {
                                                         HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, BadConsentFileTypeException {
 
-        SecurityInfo securityInfo = apijwtService.extractValues(req,false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req,false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
 
-        if (apijwtService.isInstructorOrHigher(securityInfo)) {
+        if (apijwtService.isInstructorOrHigher(securedInfo)) {
             if (!file.getContentType().equals(MediaType.APPLICATION_PDF_VALUE)) {
                 throw new BadConsentFileTypeException(TextConstants.BAD_CONSENT_FILETYPE);
             }
@@ -166,10 +165,10 @@ public class FileController {
                                                         HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException {
 
-        SecurityInfo securityInfo = apijwtService.extractValues(req,false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req,false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
 
-        if (apijwtService.isLearnerOrHigher(securityInfo)) {
+        if (apijwtService.isLearnerOrHigher(securedInfo)) {
             for(MultipartFile file : files){
                 fileStorageService.saveFile(file, extraPath, experimentId);
             }
@@ -186,10 +185,10 @@ public class FileController {
                                                                   HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException {
 
-        SecurityInfo securityInfo = apijwtService.extractValues(req, false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
 
-        if(apijwtService.isInstructorOrHigher(securityInfo)){
+        if(apijwtService.isInstructorOrHigher(securedInfo)){
             List<FileInfo> fileInfoList = fileStorageService.findByExperimentId(experimentId);
             if(fileInfoList.isEmpty()){
                 return new ResponseEntity<>(HttpStatus.NO_CONTENT);
@@ -211,10 +210,10 @@ public class FileController {
                                                   HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException {
 
-        SecurityInfo securityInfo = apijwtService.extractValues(req,false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req,false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
 
-        if (apijwtService.isLearnerOrHigher(securityInfo)) {
+        if (apijwtService.isLearnerOrHigher(securedInfo)) {
             Resource resource = fileStorageService.getFileAsResource(fileId);
 
             String contentType = null;
@@ -242,10 +241,10 @@ public class FileController {
                                                  HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException {
 
-        SecurityInfo securityInfo = apijwtService.extractValues(req,false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req,false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
 
-        if (apijwtService.isLearnerOrHigher(securityInfo)) {
+        if (apijwtService.isLearnerOrHigher(securedInfo)) {
             Resource resource = fileStorageService.loadFileAsResource("consent.pdf", "/" + experimentId + "/consent");
 
             String contentType = null;
@@ -274,10 +273,10 @@ public class FileController {
                                            @PathVariable("file_id") String fileId,
                                            HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException {
-        SecurityInfo securityInfo = apijwtService.extractValues(req,false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req,false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
 
-        if (apijwtService.isInstructorOrHigher(securityInfo)) {
+        if (apijwtService.isInstructorOrHigher(securedInfo)) {
             try {
                 Optional<FileInfo> fileInfo = fileStorageService.findByFileId(fileId);
                 if(fileInfo.isPresent()){
@@ -302,10 +301,10 @@ public class FileController {
     public ResponseEntity<Void> deleteConsent(@PathVariable("experiment_id") long experimentId,
                                            HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException {
-        SecurityInfo securityInfo = apijwtService.extractValues(req,false);
-        apijwtService.experimentAllowed(securityInfo, experimentId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req,false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
 
-        if (apijwtService.isLearnerOrHigher(securityInfo)) {
+        if (apijwtService.isLearnerOrHigher(securedInfo)) {
             try {
                 if (fileStorageService.deleteFile("consent.pdf", "/" + experimentId + "/consent")) {
                     Optional<Experiment> experimentOptional = experimentService.findById(experimentId);
