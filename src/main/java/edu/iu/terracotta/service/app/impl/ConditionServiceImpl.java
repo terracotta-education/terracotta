@@ -9,6 +9,7 @@ import edu.iu.terracotta.service.app.ConditionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -72,6 +73,10 @@ public class ConditionServiceImpl implements ConditionService {
     public void saveAndFlush(Condition conditionToChange) {
         allRepositories.conditionRepository.saveAndFlush(conditionToChange);
     }
+
+    @Override
+    @Transactional
+    public void saveAllConditions(List<Condition>conditionList){ allRepositories.conditionRepository.saveAll(conditionList); }
 
     @Override
     public void deleteById(Long id) throws EmptyResultDataAccessException {

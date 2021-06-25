@@ -21,6 +21,8 @@ public interface ConditionService {
 
     void saveAndFlush(Condition conditionToChange);
 
+    void saveAllConditions(List<Condition> conditionList);
+
     void deleteById(Long id) throws EmptyResultDataAccessException;
 
     boolean conditionBelongsToExperiment(Long experimentId, Long conditionId);
