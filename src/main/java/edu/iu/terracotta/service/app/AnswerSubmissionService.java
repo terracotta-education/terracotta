@@ -6,7 +6,6 @@ import edu.iu.terracotta.model.app.AnswerMcSubmission;
 import edu.iu.terracotta.model.app.dto.AnswerSubmissionDto;
 import edu.iu.terracotta.model.oauth2.SecurityInfo;
 import org.springframework.dao.EmptyResultDataAccessException;
-import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
 import java.util.Optional;
@@ -14,7 +13,7 @@ import java.util.Optional;
 public interface AnswerSubmissionService {
     //METHODS FOR MC ANSWER SUBMISSIONS
 
-    List<AnswerMcSubmission> findAllByQuestionSubmissionIdMC(Long questionSubmissionId);
+    List<AnswerMcSubmission> findByQuestionSubmissionIdMC(Long questionSubmissionId);
 
     AnswerSubmissionDto toDtoMC(AnswerMcSubmission mcAnswer);
 

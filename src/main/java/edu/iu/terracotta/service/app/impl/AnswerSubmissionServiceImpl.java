@@ -32,7 +32,7 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
      */
 
     @Override
-    public List<AnswerMcSubmission> findAllByQuestionSubmissionIdMC(Long questionSubmissionId){
+    public List<AnswerMcSubmission> findByQuestionSubmissionIdMC(Long questionSubmissionId){
         return allRepositories.answerMcSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmissionId);
     }
 
