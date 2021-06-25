@@ -224,9 +224,18 @@ public class GroupServiceImpl implements GroupService {
             Long countGroup = count.get(exposureGroupCondition.getGroup());
             float groupUnbalancement;
             if (experiment.getDistributionType().equals(DistributionTypes.EVEN)) {
-                groupUnbalancement = evenPercent - (countGroup / (float) totalParticipants);
+                if (totalParticipants!=0) {
+                    groupUnbalancement = evenPercent - (100 * (countGroup / (float) totalParticipants));
+                } else {
+                    groupUnbalancement = evenPercent;
+                }
+
             } else {
-                groupUnbalancement = exposureGroupCondition.getCondition().getDistributionPct() - (countGroup / (float) totalParticipants);
+                if (totalParticipants!=0) {
+                    groupUnbalancement = exposureGroupCondition.getCondition().getDistributionPct() - (100 * (countGroup / (float) totalParticipants));
+                } else {
+                    groupUnbalancement = exposureGroupCondition.getCondition().getDistributionPct();
+                }
             }
             if ((groupUnbalancement)>0){
                 if (groupUnbalancement>unbalancement){

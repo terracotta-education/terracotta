@@ -253,14 +253,14 @@ public class APIJWTServiceImpl implements APIJWTService {
                 assignmentId,
                 experimentId,
                 consent,
-                lti3Request.getLtiCustom().get("canvasUserId").toString(),
-                lti3Request.getLtiCustom().get("canvasLoginId").toString(),
-                lti3Request.getLtiCustom().get("canvasUserName").toString(),
-                lti3Request.getLtiCustom().get("canvasCourseId").toString(),
-                lti3Request.getLtiCustom().get("canvasAssignmentId").toString(),
-                lti3Request.getLtiCustom().get("dueAt").toString(),
-                lti3Request.getLtiCustom().get("lockAt").toString(),
-                lti3Request.getLtiCustom().get("unlockAt").toString());
+                lti3Request.getLtiCustom().get("canvas_user_id").toString(),
+                lti3Request.getLtiCustom().get("canvas_login_id").toString(),
+                lti3Request.getLtiCustom().get("canvas_user_name").toString(),
+                lti3Request.getLtiCustom().get("canvas_course_id").toString(),
+                lti3Request.getLtiCustom().get("canvas_assignment_id").toString(),
+                lti3Request.getLtiCustom().get("due_at").toString(),
+                lti3Request.getLtiCustom().get("lock_at").toString(),
+                lti3Request.getLtiCustom().get("unlock_at").toString());
     }
 
     @Override

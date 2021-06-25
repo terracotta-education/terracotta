@@ -145,11 +145,14 @@ public class AssignmentServiceImpl implements AssignmentService {
     @Override
     public Assessment getAssessmentbyGroupId(Long experimentId, String canvasAssignmentId, Long groupId) throws AssessmentNotMatchingException {
         Assignment assignment = allRepositories.assignmentRepository.findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(experimentId, canvasAssignmentId);
-        Optional<Condition> condition = allRepositories.exposureGroupConditionRepository.getByGroup_GroupIdAndExposure_ExposureId(groupId, assignment.getExposure().getExposureId());
-        if (!condition.isPresent()){
+        if (assignment==null){
+            throw new AssessmentNotMatchingException("This assignment does not exist in Terracotta for this experiment");
+        }
+        Optional<ExposureGroupCondition> exposureGroupCondition = allRepositories.exposureGroupConditionRepository.getByGroup_GroupIdAndExposure_ExposureId(groupId, assignment.getExposure().getExposureId());
+        if (!exposureGroupCondition.isPresent()){
             throw new AssessmentNotMatchingException("This assignment has not a condition assigned for the participant group.");
         }
-        List<Treatment> treatments = allRepositories.treatmentRepository.findByCondition_ConditionIdAndAssignment_AssignmentId(condition.get().getConditionId(), assignment.getAssignmentId());
+        List<Treatment> treatments = allRepositories.treatmentRepository.findByCondition_ConditionIdAndAssignment_AssignmentId(exposureGroupCondition.get().getCondition().getConditionId(), assignment.getAssignmentId());
         if (treatments.isEmpty()){
             throw new AssessmentNotMatchingException("This assignment has not a treatment assigned.");
         }
