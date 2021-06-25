@@ -184,6 +184,60 @@ public class ConditionController {
         }
     }
 
+
+    @RequestMapping(value = "/{experiment_id}/conditions", method = RequestMethod.PUT)
+    public ResponseEntity<Void> updateConditions(@PathVariable("experiment_id") Long experimentId,
+                                                 @RequestBody List<ConditionDto> conditionDtoList,
+                                                 HttpServletRequest req)
+            throws ExperimentNotMatchingException, ConditionNotMatchingException, BadTokenException, DataServiceException {
+
+        SecurityInfo securityInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securityInfo, experimentId);
+
+        if(apijwtService.isInstructorOrHigher(securityInfo)){
+            List<Condition> conditionList = new ArrayList<>();
+
+            for(ConditionDto conditionDto : conditionDtoList){
+                apijwtService.conditionAllowed(securityInfo, experimentId,conditionDto.getConditionId());
+                Optional<Condition> condition = conditionService.findById(conditionDto.getConditionId());
+                if(condition.isPresent()){
+                    Condition conditionToChange = condition.get();
+                    if(StringUtils.isAllBlank(conditionDto.getName()) && StringUtils.isAllBlank(conditionToChange.getName())){
+                        return new ResponseEntity("Please give the condition a name.", HttpStatus.CONFLICT);
+                    }
+                    if(!StringUtils.isBlank(conditionDto.getName())){
+                        if(conditionDto.getName().length() > 255){
+                            return new ResponseEntity("Experiment title must be less than 255 characters in length.", HttpStatus.BAD_REQUEST);
+                        }
+                        if(conditionService.nameAlreadyExists(conditionDto.getName(), experimentId, conditionToChange.getConditionId())){
+                            return new ResponseEntity("Unable to create the condition. A condition with title \"" + conditionDto.getName() + "\" already exists in this experiment.", HttpStatus.CONFLICT);
+                        }
+                    }
+                    conditionToChange.setName(conditionDto.getName());
+                    conditionToChange.setDefaultCondition(conditionDto.getDefaultCondition());
+                    conditionToChange.setDistributionPct(conditionDto.getDistributionPct());
+                    for(Condition conditionInList : conditionList){
+                        if(conditionToChange.getName().equals(conditionInList.getName())){
+                            return new ResponseEntity("Conditions cannot have identical names.", HttpStatus.CONFLICT);
+                        }
+                    }
+                    conditionList.add(conditionToChange);
+                } else {
+                    return new ResponseEntity("Unable to update. Condition with id " + conditionDto.getConditionId() + " not found.", HttpStatus.NOT_FOUND);
+                }
+            }
+
+            try{
+                conditionService.saveAllConditions(conditionList);
+                return new ResponseEntity<>(HttpStatus.OK);
+            } catch (Exception ex) {
+                throw new DataServiceException("An error occurred trying to update the condition list. No conditions were updated. " + ex.getMessage());
+            }
+        } else {
+            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
+        }
+    }
+
     @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}", method = RequestMethod.DELETE)
     public ResponseEntity<Void> deleteExperiment(@PathVariable("experiment_id") Long experimentId,
                                                  @PathVariable("condition_id") Long conditionId,
