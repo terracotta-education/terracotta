@@ -6,6 +6,7 @@ import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.model.ags.Score;
+import edu.iu.terracotta.model.app.AnswerMcSubmission;
 import edu.iu.terracotta.model.app.Assessment;
 import edu.iu.terracotta.model.app.Assignment;
 import edu.iu.terracotta.model.app.Experiment;
@@ -20,6 +21,7 @@ import edu.iu.terracotta.model.app.dto.SubmissionDto;
 import edu.iu.terracotta.model.oauth2.LTIToken;
 import edu.iu.terracotta.model.oauth2.SecurityInfo;
 import edu.iu.terracotta.repository.AllRepositories;
+import edu.iu.terracotta.service.app.AnswerSubmissionService;
 import edu.iu.terracotta.service.app.AssessmentService;
 import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.app.QuestionSubmissionService;
@@ -33,7 +35,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -56,6 +57,9 @@ public class SubmissionServiceImpl implements SubmissionService {
 
     @Autowired
     AssessmentService assessmentService;
+
+    @Autowired
+    AnswerSubmissionService answerSubmissionService;
 
     @Autowired
     AdvantageAGSService advantageAGSService;
@@ -170,6 +174,7 @@ public class SubmissionServiceImpl implements SubmissionService {
             Date dueAt = canvasAPIClient.getDueAt(contextInfo, platformDeployment, lmsAssignmentId);
             Date lockAt = canvasAPIClient.getLockAt(contextInfo, platformDeployment, lmsAssignmentId);
             //We are not changing the submission date once it is set.
+            //^^^ maybe if we are allowing resubmissions we should allow this to change?
             if (submissionOptional.get().getDateSubmitted()==null) {
                 if (dueAt != null && submissionOptional.get().getUpdatedAt().after(dueAt)){
                     submissionOptional.get().setLateSubmission(true);
@@ -222,14 +227,31 @@ public class SubmissionServiceImpl implements SubmissionService {
 
 
     @Override
-    public Submission gradeSubmission(Submission submission){
+    public Submission gradeSubmission(Submission submission) throws DataServiceException{
         //We need to calculate the 2 the possible grades. Automatic and manual
-        Float automatic = Float.parseFloat("0");
-        Float manual = Float.parseFloat("0");
+        float automatic = Float.parseFloat("0");
+        float manual = Float.parseFloat("0");
         for (QuestionSubmission questionSubmission:submission.getQuestionSubmissions()) {
             //We need to grade the question first automatically it it was not graded before.
             //If multiple choice, we take the automatic score for automatic and the manual if any for manual, and if no manual, then the automatic for manual
-            QuestionSubmission questionGraded = questionSubmissionService.automaticGrading(questionSubmission);
+            QuestionSubmission questionGraded = new QuestionSubmission();
+            switch(questionSubmission.getQuestion().getQuestionType()){
+                case MC:
+                    List<AnswerMcSubmission> answerMcSubmissions = answerSubmissionService.findByQuestionSubmissionIdMC(questionSubmission.getQuestionSubmissionId());
+                    if(answerMcSubmissions.size() == 1){
+                        questionGraded = questionSubmissionService.automaticGradingMC(questionSubmission, answerMcSubmissions.get(0));
+                    } else if (answerMcSubmissions.size() > 1){
+                        throw new DataServiceException("Cannot have more than one answer submission for a multiple choice question.");
+                    } else {
+                        questionGraded.setCalculatedPoints(Float.valueOf("0"));
+                    }
+                break;
+                case ESSAY:
+                    questionGraded = questionSubmission;
+                    questionGraded.setCalculatedPoints(Float.valueOf("0"));
+                break;
+
+            }
             automatic = automatic + questionGraded.getCalculatedPoints();
             if (questionGraded.getAlteredGrade()!=null && !questionGraded.getAlteredGrade().isNaN()) {
                 manual = manual + questionSubmission.getAlteredGrade();

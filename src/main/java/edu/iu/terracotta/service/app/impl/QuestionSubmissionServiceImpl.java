@@ -1,7 +1,7 @@
 package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.exceptions.DataServiceException;
-import edu.iu.terracotta.model.app.AnswerMc;
+import edu.iu.terracotta.model.app.AnswerMcSubmission;
 import edu.iu.terracotta.model.app.Question;
 import edu.iu.terracotta.model.app.QuestionSubmission;
 import edu.iu.terracotta.model.app.QuestionSubmissionComment;
@@ -106,14 +106,12 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
 
     @Override
     @Transactional
-    public QuestionSubmission automaticGrading(QuestionSubmission questionSubmission){
-        //TODO: we need to do this based on the question type (once we add a question type...)
-        //at this moment, only MC
-        /*if (questionSubmission.getAnswer().getCorrect()){
+    public QuestionSubmission automaticGradingMC(QuestionSubmission questionSubmission, AnswerMcSubmission answerMcSubmission){
+        if(answerMcSubmission.getAnswerMc().getCorrect()){
             questionSubmission.setCalculatedPoints(questionSubmission.getQuestion().getPoints());
         } else {
             questionSubmission.setCalculatedPoints(Float.valueOf("0"));
-        }*/
+        }
         allRepositories.questionSubmissionRepository.save(questionSubmission);
         return questionSubmission;
     }

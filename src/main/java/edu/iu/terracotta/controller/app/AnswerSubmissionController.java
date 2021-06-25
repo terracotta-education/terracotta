@@ -99,7 +99,7 @@ public class AnswerSubmissionController {
                     String answerType = question.get().getQuestionType().toString();
                     switch (answerType) {
                         case "MC":
-                            List<AnswerMcSubmission> answerMcSubmissionList = answerSubmissionService.findAllByQuestionSubmissionIdMC(questionSubmissionId);
+                            List<AnswerMcSubmission> answerMcSubmissionList = answerSubmissionService.findByQuestionSubmissionIdMC(questionSubmissionId);
                             if(answerMcSubmissionList.isEmpty()){
                                 return new ResponseEntity<>(HttpStatus.NO_CONTENT);
                             }
@@ -108,7 +108,6 @@ public class AnswerSubmissionController {
                                 mcAnswerSubmissionDtoList.add(answerSubmissionService.toDtoMC(answerMcSubmission));
                             }
                             return new ResponseEntity<>(mcAnswerSubmissionDtoList, HttpStatus.OK);
-
                         case "ESSAY":
                             List<AnswerEssaySubmission> answerEssaySubmissionList = answerSubmissionService.findAllByQuestionSubmissionIdEssay(questionSubmissionId);
                             if(answerEssaySubmissionList.isEmpty()){
