@@ -190,9 +190,19 @@ const routes = [
             }
           },
           {
-            path: 'participant-manual-distribution',
+            path: 'participant-custom-distribution',
             name: 'ParticipationCustomDistribution',
             component: () => import('../views/participation/distribution/ParticipationCustomDistribution.vue'),
+            meta: {
+              selectionType: 'any',
+              currentSection: "participation",
+              currentStep: "participation_distribution"
+            }
+          },
+          {
+            path: 'participant-manual-distribution',
+            name: 'ParticipationManualDistribution',
+            component: () => import('../views/participation/distribution/ParticipationManualDistribution.vue'),
             meta: {
               selectionType: 'any',
               currentSection: "participation",
