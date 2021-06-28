@@ -115,7 +115,7 @@ public class ConditionController {
 
             if(!StringUtils.isAllBlank(conditionDto.getName())){
                 if(conditionDto.getName().length() >= 255){
-                    return new ResponseEntity("A condition name must be less than 255 characters in length.", HttpStatus.BAD_REQUEST);
+                    return new ResponseEntity("A condition name must be 255 characters or less.", HttpStatus.BAD_REQUEST);
                 }
                 if(conditionService.nameAlreadyExists(conditionDto.getName(), experimentId, 0L)){
                     return new ResponseEntity("Cannot create condition. A condition with name \"" + conditionDto.getName() + "\" already exists.", HttpStatus.CONFLICT);
@@ -166,7 +166,7 @@ public class ConditionController {
             }
             if(!StringUtils.isBlank(conditionDto.getName())){
                 if(conditionDto.getName().length() > 255){
-                    return new ResponseEntity("Experiment title must be less than 255 characters in length.", HttpStatus.BAD_REQUEST);
+                    return new ResponseEntity("Condition name must be 255 characters or less.", HttpStatus.BAD_REQUEST);
                 }
                 if(conditionService.nameAlreadyExists(conditionDto.getName(), experimentId, conditionId)){
                     return new ResponseEntity("Unable to create the condition. A condition with title \"" + conditionDto.getName() + "\" already exists in this experiment.", HttpStatus.CONFLICT);
@@ -207,7 +207,7 @@ public class ConditionController {
                     }
                     if(!StringUtils.isBlank(conditionDto.getName())){
                         if(conditionDto.getName().length() > 255){
-                            return new ResponseEntity("Experiment title must be less than 255 characters in length.", HttpStatus.BAD_REQUEST);
+                            return new ResponseEntity("Condition name must be 255 characters or less.", HttpStatus.BAD_REQUEST);
                         }
                         if(conditionService.nameAlreadyExists(conditionDto.getName(), experimentId, conditionToChange.getConditionId())){
                             return new ResponseEntity("Unable to create the condition. A condition with title \"" + conditionDto.getName() + "\" already exists in this experiment.", HttpStatus.CONFLICT);
