@@ -155,7 +155,7 @@ public class ExperimentController {
             }
             if(!StringUtils.isBlank(experimentDto.getTitle())){
                 if(experimentDto.getTitle().length() > 255){
-                    return new ResponseEntity("Experiment title must be less than 255 characters in length.", HttpStatus.BAD_REQUEST);
+                    return new ResponseEntity("Experiment title must be 255 characters or less.", HttpStatus.BAD_REQUEST);
                 }
                 if(experimentService.titleAlreadyExists(experimentDto.getTitle(), securedInfo.getContextId(), 0l)){
                     return new ResponseEntity("Unable to create the experiment. An experiment with title \"" + experimentDto.getTitle() + "\" already exists in this course.", HttpStatus.CONFLICT);
@@ -216,7 +216,7 @@ public class ExperimentController {
             }
             if(!StringUtils.isBlank(experimentDto.getTitle())){
                 if(experimentDto.getTitle().length() > 255){
-                    return new ResponseEntity("Experiment title must be less than 255 characters in length.", HttpStatus.BAD_REQUEST);
+                    return new ResponseEntity("Experiment title must be 255 characters or less.", HttpStatus.BAD_REQUEST);
                 }
                 if(experimentService.titleAlreadyExists(experimentDto.getTitle(), securedInfo.getContextId(), id)){
                     return new ResponseEntity("Unable to create the experiment. An experiment with title \"" + experimentDto.getTitle() + "\" already exists in this course.", HttpStatus.CONFLICT);
