@@ -260,6 +260,15 @@ const routes = [
               currentStep: 'your_assignments'
             }
           },
+          {
+            path: ':assignment_id/select-assignment-treatment',
+            name: 'AssignmentTreatmentSelect',
+            component: () => import('../views/assignment/AssignmentTreatmentSelect.vue'),
+            meta: {
+              currentSection: 'assignments',
+              currentStep: 'your_assignments'
+            }
+          },
         ]
       },
     ]

@@ -14,28 +14,18 @@ const actions = {
   },
   fetchExperimentById: ({commit}, experimentId) => {
     return experimentService.getById(experimentId)
-      .then(data => {
-        commit('setExperiment', data)
-      })
-      .catch(response => {
-        console.log('fetchExperimentById | catch', {response})
-      })
+      .then(data => commit('setExperiment', data))
+      .catch(response => console.log('fetchExperimentById | catch', {response}))
   },
   fetchExperiments: ({commit}) => {
     return experimentService.getAll()
-      .then(data => {
-        commit('setExperiments', data)
-      })
-      .catch(response => {
-        console.log('fetchExperimentById | catch', {response})
-      })
+      .then(data => commit('setExperiments', data))
+      .catch(response => console.log('fetchExperimentById | catch', {response}))
   },
   updateExperiment: ({commit}, experiment) => {
     return experimentService.update(experiment)
       .then(commit('setExperiment', experiment))
-      .catch(response => {
-        console.log('updateExperiment | catch', {response})
-      })
+      .catch(response => console.log('updateExperiment | catch', {response}))
   },
   deleteExperiment: ({commit}, experimentId) => {
     return experimentService.delete(experimentId)
@@ -45,9 +35,7 @@ const actions = {
           return response
         }
       })
-      .catch(response => {
-        console.log('deleteExperiment | catch', {response})
-      })
+      .catch(response => console.log('deleteExperiment | catch', {response}))
   }
 }
 

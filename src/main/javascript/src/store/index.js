@@ -4,6 +4,7 @@ import createPersistedState from 'vuex-persistedstate'
 
 import { api } from './api.module'
 import { alert } from './alert.module'
+import { assignment } from './assignment.module'
 import { experiment } from './experiment.module'
 import { condition } from './condition.module'
 import { consent } from './consent.module'
@@ -19,6 +20,7 @@ const store = new Vuex.Store({
     modules: {
         api,
         alert,
+        assignment,
         experiment,
         condition,
         consent,
