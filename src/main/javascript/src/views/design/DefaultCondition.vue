@@ -25,7 +25,7 @@
       </fieldset>
 
       <v-btn
-        :disabled="!inputConditionId"
+        :disabled="!selectedDefault"
         :to="{name: 'ExperimentDesignSummary', params:{experiment: experiment.experimentId}}"
         elevation="0"
         color="primary"
@@ -68,7 +68,7 @@ export default {
         } else if (defaultCondition) {
           return defaultCondition.conditionId
         } else {
-          return true
+          return false
         }
       },
       set(val) {
