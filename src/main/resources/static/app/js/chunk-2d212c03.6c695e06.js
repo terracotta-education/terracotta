@@ -1,2 +1,0 @@
-(window["webpackJsonp"]=window["webpackJsonp"]||[]).push([["chunk-2d212c03"],{aa6c:function(e,n,t){"use strict";t.r(n);var r=function(){var e=this,n=e.$createElement;e._self._c;return e._m(0)},c=[function(){var e=this,n=e.$createElement,t=e._self._c||n;return t("div",[t("h1",[e._v("Now, let’s upload your treatments for each condition for "),t("strong",[e._v("Assignment 1")])])])}],s={name:"AssignmentTreatmentSelect"},a=s,o=t("2877"),l=Object(o["a"])(a,r,c,!1,null,null,null);n["default"]=l.exports}}]);
-//# sourceMappingURL=chunk-2d212c03.6c695e06.js.map

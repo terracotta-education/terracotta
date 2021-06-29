@@ -30,7 +30,11 @@ const mutations = {
     }
   }
 }
-const getters = {}
+const getters = {
+  assignments: (state) => {
+    return state.assignments
+  }
+}
 
 export const assignment = {
   namespaced: true,
