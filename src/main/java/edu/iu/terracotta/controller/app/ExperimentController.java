@@ -13,12 +13,15 @@ import edu.iu.terracotta.model.app.enumerator.ParticipationTypes;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.ExperimentService;
+import edu.iu.terracotta.service.app.ExportService;
 import edu.iu.terracotta.utils.TextConstants;
+import edu.iu.terracotta.utils.ZipUtil;
 import org.apache.commons.lang3.EnumUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -34,8 +37,11 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.HttpServletRequest;
+
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Controller
@@ -47,6 +53,9 @@ public class ExperimentController {
 
     @Autowired
     ExperimentService experimentService;
+
+    @Autowired
+    ExportService exportService;
 
     @Autowired
     APIJWTService apijwtService;
@@ -293,5 +302,21 @@ public class ExperimentController {
     }
 
 
+    @RequestMapping(value = "/{id}/zip", method = RequestMethod.GET, produces = "application/zip")
+    public ResponseEntity<ByteArrayResource> downloadZip(@PathVariable("id") Long experimentId,
+                                                         HttpServletRequest req)
+            throws ExperimentNotMatchingException, BadTokenException, IOException {
 
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+
+        if(apijwtService.isInstructorOrHigher(securedInfo)){
+
+            Map<String, List<String[]>> csvFiles = exportService.getCsvFiles(experimentId);
+            return new ResponseEntity<>(ZipUtil.generateZipFile(csvFiles), HttpStatus.OK);
+
+        } else {
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        }
+    }
 }
