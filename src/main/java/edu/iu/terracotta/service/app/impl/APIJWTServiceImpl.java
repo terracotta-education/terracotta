@@ -13,6 +13,7 @@
 package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.exceptions.*;
+import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.oauth2.Roles;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.*;
@@ -48,6 +49,7 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * This manages all the data processing for the LTIRequest (and for LTI in general)
@@ -399,6 +401,26 @@ public class APIJWTServiceImpl implements APIJWTService {
             throw new ExperimentNotMatchingException(TextConstants.EXPERIMENT_NOT_MATCHING);
         }
     }
+
+    @Override
+    public boolean experimentLocked(Long experimentId, boolean throwException) throws ExperimentLockedException, ExperimentNotMatchingException {
+
+        Optional<Experiment> experiment = experimentService.findById(experimentId);
+        if (experiment.isPresent()){
+            if (experiment.get().getStarted()!=null){
+                if (throwException) {
+                    throw new ExperimentLockedException("The experiment has started and can't be modified");
+                } else {
+                    return true;
+                }
+            } else {
+                return false;
+            }
+        } else {
+            throw new ExperimentNotMatchingException("The experiment with id " + experimentId + " does not exist");
+        }
+    }
+
 
     @Override
     public void conditionAllowed(SecuredInfo securedInfo, Long experimentId, Long conditionId) throws ConditionNotMatchingException {

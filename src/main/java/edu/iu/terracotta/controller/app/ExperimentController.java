@@ -2,6 +2,7 @@ package edu.iu.terracotta.controller.app;
 
 import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.ExperimentLockedException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.WrongValueException;
 import edu.iu.terracotta.model.app.Experiment;
@@ -224,6 +225,19 @@ public class ExperimentController {
             }
             experimentToChange.setTitle(experimentDto.getTitle());
             experimentToChange.setDescription(experimentDto.getDescription());
+            if (experimentToChange.getStarted()!=null
+                    && (!experimentDto.getExposureType().equals(experimentToChange.getExposureType().name()))){
+                throw new WrongValueException("The experiment has started. The Exposure Type can't be changed");
+            }
+            if (experimentToChange.getStarted()!=null
+                    && (!experimentDto.getDistributionType().equals(experimentToChange.getDistributionType().name()))){
+                throw new WrongValueException("The experiment has started. The Distribution Type can't be changed");
+            }
+            if (experimentToChange.getStarted()!=null
+                    && (!experimentDto.getParticipationType().equals(experimentToChange.getParticipationType().name()))
+                    && experimentToChange.getParticipationType().equals(ParticipationTypes.CONSENT)){
+                throw new WrongValueException("The experiment has started. The Participation Type can't be changed from 'Consent' to " + experimentDto.getParticipationType());
+            }
             if (experimentDto.getExposureType() != null) {
                 if (EnumUtils.isValidEnum(ExposureTypes.class, experimentDto.getExposureType())) {
                 experimentToChange.setExposureType(
@@ -250,9 +264,6 @@ public class ExperimentController {
             }
             experimentToChange.setStarted(experimentDto.getStarted());
 
-            //TODO: we won't modify the conditions on this endpoint. That will need to happen in the condition endpoint
-            // we can change that if needed.
-
             experimentService.saveAndFlush(experimentToChange);
             return new ResponseEntity<>(HttpStatus.OK);
         } else {
@@ -263,9 +274,10 @@ public class ExperimentController {
     @RequestMapping(value = "/{id}", method = RequestMethod.DELETE)
     public ResponseEntity<Void> deleteExperiment(@PathVariable("id") Long id,
                                                  HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException {
+            throws ExperimentNotMatchingException, BadTokenException, ExperimentLockedException {
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, id);
+        apijwtService.experimentLocked(id,true);
 
         if (apijwtService.isInstructorOrHigher(securedInfo)) {
             try {

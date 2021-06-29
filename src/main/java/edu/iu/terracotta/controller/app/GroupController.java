@@ -2,6 +2,7 @@ package edu.iu.terracotta.controller.app;
 
 import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.ExperimentLockedException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.GroupNotMatchingException;
 import edu.iu.terracotta.model.app.Group;
@@ -105,10 +106,11 @@ public class GroupController {
                                                     @RequestBody GroupDto groupDto,
                                                     UriComponentsBuilder ucBuilder,
                                                     HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException {
+            throws ExperimentNotMatchingException, BadTokenException, ExperimentLockedException {
 
         log.info("Creating Group : {}", groupDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
+        apijwtService.experimentLocked(experimentId,true);
         apijwtService.experimentAllowed(securedInfo, experimentId);
 
         if(apijwtService.isInstructorOrHigher(securedInfo)) {
@@ -180,9 +182,10 @@ public class GroupController {
     public ResponseEntity<Void> deleteGroup(@PathVariable("experiment_id") Long experimentId,
                                                @PathVariable("group_id") Long groupId,
                                                HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, GroupNotMatchingException {
+            throws ExperimentNotMatchingException, BadTokenException, GroupNotMatchingException, ExperimentLockedException {
 
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
+        apijwtService.experimentLocked(experimentId,true);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.groupAllowed(securedInfo, experimentId, groupId);
 
