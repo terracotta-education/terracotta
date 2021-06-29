@@ -18,6 +18,7 @@ import edu.iu.terracotta.model.app.Treatment;
 import edu.iu.terracotta.model.app.dto.AssignmentDto;
 import edu.iu.terracotta.model.app.dto.SubmissionDto;
 import edu.iu.terracotta.model.app.enumerator.DistributionTypes;
+import edu.iu.terracotta.model.app.enumerator.ParticipationTypes;
 import edu.iu.terracotta.model.oauth2.LTIToken;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.AllRepositories;
@@ -39,6 +40,8 @@ import edu.iu.terracotta.model.app.Exposure;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -216,6 +219,11 @@ public class AssignmentServiceImpl implements AssignmentService {
                 }
             }
             if (assessment.getNumOfSubmissions() == 0 || assessment.getNumOfSubmissions() > submissionList.size()) {
+                //If it is the first submission in the experiment we mark it as started.
+                if (experiment.get().getStarted()==null){
+                    experiment.get().setStarted(Timestamp.valueOf(LocalDateTime.now()));
+                    experimentService.save(experiment.get());
+                }
                 return createSubmission(experimentId, assessment, participant, securedInfo);
             } else {
                 return new ResponseEntity(TextConstants.LIMIT_OF_SUBMISSIONS_REACHED, HttpStatus.UNAUTHORIZED);

@@ -2,6 +2,7 @@ package edu.iu.terracotta.controller.app;
 
 import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.ExperimentLockedException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.ExposureNotMatchingException;
 import edu.iu.terracotta.model.app.Exposure;
@@ -100,11 +101,12 @@ public class ExposureController {
                                                     @RequestBody ExposureDto exposureDto,
                                                     UriComponentsBuilder ucBuilder,
                                                     HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException {
+            throws ExperimentNotMatchingException, BadTokenException, ExperimentLockedException {
 
         log.info("Creating Exposure : {}", exposureDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.experimentLocked(experimentId,true);
 
         if(apijwtService.isInstructorOrHigher(securedInfo)) {
             if(exposureDto.getExposureId() != null) {
@@ -173,9 +175,10 @@ public class ExposureController {
     public ResponseEntity<Void> deleteExposure(@PathVariable("experiment_id") Long experimentId,
                                                @PathVariable("exposure_id") Long exposureId,
                                                HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, ExposureNotMatchingException {
+            throws ExperimentNotMatchingException, BadTokenException, ExposureNotMatchingException, ExperimentLockedException {
 
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
+        apijwtService.experimentLocked(experimentId,true);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
 
