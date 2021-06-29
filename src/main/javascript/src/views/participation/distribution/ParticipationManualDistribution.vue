@@ -106,7 +106,7 @@ export default {
         return newArray
       },
       set: function(newValue) {
-        this.arrayDataProxy = newValue;
+        this.arrayDataProxy = newValue
       },
     },
   },
