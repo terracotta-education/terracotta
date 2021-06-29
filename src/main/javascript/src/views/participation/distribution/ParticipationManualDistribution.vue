@@ -44,14 +44,14 @@
 </template>
 
 <script>
-import ListParticipants from "../../../components/ListParticipants.vue";
-import store from "@/store";
-import { mapGetters, mapActions } from "vuex";
-import { participantService } from "@/services";
+import ListParticipants from '../../../components/ListParticipants.vue'
+import store from '@/store'
+import { mapGetters, mapActions } from 'vuex'
+import { participantService } from '@/services'
 
 export default {
-  name: "ParticipationManualDistribution",
-  props: ["experiment"],
+  name: 'ParticipationManualDistribution',
+  props: ['experiment'],
   components: {
     ListParticipants,
   },
@@ -68,43 +68,42 @@ export default {
       immediate: true,
       handler(newValue) {
         // This will only required when the page is loaded
-        const newArray = [];
+        const newArray = []
         for (let i = 0; i < this.conditions.length; i++) {
-          newArray.push([]);
+          newArray.push([])
         }
         // All the participant will go to 'Unparticipate' section
-        newArray.push(newValue);
-        this.arrayData = newArray;
+        newArray.push(newValue)
+        this.arrayData = newArray
       },
     },
   },
   computed: {
     ...mapGetters({
-      participants: "participants/participants",
-      exposures: "exposures/exposures",
+      participants: 'participants/participants',
+      exposures: 'exposures/exposures',
     }),
 
     conditions() {
-      return this.experiment.conditions;
+      return this.experiment.conditions
     },
 
     getConditionNames() {
       return [
         ...this.experiment.conditions.map((condition) => condition.name),
-        "Unassigned",
-      ];
+        'Unassigned',
+      ]
     },
 
     arrayData: {
       get: function() {
-        console.log("In Get");
-        const newArray = [];
+        const newArray = []
         for (let i = 0; i < this.conditions.length; i++) {
-          newArray.push([]);
+          newArray.push([])
         }
         // All the participant will go to 'Unparticipate' section
-        newArray.push(this.participants);
-        return newArray;
+        newArray.push(this.participants)
+        return newArray
       },
       set: function(newValue) {
         this.arrayDataProxy = newValue;
@@ -113,29 +112,29 @@ export default {
   },
   methods: {
     ...mapActions({
-      fetchExposures: "exposures/fetchExposures",
+      fetchExposures: 'exposures/fetchExposures'
     }),
 
     getExposure() {
-      this.fetchExposures(this.experiment.experimentId);
+      this.fetchExposures(this.experiment.experimentId)
     },
 
     submitDistribution() {
-      const requestBody = [];
-      const conditionGroupIDMap = {};
+      const requestBody = []
+      const conditionGroupIDMap = {}
 
-      this.getExposure();
+      this.getExposure()
       const firstExposureId = this.exposures
         .map((expo) => expo.exposureId)
-        .sort((a, b) => a - b)[0];
+        .sort((a, b) => a - b)[0]
 
       const firstExposure = this.exposures.filter(
         (expo) => expo.exposureId === firstExposureId
-      )[0];
+      )[0]
 
       firstExposure.groupConditionList.map(
         ({ groupId }, index) => (conditionGroupIDMap[index] = groupId)
-      );
+      )
 
       this.arrayDataProxy.map((arrData, index) =>
         arrData.map((participant) => {
@@ -145,33 +144,33 @@ export default {
               consent: participant.consent,
               dropped: participant.dropped,
               groupId: conditionGroupIDMap[index],
-            };
-            requestBody.push(temp);
+            }
+            requestBody.push(temp)
           }
         })
-      );
+      )
 
       participantService
         .updateParticipants(this.experiment.experimentId, requestBody)
         .then((response) => {
           if (response?.status === 200) {
             this.$router.push({
-              name: "ParticipationSummary",
+              name: 'ParticipationSummary',
               params: { experiment: this.experiment.experimentId },
             });
           } else {
-            alert(response.error);
+            alert(response.error)
           }
         })
         .catch((response) => {
-          console.log("submitParticipants | catch", { response });
-        });
+          console.log('submitParticipants | catch', { response });
+        })
     },
 
     moveToHandler(option, tempSelected) {
       const selectedParticipantIDs = tempSelected.map(
         (participant) => participant.participantId
-      );
+      )
 
       const filteredParticipants = this.arrayDataProxy.map(
         (conditionParticipantMap) =>
@@ -179,19 +178,19 @@ export default {
             (participant) =>
               !selectedParticipantIDs.includes(participant.participantId)
           )
-      );
+      )
 
-      const idx = this.getConditionNames.indexOf(option);
+      const idx = this.getConditionNames.indexOf(option)
       filteredParticipants[idx] = [
         ...filteredParticipants[idx],
         ...tempSelected,
-      ];
+      ]
 
-      this.arrayData = filteredParticipants;
+      this.arrayData = filteredParticipants
     },
   },
   beforeRouteEnter(to, from, next) {
-    // don't load new data after participant selection screen
+    //  load participant data before selection screen
     return (
       store
         .dispatch("participants/fetchParticipants", to.params.experiment_id)
@@ -199,7 +198,7 @@ export default {
     );
   },
   beforeRouteUpdate(to, from, next) {
-    // don't load new data after participant selection screen
+    //  load participant data before selection screen
     return (
       store
         .dispatch("participants/fetchParticipants", to.params.experiment_id)
