@@ -81,7 +81,10 @@ public class AssignmentServiceImpl implements AssignmentService {
         assignmentDto.setAssignmentOrder(assignment.getAssignmentOrder());
         assignmentDto.setExposureId(assignment.getExposure().getExposureId());
         assignmentDto.setResourceLinkId(assignment.getResourceLinkId());
-
+        long submissions = allRepositories.submissionRepository.countByAssessment_Treatment_Assignment_AssignmentId(assignment.getAssignmentId());
+        if(submissions > 0){
+            assignmentDto.setStarted(true);
+        }
         return assignmentDto;
     }
 

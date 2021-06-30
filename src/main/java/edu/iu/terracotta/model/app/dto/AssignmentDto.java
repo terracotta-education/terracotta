@@ -11,6 +11,7 @@ public class AssignmentDto {
     private String lmsAssignmentId;
     private Integer assignmentOrder;
     private String resourceLinkId;
+    private boolean started;
 
     public AssignmentDto() {}
 
@@ -41,4 +42,8 @@ public class AssignmentDto {
     public void setResourceLinkId(String resourceLinkId) {
         this.resourceLinkId = resourceLinkId;
     }
+
+    public boolean getStarted() { return started; }
+
+    public void setStarted(boolean started) { this.started = started; }
 }
