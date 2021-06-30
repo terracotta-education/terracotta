@@ -44,7 +44,7 @@
                 outlined
                 tile
                 class="delete_condition"
-                @click="deleteCondition(condition)"
+                @click="handleDeleteCondition(condition)"
               >
                 <v-icon>mdi-delete</v-icon>
               </v-btn>
@@ -113,6 +113,14 @@ export default {
             console.log("updateConditions | catch", {response})
           })
     },
+    handleDeleteCondition(condition) {
+      const { defaultCondition } = condition;
+      if (defaultCondition) {
+        alert('You are attempting to delete the default condition. You must set one of the other existing conditions as the default before deleting this condition.')
+      } else {
+        this.deleteCondition(condition);
+      }
+    }
   },
 
   beforeRouteEnter(to, from, next) {
