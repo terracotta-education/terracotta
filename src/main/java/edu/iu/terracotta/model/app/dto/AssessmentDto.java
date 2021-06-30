@@ -18,6 +18,7 @@ public class AssessmentDto {
     private List<SubmissionDto> submissions;
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<QuestionDto> questions;
+    private boolean started;
 
     public Long getAssessmentId() { return assessmentId; }
 
@@ -50,4 +51,8 @@ public class AssessmentDto {
     public List<SubmissionDto> getSubmissions() { return submissions; }
 
     public void setSubmissions(List<SubmissionDto> submissions) { this.submissions = submissions; }
+
+    public boolean getStarted() { return started; }
+
+    public void setStarted(boolean started) { this.started = started; }
 }
