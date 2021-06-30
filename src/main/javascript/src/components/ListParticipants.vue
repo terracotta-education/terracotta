@@ -17,7 +17,10 @@
         <v-list>
           <v-list-item-group>
             <template v-for="(option, index) in moveToOptions">
-              <v-list-item v-if="index.toString() !== selectedOption" :key="option">
+              <v-list-item
+                v-if="index.toString() !== selectedOption"
+                :key="option"
+              >
                 <v-list-item-action
                   v-on:click="
                     moveToHandlerComponent(option, tempSelectedInAGroup)
@@ -40,7 +43,10 @@
         <template v-for="(participant, index) in listOfParticipants">
           <v-list-item :key="participant.userId" :value="participant">
             <v-list-item-action>
-              <v-checkbox color="primary"></v-checkbox>
+              <v-checkbox
+                color="primary"
+                :input-value="tempSelectedInAGroup.includes(participant)"
+              ></v-checkbox>
             </v-list-item-action>
 
             <v-list-item-content>
@@ -75,8 +81,9 @@ export default {
   },
   methods: {
     moveToHandlerComponent(option, tempSelectedInAGroup) {
-      this.moveToHandler(option, tempSelectedInAGroup);
       this.tempSelectedInAGroup = [];
+
+      this.moveToHandler(option, tempSelectedInAGroup);
     },
   },
 };

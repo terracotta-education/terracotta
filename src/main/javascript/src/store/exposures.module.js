@@ -13,7 +13,7 @@ const actions = {
       })
       .catch((response) => {
         console.log('fetchExposures | catch', { response })
-      })
+      });
   },
 }
 
@@ -21,7 +21,7 @@ const mutations = {
   setExposuresService(state, data) {
     state.exposures = data
   },
-}
+};
 
 const getters = {
   exposures(state) {

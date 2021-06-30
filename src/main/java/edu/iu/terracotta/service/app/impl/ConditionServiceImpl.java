@@ -97,5 +97,4 @@ public class ConditionServiceImpl implements ConditionService {
     public boolean isDefaultCondition(Long conditionId){
         return allRepositories.conditionRepository.existsByConditionIdAndDefaultCondition(conditionId, true);
     }
-
 }

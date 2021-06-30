@@ -9,6 +9,7 @@ import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.dto.ParticipantDto;
 import edu.iu.terracotta.model.app.dto.UserDto;
+import edu.iu.terracotta.model.app.enumerator.ParticipationTypes;
 import edu.iu.terracotta.model.membership.CourseUser;
 import edu.iu.terracotta.model.membership.CourseUsers;
 import edu.iu.terracotta.model.oauth2.LTIToken;
@@ -225,13 +226,23 @@ public class ParticipantServiceImpl implements ParticipantService {
     @Override
     public void changeParticipant(Participant participantToChange, ParticipantDto participantDto, Long experimentId){
         Optional<Experiment> experiment = experimentService.findById(experimentId);
+        if (experiment.get().getParticipationType().equals(ParticipationTypes.CONSENT)){
+            if ((experiment.get().getStarted()==null) && (participantToChange.getConsent()==null && participantDto.getConsent()!=null)){
+                experiment.get().setStarted(Timestamp.valueOf(LocalDateTime.now()));
+                experimentService.save(experiment.get());
+            }
+        }
         //If they had consent, and now they don't have, we change the dateRevoked to now.
         //In any other case, we leave the date as it is. Ignoring any value in the PUT
         if (participantToChange.getConsent() !=null && participantToChange.getConsent() &&
                 (participantDto.getConsent()==null || !participantDto.getConsent())) {
             participantToChange.setDateRevoked(Timestamp.valueOf(LocalDateTime.now()));
         }
+        if ((participantToChange.getConsent()==null || !participantToChange.getConsent()) && participantDto.getConsent()){
+            participantToChange.setDateGiven(Timestamp.valueOf(LocalDateTime.now()));
+        }
         participantToChange.setConsent((participantDto.getConsent()));
+
         //NOTE: we do this... but this will be updated in the next GET participants with the real data and dropped will be overwritten.
         if (participantDto.getDropped()!=null) {
             participantToChange.setDropped(participantDto.getDropped());

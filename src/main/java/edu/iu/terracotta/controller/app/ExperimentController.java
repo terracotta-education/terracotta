@@ -2,6 +2,7 @@ package edu.iu.terracotta.controller.app;
 
 import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.ExperimentLockedException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.WrongValueException;
 import edu.iu.terracotta.model.app.Experiment;
@@ -12,12 +13,15 @@ import edu.iu.terracotta.model.app.enumerator.ParticipationTypes;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.ExperimentService;
+import edu.iu.terracotta.service.app.ExportService;
 import edu.iu.terracotta.utils.TextConstants;
+import edu.iu.terracotta.utils.ZipUtil;
 import org.apache.commons.lang3.EnumUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -33,8 +37,11 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.HttpServletRequest;
+
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Controller
@@ -46,6 +53,9 @@ public class ExperimentController {
 
     @Autowired
     ExperimentService experimentService;
+
+    @Autowired
+    ExportService exportService;
 
     @Autowired
     APIJWTService apijwtService;
@@ -224,6 +234,19 @@ public class ExperimentController {
             }
             experimentToChange.setTitle(experimentDto.getTitle());
             experimentToChange.setDescription(experimentDto.getDescription());
+            if (experimentToChange.getStarted()!=null
+                    && (!experimentDto.getExposureType().equals(experimentToChange.getExposureType().name()))){
+                throw new WrongValueException("The experiment has started. The Exposure Type can't be changed");
+            }
+            if (experimentToChange.getStarted()!=null
+                    && (!experimentDto.getDistributionType().equals(experimentToChange.getDistributionType().name()))){
+                throw new WrongValueException("The experiment has started. The Distribution Type can't be changed");
+            }
+            if (experimentToChange.getStarted()!=null
+                    && (!experimentDto.getParticipationType().equals(experimentToChange.getParticipationType().name()))
+                    && experimentToChange.getParticipationType().equals(ParticipationTypes.CONSENT)){
+                throw new WrongValueException("The experiment has started. The Participation Type can't be changed from 'Consent' to " + experimentDto.getParticipationType());
+            }
             if (experimentDto.getExposureType() != null) {
                 if (EnumUtils.isValidEnum(ExposureTypes.class, experimentDto.getExposureType())) {
                 experimentToChange.setExposureType(
@@ -250,9 +273,6 @@ public class ExperimentController {
             }
             experimentToChange.setStarted(experimentDto.getStarted());
 
-            //TODO: we won't modify the conditions on this endpoint. That will need to happen in the condition endpoint
-            // we can change that if needed.
-
             experimentService.saveAndFlush(experimentToChange);
             return new ResponseEntity<>(HttpStatus.OK);
         } else {
@@ -263,9 +283,10 @@ public class ExperimentController {
     @RequestMapping(value = "/{id}", method = RequestMethod.DELETE)
     public ResponseEntity<Void> deleteExperiment(@PathVariable("id") Long id,
                                                  HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException {
+            throws ExperimentNotMatchingException, BadTokenException, ExperimentLockedException {
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, id);
+        apijwtService.experimentLocked(id,true);
 
         if (apijwtService.isInstructorOrHigher(securedInfo)) {
             try {
@@ -281,5 +302,21 @@ public class ExperimentController {
     }
 
 
+    @RequestMapping(value = "/{id}/zip", method = RequestMethod.GET, produces = "application/zip")
+    public ResponseEntity<ByteArrayResource> downloadZip(@PathVariable("id") Long experimentId,
+                                                         HttpServletRequest req)
+            throws ExperimentNotMatchingException, BadTokenException, IOException {
 
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+
+        if(apijwtService.isInstructorOrHigher(securedInfo)){
+
+            Map<String, List<String[]>> csvFiles = exportService.getCsvFiles(experimentId);
+            return new ResponseEntity<>(ZipUtil.generateZipFile(csvFiles), HttpStatus.OK);
+
+        } else {
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        }
+    }
 }

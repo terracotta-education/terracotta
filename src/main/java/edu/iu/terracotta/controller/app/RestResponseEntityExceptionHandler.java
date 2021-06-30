@@ -241,4 +241,12 @@ public class RestResponseEntityExceptionHandler
                 new HttpHeaders(), HttpStatus.UNAUTHORIZED, request);
     }
 
+    @ExceptionHandler(value
+            = {ExperimentLockedException.class})
+    protected ResponseEntity<Object> handleExperimentLockedException(
+            ExperimentLockedException ex, WebRequest request) {
+        String bodyOfResponse = ex.getMessage();
+        return handleExceptionInternal(ex, bodyOfResponse,
+                new HttpHeaders(), HttpStatus.UNAUTHORIZED, request);
+    }
 }
