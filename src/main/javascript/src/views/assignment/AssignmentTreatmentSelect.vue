@@ -19,6 +19,7 @@
                 <v-btn
                   color="primary"
                   outlined
+                  @click="goToBuilder(condition.conditionId)"
                 >Select</v-btn>
               </v-list-item-action>
             </v-list-item>
@@ -40,6 +41,7 @@ import {mapGetters} from 'vuex';
 
 export default {
   name: 'AssignmentTreatmentSelect',
+  props: ['experiment'],
   computed: {
     ...mapGetters({
       assignments: 'assignment/assignments',
@@ -49,8 +51,16 @@ export default {
       return this.assignments.filter(a => parseInt(a.assignmentId) === parseInt(this.$route.params.assignment_id))[0]
     }
   },
-  methods: {},
-  mounted() {
-  }
+  methods: {
+    goToBuilder(cid) {
+      this.$router.push({
+        name: 'TerracottaBuilder',
+        params: {
+          experiment_id: this.experiment.experimentId,
+          condition_id: cid
+        },
+      });
+    }
+  },
 };
 </script>
