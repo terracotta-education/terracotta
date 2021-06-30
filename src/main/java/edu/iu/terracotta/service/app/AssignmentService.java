@@ -44,4 +44,9 @@ public interface AssignmentService {
     Assessment getAssessmentbyGroupId(Long experimentId, String canvasAssignmentId, Long groupId) throws AssessmentNotMatchingException;
 
     ResponseEntity<Object> launchAssignment(Long experimentId, SecuredInfo securedInfo) throws AssessmentNotMatchingException, ParticipantNotUpdatedException, AssignmentDatesException, DataServiceException, CanvasApiException, IOException;
+
+    boolean checkCanvasAssignmentExists(Assignment assignment) throws CanvasApiException;
+
+    Assignment restoreAssignmentInCanvas(Assignment assignment);
+
 }

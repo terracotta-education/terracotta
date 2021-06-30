@@ -27,9 +27,10 @@ import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.GroupService;
 import edu.iu.terracotta.service.app.ParticipantService;
 import edu.iu.terracotta.service.app.SubmissionService;
-import edu.iu.terracotta.service.app.TreatmentService;
+import edu.iu.terracotta.service.canvas.CanvasAPIClient;
 import edu.iu.terracotta.service.lti.AdvantageAGSService;
 import edu.iu.terracotta.utils.TextConstants;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
@@ -62,6 +63,9 @@ public class AssignmentServiceImpl implements AssignmentService {
 
     @Autowired
     ParticipantService participantService;
+
+    @Autowired
+    CanvasAPIClient canvasAPIClient;
 
     @Autowired
     GroupService groupService;
@@ -231,6 +235,17 @@ public class AssignmentServiceImpl implements AssignmentService {
         } else { //Shouldn't happen
             return new ResponseEntity(TextConstants.EXPERIMENT_NOT_MATCHING, HttpStatus.UNAUTHORIZED);
         }
+    }
+
+    @Override
+    public boolean checkCanvasAssignmentExists(Assignment assignment) throws CanvasApiException {
+        String canvasCourseId = StringUtils.substringBetween(assignment.getExposure().getExperiment().getLtiContextEntity().getContext_memberships_url(), "courses/", "/names");
+        return canvasAPIClient.checkAssignmentExists(Integer.parseInt(assignment.getLmsAssignmentId()), canvasCourseId, assignment.getExposure().getExperiment().getPlatformDeployment() );
+    }
+
+    @Override
+    public Assignment restoreAssignmentInCanvas(Assignment assignment) {
+        return null;
     }
 
     private ResponseEntity<Object> createSubmission(Long experimentId, Assessment assessment, Participant participant, SecuredInfo securedInfo) {

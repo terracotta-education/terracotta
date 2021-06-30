@@ -23,6 +23,7 @@ import edu.iu.terracotta.service.app.ParticipantService;
 import edu.iu.terracotta.service.canvas.CanvasAPIClient;
 import edu.ksu.canvas.model.assignment.Submission;
 import org.apache.commons.lang3.EnumUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -125,7 +126,8 @@ public class OutcomeServiceImpl implements OutcomeService {
         Optional<Experiment> experiment = experimentService.findById(experimentId);
         List<OutcomePotentialDto> outcomePotentialDtos = new ArrayList<>();
         if (experiment.isPresent()) {
-            List<AssignmentExtended> assignmentExtendedList = canvasAPIClient.listAssignments(experiment.get().getLtiContextEntity().getContext_memberships_url(),experiment.get().getPlatformDeployment());
+            String canvasCourseId = StringUtils.substringBetween(experiment.get().getLtiContextEntity().getContext_memberships_url(), "courses/", "/names");
+            List<AssignmentExtended> assignmentExtendedList = canvasAPIClient.listAssignments(canvasCourseId,experiment.get().getPlatformDeployment());
             for (AssignmentExtended assignmentExtended:assignmentExtendedList){
                     outcomePotentialDtos.add(assignmentExtendedToOutcomePotentialDto(assignmentExtended));
             }
@@ -156,7 +158,8 @@ public class OutcomeServiceImpl implements OutcomeService {
         }
         participantService.refreshParticipants(outcome.getExposure().getExperiment().getExperimentId(), securedInfo,outcome.getExposure().getExperiment().getParticipants());
         List<OutcomeScore> newScores = new ArrayList<>();
-        List<Submission> submissions = canvasAPIClient.listSubmissions(Integer.parseInt(outcome.getLmsOutcomeId()),outcome.getExposure().getExperiment().getLtiContextEntity().getContext_memberships_url(),outcome.getExposure().getExperiment().getPlatformDeployment());
+        String canvasCourseId = StringUtils.substringBetween(outcome.getExposure().getExperiment().getLtiContextEntity().getContext_memberships_url(), "courses/", "/names");
+        List<Submission> submissions = canvasAPIClient.listSubmissions(Integer.parseInt(outcome.getLmsOutcomeId()),canvasCourseId,outcome.getExposure().getExperiment().getPlatformDeployment());
         for (Submission submission:submissions){
             boolean found = false;
             for (OutcomeScore outcomeScore:outcome.getOutcomeScores()){

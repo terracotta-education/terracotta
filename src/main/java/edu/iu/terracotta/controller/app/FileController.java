@@ -18,6 +18,7 @@ import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.service.canvas.CanvasAPIClient;
 import edu.iu.terracotta.utils.TextConstants;
 import edu.ksu.canvas.model.assignment.Assignment;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -133,7 +134,8 @@ public class FileController {
                     canvasAssignment.setPointsPossible(0.0);
                     canvasAssignment.setSubmissionTypes(Collections.singletonList("external_tool"));
                     try {
-                        Optional<AssignmentExtended> assignment = canvasAPIClient.createCanvasAssignment(canvasAssignment,experiment.getLtiContextEntity().getContext_memberships_url(), experiment.getPlatformDeployment());
+                        String canvasCourseId = StringUtils.substringBetween(experiment.getLtiContextEntity().getContext_memberships_url(), "courses/", "/names");
+                        Optional<AssignmentExtended> assignment = canvasAPIClient.createCanvasAssignment(canvasAssignment,canvasCourseId, experiment.getPlatformDeployment());
                         consentDocument.setLmsAssignmentId(Integer.toString(assignment.get().getId()));
                         consentDocument.setResourceLinkId(assignment.get().getExternalToolTagAttributes().getResourceLinkId());
                     } catch (CanvasApiException e) {
