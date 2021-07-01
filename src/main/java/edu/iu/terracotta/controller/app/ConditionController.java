@@ -5,14 +5,13 @@ import edu.iu.terracotta.exceptions.ConditionNotMatchingException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentLockedException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.model.app.Condition;
 import edu.iu.terracotta.model.app.dto.ConditionDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.ConditionService;
-import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.utils.TextConstants;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
@@ -28,7 +27,6 @@ import org.springframework.http.HttpHeaders;
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.ArrayList;
-import java.util.Optional;
 
 @Controller
 @RequestMapping(value = ConditionController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
@@ -43,9 +41,6 @@ public class ConditionController {
     @Autowired
     APIJWTService apijwtService;
 
-    @Autowired
-    ExperimentService experimentService;
-
     @RequestMapping(value = "/{experiment_id}/conditions", method = RequestMethod.GET, produces = "application/json")
     @ResponseBody
     public ResponseEntity<List<ConditionDto>> allConditionsByExperiment(@PathVariable("experiment_id") Long experimentId,
@@ -56,14 +51,9 @@ public class ConditionController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
 
         if(apijwtService.isLearnerOrHigher(securedInfo)) {
-            List<Condition> conditionList =
-                    conditionService.findAllByExperimentId(experimentId);
-            if(conditionList.isEmpty()){
+            List<ConditionDto> conditionDtoList = conditionService.findAllByExperimentId(experimentId);
+            if(conditionDtoList.isEmpty()){
                 return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-            }
-            List<ConditionDto> conditionDtoList = new ArrayList<>();
-            for(Condition condition : conditionList) {
-                conditionDtoList.add(conditionService.toDto(condition));
             }
             return new ResponseEntity<>(conditionDtoList, HttpStatus.OK);
         } else {
@@ -83,15 +73,7 @@ public class ConditionController {
         apijwtService.conditionAllowed(securedInfo, experimentId, conditionId);
 
         if(apijwtService.isLearnerOrHigher(securedInfo)){
-            Optional<Condition> condition = conditionService.findById(conditionId);
-
-            if(!condition.isPresent()) {
-                log.error("condition {} in experiment {} not found.", conditionId, experimentId);
-                return new ResponseEntity("condition " + conditionId + " in experiment " + experimentId + TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
-            } else {
-                ConditionDto conditionDto = conditionService.toDto(condition.get());
-                return new ResponseEntity<>(conditionDto, HttpStatus.OK);
-            }
+            return new ResponseEntity<>(conditionService.getCondition(conditionId), HttpStatus.OK);
         }else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
@@ -102,7 +84,7 @@ public class ConditionController {
                                                       @RequestBody ConditionDto conditionDto,
                                                       UriComponentsBuilder ucBuilder,
                                                       HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, ExperimentLockedException {
+            throws ExperimentNotMatchingException, BadTokenException, ExperimentLockedException, TitleValidationException {
 
         log.info("Creating Condition : {}", conditionDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
@@ -114,15 +96,7 @@ public class ConditionController {
                 log.error(TextConstants.ID_IN_POST_ERROR);
                 return new ResponseEntity(TextConstants.ID_IN_POST_ERROR, HttpStatus.CONFLICT);
             }
-
-            if(!StringUtils.isAllBlank(conditionDto.getName())){
-                if(conditionDto.getName().length() >= 255){
-                    return new ResponseEntity("A condition name must be 255 characters or less.", HttpStatus.BAD_REQUEST);
-                }
-                if(conditionService.nameAlreadyExists(conditionDto.getName(), experimentId, 0L)){
-                    return new ResponseEntity("Cannot create condition. A condition with name \"" + conditionDto.getName() + "\" already exists.", HttpStatus.CONFLICT);
-                }
-            }
+            conditionService.validateConditionName("", conditionDto.getName(), experimentId, 0L, false);
 
             conditionDto.setExperimentId(experimentId);
             Condition condition;
@@ -132,12 +106,8 @@ public class ConditionController {
                 return new ResponseEntity("Unable to create condition:" + e.getMessage(), HttpStatus.BAD_REQUEST);
             }
 
-            Condition conditionSaved = conditionService.save(condition);
-            ConditionDto returnedDto = conditionService.toDto(conditionSaved);
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setLocation(ucBuilder.path("/api/experiments/{experiment_id}/conditions/{condition_id}")
-                    .buildAndExpand(experimentId, condition.getConditionId()).toUri());
+            ConditionDto returnedDto = conditionService.toDto(conditionService.save(condition));
+            HttpHeaders headers = conditionService.buildHeader(ucBuilder, experimentId, condition.getConditionId());
             return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
         }else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
@@ -149,7 +119,7 @@ public class ConditionController {
                                                 @PathVariable("condition_id") Long conditionId,
                                                 @RequestBody ConditionDto conditionDto,
                                                 HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, ConditionNotMatchingException {
+            throws ExperimentNotMatchingException, BadTokenException, ConditionNotMatchingException, TitleValidationException {
 
         log.info("Updating condition with id {}", conditionId);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
@@ -157,29 +127,9 @@ public class ConditionController {
         apijwtService.conditionAllowed(securedInfo, experimentId, conditionId);
 
         if(apijwtService.isInstructorOrHigher(securedInfo)) {
-            Optional<Condition> conditionSearchResult = conditionService.findById(conditionId);
-
-            if(!conditionSearchResult.isPresent()) {
-                log.error("Unable to update. Condition with id {} not found.", conditionId);
-                return new ResponseEntity("Unable to update, Condition with id " + conditionId + TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
-            }
-            if(StringUtils.isAllBlank(conditionDto.getName()) && StringUtils.isAllBlank(conditionSearchResult.get().getName())){
-                return new ResponseEntity("Please give the condition a name.", HttpStatus.CONFLICT);
-            }
-            if(!StringUtils.isBlank(conditionDto.getName())){
-                if(conditionDto.getName().length() > 255){
-                    return new ResponseEntity("Condition name must be 255 characters or less.", HttpStatus.BAD_REQUEST);
-                }
-                if(conditionService.nameAlreadyExists(conditionDto.getName(), experimentId, conditionId)){
-                    return new ResponseEntity("Unable to create the condition. A condition with title \"" + conditionDto.getName() + "\" already exists in this experiment.", HttpStatus.CONFLICT);
-                }
-            }
-            Condition conditionToChange = conditionSearchResult.get();
-            conditionToChange.setName(conditionDto.getName());
-            conditionToChange.setDefaultCondition(conditionDto.getDefaultCondition());
-            conditionToChange.setDistributionPct((conditionDto.getDistributionPct()));
-
-            conditionService.saveAndFlush(conditionToChange);
+            Condition condition = conditionService.findByConditionId(conditionId);
+            conditionService.validateConditionName(condition.getName(), conditionDto.getName(), experimentId, conditionId, true);
+            conditionService.saveAndFlush(conditionService.updateCondition(condition, conditionDto));
             return new ResponseEntity<>(HttpStatus.OK);
         }else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
@@ -191,7 +141,7 @@ public class ConditionController {
     public ResponseEntity<Void> updateConditions(@PathVariable("experiment_id") Long experimentId,
                                                  @RequestBody List<ConditionDto> conditionDtoList,
                                                  HttpServletRequest req)
-            throws ExperimentNotMatchingException, ConditionNotMatchingException, BadTokenException, DataServiceException {
+            throws ExperimentNotMatchingException, ConditionNotMatchingException, BadTokenException, DataServiceException, TitleValidationException {
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -201,34 +151,14 @@ public class ConditionController {
 
             for(ConditionDto conditionDto : conditionDtoList){
                 apijwtService.conditionAllowed(securedInfo, experimentId,conditionDto.getConditionId());
-                Optional<Condition> condition = conditionService.findById(conditionDto.getConditionId());
-                if(condition.isPresent()){
-                    Condition conditionToChange = condition.get();
-                    if(StringUtils.isAllBlank(conditionDto.getName()) && StringUtils.isAllBlank(conditionToChange.getName())){
-                        return new ResponseEntity("Please give the condition a name.", HttpStatus.CONFLICT);
-                    }
-                    if(!StringUtils.isBlank(conditionDto.getName())){
-                        if(conditionDto.getName().length() > 255){
-                            return new ResponseEntity("Condition name must be 255 characters or less.", HttpStatus.BAD_REQUEST);
-                        }
-                        if(conditionService.nameAlreadyExists(conditionDto.getName(), experimentId, conditionToChange.getConditionId())){
-                            return new ResponseEntity("Unable to create the condition. A condition with title \"" + conditionDto.getName() + "\" already exists in this experiment.", HttpStatus.CONFLICT);
-                        }
-                    }
-                    conditionToChange.setName(conditionDto.getName());
-                    conditionToChange.setDefaultCondition(conditionDto.getDefaultCondition());
-                    conditionToChange.setDistributionPct(conditionDto.getDistributionPct());
-                    for(Condition conditionInList : conditionList){
-                        if(conditionToChange.getName().equals(conditionInList.getName())){
-                            return new ResponseEntity("Conditions cannot have identical names.", HttpStatus.CONFLICT);
-                        }
-                    }
-                    conditionList.add(conditionToChange);
-                } else {
-                    return new ResponseEntity("Unable to update. Condition with id " + conditionDto.getConditionId() + " not found.", HttpStatus.NOT_FOUND);
+                Condition condition = conditionService.findByConditionId(conditionDto.getConditionId());
+                conditionService.validateConditionName(condition.getName(), conditionDto.getName(), experimentId, condition.getConditionId(), true);
+                condition = conditionService.updateCondition(condition, conditionDto);
+                if(conditionService.duplicateNameInPut(conditionList, condition)) {
+                    return new ResponseEntity("Condition names must be unique. Another condition you are trying to update already has this name.", HttpStatus.CONFLICT);
                 }
+                conditionList.add(condition);
             }
-
             try{
                 conditionService.saveAllConditions(conditionList);
                 return new ResponseEntity<>(HttpStatus.OK);

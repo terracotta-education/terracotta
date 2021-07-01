@@ -291,7 +291,7 @@ public class FileController {
                     throw new MyFileNotFoundException("File not found.");
                 }
             } catch (MyFileNotFoundException ex){
-                return new ResponseEntity(HttpStatus.NOT_FOUND);
+                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
             }
         }  else {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
