@@ -87,17 +87,14 @@ export default {
       this.moveToHandler(option, tempSelectedInAGroup);
     },
         handleOnChange(value) {
-      if (value === 0) {
-        this.tempSelectedInAGroup = this.listOfParticipants;
-      } else {
-        this.tempSelectedInAGroup = [];
-      }
+          this.tempSelectedInAGroup = (value === 0) ? 
+          this.listOfParticipants : []
     },
   },
 };
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 // Edge Case - When Selecting and Unselecting All options button,
 //             and then when a participant is selected, Minus sign
 //             is displaying in different color
