@@ -20,7 +20,7 @@
       >
         <v-row class="mr-2">
           <v-card-title class="col-10">
-            {{ condition.name }} will receive something
+            {{ condition.name }} will receive
           </v-card-title>
           <v-text-field
             class="textfield"

@@ -6,6 +6,7 @@
           on-icon="$checkboxIndeterminate"
           color="primary"
           :value="tempSelectedInAGroup.length > 0"
+          @change="handleOnChange(tempSelectedInAGroup.length)"
         />
         {{ tempSelectedInAGroup.length }} Selected
       </v-row>
@@ -85,6 +86,22 @@ export default {
 
       this.moveToHandler(option, tempSelectedInAGroup);
     },
+    handleOnChange(value) {
+      if (value === 0) {
+        this.tempSelectedInAGroup = this.listOfParticipants;
+      } else {
+        this.tempSelectedInAGroup = [];
+      }
+    },
   },
 };
 </script>
+
+<style lang="scss">
+// Edge Case - When Selecting and Unselecting All options button,
+//             and then when a participant is selected, Minus sign
+//             is displaying in different color
+.mdi-minus-box {
+  color: #1d9dff !important;
+}
+</style>
