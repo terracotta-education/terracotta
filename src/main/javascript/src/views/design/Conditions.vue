@@ -87,7 +87,7 @@ export default {
   props: ['experiment'],
   data: () => ({
     rules: [
-      v => !!v || 'Condition name is required',
+      v => v && !!v.trim() || 'Condition name is required',
       v => (v || '').length <= 255 || 'A maximum of 255 characters is allowed'
     ]
   }),
