@@ -13,6 +13,8 @@ public interface AnswerMcRepository extends JpaRepository<AnswerMc, Long> {
 
     List<AnswerMc> findByQuestion_QuestionId(Long questionId);
 
+    AnswerMc findByAnswerMcId(Long answerMcId);
+
     Optional<AnswerMc> findByQuestion_QuestionIdAndAnswerMcId(Long questionId, Long answerMcId);
 
     boolean existsByQuestion_Assessment_AssessmentIdAndQuestion_QuestionIdAndAnswerMcId(Long assessmentId, Long questionId, Long answerMcId);

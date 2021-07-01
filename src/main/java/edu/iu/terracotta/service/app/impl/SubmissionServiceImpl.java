@@ -4,7 +4,6 @@ import edu.iu.terracotta.exceptions.AssignmentDatesException;
 import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
-import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.model.ags.Score;
 import edu.iu.terracotta.model.app.AnswerMcSubmission;
 import edu.iu.terracotta.model.app.Assessment;
@@ -14,7 +13,6 @@ import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.QuestionSubmission;
 import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.SubmissionComment;
-import edu.iu.terracotta.model.app.Treatment;
 import edu.iu.terracotta.model.app.dto.QuestionSubmissionDto;
 import edu.iu.terracotta.model.app.dto.SubmissionCommentDto;
 import edu.iu.terracotta.model.app.dto.SubmissionDto;
@@ -207,11 +205,7 @@ public class SubmissionServiceImpl implements SubmissionService {
     public boolean datesAllowed(Long experimentId, Long treatmentId, SecuredInfo securedInfo) {
 
         if (securedInfo.getUnlockAt()== null || securedInfo.getUnlockAt().before(new Date())){
-            if (securedInfo.getLockAt() == null || securedInfo.getLockAt().after(new Date())) {
-                return true;
-            } else {
-                return false;
-            }
+            return securedInfo.getLockAt() == null || securedInfo.getLockAt().after(new Date());
         } else {
             return false;
         }
