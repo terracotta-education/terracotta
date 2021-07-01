@@ -27,7 +27,7 @@
             outlined
             suffix="%"
             v-model="distributionValue[index]"
-            :rules="[(value) => !!value || 'Required']"
+            :rules="[(value) => value && !!value.trim() || 'Required']"
             required
           ></v-text-field>
         </v-row>
