@@ -57,27 +57,29 @@ export default {
       const step = "distribution_type"
 
       this.updateExperiment(e)
-      .then(response => {
-        if (response.status === 200) {
-          // report the current step
-          this.reportStep({experimentId, step})
-          // forward to correct path after selection
-          if (this.experiment.distributionType==='EVEN') {
-            this.$router.push({name:'ParticipationSummary', params:{experiment: experimentId}})
-          } else if(this.experiment.distributionType==='CUSTOM') {
-            this.$router.push({name:'ParticipationCustomDistribution', params:{experiment: experimentId}})
-          }  else if(this.experiment.distributionType==='MANUAL') {
-            this.$router.push({name:'ParticipationManualDistribution', params:{experiment: experimentId}})
+        .then(response => {
+          if (typeof response?.status !== "undefined" && response?.status === 200) {
+            // report the current step
+            this.reportStep({experimentId, step})
+            // forward to correct path after selection
+            if (this.experiment.distributionType==='EVEN') {
+              this.$router.push({name:'ParticipationSummary', params:{experiment: experimentId}})
+            } else if(this.experiment.distributionType==='CUSTOM') {
+              this.$router.push({name:'ParticipationCustomDistribution', params:{experiment: experimentId}})
+            }  else if(this.experiment.distributionType==='MANUAL') {
+              this.$router.push({name:'ParticipationManualDistribution', params:{experiment: experimentId}})
+            } else {
+              alert("Select a distribution type")
+            }
+          } else if (response?.message) {
+            alert(`Error: ${response.message}`)
           } else {
-            alert("Select a distribution type")
+            alert('There was an error saving your experiment.')
           }
-        } else {
-          alert("error: ", response.statusText || response.status)
-        }
-      })
-      .catch(response => {
-        console.log("updateExperiment | catch", {response})
-      })
+        })
+        .catch(response => {
+          console.log("updateExperiment | catch", {response})
+        })
     }
   }
 }

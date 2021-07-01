@@ -19,7 +19,7 @@
         required
       ></v-text-field>
       <v-btn
-        :disabled="!title"
+        :disabled="!title || !title.trim()"
         elevation="0"
         color="primary"
         class="mr-4"

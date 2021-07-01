@@ -64,7 +64,7 @@
       </div>
 
       <v-btn
-        :disabled="!experiment.conditions.length > 0 || !experiment.conditions.every(c => c.name)"
+        :disabled="!experiment.conditions.length > 0 || !experiment.conditions.every(c => c.name && c.name.trim())"
         elevation="0"
         color="primary"
         class="mr-4"
