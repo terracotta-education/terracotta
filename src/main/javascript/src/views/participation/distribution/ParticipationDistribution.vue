@@ -38,7 +38,7 @@
 </template>
 
 <script>
-import { mapActions } from "vuex";
+import { mapActions } from 'vuex';
 
 export default {
   name: 'ParticipationDistribution',
@@ -54,11 +54,11 @@ export default {
       e.distributionType = type
 
       const experimentId = e.experimentId
-      const step = "distribution_type"
+      const step = 'distribution_type'
 
       this.updateExperiment(e)
         .then(response => {
-          if (typeof response?.status !== "undefined" && response?.status === 200) {
+          if (typeof response?.status !== 'undefined' && response?.status === 200) {
             // report the current step
             this.reportStep({experimentId, step})
             // forward to correct path after selection
@@ -69,7 +69,7 @@ export default {
             }  else if(this.experiment.distributionType==='MANUAL') {
               this.$router.push({name:'ParticipationManualDistribution', params:{experiment: experimentId}})
             } else {
-              alert("Select a distribution type")
+              alert('Select a distribution type')
             }
           } else if (response?.message) {
             alert(`Error: ${response.message}`)
@@ -78,7 +78,7 @@ export default {
           }
         })
         .catch(response => {
-          console.log("updateExperiment | catch", {response})
+          console.log('updateExperiment | catch', {response})
         })
     }
   }
