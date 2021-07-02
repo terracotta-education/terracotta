@@ -38,6 +38,9 @@ public class Assignment extends BaseEntity {
     @Column(name = "assignment_order")
     private Integer assignmentOrder;
 
+    @Column(name = "soft_deleted")
+    private Boolean softDeleted = false;
+
     //methods
     public Long getAssignmentId() { return assignmentId; }
 
@@ -65,5 +68,13 @@ public class Assignment extends BaseEntity {
 
     public void setResourceLinkId(String resourceLinkId) {
         this.resourceLinkId = resourceLinkId;
+    }
+
+    public Boolean getSoftDeleted() {
+        return softDeleted;
+    }
+
+    public void setSoftDeleted(Boolean softDeleted) {
+        this.softDeleted = softDeleted;
     }
 }

@@ -43,7 +43,6 @@ import org.springframework.stereotype.Component;
 import edu.iu.terracotta.model.app.Assignment;
 import edu.iu.terracotta.model.app.Exposure;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.io.IOException;
 import java.sql.Timestamp;
@@ -102,6 +101,7 @@ public class AssignmentServiceImpl implements AssignmentService {
         assignmentDto.setAssignmentOrder(assignment.getAssignmentOrder());
         assignmentDto.setExposureId(assignment.getExposure().getExposureId());
         assignmentDto.setResourceLinkId(assignment.getResourceLinkId());
+        assignmentDto.setSoftDeleted(assignment.getSoftDeleted());
         long submissions = allRepositories.submissionRepository.countByAssessment_Treatment_Assignment_AssignmentId(assignment.getAssignmentId());
         if(submissions > 0){
             assignmentDto.setStarted(true);
@@ -117,6 +117,7 @@ public class AssignmentServiceImpl implements AssignmentService {
         assignment.setAssignmentId(assignmentDto.getAssignmentId());
         assignment.setTitle(assignmentDto.getTitle());
         assignment.setAssignmentOrder(assignmentDto.getAssignmentOrder());
+        assignment.setSoftDeleted(assignmentDto.getSoftDeleted());
         Optional<Exposure> exposure = allRepositories.exposureRepository.findById(assignmentDto.getExposureId());
         if(exposure.isPresent()) {
             assignment.setExposure(exposure.get());

@@ -22,11 +22,13 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
     @Query("delete from Assignment s where s.assignmentId = ?1")
     void deleteByAssignmentId(Long submissionId);
 
-    @Query("select a from Assignment a where a.exposure.experiment.platformDeployment.keyId = ?1")
+    @Query("select a from Assignment a where a.exposure.experiment.platformDeployment.keyId = ?1 and a.exposure.experiment.closed is null and a.assignmentId NOT IN (Select a2.assignmentId from Assignment a2 where a2.softDeleted = true)")
     List<Assignment> findAssignmentsToCheckByPlatform(long keyId);
 
-    @Query("select a from Assignment a where a.exposure.experiment.ltiContextEntity.contextId = ?1")
+    @Query("select a from Assignment a where a.exposure.experiment.ltiContextEntity.contextId = ?1 and a.exposure.experiment.closed is null and a.assignmentId NOT IN (Select a2.assignmentId from Assignment a2 where a2.softDeleted = true)")
     List<Assignment> findAssignmentsToCheckByContext(long contextId);
+
+
 
 
 

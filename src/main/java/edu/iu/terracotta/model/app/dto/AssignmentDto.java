@@ -12,6 +12,8 @@ public class AssignmentDto {
     private Integer assignmentOrder;
     private String resourceLinkId;
     private boolean started;
+    private Boolean softDeleted;
+
 
     public AssignmentDto() {}
 
@@ -46,4 +48,12 @@ public class AssignmentDto {
     public boolean getStarted() { return started; }
 
     public void setStarted(boolean started) { this.started = started; }
+
+    public Boolean getSoftDeleted() {
+        return softDeleted;
+    }
+
+    public void setSoftDeleted(Boolean softDeleted) {
+        this.softDeleted = softDeleted;
+    }
 }
