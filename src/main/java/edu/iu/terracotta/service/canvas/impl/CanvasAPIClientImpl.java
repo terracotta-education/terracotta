@@ -70,14 +70,16 @@ public class CanvasAPIClientImpl implements CanvasAPIClient {
     }
 
     @Override
-    public boolean checkAssignmentExists(Integer assignmentId, String canvasCourseId, PlatformDeployment platformDeployment) throws CanvasApiException {
+    public Optional<AssignmentExtended> checkAssignmentExists(Integer assignmentId, String canvasCourseId, PlatformDeployment platformDeployment) throws CanvasApiException {
         try {
             String canvasBaseUrl = platformDeployment.getBaseUrl();
             OauthToken oauthToken = new NonRefreshableOauthToken(platformDeployment.getApiToken());
             CanvasApiFactoryExtended apiFactory = new CanvasApiFactoryExtended(canvasBaseUrl);
             AssignmentReaderExtended assignmentReader = apiFactory.getReader(AssignmentReaderExtended.class, oauthToken);
             GetSingleAssignmentOptions getSingleAssignmentsOptions = new GetSingleAssignmentOptions(canvasCourseId, assignmentId);
-            return (assignmentReader.getSingleAssignment(getSingleAssignmentsOptions).isPresent());
+            return assignmentReader.getSingleAssignment(getSingleAssignmentsOptions);
+        } catch (edu.ksu.canvas.exception.ObjectNotFoundException e){
+            return Optional.empty();
         } catch (IOException ex){
             throw new CanvasApiException(
                     "Failed to get the Assignment in Canvas course by ID [" + canvasCourseId + "]", ex);

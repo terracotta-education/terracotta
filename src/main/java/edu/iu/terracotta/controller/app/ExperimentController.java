@@ -167,7 +167,7 @@ public class ExperimentController {
                 if(experimentDto.getTitle().length() > 255){
                     return new ResponseEntity("Experiment title must be 255 characters or less.", HttpStatus.BAD_REQUEST);
                 }
-                if(experimentService.titleAlreadyExists(experimentDto.getTitle(), securedInfo.getContextId(), 0l)){
+                if(experimentService.titleAlreadyExists(experimentDto.getTitle(), securedInfo.getContextId(), 0L)){
                     return new ResponseEntity("Unable to create the experiment. An experiment with title \"" + experimentDto.getTitle() + "\" already exists in this course.", HttpStatus.CONFLICT);
                 }
             }
@@ -176,7 +176,7 @@ public class ExperimentController {
             experimentDto = experimentService.fillContextInfo(experimentDto, securedInfo);
             try {
                 if(!StringUtils.isBlank(experimentDto.getTitle())){
-                    if(experimentService.titleAlreadyExists(experimentDto.getTitle(), securedInfo.getContextId(), 0l)){
+                    if(experimentService.titleAlreadyExists(experimentDto.getTitle(), securedInfo.getContextId(), 0L)){
                         return new ResponseEntity("Unable to create the experiment. An experiment with title \"" + experimentDto.getTitle() + "\" already exists in this course.", HttpStatus.CONFLICT);
                     }
                 }
@@ -265,14 +265,14 @@ public class ExperimentController {
             }
             if (experimentDto.getParticipationType() != null) {
                 if (EnumUtils.isValidEnum(ParticipationTypes.class, experimentDto.getParticipationType())) {
-                experimentToChange.setParticipationType(
-                        EnumUtils.getEnum(ParticipationTypes.class, experimentDto.getParticipationType()));
+                    experimentToChange.setParticipationType(
+                            EnumUtils.getEnum(ParticipationTypes.class, experimentDto.getParticipationType()));
                 } else {
                     throw new WrongValueException(experimentDto.getParticipationType() + " is not a valid Participation value");
                 }
             }
+            experimentToChange.setClosed(experimentDto.getClosed());
             experimentToChange.setStarted(experimentDto.getStarted());
-
             experimentService.saveAndFlush(experimentToChange);
             return new ResponseEntity<>(HttpStatus.OK);
         } else {

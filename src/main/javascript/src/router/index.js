@@ -279,6 +279,15 @@ const routes = [
               currentStep: 'your_assignments'
             }
           },
+          {
+            path: ':assignment_id/condition/:condition_id/builder',
+            name: 'TerracottaBuilder',
+            component: () => import('../views/assignment/TerracottaBuilder.vue'),
+            meta: {
+              currentSection: 'assignments',
+              currentStep: 'your_assignments'
+            }
+          },
         ]
       },
     ]

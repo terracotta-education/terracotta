@@ -36,14 +36,15 @@ const actions = {
               console.log('createCondition | catch', {response})
             })
   },
-  updateConditions: ({dispatch}, conditions) => {
+  async updateConditions({dispatch}, conditions) {
     if (conditions.length > 0) {
-      conditions.forEach(condition => {
-        if (condition?.conditionId) {
-          dispatch('updateCondition', condition)
-        }
-      })
-      return {status: 200}
+      return Promise.all(
+        conditions.map(async (condition) => {
+          if (condition?.conditionId) {
+            return dispatch('updateCondition', condition)
+          }
+        })
+      )
     }
   },
   updateCondition: ({commit}, condition) => {
@@ -53,6 +54,7 @@ const actions = {
                 // commit mutation from experiment module
                 commit('experiment/setCondition', condition, {root: true})
               }
+              return response
             })
             .catch(response => {
               console.log('setCondition | catch', {response})

@@ -64,7 +64,7 @@
       </div>
 
       <v-btn
-        :disabled="!experiment.conditions.length > 0 || !experiment.conditions.every(c => c.name)"
+        :disabled="!experiment.conditions.length > 0 || !experiment.conditions.every(c => c.name && c.name.trim())"
         elevation="0"
         color="primary"
         class="mr-4"
@@ -98,15 +98,19 @@ export default {
       deleteCondition: 'condition/deleteCondition',
       updateConditions: 'condition/updateConditions',
     }),
-    saveConditions() {
+    async saveConditions() {
       const e = this.experiment
 
-      this.updateConditions(e.conditions)
+      await this.updateConditions(e.conditions)
           .then(response => {
-            if (response?.status === 200) {
+            if (response?.every(obj => obj.status === 200)) {
+              // IF all responses return STATUS 200
               this.$router.push({name: 'ExperimentDesignType', params: {experiment: this.experiment.experimentId}})
+            } else if (response?.some(obj => Object.prototype.hasOwnProperty.call(obj, 'message'))) {
+              // IF one response contains message -> alert with message
+              alert(`Error: ${response.filter(obj => (typeof obj.message !== 'undefined'))[0].message}`)
             } else {
-              alert(response.error)
+              alert('There was an error saving your conditions.')
             }
           })
           .catch(response => {
@@ -122,7 +126,6 @@ export default {
       }
     }
   },
-
   beforeRouteEnter(to, from, next) {
     if (store.state.experiment.experiment.conditions.length < 2) {
       store.dispatch('condition/createDefaultConditions', to.params.experiment_id).then(() => next())

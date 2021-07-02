@@ -18,7 +18,7 @@
         required
       ></v-text-field>
       <v-btn
-        :disabled="!title"
+        :disabled="!title || !title.trim()"
         elevation="0"
         color="primary"
         class="mr-4"
@@ -65,7 +65,8 @@ export default {
           }
         })
         .catch(response => {
-          console.log("updateExperiment | catch", {response})
+          console.error("createAssignment | catch", {response})
+          alert('There was an error creating the assignment.')
         })
     }
   },

@@ -72,6 +72,7 @@ public class ExperimentServiceImpl implements ExperimentService {
         experimentDto.setParticipationType(experiment.getParticipationType().name());
         experimentDto.setDistributionType(experiment.getDistributionType().name());
         experimentDto.setStarted(experiment.getStarted());
+        experimentDto.setClosed(experiment.getClosed());
         experimentDto.setCreatedAt(experiment.getCreatedAt());
         experimentDto.setUpdatedAt(experiment.getUpdatedAt());
         experimentDto.setCreatedBy(experiment.getCreatedBy().getUserId());
@@ -136,6 +137,7 @@ public class ExperimentServiceImpl implements ExperimentService {
         experiment.setParticipationType(EnumUtils.getEnum(ParticipationTypes.class, experimentDto.getParticipationType(), ParticipationTypes.NOSET));
         experiment.setDistributionType(EnumUtils.getEnum(DistributionTypes.class, experimentDto.getDistributionType(), DistributionTypes.NOSET));
         experiment.setStarted(experimentDto.getStarted());
+        experiment.setClosed(experimentDto.getClosed());
         LtiUserEntity user = allRepositories.users.findByUserIdAndPlatformDeployment_KeyId(experimentDto.getCreatedBy(),platformDeployment.get().getKeyId());
         if (user!=null){
             experiment.setCreatedBy(user);

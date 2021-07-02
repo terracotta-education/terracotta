@@ -7,9 +7,7 @@ import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
 import edu.iu.terracotta.model.app.AnswerMc;
-import edu.iu.terracotta.model.app.Question;
 import edu.iu.terracotta.model.app.dto.AnswerDto;
-import edu.iu.terracotta.model.app.enumerator.QuestionTypes;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.AnswerService;
@@ -76,25 +74,14 @@ public class AnswerController {
 
         if(apijwtService.isLearnerOrHigher(securedInfo)) {
             boolean student = !apijwtService.isInstructorOrHigher(securedInfo);
-            Optional<Question> question = questionService.findById(questionId);
-            if(question.isPresent()){
-                if (question.get().getQuestionType() == QuestionTypes.MC) {
-                    List<AnswerMc> mcAnswerList = answerService.findAllByQuestionIdMC(questionId);
-                    if (mcAnswerList.isEmpty()) {
-                        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-                    }
-
-                    List<AnswerDto> answerDtoList = new ArrayList<>();
-                    for (AnswerMc mcAnswer : mcAnswerList) {
-                        answerDtoList.add(answerService.toDtoMC(mcAnswer, student));
-                    }
-                    return new ResponseEntity<>(answerDtoList, HttpStatus.OK);
+            if (answerService.getQuestionType(questionId).equals("MC")) {
+                List<AnswerDto> answerDtoList = answerService.findAllByQuestionIdMC(questionId, student);
+                if(answerDtoList.isEmpty()){
+                    return new ResponseEntity<>(HttpStatus.NO_CONTENT);
                 }
-                return new ResponseEntity("Question type is not supported.", HttpStatus.BAD_REQUEST);
-            } else {
-                //this will never be reached because the question will already have been validated. Just here to please java.
-                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+                return new ResponseEntity<>(answerDtoList, HttpStatus.OK);
             }
+            return new ResponseEntity("Answer type is not supported.", HttpStatus.BAD_REQUEST);
         } else {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
@@ -117,22 +104,13 @@ public class AnswerController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
         apijwtService.questionAllowed(securedInfo, assessmentId, questionId);
-        Question question = questionService.findByQuestionId(questionId);
-        String answerType = question.getQuestionType().toString();
-        apijwtService.answerAllowed(securedInfo, assessmentId, questionId, answerType, answerId);
+        apijwtService.answerAllowed(securedInfo, assessmentId, questionId, answerService.getQuestionType(questionId), answerId);
 
         if(apijwtService.isLearnerOrHigher(securedInfo)) {
+            String answerType = answerService.getQuestionType(questionId);
             boolean student = !apijwtService.isInstructorOrHigher(securedInfo);
             if(answerType.equals("MC")){
-                Optional<AnswerMc> mcAnswerSearchResult = answerService.findByIdMC(answerId);
-
-                if(!mcAnswerSearchResult.isPresent()) {
-                    log.error(answerService.answerNotFound(securedInfo, experimentId, conditionId, treatmentId, assessmentId, questionId, answerId));
-                    return new ResponseEntity(answerService.answerNotFound(securedInfo, experimentId, conditionId, treatmentId, assessmentId, questionId, answerId), HttpStatus.NOT_FOUND);
-                } else {
-                    AnswerDto answerDto = answerService.toDtoMC(mcAnswerSearchResult.get(), student);
-                    return new ResponseEntity<>(answerDto, HttpStatus.OK);
-                }
+                return new ResponseEntity<>(answerService.getAnswerMC(answerId, student), HttpStatus.OK);
             } else {
                 return new ResponseEntity("Answer type not supported.", HttpStatus.BAD_REQUEST);
             }
@@ -168,12 +146,7 @@ public class AnswerController {
             }
 
             answerDto.setQuestionId(questionId);
-            Optional<Question> question = questionService.findById(questionId);
-            if(question.isPresent()){
-                answerDto.setAnswerType(question.get().getQuestionType().toString());
-            } else{
-                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-            }
+            answerDto.setAnswerType(answerService.getQuestionType(questionId));
             if ("MC".equals(answerDto.getAnswerType())) {
                 AnswerMc answerMc;
                 try {
@@ -181,13 +154,9 @@ public class AnswerController {
                 } catch (DataServiceException ex) {
                     return new ResponseEntity("Unable to create Answer: " + ex.getMessage(), HttpStatus.BAD_REQUEST);
                 }
-                AnswerMc answerMcSaved = answerService.saveMC(answerMc);
-                AnswerDto returnedMcdDto = answerService.toDtoMC(answerMcSaved, false);
-                HttpHeaders McHeaders = new HttpHeaders();
-                McHeaders.setLocation(ucBuilder.path(
-                        "/api/experiments/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/questions/{question_id}/answers/{answer_id}")
-                        .buildAndExpand(experimentId, conditionId, treatmentId, assessmentId, questionId, answerMc.getAnswerMcId()).toUri());
-                return new ResponseEntity<>(returnedMcdDto, McHeaders, HttpStatus.CREATED);
+                AnswerDto returnedMcdDto = answerService.toDtoMC(answerService.saveMC(answerMc), false);
+                HttpHeaders mcHeaders = answerService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, questionId, answerMc.getAnswerMcId());
+                return new ResponseEntity<>(returnedMcdDto, mcHeaders, HttpStatus.CREATED);
             }
             return new ResponseEntity("Answer type not supported.", HttpStatus.BAD_REQUEST);
         } else {
@@ -213,33 +182,23 @@ public class AnswerController {
         apijwtService.questionAllowed(securedInfo, assessmentId, questionId);
 
         if(apijwtService.isInstructorOrHigher(securedInfo)){
-            Optional<Question> question = questionService.findById(questionId);
-            if(question.isPresent()){
-                if(question.get().getQuestionType() == QuestionTypes.MC){
-                    List<AnswerMc> answerList = new ArrayList<>();
+            String answerType = answerService.getQuestionType(questionId);
+            if(answerType.equals("MC")){
+                List<AnswerMc> answerList = new ArrayList<>();
 
-                    for(AnswerDto answerDto : answerDtoList) {
-                        apijwtService.answerAllowed(securedInfo, assessmentId, questionId, question.get().getQuestionType().toString(), answerDto.getAnswerId());
-                        Optional<AnswerMc> mcAnswer = answerService.findByIdMC(answerDto.getAnswerId());
-                        if(mcAnswer.isPresent()) {
-                            AnswerMc mcAnswerToChange = mcAnswer.get();
-                            mcAnswerToChange.setHtml(answerDto.getHtml());
-                            mcAnswerToChange.setAnswerOrder(answerDto.getAnswerOrder());
-                            mcAnswerToChange.setCorrect(answerDto.getCorrect());
-                            answerList.add(mcAnswerToChange);
-                        }
-                    }
-                    try{
-                        answerService.saveAllAnswersMC(answerList);
-                        return new ResponseEntity<>(HttpStatus.OK);
-                    } catch (Exception ex) {
-                        throw new DataServiceException("An error occurred trying to update the answer list. No answers were updated. " + ex.getMessage());
-                    }
-                } else {
-                    return new ResponseEntity("Answer type not supported.", HttpStatus.BAD_REQUEST);
+                for(AnswerDto answerDto : answerDtoList) {
+                    apijwtService.answerAllowed(securedInfo, assessmentId, questionId, answerType, answerDto.getAnswerId());
+                    AnswerMc mcAnswer = answerService.findByAnswerId(answerDto.getAnswerId());
+                    answerList.add(answerService.updateAnswerMC(mcAnswer, answerDto));
+                }
+                try{
+                    answerService.saveAllAnswersMC(answerList);
+                    return new ResponseEntity<>(HttpStatus.OK);
+                } catch (Exception ex) {
+                    throw new DataServiceException("An error occurred trying to update the answer list. No answers were updated. " + ex.getMessage());
                 }
             } else {
-                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+                return new ResponseEntity("Answer type not supported.", HttpStatus.BAD_REQUEST);
             }
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
@@ -264,27 +223,13 @@ public class AnswerController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
         apijwtService.questionAllowed(securedInfo, assessmentId, questionId);
-        Question question = questionService.findByQuestionId(questionId);
-        String answerType = question.getQuestionType().toString();
+        String answerType = questionService.findByQuestionId(questionId).getQuestionType().toString();
         apijwtService.answerAllowed(securedInfo, assessmentId, questionId, answerType, answerId);
 
         if(apijwtService.isInstructorOrHigher(securedInfo)) {
             if(answerType.equals("MC")){
-                Optional<AnswerMc> mcAnswerSearchResult = answerService.findByIdMC(answerId);
-
-                if(!mcAnswerSearchResult.isPresent()) {
-                    log.error("Unable to update. Answer with id {} not found.", answerId);
-                    return new ResponseEntity("Unable to update. Answer with id " + answerId + TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
-                }
-                AnswerMc mcAnswerToChange = mcAnswerSearchResult.get();
-                if(answerDto.getHtml() != null)
-                    mcAnswerToChange.setHtml(answerDto.getHtml());
-                if(answerDto.getAnswerOrder() != null)
-                    mcAnswerToChange.setAnswerOrder(answerDto.getAnswerOrder());
-                if(answerDto.getCorrect() != null)
-                    mcAnswerToChange.setCorrect(answerDto.getCorrect());
-
-                answerService.saveAndFlushMC(mcAnswerToChange);
+                AnswerMc answerMc = answerService.findByAnswerId(answerId);
+                answerService.saveAndFlushMC(answerService.updateAnswerMC(answerMc, answerDto));
                 return new ResponseEntity<>(HttpStatus.OK);
             } else {
                 return new ResponseEntity("Answer type not supported.", HttpStatus.BAD_REQUEST);
@@ -310,8 +255,7 @@ public class AnswerController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
         apijwtService.questionAllowed(securedInfo, assessmentId, questionId);
-        Question question = questionService.findByQuestionId(questionId);
-        String answerType = question.getQuestionType().toString();
+        String answerType = questionService.findByQuestionId(questionId).getQuestionType().toString();
         apijwtService.answerAllowed(securedInfo, assessmentId, questionId, answerType, answerId);
 
         if(apijwtService.isInstructorOrHigher(securedInfo)) {

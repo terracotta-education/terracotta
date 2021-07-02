@@ -17,7 +17,7 @@
 				required
 			></v-textarea>
 			<v-btn
-				:disabled="!experiment.description"
+				:disabled="!experiment.description || !experiment.description.trim()"
 				elevation="0"
 				color="primary"
 				class="mr-4"
@@ -77,14 +77,17 @@ export default {
 
 			this.updateExperiment(e)
 					.then(response => {
-						if (response.status === 200) {
-							this.$router.push({name:'ExperimentDesignConditions', params:{experiment: this.experiment.experiment_id}})
-						} else {
-							alert("error: ", response.statusText || response.status)
-						}
+            if (typeof response?.status !== "undefined" && response?.status === 200) {
+              this.$router.push({name:'ExperimentDesignConditions', params:{experiment: this.experiment.experiment_id}})
+            } else if (response?.message) {
+              alert(`Error: ${response.message}`)
+            } else {
+              alert('There was an error saving your experiment.')
+            }
 					})
 					.catch(response => {
-						console.log("updateExperiment | catch", {response})
+            console.error("updateExperiment | catch", {response})
+            alert('There was an error saving the experiment.')
 					})
 		},
 	}

@@ -6,7 +6,6 @@ import edu.iu.terracotta.model.canvas.AssignmentExtended;
 import edu.ksu.canvas.model.assignment.Submission;
 
 import java.io.IOException;
-import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -18,5 +17,5 @@ public interface CanvasAPIClient {
 
     List<Submission> listSubmissions(Integer assignmentId, String canvasCourseId, PlatformDeployment platformDeployment) throws CanvasApiException, IOException;
 
-    boolean checkAssignmentExists(Integer assignmentId, String canvasCourseId, PlatformDeployment platformDeployment) throws CanvasApiException;
+    Optional<AssignmentExtended> checkAssignmentExists(Integer assignmentId, String canvasCourseId, PlatformDeployment platformDeployment) throws CanvasApiException;
 }

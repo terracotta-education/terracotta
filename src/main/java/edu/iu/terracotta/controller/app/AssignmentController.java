@@ -211,6 +211,7 @@ public class AssignmentController {
             Assignment assignmentToChange = assignmentSearchResult.get();
             assignmentToChange.setTitle(assignmentDto.getTitle());
             assignmentToChange.setAssignmentOrder(assignmentDto.getAssignmentOrder());
+            assignmentToChange.setSoftDeleted(assignmentDto.getSoftDeleted());
 
             assignmentService.saveAndFlush(assignmentToChange);
             return new ResponseEntity<>(HttpStatus.OK);

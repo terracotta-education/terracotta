@@ -66,22 +66,25 @@ export default {
 
 			this.updateExperiment(e)
 					.then(response => {
-						if (response.status === 200) {
-							// report the current step
-							this.reportStep({experimentId, step})
-							if (this.experiment.exposureType==='BETWEEN') {
-								this.$router.push({name:'ExperimentDesignDefaultCondition', params:{experiment: experimentId}})
-							} else if(this.experiment.exposureType==='WITHIN') {
-								this.$router.push({name:'ExperimentDesignSummary', params:{experiment: experimentId}})
-							} else {
-								alert("Select an experiment type")
-							}
-						} else {
-							alert("error: ", response.statusText || response.status)
-						}
+            if (typeof response?.status !== "undefined" && response?.status === 200) {
+              // report the current step
+              this.reportStep({experimentId, step})
+              if (this.experiment.exposureType==='BETWEEN') {
+                this.$router.push({name:'ExperimentDesignDefaultCondition', params:{experiment: experimentId}})
+              } else if(this.experiment.exposureType==='WITHIN') {
+                this.$router.push({name:'ExperimentDesignSummary', params:{experiment: experimentId}})
+              } else {
+                alert("Select an experiment type")
+              }
+            } else if (response?.message) {
+              alert(`Error: ${response.message}`)
+            } else {
+              alert('There was an error saving your experiment.')
+            }
 					})
 					.catch(response => {
-						console.log("updateExperiment | catch", {response})
+            console.error("updateExperiment | catch", {response})
+            alert('There was an error saving the experiment.')
 					})
 		}
 	}

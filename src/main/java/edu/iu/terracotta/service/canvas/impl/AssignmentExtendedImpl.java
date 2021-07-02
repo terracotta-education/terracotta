@@ -6,8 +6,6 @@ import edu.iu.terracotta.service.canvas.AssignmentReaderExtended;
 import edu.iu.terracotta.service.canvas.AssignmentWriterExtended;
 import edu.ksu.canvas.impl.BaseImpl;
 import edu.ksu.canvas.interfaces.AssignmentReader;
-import edu.ksu.canvas.interfaces.AssignmentWriter;
-import edu.ksu.canvas.model.assignment.Assignment;
 import edu.ksu.canvas.net.Response;
 import edu.ksu.canvas.net.RestClient;
 import edu.ksu.canvas.oauth.OauthToken;
@@ -68,7 +66,7 @@ public class AssignmentExtendedImpl  extends BaseImpl<AssignmentExtended, Assign
         if (!response.getErrorHappened() && response.getResponseCode() == 200) {
             return this.responseParser.parseToObject(AssignmentExtended.class, response);
         } else {
-            LOG.debug("Failed to delete assignment, error message: " + response.toString());
+            LOG.debug("Failed to delete assignment, error message: " + response);
             return Optional.empty();
         }
     }
