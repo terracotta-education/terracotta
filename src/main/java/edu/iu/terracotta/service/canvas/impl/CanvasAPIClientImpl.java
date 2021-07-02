@@ -14,6 +14,7 @@ import java.util.Optional;
 
 import edu.ksu.canvas.interfaces.SubmissionReader;
 import edu.ksu.canvas.model.assignment.Submission;
+import edu.ksu.canvas.requestOptions.GetSingleAssignmentOptions;
 import edu.ksu.canvas.requestOptions.GetSubmissionsOptions;
 import edu.ksu.canvas.requestOptions.ListCourseAssignmentsOptions;
 import org.springframework.stereotype.Service;
@@ -53,7 +54,7 @@ public class CanvasAPIClientImpl implements CanvasAPIClient {
             return assignmentReader.listCourseAssignments(listCourseAssignmentsOptions);
         } catch (IOException ex){
             throw new CanvasApiException(
-                    "Failed to create Assignment in Canvas course by ID [" + canvasCourseId + "]", ex);
+                    "Failed to get the list of assignments Canvas course [" + canvasCourseId + "]", ex);
         }
     }
 
@@ -66,6 +67,21 @@ public class CanvasAPIClientImpl implements CanvasAPIClient {
         GetSubmissionsOptions submissionsOptions = new GetSubmissionsOptions(canvasCourseId,assignmentId);
         submissionsOptions.includes(Collections.singletonList(GetSubmissionsOptions.Include.USER));
         return submissionReader.getCourseSubmissions(submissionsOptions);
+    }
+
+    @Override
+    public boolean checkAssignmentExists(Integer assignmentId, String canvasCourseId, PlatformDeployment platformDeployment) throws CanvasApiException {
+        try {
+            String canvasBaseUrl = platformDeployment.getBaseUrl();
+            OauthToken oauthToken = new NonRefreshableOauthToken(platformDeployment.getApiToken());
+            CanvasApiFactoryExtended apiFactory = new CanvasApiFactoryExtended(canvasBaseUrl);
+            AssignmentReaderExtended assignmentReader = apiFactory.getReader(AssignmentReaderExtended.class, oauthToken);
+            GetSingleAssignmentOptions getSingleAssignmentsOptions = new GetSingleAssignmentOptions(canvasCourseId, assignmentId);
+            return (assignmentReader.getSingleAssignment(getSingleAssignmentsOptions).isPresent());
+        } catch (IOException ex){
+            throw new CanvasApiException(
+                    "Failed to get the Assignment in Canvas course by ID [" + canvasCourseId + "]", ex);
+        }
     }
 
 }

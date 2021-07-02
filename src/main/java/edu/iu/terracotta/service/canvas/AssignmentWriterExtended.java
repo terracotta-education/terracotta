@@ -1,9 +1,7 @@
 package edu.iu.terracotta.service.canvas;
 
 import edu.iu.terracotta.model.canvas.AssignmentExtended;
-import edu.ksu.canvas.interfaces.AssignmentWriter;
 import edu.ksu.canvas.interfaces.CanvasWriter;
-import edu.ksu.canvas.model.assignment.Assignment;
 
 import java.io.IOException;
 import java.util.Optional;

@@ -2,8 +2,6 @@ package edu.iu.terracotta.service.canvas;
 
 import edu.iu.terracotta.model.canvas.AssignmentExtended;
 import edu.ksu.canvas.interfaces.CanvasReader;
-import edu.ksu.canvas.interfaces.CanvasWriter;
-import edu.ksu.canvas.model.assignment.Assignment;
 import edu.ksu.canvas.requestOptions.GetSingleAssignmentOptions;
 import edu.ksu.canvas.requestOptions.ListCourseAssignmentsOptions;
 import edu.ksu.canvas.requestOptions.ListUserAssignmentOptions;

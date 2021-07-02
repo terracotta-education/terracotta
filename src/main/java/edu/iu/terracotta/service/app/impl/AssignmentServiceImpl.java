@@ -9,7 +9,6 @@ import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.model.ags.LineItem;
 import edu.iu.terracotta.model.ags.LineItems;
 import edu.iu.terracotta.model.app.Assessment;
-import edu.iu.terracotta.model.app.Condition;
 import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.ExposureGroupCondition;
 import edu.iu.terracotta.model.app.Participant;
@@ -18,7 +17,6 @@ import edu.iu.terracotta.model.app.Treatment;
 import edu.iu.terracotta.model.app.dto.AssignmentDto;
 import edu.iu.terracotta.model.app.dto.SubmissionDto;
 import edu.iu.terracotta.model.app.enumerator.DistributionTypes;
-import edu.iu.terracotta.model.app.enumerator.ParticipationTypes;
 import edu.iu.terracotta.model.oauth2.LTIToken;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.AllRepositories;
@@ -27,9 +25,10 @@ import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.GroupService;
 import edu.iu.terracotta.service.app.ParticipantService;
 import edu.iu.terracotta.service.app.SubmissionService;
-import edu.iu.terracotta.service.app.TreatmentService;
+import edu.iu.terracotta.service.canvas.CanvasAPIClient;
 import edu.iu.terracotta.service.lti.AdvantageAGSService;
 import edu.iu.terracotta.utils.TextConstants;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
@@ -64,6 +63,9 @@ public class AssignmentServiceImpl implements AssignmentService {
     ParticipantService participantService;
 
     @Autowired
+    CanvasAPIClient canvasAPIClient;
+
+    @Autowired
     GroupService groupService;
 
     @Override
@@ -81,7 +83,10 @@ public class AssignmentServiceImpl implements AssignmentService {
         assignmentDto.setAssignmentOrder(assignment.getAssignmentOrder());
         assignmentDto.setExposureId(assignment.getExposure().getExposureId());
         assignmentDto.setResourceLinkId(assignment.getResourceLinkId());
-
+        long submissions = allRepositories.submissionRepository.countByAssessment_Treatment_Assignment_AssignmentId(assignment.getAssignmentId());
+        if(submissions > 0){
+            assignmentDto.setStarted(true);
+        }
         return assignmentDto;
     }
 
@@ -231,6 +236,17 @@ public class AssignmentServiceImpl implements AssignmentService {
         } else { //Shouldn't happen
             return new ResponseEntity(TextConstants.EXPERIMENT_NOT_MATCHING, HttpStatus.UNAUTHORIZED);
         }
+    }
+
+    @Override
+    public boolean checkCanvasAssignmentExists(Assignment assignment) throws CanvasApiException {
+        String canvasCourseId = StringUtils.substringBetween(assignment.getExposure().getExperiment().getLtiContextEntity().getContext_memberships_url(), "courses/", "/names");
+        return canvasAPIClient.checkAssignmentExists(Integer.parseInt(assignment.getLmsAssignmentId()), canvasCourseId, assignment.getExposure().getExperiment().getPlatformDeployment() );
+    }
+
+    @Override
+    public Assignment restoreAssignmentInCanvas(Assignment assignment) {
+        return null;
     }
 
     private ResponseEntity<Object> createSubmission(Long experimentId, Assessment assessment, Participant participant, SecuredInfo securedInfo) {

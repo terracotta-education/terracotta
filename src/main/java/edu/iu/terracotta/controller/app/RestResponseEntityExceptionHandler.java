@@ -249,4 +249,14 @@ public class RestResponseEntityExceptionHandler
         return handleExceptionInternal(ex, bodyOfResponse,
                 new HttpHeaders(), HttpStatus.UNAUTHORIZED, request);
     }
+
+    @ExceptionHandler(value = {TitleValidationException.class})
+    protected ResponseEntity<Object> handleTitleValidationException(TitleValidationException ex, WebRequest request) {
+        String bodyOfResponse = ex.getMessage();
+        if(bodyOfResponse.startsWith("Error 100") || bodyOfResponse.startsWith("Error 102")){
+            return handleExceptionInternal(ex, bodyOfResponse, new HttpHeaders(), HttpStatus.CONFLICT, request);
+        } else {
+            return handleExceptionInternal(ex, bodyOfResponse, new HttpHeaders(), HttpStatus.BAD_REQUEST, request);
+        }
+    }
 }

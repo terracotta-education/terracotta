@@ -20,14 +20,14 @@
       >
         <v-row class="mr-2">
           <v-card-title class="col-10">
-            {{ condition.name }} will receive something
+            {{ condition.name }} will receive
           </v-card-title>
           <v-text-field
             class="textfield"
             outlined
             suffix="%"
             v-model="distributionValue[index]"
-            :rules="[(value) => !!value || 'Required']"
+            :rules="[(value) => value && !!value.trim() || 'Required']"
             required
           ></v-text-field>
         </v-row>

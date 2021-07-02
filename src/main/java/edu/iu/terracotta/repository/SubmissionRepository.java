@@ -1,6 +1,5 @@
 package edu.iu.terracotta.repository;
 
-import edu.iu.terracotta.model.app.Assignment;
 import edu.iu.terracotta.model.app.Submission;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -14,6 +13,8 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long> {
     List<Submission> findByAssessment_AssessmentId(Long assessmentId);
 
     List<Submission> findByParticipant_ParticipantId(Long participantId);
+
+    long countByAssessment_Treatment_Assignment_AssignmentId(Long assignmentId);
 
     Optional<Submission> findByParticipant_ParticipantIdAndSubmissionId(Long participantId, Long submissionId);
 

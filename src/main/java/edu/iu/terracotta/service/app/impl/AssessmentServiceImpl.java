@@ -55,11 +55,14 @@ public class AssessmentServiceImpl implements AssessmentService {
         }
         assessmentDto.setQuestions(questionDtoList);
         List<SubmissionDto> submissionDtoList = new ArrayList<>();
+        List<Submission> submissionList =  allRepositories.submissionRepository.findByAssessment_AssessmentId(assessment.getAssessmentId());
         if(submissions){
-            List<Submission> submissionList =  allRepositories.submissionRepository.findByAssessment_AssessmentId(assessment.getAssessmentId());
             for(Submission submission : submissionList){
                 submissionDtoList.add(submissionService.toDto(submission, false,false));
             }
+        }
+        if(!submissionList.isEmpty()){
+            assessmentDto.setStarted(true);
         }
         assessmentDto.setSubmissions(submissionDtoList);
         assessmentDto.setTreatmentId(assessment.getTreatment().getTreatmentId());

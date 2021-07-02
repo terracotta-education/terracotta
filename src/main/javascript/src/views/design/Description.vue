@@ -59,7 +59,7 @@ export default {
 	props: ['experiment'],
 	data: () => ({
 		requiredText: [
-			v => !!v || 'Description is required'
+			v => v && !!v.trim() || 'Description is required'
 		],
 		slide: 0,
 		blurbs: [
