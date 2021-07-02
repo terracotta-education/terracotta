@@ -1,8 +1,14 @@
 package edu.iu.terracotta.service.app.impl;
 
+import edu.iu.terracotta.controller.app.AssessmentController;
+import edu.iu.terracotta.exceptions.CanvasApiException;
+import edu.iu.terracotta.exceptions.ConnectionException;
+import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.app.ScheduledService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -12,11 +18,23 @@ import java.time.format.DateTimeFormatter;
 @Service
 public class ScheduledServiceImpl implements ScheduledService {
 
-    private static final Logger log = LoggerFactory.getLogger(ScheduledServiceImpl.class);
+    static final Logger log = LoggerFactory.getLogger(ScheduledServiceImpl.class);
     private static final DateTimeFormatter dateTimeFormatter= DateTimeFormatter.ofPattern("HH:mm:ss");
+
+    @Autowired
+    AssignmentService assignmentService;
 
     @Scheduled(cron = "${scheduled.hello.cron:0 0 0 * * ?}")
     public void hello(){
         log.info("Hello :: Execution Time - {} ", dateTimeFormatter.format(LocalDateTime.now()));
     }
+
+    @Scheduled(cron = "${scheduled.restoredeletedassignments.cron:0 0 3 * * ?}")
+    public void restoreDeletedAssignments() throws DataServiceException, CanvasApiException, ConnectionException {
+        log.info("Restoring Assignments :: Starting - {} ", dateTimeFormatter.format(LocalDateTime.now()));
+        assignmentService.checkAndRestoreAllAssignmentsInCanvas();
+        log.info("Restoring Assignments :: Ended - {} ", dateTimeFormatter.format(LocalDateTime.now()));
+    }
+
+
 }

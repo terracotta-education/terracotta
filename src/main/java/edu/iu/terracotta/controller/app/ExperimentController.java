@@ -265,14 +265,14 @@ public class ExperimentController {
             }
             if (experimentDto.getParticipationType() != null) {
                 if (EnumUtils.isValidEnum(ParticipationTypes.class, experimentDto.getParticipationType())) {
-                experimentToChange.setParticipationType(
-                        EnumUtils.getEnum(ParticipationTypes.class, experimentDto.getParticipationType()));
+                    experimentToChange.setParticipationType(
+                            EnumUtils.getEnum(ParticipationTypes.class, experimentDto.getParticipationType()));
                 } else {
                     throw new WrongValueException(experimentDto.getParticipationType() + " is not a valid Participation value");
                 }
             }
+            experimentToChange.setClosed(experimentDto.getClosed());
             experimentToChange.setStarted(experimentDto.getStarted());
-
             experimentService.saveAndFlush(experimentToChange);
             return new ResponseEntity<>(HttpStatus.OK);
         } else {

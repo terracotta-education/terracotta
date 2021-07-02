@@ -86,6 +86,9 @@ public class Experiment extends BaseEntity {
     @ManyToOne
     private LtiUserEntity createdBy;
 
+    @Column(name = "closed")
+    private Timestamp closed;
+
     public LtiUserEntity getCreatedBy() {
         return createdBy;
     }
@@ -190,5 +193,13 @@ public class Experiment extends BaseEntity {
 
     public void setParticipants(List<Participant> participants) {
         this.participants = participants;
+    }
+
+    public Timestamp getClosed() {
+        return closed;
+    }
+
+    public void setClosed(Timestamp closed) {
+        this.closed = closed;
     }
 }

@@ -3,6 +3,7 @@ package edu.iu.terracotta.model.app.dto;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.List;
 
@@ -29,6 +30,7 @@ public class ExperimentDto {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<ParticipantDto> participants;
     private Long createdBy;
+    private Timestamp closed;
 
 
     public ExperimentDto() {
@@ -144,5 +146,13 @@ public class ExperimentDto {
 
     public void setCreatedBy(Long createdBy) {
         this.createdBy = createdBy;
+    }
+
+    public Timestamp getClosed() {
+        return closed;
+    }
+
+    public void setClosed(Timestamp closed) {
+        this.closed = closed;
     }
 }

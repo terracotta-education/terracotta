@@ -6,6 +6,7 @@ import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
+import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.model.ags.LineItem;
 import edu.iu.terracotta.model.ags.LineItems;
 import edu.iu.terracotta.model.app.Assessment;
@@ -17,9 +18,11 @@ import edu.iu.terracotta.model.app.Treatment;
 import edu.iu.terracotta.model.app.dto.AssignmentDto;
 import edu.iu.terracotta.model.app.dto.SubmissionDto;
 import edu.iu.terracotta.model.app.enumerator.DistributionTypes;
+import edu.iu.terracotta.model.canvas.AssignmentExtended;
 import edu.iu.terracotta.model.oauth2.LTIToken;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.AllRepositories;
+import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.GroupService;
@@ -29,7 +32,10 @@ import edu.iu.terracotta.service.canvas.CanvasAPIClient;
 import edu.iu.terracotta.service.lti.AdvantageAGSService;
 import edu.iu.terracotta.utils.TextConstants;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -41,6 +47,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.IOException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -68,6 +75,17 @@ public class AssignmentServiceImpl implements AssignmentService {
     @Autowired
     GroupService groupService;
 
+    @Autowired
+    APIJWTService apijwtService;
+
+    @Value("${application.url}")
+    private String localUrl;
+
+
+
+
+    static final Logger log = LoggerFactory.getLogger(AssignmentServiceImpl.class);
+
     @Override
     public List<Assignment> findAllByExposureId(long exposureId) {
         return allRepositories.assignmentRepository.findByExposure_ExposureId(exposureId);
@@ -83,6 +101,7 @@ public class AssignmentServiceImpl implements AssignmentService {
         assignmentDto.setAssignmentOrder(assignment.getAssignmentOrder());
         assignmentDto.setExposureId(assignment.getExposure().getExposureId());
         assignmentDto.setResourceLinkId(assignment.getResourceLinkId());
+        assignmentDto.setSoftDeleted(assignment.getSoftDeleted());
         long submissions = allRepositories.submissionRepository.countByAssessment_Treatment_Assignment_AssignmentId(assignment.getAssignmentId());
         if(submissions > 0){
             assignmentDto.setStarted(true);
@@ -98,6 +117,7 @@ public class AssignmentServiceImpl implements AssignmentService {
         assignment.setAssignmentId(assignmentDto.getAssignmentId());
         assignment.setTitle(assignmentDto.getTitle());
         assignment.setAssignmentOrder(assignmentDto.getAssignmentOrder());
+        assignment.setSoftDeleted(assignmentDto.getSoftDeleted());
         Optional<Exposure> exposure = allRepositories.exposureRepository.findById(assignmentDto.getExposureId());
         if(exposure.isPresent()) {
             assignment.setExposure(exposure.get());
@@ -239,14 +259,68 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     @Override
-    public boolean checkCanvasAssignmentExists(Assignment assignment) throws CanvasApiException {
-        String canvasCourseId = StringUtils.substringBetween(assignment.getExposure().getExperiment().getLtiContextEntity().getContext_memberships_url(), "courses/", "/names");
-        return canvasAPIClient.checkAssignmentExists(Integer.parseInt(assignment.getLmsAssignmentId()), canvasCourseId, assignment.getExposure().getExperiment().getPlatformDeployment() );
+    public void checkAndRestoreAllAssignmentsInCanvas() throws CanvasApiException, DataServiceException, ConnectionException {
+        List<PlatformDeployment> allDeployments = allRepositories.platformDeploymentRepository.findAll();
+        for (PlatformDeployment platformDeployment:allDeployments){
+            checkAndRestoreAssignmentsInCanvas(platformDeployment.getKeyId());
+        }
     }
 
     @Override
-    public Assignment restoreAssignmentInCanvas(Assignment assignment) {
-        return null;
+    public void checkAndRestoreAssignmentsInCanvas(Long platformDeploymentKeyId) throws CanvasApiException, DataServiceException, ConnectionException {
+        List<Assignment> assignmentsToCheck = allRepositories.assignmentRepository.findAssignmentsToCheckByPlatform(platformDeploymentKeyId);
+        for (Assignment assignment:assignmentsToCheck){
+            if (!checkCanvasAssignmentExists(assignment)){
+                restoreAssignmentInCanvas(assignment);
+            }
+        }
+    }
+
+    @Override
+    public void checkAndRestoreAssignmentsInCanvasByContext(Long contextId) throws CanvasApiException, DataServiceException, ConnectionException {
+        List<Assignment> assignmentsToCheck = allRepositories.assignmentRepository.findAssignmentsToCheckByContext(contextId);
+        for (Assignment assignment:assignmentsToCheck){
+            if (!checkCanvasAssignmentExists(assignment)){
+                restoreAssignmentInCanvas(assignment);
+            }
+        }
+    }
+
+    @Override
+    public boolean checkCanvasAssignmentExists(Assignment assignment) throws CanvasApiException {
+        String canvasCourseId = StringUtils.substringBetween(assignment.getExposure().getExperiment().getLtiContextEntity().getContext_memberships_url(), "courses/", "/names");
+        return canvasAPIClient.checkAssignmentExists(Integer.parseInt(assignment.getLmsAssignmentId()), canvasCourseId, assignment.getExposure().getExperiment().getPlatformDeployment() ).isPresent();
+    }
+
+    @Override
+    public Assignment restoreAssignmentInCanvas(Assignment assignment) throws CanvasApiException, DataServiceException, ConnectionException {
+        //1 Create the new Assignment in Canvas
+        AssignmentExtended canvasAssignment = new AssignmentExtended();
+        edu.ksu.canvas.model.assignment.Assignment.ExternalToolTagAttribute canvasExternalToolTagAttributes = canvasAssignment.new ExternalToolTagAttribute();
+        canvasExternalToolTagAttributes.setUrl(localUrl + "/lti3?assignment=" + assignment.getAssignmentId());
+        canvasAssignment.setExternalToolTagAttributes(canvasExternalToolTagAttributes);
+        canvasAssignment.setName(assignment.getTitle());
+        canvasAssignment.setDescription("Hardcoded description to be updated");
+        //TODO... if we restore it... should we publish it? Only if it has submissions.
+        long submissions = allRepositories.submissionRepository.countByAssessment_Treatment_Assignment_AssignmentId(assignment.getAssignmentId());
+        canvasAssignment.setPublished(submissions > 0);
+        canvasAssignment.setPointsPossible(100.0);
+        canvasAssignment.setSubmissionTypes(Collections.singletonList("external_tool"));
+        String canvasCourseId = StringUtils.substringBetween(assignment.getExposure().getExperiment().getLtiContextEntity().getContext_memberships_url(), "courses/", "/names");
+
+        Optional<AssignmentExtended> canvasAssignmentReturned = canvasAPIClient.createCanvasAssignment(canvasAssignment,
+                canvasCourseId,
+                assignment.getExposure().getExperiment().getPlatformDeployment());
+        assignment.setLmsAssignmentId(Integer.toString(canvasAssignmentReturned.get().getId()));
+        String jwtTokenAssignment = canvasAssignmentReturned.get().getSecureParams();
+        String resourceLinkId = apijwtService.unsecureToken(jwtTokenAssignment).getBody().get("lti_assignment_id").toString();
+        assignment.setResourceLinkId(resourceLinkId);
+        save(assignment);
+
+        // Now we should send the grades back to canvas...
+        sendAssignmentGradeToCanvas(assignment);
+
+        return assignment;
     }
 
     private ResponseEntity<Object> createSubmission(Long experimentId, Assessment assessment, Participant participant, SecuredInfo securedInfo) {
