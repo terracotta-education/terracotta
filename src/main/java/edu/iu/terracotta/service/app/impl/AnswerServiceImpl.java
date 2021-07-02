@@ -8,10 +8,14 @@ import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.AnswerService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.servlet.function.ServerRequest;
+import org.springframework.web.util.UriComponentsBuilder;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -26,8 +30,21 @@ public class AnswerServiceImpl implements AnswerService {
     MULTIPLE CHOICE
      */
     @Override
-    public List<AnswerMc> findAllByQuestionIdMC(Long questionId) {
-        return allRepositories.answerMcRepository.findByQuestion_QuestionId(questionId);
+    public List<AnswerDto> findAllByQuestionIdMC(Long questionId, boolean student) {
+        List<AnswerMc> answerList = allRepositories.answerMcRepository.findByQuestion_QuestionId(questionId);
+        List<AnswerDto> answerDtoList = new ArrayList<>();
+        if(!answerList.isEmpty()){
+            for(AnswerMc answerMc : answerList){
+                answerDtoList.add(toDtoMC(answerMc, student));
+            }
+        }
+        return answerDtoList;
+    }
+
+    @Override
+    public AnswerDto getAnswerMC(Long answerId, boolean student){
+        AnswerMc answerMc = allRepositories.answerMcRepository.findByAnswerMcId(answerId);
+        return toDtoMC(answerMc, student);
     }
 
     @Override
@@ -71,12 +88,26 @@ public class AnswerServiceImpl implements AnswerService {
     public Optional<AnswerMc> findByIdMC(Long id) { return allRepositories.answerMcRepository.findById(id); }
 
     @Override
+    public AnswerMc findByAnswerId(Long answerId) { return allRepositories.answerMcRepository.findByAnswerMcId(answerId); }
+
+    @Override
     public Optional<AnswerMc> findByQuestionIdAndAnswerId(Long questionId, Long answerId) {
         return allRepositories.answerMcRepository.findByQuestion_QuestionIdAndAnswerMcId(questionId, answerId);
     }
 
     @Override
-    public void saveAndFlushMC(AnswerMc answerTOChange) { allRepositories.answerMcRepository.saveAndFlush(answerTOChange); }
+    public void saveAndFlushMC(AnswerMc answerToChange) { allRepositories.answerMcRepository.saveAndFlush(answerToChange); }
+
+    @Override
+    public AnswerMc updateAnswerMC(AnswerMc answerMc, AnswerDto answerDto){
+        if(answerDto.getHtml() != null)
+            answerMc.setHtml(answerDto.getHtml());
+        if(answerDto.getAnswerOrder() != null)
+            answerMc.setAnswerOrder(answerDto.getAnswerOrder());
+        if(answerDto.getCorrect() != null)
+            answerMc.setCorrect(answerDto.getCorrect());
+        return answerMc;
+    }
 
     @Override
     @Transactional
@@ -95,6 +126,20 @@ public class AnswerServiceImpl implements AnswerService {
         return "Answer in platform " + securedInfo.getPlatformDeploymentId() + " and context " + securedInfo.getContextId()
                 + " and experiment with id " + experimentId + " and condition id " + conditionId + " and treatment id " + treatmentId + " and assessment id " + assessmentId
                 + " and question id " + questionId + " with id " + answerId + " not found.";
+    }
+
+    @Override
+    public String getQuestionType(Long questionId){
+        return allRepositories.questionRepository.findByQuestionId(questionId).getQuestionType().toString();
+    }
+
+    @Override
+    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId, Long questionId, Long answerId){
+        HttpHeaders headers = new HttpHeaders();
+        headers.setLocation(ucBuilder.path(
+                "/api/experiments/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/questions/{question_id}/answers/{answer_id}")
+                .buildAndExpand(experimentId, conditionId, treatmentId, assessmentId, questionId, answerId).toUri());
+        return headers;
     }
 
 }

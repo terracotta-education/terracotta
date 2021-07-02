@@ -1,6 +1,5 @@
 package edu.iu.terracotta.repository;
 
-import edu.iu.terracotta.model.app.Assignment;
 import edu.iu.terracotta.model.app.Submission;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;

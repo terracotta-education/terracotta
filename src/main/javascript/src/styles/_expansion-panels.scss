@@ -4,6 +4,11 @@
             border-color: map-get($light-blue, 'base') !important;
         }
     }
+    &--outlined {
+        .v-expansion-panel {
+            border: 2px solid map-get($grey, 'lighten-2');
+        }
+    }
     &--icon {
         .v-expansion-panel {
             padding: 30px;

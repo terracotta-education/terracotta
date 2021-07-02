@@ -1,15 +1,18 @@
 package edu.iu.terracotta.service.app;
 
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.model.app.Condition;
 import edu.iu.terracotta.model.app.dto.ConditionDto;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.http.HttpHeaders;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
 import java.util.Optional;
 
 public interface ConditionService {
-    List<Condition> findAllByExperimentId(long experimentId);
+    List<ConditionDto> findAllByExperimentId(long experimentId);
 
     ConditionDto toDto(Condition condition);
 
@@ -19,7 +22,13 @@ public interface ConditionService {
 
     Optional<Condition> findById(Long id);
 
+    Condition findByConditionId(Long conditionId);
+
+    ConditionDto getCondition(Long id);
+
     void saveAndFlush(Condition conditionToChange);
+
+    Condition updateCondition(Condition condition, ConditionDto conditionDto);
 
     void saveAllConditions(List<Condition> conditionList);
 
@@ -29,5 +38,11 @@ public interface ConditionService {
 
     boolean nameAlreadyExists(String name, Long experimentId, Long conditionId);
 
+    boolean duplicateNameInPut(List<Condition> conditions, Condition condition);
+
     boolean isDefaultCondition(Long conditionId);
+
+    HttpHeaders buildHeader(UriComponentsBuilder ucBuilder, Long experimentId, Long conditionId);
+
+    void validateConditionName(String conditionName, String dtoName, Long experimentId, Long conditionId, boolean required) throws TitleValidationException;
 }

@@ -108,7 +108,7 @@ public class StepsController {
                 }
                 return new ResponseEntity<>(HttpStatus.OK);
             case STUDENT_SUBMISSION: //Mark the submission as finished and calculate the automatic grade.
-                List<String> submissionsId = new ArrayList<>();
+                List<String> submissionsId;
                 if (stepDto.getParameters()!=null) {
                     submissionsId = Collections.arrayToList(StringUtils.split(stepDto.getParameters().get("submissionIds"),","));
                     if (submissionsId.isEmpty()){
@@ -136,7 +136,7 @@ public class StepsController {
                 return new ResponseEntity<>(HttpStatus.OK);
 
             case POST_ASSIGNMENT:
-                List<String> assignmentsId = new ArrayList<>();
+                List<String> assignmentsId;
                 if (stepDto.getParameters()!=null) {
                     assignmentsId = Collections.arrayToList(StringUtils.split(stepDto.getParameters().get("assignmentIds"),","));
                     if (assignmentsId.isEmpty()){
