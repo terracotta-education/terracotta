@@ -12,8 +12,12 @@
  */
 package edu.iu.terracotta.controller.lti;
 
+import edu.iu.terracotta.exceptions.CanvasApiException;
+import edu.iu.terracotta.exceptions.ConnectionException;
+import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.repository.LtiContextRepository;
 import edu.iu.terracotta.repository.LtiLinkRepository;
+import edu.iu.terracotta.service.app.AssignmentService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.SignatureException;
@@ -63,10 +67,13 @@ public class LTI3Controller {
     LTIDataService ltiDataService;
 
     @Autowired
+    AssignmentService assignmentService;
+
+    @Autowired
     LtiContextRepository ltiContextRepository;
 
     @RequestMapping({"", "/"})
-    public String home(HttpServletRequest req, Principal principal, Model model) {
+    public String home(HttpServletRequest req, Principal principal, Model model) throws DataServiceException, CanvasApiException, ConnectionException {
 
         //First we will get the state, validate it
         String state = req.getParameter("state");
@@ -125,6 +132,7 @@ public class LTI3Controller {
                 String oneTimeToken = apiJWTService.buildJwt(
                         true,
                         lti3Request);
+                assignmentService.checkAndRestoreAssignmentsInCanvasByContext(lti3Request.getContext().getContextId());
                 return "redirect:/app/app.html?token=" + oneTimeToken;
             }
         } catch (SignatureException ex) {

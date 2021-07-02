@@ -47,6 +47,6 @@ public interface AssignmentService {
 
     boolean checkCanvasAssignmentExists(Assignment assignment) throws CanvasApiException;
 
-    Assignment restoreAssignmentInCanvas(Assignment assignment);
+    Assignment restoreAssignmentInCanvas(Assignment assignment) throws CanvasApiException, DataServiceException, ConnectionException;
 
 }
