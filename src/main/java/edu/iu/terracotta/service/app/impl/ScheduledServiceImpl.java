@@ -4,6 +4,7 @@ import edu.iu.terracotta.controller.app.AssessmentController;
 import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.service.app.APIDataService;
 import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.app.ScheduledService;
 import org.slf4j.Logger;
@@ -24,6 +25,9 @@ public class ScheduledServiceImpl implements ScheduledService {
     @Autowired
     AssignmentService assignmentService;
 
+    @Autowired
+    APIDataService apiDataService;
+
     @Scheduled(cron = "${scheduled.hello.cron:0 0 0 * * ?}")
     public void hello(){
         log.info("Hello :: Execution Time - {} ", dateTimeFormatter.format(LocalDateTime.now()));
@@ -34,6 +38,13 @@ public class ScheduledServiceImpl implements ScheduledService {
         log.info("Restoring Assignments :: Starting - {} ", dateTimeFormatter.format(LocalDateTime.now()));
         assignmentService.checkAndRestoreAllAssignmentsInCanvas();
         log.info("Restoring Assignments :: Ended - {} ", dateTimeFormatter.format(LocalDateTime.now()));
+    }
+
+    @Scheduled(cron = "${scheduled.deleteoldtokens.cron:0 0 1 * * ?}")
+    public void deleteOldTokens(){
+        log.info("Deleting Old Tokens :: Starting - {} ", dateTimeFormatter.format(LocalDateTime.now()));
+        apiDataService.cleanOldTokens();
+        log.info("Deleting Old Tokens :: Ended - {} ", dateTimeFormatter.format(LocalDateTime.now()));
     }
 
 

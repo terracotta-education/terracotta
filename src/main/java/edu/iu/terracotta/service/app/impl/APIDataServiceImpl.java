@@ -20,6 +20,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Date;
+
 /**
  * This manages all the access to data related with the main APP
  */
@@ -54,6 +56,11 @@ public class APIDataServiceImpl implements APIDataService {
         } else {
             return false;
         }
+    }
+
+    @Override
+    public void cleanOldTokens() {
+        repos.apiOneUseTokenRepository.deleteByCreatedAtBefore(new Date(System.currentTimeMillis()-24*60*60*1000));
     }
 
 }
