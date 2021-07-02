@@ -1,64 +1,65 @@
-import { authHeader } from '@/helpers'
+import {authHeader, isJson} from '@/helpers'
 import store from '@/store/index.js'
 
 /**
  * Register methods
  */
 export const experimentService = {
-    getAll,
-    getById,
-    create,
-    update,
-    delete: _delete
+  getAll,
+  getById,
+  create,
+  update,
+  delete: _delete
 }
 
 /**
  * Get all Experiments
  */
 function getAll() {
-    const requestOptions = {
-        method: 'GET',
-        headers: authHeader()
-    }
+  const requestOptions = {
+    method: 'GET',
+    headers: authHeader()
+  }
 
-    return fetch(`${store.getters['api/aud']}/api/experiments`, requestOptions).then(handleResponse)
+  return fetch(`${store.getters['api/aud']}/api/experiments`, requestOptions).then(handleResponse)
 }
 
 /**
  * Create Experiment
  */
 function create() {
-    const requestOptions = {
-        method: 'POST',
-        headers: { ...authHeader(), 'Content-Type': 'application/json' },
-        body: JSON.stringify({})
-    }
+  const requestOptions = {
+    method: 'POST',
+    headers: {...authHeader(), 'Content-Type': 'application/json'},
+    body: JSON.stringify({})
+  }
 
-    return fetch(`${store.getters['api/aud']}/api/experiments`, requestOptions).then(handleResponse)
+  return fetch(`${store.getters['api/aud']}/api/experiments`, requestOptions).then(handleResponse)
 }
 
 /**
  * Get individual Experiment
  */
 function getById(experiment_id) {
-    const requestOptions = {
-        method: 'GET',
-        headers: { ...authHeader() },
-    }
+  const requestOptions = {
+    method: 'GET',
+    headers: {...authHeader()},
+  }
 
-    return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}?conditions=true`, requestOptions).then(handleResponse)
+  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}?conditions=true`, requestOptions).then(handleResponse)
 }
+
 /**
  * Update Experiment
  */
 function update(experiment) {
-    const requestOptions = {
-        method: 'PUT',
-        headers: { ...authHeader() },
-        body: JSON.stringify(experiment)
-    }
+  const requestOptions = {
+    method: 'PUT',
+    headers: {...authHeader()},
+    body: JSON.stringify(experiment)
+  }
 
-    return fetch(`${store.getters['api/aud']}/api/experiments/${experiment.experimentId}`, requestOptions).then(handleResponse)
+  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment.experimentId}`, requestOptions).then(handleResponse)
 }
 
 /**
@@ -67,37 +68,41 @@ function update(experiment) {
  * (Prefixed function name with underscore because delete is a reserved word in javascript)
  */
 function _delete(id) {
-    const requestOptions = {
-        method: 'DELETE',
-        headers: authHeader()
-    }
+  const requestOptions = {
+    method: 'DELETE',
+    headers: authHeader()
+  }
 
-    return fetch(`${store.getters['api/aud']}/api/experiments/${id}`, requestOptions).then(handleResponse)
+  return fetch(`${store.getters['api/aud']}/api/experiments/${id}`, requestOptions).then(handleResponse)
 }
 
 /**
  * Handle API response
  */
 function handleResponse(response) {
-    return response.text()
-        .then(text => {
-            const data = text && JSON.parse(text)
+  return response.text()
+    .then((text) => {
+      const data = (text && isJson(text)) ? JSON.parse(text) : text
 
-            if (!response || !response.ok) {
-                if (response.status === 401 || response.status === 402 || response.status === 500) {
-                    console.log('handleResponse | 401/402/500',{response})
-                } else if (response.status===404) {
-                    console.log('handleResponse | 404',{response})
-                }
+      if (
+        !response ||
+        response.status === 401 ||
+        response.status === 402 ||
+        response.status === 500 ||
+        response.status === 404
+      ) {
+        console.log('handleResponse | 401/402/500', {response})
+      } else if (response.status === 409) {
+        return {
+          message: data
+        }
+      } else if (response.status === 204) {
+        console.log('handleResponse | 204', {text, data, response})
+        return []
+      }
 
-                return response
-            } else if (response.status===204) {
-                console.log('handleResponse | 204',{text,data,response})
-                return []
-            }
-
-            return data || response
-        }).catch(text => {
-            console.log('handleResponse | catch',{text})
-        })
+      return data || response
+    }).catch(text => {
+      console.log('handleResponse | catch', {text})
+    })
 }

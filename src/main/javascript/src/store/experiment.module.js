@@ -24,7 +24,10 @@ const actions = {
   },
   updateExperiment: ({commit}, experiment) => {
     return experimentService.update(experiment)
-      .then(commit('setExperiment', experiment))
+      .then(response => {
+        commit('setExperiment', experiment)
+        return response
+      })
       .catch(response => console.log('updateExperiment | catch', {response}))
   },
   deleteExperiment: ({commit}, experimentId) => {

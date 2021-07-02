@@ -54,26 +54,29 @@ export default {
 
 			this.updateExperiment(e)
 					.then(response => {
-						if (response.status === 200) {
-							// report the current step
-							this.reportStep({experimentId, step})
+            if (typeof response?.status !== "undefined" && response?.status === 200) {
+              // report the current step
+              this.reportStep({experimentId, step})
 
-							// route based on participation type selection
-							if (e.participationType==='CONSENT') {
-								this.$router.push({name:'ParticipationTypeConsentOverview', params:{experiment: experimentId}})
-							} else if(e.participationType==='MANUAL') {
-								this.$router.push({name:'ParticipationTypeManual', params:{experiment: experimentId}})
-							} else if(e.participationType==='AUTO') {
-								this.$router.push({name:'ParticipationTypeAutoConfirm', params:{experiment:experimentId}})
-							} else {
-								alert("Select a participation type")
-							}
-						} else {
-							alert("error: ", response.statusText || response.status)
-						}
+              // route based on participation type selection
+              if (e.participationType==='CONSENT') {
+                this.$router.push({name:'ParticipationTypeConsentOverview', params:{experiment: experimentId}})
+              } else if(e.participationType==='MANUAL') {
+                this.$router.push({name:'ParticipationTypeManual', params:{experiment: experimentId}})
+              } else if(e.participationType==='AUTO') {
+                this.$router.push({name:'ParticipationTypeAutoConfirm', params:{experiment:experimentId}})
+              } else {
+                alert("Select a participation type")
+              }
+            } else if (response?.message) {
+              alert(`Error: ${response.message}`)
+            } else {
+              alert('There was an error saving your experiment.')
+            }
 					})
 					.catch(response => {
-						console.log("updateExperiment | catch", {response})
+            console.error("updateExperiment | catch", {response})
+            alert('There was an error saving the experiment.')
 					})
 		}
 	}
