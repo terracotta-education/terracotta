@@ -15,11 +15,5 @@
             <column name="soft_deleted" type="BOOLEAN"/>
         </addColumn>
     </changeSet>
-    <changeSet id="1625238733204-3" author="ddelblanco (generated)">
-        <addForeignKeyConstraint baseColumnNames="condition_condition_id" baseTableName="terr_exposure_group_condition"
-                                 constraintName="FK_TERR_EXPOSURE_GROUP_CONDITION_ON_CONDITION_CONDITION"
-                                 onDelete="CASCADE"
-                                 referencedColumnNames="condition_id" referencedTableName="terr_condition"/>
-    </changeSet>
 
 </databaseChangeLog>
