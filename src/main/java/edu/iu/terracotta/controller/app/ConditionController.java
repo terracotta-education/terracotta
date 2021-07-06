@@ -2,6 +2,7 @@ package edu.iu.terracotta.controller.app;
 
 import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.ConditionNotMatchingException;
+import edu.iu.terracotta.exceptions.ConditionsLockedException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentLockedException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
@@ -84,12 +85,13 @@ public class ConditionController {
                                                       @RequestBody ConditionDto conditionDto,
                                                       UriComponentsBuilder ucBuilder,
                                                       HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, ExperimentLockedException, TitleValidationException {
+            throws ExperimentNotMatchingException, BadTokenException, ExperimentLockedException, TitleValidationException, ConditionsLockedException {
 
         log.info("Creating Condition : {}", conditionDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentLocked(experimentId,true);
         apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.conditionsLocked(experimentId,true);
 
         if(apijwtService.isInstructorOrHigher(securedInfo)) {
             if (conditionDto.getConditionId() != null){
@@ -174,10 +176,11 @@ public class ConditionController {
     public ResponseEntity<Void> deleteExperiment(@PathVariable("experiment_id") Long experimentId,
                                                  @PathVariable("condition_id") Long conditionId,
                                                  HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, ConditionNotMatchingException, ExperimentLockedException {
+            throws ExperimentNotMatchingException, BadTokenException, ConditionNotMatchingException, ExperimentLockedException, ConditionsLockedException {
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentLocked(experimentId,true);
         apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.conditionsLocked(experimentId,true);
         apijwtService.conditionAllowed(securedInfo, experimentId, conditionId);
 
         if(apijwtService.isInstructorOrHigher(securedInfo)) {

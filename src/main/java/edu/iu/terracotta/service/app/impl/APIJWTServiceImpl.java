@@ -14,6 +14,8 @@ package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.exceptions.*;
 import edu.iu.terracotta.model.app.Experiment;
+import edu.iu.terracotta.model.app.enumerator.ExposureTypes;
+import edu.iu.terracotta.model.app.enumerator.ParticipationTypes;
 import edu.iu.terracotta.model.oauth2.Roles;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.*;
@@ -408,12 +410,31 @@ public class APIJWTServiceImpl implements APIJWTService {
         if (experiment.isPresent()){
             if (experiment.get().getStarted()!=null){
                 if (throwException) {
-                    throw new ExperimentLockedException("The experiment has started and can't be modified");
+                    throw new ExperimentLockedException("Error 110: The experiment has started and can't be modified");
                 } else {
                     return true;
                 }
             } else {
                 return false;
+            }
+        } else {
+            throw new ExperimentNotMatchingException("The experiment with id " + experimentId + " does not exist");
+        }
+    }
+
+    @Override
+    public boolean conditionsLocked(Long experimentId, boolean throwException) throws ConditionsLockedException, ExperimentNotMatchingException {
+
+        Optional<Experiment> experiment = experimentService.findById(experimentId);
+        if (experiment.isPresent()){
+            if (experiment.get().getExposureType().equals(ExposureTypes.NOSET)) {
+                return false;
+            } else {
+                if (throwException) {
+                    throw new ConditionsLockedException("Error 111: The conditions can't be modified at this point");
+                } else {
+                    return true;
+                }
             }
         } else {
             throw new ExperimentNotMatchingException("The experiment with id " + experimentId + " does not exist");

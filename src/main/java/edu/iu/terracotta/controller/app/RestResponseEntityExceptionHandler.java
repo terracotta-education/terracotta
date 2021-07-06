@@ -259,4 +259,13 @@ public class RestResponseEntityExceptionHandler
             return handleExceptionInternal(ex, bodyOfResponse, new HttpHeaders(), HttpStatus.BAD_REQUEST, request);
         }
     }
+
+    @ExceptionHandler(value
+            = {ConditionsLockedException.class})
+    protected ResponseEntity<Object> handleConditionsLockedException(
+            ConditionsLockedException ex, WebRequest request) {
+        String bodyOfResponse = ex.getMessage();
+        return handleExceptionInternal(ex, bodyOfResponse,
+                new HttpHeaders(), HttpStatus.CONFLICT, request);
+    }
 }
