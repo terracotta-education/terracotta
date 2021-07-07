@@ -65,10 +65,17 @@ function handleResponse(response) {
         const data = text && JSON.parse(text)
 
         if (!response || !response.ok) {
-            if (response.status === 401 || response.status === 402 || response.status === 500) {
-                console.log('handleResponse | 401/402/500',{response})
-            } else if (response.status===404) {
-                console.log('handleResponse | 404',{response})
+            if (
+              response.status === 401 ||
+              response.status === 402 ||
+              response.status === 500 ||
+              response.status===404
+            ) {
+                console.log('handleResponse | 401/402/404/500',{response})
+            } else if (response.status === 409) {
+                return {
+                    message: data
+                }
             }
 
             return response
