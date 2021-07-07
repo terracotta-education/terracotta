@@ -32,6 +32,11 @@ export default {
     numExposureSets() {
       return this.$route.params.numberOfExperimentSets;
     }
+  },
+  methods: {
+    saveExit() {
+				console.log('Hello World2!')
+			}
   }
 };
 </script>

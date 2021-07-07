@@ -39,5 +39,10 @@
 export default {
   name: "ParticipationTypeManual",
   props: ["experiment"],
+  methods: {
+    saveExit() {
+				console.log('Hello World2!')
+			}
+  }
 };
 </script>

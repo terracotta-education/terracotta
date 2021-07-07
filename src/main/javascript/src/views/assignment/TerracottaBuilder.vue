@@ -10,5 +10,10 @@
 <script>
 export default {
   name: 'TerracottaBuilder',
+  methods: {
+    saveExit() {
+				console.log('Hello World2!')
+			}
+  }
 };
 </script>

@@ -12,5 +12,10 @@
 
 export default {
 	name: 'ParticipationIntro',
+	methods: {
+		saveExit() {
+				console.log('Hello World2!')
+			}
+	}
 }
 </script>

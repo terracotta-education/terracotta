@@ -3,7 +3,7 @@
 		<h1>Describe your experiment</h1>
 		<p>Use this space to write down some notes about your research question, why this question is meaningful, and your hypothesis.</p>
 		<form
-			@submit.prevent="saveExperiment"
+			@submit.prevent="saveExperiment('ExperimentDesignConditions')"
 			class="my-5 mb-15"
 			v-if="experiment"
 		>
@@ -71,14 +71,14 @@ export default {
 		...mapActions({
 			updateExperiment: 'experiment/updateExperiment',
 		}),
-		saveExperiment() {
+		saveExperiment(path) {
 			const _this = this
 			const e = _this.experiment
 
 			this.updateExperiment(e)
 					.then(response => {
             if (typeof response?.status !== "undefined" && response?.status === 200) {
-              this.$router.push({name:'ExperimentDesignConditions', params:{experiment: this.experiment.experiment_id}})
+              this.$router.push({name: path, params:{experiment: this.experiment.experiment_id}})
             } else if (response?.message) {
               alert(`Error: ${response.message}`)
             } else {
@@ -90,6 +90,9 @@ export default {
             alert('There was an error saving the experiment.')
 					})
 		},
+		saveExit() {
+				this.saveExperiment('Home')
+			}
 	}
 }
 </script>

@@ -13,7 +13,10 @@ export default {
 	methods: {
 		setConsent() {
 			this.$router.push({name:'ParticipationTypeConsentTitle', params:{experiment: this.experiment.experimentId}})
-		}
+		},
+		saveExit() {
+				console.log('Hello World2!')
+			}
 	}
 }
 </script>

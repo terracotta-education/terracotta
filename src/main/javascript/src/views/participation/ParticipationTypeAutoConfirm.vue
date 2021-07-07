@@ -36,6 +36,9 @@ export default {
 						}
 					})	
 	},
+	saveExit() {
+				console.log('Hello World2!')
+			}
 	}
 }
 </script>

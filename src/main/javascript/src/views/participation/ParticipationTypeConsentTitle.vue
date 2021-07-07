@@ -61,7 +61,10 @@ export default {
   methods: {
     saveTitle() {
       this.$router.push({name: 'ParticipationTypeConsentFile', params: {experiment: this.experiment.experimentId}})
-    }
+    },
+    saveExit() {
+				console.log('Hello World2!')
+			}
   },
 }
 </script>

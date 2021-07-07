@@ -68,7 +68,10 @@ export default {
           console.error("createAssignment | catch", {response})
           alert('There was an error creating the assignment.')
         })
-    }
+    },
+    saveExit() {
+				console.log('Hello World2!')
+			}
   },
 }
 </script>

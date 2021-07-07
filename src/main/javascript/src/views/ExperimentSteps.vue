@@ -11,12 +11,21 @@
 						:to="{ path: $routerHistory.previous().path }">
 						<v-icon>mdi-chevron-left</v-icon> Back
 					</router-link>
+					<!-- Change it to v-btn and use slot -->
+					<!-- New Component ?  -->
+					<!-- <router-link
+						v-if="$routerHistory.hasPrevious()"
+						:to="{ name: 'Home' }"
+					>
+						SAVE & EXIT
+					</router-link> -->
+					<v-btn color="primary" elevation="0" class="saveButton" @click="$refs.myChild.saveExit()">SAVE & EXIT</v-btn>
 				</nav>
 				<article class="experiment-steps__body">
 					<v-container>
 						<v-row justify="center">
 							<v-col md="6">
-								<router-view :key="$route.fullPath" :experiment="experiment"></router-view>
+								<router-view :key="$route.fullPath" ref="myChild" :experiment="experiment"></router-view>
 							</v-col>
 						</v-row>
 					</v-container>
@@ -82,6 +91,9 @@
 			...mapActions({
 				fetchExperimentById: 'experiment/fetchExperimentById',
 			}),
+			saveExit() {
+				console.log('Hello World!')
+			}
 		},
 
 		components: {
@@ -106,7 +118,8 @@
 		> nav {
 			grid-area: nav;
 			padding: 30px;
-
+			display: flex;
+			justify-content: space-between;
 			a {
 				text-decoration: none;
 
@@ -114,6 +127,13 @@
 					vertical-align: sub;
 					@extend .blue--text;
 				}
+			}
+			.saveButton {
+				background: none!important;
+				border: none;
+				padding: 0!important;
+				color: #069;
+				cursor: pointer;
 			}
 		}
 		> aside {

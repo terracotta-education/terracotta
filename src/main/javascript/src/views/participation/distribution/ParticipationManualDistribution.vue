@@ -188,6 +188,9 @@ export default {
 
       this.arrayData = filteredParticipants
     },
+    saveExit() {
+				console.log('Hello World2!')
+			}
   },
   beforeRouteEnter(to, from, next) {
     //  load participant data before selection screen

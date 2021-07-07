@@ -60,7 +60,10 @@ export default {
           condition_id: cid
         },
       });
-    }
+    },
+    saveExit() {
+				console.log('Hello World2!')
+			}
   },
 };
 </script>

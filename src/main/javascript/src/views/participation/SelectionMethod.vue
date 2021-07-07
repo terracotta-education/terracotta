@@ -78,7 +78,10 @@ export default {
             console.error("updateExperiment | catch", {response})
             alert('There was an error saving the experiment.')
 					})
-		}
+		},
+		saveExit() {
+				console.log('Hello World2!')
+			}
 	}
 }
 </script>

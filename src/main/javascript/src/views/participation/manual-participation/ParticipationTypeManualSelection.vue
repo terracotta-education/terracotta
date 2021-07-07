@@ -161,6 +161,9 @@ export default {
           console.log("submitParticipants | catch", { response });
         });
     },
+    saveExit() {
+				console.log('Hello World2!')
+			}
   },
   beforeRouteEnter(to, from, next) {
     // don't load new data after participant selection screen

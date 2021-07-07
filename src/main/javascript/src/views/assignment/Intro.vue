@@ -26,5 +26,10 @@
 <script>
 export default {
   name: "AssignmentIntro",
+  methods: {
+    saveExit() {
+				console.log('Hello World2!')
+			}
+  }
 };
 </script>

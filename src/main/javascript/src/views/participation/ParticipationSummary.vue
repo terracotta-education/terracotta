@@ -70,7 +70,10 @@ export default {
 	methods: {
 		nextSection() {
 			this.$router.push({name:'AssignmentIntro', params:{experiment: this.experiment.experimentId}})
-		}
+		},
+		saveExit() {
+				console.log('Hello World2!')
+			}
 	},
   beforeRouteEnter(to, from, next) {
     // Updating selection type for custom steps

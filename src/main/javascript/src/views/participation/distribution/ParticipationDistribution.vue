@@ -80,7 +80,10 @@ export default {
         .catch(response => {
           console.log('updateExperiment | catch', {response})
         })
-    }
+    },
+    saveExit() {
+				console.log('Hello World2!')
+			}
   }
 }
 </script>

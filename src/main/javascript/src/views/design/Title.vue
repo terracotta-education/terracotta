@@ -2,7 +2,7 @@
   <div>
     <h1>Create a title for your experiment</h1>
     <form
-      @submit.prevent="saveTitle"
+      @submit.prevent="saveTitle('ExperimentDesignDescription')"
       class="my-5"
       v-if="experiment"
     >
@@ -51,14 +51,14 @@ export default {
     ...mapActions({
       updateExperiment: 'experiment/updateExperiment',
     }),
-    saveTitle() {
+    saveTitle(path) {
       const _this = this
       const e = _this.experiment
 
       this.updateExperiment(e)
         .then(response => {
           if (typeof response?.status !== "undefined" && response?.status === 200) {
-            this.$router.push({name:'ExperimentDesignDescription', params:{experiment: this.experiment.experiment_id}})
+            this.$router.push({name: path, params:{experiment: this.experiment.experiment_id}})
           } else if (response?.message) {
             alert(`Error: ${response.message}`)
           } else {
@@ -70,6 +70,10 @@ export default {
           alert('There was an error saving your experiment.')
         })
     },
+    saveExit() {
+        this.saveTitle('Home')
+				// console.log('Hello World2!')
+			}
 
   }
 }

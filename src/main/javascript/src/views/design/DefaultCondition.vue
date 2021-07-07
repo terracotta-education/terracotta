@@ -89,6 +89,9 @@ export default {
             console.log("catch", {response})
           })
     },
+    saveExit() {
+				console.log('Hello World2!')
+			}
   }
 }
 </script>

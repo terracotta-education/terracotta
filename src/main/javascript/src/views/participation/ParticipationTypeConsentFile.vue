@@ -39,7 +39,10 @@ export default {
       this.createConsent(this.experiment.experimentId).then(
         this.$router.push({name: 'ParticipationDistribution', params: {experiment: this.experiment.experimentId}})
       )
-    }
+    },
+    saveExit() {
+				console.log('Hello World2!')
+			}
   },
   components: {
     FileDropZone

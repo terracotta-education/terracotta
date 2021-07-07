@@ -82,7 +82,10 @@ export default {
 	methods: {
 		nextSection() {
 			this.$router.push({name:'ExperimentParticipationIntro', params:{experiment: this.experiment.experimentId}})
-		}
+		},
+		saveExit() {
+				console.log('Hello World2!')
+			}
 	}
 }
 </script>
