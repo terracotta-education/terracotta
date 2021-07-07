@@ -1,47 +1,48 @@
-import { consentService } from '@/services'
+import {consentService} from '@/services'
 
 const state = {
-    file: null,
-    title: ''
+  file: null,
+  title: ''
 }
 
 const actions = {
-    resetConsent: ({ commit }) => {
-        commit('setConsent', {})
-    },
-    createConsent: ({state}, experiment_id) => {
-        return consentService.create(experiment_id, state)
-                .catch(response => {
-                    console.log('setCondition | catch',{response})
-                })
-    },
-    setConsentFile: ({commit}, file) => {
-        commit('setConsentFile', file)
-    }
+  resetConsent: ({commit}) => {
+    commit('setConsentTitle', '')
+    commit('setConsentFile', null)
+  },
+  createConsent: ({state}, experiment_id) => {
+    return consentService.create(experiment_id, state)
+    .catch(response => {
+      console.log('setCondition | catch', {response})
+    })
+  },
+  setConsentFile: ({commit}, file) => {
+    commit('setConsentFile', file)
+  }
 }
 
 const mutations = {
-    setConsent(state, consent) {
-        state = consent
-    },
-    setConsentTitle(state, title) {
-        state.title = title
-    },
-    setConsentFile(state, file) {
-        state.file = file
-    },
+  setConsent(state, consent) {
+    state = consent
+  },
+  setConsentTitle(state, title) {
+    state.title = title
+  },
+  setConsentFile(state, file) {
+    state.file = file
+  },
 }
 
 const getters = {
-    consent(state) {
-        return state
-    },
+  consent(state) {
+    return state
+  },
 }
 
 export const consent = {
-    namespaced: true,
-    state,
-    actions,
-    mutations,
-    getters
+  namespaced: true,
+  state,
+  actions,
+  mutations,
+  getters
 }

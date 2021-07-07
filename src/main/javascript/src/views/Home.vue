@@ -119,7 +119,8 @@ export default {
     ...mapActions({
       fetchExperiments: 'experiment/fetchExperiments',
       createExperiment: 'experiment/createExperiment',
-      deleteExperiment: 'experiment/deleteExperiment'
+      deleteExperiment: 'experiment/deleteExperiment',
+      resetConsent: 'consent/resetConsent'
     }),
     handleExport() {
       // TODO - add API export functionality when it's ready
@@ -141,16 +142,20 @@ export default {
             if (response?.experimentId) {
               _this.$router.push({name: 'ExperimentDesignIntro', params: {experiment_id: response.experimentId}})
             } else {
-              alert("There was an issue creating an experiment")
+              alert('There was an issue creating an experiment')
             }
           }).catch(response => {
-            console.log("startExperiment -> createExperiment | catch", {response})
+            console.log('startExperiment -> createExperiment | catch', {response})
           })
     }
   },
   created() {
+    // get experiments list
     this.fetchExperiments()
-  }
+
+    // reset consent data when loading the dashboard
+    this.resetConsent()
+  },
 }
 </script>
 
