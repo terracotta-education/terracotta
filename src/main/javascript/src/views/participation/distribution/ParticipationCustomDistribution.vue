@@ -8,28 +8,33 @@
       <div class="col-9 label">
         Condition
       </div>
-      <div class="col-3 label">
+      <div class="col-3 label text-right">
         Distribution
       </div>
     </div>
 
-    <v-card class="mt-2 pt-5 pr-5 mx-auto lighten-5 rounded-lg" outlined>
+    <v-card class="mt-2 mb-3 py-3 mx-auto lighten-5 rounded-lg" outlined>
       <v-card-text
+        class="pa-5"
         v-for="(condition, index) in this.conditions"
         :key="condition.conditionId"
       >
-        <v-row class="mr-2">
-          <v-card-title class="col-10">
-            {{ condition.name }} will receive
-          </v-card-title>
-          <v-text-field
-            class="textfield"
-            outlined
-            suffix="%"
-            v-model="distributionValue[index]"
-            :rules="[(value) => value && !!value.trim() || 'Required']"
-            required
-          ></v-text-field>
+        <v-row class="justify-space-between align-center">
+          <v-col cols="9" class="py-0">
+            <v-card-title class="ma-0 pa-0 body-1">
+              {{ condition.name }} will receive
+            </v-card-title>
+          </v-col>
+          <v-col cols="3" class="py-0">
+            <v-text-field
+              class="pa-0 ma-0 text-right"
+              outlined
+              suffix="%"
+              v-model="distributionValue[index]"
+              :rules="[(value) => !!value && !!value.trim() || 'Required']"
+              required
+            ></v-text-field>
+          </v-col>
         </v-row>
       </v-card-text>
     </v-card>
@@ -129,8 +134,15 @@ export default {
   color: #5f6368;
 }
 
-.textfield {
-  width: 15%;
+.v-input__slot {
+  margin: 0;
+}
+.v-text-field__details {
+  display: none;
+}
+
+.text-right input {
+  text-align: right;
 }
 
 .errorMessage {

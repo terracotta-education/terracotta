@@ -30,13 +30,13 @@
       </v-btn-toggle>
     </div>
 
-    <v-card class="mt-5 pt-5 px-5 mx-auto lighten-5 rounded-lg" outlined>
-      <v-card-title v-for="group in sortedGroups()" :key="group">
+    <v-card class="mt-5 pa-5 mx-auto lighten-5 rounded-lg" outlined>
+      <p class="pa-0 my-0" v-for="group in sortedGroups()" :key="group">
         {{ group }} will receive
-        <v-chip class="ma-2" color="primary">
+        <v-chip class="ma-2" color="primary" label>
           {{ groupNameConditionMapping[group] }}</v-chip
         >
-      </v-card-title>
+      </p>
     </v-card>
 
 
