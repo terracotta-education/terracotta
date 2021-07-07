@@ -45,8 +45,8 @@
               </template>
             </router-link>
           </template>
-          <template v-slot:item.updatedAt="{ item }">
-            <span v-if="item.updatedAt">{{ item.updatedAt | formatDate }}</span>
+          <template v-slot:item.createdAt="{ item }">
+            <span v-if="item.createdAt">{{ item.createdAt | formatDate }}</span>
           </template>
           <template v-slot:item.actions="{ item }">
             <v-menu offset-y>
@@ -100,7 +100,7 @@ export default {
     return {
       headers: [
         {text: 'Experiment name', value: 'title'},
-        {text: 'Last modified', value: 'updatedAt'},
+        {text: 'Created', value: 'createdAt'},
         {text: 'Actions', value: 'actions', sortable: false},
       ]
     }
