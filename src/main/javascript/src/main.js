@@ -20,6 +20,11 @@ if (tokenParam) {
 }
 
 function startVue() {
+  // always start with clean experiment/s list
+  store.dispatch('experiment/resetExperiment')
+  store.dispatch('experiment/resetExperiments')
+  store.dispatch('consent/resetConsent')
+
   cleanURL()
 
   new Vue({
@@ -31,7 +36,9 @@ function startVue() {
 }
 
 function cleanURL() {
+  // delete the token from the url
   params.delete('token')
+  // update the url without the token param
   window.history.replaceState(
       {},
       '',

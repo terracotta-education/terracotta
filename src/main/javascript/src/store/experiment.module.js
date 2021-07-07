@@ -7,7 +7,10 @@ const state = {
 
 const actions = {
   resetExperiment: ({commit}) => {
-    commit('setExperiment', {})
+    commit('setExperiment', null)
+  },
+  resetExperiments: ({commit}) => {
+    commit('setExperiments', null)
   },
   createExperiment: () => {
     return experimentService.create()
