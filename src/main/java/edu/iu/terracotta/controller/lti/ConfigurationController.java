@@ -53,8 +53,8 @@ public class ConfigurationController {
     /**
      * To show the configurations.
      */
-    @RequestMapping(value = "/", method = RequestMethod.GET, produces = "application/json;")
-    @ResponseBody
+    //@RequestMapping(value = "/", method = RequestMethod.GET, produces = "application/json;")
+    //@ResponseBody
     public ResponseEntity<List<PlatformDeployment>> displayConfigs(HttpServletRequest req) {
 
         List<PlatformDeployment> platformDeploymentListEntityList = platformDeploymentRepository.findAll();
@@ -68,8 +68,8 @@ public class ConfigurationController {
     /**
      * To show the configurations.
      */
-    @RequestMapping(value = "/{id}", method = RequestMethod.GET, produces = "application/json;")
-    @ResponseBody
+    //@RequestMapping(value = "/{id}", method = RequestMethod.GET, produces = "application/json;")
+    //@ResponseBody
     public ResponseEntity<PlatformDeployment> displayConfig(@PathVariable("id") long id, HttpServletRequest req) {
 
         Optional<PlatformDeployment> platformDeployment = platformDeploymentRepository.findById(id);
@@ -83,7 +83,7 @@ public class ConfigurationController {
         }
     }
 
-    @RequestMapping(value = "/", method = RequestMethod.POST)
+    //@RequestMapping(value = "/", method = RequestMethod.POST)
     public ResponseEntity<String> createDeployment(@RequestBody PlatformDeployment platformDeployment, UriComponentsBuilder ucBuilder) {
         log.info("Creating Deployment : {}", platformDeployment);
 
@@ -98,7 +98,7 @@ public class ConfigurationController {
         return new ResponseEntity<>(headers, HttpStatus.CREATED);
     }
 
-    @RequestMapping(value = "/{id}", method = RequestMethod.PUT)
+    //@RequestMapping(value = "/{id}", method = RequestMethod.PUT)
     public ResponseEntity<PlatformDeployment> updateDeployment(@PathVariable("id") long id, @RequestBody PlatformDeployment platformDeployment) {
         log.info("Updating User with id {}", id);
 
