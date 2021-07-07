@@ -5,10 +5,10 @@
       <strong>{{ numberOfConditions }} conditions</strong> and would like your
       students to be
       <template v-if="exposureType === 'WITHIN'">
-        <strong>exposed to every conditions</strong>(within-subject)
+        <strong>exposed to every conditions</strong> (within)
       </template>
       <template v-else>
-        <strong>exposed to only one condition</strong>(within-subject)
+        <strong>exposed to only one condition</strong>(between)
       </template>
       , we will set you up with {{ numberOfExperimentSets }} exposure sets.
     </h1>
