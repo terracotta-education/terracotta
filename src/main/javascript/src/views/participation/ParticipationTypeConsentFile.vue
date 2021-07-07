@@ -25,7 +25,7 @@
 
 <script>
 import FileDropZone from '@/components/FileDropZone';
-import {mapActions, mapGetters} from "vuex";
+import {mapActions, mapGetters} from 'vuex';
 
 export default {
   name: 'ParticipationTypeConsentFile',
