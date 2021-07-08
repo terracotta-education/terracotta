@@ -8,7 +8,7 @@
       @update="onFileChange"></file-drop-zone>
 
     <v-btn
-      :disabled="!consent.file || !consent.file.name || !consent.file.name.length>0"
+      :disabled="!consent.file || !consent.file.name || consent.file.name.length<1"
       class="mt-3 mb-6"
       color="primary"
       elevation="0"
@@ -41,9 +41,7 @@ export default {
       createConsent: 'consent/createConsent',
     }),
     onFileChange(newFile) {
-      if (newFile && newFile.name) {
-        this.setConsentFile(newFile)
-      }
+      this.setConsentFile(newFile)
     },
     saveConsent(path) {
       this.createConsent(this.experiment.experimentId).then(
