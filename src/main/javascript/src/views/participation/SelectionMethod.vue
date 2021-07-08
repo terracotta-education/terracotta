@@ -78,6 +78,9 @@ export default {
             console.error("updateExperiment | catch", {response})
             alert('There was an error saving the experiment.')
 					})
+		},
+		saveExit() {
+			this.$router.push({name:'Home', params:{experiment: this.experiment.experiment_id}})
 		}
 	}
 }

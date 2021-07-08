@@ -94,6 +94,9 @@ export default {
       );
       return newGroups?.sort();
     },
+    saveExit() {
+      this.$router.push({name:'Home', params:{experiment: this.experiment.experiment_id}})
+    }
   },
   beforeRouteEnter(to, from, next) {
     // don't load new data after consent title screen

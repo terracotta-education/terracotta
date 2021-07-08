@@ -89,6 +89,10 @@ export default {
             console.log("catch", {response})
           })
     },
+    saveExit() {
+      this.saveConditions()
+      this.$router.push({name:'Home', params:{experiment: this.experiment.experiment_id}})
+    }
   }
 }
 </script>

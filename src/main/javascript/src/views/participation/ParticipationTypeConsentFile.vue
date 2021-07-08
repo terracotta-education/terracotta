@@ -12,7 +12,7 @@
       class="mt-3 mb-6"
       color="primary"
       elevation="0"
-      @click="saveConsent">Next</v-btn>
+      @click="saveConsent('ParticipationDistribution')">Next</v-btn>
 
     <!-- TODO - update with file url when it arrives -->
     <p>You can
@@ -45,10 +45,13 @@ export default {
         this.setConsentFile(newFile)
       }
     },
-    saveConsent() {
+    saveConsent(path) {
       this.createConsent(this.experiment.experimentId).then(
-        this.$router.push({name: 'ParticipationDistribution', params: {experiment: this.experiment.experimentId}})
+        this.$router.push({name: path, params: {experiment: this.experiment.experimentId}})
       )
+    },
+    saveExit() {
+      this.saveConsent('Home')
     }
   },
   components: {

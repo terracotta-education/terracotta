@@ -4,7 +4,7 @@
     <p>This will create an unpublished assignment shell in Canvas and will be the way Terracotta will deliver treatments
       to students.</p>
     <form
-      @submit.prevent="saveTitle"
+      @submit.prevent="saveTitle('AssignmentTreatmentSelect')"
       class="my-5"
       v-if="experiment && exposures"
     >
@@ -52,11 +52,11 @@ export default {
     ...mapActions({
       createAssignment: 'assignment/createAssignment'
     }),
-    saveTitle() {
+    saveTitle(path) {
       this.createAssignment([this.experiment.experimentId, this.exposures[0].exposureId, this.title, 1])
         .then(response => {
           if (response?.status === 201) {
-            this.$router.push({name:'AssignmentTreatmentSelect', params:{
+            this.$router.push({name: path, params:{
               experiment_id: this.experiment.experimentId,
               assignment_id: response.data.assignmentId
             }})
@@ -68,6 +68,9 @@ export default {
           console.error("createAssignment | catch", {response})
           alert('There was an error creating the assignment.')
         })
+    },
+    saveExit() {
+      this.saveTitle('Home')
     }
   },
 }

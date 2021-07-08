@@ -80,6 +80,9 @@ export default {
         .catch(response => {
           console.log('updateExperiment | catch', {response})
         })
+    },
+    saveExit() {
+      this.$router.push({name:'Home', params:{experiment: this.experiment.experiment_id}})
     }
   }
 }

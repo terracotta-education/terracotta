@@ -32,6 +32,11 @@ export default {
     numExposureSets() {
       return this.$route.params.numberOfExperimentSets;
     }
+  },
+  methods: {
+    saveExit() {
+      this.$router.push({name:'Home', params:{experiment: this.experiment.experiment_id}})
+    }
   }
 };
 </script>

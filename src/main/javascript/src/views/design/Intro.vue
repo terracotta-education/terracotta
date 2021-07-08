@@ -12,5 +12,11 @@
 
 export default {
 	name: 'DesignIntro',
+	props: ['experiment'],
+	methods: {
+		saveExit() {
+			this.$router.push({name:'Home', params:{experiment: this.experiment.experiment_id}})
+		}
+	}
 }
 </script>

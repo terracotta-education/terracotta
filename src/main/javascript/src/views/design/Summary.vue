@@ -82,6 +82,9 @@ export default {
 	methods: {
 		nextSection() {
 			this.$router.push({name:'ExperimentParticipationIntro', params:{experiment: this.experiment.experimentId}})
+		},
+		saveExit() {
+			this.$router.push({name:'Home', params:{experiment: this.experiment.experiment_id}})
 		}
 	}
 }
