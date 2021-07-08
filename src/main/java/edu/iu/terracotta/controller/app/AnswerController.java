@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Controller
+@SuppressWarnings({"rawtypes", "unchecked"})
 @RequestMapping(value = AnswerController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
 public class AnswerController {
     /**
@@ -81,7 +82,7 @@ public class AnswerController {
                 }
                 return new ResponseEntity<>(answerDtoList, HttpStatus.OK);
             }
-            return new ResponseEntity("Answer type is not supported.", HttpStatus.BAD_REQUEST);
+            return new ResponseEntity("Error 120: Answer type is not supported.", HttpStatus.BAD_REQUEST);
         } else {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
@@ -112,7 +113,7 @@ public class AnswerController {
             if(answerType.equals("MC")){
                 return new ResponseEntity<>(answerService.getAnswerMC(answerId, student), HttpStatus.OK);
             } else {
-                return new ResponseEntity("Answer type not supported.", HttpStatus.BAD_REQUEST);
+                return new ResponseEntity("Error 120: Answer type not supported.", HttpStatus.BAD_REQUEST);
             }
         } else {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
@@ -158,7 +159,7 @@ public class AnswerController {
                 HttpHeaders mcHeaders = answerService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, questionId, answerMc.getAnswerMcId());
                 return new ResponseEntity<>(returnedMcdDto, mcHeaders, HttpStatus.CREATED);
             }
-            return new ResponseEntity("Answer type not supported.", HttpStatus.BAD_REQUEST);
+            return new ResponseEntity("Error 120: Answer type not supported.", HttpStatus.BAD_REQUEST);
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
