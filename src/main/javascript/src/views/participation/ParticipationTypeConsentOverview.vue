@@ -15,8 +15,8 @@ export default {
 			this.$router.push({name:'ParticipationTypeConsentTitle', params:{experiment: this.experiment.experimentId}})
 		},
 		saveExit() {
-				console.log('Hello World2!')
-			}
+			this.$router.push({name:'Home', params:{experiment: this.experiment.experiment_id}})
+		}
 	}
 }
 </script>

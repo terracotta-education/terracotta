@@ -51,7 +51,7 @@
     </v-expansion-panels>
 
     <div class="mt-5">
-      <v-btn elevation="0" color="primary" @click="submitParticipants()"
+      <v-btn elevation="0" color="primary" @click="submitParticipants('ParticipationDistribution')"
         >Continue
       </v-btn>
     </div>
@@ -142,7 +142,7 @@ export default {
       this.setParticipantsGroup(updatedParticipants);
     },
 
-    submitParticipants() {
+    submitParticipants(path) {
       const _this = this;
 
       _this
@@ -150,7 +150,7 @@ export default {
         .then((response) => {
           if (response?.status === 200) {
             _this.$router.push({
-              name: "ParticipationDistribution",
+              name: path,
               params: { experiment: this.experiment.experimentId },
             });
           } else {
@@ -162,8 +162,8 @@ export default {
         });
     },
     saveExit() {
-				console.log('Hello World2!')
-			}
+      this.submitParticipants('Home')
+		}
   },
   beforeRouteEnter(to, from, next) {
     // don't load new data after participant selection screen

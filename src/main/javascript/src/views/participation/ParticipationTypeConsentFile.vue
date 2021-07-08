@@ -4,7 +4,7 @@
 
     <file-drop-zone class="my-5" :existing="consent.file" @update="onFileChange"></file-drop-zone>
 
-    <v-btn :disabled="!consent.file || !consent.file.name || !consent.file.name.length>0" class="mt-3 mb-6" color="primary" elevation="0" @click="saveConsent">Next</v-btn>
+    <v-btn :disabled="!consent.file || !consent.file.name || !consent.file.name.length>0" class="mt-3 mb-6" color="primary" elevation="0" @click="saveConsent('ParticipationDistribution')">Next</v-btn>
 
     <!-- TODO - update with file url when it arrives -->
     <p>You can
@@ -35,13 +35,14 @@ export default {
         this.setConsentFile(newFile)
       }
     },
-    saveConsent() {
+    saveConsent(path) {
       this.createConsent(this.experiment.experimentId).then(
-        this.$router.push({name: 'ParticipationDistribution', params: {experiment: this.experiment.experimentId}})
+        this.$router.push({name: path, params: {experiment: this.experiment.experimentId}})
       )
     },
     saveExit() {
-				console.log('Hello World2!')
+        // Review Changes with Curtis
+        this.saveConsent('Home')
 			}
   },
   components: {

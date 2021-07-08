@@ -41,8 +41,8 @@ export default {
   props: ["experiment"],
   methods: {
     saveExit() {
-				console.log('Hello World2!')
-			}
+			this.$router.push({name:'Home', params:{experiment: this.experiment.experiment_id}})
+    }
   }
 };
 </script>

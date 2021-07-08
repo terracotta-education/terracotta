@@ -37,7 +37,7 @@
       elevation="0"
       class="mt-10"
       color="primary"
-      @click="submitDistribution"
+      @click="submitDistribution('ParticipationSummary')"
       >Continue</v-btn
     >
   </div>
@@ -119,7 +119,7 @@ export default {
       this.fetchExposures(this.experiment.experimentId)
     },
 
-    submitDistribution() {
+    submitDistribution(path) {
       const requestBody = []
       const conditionGroupIDMap = {}
 
@@ -155,7 +155,7 @@ export default {
         .then((response) => {
           if (response?.status === 200) {
             this.$router.push({
-              name: 'ParticipationSummary',
+              name: path,
               params: { experiment: this.experiment.experimentId },
             });
           } else {
@@ -189,7 +189,7 @@ export default {
       this.arrayData = filteredParticipants
     },
     saveExit() {
-				console.log('Hello World2!')
+        this.submitDistribution('Home')
 			}
   },
   beforeRouteEnter(to, from, next) {

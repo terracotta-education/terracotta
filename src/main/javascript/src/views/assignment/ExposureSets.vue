@@ -95,7 +95,7 @@ export default {
       return newGroups?.sort();
     },
     saveExit() {
-				console.log('Hello World2!')
+			this.$router.push({name:'Home', params:{experiment: this.experiment.experiment_id}})
 			}
   },
   beforeRouteEnter(to, from, next) {

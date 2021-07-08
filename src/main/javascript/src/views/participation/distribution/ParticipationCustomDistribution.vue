@@ -27,7 +27,6 @@
             outlined
             suffix="%"
             v-model="distributionValue[index]"
-            :rules="[(value) => value && !!value.trim() || 'Required']"
             required
           ></v-text-field>
         </v-row>
@@ -44,7 +43,7 @@
       class="mt-3"
       :disabled="isDisabled()"
       color="primary"
-      @click="updateDistribution()"
+      @click="updateDistribution('ParticipationSummary')"
       >Continue
     </v-btn>
   </div>
@@ -91,7 +90,7 @@ export default {
         )
       );
     },
-    updateDistribution() {
+    updateDistribution(path) {
       const updatedConditions = this.conditions.map((condition, index) => {
         return {
           ...condition,
@@ -104,7 +103,7 @@ export default {
         .then((response) => {
           if (response?.status === 200) {
             this.$router.push({
-              name: "ParticipationSummary",
+              name: path,
               params: { experiment: this.experimentId },
             });
           } else {
@@ -116,6 +115,11 @@ export default {
         });
     },
     saveExit() {
+        if (this.isDisabled()) {
+          this.$router.push({name:'Home', params:{experiment: this.experiment.experiment_id}})
+        } else {
+          this.updateDistribution('Home')
+        }
 				console.log('Hello World2!')
 			}
   },

@@ -72,8 +72,8 @@ export default {
 			this.$router.push({name:'AssignmentIntro', params:{experiment: this.experiment.experimentId}})
 		},
 		saveExit() {
-				console.log('Hello World2!')
-			}
+			this.$router.push({name:'Home', params:{experiment: this.experiment.experimentId}})
+		}
 	},
   beforeRouteEnter(to, from, next) {
     // Updating selection type for custom steps
