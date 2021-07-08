@@ -5,7 +5,7 @@
       will read, review and sign your study’s informed consent. The consent assignment will be a prerequisite for your
       first study treatment assignments.</p>
     <form
-      @submit.prevent="saveTitle"
+      @submit.prevent="saveTitle('ParticipationTypeConsentFile')"
       class="my-5"
       v-if="experiment && consent"
     >
@@ -59,8 +59,11 @@ export default {
     ],
   }),
   methods: {
-    saveTitle() {
-      this.$router.push({name: 'ParticipationTypeConsentFile', params: {experiment: this.experiment.experimentId}})
+    saveTitle(path) {
+      this.$router.push({name: path, params: {experiment: this.experiment.experimentId}})
+    },
+    saveExit() {
+      this.saveTitle('Home')
     }
   },
 }

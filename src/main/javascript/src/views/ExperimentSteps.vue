@@ -11,12 +11,13 @@
 						:to="{ path: $routerHistory.previous().path }">
 						<v-icon>mdi-chevron-left</v-icon> Back
 					</router-link>
+					<v-btn color="primary" elevation="0" class="saveButton" @click="$refs.childComponent.saveExit()">SAVE & EXIT</v-btn>
 				</nav>
 				<article class="experiment-steps__body">
 					<v-container>
 						<v-row justify="center">
 							<v-col md="6">
-								<router-view :key="$route.fullPath" :experiment="experiment"></router-view>
+								<router-view :key="$route.fullPath" ref="childComponent" :experiment="experiment"></router-view>
 							</v-col>
 						</v-row>
 					</v-container>
@@ -107,6 +108,8 @@
 			grid-area: nav;
 			padding: 30px;
 
+			display: flex;
+			justify-content: space-between;
 			a {
 				text-decoration: none;
 
@@ -114,6 +117,13 @@
 					vertical-align: sub;
 					@extend .blue--text;
 				}
+			}
+			.saveButton {
+				background: none!important;
+				border: none;
+				padding: 0!important;
+				color: #069;
+				cursor: pointer;
 			}
 		}
 		> aside {

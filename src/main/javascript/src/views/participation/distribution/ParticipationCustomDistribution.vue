@@ -49,7 +49,7 @@
       class="mt-3"
       :disabled="isDisabled()"
       color="primary"
-      @click="updateDistribution()"
+      @click="updateDistribution('ParticipationSummary')"
       >Continue
     </v-btn>
   </div>
@@ -96,7 +96,7 @@ export default {
         )
       );
     },
-    updateDistribution() {
+    updateDistribution(path) {
       const updatedConditions = this.conditions.map((condition, index) => {
         return {
           ...condition,
@@ -109,7 +109,7 @@ export default {
         .then((response) => {
           if (response?.status === 200) {
             this.$router.push({
-              name: "ParticipationSummary",
+              name: path,
               params: { experiment: this.experimentId },
             });
           } else {
@@ -120,6 +120,13 @@ export default {
           console.log("updateConditions | catch", { response });
         });
     },
+    saveExit() {
+       if (this.isDisabled()) {
+          this.$router.push({name:'Home', params:{experiment: this.experiment.experiment_id}})
+        } else {
+          this.updateDistribution('Home')
+        }
+    }
   },
 };
 </script>

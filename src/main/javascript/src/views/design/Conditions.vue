@@ -3,7 +3,7 @@
     <h1>Name your conditions</h1>
     <p>These will be used to label the different experimental versions of your assignments.</p>
     <form
-      @submit.prevent="saveConditions"
+      @submit.prevent="saveConditions('ExperimentDesignType')"
       class="my-5 mb-15"
       v-if="experiment"
     >
@@ -98,14 +98,14 @@ export default {
       deleteCondition: 'condition/deleteCondition',
       updateConditions: 'condition/updateConditions',
     }),
-    async saveConditions() {
+    async saveConditions(path) {
       const e = this.experiment
 
       await this.updateConditions(e.conditions)
           .then(response => {
             if (response?.every(obj => obj.status === 200)) {
               // IF all responses return STATUS 200
-              this.$router.push({name: 'ExperimentDesignType', params: {experiment: this.experiment.experimentId}})
+              this.$router.push({name: path, params: {experiment: this.experiment.experimentId}})
             } else if (response?.some(obj => Object.prototype.hasOwnProperty.call(obj, 'message'))) {
               // IF one response contains message -> alert with message
               alert(`Error: ${response.filter(obj => (typeof obj.message !== 'undefined'))[0].message}`)
@@ -124,6 +124,9 @@ export default {
       } else {
         this.deleteCondition(condition);
       }
+    },
+    async saveExit() {
+      this.saveConditions('Home')
     }
   },
   beforeRouteEnter(to, from, next) {
