@@ -10,11 +10,11 @@
       <p>
         <strong>Tip:</strong> If you are working with minors, we suggest you
         collect parental consents before proceeding. You can
-        <!-- Update the link when the actual template is available -->
-        <a href="https://www.google.com" target="_blank">
+        <a
+          :href="require('@/assets/files/Terracotta_ParentalPermission_template.docx')"
+          download="Terracotta_ParentalPermission_template.docx">
           download a template permission from here
-        </a>
-        .
+        </a>.
       </p>
     </v-card>
 
