@@ -10,17 +10,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package edu.iu.terracotta;
 
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
+package edu.iu.terracotta.database;
 
-@SpringBootTest
-public class TerracottaTests {
 
-    @Test
-    public void contextLoads() { //Empty on purpose. No tests by the moment.
+import edu.iu.terracotta.model.LtiUserEntity;
+import edu.iu.terracotta.service.common.ResourceService;
+import org.springframework.stereotype.Component;
+
+@Component
+public class LtiUserEntityResourceServiceTest implements ResourceService<LtiUserEntity> {
+
+    static final String USERS_RESOURCE = "classpath:test_data/users";
+
+    @Override
+    public String getDirectoryPath() {
+        return USERS_RESOURCE;
+    }
+
+    @Override
+    public void setDefaults() {//Empty on purpose
     }
 
 }
-

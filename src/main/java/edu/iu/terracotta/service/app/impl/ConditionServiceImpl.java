@@ -54,6 +54,7 @@ public class ConditionServiceImpl implements ConditionService {
     public Condition fromDto(ConditionDto conditionDto) throws DataServiceException {
 
         Condition condition = new Condition();
+        //I don't think the id setting is used
         condition.setConditionId(conditionDto.getConditionId());
         Optional<Experiment> experiment = allRepositories.experimentRepository.findById(conditionDto.getExperimentId());
         if (experiment.isPresent()){

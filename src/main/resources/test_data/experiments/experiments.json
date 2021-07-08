@@ -1,0 +1,68 @@
+{
+  "experimentId": 1,
+  "createdAt": 1571682620923,
+  "updatedAt": 1571682620923,
+  "version": 1,
+  "platformDeployment":
+    {
+      "createdAt": null,
+      "updatedAt": null,
+      "version": 0,
+      "keyId": 6,
+      "iss": "https://trunk-mysql.nightly.sakaiproject.org",
+      "clientId": "0722ac4c-70ee-4e5c-bc28-6c825e6e339e",
+      "oidcEndpoint": "https://trunk-mysql.nightly.sakaiproject.org/imsoidc/lti13/oidc_auth",
+      "jwksEndpoint": null,
+      "oAuth2TokenUrl": "https://trunk-mysql.nightly.sakaiproject.org/imsoidc/lti13/oidc_auth",
+      "oAuth2TokenAud": null,
+      "deploymentId": "1"
+    },
+  "ltiContextEntity":
+    {
+      "contextId": 1,
+      "createdAt": 1571682620923,
+      "updatedAt": 1571682620923,
+      "version": 1,
+      "title": "Terracotta test course 1",
+      "context_memberships_url": "https://terracotta.instructure.com/api/lti/courses/103/names_and_roles",
+      "lineitems": "https://terracotta.instructure.com/api/lti/courses/103/line_items",
+      "json": null,
+      "settings": null,
+      "platformDeployment":
+        {
+        "createdAt": null,
+        "updatedAt": null,
+        "version": 0,
+        "keyId": 6,
+        "iss": "https://trunk-mysql.nightly.sakaiproject.org",
+        "clientId": "0722ac4c-70ee-4e5c-bc28-6c825e6e339e",
+        "oidcEndpoint": "https://trunk-mysql.nightly.sakaiproject.org/imsoidc/lti13/oidc_auth",
+        "jwksEndpoint": null,
+        "oAuth2TokenUrl": "https://trunk-mysql.nightly.sakaiproject.org/imsoidc/lti13/oidc_auth",
+        "oAuth2TokenAud": null,
+        "deploymentId": "1"
+        }
+    },
+  "title": "Experiment A",
+  "description": "sample description",
+  "exposureType": "WITHIN",
+  "participationType": null,
+  "distributionType": null,
+  "started": 1571682620921,
+  "consentDocument": null,
+  "createdBy":
+    {
+      "createdAt": 1571682620923,
+      "updatedAt": 1571682620923,
+      "version": 0,
+      "userId": 1,
+      "userKey": "admin",
+      "displayName": "Admin",
+      "email": null,
+      "locale": null,
+      "subscribe": null,
+      "json": null,
+      "loginAt": 1571682620921,
+      "results": null
+    }
+}
