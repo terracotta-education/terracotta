@@ -72,8 +72,7 @@ export default {
     },
     saveExit() {
         this.saveTitle('Home')
-				// console.log('Hello World2!')
-			}
+		}
 
   }
 }

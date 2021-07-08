@@ -71,7 +71,7 @@ export default {
     },
     saveExit() {
       this.saveTitle('Home')
-      }
+    }
   },
 }
 </script>

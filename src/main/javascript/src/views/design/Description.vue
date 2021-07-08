@@ -91,8 +91,8 @@ export default {
 					})
 		},
 		saveExit() {
-				this.saveExperiment('Home')
-			}
+			this.saveExperiment('Home')
+		}
 	}
 }
 </script>

@@ -41,7 +41,6 @@ export default {
       )
     },
     saveExit() {
-        // Review Changes with Curtis
         this.saveConsent('Home')
 			}
   },

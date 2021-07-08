@@ -11,21 +11,13 @@
 						:to="{ path: $routerHistory.previous().path }">
 						<v-icon>mdi-chevron-left</v-icon> Back
 					</router-link>
-					<!-- Change it to v-btn and use slot -->
-					<!-- New Component ?  -->
-					<!-- <router-link
-						v-if="$routerHistory.hasPrevious()"
-						:to="{ name: 'Home' }"
-					>
-						SAVE & EXIT
-					</router-link> -->
-					<v-btn color="primary" elevation="0" class="saveButton" @click="$refs.myChild.saveExit()">SAVE & EXIT</v-btn>
+					<v-btn color="primary" elevation="0" class="saveButton" @click="$refs.childComponent.saveExit()">SAVE & EXIT</v-btn>
 				</nav>
 				<article class="experiment-steps__body">
 					<v-container>
 						<v-row justify="center">
 							<v-col md="6">
-								<router-view :key="$route.fullPath" ref="myChild" :experiment="experiment"></router-view>
+								<router-view :key="$route.fullPath" ref="childComponent" :experiment="experiment"></router-view>
 							</v-col>
 						</v-row>
 					</v-container>

@@ -127,8 +127,7 @@ export default {
     },
     async saveExit() {
         this.saveConditions('Home')
-				// console.log('Hello World2!')
-			}
+		}
   },
   beforeRouteEnter(to, from, next) {
     if (store.state.experiment.experiment.conditions.length < 2) {

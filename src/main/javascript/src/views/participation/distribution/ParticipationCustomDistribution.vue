@@ -120,8 +120,7 @@ export default {
         } else {
           this.updateDistribution('Home')
         }
-				console.log('Hello World2!')
-			}
+		}
   },
 };
 </script>

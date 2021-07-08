@@ -190,7 +190,7 @@ export default {
     },
     saveExit() {
         this.submitDistribution('Home')
-			}
+		}
   },
   beforeRouteEnter(to, from, next) {
     //  load participant data before selection screen
