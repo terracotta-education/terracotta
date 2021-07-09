@@ -1,10 +1,12 @@
 import {apiService} from '@/services'
 import jwt_decode from 'jwt-decode'
+import { userInfo } from '../helpers'
 
 const state = {
   lti_token: '',
   api_token: '',
-  aud: ''
+  aud: '',
+  userInfo: '',
 }
 
 const actions = {
@@ -14,6 +16,7 @@ const actions = {
     console.log(decodedToken)
     commit('setLtiToken', token)
     commit('setAud', decodedToken.aud)
+    commit('setUserInfo', userInfo(decodedToken.roles))
     dispatch('setApiToken', token)
   },
   setApiToken: ({commit}, token) => {
@@ -22,6 +25,7 @@ const actions = {
       .then(data => {
         if (typeof data === 'string') {
           commit('setApiToken', data)
+          commit('setUserInfo', userInfo(jwt_decode(data).roles))
         }
       })
       .catch(response => {
@@ -34,6 +38,7 @@ const actions = {
       .then(data => {
         if (typeof data === 'string') {
           commit('setApiToken', data)
+          commit('setUserInfo', userInfo(jwt_decode(data).roles))
         }
       })
       .catch(response => {
@@ -63,6 +68,9 @@ const mutations = {
   setAud(state, data) {
     state.aud = data
   },
+  setUserInfo(state, data) {
+    state.userInfo = data
+  }
 }
 
 const getters = {
@@ -75,6 +83,9 @@ const getters = {
   hasTokens(state) {
     // check if both tokens are set in the state
     return state.lti_token.length > 0 && state.api_token.length > 0
+  },
+  userInfo(state) {
+    return state.userInfo
   }
 }
 
