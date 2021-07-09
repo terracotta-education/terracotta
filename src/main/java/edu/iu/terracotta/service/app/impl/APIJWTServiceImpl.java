@@ -359,9 +359,7 @@ public class APIJWTServiceImpl implements APIJWTService {
     }
 
     @Override
-    public boolean isAdmin(SecuredInfo securedInfo){
-        return securedInfo.getRoles().contains(Roles.ADMIN);
-    }
+    public boolean isAdmin(SecuredInfo securedInfo){ return securedInfo.getRoles().contains(Roles.ADMIN); }
 
     @Override
     public boolean isInstructor(SecuredInfo securedInfo){

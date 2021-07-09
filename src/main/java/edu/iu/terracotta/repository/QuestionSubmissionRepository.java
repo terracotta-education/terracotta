@@ -1,5 +1,6 @@
 package edu.iu.terracotta.repository;
 
+import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.QuestionSubmission;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -11,6 +12,8 @@ import java.util.List;
 public interface QuestionSubmissionRepository extends JpaRepository<QuestionSubmission, Long> {
 
     List<QuestionSubmission> findBySubmission_SubmissionId(Long submissionId);
+
+    List<QuestionSubmission> findBySubmission_Participant_Experiment_ExperimentId(Long experimentId);
 
     QuestionSubmission findByQuestionSubmissionId(Long questionSubmissionId);
 
