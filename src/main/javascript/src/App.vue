@@ -1,8 +1,15 @@
 <template>
 	<v-app>
 		<v-main>
-			<template v-if="hasTokens">
+			<template v-if="hasTokens && userInfo === 'Instructor'">
 				<router-view :key="$route.fullPath"/>
+			</template>
+			<template v-else-if="hasTokens && userInfo === 'Learner'">
+				<div class="mt-5">
+					<h1>
+						This is student view.
+					</h1>
+				</div>
 			</template>
 			<template v-else>
 				<v-row justify="center">
@@ -37,6 +44,7 @@ export default {
 	computed: {
 		...mapGetters({
 			hasTokens: 'api/hasTokens',
+			userInfo: 'api/userInfo'
 		}),
 	},
 	methods: {
@@ -52,7 +60,7 @@ export default {
 		}
 	},
 	mounted() {
-    if (store.state.api.api_token) {
+	if (store.state.api.api_token) {
       this.refreshToken()
     }
 	}
