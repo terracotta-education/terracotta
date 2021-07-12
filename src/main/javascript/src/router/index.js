@@ -26,7 +26,8 @@ const routes = [
         component: () => import('../views/ExperimentSteps.vue'),
         meta: {
           currentSection: 'design',
-          currentStep: 'design'
+          currentStep: 'design',
+          previousComponent: 'ExperimentSummary'
         },
         children: [
           // Experiment | Design Steps paths
@@ -37,7 +38,8 @@ const routes = [
             component: () => import('../views/design/Intro.vue'),
             meta: {
               currentSection: 'design',
-              currentStep: 'design'
+              currentStep: 'design',
+              previousComponent: 'ExperimentSummary'
             }
           },
           {
@@ -46,7 +48,8 @@ const routes = [
             component: () => import('../views/design/Title.vue'),
             meta: {
               currentSection: 'design',
-              currentStep: 'design_title'
+              currentStep: 'design_title',
+              previousComponent: 'ExperimentDesignIntro',
             }
           },
           {
@@ -55,7 +58,8 @@ const routes = [
             component: () => import('../views/design/Description.vue'),
             meta: {
               currentSection: 'design',
-              currentStep: 'design_description'
+              currentStep: 'design_description',
+              previousComponent: 'ExperimentDesignTitle'
             }
           },
           {
@@ -64,7 +68,8 @@ const routes = [
             component: () => import('../views/design/Conditions.vue'),
             meta: {
               currentSection: 'design',
-              currentStep: 'design_conditions'
+              currentStep: 'design_conditions',
+              previousComponent: 'ExperimentDesignDescription'
             }
           },
           {
@@ -73,7 +78,8 @@ const routes = [
             component: () => import('../views/design/ExperimentType.vue'),
             meta: {
               currentSection: 'design',
-              currentStep: 'design_type'
+              currentStep: 'design_type',
+              previousComponent: 'ExperimentDesignConditions'
             }
           },
           {
@@ -82,7 +88,8 @@ const routes = [
             component: () => import('../views/design/DefaultCondition.vue'),
             meta: {
               currentSection: 'design',
-              currentStep: 'design_type'
+              currentStep: 'design_type',
+              previousComponent: 'ExperimentDesignType'
             }
           },
           {
@@ -92,7 +99,8 @@ const routes = [
             meta: {
               currentSection: 'design',
               currentStep: 'design_type',
-              stepsComplete: true
+              stepsComplete: true,
+              previousComponent: 'ExperimentDesignType'
             }
           },
         ]
@@ -101,7 +109,8 @@ const routes = [
         path: 'participation',
         component: () => import('../views/ExperimentSteps.vue'),
         meta: {
-          currentSection: 'participation'
+          currentSection: 'participation',
+          previousComponent: 'ExperimentDesignSummary'
         },
         children: [
           // Experiment | Participation Steps paths
@@ -112,7 +121,8 @@ const routes = [
             component: () => import('../views/participation/Intro.vue'),
             meta: {
               currentSection: 'participation',
-              currentStep: 'participation'
+              currentStep: 'participation',
+              previousComponent: 'ExperimentDesignSummary'
             }
           },
           {
@@ -121,7 +131,8 @@ const routes = [
             component: () => import('../views/participation/SelectionMethod.vue'),
             meta: {
               currentSection: 'participation',
-              currentStep: 'participation_selection_method'
+              currentStep: 'participation_selection_method',
+              previousComponent: 'ExperimentParticipationIntro'
             }
           },
           {
@@ -131,7 +142,8 @@ const routes = [
             meta: {
               selectionType: 'auto',
               currentSection: 'participation',
-              currentStep: 'participation_selection_method'
+              currentStep: 'participation_selection_method',
+              previousComponent: 'ExperimentParticipationSelectionMethod'
             }
           },
           {
@@ -141,7 +153,8 @@ const routes = [
             meta: {
               selectionType: 'consent',
               currentSection: 'participation',
-              currentStep: 'participation_selection_method'
+              currentStep: 'participation_selection_method',
+              previousComponent: 'ExperimentParticipationSelectionMethod'
             }
           },
           {
@@ -151,7 +164,8 @@ const routes = [
             meta: {
               selectionType: 'consent',
               currentSection: 'participation',
-              currentStep: 'participation_selection_consent_title'
+              currentStep: 'participation_selection_consent_title',
+              previousComponent: 'ParticipationTypeConsentOverview'
             }
           },
           {
@@ -161,7 +175,8 @@ const routes = [
             meta: {
               selectionType: 'consent',
               currentSection: 'participation',
-              currentStep: 'participation_selection_consent_file'
+              currentStep: 'participation_selection_consent_file',
+              previousComponent: 'ParticipationTypeConsentTitle'
             }
           },
           {
@@ -171,7 +186,8 @@ const routes = [
             meta: {
               selectionType: 'manual',
               currentSection: 'participation',
-              currentStep: 'participation_selection_method'
+              currentStep: 'participation_selection_method',
+              previousComponent: 'ExperimentParticipationSelectionMethod'
             }
           },
           {
@@ -181,7 +197,8 @@ const routes = [
             meta: {
               selectionType: 'manual',
               currentSection: 'participation',
-              currentStep: 'select_participants'
+              currentStep: 'select_participants',
+              previousComponent: 'ParticipationTypeManual'
             }
           },
           {
@@ -191,7 +208,8 @@ const routes = [
             meta: {
               selectionType: 'any',
               currentSection: 'participation',
-              currentStep: 'participation_distribution'
+              currentStep: 'participation_distribution',
+              previousComponent: 'ParticipationTypeManualSelection'
             }
           },
           {
@@ -201,7 +219,8 @@ const routes = [
             meta: {
               selectionType: 'any',
               currentSection: 'participation',
-              currentStep: 'participation_distribution'
+              currentStep: 'participation_distribution',
+              previousComponent: 'ParticipationDistribution'
             }
           },
           {
@@ -210,8 +229,9 @@ const routes = [
             component: () => import('../views/participation/distribution/ParticipationManualDistribution.vue'),
             meta: {
               selectionType: 'any',
-              currentSection: "participation",
-              currentStep: "participation_distribution"
+              currentSection: 'participation',
+              currentStep: 'participation_distribution',
+              previousComponent: 'ParticipationDistribution'
             }
           },
           {
@@ -221,6 +241,7 @@ const routes = [
             meta: {
               currentSection: 'participation',
               currentStep: 'select_participants',
+              previousComponent: 'ParticipationDistribution'
             }
           }
         ]
@@ -229,7 +250,8 @@ const routes = [
         path: 'assignments',
         component: () => import('../views/ExperimentSteps.vue'),
         meta: {
-          currentSection: 'assignments'
+          currentSection: 'assignments',
+          previousComponent: 'ParticipationSummary'
         },
         children: [
           // Experiment | Assignments Steps paths
@@ -240,7 +262,8 @@ const routes = [
             component: () => import('../views/assignment/Intro.vue'),
             meta: {
               currentSection: 'assignments',
-              currentStep: 'assignment_intro'
+              currentStep: 'assignment_intro',
+              previousComponent: 'ParticipationSummary'
             }
           },
           {
@@ -249,7 +272,8 @@ const routes = [
             component: () => import('../views/assignment/ExposureSets.vue'),
             meta: {
               currentSection: 'assignments',
-              currentStep: 'assignment_intro'
+              currentStep: 'assignment_intro',
+              previousComponent: 'AssignmentIntro'
             }
           },
           {
@@ -258,7 +282,8 @@ const routes = [
             component: () => import('../views/assignment/ExposureSetsIntro.vue'),
             meta: {
               currentSection: 'assignments',
-              currentStep: 'assignment_intro'
+              currentStep: 'assignment_intro',
+              previousComponent: 'AssignmentExposureSets'
             }
           },
           {
@@ -267,7 +292,8 @@ const routes = [
             component: () => import('../views/assignment/CreateAssignment.vue'),
             meta: {
               currentSection: 'assignments',
-              currentStep: 'your_assignments'
+              currentStep: 'your_assignments',
+              previousComponent: 'AssignmentExposureSetsIntro'
             }
           },
           {
@@ -276,7 +302,8 @@ const routes = [
             component: () => import('../views/assignment/AssignmentTreatmentSelect.vue'),
             meta: {
               currentSection: 'assignments',
-              currentStep: 'your_assignments'
+              currentStep: 'your_assignments',
+              previousComponent: 'AssignmentCreateAssignment'
             }
           },
           {
@@ -285,7 +312,8 @@ const routes = [
             component: () => import('../views/assignment/TerracottaBuilder.vue'),
             meta: {
               currentSection: 'assignments',
-              currentStep: 'your_assignments'
+              currentStep: 'your_assignments',
+              previousComponent: 'AssignmentTreatmentSelect'
             }
           },
         ]
