@@ -8,7 +8,7 @@
 				<nav>
 					<router-link
 						v-if="$routerHistory.hasPrevious()"
-						:to="{ path: $routerHistory.previous().path }">
+						:to="{ name: this.$router.currentRoute.meta.previousStep }">
 						<v-icon>mdi-chevron-left</v-icon> Back
 					</router-link>
 					<v-btn color="primary" elevation="0" class="saveButton" @click="$refs.childComponent.saveExit()">SAVE & EXIT</v-btn>
