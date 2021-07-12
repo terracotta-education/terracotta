@@ -7,6 +7,11 @@
     &--outlined {
         .v-expansion-panel {
             border: 2px solid map-get($grey, 'lighten-2');
+            margin-top: 0 !important;
+
+            &:not(:last-child) {
+                border-bottom: none;
+            }
         }
     }
     &--icon {
