@@ -69,10 +69,8 @@ export default {
             if (typeof response?.status !== "undefined" && response?.status === 200) {
               // report the current step
               this.reportStep({experimentId, step})
-              if (this.experiment.exposureType==='BETWEEN') {
+              if (this.experiment.exposureType==='BETWEEN' || this.experiment.exposureType==='WITHIN') {
                 this.$router.push({name:'ExperimentDesignDefaultCondition', params:{experiment: experimentId}})
-              } else if(this.experiment.exposureType==='WITHIN') {
-                this.$router.push({name:'ExperimentDesignSummary', params:{experiment: experimentId}})
               } else {
                 alert("Select an experiment type")
               }
