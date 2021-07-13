@@ -1,5 +1,5 @@
 <template>
-  <div v-if="experiment && condition">
+  <div class="terracotta-builder" v-if="experiment && condition">
     <h1>
       Add your treatment for
       Assignment 1’s condition: <strong>{{condition.name}}</strong>
@@ -36,19 +36,21 @@
             <h2 class="pa-0">{{ qIndex + 1 }}</h2>
           </v-expansion-panel-header>
           <v-expansion-panel-content>
-
-            <v-textarea
+            <tiptap-vuetify
               v-model="question.question"
+              placeholder="Question"
+              class="mb-6 outlined"
+              :extensions="extensions"
+              :card-props="{ flat: true }"
               :rules="rules"
-              label="Question"
-              autofocus
-              outlined
               required
-            ></v-textarea>
+            />
             <v-text-field
               v-model="question.points"
               label="Points"
+              type="number"
               outlined
+              required
             ></v-text-field>
 
             <h4><strong>Options</strong></h4>
@@ -81,6 +83,7 @@
                     <v-text-field
                       v-model="option.option"
                       :label="`Option ${oIndex + 1}`"
+                      :rules="rules"
                       hide-details
                       outlined
                       required
@@ -138,6 +141,8 @@
 </template>
 
 <script>
+import { TiptapVuetify, Heading, Bold, Italic, Strike, Underline, Code, Paragraph, BulletList, OrderedList, ListItem, Link, Blockquote, HardBreak, HorizontalRule, History } from 'tiptap-vuetify'
+
 export default {
   name: 'TerracottaBuilder',
   props: ['experiment'],
@@ -161,7 +166,7 @@ export default {
             option: '',
             correct: false
           }],
-          points: 0
+          points: null
         },
           {
           question: '',
@@ -169,8 +174,29 @@ export default {
             option: '',
             correct: false
           }],
-          points: 0
+          points: null
         }
+      ],
+      extensions: [
+        History,
+        Blockquote,
+        Link,
+        Underline,
+        Strike,
+        Italic,
+        ListItem,
+        BulletList,
+        OrderedList,
+        [Heading, {
+          options: {
+            levels: [1, 2, 3]
+          }
+        }],
+        Bold,
+        Code,
+        HorizontalRule,
+        Paragraph,
+        HardBreak
       ]
     }
   },
@@ -182,7 +208,7 @@ export default {
           option: '',
           correct: false
         }],
-        points: 0
+        points: null
       })
     },
     handleAddOption (q) {
@@ -204,15 +230,43 @@ export default {
       // this.$router.push({name:'Home', params:{experiment: this.experiment.experiment_id}})
       alert('save & exit')
     }
+  },
+  components: {
+    TiptapVuetify
   }
 };
 </script>
 
 <style lang="scss">
-  .v-expansion-panel-header--active {
-    border-bottom: 2px solid map-get($grey, 'lighten-2');
-  }
-  .options-list {
-    list-style: none;
+  .terracotta-builder {
+    .v-expansion-panel-header--active {
+      border-bottom: 2px solid map-get($grey, 'lighten-2');
+    }
+    .options-list {
+      list-style: none;
+    }
+    .tiptap-vuetify-editor {
+      box-shadow: none;
+      border-radius: 4px;
+      border: 1px solid map-get($grey, 'base');
+      overflow: hidden;
+
+      .ProseMirror {
+        margin: 20px 5px !important;
+
+        .is-editor-empty::before {
+          color: map-get($grey, 'darken-1');
+          font-style: normal;
+        }
+      }
+      &__toolbar {
+        border-top: 1px solid map-get($grey, 'base');
+        border-radius: 0 !important;
+      }
+      .v-card {
+        display: flex;
+        flex-direction: column-reverse;
+      }
+    }
   }
 </style>
