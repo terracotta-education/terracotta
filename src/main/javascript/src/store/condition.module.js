@@ -30,7 +30,11 @@ const actions = {
     return conditionService.create(condition)
             .then(condition => {
               // commit mutation from experiment module
-              commit('experiment/setCondition', condition, {root: true})
+              if (condition.message) {
+                alert(condition.message)
+              } else {
+                commit('experiment/setCondition', condition, {root: true})
+              }
             })
             .catch(response => {
               console.log('createCondition | catch', {response})
