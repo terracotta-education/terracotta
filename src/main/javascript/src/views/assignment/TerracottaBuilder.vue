@@ -5,7 +5,7 @@
       Assignment 1’s condition: <strong>{{condition.name}}</strong>
     </h1>
     <form
-      @submit.prevent="saveTreatment('ExperimentDesignDescription')"
+      @submit.prevent="handleSaveTreatment('ExperimentDesignDescription')"
       class="my-5"
     >
       <v-text-field
@@ -141,6 +141,7 @@
 </template>
 
 <script>
+import { mapActions } from 'vuex'
 import { TiptapVuetify, Heading, Bold, Italic, Strike, Underline, Code, Paragraph, BulletList, OrderedList, ListItem, Link, Blockquote, HardBreak, HorizontalRule, History } from 'tiptap-vuetify'
 
 export default {
@@ -201,6 +202,9 @@ export default {
     }
   },
   methods: {
+    ...mapActions({
+      createTreatment: 'treatment/createTreatment'
+    }),
     handleAddQuestion() {
       this.questions.push({
         question: '',
@@ -223,8 +227,18 @@ export default {
     handleDeleteOption(q, o) {
       this.questions[q].options.splice(o,1)
     },
-    saveTreatment() {
-      alert('submit')
+    handleSaveTreatment() {
+      this.createTreatment([
+        this.experiment.experimentId,
+        this.$route.params.condition_id,
+        this.$route.params.assignment_id,
+      ])
+      .then(response => {
+        console.log({response})
+      })
+      .catch(response => {
+        console.error("createAssignment | catch", {response})
+      })
     },
     saveExit() {
       // this.$router.push({name:'Home', params:{experiment: this.experiment.experiment_id}})

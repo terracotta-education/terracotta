@@ -6,3 +6,4 @@ export * from './condition.service';
 export * from './consent.service';
 export * from './exposures.service';
 export * from './participants.service';
+export * from './treatment.service';
