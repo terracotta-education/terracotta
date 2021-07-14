@@ -31,7 +31,7 @@
               outlined
               suffix="%"
               v-model="distributionValue[index]"
-              :rules="[(value) => !!value && !!value.trim() || 'Required']"
+              :rules="[(value) => !!value || 'Required']"
               required
             ></v-text-field>
           </v-col>
@@ -107,7 +107,8 @@ export default {
 
       this.updateConditions(updatedConditions)
         .then((response) => {
-          if (response?.status === 200) {
+          // Response will be array of objects
+          if (response?.every(obj => obj.status === 200)) {
             this.$router.push({
               name: path,
               params: { experiment: this.experimentId },
