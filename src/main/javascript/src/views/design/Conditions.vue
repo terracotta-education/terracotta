@@ -108,7 +108,7 @@ export default {
               this.$router.push({name: path, params: {experiment: this.experiment.experimentId}})
             } else if (response?.some(obj => Object.prototype.hasOwnProperty.call(obj, 'message'))) {
               // IF one response contains message -> alert with message
-              alert(`Error: ${response.filter(obj => (typeof obj.message !== 'undefined'))[0].message}`)
+              alert(response.filter(obj => (typeof obj.message !== 'undefined'))[0].message)
             } else {
               alert('There was an error saving your conditions.')
             }
