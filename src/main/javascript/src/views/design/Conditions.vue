@@ -115,6 +115,7 @@ export default {
           })
           .catch(response => {
             console.log("updateConditions | catch", {response})
+            alert('There was an error saving your conditions.')
           })
     },
     handleDeleteCondition(condition) {
