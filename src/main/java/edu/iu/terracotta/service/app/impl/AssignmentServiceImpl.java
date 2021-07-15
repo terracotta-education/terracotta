@@ -297,7 +297,7 @@ public class AssignmentServiceImpl implements AssignmentService {
         //1 Create the new Assignment in Canvas
         AssignmentExtended canvasAssignment = new AssignmentExtended();
         edu.ksu.canvas.model.assignment.Assignment.ExternalToolTagAttribute canvasExternalToolTagAttributes = canvasAssignment.new ExternalToolTagAttribute();
-        canvasExternalToolTagAttributes.setUrl(localUrl + "/lti3?assignment=" + assignment.getAssignmentId());
+        canvasExternalToolTagAttributes.setUrl(localUrl + "/lti3?experiment=" + assignment.getExposure().getExperiment().getExperimentId() + "&assignment=" + assignment.getAssignmentId());
         canvasAssignment.setExternalToolTagAttributes(canvasExternalToolTagAttributes);
         canvasAssignment.setName(assignment.getTitle());
         canvasAssignment.setDescription("Hardcoded description to be updated");

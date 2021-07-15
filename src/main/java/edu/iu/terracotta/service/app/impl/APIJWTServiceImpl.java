@@ -199,7 +199,7 @@ public class APIJWTServiceImpl implements APIJWTService {
                 .claim("userId", userId)  //This is an specific claim to ask for tokens.
                 .claim("roles", roles)
                 .claim("assignmentId", assignmentId)
-                .claim("consent", consent.toString())
+                .claim("consent", consent)
                 .claim("experimentId", experimentId)
                 .claim("oneUse", oneUse)  //This is an specific claim to ask for tokens.
                 .claim("canvasUserId", canvasUserId)
