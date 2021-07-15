@@ -95,7 +95,7 @@ export default {
       return newGroups?.sort();
     },
     saveExit() {
-      this.$router.push({name:'Home', params:{experiment: this.experiment.experiment_id}})
+      this.$router.push({name:'Home', params:{experiment: this.experiment.experimentId}})
     }
   },
   beforeRouteEnter(to, from, next) {

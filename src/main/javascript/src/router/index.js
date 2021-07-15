@@ -209,7 +209,7 @@ const routes = [
               selectionType: 'any',
               currentSection: 'participation',
               currentStep: 'participation_distribution',
-              previousStep: 'ParticipationTypeManualSelection'
+              previousStep: 'ExperimentParticipationSelectionMethod'
             }
           },
           {
