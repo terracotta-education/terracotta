@@ -10,6 +10,9 @@ public class SubmissionDto {
     private Long submissionId;
     private Long participantId;
     private Long assessmentId;
+    private Long conditionId;
+    private Long treatmentId;
+    private Long experimentId;
     private Float calculatedGrade;
     private Float alteredCalculatedGrade;
     private Float totalAlteredGrade;
@@ -41,6 +44,30 @@ public class SubmissionDto {
     public Long getAssessmentId() { return assessmentId; }
 
     public void setAssessmentId(Long assessmentId) { this.assessmentId = assessmentId; }
+
+    public Long getConditionId() {
+        return conditionId;
+    }
+
+    public void setConditionId(Long conditionId) {
+        this.conditionId = conditionId;
+    }
+
+    public Long getTreatmentId() {
+        return treatmentId;
+    }
+
+    public void setTreatmentId(Long treatmentId) {
+        this.treatmentId = treatmentId;
+    }
+
+    public Long getExperimentId() {
+        return experimentId;
+    }
+
+    public void setExperimentId(Long experimentId) {
+        this.experimentId = experimentId;
+    }
 
     public Float getCalculatedGrade() { return calculatedGrade; }
 

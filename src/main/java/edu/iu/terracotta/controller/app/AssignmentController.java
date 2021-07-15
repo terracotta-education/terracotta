@@ -148,7 +148,7 @@ public class AssignmentController {
 
             AssignmentExtended canvasAssignment = new AssignmentExtended();
             edu.ksu.canvas.model.assignment.Assignment.ExternalToolTagAttribute canvasExternalToolTagAttributes = canvasAssignment.new ExternalToolTagAttribute();
-            canvasExternalToolTagAttributes.setUrl(ServletUriComponentsBuilder.fromCurrentContextPath().path("/lti3?assignment=" + assignmentSaved.getAssignmentId()).build().toUriString());
+            canvasExternalToolTagAttributes.setUrl(ServletUriComponentsBuilder.fromCurrentContextPath().path("/lti3?experiment=" + experimentId + "&assignment=" + assignmentSaved.getAssignmentId()).build().toUriString());
             canvasAssignment.setExternalToolTagAttributes(canvasExternalToolTagAttributes);
             canvasAssignment.setName(assignmentSaved.getTitle());
             //TODO: Think about the description of the assignment.
