@@ -1,4 +1,4 @@
-import { authHeader } from '@/helpers'
+import {authHeader, isJson} from '@/helpers'
 import store from '@/store/index.js'
 
 /**
@@ -11,16 +11,15 @@ export const treatmentService = {
 /**
  * Create Treatment
  */
-function create(experiment_id, condition_id, assignment_id) {
+async function create(experiment_id, condition_id, assignment_id) {
   const requestOptions = {
     method: 'POST',
     headers: { ...authHeader(), 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      assignmentId: assignment_id
+      assignmentId: parseInt(assignment_id)
     })
   }
-  console.log({experiment_id, condition_id, assignment_id, requestOptions})
-  return fetch(`${store.getters['api/aud']}api/experiments/${experiment_id}/conditions/${condition_id}/treatments`, requestOptions).then(handleResponse)
+  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments`, requestOptions).then(handleResponse)
 }
 
 /**
@@ -29,22 +28,31 @@ function create(experiment_id, condition_id, assignment_id) {
 function handleResponse(response) {
   return response.text()
   .then(text => {
-    const data = text && JSON.parse(text)
+    const data = (text && isJson(text)) ? JSON.parse(text) : text
 
-    if (!response || !response.ok) {
-      if (response.status === 401 || response.status === 402 || response.status === 500) {
-        console.log('handleResponse | 401/402/500',{response})
-      } else if (response.status===404) {
-        console.log('handleResponse | 404',{response})
+    if (
+      !response ||
+      response.status === 401 ||
+      response.status === 402 ||
+      response.status === 500 ||
+      response.status === 404
+    ) {
+      console.log('handleResponse | 401/402/500', {response})
+    } else if (response.status === 409) {
+      return {
+        message: data
       }
-
-      return response
-    } else if (response.status===204) {
-      console.log('handleResponse | 204',{text,data,response})
+    } else if (response.status === 204) {
+      console.log('handleResponse | 204', {text, data, response})
       return []
     }
 
-    return data || response
+    const dataResponse = (data) ? {
+      data,
+      status: response.status
+    } : null
+
+    return dataResponse || response
   }).catch(text => {
     console.error('handleResponse | catch',{text})
   })

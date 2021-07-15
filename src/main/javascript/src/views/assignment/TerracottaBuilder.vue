@@ -5,7 +5,7 @@
       Assignment 1’s condition: <strong>{{condition.name}}</strong>
     </h1>
     <form
-      @submit.prevent="handleSaveTreatment('ExperimentDesignDescription')"
+      @submit.prevent="saveAll('ExperimentDesignDescription')"
       class="my-5"
     >
       <v-text-field
@@ -18,7 +18,7 @@
         required
       ></v-text-field>
       <v-text-field
-        v-model="treatmentDescription"
+        v-model="treatmentBody"
         label="Instructions or description (optional)"
         placeholder="e.g. Lorem ipsum"
         outlined
@@ -37,7 +37,7 @@
           </v-expansion-panel-header>
           <v-expansion-panel-content>
             <tiptap-vuetify
-              v-model="question.question"
+              v-model="question.body"
               placeholder="Question"
               class="mb-6 outlined"
               :extensions="extensions"
@@ -148,8 +148,35 @@ export default {
   name: 'TerracottaBuilder',
   props: ['experiment'],
   computed: {
+    treatmentName: {
+      get () {
+        return this.$store.state.treatment.name
+      },
+      set (value) {
+        this.$store.commit('treatment/updateTreatmentName', value)
+      }
+    },
+    treatmentBody: {
+      get () {
+        return this.$store.state.treatment.body
+      },
+      set (value) {
+        this.$store.commit('treatment/updateTreatmentBody', value)
+      }
+    },
+    questions: {
+      get () {
+        return this.$store.state.assessment.questions
+      },
+      set (question) {
+        this.$store.commit('assessment/updateQuestions', question)
+      }
+    },
     condition() {
       return this.experiment.conditions.find(c => parseInt(c.conditionId) === parseInt(this.$route.params.condition_id))
+    },
+    assignment_id() {
+      return this.$route.params.assignment_id
     }
   },
   data() {
@@ -157,26 +184,6 @@ export default {
       rules: [
         v => v && !!v.trim() || 'required',
         v => (v || '').length <= 255 || 'A maximum of 255 characters is allowed'
-      ],
-      treatmentName: '',
-      treatmentDescription: '',
-      questions: [
-        {
-          question: '',
-          options: [{
-            option: '',
-            correct: false
-          }],
-          points: null
-        },
-          {
-          question: '',
-          options: [{
-            option: '',
-            correct: false
-          }],
-          points: null
-        }
       ],
       extensions: [
         History,
@@ -203,17 +210,21 @@ export default {
   },
   methods: {
     ...mapActions({
-      createTreatment: 'treatment/createTreatment'
+      createTreatment: 'treatment/createTreatment',
+      createAssessment: 'assessment/createAssessment',
+      createQuestion: 'assessment/createQuestion',
+      createAnswer: 'assessment/createAnswer'
     }),
     handleAddQuestion() {
-      this.questions.push({
+      const newQuestion = {
         question: '',
         options: [{
           option: '',
           correct: false
         }],
         points: null
-      })
+      }
+      this.$store.commit('assessment/updateQuestions', newQuestion)
     },
     handleAddOption (q) {
       this.questions[q].options.push({
@@ -227,18 +238,92 @@ export default {
     handleDeleteOption(q, o) {
       this.questions[q].options.splice(o,1)
     },
-    handleSaveTreatment() {
-      this.createTreatment([
-        this.experiment.experimentId,
-        this.$route.params.condition_id,
-        this.$route.params.assignment_id,
-      ])
-      .then(response => {
-        console.log({response})
-      })
-      .catch(response => {
-        console.error("createAssignment | catch", {response})
-      })
+    async handleSaveQuestions(treatment, assessment) {
+      if (!treatment || !assessment) { return false }
+      // LOOP AND POST QUESTIONS
+      return Promise.all(
+        this.questions.map(async (question, index) => {
+          // save question
+          try {
+            const q = await this.createQuestion([
+              this.experiment.experimentId,
+              this.condition.conditionId,
+              treatment.treatmentId,
+              assessment.assessmentId,
+              index,
+              "MC",
+              question.points,
+              question.body
+            ])
+            return Promise.resolve(q)
+          } catch (error) {
+            return Promise.reject(error)
+          }
+        })
+      )
+    },
+    async handleSaveAnswers(treatment, assessment, questions) {
+      console.log({questions})
+      if (!treatment || !assessment || !questions) { return false }
+      // LOOP AND POST ANSWERS
+      return Promise.all(
+        this.questions.map((question) => {
+          question?.options?.map(async (answer, answerIndex) => {
+            console.log({answer, answerIndex})
+            try {
+              const a = await this.createAnswer([
+                this.experiment.experimentId,
+                this.condition.conditionId,
+                treatment.treatmentId,
+                assessment.assessmentId,
+                question.questionId,
+                answer.body,
+                answer.correct,
+                answerIndex
+              ])
+              return Promise.resolve(a)
+            } catch (error) {
+              return Promise.reject(error)
+            }
+          })
+        })
+      )
+    },
+    async handleSaveAssessment(treatment) {
+      if (!treatment) { return false }
+      // POST ASSESSMENT TITLE & HTML (description)
+      try {
+        return await this.createAssessment([
+          this.experiment.experimentId,
+          this.condition.conditionId,
+          treatment.treatmentId,
+          this.treatmentName,
+          this.treatmentBody
+        ])
+      } catch (error) {
+        console.error("handleSaveAssessment | catch", {error})
+      }
+    },
+    async handleSaveTreatment() {
+      try {
+        return await this.createTreatment([
+          this.experiment.experimentId,
+          this.condition.conditionId,
+          this.assignment_id,
+        ])
+      } catch (error) {
+        console.error("handleSaveTreatment | catch", {error})
+      }
+    },
+    async saveAll () {
+      const treatment = await this.handleSaveTreatment()
+      console.table({treatment})
+      const assessment = await this.handleSaveAssessment(treatment?.data)
+      console.table({assessment})
+      const questions = await this.handleSaveQuestions(treatment?.data, assessment?.data)
+      console.table({questions})
+      const answers = await this.handleSaveAnswers(treatment?.data, assessment?.data, questions)
+      console.log({answers})
     },
     saveExit() {
       // this.$router.push({name:'Home', params:{experiment: this.experiment.experiment_id}})

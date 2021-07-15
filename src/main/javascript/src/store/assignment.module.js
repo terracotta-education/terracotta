@@ -6,6 +6,7 @@ const state = {
 
 const actions = {
   createAssignment: ({commit}, payload) => {
+    // payload = experiment_id, exposure_id, title, order
     // create the assignment, commit an update mutation, and return the status/data response
     return assignmentService.create(...payload)
       .then((response) => {
