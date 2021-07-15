@@ -2,10 +2,7 @@ import {treatmentService} from '@/services'
 
 const state = {
   treatments: [],
-  treatment: {
-    name: '',
-    body: ''
-  }
+  treatment: {}
 }
 
 const actions = {
@@ -31,12 +28,6 @@ const actions = {
 const mutations = {
   updateTreatment(state, treatment) {
     state.treatment = treatment
-  },
-  updateTreatmentName(state, value) {
-    state.treatment.name = value
-  },
-  updateTreatmentBody(state, value) {
-    state.treatment.body = value
   },
   updateTreatments(state, treatment) {
     // check for same id and update if exists

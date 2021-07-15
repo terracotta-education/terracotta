@@ -307,7 +307,7 @@ const routes = [
             }
           },
           {
-            path: ':assignment_id/condition/:condition_id/builder',
+            path: ':assignment_id/condition/:condition_id/treatment/:treatment_id/assessment/:assessment_id/builder',
             name: 'TerracottaBuilder',
             component: () => import('../views/assignment/TerracottaBuilder.vue'),
             meta: {

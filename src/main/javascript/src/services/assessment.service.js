@@ -5,9 +5,23 @@ import store from '@/store/index.js'
  * Register methods
  */
 export const assessmentService = {
+  fetchAssessment,
   createAssessment,
+  updateAssessment,
   createQuestion,
   createAnswer,
+}
+
+/**
+ * Fetch Assessment
+ */
+async function fetchAssessment(experiment_id, condition_id, treatment_id, assessment_id) {
+  const requestOptions = {
+    method: 'GET',
+    headers: { ...authHeader() }
+  }
+
+  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}?submissions=true&questions=true`, requestOptions).then(handleResponse)
 }
 
 /**
@@ -24,6 +38,22 @@ async function createAssessment(experiment_id, condition_id, treatment_id, title
   }
 
   return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments`, requestOptions).then(handleResponse)
+}
+
+/**
+ * Update Assessment
+ */
+async function updateAssessment(experiment_id, condition_id, treatment_id, assessment_id, title, body) {
+  const requestOptions = {
+    method: 'PUT',
+    headers: { ...authHeader(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      title,
+      "html": body
+    })
+  }
+
+  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}`, requestOptions).then(handleResponse)
 }
 
 /**

@@ -37,7 +37,7 @@
 </template>
 
 <script>
-import {mapGetters} from 'vuex';
+import {mapActions, mapGetters} from 'vuex';
 
 export default {
   name: 'AssignmentTreatmentSelect',
@@ -47,17 +47,62 @@ export default {
       assignments: 'assignment/assignments',
       conditions: 'experiment/conditions',
     }),
+    assignment_id() {
+      return this.$route.params.assignment_id
+    },
     assignment() {
-      return this.assignments.filter(a => parseInt(a.assignmentId) === parseInt(this.$route.params.assignment_id))[0]
+      return this.assignments.filter(a => parseInt(a.assignmentId) === parseInt(this.assignment_id))[0]
     }
   },
   methods: {
-    goToBuilder(cid) {
+    ...mapActions({
+      createTreatment: 'treatment/createTreatment',
+      createAssessment: 'assessment/createAssessment',
+    }),
+    async handleCreateTreatment(conditionId) {
+      try {
+        return await this.createTreatment([
+          this.experiment.experimentId,
+          conditionId,
+          this.assignment_id,
+        ])
+      } catch (error) {
+        console.error("handleCreateTreatment | catch", {error})
+      }
+    },
+    async handleCreateAssessment(conditionId, treatment) {
+      console.log(treatment)
+      // POST ASSESSMENT TITLE & HTML (description)
+      try {
+        return await this.createAssessment([
+          this.experiment.experimentId,
+          conditionId,
+          treatment.treatmentId
+        ])
+      } catch (error) {
+        console.error("handleCreateAssessment | catch", {error})
+      }
+    },
+    async goToBuilder(conditionId) {
+      // create the treatment
+      const treatment = await this.handleCreateTreatment(conditionId)
+      // create the assessment
+      const assessment = await this.handleCreateAssessment(conditionId, treatment?.data)
+
+      // show an alert if there's a problem creating the treatment or assessment
+      if (!treatment || !assessment) {
+        alert('There was a problem creating your assessment')
+        return false
+      }
+
+      // send user to builder with the treatment and assessment ids
       this.$router.push({
         name: 'TerracottaBuilder',
         params: {
           experiment_id: this.experiment.experimentId,
-          condition_id: cid
+          condition_id: conditionId,
+          treatment_id: treatment?.data?.treatmentId,
+          assessment_id: assessment?.data?.assessmentId
         },
       });
     },

@@ -9,7 +9,7 @@
       class="my-5"
     >
       <v-text-field
-        v-model="treatmentName"
+        v-model="assessment.title"
         :rules="rules"
         label="Treatment name"
         placeholder="e.g. Lorem ipsum"
@@ -18,7 +18,7 @@
         required
       ></v-text-field>
       <v-text-field
-        v-model="treatmentBody"
+        v-model="assessment.html"
         label="Instructions or description (optional)"
         placeholder="e.g. Lorem ipsum"
         outlined
@@ -107,7 +107,7 @@
               elevation="0"
               color="primary"
               class="mr-4 mb-3 px-0"
-              @click="handleAddOption(qIndex)"
+              @click="handleAddOption(question)"
               plain
             >
               Add another Option
@@ -121,7 +121,7 @@
         elevation="0"
         color="primary"
         class="mr-4 mb-3 px-0"
-        @click="handleAddQuestion"
+        @click="handleAddMCQuestion"
         plain
       >
         Add another Question
@@ -141,43 +141,36 @@
 </template>
 
 <script>
-import { mapActions } from 'vuex'
+import {mapActions, mapGetters} from 'vuex'
 import { TiptapVuetify, Heading, Bold, Italic, Strike, Underline, Code, Paragraph, BulletList, OrderedList, ListItem, Link, Blockquote, HardBreak, HorizontalRule, History } from 'tiptap-vuetify'
 
 export default {
   name: 'TerracottaBuilder',
   props: ['experiment'],
   computed: {
-    treatmentName: {
-      get () {
-        return this.$store.state.treatment.name
-      },
-      set (value) {
-        this.$store.commit('treatment/updateTreatmentName', value)
-      }
-    },
-    treatmentBody: {
-      get () {
-        return this.$store.state.treatment.body
-      },
-      set (value) {
-        this.$store.commit('treatment/updateTreatmentBody', value)
-      }
-    },
-    questions: {
-      get () {
-        return this.$store.state.assessment.questions
-      },
-      set (question) {
-        this.$store.commit('assessment/updateQuestions', question)
-      }
-    },
     condition() {
       return this.experiment.conditions.find(c => parseInt(c.conditionId) === parseInt(this.$route.params.condition_id))
     },
     assignment_id() {
       return this.$route.params.assignment_id
-    }
+    },
+    treatment_id() {
+      return this.$route.params.treatment_id
+    },
+    assessment_id() {
+      return this.$route.params.assessment_id
+    },
+    questions: {
+      get () {
+        return this.$store.state.assessment.assessment.questions
+      },
+      set (question) {
+        this.$store.commit('assessment/updateQuestions', question)
+      }
+    },
+    ...mapGetters({
+      assessment: 'assessment/assessment'
+    })
   },
   data() {
     return {
@@ -210,27 +203,43 @@ export default {
   },
   methods: {
     ...mapActions({
-      createTreatment: 'treatment/createTreatment',
-      createAssessment: 'assessment/createAssessment',
+      fetchAssessment: 'assessment/fetchAssessment',
+      updateAssessment: 'assessment/updateAssessment',
       createQuestion: 'assessment/createQuestion',
       createAnswer: 'assessment/createAnswer'
     }),
-    handleAddQuestion() {
-      const newQuestion = {
-        question: '',
-        options: [{
-          option: '',
-          correct: false
-        }],
-        points: null
+    async handleAddMCQuestion() {
+      try {
+        await this.createQuestion([
+          this.experiment.experimentId,
+          this.condition.conditionId,
+          this.treatment_id,
+          this.assessment_id,
+          0,
+          'MC',
+          0,
+          ''
+        ])
+      } catch (error) {
+        console.error(error)
       }
-      this.$store.commit('assessment/updateQuestions', newQuestion)
     },
-    handleAddOption (q) {
-      this.questions[q].options.push({
-        option: '',
-        correct: false
-      })
+    async handleAddOption (question) {
+      console.log(question)
+      try {
+        await this.createAnswer([
+          this.experiment.experimentId,
+          this.condition.conditionId,
+          this.treatment_id,
+          this.assessment_id,
+          question.questionId,
+          '',
+          false,
+          0
+        ])
+      } catch (error) {
+        console.error(error)
+      }
     },
     handleToggleCorrect(q, o) {
       this.questions[q].options[o].correct = !this.questions[q].options[o].correct
@@ -238,17 +247,32 @@ export default {
     handleDeleteOption(q, o) {
       this.questions[q].options.splice(o,1)
     },
-    async handleSaveQuestions(treatment, assessment) {
-      if (!treatment || !assessment) { return false }
-      // LOOP AND POST QUESTIONS
+    async handleSaveAssessment() {
+      // PUT ASSESSMENT TITLE & HTML (description)
+      try {
+        return await this.updateAssessment([
+          this.experiment.experimentId,
+          this.condition.conditionId,
+          this.treatment_id,
+          this.assessment_id,
+          this.assessment.title,
+          this.assessment.html
+        ])
+      } catch (error) {
+        console.error("handleCreateAssessment | catch", {error})
+      }
+    },
+    async handleSaveQuestions(assessment) {
+      if (!assessment) { return false }
+      // LOOP AND PUT QUESTIONS
       return Promise.all(
-        this.questions.map(async (question, index) => {
+        this.assessment.questions.map(async (question, index) => {
           // save question
           try {
             const q = await this.createQuestion([
               this.experiment.experimentId,
               this.condition.conditionId,
-              treatment.treatmentId,
+              this.treatment_id,
               assessment.assessmentId,
               index,
               "MC",
@@ -265,16 +289,16 @@ export default {
     async handleSaveAnswers(treatment, assessment, questions) {
       console.log({questions})
       if (!treatment || !assessment || !questions) { return false }
-      // LOOP AND POST ANSWERS
+      // LOOP AND PUT ANSWERS
       return Promise.all(
-        this.questions.map((question) => {
+        this.assessment.questions.map((question) => {
           question?.options?.map(async (answer, answerIndex) => {
             console.log({answer, answerIndex})
             try {
               const a = await this.createAnswer([
                 this.experiment.experimentId,
                 this.condition.conditionId,
-                treatment.treatmentId,
+                this.treatment_id,
                 assessment.assessmentId,
                 question.questionId,
                 answer.body,
@@ -289,46 +313,23 @@ export default {
         })
       )
     },
-    async handleSaveAssessment(treatment) {
-      if (!treatment) { return false }
-      // POST ASSESSMENT TITLE & HTML (description)
-      try {
-        return await this.createAssessment([
-          this.experiment.experimentId,
-          this.condition.conditionId,
-          treatment.treatmentId,
-          this.treatmentName,
-          this.treatmentBody
-        ])
-      } catch (error) {
-        console.error("handleSaveAssessment | catch", {error})
-      }
-    },
-    async handleSaveTreatment() {
-      try {
-        return await this.createTreatment([
-          this.experiment.experimentId,
-          this.condition.conditionId,
-          this.assignment_id,
-        ])
-      } catch (error) {
-        console.error("handleSaveTreatment | catch", {error})
-      }
-    },
     async saveAll () {
-      const treatment = await this.handleSaveTreatment()
-      console.table({treatment})
-      const assessment = await this.handleSaveAssessment(treatment?.data)
-      console.table({assessment})
-      const questions = await this.handleSaveQuestions(treatment?.data, assessment?.data)
-      console.table({questions})
-      const answers = await this.handleSaveAnswers(treatment?.data, assessment?.data, questions)
-      console.log({answers})
+      const assessment = await this.handleSaveAssessment()
+      console.log({assessment})
+      if (assessment) {
+        console.table({assessment})
+        // const questions = await this.handleSaveQuestions()
+        // console.table({questions})
+        // const answers = await this.handleSaveAnswers(questions)
+        // console.log({answers})
+      }
     },
     saveExit() {
-      // this.$router.push({name:'Home', params:{experiment: this.experiment.experiment_id}})
-      alert('save & exit')
+      this.$router.push({name:'Home', params:{experiment: this.experiment.experiment_id}})
     }
+  },
+  created() {
+    this.fetchAssessment([this.experiment.experimentId, this.condition.conditionId, this.treatment_id, this.assessment_id])
   },
   components: {
     TiptapVuetify
