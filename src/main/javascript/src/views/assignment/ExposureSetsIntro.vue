@@ -11,7 +11,7 @@
     <v-btn
       elevation="0"
       color="primary"
-      :to="{ name: 'AssignmentCreateAssignment' }"
+      :to="{ name: 'AssignmentCreateAssignment', params:{exposure_id: this.$route.params.exposure_id} }"
       >Continue</v-btn
     >
 
@@ -35,7 +35,7 @@ export default {
   },
   methods: {
     saveExit() {
-      this.$router.push({name:'Home', params:{experiment: this.experiment.experiment_id}})
+      this.$router.push({name:'Home'})
     }
   }
 };

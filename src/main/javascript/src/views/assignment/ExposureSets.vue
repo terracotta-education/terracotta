@@ -39,12 +39,11 @@
       </p>
     </v-card>
 
-
     <v-btn
       class="mt-5"
       elevation="0"
       color="primary"
-      :to="{ name: 'AssignmentExposureSetsIntro', params: {numberOfExperimentSets: this.numberOfExperimentSets } }"
+      :to="{ name: 'AssignmentExposureSetsIntro', params: {numberOfExperimentSets: this.numberOfExperimentSets, exposure_id: this.selectedExposure.exposureId} }"
       >Continue
     </v-btn>
   </div>
@@ -95,17 +94,15 @@ export default {
       return newGroups?.sort();
     },
     saveExit() {
-      this.$router.push({name:'Home', params:{experiment: this.experiment.experiment_id}})
+      this.$router.push({name:'Home'})
     }
   },
   beforeRouteEnter(to, from, next) {
-    // don't load new data after consent title screen
     return store
       .dispatch("exposures/fetchExposures", to.params.experiment_id)
       .then(next, next);
   },
   beforeRouteUpdate(to, from, next) {
-    // don't load new data after consent title screen
     return store
       .dispatch("exposures/fetchExposures", to.params.experiment_id)
       .then(next, next);

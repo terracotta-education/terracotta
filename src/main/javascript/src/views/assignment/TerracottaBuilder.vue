@@ -1,8 +1,8 @@
 <template>
-  <div class="terracotta-builder" v-if="experiment && condition">
+  <div class="terracotta-builder" v-if="experiment && assessment">
     <h1>
       Add your treatment for
-      Assignment 1’s condition: <strong>{{condition.name}}</strong>
+      {{assignment.title}}'s condition: <strong>{{condition.name}}</strong>
     </h1>
     <form
       @submit.prevent="saveAll('ExperimentDesignDescription')"
@@ -17,27 +17,27 @@
         outlined
         required
       ></v-text-field>
-      <v-text-field
+      <v-textarea
         v-model="assessment.html"
         label="Instructions or description (optional)"
         placeholder="e.g. Lorem ipsum"
         outlined
-      ></v-text-field>
+      ></v-textarea>
 
       <h4 class="mb-3"><strong>Multiple Choice Questions</strong></h4>
 
       <v-expansion-panels class="v-expansion-panels--outlined mb-6" flat accordion>
         <v-expansion-panel
           v-for="(question, qIndex) in questions"
-          :key="qIndex"
+          :key="question.questionId"
           class="text-left"
         >
           <v-expansion-panel-header class="text-left">
-            <h2 class="pa-0">{{ qIndex + 1 }}</h2>
+            <h2 class="pa-0">{{ qIndex + 1 }} <span v-html="question.html" ></span></h2>
           </v-expansion-panel-header>
           <v-expansion-panel-content>
             <tiptap-vuetify
-              v-model="question.body"
+              v-model="question.html"
               placeholder="Question"
               class="mb-6 outlined"
               :extensions="extensions"
@@ -58,8 +58,8 @@
 
             <ul class="options-list pa-0 mb-6">
               <li
-                v-for="(option, oIndex) in question.options"
-                :key="oIndex"
+                v-for="(answer, aIndex) in question.answers"
+                :key="aIndex"
                 class="mb-3"
               >
                 <v-row align="center">
@@ -68,10 +68,10 @@
                       icon
                       tile
                       class="correct"
-                      :class="{'green--text':option.correct}"
-                      @click="handleToggleCorrect(qIndex, oIndex)"
+                      :class="{'green--text':answer.correct}"
+                      @click="handleToggleCorrect(qIndex, aIndex)"
                     >
-                      <template v-if="!option.correct">
+                      <template v-if="!answer.correct">
                         <v-icon>mdi-checkbox-marked-circle-outline</v-icon>
                       </template>
                       <template v-else>
@@ -81,8 +81,8 @@
                   </v-col>
                   <v-col cols="9">
                     <v-text-field
-                      v-model="option.option"
-                      :label="`Option ${oIndex + 1}`"
+                      v-model="answer.html"
+                      :label="`Option ${aIndex + 1}`"
                       :rules="rules"
                       hide-details
                       outlined
@@ -94,7 +94,7 @@
                       icon
                       tile
                       class="delete_option"
-                      @click="handleDeleteOption(qIndex, oIndex)"
+                      @click="handleDeleteAnswer(qIndex, aIndex)"
                     >
                       <v-icon>mdi-delete</v-icon>
                     </v-btn>
@@ -103,15 +103,37 @@
               </li>
             </ul>
 
-            <v-btn
-              elevation="0"
-              color="primary"
-              class="mr-4 mb-3 px-0"
-              @click="handleAddOption(question)"
-              plain
-            >
-              Add another Option
-            </v-btn>
+            <v-row>
+              <v-col>
+                <v-btn
+                  elevation="0"
+                  color="primary"
+                  class="px-0"
+                  @click="handleAddAnswer(question)"
+                  plain
+                >
+                  Add Option
+                </v-btn>
+              </v-col>
+              <v-col class="text-right">
+                <v-menu>
+                  <template v-slot:activator="{ on, attrs }">
+                    <v-icon
+                      color="black"
+                      v-bind="attrs"
+                      v-on="on"
+                    >
+                      mdi-dots-horizontal
+                    </v-icon>
+                  </template>
+                  <v-list class="text-left">
+                    <v-list-item @click="handleDeleteQuestion(question)">
+                      <v-list-item-title>Delete Question</v-list-item-title>
+                    </v-list-item>
+                  </v-list>
+                </v-menu>
+              </v-col>
+            </v-row>
 
           </v-expansion-panel-content>
         </v-expansion-panel>
@@ -121,20 +143,20 @@
         elevation="0"
         color="primary"
         class="mr-4 mb-3 px-0"
-        @click="handleAddMCQuestion"
+        @click="handleAddQuestion('MC')"
         plain
       >
-        Add another Question
+        Add Question
       </v-btn>
       <br>
       <v-btn
-        :disabled="!experiment.title || !experiment.title.trim()"
+        :disabled="contDisabled"
         elevation="0"
         color="primary"
         class="mr-4"
         type="submit"
       >
-        Save Treatment
+        Continue
       </v-btn>
     </form>
   </div>
@@ -148,29 +170,29 @@ export default {
   name: 'TerracottaBuilder',
   props: ['experiment'],
   computed: {
-    condition() {
-      return this.experiment.conditions.find(c => parseInt(c.conditionId) === parseInt(this.$route.params.condition_id))
-    },
     assignment_id() {
-      return this.$route.params.assignment_id
+      return parseInt(this.$route.params.assignment_id)
     },
     treatment_id() {
-      return this.$route.params.treatment_id
+      return parseInt(this.$route.params.treatment_id)
     },
     assessment_id() {
-      return this.$route.params.assessment_id
+      return parseInt(this.$route.params.assessment_id)
     },
-    questions: {
-      get () {
-        return this.$store.state.assessment.assessment.questions
-      },
-      set (question) {
-        this.$store.commit('assessment/updateQuestions', question)
-      }
+    condition_id() {
+      return parseInt(this.$route.params.condition_id)
+    },
+    condition() {
+      return this.experiment.conditions.find(c => parseInt(c.conditionId) === parseInt(this.condition_id))
     },
     ...mapGetters({
-      assessment: 'assessment/assessment'
-    })
+      assignment: 'assignment/assignment',
+      assessment: 'assessment/assessment',
+      questions: 'assessment/questions'
+    }),
+    contDisabled() {
+      return this.assessment.questions.some(q => !q.html) || !this.assessment.title || !this.assessment.title.trim()
+    }
   },
   data() {
     return {
@@ -206,17 +228,20 @@ export default {
       fetchAssessment: 'assessment/fetchAssessment',
       updateAssessment: 'assessment/updateAssessment',
       createQuestion: 'assessment/createQuestion',
+      updateQuestion: 'assessment/updateQuestion',
+      deleteQuestion: 'assessment/deleteQuestion',
       createAnswer: 'assessment/createAnswer'
     }),
-    async handleAddMCQuestion() {
+    async handleAddQuestion(questionType) {
+      // POST QUESTION
       try {
         await this.createQuestion([
           this.experiment.experimentId,
-          this.condition.conditionId,
+          this.condition_id,
           this.treatment_id,
           this.assessment_id,
           0,
-          'MC',
+          questionType,
           0,
           ''
         ])
@@ -224,12 +249,12 @@ export default {
         console.error(error)
       }
     },
-    async handleAddOption (question) {
-      console.log(question)
+    async handleAddAnswer (question) {
+      // POST ANSWER
       try {
         await this.createAnswer([
           this.experiment.experimentId,
-          this.condition.conditionId,
+          this.condition_id,
           this.treatment_id,
           this.assessment_id,
           question.questionId,
@@ -242,10 +267,24 @@ export default {
       }
     },
     handleToggleCorrect(q, o) {
-      this.questions[q].options[o].correct = !this.questions[q].options[o].correct
+      this.questions[q].answers[o].correct = !this.questions[q].answers[o].correct
     },
-    handleDeleteOption(q, o) {
-      this.questions[q].options.splice(o,1)
+    handleDeleteAnswer(q, o) {
+      this.questions[q].answers.splice(o,1)
+    },
+    async handleDeleteQuestion(question) {
+      // DELETE QUESTION
+      try {
+        return await this.deleteQuestion([
+          this.experiment.experimentId,
+          this.condition.conditionId,
+          this.treatment_id,
+          this.assessment_id,
+          question.questionId
+        ])
+      } catch (error) {
+        console.error("handleDeleteQuestion | catch", {error})
+      }
     },
     async handleSaveAssessment() {
       // PUT ASSESSMENT TITLE & HTML (description)
@@ -262,23 +301,24 @@ export default {
         console.error("handleCreateAssessment | catch", {error})
       }
     },
-    async handleSaveQuestions(assessment) {
-      if (!assessment) { return false }
+    async handleSaveQuestions() {
       // LOOP AND PUT QUESTIONS
       return Promise.all(
-        this.assessment.questions.map(async (question, index) => {
+        this.questions.map(async (question, index) => {
           // save question
           try {
-            const q = await this.createQuestion([
+            const q = await this.updateQuestion([
               this.experiment.experimentId,
-              this.condition.conditionId,
+              this.condition_id,
               this.treatment_id,
-              assessment.assessmentId,
-              index,
-              "MC",
+              this.assessment_id,
+              question.questionId,
+              question.html,
               question.points,
-              question.body
+              index,
+              question.questionType
             ])
+
             return Promise.resolve(q)
           } catch (error) {
             return Promise.reject(error)
@@ -286,20 +326,18 @@ export default {
         })
       )
     },
-    async handleSaveAnswers(treatment, assessment, questions) {
-      console.log({questions})
-      if (!treatment || !assessment || !questions) { return false }
+    async handleSaveAnswers() {
       // LOOP AND PUT ANSWERS
       return Promise.all(
-        this.assessment.questions.map((question) => {
-          question?.options?.map(async (answer, answerIndex) => {
+        this.questions.map((question) => {
+          question?.answers?.map(async (answer, answerIndex) => {
             console.log({answer, answerIndex})
             try {
               const a = await this.createAnswer([
                 this.experiment.experimentId,
-                this.condition.conditionId,
+                this.condition_id,
                 this.treatment_id,
-                assessment.assessmentId,
+                this.assessment_id,
                 question.questionId,
                 answer.body,
                 answer.correct,
@@ -314,14 +352,15 @@ export default {
       )
     },
     async saveAll () {
-      const assessment = await this.handleSaveAssessment()
-      console.log({assessment})
-      if (assessment) {
-        console.table({assessment})
-        // const questions = await this.handleSaveQuestions()
-        // console.table({questions})
-        // const answers = await this.handleSaveAnswers(questions)
-        // console.log({answers})
+      if (this.assessment.questions.some(q => !q.html)) {
+        alert('Please fill or delete empty questions.')
+        return false
+      }
+
+      const savedAssessment = await this.handleSaveAssessment()
+      if (savedAssessment) {
+        await this.handleSaveQuestions()
+        await this.handleSaveAnswers()
       }
     },
     saveExit() {
@@ -329,7 +368,7 @@ export default {
     }
   },
   created() {
-    this.fetchAssessment([this.experiment.experimentId, this.condition.conditionId, this.treatment_id, this.assessment_id])
+    this.fetchAssessment([this.experiment.experimentId, this.condition_id, this.treatment_id, this.assessment_id])
   },
   components: {
     TiptapVuetify
@@ -339,8 +378,26 @@ export default {
 
 <style lang="scss">
   .terracotta-builder {
-    .v-expansion-panel-header--active {
-      border-bottom: 2px solid map-get($grey, 'lighten-2');
+    .v-expansion-panel-header {
+      &--active {
+        border-bottom: 2px solid map-get($grey, 'lighten-2');
+      }
+      h2 {
+        display: inline-block;
+        max-height: 1em;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+
+        span * {
+          display: inline;
+          font-size: 16px;
+          line-height: 1em;
+          margin: 0;
+          padding: 0;
+          vertical-align: middle;
+        }
+      }
     }
     .options-list {
       list-style: none;

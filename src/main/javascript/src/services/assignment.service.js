@@ -5,7 +5,20 @@ import store from '@/store/index.js'
  * Register methods
  */
 export const assignmentService = {
+  fetchAssignment,
   create
+}
+
+/**
+ * Fetch Assessment
+ */
+async function fetchAssignment(experiment_id, exposure_id, assignment_id) {
+  const requestOptions = {
+    method: 'GET',
+    headers: {...authHeader()}
+  }
+
+  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/exposures/${exposure_id}/assignments/${assignment_id}`, requestOptions).then(handleResponse)
 }
 
 /**

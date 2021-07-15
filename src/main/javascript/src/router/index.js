@@ -277,7 +277,7 @@ const routes = [
             }
           },
           {
-            path: 'exposure-sets/intro',
+            path: 'exposure-sets/:exposure_id/intro',
             name: 'AssignmentExposureSetsIntro',
             component: () => import('../views/assignment/ExposureSetsIntro.vue'),
             meta: {
@@ -287,7 +287,7 @@ const routes = [
             }
           },
           {
-            path: 'create-assignment',
+            path: 'exposure-sets/:exposure_id/create-assignment',
             name: 'AssignmentCreateAssignment',
             component: () => import('../views/assignment/CreateAssignment.vue'),
             meta: {
@@ -297,7 +297,7 @@ const routes = [
             }
           },
           {
-            path: ':assignment_id/select-assignment-treatment',
+            path: 'exposure-sets/:exposure_id/assignments/:assignment_id/select-assignment-treatment',
             name: 'AssignmentTreatmentSelect',
             component: () => import('../views/assignment/AssignmentTreatmentSelect.vue'),
             meta: {
@@ -307,7 +307,7 @@ const routes = [
             }
           },
           {
-            path: ':assignment_id/condition/:condition_id/treatment/:treatment_id/assessment/:assessment_id/builder',
+            path: 'exposure-sets/:exposure_id/assignments/:assignment_id/condition/:condition_id/treatment/:treatment_id/assessment/:assessment_id/builder',
             name: 'TerracottaBuilder',
             component: () => import('../views/assignment/TerracottaBuilder.vue'),
             meta: {

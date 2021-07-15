@@ -44,22 +44,21 @@ export default {
   props: ['experiment'],
   computed: {
     ...mapGetters({
-      assignments: 'assignment/assignments',
+      assignment: 'assignment/assignment',
       conditions: 'experiment/conditions',
     }),
     assignment_id() {
-      return this.$route.params.assignment_id
+      return parseInt(this.$route.params.assignment_id)
     },
-    assignment() {
-      return this.assignments.filter(a => parseInt(a.assignmentId) === parseInt(this.assignment_id))[0]
-    }
   },
   methods: {
     ...mapActions({
       createTreatment: 'treatment/createTreatment',
       createAssessment: 'assessment/createAssessment',
+      fetchAssignment: 'assignment/fetchAssignment',
     }),
     async handleCreateTreatment(conditionId) {
+      // POST TREATMENT
       try {
         return await this.createTreatment([
           this.experiment.experimentId,
@@ -109,6 +108,9 @@ export default {
     saveExit() {
       this.$router.push({name:'Home', params:{experiment: this.experiment.experiment_id}})
     }
+  },
+  created() {
+    // this.fetchAssignment([this.experiment.experimentId, exposure_id, this.assignment_id])
   },
 };
 </script>

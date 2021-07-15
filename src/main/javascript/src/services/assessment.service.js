@@ -9,7 +9,10 @@ export const assessmentService = {
   createAssessment,
   updateAssessment,
   createQuestion,
+  updateQuestion,
+  deleteQuestion,
   createAnswer,
+  deleteAnswer,
 }
 
 /**
@@ -18,7 +21,7 @@ export const assessmentService = {
 async function fetchAssessment(experiment_id, condition_id, treatment_id, assessment_id) {
   const requestOptions = {
     method: 'GET',
-    headers: { ...authHeader() }
+    headers: {...authHeader()}
   }
 
   return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}?submissions=true&questions=true`, requestOptions).then(handleResponse)
@@ -30,7 +33,7 @@ async function fetchAssessment(experiment_id, condition_id, treatment_id, assess
 async function createAssessment(experiment_id, condition_id, treatment_id, title, body) {
   const requestOptions = {
     method: 'POST',
-    headers: { ...authHeader(), 'Content-Type': 'application/json' },
+    headers: {...authHeader(), 'Content-Type': 'application/json'},
     body: JSON.stringify({
       title,
       "html": body
@@ -43,10 +46,17 @@ async function createAssessment(experiment_id, condition_id, treatment_id, title
 /**
  * Update Assessment
  */
-async function updateAssessment(experiment_id, condition_id, treatment_id, assessment_id, title, body) {
+async function updateAssessment(
+  experiment_id,
+  condition_id,
+  treatment_id,
+  assessment_id,
+  title,
+  body
+) {
   const requestOptions = {
     method: 'PUT',
-    headers: { ...authHeader(), 'Content-Type': 'application/json' },
+    headers: {...authHeader(), 'Content-Type': 'application/json'},
     body: JSON.stringify({
       title,
       "html": body
@@ -67,20 +77,66 @@ async function createQuestion(
   question_order,
   question_type,
   points,
-  body
+  html
 ) {
   const requestOptions = {
     method: 'POST',
-    headers: { ...authHeader(), 'Content-Type': 'application/json' },
+    headers: {...authHeader(), 'Content-Type': 'application/json'},
     body: JSON.stringify({
       questionOrder: question_order,
       questionType: question_type,
       points,
-      "html": body
+      html
     })
   }
 
   return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/questions`, requestOptions).then(handleResponse)
+}
+
+/**
+ * Update Question
+ */
+async function updateQuestion(
+  experiment_id,
+  condition_id,
+  treatment_id,
+  assessment_id,
+  question_id,
+  html,
+  points,
+  questionOrder,
+  questionType
+) {
+  const requestOptions = {
+    method: 'PUT',
+    headers: {...authHeader(), 'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      html,
+      points,
+      questionOrder,
+      questionType
+    })
+  }
+
+  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/questions/${question_id}`, requestOptions).then(handleResponse)
+}
+
+/**
+ * Delete Question
+ */
+async function deleteQuestion(
+  experiment_id,
+  condition_id,
+  treatment_id,
+  assessment_id,
+  question_id
+) {
+  const requestOptions = {
+    method: 'DELETE',
+    headers: {...authHeader()}
+  }
+
+  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/questions/${question_id}`, requestOptions).then(handleResponse)
 }
 
 /**
@@ -92,15 +148,15 @@ async function createAnswer(
   treatment_id,
   assessment_id,
   question_id,
-  body,
+  html,
   correct,
   answerOrder
 ) {
   const requestOptions = {
     method: 'POST',
-    headers: { ...authHeader(), 'Content-Type': 'application/json' },
+    headers: {...authHeader(), 'Content-Type': 'application/json'},
     body: JSON.stringify({
-      "html": body,
+      html,
       correct,
       answerOrder
     })
@@ -109,6 +165,17 @@ async function createAnswer(
   return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/questions/${question_id}/answers`, requestOptions).then(handleResponse)
 }
 
+/**
+ * Delete Answer
+ */
+async function deleteAnswer() {
+  const requestOptions = {
+    method: 'DELETE',
+    headers: {...authHeader()}
+  }
+
+  return fetch(`${store.getters['api/aud']}/`, requestOptions).then(handleResponse)
+}
 
 
 /**
@@ -143,6 +210,6 @@ function handleResponse(response) {
 
     return dataResponse || response
   }).catch(text => {
-    console.error('handleResponse | catch',{text})
+    console.error('handleResponse | catch', {text})
   })
 }

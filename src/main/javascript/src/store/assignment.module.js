@@ -1,17 +1,28 @@
 import {assignmentService} from '@/services'
 
 const state = {
-  assignments: []
+  assignments: [],
+  assignment: {}
 }
 
 const actions = {
+  async fetchAssignment({commit}, payload) {
+    try {
+      const response = await assignmentService.fetchAssignment(...payload)
+      const assignment = response?.data
+
+      commit('setAssignment', assignment)
+    } catch (e) {
+      console.error(e)
+    }
+  },
   createAssignment: ({commit}, payload) => {
     // payload = experiment_id, exposure_id, title, order
     // create the assignment, commit an update mutation, and return the status/data response
     return assignmentService.create(...payload)
       .then((response) => {
         if (response?.assignmentId) {
-          commit('updateAssignments', response)
+          commit('setAssignment', response)
           return {
             status:201,
             data: response
@@ -29,11 +40,17 @@ const mutations = {
     } else {
       state.assignments.push(assignment)
     }
+  },
+  setAssignment(state, assignment) {
+    state.assignment = assignment
   }
 }
 const getters = {
   assignments: (state) => {
     return state.assignments
+  },
+  assignment: (state) => {
+    return state.assignment
   }
 }
 
