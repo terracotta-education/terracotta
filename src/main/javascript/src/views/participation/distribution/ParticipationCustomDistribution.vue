@@ -123,7 +123,7 @@ export default {
     },
     saveExit() {
        if (this.isDisabled()) {
-          this.$router.push({name:'Home', params:{experiment: this.experiment.experiment_id}})
+          this.$router.push({name:'Home', params:{experiment: this.experiment.experimentId}})
         } else {
           this.updateDistribution('Home')
         }
