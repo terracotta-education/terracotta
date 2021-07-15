@@ -7,7 +7,7 @@
 				</aside>
 				<nav>
 					<router-link
-						v-if="$routerHistory.hasPrevious()"
+						v-if="this.$router.currentRoute.meta.previousStep"
 						:to="{ name: this.$router.currentRoute.meta.previousStep }">
 						<v-icon>mdi-chevron-left</v-icon> Back
 					</router-link>

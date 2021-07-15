@@ -27,7 +27,7 @@ const routes = [
         meta: {
           currentSection: 'design',
           currentStep: 'design',
-          previousStep: 'ExperimentSummary'
+          previousStep: 'Home'
         },
         children: [
           // Experiment | Design Steps paths
@@ -39,7 +39,7 @@ const routes = [
             meta: {
               currentSection: 'design',
               currentStep: 'design',
-              previousStep: 'ExperimentSummary'
+              previousStep: 'Home'
             }
           },
           {
