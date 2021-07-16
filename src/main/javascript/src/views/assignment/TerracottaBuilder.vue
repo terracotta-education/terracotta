@@ -26,118 +26,123 @@
 
       <h4 class="mb-3"><strong>Multiple Choice Questions</strong></h4>
 
-      <v-expansion-panels class="v-expansion-panels--outlined mb-6" flat accordion>
-        <v-expansion-panel
-          v-for="(question, qIndex) in questions"
-          :key="question.questionId"
-          class="text-left"
-        >
-          <v-expansion-panel-header class="text-left">
-            <h2 class="pa-0">{{ qIndex + 1 }} <span v-html="question.html" ></span></h2>
-          </v-expansion-panel-header>
-          <v-expansion-panel-content>
-            <tiptap-vuetify
-              v-model="question.html"
-              placeholder="Question"
-              class="mb-6 outlined"
-              :extensions="extensions"
-              :card-props="{ flat: true }"
-              :rules="rules"
-              required
-            />
-            <v-text-field
-              v-model="question.points"
-              label="Points"
-              type="number"
-              outlined
-              required
-            ></v-text-field>
+      <template v-if="questions.length>0">
+        <v-expansion-panels class="v-expansion-panels--outlined mb-6" flat accordion>
+          <v-expansion-panel
+            v-for="(question, qIndex) in questions"
+            :key="question.questionId"
+            class="text-left"
+          >
+            <v-expansion-panel-header class="text-left">
+              <h2 class="pa-0">{{ qIndex + 1 }} <span class="pl-3" v-html="question.html" ></span></h2>
+            </v-expansion-panel-header>
+            <v-expansion-panel-content>
+              <tiptap-vuetify
+                v-model="question.html"
+                placeholder="Question"
+                class="mb-6 outlined"
+                :extensions="extensions"
+                :card-props="{ flat: true }"
+                :rules="rules"
+                required
+              />
+              <v-text-field
+                v-model="question.points"
+                label="Points"
+                type="number"
+                outlined
+                required
+              ></v-text-field>
 
-            <h4><strong>Options</strong></h4>
-            <p class="ma-0 mb-3">Select correct option(s) below</p>
+              <h4><strong>Options</strong></h4>
+              <p class="ma-0 mb-3">Select correct option(s) below</p>
 
-            <ul class="options-list pa-0 mb-6">
-              <li
-                v-for="(answer, aIndex) in question.answers"
-                :key="aIndex"
-                class="mb-3"
-              >
-                <v-row align="center">
-                  <v-col class="py-0" cols="1">
-                    <v-btn
-                      icon
-                      tile
-                      class="correct"
-                      :class="{'green--text':answer.correct}"
-                      @click="handleToggleCorrect(qIndex, aIndex)"
-                    >
-                      <template v-if="!answer.correct">
-                        <v-icon>mdi-checkbox-marked-circle-outline</v-icon>
-                      </template>
-                      <template v-else>
-                        <v-icon>mdi-checkbox-marked-circle</v-icon>
-                      </template>
-                    </v-btn>
-                  </v-col>
-                  <v-col cols="9">
-                    <v-text-field
-                      v-model="answer.html"
-                      :label="`Option ${aIndex + 1}`"
-                      :rules="rules"
-                      hide-details
-                      outlined
-                      required
-                    ></v-text-field>
-                  </v-col>
-                  <v-col class="py-0" cols="2">
-                    <v-btn
-                      icon
-                      tile
-                      class="delete_option"
-                      @click="handleDeleteAnswer(qIndex, aIndex)"
-                    >
-                      <v-icon>mdi-delete</v-icon>
-                    </v-btn>
-                  </v-col>
-                </v-row>
-              </li>
-            </ul>
-
-            <v-row>
-              <v-col>
-                <v-btn
-                  elevation="0"
-                  color="primary"
-                  class="px-0"
-                  @click="handleAddAnswer(question)"
-                  plain
+              <ul class="options-list pa-0 mb-6">
+                <li
+                  v-for="(answer, aIndex) in question.answers"
+                  :key="aIndex"
+                  class="mb-3"
                 >
-                  Add Option
-                </v-btn>
-              </v-col>
-              <v-col class="text-right">
-                <v-menu>
-                  <template v-slot:activator="{ on, attrs }">
-                    <v-icon
-                      color="black"
-                      v-bind="attrs"
-                      v-on="on"
-                    >
-                      mdi-dots-horizontal
-                    </v-icon>
-                  </template>
-                  <v-list class="text-left">
-                    <v-list-item @click="handleDeleteQuestion(question)">
-                      <v-list-item-title>Delete Question</v-list-item-title>
-                    </v-list-item>
-                  </v-list>
-                </v-menu>
-              </v-col>
-            </v-row>
+                  <v-row align="center">
+                    <v-col class="py-0" cols="1">
+                      <v-btn
+                        icon
+                        tile
+                        class="correct"
+                        :class="{'green--text':answer.correct}"
+                        @click="handleToggleCorrect(qIndex, aIndex)"
+                      >
+                        <template v-if="!answer.correct">
+                          <v-icon>mdi-checkbox-marked-circle-outline</v-icon>
+                        </template>
+                        <template v-else>
+                          <v-icon>mdi-checkbox-marked-circle</v-icon>
+                        </template>
+                      </v-btn>
+                    </v-col>
+                    <v-col cols="9">
+                      <v-text-field
+                        v-model="answer.html"
+                        :label="`Option ${aIndex + 1}`"
+                        :rules="rules"
+                        hide-details
+                        outlined
+                        required
+                      ></v-text-field>
+                    </v-col>
+                    <v-col class="py-0" cols="2">
+                      <v-btn
+                        icon
+                        tile
+                        class="delete_option"
+                        @click="handleDeleteAnswer(qIndex, aIndex)"
+                      >
+                        <v-icon>mdi-delete</v-icon>
+                      </v-btn>
+                    </v-col>
+                  </v-row>
+                </li>
+              </ul>
 
-          </v-expansion-panel-content>
-        </v-expansion-panel>
-      </v-expansion-panels>
+              <v-row>
+                <v-col>
+                  <v-btn
+                    elevation="0"
+                    color="primary"
+                    class="px-0"
+                    @click="handleAddAnswer(question)"
+                    plain
+                  >
+                    Add Option
+                  </v-btn>
+                </v-col>
+                <v-col class="text-right">
+                  <v-menu>
+                    <template v-slot:activator="{ on, attrs }">
+                      <v-icon
+                        color="black"
+                        v-bind="attrs"
+                        v-on="on"
+                      >
+                        mdi-dots-horizontal
+                      </v-icon>
+                    </template>
+                    <v-list class="text-left">
+                      <v-list-item @click="handleDeleteQuestion(question)">
+                        <v-list-item-title>Delete Question</v-list-item-title>
+                      </v-list-item>
+                    </v-list>
+                  </v-menu>
+                </v-col>
+              </v-row>
+
+            </v-expansion-panel-content>
+          </v-expansion-panel>
+        </v-expansion-panels>
+      </template>
+      <template v-else>
+        <p class="grey--text">Add questions to continue</p>
+      </template>
 
       <v-btn
         elevation="0"
@@ -191,7 +196,7 @@ export default {
       questions: 'assessment/questions'
     }),
     contDisabled() {
-      return this.assessment.questions.some(q => !q.html) || !this.assessment.title || !this.assessment.title.trim()
+      return this.assessment.questions.length<1 || this.assessment.questions.some(q => !q.html.trim()) || !this.assessment.title || !this.assessment.title.trim()
     }
   },
   data() {
@@ -389,13 +394,15 @@ export default {
         text-overflow: ellipsis;
         white-space: nowrap;
 
-        span * {
-          display: inline;
-          font-size: 16px;
-          line-height: 1em;
-          margin: 0;
-          padding: 0;
-          vertical-align: middle;
+        > span {
+          * {
+            display: inline;
+            font-size: 16px;
+            line-height: 1em;
+            margin: 0;
+            padding: 0;
+            vertical-align: middle;
+          }
         }
       }
     }

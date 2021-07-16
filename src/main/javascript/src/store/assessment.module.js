@@ -23,7 +23,7 @@ const actions = {
       const response = await assessmentService.createAssessment(...payload)
       const assessment = response?.data
       if (assessment?.assessmentId) {
-        commit('updateAssessment', assessment)
+        commit('setAssessment', assessment)
         return {
           status: response?.status,
           data: assessment
