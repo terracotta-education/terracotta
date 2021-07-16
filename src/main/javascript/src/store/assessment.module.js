@@ -16,18 +16,29 @@ const actions = {
       console.error('setAssessment catch', error)
     }
   },
-  async createAssessment({commit}, payload) {
+  async createAssessment ({commit}, payload) {
     // payload = experiment_id, condition_id, treatment_id, title, body
     // create the assessment, commit an update mutation, and return the status/data response
     try {
-      const response = await assessmentService.createAssessment(...payload)
-      const assessment = response?.data
-      if (assessment?.assessmentId) {
-        commit('setAssessment', assessment)
-        return {
-          status: response?.status,
-          data: assessment
-        }
+      // check if assessment exist before creating a new one
+      let response = await assessmentService.fetchAssessments(...payload)
+      console.log({response})
+      let assessment
+
+      // return first assessment that matches, only one assessment per treatment
+      if (response?.data.length>0) {
+        assessment = response?.data[0]
+      } else {
+        response = await assessmentService.createAssessment(...payload)
+        assessment = response?.data
+      }
+
+      // commit changes to state
+      commit('setAssessment', assessment)
+
+      return {
+        status: response?.status,
+        data: assessment
       }
     } catch (error) {
       console.log('createAssessment catch', error)

@@ -11,7 +11,7 @@
     <v-btn
       elevation="0"
       color="primary"
-      :to="{ name: 'AssignmentCreateAssignment', params:{exposure_id: this.$route.params.exposure_id} }"
+      :to="{ name: 'AssignmentYourAssignments', params:{exposure_id: this.$route.params.exposure_id} }"
       >Continue</v-btn
     >
 

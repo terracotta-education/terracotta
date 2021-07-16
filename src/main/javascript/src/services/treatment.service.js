@@ -5,7 +5,20 @@ import store from '@/store/index.js'
  * Register methods
  */
 export const treatmentService = {
-  create
+  create,
+  fetchTreatment
+}
+
+/**
+ * Fetch Treatment
+ */
+async function fetchTreatment(experiment_id, condition_id) {
+  const requestOptions = {
+    method: 'GET',
+    headers: {...authHeader()}
+  }
+
+  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments`, requestOptions).then(handleResponse)
 }
 
 /**

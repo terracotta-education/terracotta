@@ -9,9 +9,16 @@ const actions = {
   async fetchAssignment({commit}, payload) {
     try {
       const response = await assignmentService.fetchAssignment(...payload)
-      const assignment = response?.data
 
-      commit('setAssignment', assignment)
+      commit('setAssignment', response)
+    } catch (e) {
+      console.error(e)
+    }
+  },
+  async fetchAssignments({commit}, payload) {
+    try {
+      const assignments = await assignmentService.fetchAssignments(...payload)
+      commit('setAssignments', assignments)
     } catch (e) {
       console.error(e)
     }
@@ -40,6 +47,10 @@ const mutations = {
     } else {
       state.assignments.push(assignment)
     }
+  },
+  setAssignments(state, assignments) {
+    console.log({assignments})
+    state.assignments = assignments
   },
   setAssignment(state, assignment) {
     state.assignment = assignment

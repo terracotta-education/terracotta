@@ -369,7 +369,7 @@ export default {
       }
     },
     saveExit() {
-      this.$router.push({name:'Home', params:{experiment: this.experiment.experimentId}})
+      this.$router.push({name:'Home'})
     }
   },
   created() {

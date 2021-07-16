@@ -10,23 +10,48 @@ const actions = {
     // payload = experiment_id, condition_id, assignment_id
     // create the treatment, commit an update mutation, and return the status/data response
     try {
-      const response = await treatmentService.create(...payload)
-      const treatment = response?.data
-      if (treatment.assignmentId) {
-        commit('updateTreatment', treatment)
-        commit('updateTreatments', treatment)
-        return {
-          status: response?.status,
-          data: treatment
-        }
+      // check if treatments exist before creating a new one
+      let response = await treatmentService.fetchTreatment(...payload)
+      let treatment
+
+      // return first treatment that matches, only one treatment per condition
+      if (response?.data.length>0) {
+        treatment = response?.data[0]
+      } else {
+        response = await treatmentService.create(...payload)
+        treatment = response?.data
+      }
+
+      // commit changes to state
+      commit('setTreatment', treatment)
+      commit('updateTreatments', treatment)
+
+      return {
+        status: response?.status,
+        data: treatment
       }
     } catch (error) {
       console.log('createTreatment catch', error)
     }
   },
+  async checkTreatments({state}, payload) {
+    // payload = experiment_id, condition_id, assignment_id
+    try {
+      const response = await treatmentService.fetchTreatment(...payload)
+
+      if (response) {
+        return {
+          status: response.status,
+          data: response.data
+        }
+      }
+    } catch (error) {
+      console.error('checkTreatments catch', {error, state})
+    }
+  },
 }
 const mutations = {
-  updateTreatment(state, treatment) {
+  setTreatment(state, treatment) {
     state.treatment = treatment
   },
   updateTreatments(state, treatment) {
