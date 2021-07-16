@@ -4,10 +4,12 @@ import router from './router'
 import vuetify from './plugins/vuetify'
 import store from './store/index'
 import VueRouterBackButton from 'vue-router-back-button'
+import { TiptapVuetifyPlugin } from 'tiptap-vuetify'
 
 Vue.config.productionTip = false
 
 Vue.use(VueRouterBackButton, { router })
+Vue.use(TiptapVuetifyPlugin, {vuetify, iconsGroup: 'mdi'})
 
 const url = new URL(window.location.href);
 const params = new URLSearchParams(url.search);
