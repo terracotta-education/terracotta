@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd">
+    <changeSet id = "1622668000000-1" author = "ddelblanco">
+        <dropForeignKeyConstraint baseTableName="terr_participant"
+                                  constraintName="FK_TERR_PARTICIPANT_ON_GROUP_GROUP"/>
+    </changeSet>
+    <changeSet id="1622668000000-2" author="ddelblanco">
+        <addForeignKeyConstraint baseTableName="terr_participant" baseColumnNames="group_group_id"
+                                 constraintName="FK_TERR_PARTICIPANT_ON_GROUP_GROUP"
+                                 onDelete="SET NULL"
+                                 referencedTableName="terr_group" referencedColumnNames="group_id"/>
+    </changeSet>
+</databaseChangeLog>

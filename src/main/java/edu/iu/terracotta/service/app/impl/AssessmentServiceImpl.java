@@ -38,7 +38,7 @@ public class AssessmentServiceImpl implements AssessmentService {
     }
 
     @Override
-    public AssessmentDto toDto(Assessment assessment, boolean questions, boolean submissions) {
+    public AssessmentDto toDto(Assessment assessment, boolean questions, boolean answers, boolean submissions, boolean student) {
 
         AssessmentDto assessmentDto = new AssessmentDto();
         assessmentDto.setAssessmentId(assessment.getAssessmentId());
@@ -50,7 +50,7 @@ public class AssessmentServiceImpl implements AssessmentService {
         if(questions){
             List<Question> questionList = allRepositories.questionRepository.findByAssessment_AssessmentId(assessment.getAssessmentId());
             for(Question question : questionList) {
-                questionDtoList.add(questionService.toDto(question, false));
+                questionDtoList.add(questionService.toDto(question, answers, student));
             }
         }
         assessmentDto.setQuestions(questionDtoList);

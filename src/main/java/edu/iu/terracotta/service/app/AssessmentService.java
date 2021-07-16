@@ -12,7 +12,7 @@ public interface AssessmentService {
 
     List<Assessment> findAllByTreatmentId(Long treatmentId);
 
-    AssessmentDto toDto(Assessment assessment, boolean questions, boolean submissions);
+    AssessmentDto toDto(Assessment assessment, boolean questions, boolean answers, boolean submissions, boolean student);
 
     Assessment fromDto(AssessmentDto assessmentDto) throws DataServiceException;
 
