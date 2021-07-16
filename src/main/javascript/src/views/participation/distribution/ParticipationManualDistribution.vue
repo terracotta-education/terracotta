@@ -40,9 +40,6 @@
       @click="submitDistribution('ParticipationSummary')"
       >Continue</v-btn
     >
-
-    <br />
-    {{ this.participants }}
   </div>
 </template>
 
@@ -77,8 +74,7 @@ export default {
         }
         // All the participant will go to 'Unparticipate' section
         const participatingStudents = this.participants.filter(({consent}) => consent === true)
-        console.log("🚀 ~ file: ParticipationManualDistribution.vue ~ line 79 ~ participatingStudents", participatingStudents)
-
+        
         newArray.push(participatingStudents)
         this.arrayData = newArray
       },
