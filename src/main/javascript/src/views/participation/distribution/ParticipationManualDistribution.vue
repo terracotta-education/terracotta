@@ -66,14 +66,16 @@ export default {
       // made in Participants
       deep: true,
       immediate: true,
-      handler(newValue) {
+      handler() {
         // This will only required when the page is loaded
         const newArray = []
         for (let i = 0; i < this.conditions.length; i++) {
           newArray.push([])
         }
         // All the participant will go to 'Unparticipate' section
-        newArray.push(newValue)
+        const participatingStudents = this.participants.filter(({consent}) => consent === true)
+        
+        newArray.push(participatingStudents)
         this.arrayData = newArray
       },
     },
