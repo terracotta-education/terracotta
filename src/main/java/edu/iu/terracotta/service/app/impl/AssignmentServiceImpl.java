@@ -300,7 +300,7 @@ public class AssignmentServiceImpl implements AssignmentService {
         canvasExternalToolTagAttributes.setUrl(localUrl + "/lti3?experiment=" + assignment.getExposure().getExperiment().getExperimentId() + "&assignment=" + assignment.getAssignmentId());
         canvasAssignment.setExternalToolTagAttributes(canvasExternalToolTagAttributes);
         canvasAssignment.setName(assignment.getTitle());
-        canvasAssignment.setDescription("Hardcoded description to be updated");
+        canvasAssignment.setDescription(null); //We don't want a description for this assignment.
         //TODO... if we restore it... should we publish it? Only if it has submissions.
         long submissions = allRepositories.submissionRepository.countByAssessment_Treatment_Assignment_AssignmentId(assignment.getAssignmentId());
         canvasAssignment.setPublished(submissions > 0);

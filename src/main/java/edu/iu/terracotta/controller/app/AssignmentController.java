@@ -151,8 +151,7 @@ public class AssignmentController {
             canvasExternalToolTagAttributes.setUrl(ServletUriComponentsBuilder.fromCurrentContextPath().path("/lti3?experiment=" + experimentId + "&assignment=" + assignmentSaved.getAssignmentId()).build().toUriString());
             canvasAssignment.setExternalToolTagAttributes(canvasExternalToolTagAttributes);
             canvasAssignment.setName(assignmentSaved.getTitle());
-            //TODO: Think about the description of the assignment.
-            canvasAssignment.setDescription("Hardcoded description to be updated");
+            canvasAssignment.setDescription(null);
             canvasAssignment.setPublished(false);
             //TODO: This is interesting...because each condition assessment maybe has different points... so... what should we send here? 0? 100 and send a percent always????
             canvasAssignment.setPointsPossible(100.0);
