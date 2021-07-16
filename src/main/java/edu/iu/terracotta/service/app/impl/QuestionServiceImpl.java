@@ -3,6 +3,7 @@ package edu.iu.terracotta.service.app.impl;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.model.app.Assessment;
 import edu.iu.terracotta.model.app.Question;
+import edu.iu.terracotta.model.app.dto.AnswerDto;
 import edu.iu.terracotta.model.app.dto.QuestionDto;
 import edu.iu.terracotta.model.app.enumerator.QuestionTypes;
 import edu.iu.terracotta.repository.AllRepositories;
@@ -33,7 +34,7 @@ public class QuestionServiceImpl implements QuestionService {
     }
 
     @Override
-    public QuestionDto toDto(Question question, boolean answers) {
+    public QuestionDto toDto(Question question, boolean answers, boolean student) {
 
         QuestionDto questionDto = new QuestionDto();
         questionDto.setQuestionId(question.getQuestionId());
@@ -42,7 +43,13 @@ public class QuestionServiceImpl implements QuestionService {
         questionDto.setPoints(question.getPoints());
         questionDto.setAssessmentId(question.getAssessment().getAssessmentId());
         questionDto.setQuestionType(question.getQuestionType().name());
-
+        if (answers) {
+            switch (question.getQuestionType()) {
+                case MC:
+                    questionDto.setAnswers(answerService.findAllByQuestionIdMC(question.getQuestionId(), student));
+                    break;
+            }
+        }
         return questionDto;
     }
 

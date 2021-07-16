@@ -33,7 +33,7 @@ public class TreatmentServiceImpl implements TreatmentService {
         TreatmentDto treatmentDto = new TreatmentDto();
         treatmentDto.setTreatmentId(treatment.getTreatmentId());
         if(treatment.getAssessment() != null) {
-            treatmentDto.setAssessmentDto(assessmentService.toDto(treatment.getAssessment(), false,false));
+            treatmentDto.setAssessmentDto(assessmentService.toDto(treatment.getAssessment(), false,false, false, false));
         }
         treatmentDto.setConditionId(treatment.getCondition().getConditionId());
         treatmentDto.setAssignmentId(treatment.getAssignment().getAssignmentId());
