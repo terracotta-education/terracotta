@@ -89,7 +89,7 @@ public class AssessmentController {
             }
             List<AssessmentDto> assessmentDtoList = new ArrayList<>();
             for(Assessment assessment : assessmentList){
-                assessmentDtoList.add(assessmentService.toDto(assessment,false, false));
+                assessmentDtoList.add(assessmentService.toDto(assessment,false, false, false, false));
             }
             return new ResponseEntity<>(assessmentDtoList, HttpStatus.OK);
         } else {
@@ -105,6 +105,7 @@ public class AssessmentController {
                                                        @PathVariable("treatment_id") Long treatmentId,
                                                        @PathVariable("assessment_id") Long assessmentId,
                                                        @RequestParam(name = "questions", defaultValue = "false") boolean questions,
+                                                       @RequestParam(name = "answers", defaultValue = "false") boolean answers,
                                                        @RequestParam(name = "submissions", defaultValue = "false") boolean submissions,
                                                        HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, AssessmentNotMatchingException {
@@ -114,6 +115,7 @@ public class AssessmentController {
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
 
         if(apijwtService.isLearnerOrHigher(securedInfo)) {
+            boolean student = !apijwtService.isInstructorOrHigher(securedInfo);
             Optional<Assessment> assessmentSearchResult = assessmentService.findById(assessmentId);
 
             if(!assessmentSearchResult.isPresent()) {
@@ -123,7 +125,7 @@ public class AssessmentController {
                         " and context " + securedInfo.getContextId() + " and experiment with id " + experimentId + " and condition id " + conditionId +
                         " and treatment id " + treatmentId + " with id " + assessmentId + TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
             } else {
-                AssessmentDto assessmentDto = assessmentService.toDto(assessmentSearchResult.get(), questions, submissions);
+                AssessmentDto assessmentDto = assessmentService.toDto(assessmentSearchResult.get(), questions, answers, submissions, student);
                 return new ResponseEntity<>(assessmentDto, HttpStatus.OK);
             }
         } else {
@@ -177,7 +179,7 @@ public class AssessmentController {
                 treatment1.setAssessment(assessmentSaved);
                 treatmentService.saveAndFlush(treatment1);
             }
-            AssessmentDto returnedDto = assessmentService.toDto(assessmentSaved, false,false);
+            AssessmentDto returnedDto = assessmentService.toDto(assessmentSaved, false, false,false, false);
 
             HttpHeaders headers = new HttpHeaders();
             headers.setLocation(ucBuilder.path("/api/experiments/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}")
@@ -294,7 +296,7 @@ public class AssessmentController {
             }
             List<QuestionDto> questionDtoList = new ArrayList<>();
             for(Question question : questionList) {
-                questionDtoList.add(questionService.toDto(question, false));
+                questionDtoList.add(questionService.toDto(question, false, false));
             }
             return new ResponseEntity<>(questionDtoList, HttpStatus.OK);
         } else {
@@ -320,6 +322,7 @@ public class AssessmentController {
         apijwtService.questionAllowed(securedInfo, assessmentId, questionId);
 
         if(apijwtService.isLearnerOrHigher(securedInfo)){
+            boolean correctAnswers = apijwtService.isInstructorOrHigher(securedInfo);
             Optional<Question> questionSearchResult = questionService.findById(questionId);
 
             if(!questionSearchResult.isPresent()) {
@@ -329,7 +332,7 @@ public class AssessmentController {
                 + " and experiment with id " + experimentId + " and condition id " + conditionId + " and treatment id " + treatmentId + " and assessment id " + assessmentId
                 + " with id " + questionId + TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
             } else {
-                QuestionDto questionDto = questionService.toDto(questionSearchResult.get(), answers);
+                QuestionDto questionDto = questionService.toDto(questionSearchResult.get(), answers, correctAnswers);
                 return new ResponseEntity<>(questionDto, HttpStatus.OK);
             }
         } else {
@@ -343,7 +346,7 @@ public class AssessmentController {
                                                     @PathVariable("condition_id") Long conditionId,
                                                     @PathVariable("treatment_id") Long treatmentId,
                                                     @PathVariable("assessment_id") Long assessmentId,
-                                                    @RequestParam(name = "submissions", defaultValue = "false") boolean answers,
+                                                    @RequestParam(name = "answers", defaultValue = "false") boolean answers,
                                                     @RequestBody QuestionDto questionDto,
                                                     UriComponentsBuilder ucBuilder,
                                                     HttpServletRequest req)
@@ -375,7 +378,7 @@ public class AssessmentController {
             }
 
             Question questionSaved = questionService.save(question);
-            QuestionDto returnedDto = questionService.toDto(questionSaved, answers);
+            QuestionDto returnedDto = questionService.toDto(questionSaved, answers, true);
 
             HttpHeaders headers = new HttpHeaders();
             headers.setLocation(ucBuilder.path("/api/experiments/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/questions/{question_id}")
