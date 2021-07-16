@@ -10,6 +10,7 @@ import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.Exposure;
 import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.dto.ConditionDto;
+import edu.iu.terracotta.model.app.dto.ConsentDto;
 import edu.iu.terracotta.model.app.dto.ExperimentDto;
 import edu.iu.terracotta.model.app.dto.ExposureDto;
 import edu.iu.terracotta.model.app.dto.ParticipantDto;
@@ -109,6 +110,15 @@ public class ExperimentServiceImpl implements ExperimentService {
         }
         experimentDto.setParticipants(participantDtoList);
 
+        ConsentDocument consentDocument = experiment.getConsentDocument();
+        if (consentDocument !=null){
+            ConsentDto consentDto = new ConsentDto();
+            consentDto.setConsentDocumentId(consentDocument.getConsentDocumentId());
+            consentDto.setFilePointer(consentDocument.getFilePointer());
+            consentDto.setTitle(consentDocument.getTitle());
+            consentDto.setHtml(consentDocument.getHtml());
+            experimentDto.setConsent(consentDto);
+        }
 
         return experimentDto;
     }

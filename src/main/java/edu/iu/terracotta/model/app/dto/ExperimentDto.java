@@ -29,6 +29,8 @@ public class ExperimentDto {
     private List<ExposureDto> exposures;
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<ParticipantDto> participants;
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private ConsentDto consent;
     private Long createdBy;
     private Timestamp closed;
 
@@ -154,5 +156,13 @@ public class ExperimentDto {
 
     public void setClosed(Timestamp closed) {
         this.closed = closed;
+    }
+
+    public ConsentDto getConsent() {
+        return consent;
+    }
+
+    public void setConsent(ConsentDto consent) {
+        this.consent = consent;
     }
 }

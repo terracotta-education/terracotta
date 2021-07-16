@@ -28,6 +28,13 @@
         Next
       </v-btn>
     </form>
+
+    <v-card
+      class="mt-10 pt-5 px-5 mx-auto blue lighten-5 rounded-lg"
+      outlined
+    >
+      <p><strong>Note:</strong> Once the assignment is created, you won't be able to change the title.</p>
+    </v-card>
   </div>
 </template>
 
@@ -43,7 +50,7 @@ export default {
     }),
     title: {
       get() {
-        return this.consent.title
+        return this.experiment.consent.title || this.consent.title
       },
       set(value) {
         this.titleProxy = value
