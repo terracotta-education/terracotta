@@ -5,7 +5,7 @@
       <strong>{{ numberOfConditions }} conditions</strong> and would like your
       students to be
       <template v-if="exposureType === 'WITHIN'">
-        <strong>exposed to every conditions</strong> (within)
+        <strong>exposed to every conditions</strong> (within-subject)
       </template>
       <template v-else>
         <strong>exposed to only one condition</strong>(between)

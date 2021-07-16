@@ -64,7 +64,11 @@
       </div>
 
       <v-btn
-        :disabled="!experiment.conditions.length > 0 || !experiment.conditions.every(c => c.name && c.name.trim())"
+        :disabled="
+          hasDuplicateValues(experiment.conditions, 'name') ||
+          !experiment.conditions.length > 0 ||
+          !experiment.conditions.every(c => c.name && c.name.trim())
+        "
         elevation="0"
         color="primary"
         class="mr-4"
@@ -79,12 +83,14 @@
 </template>
 
 <script>
-import {mapActions} from "vuex";
-import store from "@/store";
+import {mapActions} from 'vuex';
+import store from '@/store';
+import {hasDuplicateValues} from '@/mixins/hasDuplicateValues'
 
 export default {
   name: 'DesignConditions',
   props: ['experiment'],
+  mixins: [hasDuplicateValues],
   data: () => ({
     rules: [
       v => v && !!v.trim() || 'Condition name is required',
