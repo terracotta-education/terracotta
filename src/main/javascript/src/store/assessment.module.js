@@ -22,11 +22,10 @@ const actions = {
     try {
       // check if assessment exist before creating a new one
       let response = await assessmentService.fetchAssessments(...payload)
-      console.log({response})
       let assessment
 
       // return first assessment that matches, only one assessment per treatment
-      if (response?.data.length>0) {
+      if (response?.data?.length>0) {
         assessment = response?.data[0]
       } else {
         response = await assessmentService.createAssessment(...payload)
@@ -98,7 +97,7 @@ const actions = {
     try {
       const response = await assessmentService.deleteQuestion(...payload)
       console.log({response})
-      if (response) {
+      if (response?.status === 200) {
         // send question id to the deleteQuestion mutation
         commit('deleteQuestion', questionId)
         return {
@@ -127,14 +126,29 @@ const actions = {
       console.log('createAnswer catch', error)
     }
   },
+  async updateAnswer({state}, payload) {
+    // payload = experiment_id, condition_id, treatment_id, assessment_id, question_id, answer_id, answer_type, html, correct, answer_order
+    // update answer and return the status/data response
+    try {
+      const response = await assessmentService.updateAnswer(...payload)
+      if (response) {
+        return {
+          status: response?.status,
+          data: null
+        }
+      }
+    } catch (error) {
+      console.log('updateAnswer catch', {error, state})
+    }
+  },
   async deleteAnswer({commit}, payload) {
-    const answerId = ""
-    // payload =
+    const answerId = payload[5]
+    // payload = experiment_id, condition_id, treatment_id, assessment_id, question_id, answer_id
     // delete answer, commit mutation, and return the status/data response
     try {
       const response = await assessmentService.deleteAnswer(...payload)
       console.log({response})
-      if (response) {
+      if (response?.status === 200) {
         // send answer id to the deleteAnswer mutation
         commit('deleteAnswer', answerId)
         return {
@@ -177,18 +191,37 @@ const mutations = {
     state.assessment.questions = [...state.assessment.questions?.filter(q => parseInt(q.questionId) !== parseInt(qid))]
   },
   updateAnswers(state, answer) {
-    // WIP
-    state.assessment.questions.map(q => {
-      q.answers?.map(a => {
-        console.log({a})
-        if (parseInt(a.answerId) === parseInt(answer.answerId)) a = answer;
-      })
+    const aqid = parseInt(answer.questionId)
+
+    // check if answer exists and update, or add answer to question
+    state.assessment.questions = state.assessment.questions.map(q => {
+      const qqid = parseInt(q.questionId)
+
+      // step over question if not relevant
+      if (qqid !== aqid) { return q }
+
+      if (q.answers?.length > 0) {
+        // if there are answers, check for matching answerId
+        const foundIndex = q.answers.findIndex(a => parseInt(a.answerId) === parseInt(answer.answerId))
+
+        if (foundIndex >= 0) {
+          q.answers[foundIndex] = answer
+        } else {
+          q.answers = [...q.answers, answer]
+        }
+      } else if ((!q.answers || q.answers.length < 1)) {
+        // create array with single answer if empty or missing answers
+        q.answers = [answer]
+      }
+
+      return q
     });
   },
-  deleteAnswer(state, aid) {
-    // WIP
-    // state.assessment.questions = [...state.assessment.questions?.filter(q => parseInt(q.questionId) !== parseInt(qid))]
-    console.log({state,aid})
+  deleteAnswer(state, answer_id) {
+    const aid = parseInt(answer_id)
+    state.assessment.questions = state.assessment.questions.map((q) => {
+      return {...q, answers: q.answers.filter(a => parseInt(a.answerId) !== aid)}
+    })
   },
 }
 const getters = {

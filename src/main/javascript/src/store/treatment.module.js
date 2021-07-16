@@ -15,7 +15,7 @@ const actions = {
       let treatment
 
       // return first treatment that matches, only one treatment per condition
-      if (response?.data.length>0) {
+      if (response?.data?.length>0) {
         treatment = response?.data[0]
       } else {
         response = await treatmentService.create(...payload)

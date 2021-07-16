@@ -1,11 +1,16 @@
 <template>
   <div>
-    <template v-if="assignments">
+    <template v-if="assignments && assignments.length">
       <ul>
         <li v-for="(assignment, i) in assignments" :key="i">
           <router-link :to="{name:'AssignmentTreatmentSelect', params: {exposure_id:assignment.exposureId, assignment_id:assignment.assignmentId}}">{{assignment.title}}</router-link>
         </li>
       </ul>
+      <v-btn
+        elevation="0"
+        color="primary"
+        :to="{ name: 'AssignmentCreateAssignment', params:{exposure_id: this.exposure_id} }"
+      >create assignment</v-btn>
     </template>
     <template v-else>
       <p>No assignments yet</p>

@@ -13,6 +13,7 @@ export const assessmentService = {
   updateQuestion,
   deleteQuestion,
   createAnswer,
+  updateAnswer,
   deleteAnswer,
 }
 
@@ -25,7 +26,7 @@ async function fetchAssessment(experiment_id, condition_id, treatment_id, assess
     headers: {...authHeader()}
   }
 
-  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}?answers=true&questions=true`, requestOptions).then(handleResponse)
+  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}?questions=true&answers=true`, requestOptions).then(handleResponse)
 }
 
 /**
@@ -179,15 +180,44 @@ async function createAnswer(
 }
 
 /**
+ * Update Answer
+ */
+async function updateAnswer(
+  experiment_id,
+  condition_id,
+  treatment_id,
+  assessment_id,
+  question_id,
+  answer_id,
+  answer_type,
+  html,
+  correct,
+  answer_order
+) {
+  const requestOptions = {
+    method: 'PUT',
+    headers: {...authHeader(), 'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      "answerType": answer_type,
+      html,
+      correct,
+      "answerOrder": answer_order
+    })
+  }
+
+  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/questions/${question_id}/answers/${answer_id}`, requestOptions).then(handleResponse)
+}
+
+/**
  * Delete Answer
  */
-async function deleteAnswer() {
+async function deleteAnswer(experiment_id, condition_id, treatment_id, assessment_id, question_id, answer_id) {
   const requestOptions = {
     method: 'DELETE',
     headers: {...authHeader()}
   }
 
-  return fetch(`${store.getters['api/aud']}/`, requestOptions).then(handleResponse)
+  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/questions/${question_id}/answers/${answer_id}`, requestOptions).then(handleResponse)
 }
 
 

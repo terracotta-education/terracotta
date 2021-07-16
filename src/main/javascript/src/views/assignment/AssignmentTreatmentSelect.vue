@@ -131,15 +131,14 @@ export default {
     },
     async hasTreatment(condition) {
       const treatments = await this.checkTreatments([this.experiment.experimentId, condition.conditionId, this.assignment_id])
-
-      return treatments?.data.length>0;
+      return treatments?.data?.length>0;
     },
     async treatmentCount() {
       this.tCount = 0
 
       for (const c of this.conditions) {
         const treatments = await this.checkTreatments([this.experiment.experimentId, c.conditionId, this.assignment_id])
-        this.tCount = (treatments?.data.length>0) ? this.tCount+1 : this.tCount
+        this.tCount = (treatments?.data?.length>0) ? this.tCount+1 : this.tCount
       }
     },
     saveExit() {

@@ -5,7 +5,7 @@
       {{assignment.title}}'s condition: <strong>{{condition.name}}</strong>
     </h1>
     <form
-      @submit.prevent="saveAll('ExperimentDesignDescription')"
+      @submit.prevent="saveAll('AssignmentYourAssignments')"
       class="my-5"
     >
       <v-text-field
@@ -26,117 +26,124 @@
 
       <h4 class="mb-3"><strong>Multiple Choice Questions</strong></h4>
 
-      <template v-if="questions.length>0">
+      <template v-if="questions && questions.length>0">
         <v-expansion-panels class="v-expansion-panels--outlined mb-6" flat accordion>
           <v-expansion-panel
             v-for="(question, qIndex) in questions"
-            :key="question.questionId"
+            :key="qIndex"
             class="text-left"
           >
-            <v-expansion-panel-header class="text-left">
-              <h2 class="pa-0">{{ qIndex + 1 }} <span class="pl-3" v-html="question.html" ></span></h2>
-            </v-expansion-panel-header>
-            <v-expansion-panel-content>
-              <tiptap-vuetify
-                v-model="question.html"
-                placeholder="Question"
-                class="mb-6 outlined"
-                :extensions="extensions"
-                :card-props="{ flat: true }"
-                :rules="rules"
-                required
-              />
-              <v-text-field
-                v-model="question.points"
-                label="Points"
-                type="number"
-                outlined
-                required
-              ></v-text-field>
+            <template v-if="question">
+              <v-expansion-panel-header class="text-left">
+                <h2 class="pa-0">
+                  {{ qIndex + 1 }}
+                  <span class="pl-3" v-if="question.html" v-html="question.html" ></span>
+                </h2>
+              </v-expansion-panel-header>
+              <v-expansion-panel-content>
+                <tiptap-vuetify
+                  v-model="question.html"
+                  placeholder="Question"
+                  class="mb-6 outlined"
+                  :extensions="extensions"
+                  :card-props="{ flat: true }"
+                  :rules="rules"
+                  required
+                />
+                <v-text-field
+                  v-model="question.points"
+                  label="Points"
+                  type="number"
+                  outlined
+                  required
+                ></v-text-field>
 
-              <h4><strong>Options</strong></h4>
-              <p class="ma-0 mb-3">Select correct option(s) below</p>
+                <template v-if="question.answers">
+                  <h4><strong>Options</strong></h4>
+                  <p class="ma-0 mb-3">Select correct option(s) below</p>
 
-              <ul class="options-list pa-0 mb-6">
-                <li
-                  v-for="(answer, aIndex) in question.answers"
-                  :key="aIndex"
-                  class="mb-3"
-                >
-                  <v-row align="center">
-                    <v-col class="py-0" cols="1">
-                      <v-btn
-                        icon
-                        tile
-                        class="correct"
-                        :class="{'green--text':answer.correct}"
-                        @click="handleToggleCorrect(qIndex, aIndex)"
-                      >
-                        <template v-if="!answer.correct">
-                          <v-icon>mdi-checkbox-marked-circle-outline</v-icon>
-                        </template>
-                        <template v-else>
-                          <v-icon>mdi-checkbox-marked-circle</v-icon>
-                        </template>
-                      </v-btn>
-                    </v-col>
-                    <v-col cols="9">
-                      <v-text-field
-                        v-model="answer.html"
-                        :label="`Option ${aIndex + 1}`"
-                        :rules="rules"
-                        hide-details
-                        outlined
-                        required
-                      ></v-text-field>
-                    </v-col>
-                    <v-col class="py-0" cols="2">
-                      <v-btn
-                        icon
-                        tile
-                        class="delete_option"
-                        @click="handleDeleteAnswer(qIndex, aIndex)"
-                      >
-                        <v-icon>mdi-delete</v-icon>
-                      </v-btn>
-                    </v-col>
-                  </v-row>
-                </li>
-              </ul>
+                  <ul class="options-list pa-0 mb-6">
+                    <li
+                      v-for="(answer, aIndex) in question.answers"
+                      :key="aIndex"
+                      class="mb-3"
+                    >
+                      <v-row align="center">
+                        <v-col class="py-0" cols="1">
+                          <v-btn
+                            icon
+                            tile
+                            class="correct"
+                            :class="{'green--text':answer.correct}"
+                            @click="handleToggleCorrect(qIndex, aIndex)"
+                          >
+                            <template v-if="!answer.correct">
+                              <v-icon>mdi-checkbox-marked-circle-outline</v-icon>
+                            </template>
+                            <template v-else>
+                              <v-icon>mdi-checkbox-marked-circle</v-icon>
+                            </template>
+                          </v-btn>
+                        </v-col>
+                        <v-col cols="9">
+                          <v-text-field
+                            v-model="answer.html"
+                            :label="`Option ${aIndex + 1}`"
+                            :rules="rules"
+                            hide-details
+                            outlined
+                            required
+                          ></v-text-field>
+                        </v-col>
+                        <v-col class="py-0" cols="2">
+                          <v-btn
+                            icon
+                            tile
+                            class="delete_option"
+                            @click="handleDeleteAnswer(question, answer)"
+                          >
+                            <v-icon>mdi-delete</v-icon>
+                          </v-btn>
+                        </v-col>
+                      </v-row>
+                    </li>
+                  </ul>
+                </template>
 
-              <v-row>
-                <v-col>
-                  <v-btn
-                    elevation="0"
-                    color="primary"
-                    class="px-0"
-                    @click="handleAddAnswer(question)"
-                    plain
-                  >
-                    Add Option
-                  </v-btn>
-                </v-col>
-                <v-col class="text-right">
-                  <v-menu>
-                    <template v-slot:activator="{ on, attrs }">
-                      <v-icon
-                        color="black"
-                        v-bind="attrs"
-                        v-on="on"
-                      >
-                        mdi-dots-horizontal
-                      </v-icon>
-                    </template>
-                    <v-list class="text-left">
-                      <v-list-item @click="handleDeleteQuestion(question)">
-                        <v-list-item-title>Delete Question</v-list-item-title>
-                      </v-list-item>
-                    </v-list>
-                  </v-menu>
-                </v-col>
-              </v-row>
+                <v-row>
+                  <v-col>
+                    <v-btn
+                      elevation="0"
+                      color="primary"
+                      class="px-0"
+                      @click="handleAddAnswer(question)"
+                      plain
+                    >
+                      Add Option
+                    </v-btn>
+                  </v-col>
+                  <v-col class="text-right">
+                    <v-menu>
+                      <template v-slot:activator="{ on, attrs }">
+                        <v-icon
+                          color="black"
+                          v-bind="attrs"
+                          v-on="on"
+                        >
+                          mdi-dots-horizontal
+                        </v-icon>
+                      </template>
+                      <v-list class="text-left">
+                        <v-list-item @click="handleDeleteQuestion(question)">
+                          <v-list-item-title>Delete Question</v-list-item-title>
+                        </v-list-item>
+                      </v-list>
+                    </v-menu>
+                  </v-col>
+                </v-row>
 
-            </v-expansion-panel-content>
+              </v-expansion-panel-content>
+            </template>
           </v-expansion-panel>
         </v-expansion-panels>
       </template>
@@ -177,6 +184,9 @@ export default {
   computed: {
     assignment_id() {
       return parseInt(this.$route.params.assignment_id)
+    },
+    exposure_id() {
+      return parseInt(this.$route.params.exposure_id)
     },
     treatment_id() {
       return parseInt(this.$route.params.treatment_id)
@@ -235,7 +245,9 @@ export default {
       createQuestion: 'assessment/createQuestion',
       updateQuestion: 'assessment/updateQuestion',
       deleteQuestion: 'assessment/deleteQuestion',
-      createAnswer: 'assessment/createAnswer'
+      createAnswer: 'assessment/createAnswer',
+      updateAnswer: 'assessment/updateAnswer',
+      deleteAnswer: 'assessment/deleteAnswer'
     }),
     async handleAddQuestion(questionType) {
       // POST QUESTION
@@ -271,11 +283,23 @@ export default {
         console.error(error)
       }
     },
-    handleToggleCorrect(q, o) {
-      this.questions[q].answers[o].correct = !this.questions[q].answers[o].correct
+    handleToggleCorrect(q, a) {
+      this.questions[q].answers[a].correct = !this.questions[q].answers[a].correct
     },
-    handleDeleteAnswer(q, o) {
-      this.questions[q].answers.splice(o,1)
+    async handleDeleteAnswer(q, a) {
+      // DELETE ANSWER
+      try {
+        return await this.deleteAnswer([
+          this.experiment.experimentId,
+          this.condition_id,
+          this.treatment_id,
+          this.assessment_id,
+          q.questionId,
+          a.answerId
+        ])
+      } catch (error) {
+        console.error("handleDeleteAnswer | catch", {error})
+      }
     },
     async handleDeleteQuestion(question) {
       // DELETE QUESTION
@@ -336,15 +360,16 @@ export default {
       return Promise.all(
         this.questions.map((question) => {
           question?.answers?.map(async (answer, answerIndex) => {
-            console.log({answer, answerIndex})
             try {
-              const a = await this.createAnswer([
+              const a = await this.updateAnswer([
                 this.experiment.experimentId,
                 this.condition_id,
                 this.treatment_id,
                 this.assessment_id,
-                question.questionId,
-                answer.body,
+                answer.questionId,
+                answer.answerId,
+                answer.answerType,
+                answer.html,
                 answer.correct,
                 answerIndex
               ])
@@ -356,7 +381,7 @@ export default {
         })
       )
     },
-    async saveAll () {
+    async saveAll (routeName) {
       if (this.assessment.questions.some(q => !q.html)) {
         alert('Please fill or delete empty questions.')
         return false
@@ -366,10 +391,12 @@ export default {
       if (savedAssessment) {
         await this.handleSaveQuestions()
         await this.handleSaveAnswers()
+
+        this.$router.push({name:routeName, params: {exposure_id: this.exposure_id}})
       }
     },
     saveExit() {
-      this.$router.push({name:'Home'})
+      this.saveAll('home')
     }
   },
   created() {

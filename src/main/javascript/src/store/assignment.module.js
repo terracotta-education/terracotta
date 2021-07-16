@@ -9,7 +9,6 @@ const actions = {
   async fetchAssignment({commit}, payload) {
     try {
       const response = await assignmentService.fetchAssignment(...payload)
-
       commit('setAssignment', response)
     } catch (e) {
       console.error(e)
@@ -49,7 +48,6 @@ const mutations = {
     }
   },
   setAssignments(state, assignments) {
-    console.log({assignments})
     state.assignments = assignments
   },
   setAssignment(state, assignment) {
