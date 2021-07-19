@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd">
+
+    <changeSet id = "1622670000000-1" author = "ddelblanco">
+        <dropForeignKeyConstraint baseTableName="terr_treatment"
+                                  constraintName="FK_TERR_TREATMENT_ON_ASSESSMENT_ASSESSMENT"/>
+    </changeSet>
+    <changeSet id="1622670000000-2" author="ddelblanco">
+        <addForeignKeyConstraint baseTableName="terr_treatment" baseColumnNames="assessment_assessment_id"
+                                 constraintName="FK_TERR_TREATMENT_ON_ASSESSMENT_ASSESSMENT"
+                                 onDelete="SET NULL"
+                                 referencedTableName="terr_assessment" referencedColumnNames="assessment_id"/>
+    </changeSet>
+</databaseChangeLog>
