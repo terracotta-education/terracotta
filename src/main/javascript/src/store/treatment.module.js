@@ -34,7 +34,7 @@ const actions = {
       console.log('createTreatment catch', error)
     }
   },
-  async checkTreatments({state}, payload) {
+  async checkTreatment({state}, payload) {
     // payload = experiment_id, condition_id, assignment_id
     try {
       const response = await treatmentService.fetchTreatment(...payload)
@@ -46,7 +46,7 @@ const actions = {
         }
       }
     } catch (error) {
-      console.error('checkTreatments catch', {error, state})
+      console.error('checkTreatment catch', {error, state})
     }
   },
 }

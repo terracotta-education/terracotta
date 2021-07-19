@@ -17,10 +17,12 @@
                 </v-list-item-content>
 
                 <v-list-item-action>
-                  <template v-if="hasTreatment(condition)">
+                  <template v-if="checkConditionTreatment(condition)">
                     <v-btn
                       icon
                       outlined
+                      text
+                      tile
                       @click="goToBuilder(condition.conditionId)"
                     >
                       <v-icon>mdi-pencil</v-icon>
@@ -72,7 +74,8 @@ export default {
   },
   data() {
     return {
-      tCount: 0
+      tCount: 0,
+      conditionTreatments: []
     }
   },
   methods: {
@@ -80,7 +83,7 @@ export default {
       createTreatment: 'treatment/createTreatment',
       createAssessment: 'assessment/createAssessment',
       fetchAssignment: 'assignment/fetchAssignment',
-      checkTreatments: 'treatment/checkTreatments',
+      checkTreatment: 'treatment/checkTreatment',
     }),
     async handleCreateTreatment(conditionId) {
       // POST TREATMENT
@@ -129,15 +132,35 @@ export default {
         },
       });
     },
+    checkConditionTreatment(condition) {
+      // if condition has treatment, return boolean for template
+      return !!this.conditionTreatments.find(conditionTreatment => {
+        return conditionTreatment.conditionId === condition.conditionId && conditionTreatment.hasTreatment
+      })
+    },
     async hasTreatment(condition) {
-      const treatments = await this.checkTreatments([this.experiment.experimentId, condition.conditionId, this.assignment_id])
-      return treatments?.data?.length>0;
+      // check if condition has treatment, return boolean
+      const t = await this.checkTreatment([this.experiment.experimentId, condition.conditionId, this.assignment_id])
+      return t?.status === 200;
+    },
+    async checkConditionTreatments() {
+      // loop conditions and build condition/treatment manifest
+      // (templates don't like async methods for conditions)
+      for (let c of this.conditions) {
+        const t = await this.hasTreatment(c)
+        const ctObj = {
+          conditionId: c.conditionId,
+          hasTreatment: t
+        }
+        this.conditionTreatments = [...this.conditionTreatments.filter((o) => o.conditionId !== ctObj.conditionId), {...ctObj}];
+      }
     },
     async treatmentCount() {
+      // count treatments for assignment
       this.tCount = 0
 
       for (const c of this.conditions) {
-        const treatments = await this.checkTreatments([this.experiment.experimentId, c.conditionId, this.assignment_id])
+        const treatments = await this.checkTreatment([this.experiment.experimentId, c.conditionId, this.assignment_id])
         this.tCount = (treatments?.data?.length>0) ? this.tCount+1 : this.tCount
       }
     },
@@ -146,8 +169,9 @@ export default {
     }
   },
   async created() {
-    this.fetchAssignment([this.experiment.experimentId, this.exposure_id, this.assignment_id])
+    await this.fetchAssignment([this.experiment.experimentId, this.exposure_id, this.assignment_id])
     this.treatmentCount()
+    await this.checkConditionTreatments()
   },
 };
 </script>
