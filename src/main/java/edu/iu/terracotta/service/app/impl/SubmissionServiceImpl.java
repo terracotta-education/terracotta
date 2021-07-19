@@ -271,6 +271,7 @@ public class SubmissionServiceImpl implements SubmissionService {
         }
         submission.setCalculatedGrade(automatic);
         submission.setAlteredCalculatedGrade(manual);
+        submission.setTotalAlteredGrade(manual);
         return submission;
     }
 

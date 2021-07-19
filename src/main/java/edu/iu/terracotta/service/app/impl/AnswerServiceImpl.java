@@ -1,6 +1,7 @@
 package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.MultipleChoiceLimitReachedException;
 import edu.iu.terracotta.model.app.AnswerMc;
 import edu.iu.terracotta.model.app.Question;
 import edu.iu.terracotta.model.app.dto.AnswerDto;
@@ -122,6 +123,14 @@ public class AnswerServiceImpl implements AnswerService {
     }
 
     @Override
+    public void limitReached(Long questionId) throws MultipleChoiceLimitReachedException {
+        List<AnswerMc> answerList = allRepositories.answerMcRepository.findByQuestion_QuestionId(questionId);
+        if(answerList.size() == 20){
+            throw new MultipleChoiceLimitReachedException("Error 120: The multiple choice option limit of 20 options has been reached.");
+        }
+    }
+
+    @Override
     public String answerNotFound(SecuredInfo securedInfo, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId, Long questionId, Long answerId) {
         return "Answer in platform " + securedInfo.getPlatformDeploymentId() + " and context " + securedInfo.getContextId()
                 + " and experiment with id " + experimentId + " and condition id " + conditionId + " and treatment id " + treatmentId + " and assessment id " + assessmentId
@@ -141,5 +150,6 @@ public class AnswerServiceImpl implements AnswerService {
                 .buildAndExpand(experimentId, conditionId, treatmentId, assessmentId, questionId, answerId).toUri());
         return headers;
     }
+
 
 }

@@ -5,6 +5,7 @@ import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.exceptions.MultipleChoiceLimitReachedException;
 import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
 import edu.iu.terracotta.model.app.AnswerMc;
 import edu.iu.terracotta.model.app.dto.AnswerDto;
@@ -82,7 +83,7 @@ public class AnswerController {
                 }
                 return new ResponseEntity<>(answerDtoList, HttpStatus.OK);
             }
-            return new ResponseEntity("Error 120: Answer type is not supported.", HttpStatus.BAD_REQUEST);
+            return new ResponseEntity("Error 103: Answer type is not supported.", HttpStatus.BAD_REQUEST);
         } else {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
@@ -113,7 +114,7 @@ public class AnswerController {
             if(answerType.equals("MC")){
                 return new ResponseEntity<>(answerService.getAnswerMC(answerId, student), HttpStatus.OK);
             } else {
-                return new ResponseEntity("Error 120: Answer type not supported.", HttpStatus.BAD_REQUEST);
+                return new ResponseEntity("Error 103: Answer type not supported.", HttpStatus.BAD_REQUEST);
             }
         } else {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
@@ -131,7 +132,7 @@ public class AnswerController {
                                                 @RequestBody AnswerDto answerDto,
                                                 UriComponentsBuilder ucBuilder,
                                                 HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionNotMatchingException, BadTokenException {
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionNotMatchingException, BadTokenException, MultipleChoiceLimitReachedException {
 
         log.info("Creating Answer: {}", answerDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
@@ -149,6 +150,7 @@ public class AnswerController {
             answerDto.setQuestionId(questionId);
             answerDto.setAnswerType(answerService.getQuestionType(questionId));
             if ("MC".equals(answerDto.getAnswerType())) {
+                answerService.limitReached(questionId);
                 AnswerMc answerMc;
                 try {
                     answerMc = answerService.fromDtoMC(answerDto);
@@ -159,7 +161,7 @@ public class AnswerController {
                 HttpHeaders mcHeaders = answerService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, questionId, answerMc.getAnswerMcId());
                 return new ResponseEntity<>(returnedMcdDto, mcHeaders, HttpStatus.CREATED);
             }
-            return new ResponseEntity("Error 120: Answer type not supported.", HttpStatus.BAD_REQUEST);
+            return new ResponseEntity("Error 103: Answer type not supported.", HttpStatus.BAD_REQUEST);
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
@@ -199,7 +201,7 @@ public class AnswerController {
                     throw new DataServiceException("An error occurred trying to update the answer list. No answers were updated. " + ex.getMessage());
                 }
             } else {
-                return new ResponseEntity("Answer type not supported.", HttpStatus.BAD_REQUEST);
+                return new ResponseEntity("Error 103: Answer type not supported.", HttpStatus.BAD_REQUEST);
             }
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
@@ -233,7 +235,7 @@ public class AnswerController {
                 answerService.saveAndFlushMC(answerService.updateAnswerMC(answerMc, answerDto));
                 return new ResponseEntity<>(HttpStatus.OK);
             } else {
-                return new ResponseEntity("Answer type not supported.", HttpStatus.BAD_REQUEST);
+                return new ResponseEntity("Error 103: Answer type not supported.", HttpStatus.BAD_REQUEST);
             }
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
@@ -269,7 +271,7 @@ public class AnswerController {
                     return new ResponseEntity<>(HttpStatus.NOT_FOUND);
                 }
             } else {
-                return new ResponseEntity("Answer type not supported.", HttpStatus.BAD_REQUEST);
+                return new ResponseEntity("Error 103: Answer type not supported.", HttpStatus.BAD_REQUEST);
             }
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
