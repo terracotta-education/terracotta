@@ -37,6 +37,12 @@ export default {
   name: 'CreateAssignment',
   props: ['experiment'],
   computed: {
+    exposure_id() {
+      return parseInt(this.$route.params.exposure_id)
+    },
+    experiment_id() {
+      return parseInt(this.experiment.experimentId)
+    },
     ...mapGetters({
       exposures: 'exposures/exposures'
     })
@@ -53,11 +59,11 @@ export default {
       createAssignment: 'assignment/createAssignment'
     }),
     saveTitle(path) {
-      this.createAssignment([this.experiment.experimentId, this.exposures[0].exposureId, this.title, 1])
+      this.createAssignment([this.experiment_id, this.exposure_id, this.title, 1])
         .then(response => {
           if (response?.status === 201) {
             this.$router.push({name: path, params:{
-              experiment_id: this.experiment.experimentId,
+              experiment_id: this.experiment_id,
               assignment_id: response.data.assignmentId
             }})
           } else {

@@ -313,7 +313,7 @@ const routes = [
             meta: {
               currentSection: 'assignments',
               currentStep: 'your_assignments',
-              previousStep: 'AssignmentCreateAssignment'
+              previousStep: 'AssignmentYourAssignments'
             }
           },
           {

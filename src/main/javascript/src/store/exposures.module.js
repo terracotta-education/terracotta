@@ -5,7 +5,7 @@ const state = {
 }
 
 const actions = {
-  fetchExposures: ({ commit }, experimentId) => {
+  async fetchExposures ({ commit }, experimentId) {
     return exposuresService
       .getAll(experimentId)
       .then((data) => {

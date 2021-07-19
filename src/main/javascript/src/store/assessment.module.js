@@ -96,7 +96,6 @@ const actions = {
     // delete question, commit mutation, and return the status/data response
     try {
       const response = await assessmentService.deleteQuestion(...payload)
-      console.log({response})
       if (response?.status === 200) {
         // send question id to the deleteQuestion mutation
         commit('deleteQuestion', questionId)

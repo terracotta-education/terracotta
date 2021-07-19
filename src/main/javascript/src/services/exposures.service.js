@@ -12,7 +12,7 @@ export const exposuresService = {
 /**
  * Get all Exposures
  */
-function getAll(experiment_id) {
+async function getAll(experiment_id) {
   const requestOptions = {
     method: 'GET',
     headers: authHeader(),
