@@ -50,7 +50,7 @@ export default {
     }),
     title: {
       get() {
-        return this.experiment.consent.title || this.consent.title
+        return this.experiment?.consent?.title || this.consent?.title
       },
       set(value) {
         this.titleProxy = value
