@@ -67,15 +67,18 @@ export default {
       deep: true,
       immediate: true,
       handler() {
+        // All the participant will go to 'Unparticipate' section
+        const participatingStudents = this.participants.filter(({consent}) => consent === true)
+        const conditionGroupIDMap = this.getConditionGroupIDMap()
+       
         // This will only required when the page is loaded
         const newArray = []
         for (let i = 0; i < this.conditions.length; i++) {
-          newArray.push([])
+          const studentsAssignedToCondition = participatingStudents.filter((student) => student.groupId === conditionGroupIDMap[i])
+          newArray.push(studentsAssignedToCondition)
         }
-        // All the participant will go to 'Unparticipate' section
-        const participatingStudents = this.participants.filter(({consent}) => consent === true)
-        
-        newArray.push(participatingStudents)
+        const unAssignedStudents = participatingStudents.filter((student) => student.groupId === null)
+        newArray.push(unAssignedStudents)
         this.arrayData = newArray
       },
     },
@@ -121,8 +124,7 @@ export default {
       this.fetchExposures(this.experiment.experimentId)
     },
 
-    submitDistribution(path) {
-      const requestBody = []
+    getConditionGroupIDMap() {
       const conditionGroupIDMap = {}
 
       this.getExposure()
@@ -138,17 +140,22 @@ export default {
         ({ groupId }, index) => (conditionGroupIDMap[index] = groupId)
       )
 
+      return conditionGroupIDMap;
+    },
+
+    submitDistribution(path) {
+      const requestBody = []
+      const conditionGroupIDMap = this.getConditionGroupIDMap()
+
       this.arrayDataProxy.map((arrData, index) =>
         arrData.map((participant) => {
-          if (conditionGroupIDMap[index] !== undefined) {
             const temp = {
               participantId: participant.participantId,
               consent: participant.consent,
               dropped: participant.dropped,
-              groupId: conditionGroupIDMap[index],
+              groupId: conditionGroupIDMap[index] ? conditionGroupIDMap[index] : null,
             }
             requestBody.push(temp)
-          }
         })
       )
 
