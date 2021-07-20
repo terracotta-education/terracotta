@@ -1,11 +1,16 @@
 <template>
   <div v-if="assignment">
-    <h1 class="pa-0 mb-7">Now, let’s upload your treatments for each condition for <strong>{{ assignment.title }}</strong></h1>
+    <h1 class="pa-0 mb-7">Now, let’s upload your treatments for each condition for <strong>{{
+        assignment.title
+      }}</strong></h1>
 
     <template v-if="conditions">
       <v-expansion-panels class="v-expansion-panels--outlined mb-7" flat>
         <v-expansion-panel class="py-3">
-          <v-expansion-panel-header>{{ assignment.title }} ({{ tCount }}/{{ conditions.length }})</v-expansion-panel-header>
+          <v-expansion-panel-header>{{ assignment.title }} ({{ tCount }}/{{
+              conditions.length
+            }})
+          </v-expansion-panel-header>
           <v-expansion-panel-content>
             <v-list class="pa-0">
 
@@ -17,7 +22,7 @@
                 </v-list-item-content>
 
                 <v-list-item-action>
-                  <template v-if="checkConditionTreatment(condition)">
+                  <template v-if="hasTreatment(condition)">
                     <v-btn
                       icon
                       outlined
@@ -33,7 +38,8 @@
                       color="primary"
                       outlined
                       @click="goToBuilder(condition.conditionId)"
-                    >Select</v-btn>
+                    >Select
+                    </v-btn>
                   </template>
                 </v-list-item-action>
               </v-list-item>
@@ -127,27 +133,32 @@ export default {
         },
       });
     },
-    checkConditionTreatment(condition) {
+    hasTreatment(condition) {
       // if condition has treatment, return boolean for template
+      // TODO - ADD ASSIGNMENT ID CHECK
       return !!this.conditionTreatments.find(conditionTreatment => {
-        return conditionTreatment.conditionId === condition.conditionId && conditionTreatment.hasTreatment
+        return conditionTreatment.treatment &&
+          conditionTreatment.condition.conditionId === condition.conditionId &&
+          conditionTreatment.treatment.assignmentId === this.assignment_id
       })
-    },
-    async hasTreatment(condition) {
-      // check if condition has treatment, return boolean
-      const t = await this.checkTreatment([this.experiment.experimentId, condition.conditionId, this.assignment_id])
-      return t?.status === 200;
     },
     async checkConditionTreatments() {
       // loop conditions and build condition/treatment manifest
       // (templates don't like async methods for conditions)
       for (let c of this.conditions) {
-        const t = await this.hasTreatment(c)
+        const t = await this.checkTreatment([this.experiment.experimentId, c.conditionId, this.assignment_id])
         const ctObj = {
-          conditionId: c.conditionId,
-          hasTreatment: t
+          treatment: t.data ? t.data[0] : null,
+          condition: c
         }
-        this.conditionTreatments = [...this.conditionTreatments.filter((o) => o.conditionId !== ctObj.conditionId), {...ctObj}];
+
+        this.conditionTreatments = [
+          ...this.conditionTreatments.filter((o) =>
+            o.conditionId === ctObj.conditionId &&
+            o.treatment.assignmentId === ctObj.treatment.assignmentId
+          ),
+          {...ctObj}
+        ];
       }
     },
     async treatmentCount() {
@@ -157,17 +168,18 @@ export default {
 
       for (const c of this.conditions) {
         const treatments = await this.checkTreatment([this.experiment.experimentId, c.conditionId, this.assignment_id])
-        this.tCount = (treatments?.data?.length>0) ? this.tCount+1 : this.tCount
+        console.log({treatments})
+        this.tCount = (treatments?.data?.length > 0) ? this.tCount + 1 : this.tCount
       }
     },
     saveExit() {
-      this.$router.push({name:'Home'})
+      this.$router.push({name: 'Home'})
     }
   },
   async created() {
     await this.fetchAssignment([this.experiment.experimentId, this.exposure_id, this.assignment_id])
-    this.treatmentCount()
     await this.checkConditionTreatments()
+    this.treatmentCount()
   },
 };
 </script>
