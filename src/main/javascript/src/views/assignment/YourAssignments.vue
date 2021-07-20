@@ -1,6 +1,6 @@
 <template>
   <div>
-    <template v-if="exposures && exposures.length>0 && assignments && assignments.length>0">
+    <template v-if="loaded && exposures && exposures.length>0 && assignments">
       <h1 class="mb-3">Your Assignments</h1>
       <div class="mb-6">
         <v-expansion-panels class="v-expansion-panels--outlined mb-7"
@@ -16,9 +16,6 @@
               </strong>
             </v-expansion-panel-header>
             <v-expansion-panel-content>
-              <template v-if="assignments.filter(a=>a.exposureId===exposure.exposureId).length < 1">
-                <span class="red--text">Add assignment to balance experiment</span>
-              </template>
               <v-list class="pa-0  mb-3">
                 <v-list-item class="justify-center px-0"
                              v-for="(assignment, aIndex) in assignments.filter(a=>a.exposureId===exposure.exposureId)"
@@ -48,9 +45,14 @@
                   </v-list-item-action>
                 </v-list-item>
               </v-list>
+              <template v-if="!assignmentIsBalanced(exposure.exposureId)">
+                <div class="red--text mb-3">Add an assignment to balance the experiment</div>
+              </template>
               <v-btn
                 elevation="0"
+                plain
                 color="primary"
+                class="px-0"
                 :to="{ name: 'AssignmentCreateAssignment', params:{'exposure_id': parseInt(exposure.exposureId)} }"
               >add assignment</v-btn>
             </v-expansion-panel-content>
@@ -60,7 +62,7 @@
           elevation="0"
           color="primary"
           :to="{ name: 'ExperimentSummary' }"
-          :disabled="parseInt(shortestLength) !== parseInt(longestLength)"
+          :disabled="shortestLength !== longestLength || longestLength < 1"
         >Finish</v-btn>
       </div>
     </template>
@@ -87,7 +89,8 @@ export default {
   },
   data: () => ({
     shortestLength: 0,
-    longestLength: 0
+    longestLength: 0,
+    loaded: false
   }),
   methods: {
     ...mapMutations({
@@ -131,11 +134,11 @@ export default {
       this.longestLength = longest
       // return true if current exposure set assignments list is longer or equal
       // to the longest assignment list in the exposure sets
-      return !!curArrLength && curArrLength === longest || curArrLength > 0;
+      return !!curArrLength && curArrLength >= longest && curArrLength > 0
     },
     async handleDeleteAssignment(eid, a) {
       // DELETE ASSIGNMENT
-      const reallyDelete = confirm(`Are you sure you want to delete the assignment "${a.title}"?`);
+      const reallyDelete = confirm(`Are you sure you want to delete the assignment "${a.title}"?`)
       if (reallyDelete) {
         try {
           return await this.deleteAssignment([
@@ -161,10 +164,18 @@ export default {
     for (const e of this.exposures) {
       await this.fetchAssignmentsByExposure([this.experiment_id, e.exposureId])
     }
+
     // forward to create assignment if assignments array for selected exposure is empty
-    if (this.assignments?.length < 1 && this.exposure_id && this.assignments.find(a => a.exposureId === this.exposure_id)) {
+    if (
+      this.exposure_id &&
+      this.exposures.find(e => parseInt(e.exposureId) === this.exposure_id) &&
+      !this.assignments.find(a => parseInt(a.exposureId) === this.exposure_id)
+    ) {
       this.$router.push({name: 'AssignmentCreateAssignment', params:{exposure_id: this.exposure_id}})
+    } else {
+      // we don't want to display empty fields
+      this.loaded = true
     }
-  }
+  },
 }
 </script>

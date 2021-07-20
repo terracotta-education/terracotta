@@ -287,7 +287,7 @@ const routes = [
             }
           },
           {
-            path: 'exposure-sets/:exposure_id/your-assignments',
+            path: 'exposure-sets/:exposure_id/assignments',
             name: 'AssignmentYourAssignments',
             component: () => import('../views/assignment/YourAssignments.vue'),
             meta: {

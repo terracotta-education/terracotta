@@ -28,7 +28,6 @@ const actions = {
     const aId = payload[2]
     try {
       const response = await assignmentService.deleteAssignment(...payload)
-      console.log({response})
 
       if (response?.status === 200) {
         // send question id to the deleteQuestion mutation

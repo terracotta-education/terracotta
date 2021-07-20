@@ -46,11 +46,6 @@
     <template v-else>
       <p>no conditions</p>
     </template>
-
-    <v-btn
-      color="primary">
-      Next
-    </v-btn>
   </div>
 </template>
 
@@ -157,6 +152,7 @@ export default {
     },
     async treatmentCount() {
       // count treatments for assignment
+      // computed properties don't like async/await so we'll call it in created()
       this.tCount = 0
 
       for (const c of this.conditions) {
