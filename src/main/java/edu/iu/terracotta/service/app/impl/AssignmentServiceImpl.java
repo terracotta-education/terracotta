@@ -30,6 +30,7 @@ import edu.iu.terracotta.service.app.GroupService;
 import edu.iu.terracotta.service.app.ParticipantService;
 import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.service.app.TreatmentService;
+import edu.iu.terracotta.service.caliper.CaliperService;
 import edu.iu.terracotta.service.canvas.CanvasAPIClient;
 import edu.iu.terracotta.service.lti.AdvantageAGSService;
 import edu.iu.terracotta.utils.TextConstants;
@@ -74,6 +75,9 @@ public class AssignmentServiceImpl implements AssignmentService {
 
     @Autowired
     TreatmentService treatmentService;
+
+    @Autowired
+    CaliperService caliperService;
 
     @Autowired
     CanvasAPIClient canvasAPIClient;
@@ -250,6 +254,7 @@ public class AssignmentServiceImpl implements AssignmentService {
                                 submissionService.finalizeAndGrade(submission.getSubmissionId(), securedInfo);
                                 // }
                             } else {
+                                caliperService.sendAssignmentRestarted(submission, securedInfo);
                                 return new ResponseEntity<>(submissionService.toDto(submission, true, false), HttpStatus.OK);
                             }
                         }
@@ -339,6 +344,7 @@ public class AssignmentServiceImpl implements AssignmentService {
     private ResponseEntity<Object> createSubmission(Long experimentId, Assessment assessment, Participant participant, SecuredInfo securedInfo) {
         if (submissionService.datesAllowed(experimentId,assessment.getTreatment().getTreatmentId(),securedInfo)){
             Submission submission = submissionService.createNewSubmission(assessment, participant, securedInfo);
+            caliperService.sendAssignmentStarted(submission, securedInfo);
             SubmissionDto submissionDto = submissionService.toDto(submission,true, false);
             return new ResponseEntity<>(submissionDto,HttpStatus.OK);
         } else {

@@ -28,6 +28,7 @@ public interface APIJWTService {
                     Long experimentId,
                     Boolean consent,
                     String canvasUserId,
+                    String canvasUserGlobalId,
                     String canvasLoginId,
                     String canvasUserName,
                     String canvasCourseId,

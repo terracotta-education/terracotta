@@ -137,7 +137,11 @@ public class LTI3Controller {
                         true,
                         lti3Request);
                 assignmentService.checkAndRestoreAssignmentsInCanvasByContext(lti3Request.getContext().getContextId());
-                caliperService.sendToolUseEvent(lti3Request.getMembership());
+                caliperService.sendToolUseEvent(
+                        lti3Request.getMembership(),
+                        lti3Request.getLtiCustom().getOrDefault("canvas_user_global_id", "Anonymous").toString(),
+                        lti3Request.getLtiCustom().getOrDefault("canvas_course_id", "UnknownCourse").toString()
+                );
                 return "redirect:/app/app.html?token=" + oneTimeToken;
             }
         } catch (SignatureException ex) {
