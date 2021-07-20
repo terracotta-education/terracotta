@@ -135,7 +135,6 @@ export default {
     },
     hasTreatment(condition) {
       // if condition has treatment, return boolean for template
-      // TODO - ADD ASSIGNMENT ID CHECK
       return !!this.conditionTreatments.find(conditionTreatment => {
         return conditionTreatment.treatment &&
           conditionTreatment.condition.conditionId === condition.conditionId &&
@@ -147,18 +146,21 @@ export default {
       // (templates don't like async methods for conditions)
       for (let c of this.conditions) {
         const t = await this.checkTreatment([this.experiment.experimentId, c.conditionId, this.assignment_id])
-        const ctObj = {
-          treatment: t.data ? t.data[0] : null,
-          condition: c
-        }
 
-        this.conditionTreatments = [
-          ...this.conditionTreatments.filter((o) =>
-            o.conditionId === ctObj.conditionId &&
-            o.treatment.assignmentId === ctObj.treatment.assignmentId
-          ),
-          {...ctObj}
-        ];
+        if (t?.data?.find(o=>parseInt(o.assignmentId)===this.assignment_id)) {
+          const ctObj = {
+            treatment: t.data ? t.data.find(o=>parseInt(o.assignmentId)===this.assignment_id) : null,
+            condition: c
+          }
+
+          this.conditionTreatments = [
+            ...this.conditionTreatments.filter((o) =>
+              o.conditionId === ctObj.conditionId &&
+              o.treatment.assignmentId === this.assignment_id
+            ),
+            {...ctObj}
+          ];
+        }
       }
     },
     async treatmentCount() {
