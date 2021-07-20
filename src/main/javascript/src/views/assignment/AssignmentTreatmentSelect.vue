@@ -168,7 +168,6 @@ export default {
 
       for (const c of this.conditions) {
         const treatments = await this.checkTreatment([this.experiment.experimentId, c.conditionId, this.assignment_id])
-        console.log({treatments})
         this.tCount = (treatments?.data?.length > 0) ? this.tCount + 1 : this.tCount
       }
     },
