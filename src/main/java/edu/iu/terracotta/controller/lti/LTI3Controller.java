@@ -18,6 +18,7 @@ import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.repository.LtiContextRepository;
 import edu.iu.terracotta.repository.LtiLinkRepository;
 import edu.iu.terracotta.service.app.AssignmentService;
+import edu.iu.terracotta.service.caliper.CaliperService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.SignatureException;
@@ -68,6 +69,9 @@ public class LTI3Controller {
 
     @Autowired
     AssignmentService assignmentService;
+
+    @Autowired
+    CaliperService caliperService;
 
     @Autowired
     LtiContextRepository ltiContextRepository;
@@ -133,6 +137,11 @@ public class LTI3Controller {
                         true,
                         lti3Request);
                 assignmentService.checkAndRestoreAssignmentsInCanvasByContext(lti3Request.getContext().getContextId());
+                caliperService.sendToolUseEvent(
+                        lti3Request.getMembership(),
+                        lti3Request.getLtiCustom().getOrDefault("canvas_user_global_id", "Anonymous").toString(),
+                        lti3Request.getLtiCustom().getOrDefault("canvas_course_id", "UnknownCourse").toString()
+                );
                 return "redirect:/app/app.html?token=" + oneTimeToken;
             }
         } catch (SignatureException ex) {

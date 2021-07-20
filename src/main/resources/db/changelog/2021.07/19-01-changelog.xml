@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd"
+        objectQuotingStrategy="QUOTE_ONLY_RESERVED_WORDS">
+    <changeSet id="1626711772055-1" author="ddelblanco (generated)">
+        <createTable tableName="terr_event">
+            <column autoIncrement="true" name="event_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_terr_event"/>
+            </column>
+            <column name="caliper_id" type="VARCHAR(255)"/>
+            <column name="actor_id" type="VARCHAR(255)"/>
+            <column name="actor_type" type="VARCHAR(255)"/>
+            <column name="platform_deployment" type="VARCHAR(255)"/>
+            <column name="event_type" type="VARCHAR(255)"/>
+            <column name="event_profile" type="VARCHAR(255)"/>
+            <column name="event_action" type="VARCHAR(255)"/>
+            <column name="event_group" type="VARCHAR(255)"/>
+            <column name="event_time" type="DATETIME"/>
+            <column name="object_id" type="VARCHAR(255)"/>
+            <column name="object_type" type="VARCHAR(255)"/>
+            <column name="generated_id" type="VARCHAR(255)"/>
+            <column name="generated_type" type="VARCHAR(255)"/>
+            <column name="target_id" type="VARCHAR(255)"/>
+            <column name="target_type" type="VARCHAR(255)"/>
+            <column name="federated_session" type="VARCHAR(255)"/>
+            <column name="membership_id" type="VARCHAR(255)"/>
+            <column name="membership_roles" type="VARCHAR(255)"/>
+        </createTable>
+    </changeSet>
+
+</databaseChangeLog>

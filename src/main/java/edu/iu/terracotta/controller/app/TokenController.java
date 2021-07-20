@@ -64,6 +64,7 @@ public class TokenController {
                         experimentId,
                         (Boolean) claims.getBody().get("consent"),
                         claims.getBody().get("canvasUserId").toString(),
+                        claims.getBody().get("canvasUserGlobalId").toString(),
                         claims.getBody().get("canvasLoginId").toString(),
                         claims.getBody().get("canvasUserName").toString(),
                         claims.getBody().get("canvasCourseId").toString(),
