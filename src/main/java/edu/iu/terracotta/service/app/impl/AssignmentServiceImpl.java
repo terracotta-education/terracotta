@@ -17,6 +17,7 @@ import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.Treatment;
 import edu.iu.terracotta.model.app.dto.AssignmentDto;
 import edu.iu.terracotta.model.app.dto.SubmissionDto;
+import edu.iu.terracotta.model.app.dto.TreatmentDto;
 import edu.iu.terracotta.model.app.enumerator.DistributionTypes;
 import edu.iu.terracotta.model.canvas.AssignmentExtended;
 import edu.iu.terracotta.model.oauth2.LTIToken;
@@ -28,6 +29,7 @@ import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.GroupService;
 import edu.iu.terracotta.service.app.ParticipantService;
 import edu.iu.terracotta.service.app.SubmissionService;
+import edu.iu.terracotta.service.app.TreatmentService;
 import edu.iu.terracotta.service.canvas.CanvasAPIClient;
 import edu.iu.terracotta.service.lti.AdvantageAGSService;
 import edu.iu.terracotta.utils.TextConstants;
@@ -47,6 +49,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.IOException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -68,6 +71,9 @@ public class AssignmentServiceImpl implements AssignmentService {
 
     @Autowired
     ParticipantService participantService;
+
+    @Autowired
+    TreatmentService treatmentService;
 
     @Autowired
     CanvasAPIClient canvasAPIClient;
@@ -106,6 +112,13 @@ public class AssignmentServiceImpl implements AssignmentService {
         if(submissions > 0){
             assignmentDto.setStarted(true);
         }
+        List<Treatment> treatments = allRepositories.treatmentRepository.findByAssignment_AssignmentId(assignment.getAssignmentId());
+        List<TreatmentDto> treatmentDtos = new ArrayList<>();
+        for (Treatment treatment:treatments){
+            TreatmentDto treatmentDto = treatmentService.toDto(treatment);
+            treatmentDtos.add(treatmentDto);
+        }
+        assignmentDto.setTreatments(treatmentDtos);
         return assignmentDto;
     }
 
