@@ -38,7 +38,6 @@ const actions = {
     // payload = experiment_id, condition_id, assignment_id
     try {
       const response = await treatmentService.fetchTreatment(...payload)
-
       if (response) {
         return {
           status: response.status,

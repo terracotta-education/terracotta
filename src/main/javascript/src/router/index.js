@@ -307,7 +307,7 @@ const routes = [
             }
           },
           {
-            path: 'exposure-sets/:exposure_id/assignments/:assignment_id/select-assignment-treatment',
+            path: 'exposure-sets/:exposure_id/assignment/:assignment_id/select-assignment-treatment',
             name: 'AssignmentTreatmentSelect',
             component: () => import('../views/assignment/AssignmentTreatmentSelect.vue'),
             meta: {
@@ -317,7 +317,7 @@ const routes = [
             }
           },
           {
-            path: 'exposure-sets/:exposure_id/assignments/:assignment_id/condition/:condition_id/treatment/:treatment_id/assessment/:assessment_id/builder',
+            path: 'exposure-sets/:exposure_id/assignment/:assignment_id/condition/:condition_id/treatment/:treatment_id/assessment/:assessment_id/builder',
             name: 'TerracottaBuilder',
             component: () => import('../views/assignment/TerracottaBuilder.vue'),
             meta: {
