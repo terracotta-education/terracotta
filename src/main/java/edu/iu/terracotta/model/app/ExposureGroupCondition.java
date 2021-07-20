@@ -45,6 +45,8 @@ public class ExposureGroupCondition extends BaseEntity {
     @OnDelete(action = OnDeleteAction.CASCADE)
     private Exposure exposure;
 
+
+
     public Exposure getExposure() {
         return exposure;
     }

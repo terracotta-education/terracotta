@@ -1,6 +1,7 @@
 package edu.iu.terracotta.repository;
 
 import edu.iu.terracotta.model.app.AnswerMc;
+import edu.iu.terracotta.model.app.Treatment;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -12,6 +13,8 @@ import java.util.Optional;
 public interface AnswerMcRepository extends JpaRepository<AnswerMc, Long> {
 
     List<AnswerMc> findByQuestion_QuestionId(Long questionId);
+
+    List<AnswerMc> findByQuestion_Assessment_Treatment_Condition_Experiment_ExperimentId(Long experimentId);
 
     AnswerMc findByAnswerMcId(Long answerMcId);
 

@@ -268,4 +268,13 @@ public class RestResponseEntityExceptionHandler
         return handleExceptionInternal(ex, bodyOfResponse,
                 new HttpHeaders(), HttpStatus.CONFLICT, request);
     }
+
+    @ExceptionHandler(value
+            = {MultipleChoiceLimitReachedException.class})
+    protected ResponseEntity<Object> handleMultipleChoiceLimitReachedException(
+            MultipleChoiceLimitReachedException ex, WebRequest request) {
+        String bodyOfResponse = ex.getMessage();
+        return handleExceptionInternal(ex, bodyOfResponse,
+                new HttpHeaders(), HttpStatus.CONFLICT, request);
+    }
 }
