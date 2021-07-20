@@ -303,16 +303,19 @@ export default {
     },
     async handleDeleteQuestion(question) {
       // DELETE QUESTION
-      try {
-        return await this.deleteQuestion([
-          this.experiment.experimentId,
-          this.condition.conditionId,
-          this.treatment_id,
-          this.assessment_id,
-          question.questionId
-        ])
-      } catch (error) {
-        console.error("handleDeleteQuestion | catch", {error})
+      const reallyDelete = confirm(`Are you sure you want to delete the question?`);
+      if (reallyDelete) {
+        try {
+          return await this.deleteQuestion([
+            this.experiment.experimentId,
+            this.condition.conditionId,
+            this.treatment_id,
+            this.assessment_id,
+            question.questionId
+          ])
+        } catch (error) {
+          console.error("handleDeleteQuestion | catch", {error})
+        }
       }
     },
     async handleSaveAssessment() {

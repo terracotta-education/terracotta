@@ -1,11 +1,16 @@
 <template>
   <div v-if="assignment">
-    <h1 class="pa-0 mb-7">Now, let’s upload your treatments for each condition for <strong>{{ assignment.title }}</strong></h1>
+    <h1 class="pa-0 mb-7">Now, let’s upload your treatments for each condition for <strong>{{
+        assignment.title
+      }}</strong></h1>
 
     <template v-if="conditions">
       <v-expansion-panels class="v-expansion-panels--outlined mb-7" flat>
         <v-expansion-panel class="py-3">
-          <v-expansion-panel-header>{{ assignment.title }} ({{ tCount }}/{{ conditions.length }})</v-expansion-panel-header>
+          <v-expansion-panel-header>{{ assignment.title }} ({{ tCount }}/{{
+              conditions.length
+            }})
+          </v-expansion-panel-header>
           <v-expansion-panel-content>
             <v-list class="pa-0">
 
@@ -21,6 +26,8 @@
                     <v-btn
                       icon
                       outlined
+                      text
+                      tile
                       @click="goToBuilder(condition.conditionId)"
                     >
                       <v-icon>mdi-pencil</v-icon>
@@ -31,7 +38,8 @@
                       color="primary"
                       outlined
                       @click="goToBuilder(condition.conditionId)"
-                    >Select</v-btn>
+                    >Select
+                    </v-btn>
                   </template>
                 </v-list-item-action>
               </v-list-item>
@@ -44,11 +52,6 @@
     <template v-else>
       <p>no conditions</p>
     </template>
-
-    <v-btn
-      color="primary">
-      Next
-    </v-btn>
   </div>
 </template>
 
@@ -72,7 +75,8 @@ export default {
   },
   data() {
     return {
-      tCount: 0
+      tCount: 0,
+      conditionTreatments: []
     }
   },
   methods: {
@@ -80,7 +84,7 @@ export default {
       createTreatment: 'treatment/createTreatment',
       createAssessment: 'assessment/createAssessment',
       fetchAssignment: 'assignment/fetchAssignment',
-      checkTreatments: 'treatment/checkTreatments',
+      checkTreatment: 'treatment/checkTreatment',
     }),
     async handleCreateTreatment(conditionId) {
       // POST TREATMENT
@@ -129,24 +133,53 @@ export default {
         },
       });
     },
-    async hasTreatment(condition) {
-      const treatments = await this.checkTreatments([this.experiment.experimentId, condition.conditionId, this.assignment_id])
-      return treatments?.data?.length>0;
+    hasTreatment(condition) {
+      // if condition has treatment, return boolean for template
+      return !!this.conditionTreatments.find(conditionTreatment => {
+        return conditionTreatment.treatment &&
+          conditionTreatment.condition.conditionId === condition.conditionId &&
+          conditionTreatment.treatment.assignmentId === this.assignment_id
+      })
+    },
+    async checkConditionTreatments() {
+      // loop conditions and build condition/treatment manifest
+      // (templates don't like async methods for conditions)
+      for (let c of this.conditions) {
+        const t = await this.checkTreatment([this.experiment.experimentId, c.conditionId, this.assignment_id])
+
+        if (t?.data?.find(o=>parseInt(o.assignmentId)===this.assignment_id)) {
+          const ctObj = {
+            treatment: t.data ? t.data.find(o=>parseInt(o.assignmentId)===this.assignment_id) : null,
+            condition: c
+          }
+
+          this.conditionTreatments = [
+            ...this.conditionTreatments.filter((o) =>
+              o.conditionId === ctObj.conditionId &&
+              o.treatment.assignmentId === this.assignment_id
+            ),
+            {...ctObj}
+          ];
+        }
+      }
     },
     async treatmentCount() {
+      // count treatments for assignment
+      // computed properties don't like async/await so we'll call it in created()
       this.tCount = 0
 
       for (const c of this.conditions) {
-        const treatments = await this.checkTreatments([this.experiment.experimentId, c.conditionId, this.assignment_id])
-        this.tCount = (treatments?.data?.length>0) ? this.tCount+1 : this.tCount
+        const treatments = await this.checkTreatment([this.experiment.experimentId, c.conditionId, this.assignment_id])
+        this.tCount = (treatments?.data?.length > 0) ? this.tCount + 1 : this.tCount
       }
     },
     saveExit() {
-      this.$router.push({name:'Home'})
+      this.$router.push({name: 'Home'})
     }
   },
   async created() {
-    this.fetchAssignment([this.experiment.experimentId, this.exposure_id, this.assignment_id])
+    await this.fetchAssignment([this.experiment.experimentId, this.exposure_id, this.assignment_id])
+    await this.checkConditionTreatments()
     this.treatmentCount()
   },
 };

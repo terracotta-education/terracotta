@@ -148,6 +148,10 @@ export default {
               key: "assignment_intro",
               name: "Introduction",
             },
+            {
+              key: "your_assignments",
+              name: "Your Assignments",
+            },
           ],
         },
       ],

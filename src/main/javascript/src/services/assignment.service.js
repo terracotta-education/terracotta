@@ -6,8 +6,9 @@ import store from '@/store/index.js'
  */
 export const assignmentService = {
   fetchAssignment,
-  fetchAssignments,
-  create
+  fetchAssignmentsByExposure,
+  create,
+  deleteAssignment
 }
 
 /**
@@ -23,9 +24,9 @@ async function fetchAssignment(experiment_id, exposure_id, assignment_id) {
 }
 
 /**
- * Fetch Assignments
+ * Fetch Assignments by Exposure
  */
-async function fetchAssignments(experiment_id, exposure_id) {
+async function fetchAssignmentsByExposure(experiment_id, exposure_id) {
   const requestOptions = {
     method: 'GET',
     headers: {...authHeader()}
@@ -48,6 +49,18 @@ function create(experiment_id, exposure_id, title, order) {
   }
 
   return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/exposures/${exposure_id}/assignments`, requestOptions).then(handleResponse)
+}
+
+/**
+ * Delete Assignment
+ */
+async function deleteAssignment(experiment_id, exposure_id, assignment_id) {
+  const requestOptions = {
+    method: 'DELETE',
+    headers: {...authHeader()}
+  }
+
+  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/exposures/${exposure_id}/assignments/${assignment_id}`, requestOptions).then(handleResponse)
 }
 
 
