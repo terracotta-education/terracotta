@@ -2,6 +2,8 @@ package edu.iu.terracotta.model.app.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
+import java.util.List;
+
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class AssignmentDto {
 
@@ -13,6 +15,7 @@ public class AssignmentDto {
     private String resourceLinkId;
     private boolean started;
     private Boolean softDeleted;
+    private List<TreatmentDto> treatments;
 
 
     public AssignmentDto() {}
@@ -55,5 +58,13 @@ public class AssignmentDto {
 
     public void setSoftDeleted(Boolean softDeleted) {
         this.softDeleted = softDeleted;
+    }
+
+    public List<TreatmentDto> getTreatments() {
+        return treatments;
+    }
+
+    public void setTreatments(List<TreatmentDto> treatments) {
+        this.treatments = treatments;
     }
 }
