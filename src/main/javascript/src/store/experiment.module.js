@@ -7,28 +7,40 @@ const state = {
 
 const actions = {
   resetExperiment: ({commit}) => {
-    commit('setExperiment', null)
+    commit('resetExperiment')
   },
   resetExperiments: ({commit}) => {
-    commit('setExperiments', null)
+    commit('resetExperiments')
   },
   createExperiment: () => {
     return experimentService.create()
   },
   fetchExperimentById: ({commit}, experimentId) => {
+    commit('resetExperiment')
     return experimentService.getById(experimentId)
-      .then(data => commit('setExperiment', data))
+      .then(response => {
+        if (response.status===200) {
+          commit('setExperiment', response.data)
+        }
+      })
       .catch(response => console.log('fetchExperimentById | catch', {response}))
   },
   fetchExperiments: ({commit}) => {
+    commit('resetExperiments')
     return experimentService.getAll()
-      .then(data => commit('setExperiments', data))
+      .then(response => {
+        if (response.status===200) {
+          commit('setExperiments', response.data)
+        }
+      })
       .catch(response => console.log('fetchExperimentById | catch', {response}))
   },
   updateExperiment: ({commit}, experiment) => {
     return experimentService.update(experiment)
       .then(response => {
-        commit('setExperiment', experiment)
+        if (response.status===200) {
+          commit('setExperiment', experiment)
+        }
         return response
       })
       .catch(response => console.log('updateExperiment | catch', {response}))
@@ -46,8 +58,14 @@ const actions = {
 }
 
 const mutations = {
+  resetExperiment(state) {
+    state.experiment = null
+  },
   setExperiment(state, data) {
     state.experiment = data
+  },
+  resetExperiments(state) {
+    state.experiments = null
   },
   setExperiments(state, data) {
     state.experiments = data

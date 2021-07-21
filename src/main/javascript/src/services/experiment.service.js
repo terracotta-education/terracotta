@@ -101,7 +101,12 @@ function handleResponse(response) {
         return []
       }
 
-      return data || response
+      const dataResponse = (data) ? {
+        data,
+        status: response.status
+      } : null
+
+      return dataResponse || response
     }).catch(text => {
       console.log('handleResponse | catch', {text})
     })
