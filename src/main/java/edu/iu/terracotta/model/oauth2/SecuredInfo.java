@@ -10,6 +10,7 @@ public class SecuredInfo {
     String userId;
     List<String> roles;
     String canvasUserId;
+    String canvasUserGlobalId;
     String canvasLoginId;
     String canvasUserName;
     String canvasCourseId;
@@ -59,6 +60,14 @@ public class SecuredInfo {
 
     public void setCanvasUserId(String canvasUserId) {
         this.canvasUserId = canvasUserId;
+    }
+
+    public String getCanvasUserGlobalId() {
+        return canvasUserGlobalId;
+    }
+
+    public void setCanvasUserGlobalId(String canvasUserGlobalId) {
+        this.canvasUserGlobalId = canvasUserGlobalId;
     }
 
     public String getCanvasLoginId() {

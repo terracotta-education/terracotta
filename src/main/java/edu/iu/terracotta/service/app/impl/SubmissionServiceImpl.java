@@ -25,8 +25,10 @@ import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.app.QuestionSubmissionService;
 import edu.iu.terracotta.service.app.SubmissionCommentService;
 import edu.iu.terracotta.service.app.SubmissionService;
+import edu.iu.terracotta.service.caliper.CaliperService;
 import edu.iu.terracotta.service.canvas.CanvasAPIClient;
 import edu.iu.terracotta.service.lti.AdvantageAGSService;
+import liquibase.pro.packaged.T;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -34,6 +36,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -65,6 +68,9 @@ public class SubmissionServiceImpl implements SubmissionService {
 
     @Autowired
     AdvantageAGSService advantageAGSService;
+
+    @Autowired
+    CaliperService caliperService;
 
     @Autowired
     CanvasAPIClient canvasAPIClient;
@@ -192,10 +198,11 @@ public class SubmissionServiceImpl implements SubmissionService {
                 if (securedInfo.getDueAt() != null && submissionOptional.get().getUpdatedAt().after(securedInfo.getDueAt())){
                     submissionOptional.get().setLateSubmission(true);
                 }
-                    submissionOptional.get().setDateSubmitted(submissionOptional.get().getUpdatedAt());
+                    submissionOptional.get().setDateSubmitted(getLastUpdatedTimeForSubmission(submissionOptional.get()));
             }
             if (securedInfo.getLockAt() == null || submissionOptional.get().getUpdatedAt().after(securedInfo.getLockAt())) {
                 saveAndFlush(gradeSubmission(submissionOptional.get()));
+                caliperService.sendAssignmentSubmitted(submissionOptional.get(), securedInfo);
             } else {
                 throw new AssignmentDatesException("Canvas Assignment is locked, we can not generate a submission with a date later than the lock date");
             }
@@ -300,6 +307,22 @@ public class SubmissionServiceImpl implements SubmissionService {
         //TODO, check if this value is ok
         score.setTimestamp("2021-06-10T18:54:36.736+00:00");
         advantageAGSService.postScore(ltiTokenScore, ltiTokenResults, experiment.getLtiContextEntity(), lineitemId, score);
+    }
+
+    private Timestamp getLastUpdatedTimeForSubmission(Submission submission){
+
+        Timestamp lastTimestamp = submission.getUpdatedAt();
+        for (QuestionSubmission questionSubmission:submission.getQuestionSubmissions()){
+            if (questionSubmission.getUpdatedAt().after(lastTimestamp)){
+                lastTimestamp = questionSubmission.getUpdatedAt();
+            }
+        }
+        if (lastTimestamp.equals(submission.getCreatedAt())) {
+            //We need to do this because the caliper event won't allow a submission time equals to the creation time,
+            // so we add 1 ms. This is not a very elegant solution, but it is needed.
+            lastTimestamp = new Timestamp(lastTimestamp.getTime() + 1);
+        }
+        return lastTimestamp;
 
 
     }

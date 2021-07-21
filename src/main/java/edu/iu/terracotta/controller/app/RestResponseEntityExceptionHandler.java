@@ -82,7 +82,7 @@ public class RestResponseEntityExceptionHandler
             = {AssessmentNotMatchingException.class})
     protected ResponseEntity<Object> handleAssessmentNotMatchingException(
             AssessmentNotMatchingException ex, WebRequest request) {
-        String bodyOfResponse = TextConstants.ASSESSMENT_NOT_MATCHING;
+        String bodyOfResponse = ex.getMessage();
         return handleExceptionInternal(ex, bodyOfResponse,
                 new HttpHeaders(), HttpStatus.UNAUTHORIZED, request);
     }

@@ -168,6 +168,7 @@ public class APIJWTServiceImpl implements APIJWTService {
                            Long experimentId,
                            Boolean consent,
                            String canvasUserId,
+                           String canvasUserGlobalId,
                            String canvasLoginId,
                            String canvasUserName,
                            String canvasCourseId,
@@ -203,6 +204,7 @@ public class APIJWTServiceImpl implements APIJWTService {
                 .claim("experimentId", experimentId)
                 .claim("oneUse", oneUse)  //This is an specific claim to ask for tokens.
                 .claim("canvasUserId", canvasUserId)
+                .claim("canvasUserGlobalId", canvasUserGlobalId)
                 .claim("canvasLoginId", canvasLoginId)
                 .claim("canvasUserName", canvasUserName)
                 .claim("canvasCourseId", canvasCourseId)
@@ -257,6 +259,7 @@ public class APIJWTServiceImpl implements APIJWTService {
                 experimentId,
                 consent,
                 lti3Request.getLtiCustom().get("canvas_user_id").toString(),
+                lti3Request.getLtiCustom().get("canvas_user_global_id").toString(),
                 lti3Request.getLtiCustom().get("canvas_login_id").toString(),
                 lti3Request.getLtiCustom().get("canvas_user_name").toString(),
                 lti3Request.getLtiCustom().get("canvas_course_id").toString(),
@@ -293,6 +296,7 @@ public class APIJWTServiceImpl implements APIJWTService {
                 .claim("experimentId", tokenClaims.getBody().get("experimentId"))
                 .claim("oneUse", false)
                 .claim("canvasUserId", tokenClaims.getBody().get("canvasUserId"))
+                .claim("canvasUserGlobalId", tokenClaims.getBody().get("canvasUserGlobalId"))
                 .claim("canvasLoginId", tokenClaims.getBody().get("canvasLoginId"))
                 .claim("canvasUserName", tokenClaims.getBody().get("canvasUserName"))
                 .claim("canvasCourseId", tokenClaims.getBody().get("canvasCourseId"))
@@ -335,6 +339,7 @@ public class APIJWTServiceImpl implements APIJWTService {
           securedInfo.setContextId(Long.valueOf((Integer) claims.getBody().get("contextId")));
           securedInfo.setRoles((List<String>) claims.getBody().get("roles"));
           securedInfo.setCanvasUserId(claims.getBody().get("canvasUserId").toString());
+          securedInfo.setCanvasUserGlobalId(claims.getBody().get("canvasUserGlobalId").toString());
           securedInfo.setCanvasLoginId(claims.getBody().get("canvasLoginId").toString());
           securedInfo.setCanvasUserName(claims.getBody().get("canvasUserName").toString());
           securedInfo.setCanvasCourseId(claims.getBody().get("canvasCourseId").toString());

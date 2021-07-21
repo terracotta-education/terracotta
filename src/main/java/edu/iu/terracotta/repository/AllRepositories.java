@@ -118,6 +118,9 @@ public class AllRepositories {
     @Autowired
     public AnswerEssaySubmissionRepository answerEssaySubmissionRepository;
 
+    @Autowired
+    public EventRepository eventRepository;
+
 
     @PersistenceContext
     public EntityManager entityManager;
