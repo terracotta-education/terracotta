@@ -7,9 +7,7 @@
     <template v-if="conditions">
       <v-expansion-panels class="v-expansion-panels--outlined mb-7" flat>
         <v-expansion-panel class="py-3">
-          <v-expansion-panel-header>{{ assignment.title }} ({{ tCount }}/{{
-              conditions.length
-            }})
+          <v-expansion-panel-header>{{ assignment.title }} ({{ assignment.treatments.length || 0 }}/{{ conditions.length }})
           </v-expansion-panel-header>
           <v-expansion-panel-content>
             <v-list class="pa-0">
@@ -163,16 +161,6 @@ export default {
         }
       }
     },
-    async treatmentCount() {
-      // count treatments for assignment
-      // computed properties don't like async/await so we'll call it in created()
-      this.tCount = 0
-
-      for (const c of this.conditions) {
-        const treatments = await this.checkTreatment([this.experiment.experimentId, c.conditionId, this.assignment_id])
-        this.tCount = (treatments?.data?.length > 0) ? this.tCount + 1 : this.tCount
-      }
-    },
     saveExit() {
       this.$router.push({name: 'Home'})
     }
@@ -180,7 +168,6 @@ export default {
   async created() {
     await this.fetchAssignment([this.experiment.experimentId, this.exposure_id, this.assignment_id])
     await this.checkConditionTreatments()
-    this.treatmentCount()
   },
 };
 </script>
