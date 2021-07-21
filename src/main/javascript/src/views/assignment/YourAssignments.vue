@@ -21,7 +21,7 @@
                              v-for="(assignment, aIndex) in assignments.filter(a=>a.exposureId===exposure.exposureId)"
                              :key="aIndex">
                   <v-list-item-content>
-                    <p class="ma-0 pa-0">{{ assignment.title }}</p>
+                    <p class="ma-0 pa-0">{{ assignment.title }} ({{ assignment.treatments.length || 0 }}/{{ conditions.length || 0 }})</p>
                   </v-list-item-content>
                   <v-list-item-action>
                     <v-btn
@@ -84,6 +84,7 @@ export default {
     },
     ...mapGetters({
       assignments: 'assignment/assignments',
+      conditions: 'experiment/conditions',
       exposures: 'exposures/exposures'
     })
   },
