@@ -211,6 +211,9 @@ public class LTIDataServiceImpl implements LTIDataService {
                 LtiUserEntity newUser = new LtiUserEntity(lti.getSub(), null, platformDeployment);
                 newUser.setDisplayName(lti.getLtiName());
                 newUser.setEmail(lti.getLtiEmail());
+                if (lti.getLtiCustom().containsKey("canvas_user_id")) {
+                    newUser.setLmsUserId(lti.getLtiCustom().get("canvas_user_id").toString());
+                }
                 lti.setUser(repos.users.save(newUser));
                 inserts++;
                 log.info("LTIupdate: Inserted user id=" + lti.getSub());
@@ -281,6 +284,11 @@ public class LTIDataServiceImpl implements LTIDataService {
             user.setEmail(lti.getLtiEmail());
             userChanged = true;
         }
+        if (lti.getLtiCustom().containsKey("canvas_user_id") && lti.getLtiCustom().get("canvas_user_id")!= null && user != null && !lti.getLtiCustom().get("canvas_user_id").toString().equals(user.getLmsUserId())) {
+            user.setLmsUserId(lti.getLtiCustom().get("canvas_user_id").toString());
+            userChanged = true;
+        }
+
         if (userChanged) {
             lti.setUser(repos.users.save(user));
             updates++;

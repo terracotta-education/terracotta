@@ -47,7 +47,7 @@ public interface SubmissionService {
 
     Submission gradeSubmission(Submission submission) throws DataServiceException;
 
-    void sendSubmissionGradeToCanvas(Submission submission) throws ConnectionException, DataServiceException;
+    void sendSubmissionGradeToCanvas(Submission submission) throws ConnectionException, DataServiceException, CanvasApiException, IOException;
 
     boolean datesAllowed(Long experimentId, Long treatmentId, SecuredInfo securedInfo);
 

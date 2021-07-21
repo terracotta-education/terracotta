@@ -28,7 +28,6 @@ import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.service.caliper.CaliperService;
 import edu.iu.terracotta.service.canvas.CanvasAPIClient;
 import edu.iu.terracotta.service.lti.AdvantageAGSService;
-import liquibase.pro.packaged.T;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -282,8 +281,8 @@ public class SubmissionServiceImpl implements SubmissionService {
         return submission;
     }
 
-    @Override
-    public void sendSubmissionGradeToCanvas(Submission submission) throws ConnectionException, DataServiceException {
+
+    public void sendSubmissionGradeToCanvasWithLTI(Submission submission) throws ConnectionException, DataServiceException {
         //We need, the assignment, and the iss configuration...
         Assignment assignment = submission.getAssessment().getTreatment().getAssignment();
         Experiment experiment = assignment.getExposure().getExperiment();
@@ -309,6 +308,15 @@ public class SubmissionServiceImpl implements SubmissionService {
         advantageAGSService.postScore(ltiTokenScore, ltiTokenResults, experiment.getLtiContextEntity(), lineitemId, score);
     }
 
+    @Override
+    public void sendSubmissionGradeToCanvas(Submission submission) throws ConnectionException, DataServiceException, CanvasApiException, IOException {
+        //We need, the assignment, and the iss configuration...
+        Assignment assignment = submission.getAssessment().getTreatment().getAssignment();
+        Experiment experiment = assignment.getExposure().getExperiment();
+
+        canvasAPIClient.postSubmission(submission, assessmentService.calculateMaxScore(submission.getAssessment()));
+    }
+
     private Timestamp getLastUpdatedTimeForSubmission(Submission submission){
 
         Timestamp lastTimestamp = submission.getUpdatedAt();
@@ -324,6 +332,7 @@ public class SubmissionServiceImpl implements SubmissionService {
         }
         return lastTimestamp;
 
-
     }
+
+
 }

@@ -3,6 +3,7 @@ package edu.iu.terracotta.service.canvas;
 import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.model.canvas.AssignmentExtended;
+import edu.ksu.canvas.model.Progress;
 import edu.ksu.canvas.model.assignment.Submission;
 
 import java.io.IOException;
@@ -18,4 +19,8 @@ public interface CanvasAPIClient {
     List<Submission> listSubmissions(Integer assignmentId, String canvasCourseId, PlatformDeployment platformDeployment) throws CanvasApiException, IOException;
 
     Optional<AssignmentExtended> checkAssignmentExists(Integer assignmentId, String canvasCourseId, PlatformDeployment platformDeployment) throws CanvasApiException;
+
+    public Optional<AssignmentExtended> listAssignment(String canvasCourseId, int assignmentId, PlatformDeployment platformDeployment) throws CanvasApiException;
+
+    public Optional<Progress> postSubmission(edu.iu.terracotta.model.app.Submission submission, Float maxTerracottaScore) throws CanvasApiException, IOException;
 }

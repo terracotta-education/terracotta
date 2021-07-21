@@ -180,7 +180,7 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     @Override
-    public void sendAssignmentGradeToCanvas(Assignment assignment) throws ConnectionException, DataServiceException {
+    public void sendAssignmentGradeToCanvas(Assignment assignment) throws ConnectionException, DataServiceException, CanvasApiException, IOException {
         List<Submission> submissionList = allRepositories.submissionRepository.findByAssessment_Treatment_Assignment_AssignmentId(assignment.getAssignmentId());
         for (Submission submission:submissionList){
             submissionService.sendSubmissionGradeToCanvas(submission);
@@ -277,7 +277,7 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     @Override
-    public void checkAndRestoreAllAssignmentsInCanvas() throws CanvasApiException, DataServiceException, ConnectionException {
+    public void checkAndRestoreAllAssignmentsInCanvas() throws CanvasApiException, DataServiceException, ConnectionException, IOException {
         List<PlatformDeployment> allDeployments = allRepositories.platformDeploymentRepository.findAll();
         for (PlatformDeployment platformDeployment:allDeployments){
             checkAndRestoreAssignmentsInCanvas(platformDeployment.getKeyId());
@@ -285,7 +285,7 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     @Override
-    public void checkAndRestoreAssignmentsInCanvas(Long platformDeploymentKeyId) throws CanvasApiException, DataServiceException, ConnectionException {
+    public void checkAndRestoreAssignmentsInCanvas(Long platformDeploymentKeyId) throws CanvasApiException, DataServiceException, ConnectionException, IOException {
         List<Assignment> assignmentsToCheck = allRepositories.assignmentRepository.findAssignmentsToCheckByPlatform(platformDeploymentKeyId);
         for (Assignment assignment:assignmentsToCheck){
             if (!checkCanvasAssignmentExists(assignment)){
@@ -295,7 +295,7 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     @Override
-    public void checkAndRestoreAssignmentsInCanvasByContext(Long contextId) throws CanvasApiException, DataServiceException, ConnectionException {
+    public void checkAndRestoreAssignmentsInCanvasByContext(Long contextId) throws CanvasApiException, DataServiceException, ConnectionException, IOException {
         List<Assignment> assignmentsToCheck = allRepositories.assignmentRepository.findAssignmentsToCheckByContext(contextId);
         for (Assignment assignment:assignmentsToCheck){
             if (!checkCanvasAssignmentExists(assignment)){
@@ -311,7 +311,7 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     @Override
-    public Assignment restoreAssignmentInCanvas(Assignment assignment) throws CanvasApiException, DataServiceException, ConnectionException {
+    public Assignment restoreAssignmentInCanvas(Assignment assignment) throws CanvasApiException, DataServiceException, ConnectionException, IOException {
         //1 Create the new Assignment in Canvas
         AssignmentExtended canvasAssignment = new AssignmentExtended();
         edu.ksu.canvas.model.assignment.Assignment.ExternalToolTagAttribute canvasExternalToolTagAttributes = canvasAssignment.new ExternalToolTagAttribute();

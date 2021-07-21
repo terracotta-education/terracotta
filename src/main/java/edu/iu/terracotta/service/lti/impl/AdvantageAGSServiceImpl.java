@@ -92,13 +92,12 @@ public class AdvantageAGSServiceImpl implements AdvantageAGSService {
                 String nextPage = advantageConnectorHelper.nextPage(lineItemsGetResponse.getHeaders());
                 log.debug("We have next page: " + nextPage);
                 while (nextPage != null) {
-                    ResponseEntity<LineItems> responseForNextPage = restTemplate.exchange(nextPage, HttpMethod.GET,
-                            request, LineItems.class);
-                    LineItems nextLineItemsList = responseForNextPage.getBody();
-                    List<LineItem> nextLineItems = nextLineItemsList
-                            .getLineItemList();
-                    log.debug("We have {} lineitems in the next page", nextLineItemsList.getLineItemList().size());
-                    lineItemsList.addAll(nextLineItems);
+                    ResponseEntity<LineItem[]> responseForNextPage = restTemplate.exchange(nextPage, HttpMethod.GET,
+                            request, LineItem[].class);
+                    LineItem[] nextLineItemsList = responseForNextPage.getBody();
+                    //List<LineItem> nextLineItems = nextLineItemsList.getLineItemList();
+                    log.debug("We have {} lineitems in the next page", nextLineItemsList.length);
+                    lineItemsList.addAll(Arrays.asList(nextLineItemsList));
                     nextPage = advantageConnectorHelper.nextPage(responseForNextPage.getHeaders());
                 }
                 lineItems.getLineItemList().addAll(lineItemsList);
