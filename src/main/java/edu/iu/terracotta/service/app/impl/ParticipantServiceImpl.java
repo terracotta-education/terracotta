@@ -159,6 +159,9 @@ public class ParticipantServiceImpl implements ParticipantService {
                     if (ltiUserEntity == null) {
                         LtiUserEntity newLtiUserEntity = new LtiUserEntity(courseUser.getUserId(), null, experiment.getPlatformDeployment());
                         newLtiUserEntity.setEmail(courseUser.getEmail());
+                        //TODO: We don't have a way here to get the userCanvasId except calling the API
+                        // or waiting for the user to access. BUT we just need this to send the grades with the API...
+                        // so if the user never accessed... we can't send them until we use LTI.
                         newLtiUserEntity.setDisplayName(courseUser.getName());
                         //By default it adds a value in the constructor, but if we are generating it, it means that the user has never logged in
                         newLtiUserEntity.setLoginAt(null);

@@ -42,6 +42,9 @@ public class LtiUserEntity extends BaseEntity {
     @Column(name = "user_key", nullable = false, length = 4096)
     private String userKey;
     @Basic
+    @Column(name = "lms_user_id")
+    private String lmsUserId;
+    @Basic
     @Column(name = "displayname", length = 4096)
     private String displayName;
     /**
@@ -95,6 +98,14 @@ public class LtiUserEntity extends BaseEntity {
 
     public void setUserId(long userId) {
         this.userId = userId;
+    }
+
+    public String getLmsUserId() {
+        return lmsUserId;
+    }
+
+    public void setLmsUserId(String lmsUserId) {
+        this.lmsUserId = lmsUserId;
     }
 
     public String getUserKey() {

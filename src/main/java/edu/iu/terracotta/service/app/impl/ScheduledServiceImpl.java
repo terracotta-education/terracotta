@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
@@ -34,7 +35,7 @@ public class ScheduledServiceImpl implements ScheduledService {
     }
 
     @Scheduled(cron = "${scheduled.restoredeletedassignments.cron:0 0 3 * * ?}")
-    public void restoreDeletedAssignments() throws DataServiceException, CanvasApiException, ConnectionException {
+    public void restoreDeletedAssignments() throws DataServiceException, CanvasApiException, ConnectionException, IOException {
         log.info("Restoring Assignments :: Starting - {} ", dateTimeFormatter.format(LocalDateTime.now()));
         assignmentService.checkAndRestoreAllAssignmentsInCanvas();
         log.info("Restoring Assignments :: Ended - {} ", dateTimeFormatter.format(LocalDateTime.now()));
