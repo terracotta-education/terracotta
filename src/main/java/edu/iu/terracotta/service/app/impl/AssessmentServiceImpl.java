@@ -1,7 +1,10 @@
 package edu.iu.terracotta.service.app.impl;
 
+import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.model.app.Assessment;
+import edu.iu.terracotta.model.app.ExposureGroupCondition;
+import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.Question;
 import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.Treatment;
@@ -17,7 +20,9 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Component
@@ -38,8 +43,10 @@ public class AssessmentServiceImpl implements AssessmentService {
     }
 
     @Override
-    public AssessmentDto toDto(Assessment assessment, boolean questions, boolean answers, boolean submissions, boolean student) {
+    public AssessmentDto toDto(Assessment assessment, boolean questions, boolean answers, boolean submissions, boolean student) throws AssessmentNotMatchingException {
 
+        Long submissionsCompletedCount = null;
+        Long submissionsInProgressCount = null;
         AssessmentDto assessmentDto = new AssessmentDto();
         assessmentDto.setAssessmentId(assessment.getAssessmentId());
         assessmentDto.setHtml(assessment.getHtml());
@@ -55,13 +62,45 @@ public class AssessmentServiceImpl implements AssessmentService {
         }
         assessmentDto.setQuestions(questionDtoList);
         List<SubmissionDto> submissionDtoList = new ArrayList<>();
-        List<Submission> submissionList =  allRepositories.submissionRepository.findByAssessment_AssessmentId(assessment.getAssessmentId());
-        if(submissions){
-            for(Submission submission : submissionList){
-                submissionDtoList.add(submissionService.toDto(submission, false,false));
-            }
+        Long conditionId = assessment.getTreatment().getCondition().getConditionId();
+        Long exposureId = assessment.getTreatment().getAssignment().getExposure().getExposureId();
+        Optional<ExposureGroupCondition> exposureGroupCondition =
+                allRepositories.exposureGroupConditionRepository.getByCondition_ConditionIdAndExposure_ExposureId(conditionId,exposureId);
+        Long groupId = null;
+        if (exposureGroupCondition.isPresent()){
+            groupId = exposureGroupCondition.get().getGroup().getGroupId();
+        } else {
+            throw new AssessmentNotMatchingException("Error 124: Assessment "+ assessment.getAssessmentId()+" without Group");
         }
-        if(!submissionList.isEmpty()){
+        Map<Participant, Boolean> participantStatus = new HashMap<>();
+
+        if(submissions) {
+            for (Submission submission : assessment.getSubmissions()) {
+                submissionDtoList.add(submissionService.toDto(submission, false, false));
+                // We add the status. False if in progress, true if submitted.
+                if (submission.getDateSubmitted() != null) {
+                    participantStatus.put(submission.getParticipant(), true);
+                } else { //We considered submitted an assessment if it has been submitted at leas one time by the user
+                    //including if he is in the middle of taking it again.
+                    if (!participantStatus.containsKey(submission.getParticipant())) {
+                        participantStatus.put(submission.getParticipant(), false);
+                    }
+                }
+            }
+            submissionsCompletedCount = 0L;
+            submissionsInProgressCount = 0L;
+            for (Map.Entry<Participant, Boolean> status : participantStatus.entrySet()) {
+                if (status.getValue()) {
+                    submissionsCompletedCount = submissionsCompletedCount + 1;
+                } else {
+                    submissionsInProgressCount = submissionsInProgressCount + 1;
+                }
+            }
+            assessmentDto.setSubmissionsExpected(allRepositories.participantRepository.countDistinctByGroup_GroupId(groupId));
+            assessmentDto.setSubmissionsCompletedCount(submissionsCompletedCount);
+            assessmentDto.setSubmissionsInProgressCount(submissionsInProgressCount);
+        }
+        if(!assessment.getSubmissions().isEmpty()){
             assessmentDto.setStarted(true);
         }
         assessmentDto.setSubmissions(submissionDtoList);
