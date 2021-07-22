@@ -29,7 +29,7 @@
               v-for="item in items"
               :key="item">
               <template v-if="item==='status'">
-
+                <experiment-summary-status :experiment="experiment" />
               </template>
               <template v-if="item==='setup'">
                 <v-card
@@ -51,11 +51,13 @@
 </template>
 
 <script>
-  import store from '@/store';
-  import {mapGetters} from 'vuex';
+  import store from '@/store'
+  import {mapGetters} from 'vuex'
+  import ExperimentSummaryStatus from '@/views/ExperimentSummaryStatus'
 
   export default {
     name: 'ExperimentSummary',
+    components: { ExperimentSummaryStatus },
     computed: {
       ...mapGetters({
         experiment: 'experiment/experiment'

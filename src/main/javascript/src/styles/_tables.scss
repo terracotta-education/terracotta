@@ -1,0 +1,23 @@
+.v-data-table {
+    &--no-outline {
+        border: none;
+        .v-data-table__wrapper {
+            border: none;
+        }
+
+        th:first-child,
+        td:first-child {
+            padding-left: 0 !important;
+        }
+        th:last-child,
+        td:last-child {
+            padding-right: 0 !important;
+        }
+    }
+    &--light-header {
+        th {
+            color: rgba(black, .6) !important;
+            font-weight: normal;
+        }
+    }
+}
