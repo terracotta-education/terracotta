@@ -1,5 +1,6 @@
 package edu.iu.terracotta.service.app;
 
+import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.model.app.Treatment;
 import edu.iu.terracotta.model.app.dto.TreatmentDto;
@@ -12,7 +13,7 @@ public interface TreatmentService {
 
     List<Treatment> findAllByConditionId(Long conditionId);
 
-    TreatmentDto toDto(Treatment treatment);
+    TreatmentDto toDto(Treatment treatment, boolean submissions) throws AssessmentNotMatchingException;
 
     Treatment fromDto(TreatmentDto treatmentDto) throws DataServiceException;
 

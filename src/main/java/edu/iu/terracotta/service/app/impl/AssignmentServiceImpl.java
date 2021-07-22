@@ -102,7 +102,7 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     @Override
-    public AssignmentDto toDto(Assignment assignment) {
+    public AssignmentDto toDto(Assignment assignment, boolean submissions) throws AssessmentNotMatchingException {
 
         AssignmentDto assignmentDto = new AssignmentDto();
         assignmentDto.setAssignmentId(assignment.getAssignmentId());
@@ -112,14 +112,14 @@ public class AssignmentServiceImpl implements AssignmentService {
         assignmentDto.setExposureId(assignment.getExposure().getExposureId());
         assignmentDto.setResourceLinkId(assignment.getResourceLinkId());
         assignmentDto.setSoftDeleted(assignment.getSoftDeleted());
-        long submissions = allRepositories.submissionRepository.countByAssessment_Treatment_Assignment_AssignmentId(assignment.getAssignmentId());
-        if(submissions > 0){
+        long submissionsCount = allRepositories.submissionRepository.countByAssessment_Treatment_Assignment_AssignmentId(assignment.getAssignmentId());
+        if(submissionsCount > 0){
             assignmentDto.setStarted(true);
         }
         List<Treatment> treatments = allRepositories.treatmentRepository.findByAssignment_AssignmentId(assignment.getAssignmentId());
         List<TreatmentDto> treatmentDtos = new ArrayList<>();
         for (Treatment treatment:treatments){
-            TreatmentDto treatmentDto = treatmentService.toDto(treatment);
+            TreatmentDto treatmentDto = treatmentService.toDto(treatment, submissions);
             treatmentDtos.add(treatmentDto);
         }
         assignmentDto.setTreatments(treatmentDtos);

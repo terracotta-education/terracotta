@@ -21,7 +21,7 @@ public interface AssignmentService {
 
     List<Assignment> findAllByExposureId(long exposureId);
 
-    AssignmentDto toDto(Assignment assignment);
+    AssignmentDto toDto(Assignment assignment, boolean submissions) throws AssessmentNotMatchingException;
 
     Assignment fromDto(AssignmentDto assignmentDto) throws DataServiceException;
 

@@ -74,8 +74,9 @@ public class AssessmentController {
     public ResponseEntity<List<AssessmentDto>> getAssessmentByTreatment(@PathVariable("experiment_id") Long experimentId,
                                                                         @PathVariable("condition_id") Long conditionId,
                                                                         @PathVariable("treatment_id") Long treatmentId,
+                                                                        @RequestParam(name = "submissions", defaultValue = "false") boolean submissions,
                                                                         HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, TreatmentNotMatchingException {
+            throws ExperimentNotMatchingException, BadTokenException, TreatmentNotMatchingException, AssessmentNotMatchingException {
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -89,7 +90,7 @@ public class AssessmentController {
             }
             List<AssessmentDto> assessmentDtoList = new ArrayList<>();
             for(Assessment assessment : assessmentList){
-                assessmentDtoList.add(assessmentService.toDto(assessment,false, false, false, false));
+                assessmentDtoList.add(assessmentService.toDto(assessment,false, false, submissions, false));
             }
             return new ResponseEntity<>(assessmentDtoList, HttpStatus.OK);
         } else {
@@ -141,7 +142,7 @@ public class AssessmentController {
                                                         @RequestBody AssessmentDto assessmentDto,
                                                         UriComponentsBuilder ucBuilder,
                                                         HttpServletRequest req)
-            throws ExperimentNotMatchingException, TreatmentNotMatchingException, BadTokenException {
+            throws ExperimentNotMatchingException, TreatmentNotMatchingException, BadTokenException, AssessmentNotMatchingException {
 
         log.info("Creating Assessment: {}", assessmentDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);

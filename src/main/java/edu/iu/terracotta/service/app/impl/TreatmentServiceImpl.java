@@ -1,5 +1,6 @@
 package edu.iu.terracotta.service.app.impl;
 
+import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.model.app.Assignment;
 import edu.iu.terracotta.model.app.Treatment;
@@ -29,11 +30,11 @@ public class TreatmentServiceImpl implements TreatmentService {
     }
 
     @Override
-    public TreatmentDto toDto(Treatment treatment) {
+    public TreatmentDto toDto(Treatment treatment, boolean submissions) throws AssessmentNotMatchingException {
         TreatmentDto treatmentDto = new TreatmentDto();
         treatmentDto.setTreatmentId(treatment.getTreatmentId());
         if(treatment.getAssessment() != null) {
-            treatmentDto.setAssessmentDto(assessmentService.toDto(treatment.getAssessment(), false,false, false, false));
+            treatmentDto.setAssessmentDto(assessmentService.toDto(treatment.getAssessment(), false,false, submissions, false));
         }
         treatmentDto.setConditionId(treatment.getCondition().getConditionId());
         treatmentDto.setAssignmentId(treatment.getAssignment().getAssignmentId());

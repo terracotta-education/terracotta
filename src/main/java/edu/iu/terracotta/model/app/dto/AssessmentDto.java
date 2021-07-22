@@ -19,6 +19,10 @@ public class AssessmentDto {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<QuestionDto> questions;
     private boolean started;
+    private Long submissionsExpected;
+    private Long submissionsCompletedCount;
+    private Long submissionsInProgressCount;
+
 
     public Long getAssessmentId() { return assessmentId; }
 
@@ -55,4 +59,28 @@ public class AssessmentDto {
     public boolean getStarted() { return started; }
 
     public void setStarted(boolean started) { this.started = started; }
+
+    public Long getSubmissionsExpected() {
+        return submissionsExpected;
+    }
+
+    public void setSubmissionsExpected(Long submissionsExpected) {
+        this.submissionsExpected = submissionsExpected;
+    }
+
+    public Long getSubmissionsCompletedCount() {
+        return submissionsCompletedCount;
+    }
+
+    public void setSubmissionsCompletedCount(Long submissionsCompletedCount) {
+        this.submissionsCompletedCount = submissionsCompletedCount;
+    }
+
+    public Long getSubmissionsInProgressCount() {
+        return submissionsInProgressCount;
+    }
+
+    public void setSubmissionsInProgressCount(Long submissionsInProgressCount) {
+        this.submissionsInProgressCount = submissionsInProgressCount;
+    }
 }
