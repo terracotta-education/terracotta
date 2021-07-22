@@ -71,7 +71,8 @@ public class TokenController {
                         claims.getBody().get("canvasAssignmentId").toString(),
                         claims.getBody().get("dueAt").toString(),
                         claims.getBody().get("lockAt").toString(),
-                        claims.getBody().get("unlockAt").toString())
+                        claims.getBody().get("unlockAt").toString(),
+                        claims.getBody().get("nonce").toString())
                         , HttpStatus.OK);
             } catch (GeneralSecurityException | IOException e) {
                 return new ResponseEntity<>("Error generating token: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);

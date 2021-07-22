@@ -175,7 +175,8 @@ public class APIJWTServiceImpl implements APIJWTService {
                            String canvasAssignmentId,
                            String dueAt,
                            String lockAt,
-                           String unlockAt
+                           String unlockAt,
+                           String nonce
     ) throws GeneralSecurityException, IOException {
 
         int length = 3600;
@@ -212,6 +213,7 @@ public class APIJWTServiceImpl implements APIJWTService {
                 .claim("dueAt", dueAt)
                 .claim("lockAt", lockAt)
                 .claim("unlockAt", unlockAt)
+                .claim("nonce", nonce)
                 .signWith(SignatureAlgorithm.RS256, toolPrivateKey);  //We sign it with our own private key. The platform has the public one.
         String token = builder.compact();
         if (oneUse){
@@ -266,7 +268,9 @@ public class APIJWTServiceImpl implements APIJWTService {
                 lti3Request.getLtiCustom().get("canvas_assignment_id").toString(),
                 lti3Request.getLtiCustom().get("due_at").toString(),
                 lti3Request.getLtiCustom().get("lock_at").toString(),
-                lti3Request.getLtiCustom().get("unlock_at").toString());
+                lti3Request.getLtiCustom().get("unlock_at").toString(),
+                lti3Request.getNonce());
+
     }
 
     @Override
@@ -304,6 +308,7 @@ public class APIJWTServiceImpl implements APIJWTService {
                 .claim("dueAt", tokenClaims.getBody().get("dueAt"))
                 .claim("lockAt", tokenClaims.getBody().get("lockAt"))
                 .claim("unlockAt", tokenClaims.getBody().get("unlockAt"))
+                .claim("nonce", tokenClaims.getBody().get("nonce"))
                 .signWith(SignatureAlgorithm.RS256, toolPrivateKey);  //We sign it with our own private key. The platform has the public one.
         String newToken = builder.compact();
         log.debug("Token Request: \n {} \n", newToken);
@@ -347,6 +352,7 @@ public class APIJWTServiceImpl implements APIJWTService {
           securedInfo.setDueAt(extractTimestamp(claims,"dueAt"));
           securedInfo.setLockAt(extractTimestamp(claims,"lockAt"));
           securedInfo.setUnlockAt(extractTimestamp(claims,"unlockAt"));
+          securedInfo.setNonce(claims.getBody().get("nonce").toString());
           return securedInfo;
         } else {
           return null;

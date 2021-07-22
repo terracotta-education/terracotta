@@ -112,11 +112,20 @@ public class ExperimentServiceImpl implements ExperimentService {
 
         ConsentDocument consentDocument = experiment.getConsentDocument();
         if (consentDocument !=null){
+            Integer countAnswered = 0;
+            for (Participant participant:experiment.getParticipants()){
+                if (participant.getConsent()!=null){
+                    countAnswered = countAnswered + 1;
+                }
+            }
+
             ConsentDto consentDto = new ConsentDto();
             consentDto.setConsentDocumentId(consentDocument.getConsentDocumentId());
             consentDto.setFilePointer(consentDocument.getFilePointer());
             consentDto.setTitle(consentDocument.getTitle());
             consentDto.setHtml(consentDocument.getHtml());
+            consentDto.setExpectedConsent(experiment.getParticipants().size());
+            consentDto.setAnsweredConsentCount(countAnswered);
             experimentDto.setConsent(consentDto);
         }
 

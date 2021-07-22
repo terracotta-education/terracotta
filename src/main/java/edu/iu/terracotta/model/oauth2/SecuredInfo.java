@@ -18,6 +18,7 @@ public class SecuredInfo {
     Timestamp dueAt;
     Timestamp lockAt;
     Timestamp unlockAt;
+    String nonce;
 
     public SecuredInfo() {
     }
@@ -124,5 +125,13 @@ public class SecuredInfo {
 
     public void setUnlockAt(Timestamp unlockAt) {
         this.unlockAt = unlockAt;
+    }
+
+    public String getNonce() {
+        return nonce;
+    }
+
+    public void setNonce(String nonce) {
+        this.nonce = nonce;
     }
 }

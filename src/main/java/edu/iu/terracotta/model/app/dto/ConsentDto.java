@@ -6,6 +6,8 @@ public class ConsentDto {
     private String title;
     private String filePointer;
     private String html;
+    private Integer expectedConsent;
+    private Integer answeredConsentCount;
 
     public Long getConsentDocumentId() {
         return consentDocumentId;
@@ -37,5 +39,21 @@ public class ConsentDto {
 
     public void setHtml(String html) {
         this.html = html;
+    }
+
+    public Integer getExpectedConsent() {
+        return expectedConsent;
+    }
+
+    public void setExpectedConsent(Integer expectedConsent) {
+        this.expectedConsent = expectedConsent;
+    }
+
+    public Integer getAnsweredConsentCount() {
+        return answeredConsentCount;
+    }
+
+    public void setAnsweredConsentCount(Integer answeredConsentCount) {
+        this.answeredConsentCount = answeredConsentCount;
     }
 }
