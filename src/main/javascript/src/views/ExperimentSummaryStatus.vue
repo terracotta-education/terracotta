@@ -27,8 +27,8 @@
 <!--                >-->
                 <tr>
                   <td>Informed Consent</td>
-                  <td><span class="completion-status complete">Complete</span></td>
-                  <td>23/23</td>
+                  <td><span class="completion-status">In Progress</span></td>
+                  <td>0/0</td>
                 </tr>
                 </tbody>
               </template>
@@ -62,8 +62,17 @@
                   :key="assignment.assignmentId"
                 >
                   <td>{{ assignment.title }}</td>
-                  <td><span class="completion-status complete">Complete</span></td>
-                  <td>23/23</td>
+                  <td><span class="completion-status" :class="{'complete': assignmentCompletion.find(a => a.assignmentId === assignment.assignmentId).complete}">
+                    {{
+                      assignmentCompletion.find(a => a.assignmentId === assignment.assignmentId).complete ?
+                        'Complete' : 'In Progress'
+                    }}
+                  </span></td>
+                  <td>
+                    {{ assignmentCompletion && assignmentCompletion.find(a => a.assignmentId === assignment.assignmentId).submissionsCompleted || 0 }}
+                    /
+                    {{ assignmentCompletion && assignmentCompletion.find(a => a.assignmentId === assignment.assignmentId).submissionsExpected || 0 }}
+                  </td>
                 </tr>
                 </tbody>
               </template>
@@ -113,7 +122,52 @@ export default {
       assignments: 'assignment/assignments',
       conditions: 'experiment/conditions',
       exposures: 'exposures/exposures'
-    })
+    }),
+    assignmentCompletion() {
+      let arr = []
+      for (const assignment of this.assignments) {
+        let complete = false
+        let counts = {
+          submissionsExpectedCount: 0,
+          submissionsCompletedCount: 0,
+          submissionsInProgressCount: 0
+        }
+
+        // add assessment submission counts for each assignment
+        if (assignment.treatments?.length > 1) {
+          counts = assignment.treatments.reduce((prev, cur)=> {
+            return {
+              submissionsExpectedCount: prev?.assessmentDto?.submissionsExpected+cur?.assessmentDto?.submissionsExpected || 0,
+              submissionsCompletedCount: prev?.assessmentDto?.submissionsCompletedCount+cur?.assessmentDto?.submissionsCompletedCount || 0,
+              submissionsInProgressCount: prev?.assessmentDto?.submissionsInProgressCount+cur?.assessmentDto?.submissionsInProgressCount || 0
+            }
+          })
+        } else if (assignment.treatments?.length === 1) {
+          counts = {
+            submissionsExpectedCount: assignment.treatments[0].assessmentDto?.submissionsExpected || 0,
+            submissionsCompletedCount: assignment.treatments[0].assessmentDto?.submissionsCompletedCount || 0,
+            submissionsInProgressCount: assignment.treatments[0].assessmentDto?.submissionsInProgressCount || 0
+          }
+        }
+
+        // check if assignment is complete based on completed vs expected submissions
+        if (
+          counts.submissionsCompleted >= counts.submissionsExpected &&
+          counts.submissionsCompleted > 0
+        ) {
+          complete = true
+        }
+
+        arr.push({
+          assignmentId: assignment.assignmentId,
+          submissionsCompleted: counts.submissionsCompletedCount,
+          submissionsExpected: counts.submissionsExpectedCount,
+          submissionsInProgress: counts.submissionsInProgressCount,
+          complete: complete
+        })
+      }
+      return arr
+    }
   },
   methods: {
     ...mapMutations({
@@ -122,7 +176,7 @@ export default {
     ...mapActions({
       fetchAssignmentsByExposure: 'assignment/fetchAssignmentsByExposure',
       fetchExposures: 'exposures/fetchExposures'
-    })
+    }),
   },
   async created() {
     // reset assignments to get a clean list
@@ -130,7 +184,9 @@ export default {
     // update assignments on load
     await this.fetchExposures(this.experiment_id)
     for (const e of this.exposures) {
-      await this.fetchAssignmentsByExposure([this.experiment_id, e.exposureId])
+      // add submissions to assignments request
+      const submissions = true
+      await this.fetchAssignmentsByExposure([this.experiment_id, e.exposureId, submissions])
     }
   }
 }
@@ -141,7 +197,7 @@ export default {
     &::before {
       content: "";
       display: inline-block;
-      background: gray;
+      background: #FFE0B2;
       height: 11px;
       width: 11px;
       margin-right: 8px;

@@ -7,6 +7,8 @@ const state = {
 
 const actions = {
   async fetchAssignment({commit}, payload) {
+    // payload = experiment_id, exposure_id, assignment_id
+    // get assignment by it's assignmentId
     try {
       const response = await assignmentService.fetchAssignment(...payload)
       commit('setAssignment', response)
@@ -15,6 +17,9 @@ const actions = {
     }
   },
   async fetchAssignmentsByExposure({commit}, payload) {
+    // payload = experiment_id, exposure_id, submissions*
+    // * = optional
+    // get assignments by their exposureId
     try {
       const assignments = await assignmentService.fetchAssignmentsByExposure(...payload)
       commit('updateAssignments', assignments)

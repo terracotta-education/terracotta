@@ -26,13 +26,14 @@ async function fetchAssignment(experiment_id, exposure_id, assignment_id) {
 /**
  * Fetch Assignments by Exposure
  */
-async function fetchAssignmentsByExposure(experiment_id, exposure_id) {
+async function fetchAssignmentsByExposure(experiment_id, exposure_id, submissions=false) {
+  const includeSubmissions = (submissions) ? '?submissions=true' : ''
   const requestOptions = {
     method: 'GET',
     headers: {...authHeader()}
   }
 
-  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/exposures/${exposure_id}/assignments`, requestOptions).then(handleResponse)
+  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/exposures/${exposure_id}/assignments${includeSubmissions}`, requestOptions).then(handleResponse)
 }
 
 /**
