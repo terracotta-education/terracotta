@@ -55,6 +55,12 @@ public class Event {
     @Column(name = "generated_type")
     private String generatedType;
 
+    @Column(name = "referrer_id")
+    private String referrerId;
+
+    @Column(name = "referred_type")
+    private String referredType;
+
     @Column(name = "target_id")
     private String targetId;
 
@@ -232,5 +238,21 @@ public class Event {
 
     public void setMembershipRoles(String membershipRoles) {
         this.membershipRoles = membershipRoles;
+    }
+
+    public String getReferrerId() {
+        return referrerId;
+    }
+
+    public void setReferrerId(String referrerId) {
+        this.referrerId = referrerId;
+    }
+
+    public String getReferredType() {
+        return referredType;
+    }
+
+    public void setReferredType(String referredType) {
+        this.referredType = referredType;
     }
 }

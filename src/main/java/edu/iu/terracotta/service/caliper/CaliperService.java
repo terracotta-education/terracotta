@@ -7,6 +7,8 @@ import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import org.imsglobal.caliper.Envelope;
 
+import java.util.List;
+
 public interface CaliperService {
 
     void send(Envelope envelope);
@@ -23,7 +25,13 @@ public interface CaliperService {
 
     void sendViewGradeEvent(Participant participant, Assessment assessment, SecuredInfo securedInfo);
 
-    void sendToolUseEvent(LtiMembershipEntity membershipEntity, String canvasUserGlobalId, String canvasCourseId);
+    void sendToolUseEvent(LtiMembershipEntity membershipEntity,
+                          String canvasUserGlobalId,
+                          String canvasCourseId,
+                          String canvasUserId,
+                          String canvasLoginId,
+                          List<String> canvasRoles,
+                          String canvasUserName);
 
 
-}
+    }

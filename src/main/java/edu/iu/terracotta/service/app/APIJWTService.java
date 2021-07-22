@@ -35,7 +35,8 @@ public interface APIJWTService {
                     String canvasAssignmentId,
                     String dueAt,
                     String lockAt,
-                    String unlockAt) throws GeneralSecurityException, IOException;
+                    String unlockAt,
+                    String nonce) throws GeneralSecurityException, IOException;
 
     String buildJwt(boolean oneUse, LTI3Request lti3Request) throws GeneralSecurityException, IOException;
 
