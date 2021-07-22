@@ -94,7 +94,7 @@
                 <v-list-item @click="console.log('Select item from gradebook')">
                   <v-list-item-title>Select item from gradebook</v-list-item-title>
                 </v-list-item>
-                <v-list-item @click="console.log('Manually enter scores for each student')">
+                <v-list-item :to="{name:'OutcomeScoring', params: {exposure_id:exposure.exposureId}}">
                   <v-list-item-title>Manually enter scores for each student</v-list-item-title>
                 </v-list-item>
               </v-list>

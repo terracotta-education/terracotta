@@ -21,6 +21,18 @@ const routes = [
         component: () => import('../views/ExperimentSummary.vue')
       },
       {
+        path: 'exposure/:exposure_id',
+        component: () => import('../views/ExperimentOutcome.vue'),
+        children: [
+          {
+            path: '',
+            alias: 'outcome-scoring',
+            name: 'OutcomeScoring',
+            component: () => import('../views/outcome/OutcomeScoring.vue')
+          },
+        ]
+      },
+      {
         path: '',
         alias: 'design',
         component: () => import('../views/ExperimentSteps.vue'),
