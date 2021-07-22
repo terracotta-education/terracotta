@@ -42,6 +42,7 @@ import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.Principal;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -140,8 +141,11 @@ public class LTI3Controller {
                 caliperService.sendToolUseEvent(
                         lti3Request.getMembership(),
                         lti3Request.getLtiCustom().getOrDefault("canvas_user_global_id", "Anonymous").toString(),
-                        lti3Request.getLtiCustom().getOrDefault("canvas_course_id", "UnknownCourse").toString()
-                );
+                        lti3Request.getLtiCustom().getOrDefault("canvas_course_id", "UnknownCourse").toString(),
+                        lti3Request.getLtiCustom().getOrDefault("canvas_user_id", "Anonymous").toString(),
+                        lti3Request.getLtiCustom().getOrDefault("canvas_login_id", "Anonymous").toString(),
+                        lti3Request.getLtiRoles(),
+                        lti3Request.getLtiCustom().getOrDefault("canvas_user_name", "Anonymous").toString());
                 return "redirect:/app/app.html?token=" + oneTimeToken;
             }
         } catch (SignatureException ex) {

@@ -100,7 +100,7 @@ public class AssessmentServiceImpl implements AssessmentService {
             assessmentDto.setSubmissionsCompletedCount(submissionsCompletedCount);
             assessmentDto.setSubmissionsInProgressCount(submissionsInProgressCount);
         }
-        if(!assessment.getSubmissions().isEmpty()){
+        if(assessment.getSubmissions()!=null && !assessment.getSubmissions().isEmpty()){
             assessmentDto.setStarted(true);
         }
         assessmentDto.setSubmissions(submissionDtoList);
