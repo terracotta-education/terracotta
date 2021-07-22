@@ -50,7 +50,7 @@ export default {
     }),
     title: {
       get() {
-        return this.experiment?.consent?.title || this.consent?.title
+        return this.titleProxy === '' ? this.experiment?.consent?.title || this.consent?.title : this.titleProxy
       },
       set(value) {
         this.titleProxy = value
