@@ -139,10 +139,10 @@ export default {
       const _this = this
       this.createExperiment()
           .then(response => {
-            if (response?.experimentId) {
-              _this.$router.push({name: 'ExperimentDesignIntro', params: {experiment_id: response.experimentId}})
+            if (response?.data?.experimentId) {
+              _this.$router.push({name: 'ExperimentDesignIntro', params: {experiment_id: response.data.experimentId}})
             } else {
-              alert('There was an issue creating an experiment')
+              alert(`Error Status: ${response?.status} - There was an issue creating an experiment`)
             }
           }).catch(response => {
             console.log('startExperiment -> createExperiment | catch', {response})
