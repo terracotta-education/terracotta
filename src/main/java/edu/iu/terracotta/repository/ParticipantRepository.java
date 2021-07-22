@@ -21,6 +21,14 @@ public interface ParticipantRepository extends JpaRepository<Participant, Long> 
 
   boolean existsByExperiment_ExperimentIdAndParticipantId(Long experimentId, Long participantId);
 
+  List<Participant> findByGroup_GroupId(Long groupId);
+
+  long countDistinctByGroup_GroupId(Long groupId);
+
+
+
+
+
   @Transactional
   @Modifying
   @Query("delete from Participant s where s.participantId = ?1")

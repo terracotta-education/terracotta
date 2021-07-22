@@ -21,7 +21,7 @@ public interface AssignmentService {
 
     List<Assignment> findAllByExposureId(long exposureId);
 
-    AssignmentDto toDto(Assignment assignment);
+    AssignmentDto toDto(Assignment assignment, boolean submissions) throws AssessmentNotMatchingException;
 
     Assignment fromDto(AssignmentDto assignmentDto) throws DataServiceException;
 
@@ -39,20 +39,20 @@ public interface AssignmentService {
 
     String lineItemId(Assignment assignment) throws ConnectionException;
 
-    void sendAssignmentGradeToCanvas(Assignment assignment) throws ConnectionException, DataServiceException;
+    void sendAssignmentGradeToCanvas(Assignment assignment) throws ConnectionException, DataServiceException, CanvasApiException, IOException;
 
     Assessment getAssessmentbyGroupId(Long experimentId, String canvasAssignmentId, Long groupId) throws AssessmentNotMatchingException;
 
     ResponseEntity<Object> launchAssignment(Long experimentId, SecuredInfo securedInfo) throws AssessmentNotMatchingException, ParticipantNotUpdatedException, AssignmentDatesException, DataServiceException, CanvasApiException, IOException;
 
-    void checkAndRestoreAllAssignmentsInCanvas() throws CanvasApiException, DataServiceException, ConnectionException;
+    void checkAndRestoreAllAssignmentsInCanvas() throws CanvasApiException, DataServiceException, ConnectionException, IOException;
 
-    void checkAndRestoreAssignmentsInCanvas(Long platformDeploymentLeyId) throws CanvasApiException, DataServiceException, ConnectionException;
+    void checkAndRestoreAssignmentsInCanvas(Long platformDeploymentLeyId) throws CanvasApiException, DataServiceException, ConnectionException, IOException;
 
-    void checkAndRestoreAssignmentsInCanvasByContext(Long contextId) throws CanvasApiException, DataServiceException, ConnectionException;
+    void checkAndRestoreAssignmentsInCanvasByContext(Long contextId) throws CanvasApiException, DataServiceException, ConnectionException, IOException;
 
     boolean checkCanvasAssignmentExists(Assignment assignment) throws CanvasApiException;
 
-    Assignment restoreAssignmentInCanvas(Assignment assignment) throws CanvasApiException, DataServiceException, ConnectionException;
+    Assignment restoreAssignmentInCanvas(Assignment assignment) throws CanvasApiException, DataServiceException, ConnectionException, IOException;
 
 }

@@ -1,5 +1,6 @@
 package edu.iu.terracotta.controller.app;
 
+import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.exceptions.AssignmentNotMatchingException;
 import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.ConditionNotMatchingException;
@@ -29,6 +30,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -60,8 +62,9 @@ public class TreatmentController {
     @ResponseBody
     public ResponseEntity<List<TreatmentDto>> allTreatmentsByCondition(@PathVariable("experiment_id") Long experimentId,
                                                                        @PathVariable("condition_id") Long conditionId,
+                                                                       @RequestParam(name = "submissions", defaultValue = "false") boolean submissions,
                                                                        HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, ConditionNotMatchingException {
+            throws ExperimentNotMatchingException, BadTokenException, ConditionNotMatchingException, AssessmentNotMatchingException {
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -75,7 +78,7 @@ public class TreatmentController {
             }
             List<TreatmentDto> treatmentDtoList = new ArrayList<>();
             for(Treatment treatment : treatmentList) {
-                treatmentDtoList.add(treatmentService.toDto(treatment));
+                treatmentDtoList.add(treatmentService.toDto(treatment, submissions));
             }
             return new ResponseEntity<>(treatmentDtoList, HttpStatus.OK);
         } else {
@@ -89,8 +92,9 @@ public class TreatmentController {
     public ResponseEntity<TreatmentDto> getTreatment(@PathVariable("experiment_id") Long experimentId,
                                                      @PathVariable("condition_id") Long conditionId,
                                                      @PathVariable("treatment_id") Long treatmentId,
+                                                     @RequestParam(name = "submissions", defaultValue = "false") boolean submissions,
                                                      HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, TreatmentNotMatchingException {
+            throws ExperimentNotMatchingException, BadTokenException, TreatmentNotMatchingException, AssessmentNotMatchingException {
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -106,7 +110,7 @@ public class TreatmentController {
                         + " and context " + securedInfo.getContextId() + " and experiment with id " + experimentId + " and condition id " + conditionId
                         + " with id " + treatmentId + TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
             } else {
-                TreatmentDto treatmentDto = treatmentService.toDto(treatmentSearchResult.get());
+                TreatmentDto treatmentDto = treatmentService.toDto(treatmentSearchResult.get(), submissions);
                 return new ResponseEntity<>(treatmentDto, HttpStatus.OK);
             }
         } else {
@@ -121,7 +125,7 @@ public class TreatmentController {
                                                       @RequestBody TreatmentDto treatmentDto,
                                                       UriComponentsBuilder ucBuilder,
                                                       HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, ConditionNotMatchingException, ExperimentLockedException {
+            throws ExperimentNotMatchingException, BadTokenException, ConditionNotMatchingException, ExperimentLockedException, AssessmentNotMatchingException {
 
         log.info("Creating Treatment: {}", treatmentDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
@@ -147,7 +151,7 @@ public class TreatmentController {
             }
 
             Treatment treatmentSaved = treatmentService.save(treatment);
-            TreatmentDto returnedDto = treatmentService.toDto(treatmentSaved);
+            TreatmentDto returnedDto = treatmentService.toDto(treatmentSaved, false);
 
             HttpHeaders headers = new HttpHeaders();
             headers.setLocation(ucBuilder.path("/api/experiments/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}")

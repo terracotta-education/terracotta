@@ -1,5 +1,6 @@
 package edu.iu.terracotta.controller.app;
 
+import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.exceptions.AssignmentNotMatchingException;
 import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.CanvasApiException;
@@ -27,6 +28,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import edu.iu.terracotta.model.app.Assignment;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -61,8 +63,9 @@ public class AssignmentController {
     @ResponseBody
     public ResponseEntity<List<AssignmentDto>> allAssignmentsByExposure(@PathVariable("experiment_id") long experimentId,
                                                                         @PathVariable("exposure_id") Long exposureId,
+                                                                        @RequestParam(name = "submissions", defaultValue = "false") boolean submissions,
                                                                         HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, ExposureNotMatchingException {
+            throws ExperimentNotMatchingException, BadTokenException, ExposureNotMatchingException, AssessmentNotMatchingException {
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -76,7 +79,7 @@ public class AssignmentController {
             }
             List<AssignmentDto> assignmentDtoList = new ArrayList<>();
             for (Assignment assignment : assignmentList) {
-                assignmentDtoList.add(assignmentService.toDto(assignment));
+                assignmentDtoList.add(assignmentService.toDto(assignment, submissions));
             }
             return new ResponseEntity<>(assignmentDtoList, HttpStatus.OK);
         } else {
@@ -89,8 +92,9 @@ public class AssignmentController {
     public ResponseEntity<AssignmentDto> getAssignment(@PathVariable("experiment_id") long experimentId,
                                                        @PathVariable("exposure_id") long exposureId,
                                                        @PathVariable("assignment_id") long assignmentId,
+                                                       @RequestParam(name = "submissions", defaultValue = "false") boolean submissions,
                                                        HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, AssignmentNotMatchingException {
+            throws ExperimentNotMatchingException, BadTokenException, AssignmentNotMatchingException, AssessmentNotMatchingException {
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -108,7 +112,7 @@ public class AssignmentController {
                         + " and context " + securedInfo.getContextId() + " and experiment with id " + experimentId + " and exposure id " + exposureId
                         + " with id " + assignmentId + TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
             } else {
-                AssignmentDto assignmentDto = assignmentService.toDto(assignmentSearchResult.get());
+                AssignmentDto assignmentDto = assignmentService.toDto(assignmentSearchResult.get(), submissions);
                 return new ResponseEntity<>(assignmentDto, HttpStatus.OK);
             }
         } else {
@@ -123,7 +127,7 @@ public class AssignmentController {
                                                         @RequestBody AssignmentDto assignmentDto,
                                                         UriComponentsBuilder ucBuilder,
                                                         HttpServletRequest req)
-            throws ExperimentNotMatchingException, ExposureNotMatchingException, BadTokenException {
+            throws ExperimentNotMatchingException, ExposureNotMatchingException, BadTokenException, AssessmentNotMatchingException {
         log.info("Creating Assignment: {}", assignmentDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -170,7 +174,7 @@ public class AssignmentController {
                 return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
             }
             assignmentService.saveAndFlush(assignmentSaved);
-            AssignmentDto returnedDto = assignmentService.toDto(assignmentSaved);
+            AssignmentDto returnedDto = assignmentService.toDto(assignmentSaved, false);
 
             HttpHeaders headers = new HttpHeaders();
             headers.setLocation(ucBuilder.path("/api/experiments/{experiment_id}/exposures/{exposure_id}/assignments/{assignment_id}")

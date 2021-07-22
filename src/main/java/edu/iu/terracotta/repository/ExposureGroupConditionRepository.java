@@ -1,6 +1,7 @@
 package edu.iu.terracotta.repository;
 
 import edu.iu.terracotta.model.app.ExposureGroupCondition;
+import edu.iu.terracotta.model.app.Group;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -16,6 +17,10 @@ public interface ExposureGroupConditionRepository extends JpaRepository<Exposure
     List<ExposureGroupCondition> findByExposure_ExposureId(Long exposureId);
 
     void deleteByExposure_Experiment_ExperimentId(Long experimentId);
+
+    Optional<ExposureGroupCondition> getByCondition_ConditionIdAndExposure_ExposureId(Long conditionId, Long exposureId);
+
+
 
 
 
