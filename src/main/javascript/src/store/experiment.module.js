@@ -15,8 +15,10 @@ const actions = {
   createExperiment: () => {
     return experimentService.create()
   },
-  fetchExperimentById: ({commit}, experimentId) => {
-    commit('resetExperiment')
+  fetchExperimentById: ({commit,state}, experimentId) => {
+    if (parseInt(state.experiment?.experimentId) !== parseInt(experimentId)) {
+      commit('resetExperiment')
+    }
     return experimentService.getById(experimentId)
       .then(response => {
         if (response.status===200) {
