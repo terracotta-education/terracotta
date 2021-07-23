@@ -46,7 +46,7 @@ function getById(experiment_id) {
     headers: {...authHeader()},
   }
 
-  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}?conditions=true&participants=true`, requestOptions).then(handleResponse)
+  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}?conditions=true`, requestOptions).then(handleResponse)
 }
 
 /**
