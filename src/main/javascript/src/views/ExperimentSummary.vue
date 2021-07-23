@@ -69,9 +69,11 @@
                             </template>
                           </td>
                           <td class="col-7 rightData">
+                            <!-- string data -->
                             <template v-if="item.type === 'string'">
                               {{ item.description }}
                             </template>
+                            <!-- array data -->
                             <template
                               v-if="item.type === 'array'"
                               class="arrayData"
@@ -96,6 +98,7 @@
                                 </span>
                               </label>
                             </template>
+                            <!-- constant values -->
                             <template v-if="item.type === 'constant'">
                               <template v-if="item.description === 'WITHIN'">
                                 <img
@@ -131,16 +134,25 @@
                                 </p>
                               </template>
                             </template>
+                            <!-- assignment data -->
                             <template v-if="item.type === 'assignments'">
                               <template v-for="(exposure, index) in exposures">
-                                <div :key="exposure.exposureId">
+                                <div
+                                  :key="exposure.exposureId"
+                                  class="assignmentExpansion"
+                                >
+                                  <span class="exposureSetName">
+                                    Exposure Set {{ index + 1 }}
+                                  </span>
                                   <br />
-                                  Exposure Set {{ index + 1 }}
-                                  <br />
-                                  <template
-                                    v-for="group in exposure.groupConditionList"
+                                  <div
+                                    class="groupNames"
+                                    :key="group.groupId"
+                                    v-for="group in sortedGroups(
+                                      exposure.groupConditionList
+                                    )"
                                   >
-                                    {{ group.groupName }} will receive
+                                    {{ group }} will receive
                                     <v-chip
                                       class="ma-2"
                                       color="primary"
@@ -149,18 +161,16 @@
                                         group.groupName + group.conditionName
                                       "
                                     >
-                                      {{ group.conditionName }}</v-chip
+                                      {{
+                                        groupNameConditionMapping(
+                                          exposure.groupConditionList
+                                        )[group]
+                                      }}</v-chip
                                     >
-                                  </template>
-                                  <br />
-                                  {{
-                                    assignments.filter(
-                                      (a) =>
-                                        a.exposureId === exposure.exposureId
-                                    )
-                                  }}
+                                  </div>
+                                  <!-- Assignment Expansion Panels -->
                                   <v-expansion-panels
-                                    class="v-expansion-panels--outlined mb-7"
+                                    class="v-expansion-panels--outlined"
                                     flat
                                   >
                                     <v-expansion-panel
@@ -178,67 +188,6 @@
                                         }}/{{ conditions.length || 0 }})
                                       </v-expansion-panel-header>
                                       <v-expansion-panel-content>
-                                      {{ assignment }}
-                                      <br />
-                                      {{  checkConditionTreatments(assignment.assignmentId) }}
-                                        <!-- <v-list class="pa-0">
-                                          <v-list-item
-                                            class="justify-center px-0"
-                                            v-for="condition in conditions"
-                                            :key="condition.conditionId"
-                                          >
-                                            <v-list-item-content>
-                                              <p class="ma-0 pa-0">
-                                                {{ condition.name }}
-                                              </p>
-                                            </v-list-item-content>
-
-                                            <v-list-item-action>
-                                              <template>
-                                                <v-btn
-                                                  icon
-                                                  outlined
-                                                  text
-                                                  tile
-                                                  @click="() => console.log('11')"
-                                                >
-                                                  <v-icon>mdi-pencil</v-icon>
-                                                </v-btn>
-                                              </template>
-                                              <template>
-                                                <v-btn
-                                                  color="primary"
-                                                  outlined
-                                                  @click="() => console.log('22')"
-                                                  >Select
-                                                </v-btn>
-                                              </template>
-                                            </v-list-item-action>
-                                          </v-list-item>
-                                        </v-list> -->
-                                      </v-expansion-panel-content>
-                                    </v-expansion-panel>
-                                  </v-expansion-panels>
-                                  <!-- <v-expansion-panels
-                                    class="v-expansion-panels--outlined mb-7"
-                                    flat
-                                  >
-                                    <v-expansion-panel
-                                      class=""
-                                      
-                                      :key="assignment.assignmentId"
-                                    >
-                                      <v-expansion-panel-header
-                                        >{{ assignment.title }} ({{
-                                          (assignment.treatments &&
-                                            assignment.treatments.length) ||
-                                            0
-                                        }}/{{
-                                          exposure.groupConditionList.length
-                                        }})</v-expansion-panel-header
-                                      >
-                                      <v-expansion-panel-content>
-                                        Hello World
                                         <v-list class="pa-0">
                                           <v-list-item
                                             class="justify-center px-0"
@@ -246,19 +195,47 @@
                                             :key="condition.conditionId"
                                           >
                                             <v-list-item-content>
-                                              <p class="ma-0 pa-0">
+                                              <p
+                                                class="ma-0 pa-0 assignmentConditionName"
+                                              >
                                                 {{ condition.name }}
                                               </p>
                                             </v-list-item-content>
 
                                             <v-list-item-action>
-                                              <template>
-                                                <v-btn icon outlined text tile>
+                                              <template
+                                                v-if="
+                                                  hasTreatment(
+                                                    condition.conditionId,
+                                                    assignment.assignmentId
+                                                  )
+                                                "
+                                              >
+                                                <v-btn
+                                                  icon
+                                                  outlined
+                                                  text
+                                                  tile
+                                                  @click="
+                                                    goToBuilder(
+                                                      condition.conditionId,
+                                                      assignment.assignmentId
+                                                    )
+                                                  "
+                                                >
                                                   <v-icon>mdi-pencil</v-icon>
                                                 </v-btn>
                                               </template>
-                                              <template>
-                                                <v-btn color="primary" outlined
+                                              <template v-else>
+                                                <v-btn
+                                                  color="primary"
+                                                  outlined
+                                                  @click="
+                                                    goToBuilder(
+                                                      condition.conditionId,
+                                                      assignment.assignmentId
+                                                    )
+                                                  "
                                                   >Select
                                                 </v-btn>
                                               </template>
@@ -267,11 +244,29 @@
                                         </v-list>
                                       </v-expansion-panel-content>
                                     </v-expansion-panel>
-                                  </v-expansion-panels> -->
+                                  </v-expansion-panels>
                                   <br />
 
                                   <!-- {{ assignments }} -->
                                 </div>
+                              </template>
+                            </template>
+                            <!-- participation data -->
+                             <template v-if="item.type === 'participation'">
+                              <template v-if="item.description === 'CONSENT'">
+                                Informed Consent
+                                <br />
+                                {{ experiment.consent.title }}
+                              </template>
+                              <template v-else-if="item.description === 'MANUAL'">
+                                Manual
+                                <br />
+                                10 students selected to participate out of 14 students enrolled
+                              </template>
+                              <template v-else>
+                                Include All Students
+                                <br />
+                                10 students selected to participate out of 14 students enrolled
                               </template>
                             </template>
                           </td>
@@ -280,8 +275,6 @@
 
                       <br />
                       {{ experiment }}
-                      <br />
-                      {{ exposures }}
                     </v-expansion-panel-content>
                   </v-expansion-panel>
                 </v-expansion-panels>
@@ -350,10 +343,10 @@ export default {
     participantDetails() {
       return [
         {
-          title: "Experiment Title",
-          description: this.experiment.title,
-          editSection: "ExperimentDesignTitle",
-          type: "string",
+          title: "SelectionMethod",
+          description: 'CONSENT',
+          editSection: "ExperimentParticipationSelectionMethod",
+          type: "participation",
         },
       ];
     },
@@ -362,7 +355,7 @@ export default {
         {
           title: "Your Assignments",
           description: this.getAssignmentDetails(),
-          editSection: "ExperimentDesignTitle",
+          editSection: "AssignmentExposureSets",
           type: "assignments",
         },
       ];
@@ -387,7 +380,7 @@ export default {
         description: "All experiment assignments",
       },
     ],
-    conditionTreatments: [],
+    conditionTreatments: {},
   }),
   methods: {
     ...mapActions({
@@ -395,58 +388,131 @@ export default {
       fetchAssignmentsByExposure: "assignment/fetchAssignmentsByExposure",
       deleteAssignment: "assignment/deleteAssignment",
       checkTreatment: "treatment/checkTreatment",
+      createTreatment: "treatment/createTreatment",
+      createAssessment: "assessment/createAssessment",
+      fetchAssignment: "assignment/fetchAssignment",
     }),
     handleEdit(componentName) {
-      console.log("Hello World", componentName);
       this.$router.push({ name: componentName });
     },
     async getAssignmentDetails() {
       await this.fetchExposures(this.experiment.experimentId);
-      console.log("Fetch Exposures: ", this.exposures);
-      // const returnObject = [...this.exposures];
+      console.log("Fetch Exposures: ", JSON.stringify(this.exposures));
+      console.log("Assignments", JSON.stringify(this.assignments));
+
+      console.log("Final Treatements:", this.conditionTreatments);
       return this.exposures;
     },
-    async checkConditionTreatments(assignmentId) {
-      // loop conditions and build condition/treatment manifest
-      // (templates don't like async methods for conditions)
-      console.log('Here11:', assignmentId);
-      for (let c of this.conditions) {
-        const t = await this.checkTreatment([this.experiment.experimentId, c.conditionId, assignmentId])
-        console.log('t: ', JSON.stringify(t))
-        if (t?.data?.find(o=>parseInt(o.assignmentId)===assignmentId)) {
-          const ctObj = {
-            treatment: t.data ? t.data.find(o=>parseInt(o.assignmentId)===assignmentId) : null,
-            condition: c
-          }
+    hasTreatment(conditionId, assignmentId) {
+      console.log(
+        "\n\n HAS TREATMENTConditionId + assignmentId",
+        conditionId,
+        assignmentId
+      );
+      const assignmentBasedOnConditions = this.conditionTreatments[
+        +conditionId
+      ];
 
-        console.log('ctOBJ', JSON.stringify(ctObj));
-          this.conditionTreatments = [
-            ...this.conditionTreatments.filter((o) =>
-              o.conditionId === ctObj.conditionId &&
-              o.treatment.assignmentId === assignmentId
-            ),
-            {...ctObj}
-          ];
-        }
-
-        console.log('Here' -  this.conditionTreatments)
-        return this.conditionTreatments
+      console.log("Treatments: ", this.assignmentBasedOnConditions);
+      console.log("Treatments: ", this.assignmentBasedOnConditions);
+      console.log(
+        "Return Value: ",
+        assignmentBasedOnConditions?.find(
+          (assignment) => assignment.assignmentId === assignmentId
+        ) !== undefined
+      );
+      return (
+        assignmentBasedOnConditions?.find(
+          (assignment) => assignment.assignmentId === assignmentId
+        ) !== undefined
+      );
+    },
+    async handleCreateTreatment(conditionId, assignmentId) {
+      // POST TREATMENT
+      try {
+        return await this.createTreatment([
+          this.experiment.experimentId,
+          conditionId,
+          assignmentId,
+        ]);
+      } catch (error) {
+        console.error("handleCreateTreatment | catch", { error });
       }
     },
-    // async getAssignments(exposureId) {
-    //   console.log("exposureId", exposureId);
-    //   const a = "";
-    //   await this.fetchAssignmentsByExposure(
-    //     this.experiment.experimentId,
-    //     exposureId
-    //   ).then((data) => console.log("Data is: ", data));
-    //   console.log("a", a, JSON.stringify(this.assignments));
-    //   return a;
-    // },
+    async handleCreateAssessment(conditionId, treatment) {
+      // POST ASSESSMENT TITLE & HTML (description)
+      try {
+        return await this.createAssessment([
+          this.experiment.experimentId,
+          conditionId,
+          treatment.treatmentId,
+        ]);
+      } catch (error) {
+        console.error("handleCreateAssessment | catch", { error });
+      }
+    },
+    async goToBuilder(conditionId, assignmentId) {
+      // create the treatment
+      const treatment = await this.handleCreateTreatment(
+        conditionId,
+        assignmentId
+      );
+      // create the assessment
+      const assessment = await this.handleCreateAssessment(
+        conditionId,
+        treatment?.data
+      );
+
+      // show an alert if there's a problem creating the treatment or assessment
+      if (!treatment || !assessment) {
+        alert("There was a problem creating your assessment");
+        return false;
+      }
+
+      // send user to builder with the treatment and assessment ids
+      this.$router.push({
+        name: "TerracottaBuilder",
+        params: {
+          experiment_id: this.experiment.experimentId,
+          condition_id: conditionId,
+          treatment_id: treatment?.data?.treatmentId,
+          assessment_id: assessment?.data?.assessmentId,
+        },
+      });
+    },
+    groupNameConditionMapping(groupConditionList) {
+      const groupConditionMap = {};
+      console.log("GCL: ", groupConditionList);
+      groupConditionList?.map(
+        (group) => (groupConditionMap[group.groupName] = group.conditionName)
+      );
+      return groupConditionMap;
+    },
+    sortedGroups(groupConditionList) {
+      const newGroups = groupConditionList?.map((group) => group.groupName);
+      console.log("Sorted Group", newGroups?.sort());
+      return newGroups?.sort();
+    },
   },
+
   async created() {
     this.tab = this.$router.currentRoute.name === "ExperimentSummary" ? 1 : 0;
-    // await this.checkConditionTreatments();
+    console.log("Created", this.experiment);
+    await this.fetchExposures(this.experiment.experimentId);
+    console.log("Created-EXP", this.exposures);
+    for (let c of this.conditions) {
+      console.log("c is: ", JSON.stringify(c));
+      const t = await this.checkTreatment([
+        this.experiment.experimentId,
+        c.conditionId,
+        this.assignments[0].assignmentId,
+      ]);
+      console.log("t: -  ", JSON.stringify(t));
+      this.conditionTreatments[c.conditionId] = t?.data;
+      console.log("Treatments: ", this.conditionTreatments);
+    }
+    console.log("Final Treatements:", this.conditionTreatments);
+    this.getAssignmentDetails();
   },
   beforeRouteEnter(to, from, next) {
     return store
@@ -492,6 +558,7 @@ table {
   .rightData {
     display: flex;
     // white-space: nowrap;
+    max-width: max-content;
     flex-direction: column;
     text-align: left;
     border-left: 1px solid #e6e6e6;
@@ -502,6 +569,9 @@ table {
     }
     .conditionLabel:not(:last-child) {
       margin-bottom: 10px;
+    }
+    .assignmentExpansion:not(:last-child) {
+      margin-bottom: 20px;
     }
     .defaultPill {
       color: white;
@@ -523,6 +593,13 @@ table {
     .conditionDetail {
       margin-bottom: 0;
       padding-bottom: 0;
+    }
+    .exposureSetName {
+      font-size: 16px;
+      font-weight: 700;
+    }
+    .assignmentConditionName {
+      text-align: left;
     }
   }
 }
