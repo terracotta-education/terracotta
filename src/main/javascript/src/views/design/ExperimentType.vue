@@ -72,17 +72,17 @@ export default {
               if (this.experiment.exposureType==='BETWEEN' || this.experiment.exposureType==='WITHIN') {
                 this.$router.push({name:'ExperimentDesignDefaultCondition', params:{experiment: experimentId}})
               } else {
-                alert("Select an experiment type")
+                this.$swal("Select an experiment type")
               }
             } else if (response?.message) {
-              alert(`Error: ${response.message}`)
+              this.$swal(`Error: ${response.message}`)
             } else {
-              alert('There was an error saving your experiment.')
+              this.$swal('There was an error saving your experiment.')
             }
 					})
 					.catch(response => {
             console.error("updateExperiment | catch", {response})
-            alert('There was an error saving the experiment.')
+            this.$swal('There was an error saving the experiment.')
 					})
 		},
 		saveExit() {

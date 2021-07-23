@@ -1,0 +1,7 @@
+.swal2-container {
+    button {
+        &.swal2-confirm {
+            background-color: map-get($green, 'base');
+        }
+    }
+}

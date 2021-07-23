@@ -1,9 +1,9 @@
 package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.InvalidQuestionTypeException;
 import edu.iu.terracotta.model.app.Assessment;
 import edu.iu.terracotta.model.app.Question;
-import edu.iu.terracotta.model.app.dto.AnswerDto;
 import edu.iu.terracotta.model.app.dto.QuestionDto;
 import edu.iu.terracotta.model.app.enumerator.QuestionTypes;
 import edu.iu.terracotta.repository.AllRepositories;
@@ -12,11 +12,15 @@ import edu.iu.terracotta.service.app.QuestionService;
 import org.apache.commons.lang3.EnumUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.util.UriComponentsBuilder;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Component
@@ -34,6 +38,19 @@ public class QuestionServiceImpl implements QuestionService {
     }
 
     @Override
+    public List<QuestionDto> getQuestions(Long assessmentId){
+        List<Question> questions = findAllByAssessmentId(assessmentId);
+        List<QuestionDto> questionDtoList = new ArrayList<>();
+        for(Question question : questions){
+            questionDtoList.add(toDto(question, false, false));
+        }
+        return questionDtoList;
+    }
+
+    @Override
+    public Question getQuestion(Long id){ return allRepositories.questionRepository.findByQuestionId(id); }
+
+    @Override
     public QuestionDto toDto(Question question, boolean answers, boolean student) {
 
         QuestionDto questionDto = new QuestionDto();
@@ -43,6 +60,7 @@ public class QuestionServiceImpl implements QuestionService {
         questionDto.setPoints(question.getPoints());
         questionDto.setAssessmentId(question.getAssessment().getAssessmentId());
         questionDto.setQuestionType(question.getQuestionType().name());
+        //switch case to allow for easy addition of new question/answer types in the future.
         if (answers) {
             switch (question.getQuestionType()) {
                 case MC:
@@ -78,6 +96,19 @@ public class QuestionServiceImpl implements QuestionService {
     public Optional<Question> findById(Long id) { return allRepositories.questionRepository.findById(id); }
 
     @Override
+    @Transactional
+    public void updateQuestion(Map<Question, QuestionDto> map){
+        for(Map.Entry<Question, QuestionDto> entry : map.entrySet()){
+            Question question = entry.getKey();
+            QuestionDto questionDto = entry.getValue();
+            question.setHtml(questionDto.getHtml());
+            question.setQuestionOrder(questionDto.getQuestionOrder());
+            question.setPoints(questionDto.getPoints());
+            save(question);
+        }
+    }
+
+    @Override
     public void saveAndFlush(Question questionToChange) { allRepositories.questionRepository.saveAndFlush(questionToChange); }
 
     @Override
@@ -97,5 +128,23 @@ public class QuestionServiceImpl implements QuestionService {
     @Override
     public Question findByQuestionId(Long id) {
         return allRepositories.questionRepository.findByQuestionId(id);
+    }
+
+    @Override
+    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId, Long questionId){
+        HttpHeaders headers = new HttpHeaders();
+        headers.setLocation(ucBuilder.path("/api/experiments/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/questions/{question_id}")
+                .buildAndExpand(experimentId, conditionId, treatmentId, assessmentId, questionId).toUri());
+        return headers;
+    }
+
+    @Override
+    public void validateQuestionType(QuestionDto questionDto) throws InvalidQuestionTypeException {
+        if(questionDto.getQuestionType() == null){
+            throw new InvalidQuestionTypeException("Error 119: Must include a question type in the post.");
+        }
+        if(!EnumUtils.isValidEnum(QuestionTypes.class, questionDto.getQuestionType())){
+            throw new InvalidQuestionTypeException("Error 103: Please use a supported question type.");
+        }
     }
 }

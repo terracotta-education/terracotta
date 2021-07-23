@@ -1,20 +1,23 @@
 package edu.iu.terracotta.service.app.impl;
 
+import edu.iu.terracotta.exceptions.AnswerNotMatchingException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.model.app.AnswerEssaySubmission;
 import edu.iu.terracotta.model.app.AnswerMc;
 import edu.iu.terracotta.model.app.AnswerMcSubmission;
 import edu.iu.terracotta.model.app.QuestionSubmission;
 import edu.iu.terracotta.model.app.dto.AnswerSubmissionDto;
-import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.AnswerSubmissionService;
 import edu.iu.terracotta.service.app.QuestionSubmissionService;
+import edu.iu.terracotta.utils.TextConstants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.util.UriComponentsBuilder;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -34,6 +37,16 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
     @Override
     public List<AnswerMcSubmission> findByQuestionSubmissionIdMC(Long questionSubmissionId){
         return allRepositories.answerMcSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmissionId);
+    }
+
+    @Override
+    public List<AnswerSubmissionDto> getAnswerMcSubmissions(Long questionSubmissionId){
+        List<AnswerMcSubmission> answerMcSubmissions = findByQuestionSubmissionIdMC(questionSubmissionId);
+        List<AnswerSubmissionDto> answerSubmissionDtoList = new ArrayList<>();
+        for(AnswerMcSubmission answerMcSubmission : answerMcSubmissions){
+            answerSubmissionDtoList.add(toDtoMC(answerMcSubmission));
+        }
+        return answerSubmissionDtoList;
     }
 
     @Override
@@ -72,14 +85,24 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
     public AnswerMcSubmission saveMC(AnswerMcSubmission answerMcSubmission){ return allRepositories.answerMcSubmissionRepository.save(answerMcSubmission); }
 
     @Override
-    public Optional<AnswerMcSubmission> findByIdMC(Long id) { return allRepositories.answerMcSubmissionRepository.findById(id); }
+    public AnswerMcSubmission getAnswerMcSubmission(Long answerSubmissionId) {
+        return allRepositories.answerMcSubmissionRepository.findByAnswerMcSubId(answerSubmissionId);
+    }
+
+    @Override
+    public void updateAnswerMcSubmission(Long id, AnswerSubmissionDto answerSubmissionDto) throws AnswerNotMatchingException {
+        AnswerMcSubmission answerMcSubmission = getAnswerMcSubmission(id);
+        Optional<AnswerMc> answerMc = allRepositories.answerMcRepository.findById(answerSubmissionDto.getAnswerId());
+        if (answerMc.isPresent()) {
+            answerMcSubmission.setAnswerMc(answerMc.get());
+        } else{
+            throw new AnswerNotMatchingException(TextConstants.ANSWER_NOT_MATCHING);
+        }
+        saveAndFlushMC(answerMcSubmission);
+    }
 
     @Override
     public void saveAndFlushMC(AnswerMcSubmission answerMcSubmission){ allRepositories.answerMcSubmissionRepository.saveAndFlush( answerMcSubmission); }
-
-    @Override
-    @Transactional
-    public void saveAllAnswersMC(List<AnswerMcSubmission> answerMcSubmissions) { allRepositories.answerMcSubmissionRepository.saveAll(answerMcSubmissions); }
 
     @Override
     public void deleteByIdMC(Long id) throws EmptyResultDataAccessException{ allRepositories.answerMcSubmissionRepository.deleteByAnswerMcSubId(id); }
@@ -97,6 +120,16 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
     @Override
     public List<AnswerEssaySubmission> findAllByQuestionSubmissionIdEssay(Long questionSubmissionId){
         return allRepositories.answerEssaySubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmissionId);
+    }
+
+    @Override
+    public List<AnswerSubmissionDto> getAnswerEssaySubmissions(Long questionSubmissionId){
+        List<AnswerEssaySubmission> answerEssaySubmissions = findAllByQuestionSubmissionIdEssay(questionSubmissionId);
+        List<AnswerSubmissionDto> answerSubmissionDtoList = new ArrayList<>();
+        for(AnswerEssaySubmission answerEssaySubmission : answerEssaySubmissions){
+            answerSubmissionDtoList.add(toDtoEssay(answerEssaySubmission));
+        }
+        return answerSubmissionDtoList;
     }
 
     @Override
@@ -129,11 +162,19 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
     public Optional<AnswerEssaySubmission> findByIdEssay(Long id) { return allRepositories.answerEssaySubmissionRepository.findById(id); }
 
     @Override
-    public void saveAndFlushEssay(AnswerEssaySubmission answer) { allRepositories.answerEssaySubmissionRepository.saveAndFlush(answer); }
+    public AnswerEssaySubmission getAnswerEssaySubmission(Long answerSubmissionId){
+        return allRepositories.answerEssaySubmissionRepository.findByAnswerEssaySubmissionId(answerSubmissionId);
+    }
 
     @Override
-    @Transactional
-    public void saveAllAnswersEssay(List<AnswerEssaySubmission> answerList) { allRepositories.answerEssaySubmissionRepository.saveAll(answerList); }
+    public void updateAnswerEssaySubmission(Long id, AnswerSubmissionDto answerSubmissionDto){
+        AnswerEssaySubmission answerEssaySubmission = getAnswerEssaySubmission(id);
+        answerEssaySubmission.setResponse(answerSubmissionDto.getResponse());
+        saveAndFlushEssay(answerEssaySubmission);
+    }
+
+    @Override
+    public void saveAndFlushEssay(AnswerEssaySubmission answer) { allRepositories.answerEssaySubmissionRepository.saveAndFlush(answer); }
 
     @Override
     public void deleteByIdEssay(Long id) { allRepositories.answerEssaySubmissionRepository.deleteByAnswerEssaySubmissionId(id); }
@@ -144,10 +185,18 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
     }
 
     @Override
-    public String answerSubmissionNotFound(SecuredInfo securedInfo, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId, Long submissionId, Long questionSubmissionId, Long answerSubmissionId){
-        return "Answer submission in platform " + securedInfo.getPlatformDeploymentId() + " and context " + securedInfo.getContextId() + " and experiment with id " + experimentId + " and condition id " +
-                conditionId + " and treatment id " + treatmentId + " and assessment id " + assessmentId + " and submission id " + submissionId + " and question submission id " + questionSubmissionId +
-                " with id " + answerSubmissionId + " not found.";
+    public String getAnswerType(Long questionSubmissionId){
+        QuestionSubmission questionSubmission = allRepositories.questionSubmissionRepository.findByQuestionSubmissionId(questionSubmissionId);
+        return questionSubmission.getQuestion().getQuestionType().toString();
     }
 
+
+    @Override
+    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId, Long submissionId, Long questionSubmissionId, Long answerSubmissionId){
+        HttpHeaders headers = new HttpHeaders();
+        headers.setLocation(ucBuilder.path(
+                "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}/question_submissions/{question_submission_id}/answer_submissions/{answer_submission_id}")
+                .buildAndExpand(experimentId, conditionId, treatmentId, assessmentId, submissionId, questionSubmissionId, answerSubmissionId).toUri());
+        return headers;
+    }
 }

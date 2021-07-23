@@ -9,8 +9,11 @@ import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.SubmissionCommentService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
+import org.springframework.web.util.UriComponentsBuilder;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -24,6 +27,25 @@ public class SubmissionCommentServiceImpl implements SubmissionCommentService {
     public List<SubmissionComment> findAllBySubmissionId(Long submissionId) {
         return allRepositories.submissionCommentRepository.findBySubmission_SubmissionId(submissionId);
     }
+
+    @Override
+    public List<SubmissionCommentDto> getSubmissionComments(Long submissionId){
+        List<SubmissionComment> submissionComments = findAllBySubmissionId(submissionId);
+        List<SubmissionCommentDto> submissionCommentDtoList = new ArrayList<>();
+        for(SubmissionComment submissionComment : submissionComments){
+            submissionCommentDtoList.add(toDto(submissionComment));
+        }
+        return submissionCommentDtoList;
+    }
+
+    @Override
+    public void updateSubmissionComment(SubmissionComment submissionComment, SubmissionCommentDto submissionCommentDto){
+        submissionComment.setComment(submissionCommentDto.getComment());
+        saveAndFlush(submissionComment);
+    }
+
+    @Override
+    public SubmissionComment getSubmissionComment(Long id){ return allRepositories.submissionCommentRepository.findBySubmissionCommentId(id); }
 
     @Override
     public SubmissionCommentDto toDto(SubmissionComment submissionComment) {
@@ -78,5 +100,13 @@ public class SubmissionCommentServiceImpl implements SubmissionCommentService {
     public boolean submissionCommentBelongsToAssessmentAndSubmission(Long assessmentId, Long submissionId, Long submissionCommentId) {
         return allRepositories.submissionCommentRepository.existsBySubmission_Assessment_AssessmentIdAndSubmission_SubmissionIdAndSubmissionCommentId(
                 assessmentId, submissionId, submissionCommentId);
+    }
+
+    @Override
+    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, long experimentId, long conditionId, long treatmentId, long assessmentId, long submissionId, long submissionCommentId){
+        HttpHeaders headers = new HttpHeaders();
+        headers.setLocation(ucBuilder.path("/api/experiments/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}/submission_comments/{submission_comment_id}")
+                .buildAndExpand(experimentId, conditionId, treatmentId, assessmentId, submissionId, submissionCommentId).toUri());
+        return headers;
     }
 }

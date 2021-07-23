@@ -3,12 +3,13 @@ package edu.iu.terracotta.controller.app;
 import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.DuplicateQuestionException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.exceptions.IdMissingException;
+import edu.iu.terracotta.exceptions.InvalidUserException;
 import edu.iu.terracotta.exceptions.QuestionSubmissionNotMatchingException;
 import edu.iu.terracotta.exceptions.SubmissionNotMatchingException;
-import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.QuestionSubmission;
-import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.dto.QuestionSubmissionDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
@@ -33,11 +34,12 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
 
 @Controller
+@SuppressWarnings({"rawtypes", "unchecked"})
 @RequestMapping(value = QuestionSubmissionController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
 public class QuestionSubmissionController {
 
@@ -63,7 +65,7 @@ public class QuestionSubmissionController {
                                                                                           @PathVariable("assessment_id") Long assessmentId,
                                                                                           @PathVariable("submission_id") Long submissionId,
                                                                                           HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, SubmissionNotMatchingException, BadTokenException {
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, SubmissionNotMatchingException, BadTokenException, InvalidUserException {
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -73,23 +75,13 @@ public class QuestionSubmissionController {
         if (apijwtService.isLearnerOrHigher(securedInfo)) {
 
             if(!apijwtService.isInstructorOrHigher(securedInfo)){
-                Participant participant = submissionService.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, securedInfo.getUserId());
-                Optional<Submission> submission = submissionService.findByParticipantIdAndSubmissionId(participant.getParticipantId(), submissionId);
-                if(!submission.isPresent()){
-                    return new ResponseEntity("Students can only access question submissions from their own submissions. Submission with id "
-                            + submissionId + " does not belong to participant with id " + participant.getParticipantId(), HttpStatus.UNAUTHORIZED);
-                }
+                submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
             }
-            List<QuestionSubmission> questionSubmissionList = questionSubmissionService.findAllBySubmissionId(submissionId);
-
+            List<QuestionSubmissionDto> questionSubmissionList = questionSubmissionService.getQuestionSubmissions(submissionId);
             if (questionSubmissionList.isEmpty()) {
                 return new ResponseEntity<>(HttpStatus.NO_CONTENT);
             }
-            List<QuestionSubmissionDto> questionSubmissionDtoList = new ArrayList<>();
-            for (QuestionSubmission questionSubmission : questionSubmissionList) {
-                questionSubmissionDtoList.add(questionSubmissionService.toDto(questionSubmission, false));
-            }
-            return new ResponseEntity<>(questionSubmissionDtoList, HttpStatus.OK);
+            return new ResponseEntity<>(questionSubmissionList, HttpStatus.OK);
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
@@ -107,7 +99,7 @@ public class QuestionSubmissionController {
                                                                        @PathVariable("question_submission_id") Long questionSubmissionId,
                                                                        @RequestParam(name = "question_submission_comments", defaultValue = "false") boolean questionSubmissionComments,
                                                                        HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, BadTokenException {
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, BadTokenException, InvalidUserException{
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -117,25 +109,10 @@ public class QuestionSubmissionController {
         if (apijwtService.isLearnerOrHigher(securedInfo)) {
 
             if(!apijwtService.isInstructorOrHigher(securedInfo)){
-                Participant participant = submissionService.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, securedInfo.getUserId());
-                Optional<Submission> submission = submissionService.findByParticipantIdAndSubmissionId(participant.getParticipantId(), submissionId);
-                if(!submission.isPresent()){
-                    return new ResponseEntity("Students can only access question submissions from their own submissions. Submission with id "
-                            + submissionId + " does not belong to participant with id " + participant.getParticipantId(), HttpStatus.UNAUTHORIZED);
-                }
+                submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
             }
-            Optional<QuestionSubmission> questionSubmissionSearchResult = questionSubmissionService.findById(questionSubmissionId);
-
-            if (!questionSubmissionSearchResult.isPresent()) {
-                log.error("Question submission in platform {} and context {} and experiment {} and condition {} and treatment {}  and assessment {} and submission {} with id {} not found",
-                        securedInfo.getPlatformDeploymentId(), securedInfo.getContextId(), experimentId, conditionId, treatmentId, assessmentId, submissionId, questionSubmissionId);
-                return new ResponseEntity("Question submission in platform" + securedInfo.getPlatformDeploymentId() + " and context " + securedInfo.getContextId() +
-                        " and experiment with id " + experimentId + " and condition id " + conditionId + " and treatment id " + treatmentId + " and assessment id " + assessmentId +
-                        " and submission id " + submissionId + " with id " + questionSubmissionId + TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
-            } else {
-                QuestionSubmissionDto questionSubmissionDto = questionSubmissionService.toDto(questionSubmissionSearchResult.get(), questionSubmissionComments);
-                return new ResponseEntity<>(questionSubmissionDto, HttpStatus.OK);
-            }
+            QuestionSubmissionDto questionSubmissionDto = questionSubmissionService.toDto(questionSubmissionService.getQuestionSubmission(questionSubmissionId), questionSubmissionComments);
+            return new ResponseEntity<>(questionSubmissionDto, HttpStatus.OK);
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
@@ -152,7 +129,7 @@ public class QuestionSubmissionController {
                                                                         @RequestBody QuestionSubmissionDto questionSubmissionDto,
                                                                         UriComponentsBuilder ucBuilder,
                                                                         HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, SubmissionNotMatchingException, BadTokenException {
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, SubmissionNotMatchingException, BadTokenException, InvalidUserException, DuplicateQuestionException, IdMissingException {
 
         log.info("Creating question submission: {}", questionSubmissionDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
@@ -165,40 +142,21 @@ public class QuestionSubmissionController {
                 log.error(TextConstants.ID_IN_POST_ERROR);
                 return new ResponseEntity(TextConstants.ID_IN_POST_ERROR, HttpStatus.CONFLICT);
             }
-
+            boolean student = false;
             if(!apijwtService.isInstructorOrHigher(securedInfo)){
-                Participant participant = submissionService.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, securedInfo.getUserId());
-                Optional<Submission> submission = submissionService.findByParticipantIdAndSubmissionId(participant.getParticipantId(), submissionId);
-                if(!submission.isPresent()){
-                    return new ResponseEntity("Students can only post question submissions to their own submissions. Submission with id "
-                            + submissionId + " does not belong to participant with id " + participant.getParticipantId(), HttpStatus.UNAUTHORIZED);
-                }
+                submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
+                student = true;
             }
-
             questionSubmissionDto.setSubmissionId(submissionId);
             QuestionSubmission questionSubmission;
             try {
-                if(questionSubmissionDto.getQuestionId() == null){
-                    return new ResponseEntity(TextConstants.ID_MISSING, HttpStatus.BAD_REQUEST);
-                }
-                if(questionSubmissionService.existsByAssessmentIdAndQuestionId(assessmentId, questionSubmissionDto.getQuestionId())){
-                    return new ResponseEntity("A question submission with question id " + questionSubmissionDto.getQuestionId() + " already exists in assessment with id " + assessmentId,
-                            HttpStatus.CONFLICT);
-                }
-                if(questionSubmissionDto.getAlteredGrade() != null && !apijwtService.isInstructorOrHigher(securedInfo)){
-                    return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS + " Students cannot alter the grades.", HttpStatus.UNAUTHORIZED);
-                }
+                questionSubmissionService.validateDto(questionSubmissionDto, assessmentId, student);
                 questionSubmission = questionSubmissionService.fromDto(questionSubmissionDto);
             } catch (DataServiceException ex) {
-                return new ResponseEntity("Unable to create question submission: " + ex.getMessage(), HttpStatus.BAD_REQUEST);
+                return new ResponseEntity("Error 105: Unable to create question submission: " + ex.getMessage(), HttpStatus.BAD_REQUEST);
             }
-
-            QuestionSubmission questionSubmissionSaved = questionSubmissionService.save(questionSubmission);
-            QuestionSubmissionDto returnedDto = questionSubmissionService.toDto(questionSubmissionSaved, false);
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setLocation(ucBuilder.path("/api/experiments/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}/question_submissions/{question_submission_id}")
-                    .buildAndExpand(experimentId, conditionId, treatmentId, assessmentId, submissionId, questionSubmission.getQuestionSubmissionId()).toUri());
+            QuestionSubmissionDto returnedDto = questionSubmissionService.toDto(questionSubmissionService.save(questionSubmission), false);
+            HttpHeaders headers = questionSubmissionService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, submissionId, questionSubmission.getQuestionSubmissionId());
             return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
@@ -216,7 +174,7 @@ public class QuestionSubmissionController {
                                                          @PathVariable("question_submission_id") Long questionSubmissionId,
                                                          @RequestBody QuestionSubmissionDto questionSubmissionDto,
                                                          HttpServletRequest req)
-                throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, BadTokenException {
+                throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, BadTokenException, InvalidUserException {
 
         log.info("Updating question submission with id {}", questionSubmissionId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
@@ -225,29 +183,15 @@ public class QuestionSubmissionController {
         apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, questionSubmissionId);
 
         if(apijwtService.isLearnerOrHigher(securedInfo)) {
-
+            boolean student = false;
             if(!apijwtService.isInstructorOrHigher(securedInfo)){
-                Participant participant = submissionService.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, securedInfo.getUserId());
-                Optional<Submission> submission = submissionService.findByParticipantIdAndSubmissionId(participant.getParticipantId(), submissionId);
-                if(!submission.isPresent()){
-                    return new ResponseEntity("Students can only change a question submissions from their own submissions. Submission with id "
-                            + submissionId + " does not belong to participant with id " + participant.getParticipantId(), HttpStatus.UNAUTHORIZED);
-                }
+                submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
+                student = true;
             }
-
-            Optional<QuestionSubmission> questionSubmissionSearchResult = questionSubmissionService.findById(questionSubmissionId);
-
-            if(!questionSubmissionSearchResult.isPresent()) {
-                log.error("Unable to update. Question submission with id {} not found", questionSubmissionId);
-                return new ResponseEntity("Unable to update. Question submission with id " + questionSubmissionId + TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
-            }
-            QuestionSubmission questionSubmissionToChange = questionSubmissionSearchResult.get();
-            if(questionSubmissionDto.getAlteredGrade() != null && !apijwtService.isInstructorOrHigher(securedInfo)){
-                return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS + " Students cannot alter the grades.", HttpStatus.UNAUTHORIZED);
-            }
-            questionSubmissionToChange.setAlteredGrade(questionSubmissionDto.getAlteredGrade());
-
-            questionSubmissionService.saveAndFlush(questionSubmissionToChange);
+            QuestionSubmission questionSubmission = questionSubmissionService.getQuestionSubmission(questionSubmissionId);
+            Map<QuestionSubmission, QuestionSubmissionDto> map = new HashMap<>();
+            map.put(questionSubmission, questionSubmissionDto);
+            questionSubmissionService.updateQuestionSubmissions(map, student);
             return new ResponseEntity<>(HttpStatus.OK);
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
@@ -264,41 +208,29 @@ public class QuestionSubmissionController {
                                                           @PathVariable("submission_id") Long submissionId,
                                                           @RequestBody List<QuestionSubmissionDto> questionSubmissionDtoList,
                                                           HttpServletRequest req)
-                throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, BadTokenException, DataServiceException {
+                throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, DataServiceException, BadTokenException, InvalidUserException {
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
 
-        if(!apijwtService.isInstructorOrHigher(securedInfo)){
-            Participant participant = submissionService.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, securedInfo.getUserId());
-            Optional<Submission> submission = submissionService.findByParticipantIdAndSubmissionId(participant.getParticipantId(), submissionId);
-            if(!submission.isPresent()){
-                return new ResponseEntity("Students can only access question submissions from their own submissions. Submission with id "
-                        + submissionId + " does not belong to participant with id " + participant.getParticipantId(), HttpStatus.UNAUTHORIZED);
-            }
-        }
-
         if(apijwtService.isLearnerOrHigher(securedInfo)){
-            List<QuestionSubmission> questionSubmissionList = new ArrayList<>();
-
+            boolean student = false;
+            if(!apijwtService.isInstructorOrHigher(securedInfo)){
+                submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
+                student = true;
+            }
+            Map<QuestionSubmission, QuestionSubmissionDto> map = new HashMap<>();
             for(QuestionSubmissionDto questionSubmissionDto : questionSubmissionDtoList) {
                 apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, questionSubmissionDto.getQuestionSubmissionId());
-                Optional<QuestionSubmission> questionSubmission = questionSubmissionService.findById(questionSubmissionDto.getQuestionSubmissionId());
-                if(questionSubmission.isPresent()){
-                    QuestionSubmission questionSubmissionToChange = questionSubmission.get();
-                    if(questionSubmissionDto.getAlteredGrade() != null && !apijwtService.isInstructorOrHigher(securedInfo)){
-                        return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS + " Students cannot alter the grades.", HttpStatus.UNAUTHORIZED);
-                    }
-                    questionSubmissionToChange.setAlteredGrade(questionSubmissionDto.getAlteredGrade());
-                    questionSubmissionList.add(questionSubmissionToChange);
-                }
+                QuestionSubmission questionSubmission = questionSubmissionService.getQuestionSubmission(questionSubmissionDto.getQuestionSubmissionId());
+                map.put(questionSubmission, questionSubmissionDto);
             }
             try{
-                questionSubmissionService.saveAllQuestionSubmissions(questionSubmissionList);
+                questionSubmissionService.updateQuestionSubmissions(map, student);
                 return new ResponseEntity<>(HttpStatus.OK);
-            } catch (Exception ex) {
-                throw new DataServiceException("An error occurred try to update the question submission list. No question submissions were updated. " + ex.getMessage());
+            } catch(Exception ex) {
+                throw new DataServiceException("Error 105: There was an error updating the question submission list. No question submissions were updated.");
             }
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);

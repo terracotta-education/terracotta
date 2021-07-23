@@ -125,24 +125,40 @@ export default {
     handleExport() {
       // TODO - add API export functionality when it's ready
     },
-    handleDelete(e) {
-      if (e?.experimentId && confirm(`Do you really want to delete "${e.title}"?`)) {
-        this.deleteExperiment(e.experimentId)
-            .then(response => {
-              if (response?.status !== 200) {
-                alert('Could not delete experiment.')
-              }
+    async handleDelete(e) {
+      if (e?.experimentId) {
+        const reallyDelete = await this.$swal({
+          icon: 'question',
+          text: `Do you really want to delete "${e.title}"?`,
+          showCancelButton: true,
+          confirmButtonText: 'Yes, delete it',
+          cancelButtonText: 'No, cancel',
+        })
+        // if confirmed, delete experiment
+        if (reallyDelete.isConfirmed) {
+          try {
+            this.deleteExperiment(e.experimentId)
+          } catch (error) {
+            console.error("handleDeleteQuestion | catch", {error})
+            this.$swal({
+              text: 'Could not delete experiment.',
+              icon: 'error'
             })
+          }
+        }
       }
     },
     startExperiment() {
       const _this = this
       this.createExperiment()
           .then(response => {
-            if (response?.experimentId) {
-              _this.$router.push({name: 'ExperimentDesignIntro', params: {experiment_id: response.experimentId}})
+            if (response?.data?.experimentId) {
+              _this.$router.push({name: 'ExperimentDesignIntro', params: {experiment_id: response.data.experimentId}})
             } else {
-              alert('There was an issue creating an experiment')
+              this.$swal({
+                text: `Error Status: ${response?.status} - There was an issue creating an experiment`,
+                icon: 'error'
+              })
             }
           }).catch(response => {
             console.log('startExperiment -> createExperiment | catch', {response})

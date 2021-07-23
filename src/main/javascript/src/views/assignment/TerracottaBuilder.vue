@@ -299,12 +299,19 @@ export default {
         ])
       } catch (error) {
         console.error("handleDeleteAnswer | catch", {error})
+        this.$swal('there was a problem deleting the answer')
       }
     },
     async handleDeleteQuestion(question) {
       // DELETE QUESTION
-      const reallyDelete = confirm(`Are you sure you want to delete the question?`);
-      if (reallyDelete) {
+      const reallyDelete = await this.$swal({
+        icon: 'question',
+        text: `Are you sure you want to delete the question?`,
+        showCancelButton: true,
+        confirmButtonText: 'Yes, delete it',
+        cancelButtonText: 'No, cancel',
+      });
+      if (reallyDelete?.isConfirmed) {
         try {
           return await this.deleteQuestion([
             this.experiment.experimentId,
@@ -315,6 +322,7 @@ export default {
           ])
         } catch (error) {
           console.error("handleDeleteQuestion | catch", {error})
+          this.$swal('there was a problem deleting the question')
         }
       }
     },
@@ -386,7 +394,7 @@ export default {
     },
     async saveAll (routeName) {
       if (this.assessment.questions.some(q => !q.html)) {
-        alert('Please fill or delete empty questions.')
+        this.$swal('Please fill or delete empty questions.')
         return false
       }
 

@@ -1,6 +1,9 @@
 package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.DuplicateQuestionException;
+import edu.iu.terracotta.exceptions.IdMissingException;
+import edu.iu.terracotta.exceptions.InvalidUserException;
 import edu.iu.terracotta.model.app.AnswerMcSubmission;
 import edu.iu.terracotta.model.app.Question;
 import edu.iu.terracotta.model.app.QuestionSubmission;
@@ -11,12 +14,16 @@ import edu.iu.terracotta.model.app.dto.QuestionSubmissionDto;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.QuestionSubmissionCommentService;
 import edu.iu.terracotta.service.app.QuestionSubmissionService;
+import edu.iu.terracotta.utils.TextConstants;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Component
@@ -31,6 +38,36 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
     @Override
     public List<QuestionSubmission> findAllBySubmissionId(Long submissionId) {
         return allRepositories.questionSubmissionRepository.findBySubmission_SubmissionId(submissionId);
+    }
+
+    @Override
+    public List<QuestionSubmissionDto> getQuestionSubmissions(Long submissionId){
+        List<QuestionSubmission> questionSubmissions = findAllBySubmissionId(submissionId);
+        List<QuestionSubmissionDto> questionSubmissionDtoList = new ArrayList<>();
+        for(QuestionSubmission questionSubmission : questionSubmissions){
+            questionSubmissionDtoList.add(toDto(questionSubmission, false));
+        }
+        return questionSubmissionDtoList;
+    }
+
+    @Override
+    public QuestionSubmission getQuestionSubmission(Long id) {
+        return allRepositories.questionSubmissionRepository.findByQuestionSubmissionId(id);
+    }
+
+    @Override
+    @Transactional
+    public void updateQuestionSubmissions(Map<QuestionSubmission, QuestionSubmissionDto> map, boolean student) throws InvalidUserException{
+        for(Map.Entry<QuestionSubmission, QuestionSubmissionDto> entry : map.entrySet()){
+            QuestionSubmission questionSubmission = entry.getKey();
+            QuestionSubmissionDto questionSubmissionDto = entry.getValue();
+
+            if(questionSubmissionDto.getAlteredGrade() != null && student){
+                throw new InvalidUserException(TextConstants.NOT_ENOUGH_PERMISSIONS + " Students cannot alter the grades.");
+            }
+            questionSubmission.setAlteredGrade(questionSubmissionDto.getAlteredGrade());
+            save(questionSubmission);
+        }
     }
 
     @Override
@@ -92,10 +129,6 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
     public void saveAndFlush(QuestionSubmission questionSubmissionToChange) { allRepositories.questionSubmissionRepository.saveAndFlush(questionSubmissionToChange); }
 
     @Override
-    @Transactional
-    public void saveAllQuestionSubmissions(List<QuestionSubmission> questionSubmissionList) { allRepositories.questionSubmissionRepository.saveAll(questionSubmissionList); }
-
-    @Override
     public void deleteById(Long id) { allRepositories.questionSubmissionRepository.deleteByQuestionSubmissionId(id); }
 
     @Override
@@ -117,8 +150,23 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
     }
 
     @Override
-    public QuestionSubmission findByQuestionSubmissionId(Long id){
-        return allRepositories.questionSubmissionRepository.findByQuestionSubmissionId(id);
+    public void validateDto(QuestionSubmissionDto questionSubmissionDto, Long assessmentId, boolean student) throws IdMissingException, DuplicateQuestionException, InvalidUserException {
+        if(questionSubmissionDto.getQuestionId() == null){
+            throw new IdMissingException(TextConstants.ID_MISSING);
+        }
+        if(existsByAssessmentIdAndQuestionId(assessmentId, questionSubmissionDto.getQuestionId())){
+            throw new DuplicateQuestionException("Error 123: A question submission with question id " + questionSubmissionDto.getQuestionId() + " already exists in assessment with id " + assessmentId);
+        }
+        if(questionSubmissionDto.getAlteredGrade() != null && student){
+            throw new InvalidUserException(TextConstants.NOT_ENOUGH_PERMISSIONS + " Students cannot alter the grades.");
+        }
     }
 
+    @Override
+    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId, Long submissionId, Long questionSubmissionId){
+        HttpHeaders headers = new HttpHeaders();
+        headers.setLocation(ucBuilder.path("/api/experiments/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}/question_submissions/{question_submission_id}")
+                .buildAndExpand(experimentId, conditionId, treatmentId, assessmentId, submissionId, questionSubmissionId).toUri());
+        return headers;
+    }
 }

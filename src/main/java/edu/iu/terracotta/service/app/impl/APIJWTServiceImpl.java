@@ -15,7 +15,6 @@ package edu.iu.terracotta.service.app.impl;
 import edu.iu.terracotta.exceptions.*;
 import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.enumerator.ExposureTypes;
-import edu.iu.terracotta.model.app.enumerator.ParticipationTypes;
 import edu.iu.terracotta.model.oauth2.Roles;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.*;

@@ -12,6 +12,8 @@ public interface QuestionSubmissionCommentRepository extends JpaRepository<Quest
 
     List<QuestionSubmissionComment> findByQuestionSubmission_QuestionSubmissionId(Long questionSubmissionId);
 
+    QuestionSubmissionComment findByQuestionSubmissionCommentId(Long questionSubmissionCommentId);
+
     boolean existsByQuestionSubmission_QuestionSubmissionIdAndQuestionSubmissionCommentId(Long questionSubmissionId, Long questionSubmissionCommentId);
 
     @Transactional

@@ -80,14 +80,14 @@ export default {
             if (typeof response?.status !== "undefined" && response?.status === 200) {
               this.$router.push({name: path, params:{experiment: this.experiment.experiment_id}})
             } else if (response?.message) {
-              alert(`Error: ${response.message}`)
+              this.$swal(`Error: ${response.message}`)
             } else {
-              alert('There was an error saving your experiment.')
+              this.$swal('There was an error saving your experiment.')
             }
 					})
 					.catch(response => {
             console.error("updateExperiment | catch", {response})
-            alert('There was an error saving the experiment.')
+            this.$swal('There was an error saving the experiment.')
 					})
 		},
 		saveExit() {

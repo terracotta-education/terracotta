@@ -12,6 +12,8 @@ public interface AssessmentRepository extends JpaRepository<Assessment, Long> {
 
     List<Assessment> findByTreatment_TreatmentId(Long treatmentId);
 
+    Assessment findByAssessmentId(Long assessmentId);
+
     boolean existsByTreatment_Condition_Experiment_ExperimentIdAndTreatment_Condition_ConditionIdAndTreatment_TreatmentIdAndAssessmentId(Long experimentId, Long conditionId, Long treatmentId, Long assessmentId);
 
     @Transactional

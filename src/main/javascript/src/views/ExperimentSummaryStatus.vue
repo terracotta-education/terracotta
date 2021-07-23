@@ -4,39 +4,37 @@
       <h1>Experiment Status</h1>
       <p>Once your experiment is running, you will see status updates below</p>
 
-<!--      WIP -->
-<!--      <v-expansion-panels class="v-expansion-panels&#45;&#45;outlined mb-7" flat>-->
-<!--        <v-expansion-panel class="py-3">-->
-<!--          <v-expansion-panel-header>-->
-<!--            <strong>Consent</strong>-->
-<!--          </v-expansion-panel-header>-->
-<!--          <v-expansion-panel-content>-->
-<!--            <v-simple-table class="mb-9 v-data-table&#45;&#45;no-outline v-data-table&#45;&#45;light-header">-->
-<!--              <template v-slot:default>-->
-<!--                <thead>-->
-<!--                <tr>-->
-<!--                  <th class="text-left">Assignment Name</th>-->
-<!--                  <th class="text-left">Status</th>-->
-<!--                  <th class="text-left">Submissions</th>-->
-<!--                </tr>-->
-<!--                </thead>-->
-<!--                <tbody>-->
-<!--&lt;!&ndash;                WIP&ndash;&gt;-->
-<!--&lt;!&ndash;                <tr&ndash;&gt;-->
-<!--&lt;!&ndash;                  v-for="assignment in assignments.filter(a => a.exposureId === exposure.exposureId)"&ndash;&gt;-->
-<!--&lt;!&ndash;                  :key="assignment.assignmentId"&ndash;&gt;-->
-<!--&lt;!&ndash;                >&ndash;&gt;-->
-<!--                <tr>-->
-<!--                  <td>Informed Consent</td>-->
-<!--                  <td><span class="completion-status">In Progress</span></td>-->
-<!--                  <td>0/0</td>-->
-<!--                </tr>-->
-<!--                </tbody>-->
-<!--              </template>-->
-<!--            </v-simple-table>-->
-<!--          </v-expansion-panel-content>-->
-<!--        </v-expansion-panel>-->
-<!--      </v-expansion-panels>-->
+      <v-expansion-panels v-if="experiment.consent" class="v-expansion-panels--outlined mb-7" flat>
+        <v-expansion-panel class="py-3">
+          <v-expansion-panel-header>
+            <strong>Consent</strong>
+          </v-expansion-panel-header>
+          <v-expansion-panel-content>
+            <v-simple-table class="mb-9 v-data-table--no-outline v-data-table--light-header">
+              <template v-slot:default>
+                <thead>
+                <tr>
+                  <th class="text-left">Assignment Name</th>
+                  <th class="text-left">Status</th>
+                  <th class="text-left">Submissions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                  <td>{{ experiment.consent.title }}</td>
+                  <td><span class="completion-status" :class="{'complete': experiment.consent.answeredConsentCount >= experiment.consent.expectedConsent && experiment.consent.answeredConsentCount > 0}">{{
+                      experiment.consent.answeredConsentCount >= experiment.consent.expectedConsent &&
+                      experiment.consent.answeredConsentCount > 0 ?
+                        'Complete' : 'In Progress'
+                    }}</span></td>
+                  <td>{{ experiment.consent.answeredConsentCount }}/{{ experiment.consent.expectedConsent }}</td>
+                </tr>
+                </tbody>
+              </template>
+            </v-simple-table>
+          </v-expansion-panel-content>
+        </v-expansion-panel>
+      </v-expansion-panels>
 
       <v-expansion-panels class="v-expansion-panels--outlined mb-7"
                           v-for="(exposure, eIndex) in exposures"

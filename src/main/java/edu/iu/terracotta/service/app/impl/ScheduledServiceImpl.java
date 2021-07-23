@@ -1,6 +1,5 @@
 package edu.iu.terracotta.service.app.impl;
 
-import edu.iu.terracotta.controller.app.AssessmentController;
 import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;

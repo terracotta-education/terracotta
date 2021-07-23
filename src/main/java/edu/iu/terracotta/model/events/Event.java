@@ -76,6 +76,9 @@ public class Event {
     @Column(name = "membership_roles")
     private String membershipRoles;
 
+    @Column(name = "lti_context_id")
+    private String ltiContextId;
+
 
     // The profile/action
         //AssessmentEvent.Started  <-- When the user starts and assignment and creates a new submission
@@ -254,5 +257,13 @@ public class Event {
 
     public void setReferredType(String referredType) {
         this.referredType = referredType;
+    }
+
+    public String getLtiContextId() {
+        return ltiContextId;
+    }
+
+    public void setLtiContextId(String ltiContextId) {
+        this.ltiContextId = ltiContextId;
     }
 }
