@@ -139,8 +139,14 @@ export default {
     },
     async handleDeleteAssignment(eid, a) {
       // DELETE ASSIGNMENT
-      const reallyDelete = confirm(`Are you sure you want to delete the assignment "${a.title}"?`)
-      if (reallyDelete) {
+      const reallyDelete = await this.$swal({
+        icon: 'question',
+        text: `Are you sure you want to delete the assignment "${a.title}"?`,
+        showCancelButton: true,
+        confirmButtonText: 'Yes, delete it',
+        cancelButtonText: 'No, cancel',
+      })
+      if (reallyDelete?.isConfirmed) {
         try {
           return await this.deleteAssignment([
             this.experiment_id,

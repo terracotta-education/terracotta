@@ -114,7 +114,7 @@ export default {
               params: { experiment: this.experimentId },
             });
           } else {
-            alert(response.error);
+            this.$swal(response.error);
           }
         })
         .catch((response) => {

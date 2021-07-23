@@ -66,17 +66,17 @@ export default {
               } else if(e.participationType==='AUTO') {
                 this.$router.push({name:'ParticipationTypeAutoConfirm', params:{experiment:experimentId}})
               } else {
-                alert("Select a participation type")
+                this.$swal("Select a participation type")
               }
             } else if (response?.message) {
-              alert(`Error: ${response.message}`)
+              this.$swal(`Error: ${response.message}`)
             } else {
-              alert('There was an error saving your experiment.')
+              this.$swal('There was an error saving your experiment.')
             }
 					})
 					.catch(response => {
             console.error("updateExperiment | catch", {response})
-            alert('There was an error saving the experiment.')
+            this.$swal('There was an error saving the experiment.')
 					})
 		},
 		saveExit() {

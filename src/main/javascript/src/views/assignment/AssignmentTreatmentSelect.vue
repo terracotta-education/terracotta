@@ -115,12 +115,12 @@ export default {
       const assessment = await this.handleCreateAssessment(conditionId, treatment?.data)
 
       // show an alert if there's a problem creating the treatment or assessment
-      if (!treatment || !assessment) {
-        alert('There was a problem creating your assessment')
+      if (treatment?.data?.error || assessment?.data?.error) {
+        this.$swal('There was a problem creating your assessment')
         return false
       }
 
-      // send user to builder with the treatment and assessment ids
+      // // send user to builder with the treatment and assessment ids
       this.$router.push({
         name: 'TerracottaBuilder',
         params: {
