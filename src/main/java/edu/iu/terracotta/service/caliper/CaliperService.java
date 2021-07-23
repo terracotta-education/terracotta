@@ -23,7 +23,7 @@ public interface CaliperService {
 
     void sendFeedbackEvent(Participant participant, Assessment assessment, SecuredInfo securedInfo);
 
-    void sendViewGradeEvent(Participant participant, Assessment assessment, SecuredInfo securedInfo);
+    void sendViewGradeEvent(Submission submission, SecuredInfo securedInfo);
 
     void sendToolUseEvent(LtiMembershipEntity membershipEntity,
                           String canvasUserGlobalId,
