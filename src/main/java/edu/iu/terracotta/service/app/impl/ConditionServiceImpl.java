@@ -17,6 +17,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -54,7 +55,6 @@ public class ConditionServiceImpl implements ConditionService {
     public Condition fromDto(ConditionDto conditionDto) throws DataServiceException {
 
         Condition condition = new Condition();
-        //I don't think the id setting is used
         condition.setConditionId(conditionDto.getConditionId());
         Optional<Experiment> experiment = allRepositories.experimentRepository.findById(conditionDto.getExperimentId());
         if (experiment.isPresent()){
@@ -90,16 +90,17 @@ public class ConditionServiceImpl implements ConditionService {
     public void saveAndFlush(Condition conditionToChange) { allRepositories.conditionRepository.saveAndFlush(conditionToChange); }
 
     @Override
-    public Condition updateCondition(Condition condition, ConditionDto conditionDto){
-        condition.setName(conditionDto.getName());
-        condition.setDefaultCondition(conditionDto.getDefaultCondition());
-        condition.setDistributionPct((conditionDto.getDistributionPct()));
-        return condition;
-    }
-
-    @Override
     @Transactional
-    public void saveAllConditions(List<Condition>conditionList){ allRepositories.conditionRepository.saveAll(conditionList); }
+    public void updateCondition(Map<Condition, ConditionDto> map){
+        for(Map.Entry<Condition, ConditionDto> entry : map.entrySet()){
+            Condition condition = entry.getKey();
+            ConditionDto conditionDto = entry.getValue();
+            condition.setName(conditionDto.getName());
+            condition.setDefaultCondition(conditionDto.getDefaultCondition());
+            condition.setDistributionPct((conditionDto.getDistributionPct()));
+            save(condition);
+        }
+    }
 
     @Override
     public void deleteById(Long id) throws EmptyResultDataAccessException {
@@ -117,9 +118,10 @@ public class ConditionServiceImpl implements ConditionService {
     }
 
     @Override
-    public boolean duplicateNameInPut(List<Condition> conditions, Condition condition){
-        for(Condition conditionInList : conditions){
-            if(condition.getName().equals(conditionInList.getName())){
+    public boolean duplicateNameInPut(Map<Condition, ConditionDto> map, Condition condition){
+        for(Map.Entry<Condition, ConditionDto> entry : map.entrySet()){
+            Condition conditionInPut = entry.getKey();
+            if(condition.getName().equals(conditionInPut.getName())){
                 return true;
             }
         }

@@ -4,11 +4,10 @@ import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.exceptions.InvalidUserException;
 import edu.iu.terracotta.exceptions.SubmissionCommentNotMatchingException;
 import edu.iu.terracotta.exceptions.SubmissionNotMatchingException;
 import edu.iu.terracotta.model.LtiUserEntity;
-import edu.iu.terracotta.model.app.Participant;
-import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.SubmissionComment;
 import edu.iu.terracotta.model.app.dto.SubmissionCommentDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
@@ -33,11 +32,10 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @Controller
+@SuppressWarnings({"rawtypes","unchecked"})
 @RequestMapping(value = SubmissionCommentController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
 public class SubmissionCommentController {
 
@@ -62,7 +60,7 @@ public class SubmissionCommentController {
                                                                                         @PathVariable("assessment_id") Long assessmentId,
                                                                                         @PathVariable("submission_id") Long submissionId,
                                                                                         HttpServletRequest req)
-                throws ExperimentNotMatchingException, AssessmentNotMatchingException, SubmissionNotMatchingException, BadTokenException {
+                throws ExperimentNotMatchingException, AssessmentNotMatchingException, SubmissionNotMatchingException, BadTokenException, InvalidUserException {
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -72,23 +70,13 @@ public class SubmissionCommentController {
         if(apijwtService.isLearnerOrHigher(securedInfo)) {
 
             if(!apijwtService.isInstructorOrHigher(securedInfo)){
-                Participant participant = submissionService.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, securedInfo.getUserId());
-                Optional<Submission> submission = submissionService.findByParticipantIdAndSubmissionId(participant.getParticipantId(), submissionId);
-                if(!submission.isPresent()){
-                    return new ResponseEntity("Students can only access comments from their own submissions. Submission with id " + submissionId + " does not belong to participant with id " +
-                            participant.getParticipantId(), HttpStatus.UNAUTHORIZED);
-                }
+                submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
             }
-            List<SubmissionComment> submissionCommentList = submissionCommentService.findAllBySubmissionId(submissionId);
-
+            List<SubmissionCommentDto> submissionCommentList = submissionCommentService.getSubmissionComments(submissionId);
             if(submissionCommentList.isEmpty()) {
                 return new ResponseEntity<>(HttpStatus.NO_CONTENT);
             }
-            List<SubmissionCommentDto> submissionCommentDtoList = new ArrayList<>();
-            for(SubmissionComment submissionComment : submissionCommentList) {
-                submissionCommentDtoList.add(submissionCommentService.toDto(submissionComment));
-            }
-            return new ResponseEntity<>(submissionCommentDtoList, HttpStatus.OK);
+            return new ResponseEntity<>(submissionCommentList, HttpStatus.OK);
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
@@ -105,7 +93,7 @@ public class SubmissionCommentController {
                                                                      @PathVariable("submission_id") Long submissionId,
                                                                      @PathVariable("submission_comment_id") Long submissionCommentId,
                                                                      HttpServletRequest req)
-                throws ExperimentNotMatchingException, AssessmentNotMatchingException, SubmissionCommentNotMatchingException, BadTokenException{
+                throws ExperimentNotMatchingException, AssessmentNotMatchingException, SubmissionCommentNotMatchingException, BadTokenException, InvalidUserException{
 
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -115,25 +103,10 @@ public class SubmissionCommentController {
         if(apijwtService.isLearnerOrHigher(securedInfo)) {
 
             if(!apijwtService.isInstructorOrHigher(securedInfo)){
-                Participant participant = submissionService.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, securedInfo.getUserId());
-                Optional<Submission> submission = submissionService.findByParticipantIdAndSubmissionId(participant.getParticipantId(), submissionId);
-                if(!submission.isPresent()){
-                    return new ResponseEntity("Students can only access comments from their own submissions. Submission with id " + submissionId + " does not belong to participant with id " +
-                            participant.getParticipantId(), HttpStatus.UNAUTHORIZED);
-                }
+                submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
             }
-            Optional<SubmissionComment> submissionCommentSearchResult = submissionCommentService.findBySubmissionIdAndSubmissionCommentId(submissionId, submissionCommentId);
-
-            if(!submissionCommentSearchResult.isPresent()) {
-                log.error("Submission comment in platform {} and context {} and experiment {} and condition {} and treatment {}  and assessment {} and submission {} with id {} not found",
-                        securedInfo.getPlatformDeploymentId(), securedInfo.getContextId(), experimentId, conditionId, treatmentId, assessmentId, submissionId, submissionCommentId);
-                return new ResponseEntity("Submission comment in platform " + securedInfo.getPlatformDeploymentId() + " and context " + securedInfo.getContextId() +
-                        " and experiment with id " + experimentId + " and condition id " + conditionId + " and treatment id " + treatmentId + " and assessment id " + assessmentId +
-                        " and submission id " + submissionId + " with id " + submissionCommentId + TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
-            } else {
-                SubmissionCommentDto submissionCommentDto = submissionCommentService.toDto(submissionCommentSearchResult.get());
-                return new ResponseEntity<>(submissionCommentDto, HttpStatus.OK);
-            }
+            SubmissionCommentDto submissionCommentDto = submissionCommentService.toDto(submissionCommentService.getSubmissionComment(submissionCommentId));
+            return new ResponseEntity<>(submissionCommentDto, HttpStatus.OK);
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
@@ -150,7 +123,7 @@ public class SubmissionCommentController {
                                                                       @RequestBody SubmissionCommentDto submissionCommentDto,
                                                                       UriComponentsBuilder ucBuilder,
                                                                       HttpServletRequest req)
-                throws ExperimentNotMatchingException, AssessmentNotMatchingException, SubmissionNotMatchingException, BadTokenException {
+                throws ExperimentNotMatchingException, AssessmentNotMatchingException, SubmissionNotMatchingException, BadTokenException, InvalidUserException {
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -163,12 +136,7 @@ public class SubmissionCommentController {
                 return new ResponseEntity(TextConstants.ID_IN_POST_ERROR, HttpStatus.CONFLICT);
             }
             if(!apijwtService.isInstructorOrHigher(securedInfo)){
-                Participant participant = submissionService.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, securedInfo.getUserId());
-                Optional<Submission> submission = submissionService.findByParticipantIdAndSubmissionId(participant.getParticipantId(), submissionId);
-                if(!submission.isPresent()){
-                    return new ResponseEntity("Students can only post comments to their own submissions. Submission with id " + submissionId + " does not belong to participant with id " +
-                            participant.getParticipantId(), HttpStatus.UNAUTHORIZED);
-                }
+                submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
             }
             submissionCommentDto.setSubmissionId(submissionId);
             LtiUserEntity user = submissionCommentService.findByUserKey(securedInfo.getUserId());
@@ -177,15 +145,10 @@ public class SubmissionCommentController {
             try {
                 submissionComment = submissionCommentService.fromDto(submissionCommentDto);
             } catch (DataServiceException ex) {
-                return new ResponseEntity("Unable to create submission comment: " + ex.getMessage(), HttpStatus.BAD_REQUEST);
+                return new ResponseEntity("Error 105: Unable to create submission comment: " + ex.getMessage(), HttpStatus.BAD_REQUEST);
             }
-
-            SubmissionComment submissionCommentSaved = submissionCommentService.save(submissionComment);
-            SubmissionCommentDto returnedDto = submissionCommentService.toDto(submissionCommentSaved);
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setLocation(ucBuilder.path("/api/experiments/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}/submission_comments/{submission_comment_id}")
-                    .buildAndExpand(experimentId, conditionId, treatmentId, assessmentId, submissionId, submissionComment.getSubmissionCommentId()).toUri());
+            SubmissionCommentDto returnedDto = submissionCommentService.toDto(submissionCommentService.save(submissionComment));
+            HttpHeaders headers = submissionCommentService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, submissionId, submissionComment.getSubmissionCommentId());
             return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
@@ -203,7 +166,7 @@ public class SubmissionCommentController {
                                                         @PathVariable("submission_comment_id") Long submissionCommentId,
                                                         @RequestBody SubmissionCommentDto submissionCommentDto,
                                                         HttpServletRequest req)
-                throws ExperimentNotMatchingException, AssessmentNotMatchingException, SubmissionCommentNotMatchingException, BadTokenException {
+                throws ExperimentNotMatchingException, AssessmentNotMatchingException, SubmissionCommentNotMatchingException, BadTokenException, InvalidUserException {
 
         log.info("Updating submission comment with id {}", submissionCommentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
@@ -211,36 +174,16 @@ public class SubmissionCommentController {
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
         apijwtService.submissionCommentAllowed(securedInfo, assessmentId, submissionId, submissionCommentId);
 
-        //if the current user is a student, make sure that the submission defined in the path is their submission.
         if(apijwtService.isLearnerOrHigher(securedInfo)) {
             if(!apijwtService.isInstructorOrHigher(securedInfo)){
-                Participant participant = submissionService.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, securedInfo.getUserId());
-                Optional<Submission> submission = submissionService.findByParticipantIdAndSubmissionId(participant.getParticipantId(), submissionId);
-                if(submission.isPresent()){
-                    if(!submission.get().getSubmissionId().equals(submissionId)){
-                        return new ResponseEntity("Students can only edit comments to their own submissions. Submission with id " + submissionId + " does not belong to participant with id " +
-                                participant.getParticipantId(), HttpStatus.UNAUTHORIZED);
-                    }
-                }
+                submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
             }
-
-            Optional<SubmissionComment> submissionCommentSearchResult = submissionCommentService.findById(submissionCommentId);
-
-            if(!submissionCommentSearchResult.isPresent()) {
-                log.error("Unable to update. Submission comment with id {} not found.", submissionCommentId);
-                return new ResponseEntity("Unable to update. Submission comment with id " + TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
-            }
-
-            //check if current user is the original creator of the comment. If not, don't allow them to update the comment.
+            SubmissionComment submissionComment = submissionCommentService.getSubmissionComment(submissionCommentId);
             LtiUserEntity user = submissionCommentService.findByUserKey(securedInfo.getUserId());
-            if(!user.getDisplayName().equals(submissionCommentSearchResult.get().getCreator())){
-                return new ResponseEntity("Only the creator of a comment can edit their own comment.", HttpStatus.UNAUTHORIZED);
+            if(!user.getDisplayName().equals(submissionComment.getCreator())){
+                return new ResponseEntity("Error 122: Only the creator of a comment can edit their own comment.", HttpStatus.UNAUTHORIZED);
             }
-
-            SubmissionComment submissionCommentToChange = submissionCommentSearchResult.get();
-            submissionCommentToChange.setComment(submissionCommentDto.getComment());
-
-            submissionCommentService.saveAndFlush(submissionCommentToChange);
+            submissionCommentService.updateSubmissionComment(submissionComment, submissionCommentDto);
             return new ResponseEntity<>(HttpStatus.OK);
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);

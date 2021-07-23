@@ -3,7 +3,6 @@ package edu.iu.terracotta.model.app.dto;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
-import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.List;
 
@@ -33,6 +32,9 @@ public class ExperimentDto {
     private ConsentDto consent;
     private Long createdBy;
     private Timestamp closed;
+    private Integer potentialParticipants;
+    private Integer acceptedParticipants;
+    private Integer rejectedParticipants;
 
 
     public ExperimentDto() {
@@ -164,5 +166,29 @@ public class ExperimentDto {
 
     public void setConsent(ConsentDto consent) {
         this.consent = consent;
+    }
+
+    public Integer getPotentialParticipants() {
+        return potentialParticipants;
+    }
+
+    public void setPotentialParticipants(Integer potentialParticipants) {
+        this.potentialParticipants = potentialParticipants;
+    }
+
+    public Integer getAcceptedParticipants() {
+        return acceptedParticipants;
+    }
+
+    public void setAcceptedParticipants(Integer acceptedParticipants) {
+        this.acceptedParticipants = acceptedParticipants;
+    }
+
+    public Integer getRejectedParticipants() {
+        return rejectedParticipants;
+    }
+
+    public void setRejectedParticipants(Integer rejectedParticipants) {
+        this.rejectedParticipants = rejectedParticipants;
     }
 }

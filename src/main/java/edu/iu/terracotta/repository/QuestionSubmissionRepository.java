@@ -1,6 +1,5 @@
 package edu.iu.terracotta.repository;
 
-import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.QuestionSubmission;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;

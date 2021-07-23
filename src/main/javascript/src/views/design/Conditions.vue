@@ -114,20 +114,20 @@ export default {
               this.$router.push({name: path, params: {experiment: this.experiment.experimentId}})
             } else if (response?.some(obj => Object.prototype.hasOwnProperty.call(obj, 'message'))) {
               // IF one response contains message -> alert with message
-              alert(response.filter(obj => (typeof obj.message !== 'undefined'))[0].message)
+              this.$swal(response.filter(obj => (typeof obj.message !== 'undefined'))[0].message)
             } else {
-              alert('There was an error saving your conditions.')
+              this.$swal('There was an error saving your conditions.')
             }
           })
           .catch(response => {
             console.log("updateConditions | catch", {response})
-            alert('There was an error saving your conditions.')
+            this.$swal('There was an error saving your conditions.')
           })
     },
     handleDeleteCondition(condition) {
       const { defaultCondition } = condition;
       if (defaultCondition) {
-        alert('You are attempting to delete the default condition. You must set one of the other existing conditions as the default before deleting this condition.')
+        this.$swal('You are attempting to delete the default condition. You must set one of the other existing conditions as the default before deleting this condition.')
       } else {
         this.deleteCondition(condition);
       }

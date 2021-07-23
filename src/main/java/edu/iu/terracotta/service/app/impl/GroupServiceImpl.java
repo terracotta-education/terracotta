@@ -1,6 +1,7 @@
 package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.model.app.Condition;
 import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.Exposure;
@@ -15,10 +16,13 @@ import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.GroupService;
 import edu.iu.terracotta.service.app.ParticipantService;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -44,9 +48,18 @@ public class GroupServiceImpl implements GroupService {
     }
 
     @Override
-    public Optional<Group> findOneByGroupId(long groupId) {
-        return allRepositories.groupRepository.findByGroupId(groupId);
+    public List<GroupDto> getGroups(Long experimentId){
+        List<Group> groups = findAllByExperimentId(experimentId);
+        List<GroupDto> groupDtoList = new ArrayList<>();
+        for(Group group : groups){
+            groupDtoList.add(toDto(group));
+        }
+        return groupDtoList;
     }
+
+    @Override
+    public Group getGroup(Long id) { return allRepositories.groupRepository.findByGroupId(id); }
+
 
     @Override
     public GroupDto toDto(Group group) {
@@ -94,6 +107,19 @@ public class GroupServiceImpl implements GroupService {
     public Optional<Group> findById(Long id) { return allRepositories.groupRepository.findById(id); }
 
     @Override
+    public void updateGroup(Long groupId, GroupDto groupDto) throws TitleValidationException {
+        Group group = getGroup(groupId);
+        if(StringUtils.isAllBlank(groupDto.getName()) && StringUtils.isAllBlank(group.getName())){
+            throw new TitleValidationException("Error 100: Please give the group a name.");
+        }
+        if(!StringUtils.isAllBlank(groupDto.getName()) && groupDto.getName().length() > 255){
+            throw new TitleValidationException("Error 101: The title must be 255 characters or less.");
+        }
+        group.setName(groupDto.getName());
+        saveAndFlush(group);
+    }
+
+    @Override
     public void saveAndFlush(Group groupToChange) { allRepositories.groupRepository.saveAndFlush(groupToChange); }
 
     @Override
@@ -121,7 +147,7 @@ public class GroupServiceImpl implements GroupService {
                 if (groups.size() != experiment.get().getConditions().size()){
                     if (experimentService.experimentStarted(experiment.get())){
                         //This should never happen, but... just in case
-                        throw new DataServiceException("The experiment has started but there is an error with the group amount");
+                        throw new DataServiceException("Error 110: The experiment has started but there is an error with the group amount");
                     } else {
                         //RESET THE PARTICIPANT GROUPS
                         for (Participant participant:experiment.get().getParticipants()){
@@ -144,7 +170,7 @@ public class GroupServiceImpl implements GroupService {
             } else {
                 if (exposureGroupConditionList.size()!=experiment.get().getConditions().size()*experiment.get().getExposures().size()) {
                     if (experimentService.experimentStarted(experiment.get())) {
-                        throw new DataServiceException("The experiment has started but there is an error with the " +
+                        throw new DataServiceException("Error 110: The experiment has started but there is an error with the " +
                                 "group/exposure/condition associations amount");
                     } else {
                         allRepositories.exposureGroupConditionRepository.deleteByExposure_Experiment_ExperimentId(experimentId);
@@ -244,5 +270,17 @@ public class GroupServiceImpl implements GroupService {
         return moreUnbalanced;
     }
 
+    @Override
+    public void validateTitle(String title) throws TitleValidationException{
+        if(!StringUtils.isAllBlank(title) && title.length() > 255){
+            throw new TitleValidationException("Error 101: Title must be 255 characters or less.");
+        }
+    }
 
+    @Override
+    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long groupId){
+        HttpHeaders headers = new HttpHeaders();
+        headers.setLocation(ucBuilder.path("/api/experiment/{experiment_id}/groups/{id}").buildAndExpand(experimentId, groupId).toUri());
+        return headers;
+    }
 }

@@ -13,8 +13,7 @@ public interface ExperimentRepository extends JpaRepository<Experiment, Long> {
 
     List<Experiment> findByPlatformDeployment_KeyIdAndLtiContextEntity_ContextIdAndCreatedBy_UserKey(long keyId, long contextId, String userKey);
 
-    List<Experiment>
-    findByPlatformDeployment_KeyIdAndLtiContextEntity_ContextId(long keyId, long contextId);
+    List<Experiment> findByPlatformDeployment_KeyIdAndLtiContextEntity_ContextId(long keyId, long contextId);
 
     Experiment findByExperimentId(Long experimentId);
 

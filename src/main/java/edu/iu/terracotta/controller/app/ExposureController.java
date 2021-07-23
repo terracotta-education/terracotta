@@ -5,14 +5,13 @@ import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentLockedException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.ExposureNotMatchingException;
+import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.model.app.Exposure;
 import edu.iu.terracotta.model.app.dto.ExposureDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.ExposureService;
-import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.utils.TextConstants;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -26,11 +25,10 @@ import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.http.HttpHeaders;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @Controller
+@SuppressWarnings({"rawtypes", "unchecked"})
 @RequestMapping(value = ExposureController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
 public class ExposureController {
 
@@ -43,8 +41,7 @@ public class ExposureController {
     @Autowired
     APIJWTService apijwtService;
 
-    @Autowired
-    ExperimentService experimentService;
+
 
     @RequestMapping(value = "/{experiment_id}/exposures", method = RequestMethod.GET, produces = "application/json")
     @ResponseBody
@@ -55,16 +52,11 @@ public class ExposureController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
 
         if(apijwtService.isLearnerOrHigher(securedInfo)) {
-            List<Exposure> exposureList =
-                    exposureService.findAllByExperimentId(experimentId);
+            List<ExposureDto> exposureList = exposureService.getExposures(experimentId);
             if(exposureList.isEmpty()) {
                 return new ResponseEntity<>(HttpStatus.NO_CONTENT);
             }
-            List<ExposureDto> exposureDtoList = new ArrayList<>();
-            for(Exposure exposure : exposureList) {
-                exposureDtoList.add(exposureService.toDto(exposure));
-            }
-            return new ResponseEntity<>(exposureDtoList, HttpStatus.OK);
+            return new ResponseEntity<>(exposureList, HttpStatus.OK);
         }else {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
@@ -82,16 +74,9 @@ public class ExposureController {
         apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
 
         if(apijwtService.isLearnerOrHigher(securedInfo)) {
-            Optional<Exposure> exposure = exposureService.findById(exposureId);
-
-            if(!exposure.isPresent()) {
-                log.error("exposure {} in experiment {} not found.", exposureId, experimentId);
-                return new ResponseEntity("exposure " + exposureId + " in experiment " + experimentId + TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
-            } else {
-                ExposureDto exposureDto = exposureService.toDto(exposure.get());
-                return new ResponseEntity<>(exposureDto, HttpStatus.OK);
-            }
-        }else {
+            ExposureDto exposureDto = exposureService.toDto(exposureService.getExposure(exposureId));
+            return new ResponseEntity<>(exposureDto, HttpStatus.OK);
+        } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
     }
@@ -101,7 +86,7 @@ public class ExposureController {
                                                     @RequestBody ExposureDto exposureDto,
                                                     UriComponentsBuilder ucBuilder,
                                                     HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, ExperimentLockedException {
+            throws ExperimentNotMatchingException, BadTokenException, ExperimentLockedException, TitleValidationException {
 
         log.info("Creating Exposure : {}", exposureDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
@@ -110,26 +95,20 @@ public class ExposureController {
 
         if(apijwtService.isInstructorOrHigher(securedInfo)) {
             if(exposureDto.getExposureId() != null) {
-                log.error("Cannot include id in the POST endpoint. To modify existing exposures you must use PUT");
-                return new ResponseEntity("Cannot include id in the POST endpoint. To modify existing exposures you must use PUT", HttpStatus.CONFLICT);
+                log.error(TextConstants.ID_IN_POST_ERROR);
+                return new ResponseEntity(TextConstants.ID_IN_POST_ERROR, HttpStatus.CONFLICT);
             }
 
-            if(!StringUtils.isAllBlank(exposureDto.getTitle()) && exposureDto.getTitle().length() > 255){
-                return new ResponseEntity("Title must be 255 characters or less.", HttpStatus.BAD_REQUEST);
-            }
+            exposureService.validateTitle(exposureDto.getTitle());
             exposureDto.setExperimentId(experimentId);
             Exposure exposure;
             try{
                 exposure = exposureService.fromDto(exposureDto);
             } catch (DataServiceException e) {
-                return new ResponseEntity("Unable to create exposure:" + e.getMessage(), HttpStatus.BAD_REQUEST);
+                return new ResponseEntity("Error 105: Unable to create exposure:" + e.getMessage(), HttpStatus.BAD_REQUEST);
             }
-
-            Exposure exposureSaved = exposureService.save(exposure);
-            ExposureDto returnedDto = exposureService.toDto(exposureSaved);
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setLocation(ucBuilder.path("/api/experiments/{experiment_id}/exposures/{id}").buildAndExpand(experimentId, exposure.getExposureId()).toUri());
+            ExposureDto returnedDto = exposureService.toDto(exposureService.save(exposure));
+            HttpHeaders headers = exposureService.buildHeaders(ucBuilder, experimentId, exposure.getExposureId());
             return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
         }else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
@@ -141,7 +120,7 @@ public class ExposureController {
                                                @PathVariable("exposure_id") Long exposureId,
                                                @RequestBody ExposureDto exposureDto,
                                                HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, ExposureNotMatchingException {
+            throws ExperimentNotMatchingException, BadTokenException, ExposureNotMatchingException, TitleValidationException {
 
         log.info("Updating exposure with id {}", exposureId);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
@@ -149,22 +128,7 @@ public class ExposureController {
         apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
 
         if(apijwtService.isInstructorOrHigher(securedInfo)) {
-            Optional<Exposure> exposureSearchResult = exposureService.findById(exposureId);
-
-            if(!exposureSearchResult.isPresent()) {
-                log.error("Unable to update. Exposure with id {} not found.", exposureId);
-                return new ResponseEntity("Unable to update. Exposure with id  " + exposureId + TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
-            }
-            if(StringUtils.isAllBlank(exposureDto.getTitle()) && StringUtils.isAllBlank(exposureSearchResult.get().getTitle())){
-                return new ResponseEntity("Please give the exposure a title.", HttpStatus.CONFLICT);
-            }
-            if(!StringUtils.isAllBlank(exposureDto.getTitle()) && exposureDto.getTitle().length() > 255) {
-                return new ResponseEntity("Title must be 255 characters or less.", HttpStatus.BAD_REQUEST);
-            }
-            Exposure exposureToChange = exposureSearchResult.get();
-            exposureToChange.setTitle(exposureDto.getTitle());
-
-            exposureService.saveAndFlush(exposureToChange);
+            exposureService.updateExposure(exposureId, exposureDto);
             return new ResponseEntity<>(HttpStatus.OK);
         }else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);

@@ -5,16 +5,11 @@ import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
-import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.dto.ParticipantDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
-import edu.iu.terracotta.service.app.ExperimentService;
-import edu.iu.terracotta.service.app.GroupService;
 import edu.iu.terracotta.service.app.ParticipantService;
-import edu.iu.terracotta.service.lti.AdvantageMembershipService;
-import edu.iu.terracotta.service.lti.LTIDataService;
 import edu.iu.terracotta.utils.TextConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,11 +28,12 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
 
 @Controller
+@SuppressWarnings({"rawtypes", "unchecked"})
 @RequestMapping(value = ParticipantController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
 public class ParticipantController {
 
@@ -45,60 +41,39 @@ public class ParticipantController {
     static final String REQUEST_ROOT = "api/experiments";
 
     @Autowired
-    ExperimentService experimentService;
-
-    @Autowired
     ParticipantService participantService;
 
     @Autowired
     APIJWTService apijwtService;
 
-    @Autowired
-    AdvantageMembershipService advantageMembershipService;
-
-    @Autowired
-    LTIDataService ltiDataService;
-
-    @Autowired
-    GroupService groupService;
 
 
-    /**
-     * To show the participants in an experiment.
-     */
     @RequestMapping(value = "/{experimentId}/participants", method = RequestMethod.GET, produces = "application/json;")
     @ResponseBody
     public ResponseEntity<List<ParticipantDto>> allParticipantsByExperiment(@PathVariable("experimentId") long experimentId,
                                                                             @RequestParam(name = "refresh", defaultValue = "true") boolean refresh,
-                                                                            HttpServletRequest req) throws ExperimentNotMatchingException, BadTokenException, ParticipantNotUpdatedException {
+                                                                            HttpServletRequest req)
+            throws ExperimentNotMatchingException, BadTokenException, ParticipantNotUpdatedException {
 
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
 
         if (apijwtService.isLearnerOrHigher(securedInfo)) {
-
-            List<Participant> currentParticipantList =
-                    participantService.findAllByExperimentId(experimentId);
+            List<Participant> currentParticipantList = participantService.findAllByExperimentId(experimentId);
             if (apijwtService.isInstructorOrHigher(securedInfo) && refresh) {
                 currentParticipantList = participantService.refreshParticipants(experimentId, securedInfo, currentParticipantList);
             }
             if (currentParticipantList.isEmpty()) {
                 return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-                // You many decide to return HttpStatus.NOT_FOUND
             }
-            List<ParticipantDto> participantDtoList = new ArrayList<>();
-            for (Participant participant : currentParticipantList) {
-                participantDtoList.add(participantService.toDto(participant));
-            }
-            return new ResponseEntity<>(participantDtoList, HttpStatus.OK);
+            return new ResponseEntity<>(participantService.getParticipants(currentParticipantList), HttpStatus.OK);
         } else {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
     }
 
-    /**
-     * To show the an specific participant.
-     */
+
+
     @RequestMapping(value = "/{experimentId}/participants/{participant_id}", method = RequestMethod.GET, produces = "application/json;")
     @ResponseBody
     public ResponseEntity<ParticipantDto> getParticipant(@PathVariable("experimentId") long experimentId,
@@ -111,22 +86,10 @@ public class ParticipantController {
         apijwtService.participantAllowed(securedInfo, experimentId, participantId);
 
         if (apijwtService.isLearnerOrHigher(securedInfo)) {
-
-            Optional<Participant> participantSearchResult = participantService.findById(participantId);
-
-            if (!participantSearchResult.isPresent()) {
-                log.error("participant in platform {} and context {} and experiment {} with id {} not found.",
-                        securedInfo.getPlatformDeploymentId(), securedInfo.getContextId(), experimentId, participantId);
-
-                return new ResponseEntity("participant in platform " + securedInfo.getPlatformDeploymentId()
-                        + " and context " + securedInfo.getContextId() + " experiment with id " + experimentId + " with id " + participantId
-                        + TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
-            } else {
-                ParticipantDto participantDto = participantService.toDto(participantSearchResult.get());
-                return new ResponseEntity<>(participantDto, HttpStatus.OK);
-            }
+            ParticipantDto participantDto = participantService.toDto(participantService.getParticipant(participantId));
+            return new ResponseEntity<>(participantDto, HttpStatus.OK);
         } else {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
     }
 
@@ -137,18 +100,14 @@ public class ParticipantController {
                                                          HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException {
 
+        log.info("Creating Participant : {}", participantDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
 
         if (apijwtService.isLearnerOrHigher(securedInfo)) {
-
-            log.info("Creating Participant : {}", participantDto);
-            //We check that it does not exist
-            if (participantDto.getExperimentId() != null) {
+            if (participantDto.getParticipantId() != null) {
                 log.error(TextConstants.ID_IN_POST_ERROR);
-                return new ResponseEntity(
-                        TextConstants.ID_IN_POST_ERROR,
-                        HttpStatus.CONFLICT);
+                return new ResponseEntity(TextConstants.ID_IN_POST_ERROR, HttpStatus.CONFLICT);
             }
 
             Participant participant;
@@ -156,17 +115,14 @@ public class ParticipantController {
             try {
                 participant = participantService.fromDto(participantDto);
             } catch (DataServiceException e) {
-                return new ResponseEntity("Unable to create the participant:" + e.getMessage(), HttpStatus.BAD_REQUEST);
+                return new ResponseEntity("Error 105: Unable to create the participant:" + e.getMessage(), HttpStatus.BAD_REQUEST);
             }
+            ParticipantDto returnedDto = participantService.toDto(participantService.save(participant));
 
-            Participant participantSaved = participantService.save(participant);
-            ParticipantDto returnedDto = participantService.toDto(participantSaved);
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setLocation(ucBuilder.path("/api/experiments/{experimentId}/participant/{participantId}").buildAndExpand(experimentId, participantSaved.getParticipantId()).toUri());
+            HttpHeaders headers = participantService.buildHeaders(ucBuilder, experimentId, returnedDto.getParticipantId());
             return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
         } else {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
     }
 
@@ -176,37 +132,19 @@ public class ParticipantController {
                                                   @PathVariable("participant_id") Long participantId,
                                                   @RequestBody ParticipantDto participantDto,
                                                   HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, ParticipantNotMatchingException {
+            throws ExperimentNotMatchingException, BadTokenException, ParticipantNotMatchingException, DataServiceException {
         log.info("Updating Participant with id {}", participantId);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.participantAllowed(securedInfo, experimentId, participantId);
 
         if (apijwtService.isLearnerOrHigher(securedInfo)) {
-
-            Optional<Participant> participantSearchResult = participantService.findById(participantId);
-            if (!participantSearchResult.isPresent()) {
-                log.error("Unable to update. Participant with id {} not found.", participantId);
-                return new ResponseEntity("Unable to update. Participant with id " + participantId + TextConstants.NOT_FOUND_SUFFIX,
-                        HttpStatus.NOT_FOUND);
-            }
-
-            Participant participantToChange = participantSearchResult.get();
-            participantService.changeParticipant(participantToChange, participantDto, experimentId);
-
-            Optional<Experiment> experiment = experimentService.findById(experimentId);
-            //This will never happen, but is here to avoid complains from the code sniffers.
-            if (!experiment.isPresent()) {
-                log.error("Unable to update. Experiment with id {} not found.", experimentId);
-                return new ResponseEntity("Unable to update. Experiment with id " + experimentId + TextConstants.NOT_FOUND_SUFFIX,
-                        HttpStatus.NOT_FOUND);
-            }
-            participantToChange.setSource(experiment.get().getParticipationType());
-
-            participantService.saveAndFlush(participantToChange);
+            Map<Participant, ParticipantDto> map = new HashMap<>();
+            map.put(participantService.getParticipant(participantId), participantDto);
+            participantService.changeParticipant(map, experimentId);
             return new ResponseEntity<>(HttpStatus.OK);
         } else {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
     }
 
@@ -221,28 +159,21 @@ public class ParticipantController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
 
         if(apijwtService.isInstructorOrHigher(securedInfo)){
-            List<Participant> participantList = new ArrayList<>();
-
+            Map<Participant, ParticipantDto> participantMap = new HashMap<>();
             for(ParticipantDto participantDto : participantDtoList) {
                 apijwtService.participantAllowed(securedInfo, experimentId, participantDto.getParticipantId());
-                Optional<Participant> participant = participantService.findById(participantDto.getParticipantId());
-                if (!participant.isPresent()) {
-                    log.error("Unable to update. Participant with id {} not found.", participantDto.getParticipantId());
-                    return new ResponseEntity("Unable to update. Participant with id " + participantDto.getParticipantId() + " not found.", HttpStatus.NOT_FOUND);
-                }
-                Participant participantToChange = participant.get();
-                participantService.changeParticipant(participantToChange, participantDto, experimentId);
-                participantList.add(participantToChange);
-            }
+                Participant participant = participantService.getParticipant(participantDto.getParticipantId());
+                participantMap.put(participant, participantDto);
 
-                try {
-                    participantService.saveAllParticipants(participantList);
-                    return new ResponseEntity<>(HttpStatus.OK);
-                } catch (Exception ex) {
-                    throw new DataServiceException("There was an error updating the participants. No changes were made." + ex.getMessage());
-                }
+            }
+            try{
+                participantService.changeParticipant(participantMap, experimentId);
+                return new ResponseEntity<>(HttpStatus.OK);
+            }catch (Exception ex) {
+                throw new DataServiceException("Error 105: There was an error updating the participant list. No participants were updated.");
+            }
         } else {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
     }
 
@@ -259,17 +190,13 @@ public class ParticipantController {
         apijwtService.participantAllowed(securedInfo, experimentId, participantId);
 
         if (apijwtService.isInstructorOrHigher(securedInfo)) {
-            Optional<Participant> participant = participantService.findById(participantId);
-            if(participant.isPresent()){
-                participant.get().setDropped(true);
-                participantService.saveAndFlush(participant.get());
-                return new ResponseEntity<>(HttpStatus.OK);
-            } else {
-                log.error("The participant was not found in current experiment.");
-                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-            }
+            Participant participant = participantService.getParticipant(participantId);
+            //soft delete
+            participant.setDropped(true);
+            participantService.saveAndFlush(participant);
+            return new ResponseEntity<>(HttpStatus.OK);
         } else {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
     }
 }

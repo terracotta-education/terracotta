@@ -9,6 +9,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public interface ConditionService {
@@ -28,9 +29,7 @@ public interface ConditionService {
 
     void saveAndFlush(Condition conditionToChange);
 
-    Condition updateCondition(Condition condition, ConditionDto conditionDto);
-
-    void saveAllConditions(List<Condition> conditionList);
+    void updateCondition(Map<Condition, ConditionDto> map);
 
     void deleteById(Long id) throws EmptyResultDataAccessException;
 
@@ -38,7 +37,7 @@ public interface ConditionService {
 
     boolean nameAlreadyExists(String name, Long experimentId, Long conditionId);
 
-    boolean duplicateNameInPut(List<Condition> conditions, Condition condition);
+    boolean duplicateNameInPut(Map<Condition, ConditionDto> map, Condition condition);
 
     boolean isDefaultCondition(Long conditionId);
 

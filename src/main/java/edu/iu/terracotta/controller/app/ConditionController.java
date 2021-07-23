@@ -26,10 +26,12 @@ import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.http.HttpHeaders;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.HashMap;
 import java.util.List;
-import java.util.ArrayList;
+import java.util.Map;
 
 @Controller
+@SuppressWarnings({"rawtypes", "unchecked"})
 @RequestMapping(value = ConditionController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
 public class ConditionController {
 
@@ -105,7 +107,7 @@ public class ConditionController {
             try{
                 condition = conditionService.fromDto(conditionDto);
             } catch (DataServiceException e) {
-                return new ResponseEntity("Unable to create condition:" + e.getMessage(), HttpStatus.BAD_REQUEST);
+                return new ResponseEntity("Error 105: Unable to create condition:" + e.getMessage(), HttpStatus.BAD_REQUEST);
             }
 
             ConditionDto returnedDto = conditionService.toDto(conditionService.save(condition));
@@ -129,9 +131,11 @@ public class ConditionController {
         apijwtService.conditionAllowed(securedInfo, experimentId, conditionId);
 
         if(apijwtService.isInstructorOrHigher(securedInfo)) {
+            Map<Condition, ConditionDto> map = new HashMap<>();
             Condition condition = conditionService.findByConditionId(conditionId);
             conditionService.validateConditionName(condition.getName(), conditionDto.getName(), experimentId, conditionId, true);
-            conditionService.saveAndFlush(conditionService.updateCondition(condition, conditionDto));
+            map.put(condition, conditionDto);
+            conditionService.updateCondition(map);
             return new ResponseEntity<>(HttpStatus.OK);
         }else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
@@ -149,23 +153,21 @@ public class ConditionController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
 
         if(apijwtService.isInstructorOrHigher(securedInfo)){
-            List<Condition> conditionList = new ArrayList<>();
-
+            Map<Condition, ConditionDto> map = new HashMap<>();
             for(ConditionDto conditionDto : conditionDtoList){
                 apijwtService.conditionAllowed(securedInfo, experimentId,conditionDto.getConditionId());
                 Condition condition = conditionService.findByConditionId(conditionDto.getConditionId());
                 conditionService.validateConditionName(condition.getName(), conditionDto.getName(), experimentId, condition.getConditionId(), true);
-                condition = conditionService.updateCondition(condition, conditionDto);
-                if(conditionService.duplicateNameInPut(conditionList, condition)) {
-                    return new ResponseEntity("Condition names must be unique. Another condition you are trying to update already has this name.", HttpStatus.CONFLICT);
+                if(conditionService.duplicateNameInPut(map, condition)) {
+                    return new ResponseEntity("Error 102: Condition names must be unique. Another condition you are trying to update already has this name.", HttpStatus.CONFLICT);
                 }
-                conditionList.add(condition);
+                map.put(condition, conditionDto);
             }
             try{
-                conditionService.saveAllConditions(conditionList);
+                conditionService.updateCondition(map);
                 return new ResponseEntity<>(HttpStatus.OK);
             } catch (Exception ex) {
-                throw new DataServiceException("An error occurred trying to update the condition list. No conditions were updated. " + ex.getMessage());
+                throw new DataServiceException("Error 105: An error occurred trying to update the condition list. No conditions were updated. " + ex.getMessage());
             }
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
@@ -185,7 +187,7 @@ public class ConditionController {
 
         if(apijwtService.isInstructorOrHigher(securedInfo)) {
             if(conditionService.isDefaultCondition(conditionId)){
-                return new ResponseEntity("Cannot delete default condition. If you would like to delete this condition, please select another condition to be the default condition.", HttpStatus.CONFLICT);
+                return new ResponseEntity("Error 118: Cannot delete default condition. Another condition must be selected as the default condition before this condition can be deleted.", HttpStatus.CONFLICT);
             }
             try {
                 conditionService.deleteById(conditionId);

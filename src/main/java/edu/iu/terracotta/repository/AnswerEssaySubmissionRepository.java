@@ -11,6 +11,8 @@ import java.util.List;
 public interface AnswerEssaySubmissionRepository extends JpaRepository<AnswerEssaySubmission, Long> {
     List<AnswerEssaySubmission> findByQuestionSubmission_QuestionSubmissionId(Long questionSubmissionId);
 
+    AnswerEssaySubmission findByAnswerEssaySubmissionId(Long answerEssaySubmissionId);
+
     boolean existsByQuestionSubmission_QuestionSubmissionIdAndAnswerEssaySubmissionId(Long questionSubmissionId, Long answerEssaySubmissionId);
 
     @Transactional

@@ -1,5 +1,6 @@
 package edu.iu.terracotta.service.app;
 
+import edu.iu.terracotta.exceptions.AssignmentNotCreatedException;
 import edu.iu.terracotta.model.app.FileInfo;
 import edu.iu.terracotta.model.app.dto.FileInfoDto;
 import org.springframework.web.multipart.MultipartFile;
@@ -28,5 +29,11 @@ public interface FileStorageService {
 
     List<FileInfo> findByExperimentId(Long experimentId);
 
+    List<FileInfoDto> getFiles(long experimentId);
+
     FileInfoDto toDto(FileInfo fileInfo);
+
+    FileInfoDto uploadFile(MultipartFile multipartFile, String prefix, String extraPath, long experimentId, boolean consent);
+
+    void uploadConsent(long experimentId, String title, FileInfoDto fileInfoDto) throws AssignmentNotCreatedException;
 }

@@ -11,6 +11,8 @@ import java.util.List;
 public interface AnswerMcSubmissionRepository extends JpaRepository<AnswerMcSubmission, Long> {
     List<AnswerMcSubmission> findByQuestionSubmission_QuestionSubmissionId(Long questionSubmissionId);
 
+    AnswerMcSubmission findByAnswerMcSubId(Long answerMcSubId);
+
     boolean existsByQuestionSubmission_QuestionSubmissionIdAndAnswerMcSubId(Long questionSubmissionId, Long answerMcSubId);
 
     @Transactional

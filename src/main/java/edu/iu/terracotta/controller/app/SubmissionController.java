@@ -2,11 +2,12 @@ package edu.iu.terracotta.controller.app;
 
 import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.exceptions.BadTokenException;
-import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.exceptions.InvalidUserException;
+import edu.iu.terracotta.exceptions.NoSubmissionsException;
+import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
 import edu.iu.terracotta.exceptions.SubmissionNotMatchingException;
-import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.dto.SubmissionDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
@@ -31,12 +32,10 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.HttpServletRequest;
-import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @Controller
+@SuppressWarnings({"rawtypes", "unchecked"})
 @RequestMapping(value = SubmissionController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
 public class SubmissionController {
 
@@ -58,35 +57,19 @@ public class SubmissionController {
                                                                           @PathVariable("treatment_id") Long treatmentId,
                                                                           @PathVariable("assessment_id") Long assessmentId,
                                                                           HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, BadTokenException {
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, BadTokenException, NoSubmissionsException {
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
 
-        if(apijwtService.isInstructorOrHigher(securedInfo)) {
-            List<Submission> submissionList = submissionService.findAllByAssessmentId(assessmentId);
-
-            if(submissionList.isEmpty()) {
+        if(apijwtService.isLearnerOrHigher(securedInfo)) {
+            boolean student = !apijwtService.isInstructorOrHigher(securedInfo);
+            List<SubmissionDto> submissionDtoList = submissionService.getSubmissions(experimentId, securedInfo.getUserId(), assessmentId, student);
+            if(submissionDtoList.isEmpty()){
                 return new ResponseEntity<>(HttpStatus.NO_CONTENT);
             }
-            List<SubmissionDto> submissionDtoList = new ArrayList<>();
-            for(Submission submission : submissionList) {
-                submissionDtoList.add(submissionService.toDto(submission, false,false));
-            }
             return new ResponseEntity<>(submissionDtoList, HttpStatus.OK);
-        } else if(apijwtService.isLearnerOrHigher(securedInfo)) {
-            Participant participant = submissionService.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, securedInfo.getUserId());
-            List<Submission> submissions = submissionService.findByParticipantId(participant.getParticipantId());
-            if(!submissions.isEmpty()) {
-                List<SubmissionDto> submissionDtoList = new ArrayList<>();
-                for(Submission submission : submissions) {
-                    submissionDtoList.add(submissionService.toDto(submission, false, false));
-                }
-                return new ResponseEntity(submissionDtoList, HttpStatus.OK);
-            } else {
-                return new ResponseEntity("There are no existing submissions for current user.", HttpStatus.NO_CONTENT);
-            }
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
@@ -104,36 +87,17 @@ public class SubmissionController {
                                                        @RequestParam(name = "question_submissions", defaultValue = "false") boolean questionSubmissions,
                                                        @RequestParam(name = "submission_comments", defaultValue = "false") boolean submissionComments,
                                                        HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, SubmissionNotMatchingException, BadTokenException {
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, SubmissionNotMatchingException, BadTokenException, NoSubmissionsException {
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
         apijwtService.submissionAllowed(securedInfo, assessmentId, submissionId);
 
-        if(apijwtService.isInstructorOrHigher(securedInfo)) {
-            Optional<Submission> submissionSearchResult = submissionService.findById(submissionId);
-
-            if(!submissionSearchResult.isPresent()) {
-                log.error("Submission in platform {} and context {} and experiment {} and condition {} and treatment {}  and assessment {} with id {} not found",
-                        securedInfo.getPlatformDeploymentId(), securedInfo.getContextId(), experimentId, conditionId, treatmentId, assessmentId, submissionId);
-                return new ResponseEntity("Submission in platform " + securedInfo.getPlatformDeploymentId() + " and context " + securedInfo.getContextId() +
-                        " and experiment with id " + experimentId + " and condition id " + conditionId + " and treatment id " + treatmentId + " and assessment id " +
-                        assessmentId + " with id " + submissionId + TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
-            } else {
-                SubmissionDto submissionDto = submissionService.toDto(submissionSearchResult.get(), questionSubmissions, submissionComments);
-                return new ResponseEntity<>(submissionDto, HttpStatus.OK);
-            }
-        } else if(apijwtService.isLearnerOrHigher(securedInfo)) {
-            Participant participant = submissionService.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, securedInfo.getUserId());
-            Optional<Submission> submission = submissionService.findByParticipantIdAndSubmissionId(participant.getParticipantId(), submissionId);
-            if(submission.isPresent()){
-                return new ResponseEntity<>(submissionService.toDto(submission.get(), questionSubmissions, submissionComments), HttpStatus.OK);
-            } else {
-                log.error("A submission for participant with id " + participant.getParticipantId() + " not found");
-                return new ResponseEntity("There are no existing submissions with id " + submissionId + " for participant with id " +
-                        participant.getParticipantId(), HttpStatus.NOT_FOUND);
-            }
+        if(apijwtService.isLearnerOrHigher(securedInfo)) {
+            boolean student = !apijwtService.isInstructorOrHigher(securedInfo);
+            Submission submission = submissionService.getSubmission(experimentId, securedInfo.getUserId(), submissionId, student);
+            return new ResponseEntity<>(submissionService.toDto(submission, questionSubmissions, submissionComments), HttpStatus.OK);
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
@@ -149,7 +113,7 @@ public class SubmissionController {
                                                         @RequestBody SubmissionDto submissionDto,
                                                         UriComponentsBuilder ucBuilder,
                                                         HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, BadTokenException, DataServiceException, CanvasApiException, IOException {
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, BadTokenException, InvalidUserException, ParticipantNotMatchingException {
 
         log.info("Creating Submission: {}", submissionDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
@@ -162,35 +126,22 @@ public class SubmissionController {
                     log.error(TextConstants.ID_IN_POST_ERROR);
                     return new ResponseEntity(TextConstants.ID_IN_POST_ERROR, HttpStatus.CONFLICT);
                 }
-
                 submissionDto.setAssessmentId(assessmentId);
-                Participant participant = submissionService.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, securedInfo.getUserId());
-                if (participant == null) {
-                    return new ResponseEntity(TextConstants.PARTICIPANT_NOT_MATCHING + " Participant not in this experiment.", HttpStatus.UNAUTHORIZED);
-                }
-                submissionDto.setParticipantId(participant.getParticipantId());
+                submissionService.validateDto(experimentId, securedInfo.getUserId(), submissionDto);
                 Submission submission;
                 try {
-                    if (submissionDto.getAlteredCalculatedGrade() != null || submissionDto.getTotalAlteredGrade() != null) {
-                        return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS + " Students cannot alter the grades.", HttpStatus.UNAUTHORIZED);
-                    }
                     submission = submissionService.fromDto(submissionDto);
                 } catch (DataServiceException ex) {
-                    return new ResponseEntity("Unable to create Submission: " + ex.getMessage(), HttpStatus.BAD_REQUEST);
+                    return new ResponseEntity("Error 105: Unable to create Submission: " + ex.getMessage(), HttpStatus.BAD_REQUEST);
                 }
-
-                Submission submissionSaved = submissionService.save(submission);
-                SubmissionDto returnedDto = submissionService.toDto(submissionSaved, false, false);
-
-                HttpHeaders headers = new HttpHeaders();
-                headers.setLocation(ucBuilder.path("/api/experiments/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}")
-                        .buildAndExpand(experimentId, conditionId, treatmentId, assessmentId, submission.getSubmissionId()).toUri());
+                SubmissionDto returnedDto = submissionService.toDto(submissionService.save(submission), false, false);
+                HttpHeaders headers = submissionService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, submission.getSubmissionId());
                 return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
             } else {
                 return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
             }
         } else {
-            return new ResponseEntity("Assignment locked", HttpStatus.UNAUTHORIZED);
+            return new ResponseEntity("Error 128: Assignment locked", HttpStatus.UNAUTHORIZED);
         }
     }
 
@@ -213,19 +164,8 @@ public class SubmissionController {
         apijwtService.submissionAllowed(securedInfo, assessmentId, submissionId);
 
         if(apijwtService.isLearnerOrHigher(securedInfo)) {
-            Optional<Submission> submissionSearchResult = submissionService.findById(submissionId);
-
-            if(!submissionSearchResult.isPresent()){
-                log.error("Unable to update. Submission with id {} not found.", submissionId);
-                return new ResponseEntity("Unable to update. Submission with id " + submissionId + TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
-            }
-            Submission submissionToChange = submissionSearchResult.get();
-            if(apijwtService.isInstructorOrHigher(securedInfo)) {
-                submissionToChange.setAlteredCalculatedGrade(submissionDto.getAlteredCalculatedGrade());
-                submissionToChange.setTotalAlteredGrade(submissionDto.getTotalAlteredGrade());
-            }
-            //We still do this with the student because we want to update the last update date.
-            submissionService.saveAndFlush(submissionToChange);
+            boolean student = !apijwtService.isInstructorOrHigher(securedInfo);
+            submissionService.updateSubmission(submissionId, submissionDto, student);
             return new ResponseEntity<>(HttpStatus.OK);
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);

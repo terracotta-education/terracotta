@@ -5,11 +5,13 @@ import vuetify from './plugins/vuetify'
 import store from './store/index'
 import VueRouterBackButton from 'vue-router-back-button'
 import { TiptapVuetifyPlugin } from 'tiptap-vuetify'
+import VueSweetalert2 from 'vue-sweetalert2';
 
 Vue.config.productionTip = false
 
 Vue.use(VueRouterBackButton, { router })
 Vue.use(TiptapVuetifyPlugin, {vuetify, iconsGroup: 'mdi'})
+Vue.use(VueSweetalert2);
 
 const url = new URL(window.location.href);
 const params = new URLSearchParams(url.search);
