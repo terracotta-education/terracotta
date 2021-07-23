@@ -1,20 +1,16 @@
 package edu.iu.terracotta.controller.app;
 
 import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
-import edu.iu.terracotta.exceptions.AssignmentNotMatchingException;
 import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.ConditionNotMatchingException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentLockedException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
-import edu.iu.terracotta.model.app.Assignment;
 import edu.iu.terracotta.model.app.Treatment;
 import edu.iu.terracotta.model.app.dto.TreatmentDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
-import edu.iu.terracotta.service.app.AssessmentService;
-import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.app.TreatmentService;
 import edu.iu.terracotta.utils.TextConstants;
 import org.slf4j.Logger;
@@ -35,11 +31,10 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @Controller
+@SuppressWarnings({"rawtypes","unchecked"})
 @RequestMapping(value = TreatmentController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
 public class TreatmentController {
 
@@ -50,13 +45,9 @@ public class TreatmentController {
     TreatmentService treatmentService;
 
     @Autowired
-    AssignmentService assignmentService;
-
-    @Autowired
     APIJWTService apijwtService;
 
-    @Autowired
-    AssessmentService assessmentService;
+
 
     @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments", method = RequestMethod.GET, produces = "application/json;")
     @ResponseBody
@@ -71,16 +62,11 @@ public class TreatmentController {
         apijwtService.conditionAllowed(securedInfo, experimentId,conditionId);
 
         if(apijwtService.isLearnerOrHigher(securedInfo)) {
-            List<Treatment> treatmentList = treatmentService.findAllByConditionId(conditionId);
-
+            List<TreatmentDto> treatmentList = treatmentService.getTreatments(conditionId, submissions);
             if(treatmentList.isEmpty()) {
                 return new ResponseEntity<>(HttpStatus.NO_CONTENT);
             }
-            List<TreatmentDto> treatmentDtoList = new ArrayList<>();
-            for(Treatment treatment : treatmentList) {
-                treatmentDtoList.add(treatmentService.toDto(treatment, submissions));
-            }
-            return new ResponseEntity<>(treatmentDtoList, HttpStatus.OK);
+            return new ResponseEntity<>(treatmentList, HttpStatus.OK);
         } else {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
@@ -100,19 +86,8 @@ public class TreatmentController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.treatmentAllowed(securedInfo, experimentId, conditionId, treatmentId);
         if(apijwtService.isLearnerOrHigher(securedInfo)) {
-            Optional<Treatment> treatmentSearchResult = treatmentService.findById(treatmentId);
-
-            if(!treatmentSearchResult.isPresent()) {
-                log.error("treatment in platform {} and context {} and experiment {} and condition {} with id {} not found",
-                        securedInfo.getPlatformDeploymentId(), securedInfo.getContextId(), experimentId, conditionId, treatmentId);
-
-                return new ResponseEntity("treatment in platform " + securedInfo.getPlatformDeploymentId()
-                        + " and context " + securedInfo.getContextId() + " and experiment with id " + experimentId + " and condition id " + conditionId
-                        + " with id " + treatmentId + TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
-            } else {
-                TreatmentDto treatmentDto = treatmentService.toDto(treatmentSearchResult.get(), submissions);
-                return new ResponseEntity<>(treatmentDto, HttpStatus.OK);
-            }
+            TreatmentDto treatmentDto = treatmentService.toDto(treatmentService.getTreatment(treatmentId), submissions);
+            return new ResponseEntity<>(treatmentDto, HttpStatus.OK);
         } else {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
@@ -135,27 +110,24 @@ public class TreatmentController {
 
         if(apijwtService.isInstructorOrHigher(securedInfo)) {
             if(treatmentDto.getTreatmentId() != null) {
-                log.error("Cannot include id in the POST endpoint. To modify existing treatments you must use PUT");
-                return new ResponseEntity("Cannot include id in the POST endpoint. To modify existing treatments you must use PUT", HttpStatus.CONFLICT);
+                log.error(TextConstants.ID_IN_POST_ERROR);
+                return new ResponseEntity(TextConstants.ID_IN_POST_ERROR, HttpStatus.CONFLICT);
             }
-
             treatmentDto.setConditionId(conditionId);
             if (treatmentDto.getAssignmentId()==null){
-                return new ResponseEntity("Unable to create Treatment: The assignmentId is mandatory", HttpStatus.BAD_REQUEST);
+                return new ResponseEntity("Error 129: Unable to create Treatment: The assignmentId is mandatory", HttpStatus.BAD_REQUEST);
             }
             Treatment treatment;
             try{
                 treatment = treatmentService.fromDto(treatmentDto);
             } catch (DataServiceException ex) {
-                return new ResponseEntity("Unable to create Treatment: " + ex.getMessage(), HttpStatus.BAD_REQUEST);
+                return new ResponseEntity("Error 105: Unable to create Treatment: " + ex.getMessage(), HttpStatus.BAD_REQUEST);
             }
 
             Treatment treatmentSaved = treatmentService.save(treatment);
             TreatmentDto returnedDto = treatmentService.toDto(treatmentSaved, false);
 
-            HttpHeaders headers = new HttpHeaders();
-            headers.setLocation(ucBuilder.path("/api/experiments/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}")
-                .buildAndExpand(experimentId, conditionId, treatment.getTreatmentId()).toUri());
+            HttpHeaders headers = treatmentService.buildHeaders(ucBuilder, experimentId, conditionId, treatment.getTreatmentId());
             return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
@@ -163,13 +135,16 @@ public class TreatmentController {
     }
 
 
+    /*
+    Currently there is no functionality with the PUT endpoint. It is here in case there is need in the future.
+     */
     @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}", method = RequestMethod.PUT)
     public ResponseEntity<Void> updateTreatment(@PathVariable("experiment_id") Long experimentId,
                                                 @PathVariable("condition_id") Long conditionId,
                                                 @PathVariable("treatment_id") Long treatmentId,
                                                 @RequestBody TreatmentDto treatmentDto,
                                                 HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, TreatmentNotMatchingException, AssignmentNotMatchingException, DataServiceException {
+            throws ExperimentNotMatchingException, BadTokenException, TreatmentNotMatchingException {
 
         log.info("Updating treatment with id: {}", treatmentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
@@ -177,27 +152,9 @@ public class TreatmentController {
         apijwtService.treatmentAllowed(securedInfo, experimentId, conditionId, treatmentId);
 
         if(apijwtService.isInstructorOrHigher(securedInfo)) {
-            Optional<Treatment> treatmentSearchResult = treatmentService.findById(treatmentId);
-
-            if(!treatmentSearchResult.isPresent()) {
-                log.error("Unable to update. Treatment with id {} not found.", treatmentId);
-                return new ResponseEntity("Unable to update. Treatment with id " + treatmentId + TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
-            }
-            Treatment treatmentToChange = treatmentSearchResult.get();
-            if (treatmentDto.getAssignmentId()==null){
-                return new ResponseEntity("Unable to create Treatment: The assignmentId is mandatory", HttpStatus.BAD_REQUEST);
-            }
-            Optional<Assignment> assignment = assignmentService.findById(treatmentDto.getAssignmentId());
-            if (assignment.isPresent()) {
-                apijwtService.assignmentAllowed(securedInfo, experimentId, treatmentDto.getAssignmentId());
-                treatmentToChange.setAssignment(assignment.get());
-            } else {
-                throw new DataServiceException("The assignment for the treatment does not exist");
-            }
-            treatmentService.saveAndFlush(treatmentToChange);
-            return new ResponseEntity<>(HttpStatus.OK);
-        } else {
-            return new ResponseEntity(TextConstants.NOT_FOUND_SUFFIX, HttpStatus.UNAUTHORIZED);
+            return new ResponseEntity("Currently there is no functionality at this endpoint.", HttpStatus.OK);
+        }else {
+            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
     }
 
@@ -216,12 +173,6 @@ public class TreatmentController {
 
         if(apijwtService.isInstructorOrHigher(securedInfo)) {
             try{
-                Optional<Treatment> treatment = treatmentService.findById(treatmentId);
-                if(treatment.isPresent()){
-                    //this line deletes the corresponding assessment (if there is one)
-                    treatment.get().setAssessment(null);
-                    treatmentService.saveAndFlush(treatment.get());
-                }
                 treatmentService.deleteById(treatmentId);
                 return new ResponseEntity<>(HttpStatus.OK);
             } catch (EmptyResultDataAccessException ex) {
@@ -232,5 +183,4 @@ public class TreatmentController {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
     }
-
 }

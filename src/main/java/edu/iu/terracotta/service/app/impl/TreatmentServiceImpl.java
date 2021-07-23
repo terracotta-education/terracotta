@@ -9,9 +9,12 @@ import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.AssessmentService;
 import edu.iu.terracotta.service.app.TreatmentService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import edu.iu.terracotta.model.app.Condition;
+import org.springframework.web.util.UriComponentsBuilder;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -28,6 +31,19 @@ public class TreatmentServiceImpl implements TreatmentService {
     public List<Treatment> findAllByConditionId(Long conditionId) {
         return allRepositories.treatmentRepository.findByCondition_ConditionId(conditionId);
     }
+
+    @Override
+    public List<TreatmentDto> getTreatments(Long conditionId, boolean submissions) throws AssessmentNotMatchingException{
+        List<Treatment> treatments = findAllByConditionId(conditionId);
+        List<TreatmentDto> treatmentDtoList = new ArrayList<>();
+        for(Treatment treatment : treatments){
+            treatmentDtoList.add(toDto(treatment, submissions));
+        }
+        return treatmentDtoList;
+    }
+
+    @Override
+    public Treatment getTreatment(Long id) { return allRepositories.treatmentRepository.findByTreatmentId(id); }
 
     @Override
     public TreatmentDto toDto(Treatment treatment, boolean submissions) throws AssessmentNotMatchingException {
@@ -77,5 +93,13 @@ public class TreatmentServiceImpl implements TreatmentService {
     public boolean treatmentBelongsToExperimentAndCondition(Long experimentId, Long conditionId, Long treatmentId) {
         return allRepositories.treatmentRepository.existsByCondition_Experiment_ExperimentIdAndCondition_ConditionIdAndTreatmentId(
                 experimentId, conditionId, treatmentId);
+    }
+
+    @Override
+    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, long experimentId, long conditionId, long treatmentId){
+        HttpHeaders headers = new HttpHeaders();
+        headers.setLocation(ucBuilder.path("/api/experiments/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}")
+                .buildAndExpand(experimentId, conditionId, treatmentId).toUri());
+        return headers;
     }
 }

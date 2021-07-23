@@ -64,7 +64,7 @@ public class ExportServiceImpl implements ExportService {
         List<Participant> participants = allRepositories.participantRepository.findByExperiment_ExperimentId(experimentId);
         List<Participant> consentedParticipants = new ArrayList<>();
         for(Participant participant : participants){
-            if(participant.getConsent()){
+            if(participant.getConsent() != null && participant.getConsent()){
                 consentedParticipants.add(participant);
             }
         }
@@ -135,7 +135,7 @@ public class ExportServiceImpl implements ExportService {
         List<String[]> participantData = new ArrayList<>();
         participantData.add(new String[] {"participant_id", "consented_at", "consent_source"});
         for(Participant participant : participants){
-            if(participant.getConsent()){
+            if(participant.getConsent() != null && participant.getConsent()){
                 String participantId = participant.getParticipantId().toString();
                 String consentedAt = participant.getDateGiven().toString();
                 String consentSource = participant.getExperiment().getParticipationType().toString();
@@ -193,7 +193,7 @@ public class ExportServiceImpl implements ExportService {
          */
         List<QuestionSubmission> questionSubmissions = allRepositories.questionSubmissionRepository.findBySubmission_Participant_Experiment_ExperimentId(experimentId);
         List<String[]> questionSubmissionData = new ArrayList<>();
-        questionSubmissionData.add(new String[] {"item_response_id", "submission_id", "assignment_id", "condition_id", "treatment_id", "participant_id", "item_id", "response", "response_id", "response_position",
+        questionSubmissionData.add(new String[] {"item_response_id", "submission_id", "assignment_id", "condition_id", "treatment_id", "participant_id", "item_id", "response_type", "response", "response_id", "response_position",
                                                 "correctness", "responded_at", "points_possible", "calculated_score", "override_score"});
         for(QuestionSubmission questionSubmission : questionSubmissions) {
             String itemResponseId = questionSubmission.getQuestionSubmissionId().toString();
@@ -203,6 +203,7 @@ public class ExportServiceImpl implements ExportService {
             String treatmentId = questionSubmission.getQuestion().getAssessment().getTreatment().getTreatmentId().toString();
             String participantId = questionSubmission.getSubmission().getParticipant().getParticipantId().toString();
             String itemId = questionSubmission.getQuestion().getQuestionId().toString();
+            String responseType = questionSubmission.getQuestion().getQuestionType().toString();
             String response = "N/A";
             String responseId = "N/A";
             String responsePosition = "N/A";
@@ -216,7 +217,7 @@ public class ExportServiceImpl implements ExportService {
                     if(!StringUtils.isAllBlank(answerMcSubmission.getAnswerMc().getHtml())){
                         response = answerMcSubmission.getAnswerMc().getHtml();
                     }
-                    responseId = "MC-" + answerMcSubmission.getAnswerMc().getAnswerMcId().toString();
+                    responseId = answerMcSubmission.getAnswerMc().getAnswerMcId().toString();
                     responsePosition = Character.toString(mapResponsePosition(Long.parseLong(itemId), answerMcSubmission.getAnswerMc().getAnswerMcId()));
                     correctness = answerMcSubmission.getAnswerMc().getCorrect().toString().toUpperCase();
                 }
@@ -245,7 +246,7 @@ public class ExportServiceImpl implements ExportService {
                 respondedAt = questionSubmission.getSubmission().getDateSubmitted().toString();
             }
             String pointsPossible = questionSubmission.getQuestion().getPoints().toString();
-            questionSubmissionData.add(new String[] {itemResponseId, submissionId, assignmentId, conditionId, treatmentId, participantId, itemId, response, responseId, responsePosition, correctness,
+            questionSubmissionData.add(new String[] {itemResponseId, submissionId, assignmentId, conditionId, treatmentId, participantId, itemId, responseType, response, responseId, responsePosition, correctness,
                                                         respondedAt, pointsPossible, calculatedScore, overrideScore});
         }
         csvFiles.put("item_responses.csv", questionSubmissionData);

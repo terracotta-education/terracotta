@@ -17,7 +17,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -128,7 +130,9 @@ class ConditionServiceImplTest {
         conditionDto.setDistributionPct(75F);
 
         Condition condition = allRepositories.conditionRepository.findByConditionId(2L);
-        condition = conditionService.updateCondition(condition, conditionDto);
+        Map<Condition, ConditionDto> map = new HashMap<>();
+        map.put(condition,conditionDto);
+        conditionService.updateCondition(map);
         assertEquals(1, condition.getExperiment().getExperimentId());
         assertEquals(2, condition.getConditionId());
         assertTrue(condition.getDefaultCondition());

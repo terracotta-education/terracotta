@@ -22,13 +22,16 @@ import edu.iu.terracotta.service.app.ParticipantService;
 import edu.iu.terracotta.service.lti.AdvantageMembershipService;
 import edu.iu.terracotta.service.lti.LTIDataService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 
@@ -55,6 +58,18 @@ public class ParticipantServiceImpl implements ParticipantService {
     public List<Participant> findAllByExperimentId(long experimentId) {
         return allRepositories.participantRepository.findByExperiment_ExperimentId(experimentId);
     }
+
+    @Override
+    public List<ParticipantDto> getParticipants(List<Participant> participants) {
+        List<ParticipantDto> participantDtoList = new ArrayList<>();
+        for(Participant participant : participants){
+            participantDtoList.add(toDto(participant));
+        }
+        return participantDtoList;
+    }
+
+    @Override
+    public Participant getParticipant(long id){ return allRepositories.participantRepository.findByParticipantId(id); }
 
     @Override
     public ParticipantDto toDto(Participant participant) {
@@ -227,34 +242,42 @@ public class ParticipantServiceImpl implements ParticipantService {
     }
 
     @Override
-    public void changeParticipant(Participant participantToChange, ParticipantDto participantDto, Long experimentId){
-        Optional<Experiment> experiment = experimentService.findById(experimentId);
-        if (experiment.get().getParticipationType().equals(ParticipationTypes.CONSENT)){
-            if ((experiment.get().getStarted()==null) && (participantToChange.getConsent()==null && participantDto.getConsent()!=null)){
-                experiment.get().setStarted(Timestamp.valueOf(LocalDateTime.now()));
-                experimentService.save(experiment.get());
+    @Transactional
+    public void changeParticipant(Map<Participant, ParticipantDto> map, Long experimentId){
+        for(Map.Entry<Participant, ParticipantDto> entry : map.entrySet()){
+            Participant participantToChange = entry.getKey();
+            ParticipantDto participantDto = entry.getValue();
+            Experiment experiment = experimentService.getExperiment(experimentId);
+            if (experiment.getParticipationType().equals(ParticipationTypes.CONSENT)){
+                if ((experiment.getStarted()==null) && (participantToChange.getConsent()==null && participantDto.getConsent()!=null)){
+                    experiment.setStarted(Timestamp.valueOf(LocalDateTime.now()));
+                    experimentService.save(experiment);
+                }
             }
-        }
-        //If they had consent, and now they don't have, we change the dateRevoked to now.
-        //In any other case, we leave the date as it is. Ignoring any value in the PUT
-        if (participantToChange.getConsent() !=null && participantToChange.getConsent() &&
-                (participantDto.getConsent()==null || !participantDto.getConsent())) {
-            participantToChange.setDateRevoked(Timestamp.valueOf(LocalDateTime.now()));
-        }
-        if ((participantToChange.getConsent()==null || !participantToChange.getConsent()) &&
-                (participantDto.getConsent()!=null && participantDto.getConsent())){
-            participantToChange.setDateGiven(Timestamp.valueOf(LocalDateTime.now()));
-        }
-        participantToChange.setConsent((participantDto.getConsent()));
+            //If they had consent, and now they don't have, we change the dateRevoked to now.
+            //In any other case, we leave the date as it is. Ignoring any value in the PUT
+            if (participantToChange.getConsent() !=null && participantToChange.getConsent() &&
+                    (participantDto.getConsent()==null || !participantDto.getConsent())) {
+                participantToChange.setDateRevoked(Timestamp.valueOf(LocalDateTime.now()));
+            }
+            if ((participantToChange.getConsent()==null || !participantToChange.getConsent()) &&
+                    (participantDto.getConsent()!=null && participantDto.getConsent())){
+                participantToChange.setDateGiven(Timestamp.valueOf(LocalDateTime.now()));
+            }
+            participantToChange.setConsent((participantDto.getConsent()));
 
-        //NOTE: we do this... but this will be updated in the next GET participants with the real data and dropped will be overwritten.
-        if (participantDto.getDropped()!=null) {
-            participantToChange.setDropped(participantDto.getDropped());
-        }
-        if (participantDto.getGroupId()!=null && groupService.existsByExperiment_ExperimentIdAndGroupId(experiment.get().getExperimentId(), participantDto.getGroupId())){
-            participantToChange.setGroup(groupService.findById(participantDto.getGroupId()).get());
-        } else {
-            participantToChange.setGroup(null);
+            //NOTE: we do this... but this will be updated in the next GET participants with the real data and dropped will be overwritten.
+            if (participantDto.getDropped()!=null) {
+                participantToChange.setDropped(participantDto.getDropped());
+            }
+            if (participantDto.getGroupId()!=null && groupService.existsByExperiment_ExperimentIdAndGroupId(experiment.getExperimentId(), participantDto.getGroupId())){
+                participantToChange.setGroup(groupService.getGroup(participantDto.getGroupId()));
+            } else {
+                participantToChange.setGroup(null);
+            }
+            participantToChange.setSource(experiment.getParticipationType());
+
+            save(participantToChange);
         }
     }
 
@@ -269,6 +292,10 @@ public class ParticipantServiceImpl implements ParticipantService {
     }
 
     @Override
-    @Transactional
-    public void saveAllParticipants(List<Participant> participantList) { allRepositories.participantRepository.saveAll(participantList); }
+    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, long experimentId, long participantId){
+        HttpHeaders headers = new HttpHeaders();
+        headers.setLocation(ucBuilder.path("/api/experiments/{experimentId}/participant/{participantId}")
+                .buildAndExpand(experimentId, participantId).toUri());
+        return headers;
+    }
 }

@@ -9,8 +9,11 @@ import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.QuestionSubmissionCommentService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
+import org.springframework.web.util.UriComponentsBuilder;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,6 +26,21 @@ public class QuestionSubmissionCommentServiceImpl implements QuestionSubmissionC
     @Override
     public List<QuestionSubmissionComment> findAllByQuestionSubmissionId(Long questionSubmissionId) {
         return allRepositories.questionSubmissionCommentRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmissionId);
+    }
+
+    @Override
+    public List<QuestionSubmissionCommentDto> getQuestionSubmissionComments(Long questionSubmissionId){
+        List<QuestionSubmissionComment> questionSubmissionComments= findAllByQuestionSubmissionId(questionSubmissionId);
+        List<QuestionSubmissionCommentDto> questionSubmissionCommentDtoList = new ArrayList<>();
+        for(QuestionSubmissionComment questionSubmissionComment : questionSubmissionComments){
+            questionSubmissionCommentDtoList.add(toDto(questionSubmissionComment));
+        }
+        return questionSubmissionCommentDtoList;
+    }
+
+    @Override
+    public QuestionSubmissionComment getQuestionSubmissionComment(Long id){
+        return allRepositories.questionSubmissionCommentRepository.findByQuestionSubmissionCommentId(id);
     }
 
     @Override
@@ -77,5 +95,13 @@ public class QuestionSubmissionCommentServiceImpl implements QuestionSubmissionC
     public boolean questionSubmissionCommentBelongsToQuestionSubmission(Long questionSubmissionId, Long questionSubmissionCommentId){
         return allRepositories.questionSubmissionCommentRepository.existsByQuestionSubmission_QuestionSubmissionIdAndQuestionSubmissionCommentId(
                 questionSubmissionId, questionSubmissionCommentId);
+    }
+
+    @Override
+    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId, Long submissionId, Long questionSubmissionId, Long questionSubmissionCommentId){
+        HttpHeaders headers = new HttpHeaders();
+        headers.setLocation(ucBuilder.path("/api/experiments/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}/question_submissions/{question_submission_id}/question_submission_comments/{question_submission_comment_id}")
+                .buildAndExpand(experimentId, conditionId, treatmentId, assessmentId, submissionId, questionSubmissionId, questionSubmissionCommentId).toUri());
+        return headers;
     }
 }

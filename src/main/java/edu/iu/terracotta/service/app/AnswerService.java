@@ -10,6 +10,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public interface AnswerService {
@@ -25,17 +26,9 @@ public interface AnswerService {
 
     AnswerMc saveMC(AnswerMc answer);
 
-    Optional<AnswerMc> findByIdMC(Long id);
-
     AnswerMc findByAnswerId(Long answerId);
 
-    Optional<AnswerMc> findByQuestionIdAndAnswerId(Long questionId, Long answerId);
-
-    void saveAndFlushMC(AnswerMc answerToChange);
-
-    AnswerMc updateAnswerMC(AnswerMc answerMc, AnswerDto answerDto);
-
-    void saveAllAnswersMC(List<AnswerMc> answerList);
+    void updateAnswerMC(Map<AnswerMc, AnswerDto> map);
 
     void deleteByIdMC(Long id) throws EmptyResultDataAccessException;
 
@@ -47,7 +40,5 @@ public interface AnswerService {
 
 
     //METHODS FOR ALL ANSWER TYPES
-    String answerNotFound(SecuredInfo securedInfo, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId, Long questionId, Long answerId);
-
     String getQuestionType(Long questionId);
 }

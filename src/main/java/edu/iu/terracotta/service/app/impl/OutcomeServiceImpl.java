@@ -3,6 +3,7 @@ package edu.iu.terracotta.service.app.impl;
 import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
+import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.Exposure;
 import edu.iu.terracotta.model.app.Outcome;
@@ -26,8 +27,10 @@ import org.apache.commons.lang3.EnumUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -62,6 +65,19 @@ public class OutcomeServiceImpl implements OutcomeService {
     public List<Outcome> findAllByExposureId(Long exposureId) {
         return allRepositories.outcomeRepository.findByExposure_ExposureId(exposureId);
     }
+
+    @Override
+    public List<OutcomeDto> getOutcomes(Long exposureId){
+        List<Outcome> outcomes = findAllByExposureId(exposureId);
+        List<OutcomeDto> outcomeDtoList = new ArrayList<>();
+        for(Outcome outcome : outcomes){
+            outcomeDtoList.add(toDto(outcome, false));
+        }
+        return outcomeDtoList;
+    }
+
+    @Override
+    public Outcome getOutcome(Long id) { return allRepositories.outcomeRepository.findByOutcomeId(id); }
 
     @Override
     public OutcomeDto toDto(Outcome outcome, boolean outcomeScores) {
@@ -111,6 +127,32 @@ public class OutcomeServiceImpl implements OutcomeService {
     public Optional<Outcome> findById(Long id) { return allRepositories.outcomeRepository.findById(id); }
 
     @Override
+    public void updateOutcome(Long outcomeId, OutcomeDto outcomeDto) throws TitleValidationException {
+        Outcome outcome = getOutcome(outcomeId);
+        if(StringUtils.isAllBlank(outcomeDto.getTitle()) && StringUtils.isAllBlank(outcome.getTitle())){
+            throw new TitleValidationException("Error 100: Please give the outcome a title.");
+        }
+        if(!StringUtils.isAllBlank(outcomeDto.getTitle()) && outcomeDto.getTitle().length() > 255){
+            throw new TitleValidationException("Error 101: The title must be 255 characters or less.");
+        }
+        //only allow external to be changed if the current value is null. (Only allow it to be changed once)
+        if(outcome.getExternal() == null && outcomeDto.getExternal() != null){
+            outcome.setExternal(outcomeDto.getExternal());
+            if(!outcomeDto.getExternal()){
+                outcome.setLmsOutcomeId(null);
+                outcome.setLmsType(EnumUtils.getEnum(LmsType.class, LmsType.none.name()));
+            } else {
+                outcome.setLmsOutcomeId(outcomeDto.getLmsOutcomeId());
+                outcome.setLmsType(EnumUtils.getEnum(LmsType.class, outcomeDto.getLmsType()));
+            }
+        }
+        outcome.setTitle(outcomeDto.getTitle());
+        outcome.setMaxPoints(outcomeDto.getMaxPoints());
+
+        saveAndFlush(outcome);
+    }
+
+    @Override
     public void saveAndFlush(Outcome outcomeToChange) { allRepositories.outcomeRepository.saveAndFlush(outcomeToChange); }
 
     @Override
@@ -132,7 +174,7 @@ public class OutcomeServiceImpl implements OutcomeService {
                     outcomePotentialDtos.add(assignmentExtendedToOutcomePotentialDto(assignmentExtended));
             }
         } else {
-            throw new DataServiceException("Experiment does not exist.");
+            throw new DataServiceException("Error 105: Experiment does not exist.");
         }
         return outcomePotentialDtos;
     }
@@ -228,6 +270,27 @@ public class OutcomeServiceImpl implements OutcomeService {
         }
         //TODO, what to do if the outcome score is there but the participant is dropped.
 
+    }
+
+    @Override
+    public void defaultOutcome(OutcomeDto outcomeDto) throws TitleValidationException {
+        if(!StringUtils.isAllBlank(outcomeDto.getTitle()) && outcomeDto.getTitle().length() > 255){
+            throw new TitleValidationException("Error 101: The title must be 255 characters or less.");
+        }
+        if(outcomeDto.getExternal() != null) {
+            if(!outcomeDto.getExternal()){
+                outcomeDto.setLmsOutcomeId(null);
+                outcomeDto.setLmsType("NONE");
+            }
+        }
+    }
+
+    @Override
+    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long exposureId, Long outcomeId){
+        HttpHeaders headers = new HttpHeaders();
+        headers.setLocation(ucBuilder.path("/api/experiments/{experiment_id}/exposures/{exposure_id}/outcomes/{outcome_id}")
+                .buildAndExpand(experimentId, exposureId, outcomeId).toUri());
+        return headers;
     }
 
 }

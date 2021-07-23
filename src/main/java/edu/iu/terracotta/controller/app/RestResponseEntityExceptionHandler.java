@@ -46,7 +46,7 @@ public class RestResponseEntityExceptionHandler
             = {ParticipantNotMatchingException.class})
     protected ResponseEntity<Object> handleParticipantNotMatchingException(
             ParticipantNotMatchingException ex, WebRequest request) {
-        String bodyOfResponse = TextConstants.PARTICIPANT_NOT_MATCHING;
+        String bodyOfResponse = ex.getMessage();
         return handleExceptionInternal(ex, bodyOfResponse,
                 new HttpHeaders(), HttpStatus.UNAUTHORIZED, request);
     }
@@ -251,7 +251,8 @@ public class RestResponseEntityExceptionHandler
     }
 
     @ExceptionHandler(value = {TitleValidationException.class})
-    protected ResponseEntity<Object> handleTitleValidationException(TitleValidationException ex, WebRequest request) {
+    protected ResponseEntity<Object> handleTitleValidationException(
+            TitleValidationException ex, WebRequest request) {
         String bodyOfResponse = ex.getMessage();
         if(bodyOfResponse.startsWith("Error 100") || bodyOfResponse.startsWith("Error 102")){
             return handleExceptionInternal(ex, bodyOfResponse, new HttpHeaders(), HttpStatus.CONFLICT, request);
@@ -277,4 +278,55 @@ public class RestResponseEntityExceptionHandler
         return handleExceptionInternal(ex, bodyOfResponse,
                 new HttpHeaders(), HttpStatus.CONFLICT, request);
     }
+
+    @ExceptionHandler(value
+            = {InvalidUserException.class})
+    protected ResponseEntity<Object> handleInvalidUserException(
+            InvalidUserException ex, WebRequest request) {
+        String bodyOfResponse = ex.getMessage();
+        return handleExceptionInternal(ex, bodyOfResponse,
+                new HttpHeaders(), HttpStatus.UNAUTHORIZED, request);
+    }
+
+    @ExceptionHandler(value = {InvalidParticipantException.class})
+    protected ResponseEntity<Object> handleInvalidParticipantException(InvalidParticipantException ex, WebRequest request) {
+        String bodyOfResponse = ex.getMessage();
+        if(bodyOfResponse.startsWith("Error 105")) {
+            return handleExceptionInternal(ex, bodyOfResponse, new HttpHeaders(), HttpStatus.BAD_REQUEST, request);
+        }
+        return handleExceptionInternal(ex, bodyOfResponse, new HttpHeaders(), HttpStatus.CONFLICT, request);
+    }
+
+    @ExceptionHandler(value
+            = {InvalidQuestionTypeException.class})
+    protected ResponseEntity<Object> handleInvalidQuestionTypeException(
+            InvalidQuestionTypeException ex, WebRequest request) {
+        String bodyOfResponse = ex.getMessage();
+        return handleExceptionInternal(ex, bodyOfResponse,
+                new HttpHeaders(), HttpStatus.BAD_REQUEST, request);
+    }
+
+    @ExceptionHandler(value
+            = {DuplicateQuestionException.class})
+    protected ResponseEntity<Object> handleDuplicateQuestionException(
+            DuplicateQuestionException ex, WebRequest request){
+        String bodyOfResponse = ex.getMessage();
+        return handleExceptionInternal(ex, bodyOfResponse,
+                new HttpHeaders(), HttpStatus.CONFLICT, request);
+    }
+
+    @ExceptionHandler(value = {NoSubmissionsException.class})
+    protected ResponseEntity<Object> handleNoSubmissionsException(NoSubmissionsException ex, WebRequest request){
+        String bodyOfResponse = ex.getMessage();
+        if(bodyOfResponse.startsWith("A submission")){
+            return handleExceptionInternal(ex, bodyOfResponse, new HttpHeaders(), HttpStatus.NOT_FOUND, request);
+        }
+        return handleExceptionInternal(ex, bodyOfResponse, new HttpHeaders(), HttpStatus.NO_CONTENT, request);
+    }
+
+    @ExceptionHandler(value = {AssignmentNotCreatedException.class})
+    protected ResponseEntity<Object> handleAssignmentNotCreatedException(AssignmentNotCreatedException ex, WebRequest request){
+        return handleExceptionInternal(ex, ex.getMessage(), new HttpHeaders(), HttpStatus.INTERNAL_SERVER_ERROR, request);
+    }
+
 }

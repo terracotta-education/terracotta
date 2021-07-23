@@ -5,12 +5,19 @@ import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.dto.ParticipantDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
+import org.springframework.http.HttpHeaders;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public interface ParticipantService {
     List<Participant> findAllByExperimentId(long experimentId);
+
+    List<ParticipantDto> getParticipants(List<Participant> participants);
+
+    Participant getParticipant(long id);
 
     ParticipantDto toDto(Participant participant);
 
@@ -32,10 +39,10 @@ public interface ParticipantService {
 
     void prepareParticipation(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException;
 
-    void changeParticipant(Participant participantToChange, ParticipantDto participantDto, Long experimentId);
-
-    void saveAllParticipants(List<Participant> participantList);
+    void changeParticipant(Map<Participant, ParticipantDto> map, Long experimentId);
 
     Participant findParticipant(List<Participant> participants, String userId);
+
+    HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, long experimentId, long participantId);
 
 }
