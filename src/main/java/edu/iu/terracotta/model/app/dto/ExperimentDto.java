@@ -3,7 +3,6 @@ package edu.iu.terracotta.model.app.dto;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
-import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.List;
 

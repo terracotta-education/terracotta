@@ -14,7 +14,6 @@ import edu.iu.terracotta.model.app.dto.StepDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.AssignmentService;
-import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.ExposureService;
 import edu.iu.terracotta.service.app.GroupService;
 import edu.iu.terracotta.service.app.ParticipantService;
@@ -36,7 +35,6 @@ import org.springframework.web.bind.annotation.RequestMethod;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -64,9 +62,6 @@ public class StepsController {
 
     @Autowired
     APIJWTService apijwtService;
-
-    @Autowired
-    ExperimentService experimentService;
 
     final static String EXPOSURE_TYPE = "exposure_type";
     final static String PARTICIPATION_TYPE = "participation_type";

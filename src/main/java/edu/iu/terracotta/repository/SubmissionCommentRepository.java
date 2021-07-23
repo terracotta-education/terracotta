@@ -15,6 +15,8 @@ public interface SubmissionCommentRepository extends JpaRepository<SubmissionCom
 
     Optional<SubmissionComment> findBySubmission_SubmissionIdAndSubmissionCommentId(Long submissionId, Long submissionCommentId);
 
+    SubmissionComment findBySubmissionCommentId(Long submissionCommentId);
+
     boolean existsBySubmission_Assessment_AssessmentIdAndSubmission_SubmissionIdAndSubmissionCommentId(Long assessmentId, Long submissionId, Long submissionCommentId);
 
     @Transactional

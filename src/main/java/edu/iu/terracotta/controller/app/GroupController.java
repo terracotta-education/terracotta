@@ -5,14 +5,13 @@ import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentLockedException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.GroupNotMatchingException;
+import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.model.app.Group;
 import edu.iu.terracotta.model.app.dto.GroupDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
-import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.GroupService;
 import edu.iu.terracotta.utils.TextConstants;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,11 +29,10 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @Controller
+@SuppressWarnings({"rawtypes", "unchecked"})
 @RequestMapping(value = GroupController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
 public class GroupController {
 
@@ -47,8 +45,7 @@ public class GroupController {
     @Autowired
     APIJWTService apijwtService;
 
-    @Autowired
-    ExperimentService experimentService;
+
 
     @RequestMapping(value = "/{experiment_id}/groups", method = RequestMethod.GET, produces = "application/json")
     @ResponseBody
@@ -58,18 +55,12 @@ public class GroupController {
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
 
-        //TODO should this be Learner or higher? Is there a reason a student would need to see group?
         if(apijwtService.isLearnerOrHigher(securedInfo)) {
-            List<Group> groupList =
-                    groupService.findAllByExperimentId(experimentId);
+            List<GroupDto> groupList = groupService.getGroups(experimentId);
             if(groupList.isEmpty()) {
                 return new ResponseEntity<>(HttpStatus.NO_CONTENT);
             }
-            List<GroupDto> groupDtoList = new ArrayList<>();
-            for(Group group : groupList) {
-                groupDtoList.add(groupService.toDto(group));
-            }
-            return new ResponseEntity<>(groupDtoList, HttpStatus.OK);
+            return new ResponseEntity<>(groupList, HttpStatus.OK);
         }else {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
@@ -87,15 +78,8 @@ public class GroupController {
         apijwtService.groupAllowed(securedInfo, experimentId, groupId);
 
         if(apijwtService.isLearnerOrHigher(securedInfo)) {
-            Optional<Group> group = groupService.findOneByGroupId(groupId);
-
-            if(!group.isPresent()) {
-                log.error("group {} in experiment {} not found.", groupId, experimentId);
-                return new ResponseEntity("group " + groupId + " in experiment " + experimentId + TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
-            } else {
-                GroupDto groupDto = groupService.toDto(group.get());
-                return new ResponseEntity<>(groupDto, HttpStatus.OK);
-            }
+            GroupDto groupDto = groupService.toDto(groupService.getGroup(groupId));
+            return new ResponseEntity<>(groupDto, HttpStatus.OK);
         }else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
@@ -115,12 +99,8 @@ public class GroupController {
 
         if(apijwtService.isInstructorOrHigher(securedInfo)) {
             if(groupDto.getGroupId() != null) {
-                log.error("Cannot include id in the POST endpoint. To modify existing groups you must use PUT");
-                return new ResponseEntity("Cannot include id in the POST endpoint. To modify existing groups you must use PUT", HttpStatus.CONFLICT);
-            }
-
-            if(!StringUtils.isAllBlank(groupDto.getName()) && groupDto.getName().length() > 255){
-                return new ResponseEntity("Title must be 255 characters or less.", HttpStatus.BAD_REQUEST);
+                log.error(TextConstants.ID_IN_POST_ERROR);
+                return new ResponseEntity(TextConstants.ID_IN_POST_ERROR, HttpStatus.CONFLICT);
             }
 
             groupDto.setExperimentId(experimentId);
@@ -128,14 +108,11 @@ public class GroupController {
             try{
                 group = groupService.fromDto(groupDto);
             } catch (DataServiceException e) {
-                return new ResponseEntity("Unable to create group:" + e.getMessage(), HttpStatus.BAD_REQUEST);
+                return new ResponseEntity("Error 105: Unable to create group:" + e.getMessage(), HttpStatus.BAD_REQUEST);
             }
+            GroupDto returnedDto = groupService.toDto(groupService.save(group));
 
-            Group groupSaved = groupService.save(group);
-            GroupDto returnedDto = groupService.toDto(groupSaved);
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setLocation(ucBuilder.path("/api/experiment/{experiment_id}/groups/{id}").buildAndExpand(experimentId, group.getGroupId()).toUri());
+            HttpHeaders headers = groupService.buildHeaders(ucBuilder, experimentId, group.getGroupId());
             return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
         }else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
@@ -147,7 +124,7 @@ public class GroupController {
                                                @PathVariable("group_id") Long groupId,
                                                @RequestBody GroupDto groupDto,
                                                HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, GroupNotMatchingException {
+            throws ExperimentNotMatchingException, BadTokenException, GroupNotMatchingException, TitleValidationException {
 
         log.info("Updating group with id {}", groupId);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
@@ -155,23 +132,7 @@ public class GroupController {
         apijwtService.groupAllowed(securedInfo, experimentId, groupId);
 
         if(apijwtService.isInstructorOrHigher(securedInfo)) {
-            Optional<Group> groupSearchResult = groupService.findById(groupId);
-
-            if(!groupSearchResult.isPresent()) {
-                log.error("Unable to update. Group with id {} not found.", groupId);
-                return new ResponseEntity("Unable to update. Group with id  " + groupId + TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
-            }
-
-            if(StringUtils.isAllBlank(groupDto.getName()) && StringUtils.isAllBlank(groupSearchResult.get().getName())){
-                return new ResponseEntity("Please give the group a name.", HttpStatus.CONFLICT);
-            }
-            if(!StringUtils.isAllBlank(groupDto.getName()) && groupDto.getName().length() > 255){
-                return new ResponseEntity("The title must be 255 characters or less.", HttpStatus.BAD_REQUEST);
-            }
-            Group groupToChange = groupSearchResult.get();
-            groupToChange.setName(groupDto.getName());
-
-            groupService.saveAndFlush(groupToChange);
+            groupService.updateGroup(groupId, groupDto);
             return new ResponseEntity<>(HttpStatus.OK);
         }else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);

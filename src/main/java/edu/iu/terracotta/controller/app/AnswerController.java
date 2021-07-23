@@ -31,9 +31,9 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
 
 @Controller
 @SuppressWarnings({"rawtypes", "unchecked"})
@@ -155,7 +155,7 @@ public class AnswerController {
                 try {
                     answerMc = answerService.fromDtoMC(answerDto);
                 } catch (DataServiceException ex) {
-                    return new ResponseEntity("Unable to create Answer: " + ex.getMessage(), HttpStatus.BAD_REQUEST);
+                    return new ResponseEntity("Error 105: Unable to create Answer: " + ex.getMessage(), HttpStatus.BAD_REQUEST);
                 }
                 AnswerDto returnedMcdDto = answerService.toDtoMC(answerService.saveMC(answerMc), false);
                 HttpHeaders mcHeaders = answerService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, questionId, answerMc.getAnswerMcId());
@@ -187,18 +187,17 @@ public class AnswerController {
         if(apijwtService.isInstructorOrHigher(securedInfo)){
             String answerType = answerService.getQuestionType(questionId);
             if(answerType.equals("MC")){
-                List<AnswerMc> answerList = new ArrayList<>();
-
+                Map<AnswerMc, AnswerDto> map = new HashMap<>();
                 for(AnswerDto answerDto : answerDtoList) {
                     apijwtService.answerAllowed(securedInfo, assessmentId, questionId, answerType, answerDto.getAnswerId());
                     AnswerMc mcAnswer = answerService.findByAnswerId(answerDto.getAnswerId());
-                    answerList.add(answerService.updateAnswerMC(mcAnswer, answerDto));
+                    map.put(mcAnswer, answerDto);
                 }
                 try{
-                    answerService.saveAllAnswersMC(answerList);
+                    answerService.updateAnswerMC(map);
                     return new ResponseEntity<>(HttpStatus.OK);
                 } catch (Exception ex) {
-                    throw new DataServiceException("An error occurred trying to update the answer list. No answers were updated. " + ex.getMessage());
+                    throw new DataServiceException("Error 105: An error occurred trying to update the answer list. No answers were updated. " + ex.getMessage());
                 }
             } else {
                 return new ResponseEntity("Error 103: Answer type not supported.", HttpStatus.BAD_REQUEST);
@@ -232,7 +231,9 @@ public class AnswerController {
         if(apijwtService.isInstructorOrHigher(securedInfo)) {
             if(answerType.equals("MC")){
                 AnswerMc answerMc = answerService.findByAnswerId(answerId);
-                answerService.saveAndFlushMC(answerService.updateAnswerMC(answerMc, answerDto));
+                Map<AnswerMc, AnswerDto> map = new HashMap<>();
+                map.put(answerMc, answerDto);
+                answerService.updateAnswerMC(map);
                 return new ResponseEntity<>(HttpStatus.OK);
             } else {
                 return new ResponseEntity("Error 103: Answer type not supported.", HttpStatus.BAD_REQUEST);

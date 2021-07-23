@@ -1,13 +1,21 @@
 package edu.iu.terracotta.service.app.impl;
 
+import edu.iu.terracotta.exceptions.AssignmentNotCreatedException;
+import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.app.FileStorageException;
 import edu.iu.terracotta.exceptions.app.MyFileNotFoundException;
+import edu.iu.terracotta.model.app.ConsentDocument;
 import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.FileInfo;
 import edu.iu.terracotta.model.app.dto.FileInfoDto;
+import edu.iu.terracotta.model.canvas.AssignmentExtended;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.FileStorageService;
+import edu.iu.terracotta.service.canvas.CanvasAPIClient;
+import edu.ksu.canvas.model.assignment.Assignment;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.UrlResource;
@@ -24,6 +32,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -34,8 +46,13 @@ public class FileStorageServiceImpl implements FileStorageService {
     @Value("${upload.path}")
     private String uploadDir;
 
+    final static Logger log = LoggerFactory.getLogger(FileStorageServiceImpl.class);
+
     @Autowired
     ExperimentService experimentService;
+
+    @Autowired
+    CanvasAPIClient canvasAPIClient;
 
     @Autowired
     AllRepositories allRepositories;
@@ -45,7 +62,7 @@ public class FileStorageServiceImpl implements FileStorageService {
         try {
             Files.createDirectories(Paths.get(uploadDir));
         }catch (IOException e) {
-            throw new RuntimeException("Could not create upload folder!");
+            throw new RuntimeException("Error 138: Could not create upload folder!");
         }
     }
 
@@ -58,7 +75,7 @@ public class FileStorageServiceImpl implements FileStorageService {
 
         try {
             if(fileName.contains("..")) {
-                throw new FileStorageException("Sorry, Filename contains invalid path sequence " + fileName);
+                throw new FileStorageException("Error 139: Sorry, Filename contains invalid path sequence " + fileName);
             }
             String finalPath = uploadDir;
             if (StringUtils.hasText(extraPath)){
@@ -74,7 +91,7 @@ public class FileStorageServiceImpl implements FileStorageService {
 
             return fileName;
         } catch (IOException ex) {
-            throw new FileStorageException("Could not store file " + fileName + ". Please try again.", ex);
+            throw new FileStorageException("Error 140: Could not store file " + fileName + ". Please try again.", ex);
         }
     }
     @Override
@@ -89,10 +106,10 @@ public class FileStorageServiceImpl implements FileStorageService {
             if(resource.exists()) {
                 return resource;
             }else {
-                throw new MyFileNotFoundException("File not found " + fileName);
+                throw new MyFileNotFoundException("Error 126: File not found " + fileName);
             }
         } catch (MalformedURLException ex) {
-            throw new MyFileNotFoundException("File not found " + fileName, ex);
+            throw new MyFileNotFoundException("Error 126: File not found " + fileName, ex);
         }
     }
 
@@ -107,13 +124,13 @@ public class FileStorageServiceImpl implements FileStorageService {
                 if(resource.exists()){
                     return resource;
                 } else {
-                    throw new MyFileNotFoundException("File not found.");
+                    throw new MyFileNotFoundException("Error 126: File not found.");
                 }
             } catch (MalformedURLException ex) {
-                throw new MyFileNotFoundException("File not found.", ex);
+                throw new MyFileNotFoundException("Error 126: File not found.", ex);
             }
         } else {
-            throw new MyFileNotFoundException("File not found in repository.");
+            throw new MyFileNotFoundException("Error 126: File not found in repository.");
         }
     }
 
@@ -143,10 +160,10 @@ public class FileStorageServiceImpl implements FileStorageService {
             if(resource.exists()) {
                 return filePath.toFile().delete();
             }else {
-                throw new MyFileNotFoundException("File not found " + fileName);
+                throw new MyFileNotFoundException("Error 126: File not found " + fileName);
             }
         } catch (MalformedURLException ex) {
-            throw new MyFileNotFoundException("File not found.", ex);
+            throw new MyFileNotFoundException("Error 126: File not found.", ex);
         }
     }
 
@@ -162,13 +179,13 @@ public class FileStorageServiceImpl implements FileStorageService {
                     allRepositories.fileInfoRepository.deleteByFileId(fileId);
                     return filePath.toFile().delete();
                 } else {
-                    throw new MyFileNotFoundException("File not found.");
+                    throw new MyFileNotFoundException("Error 126: File not found.");
                 }
             } else {
-                throw new MyFileNotFoundException("File not found.");
+                throw new MyFileNotFoundException("Error 126: File not found.");
             }
         } catch (MalformedURLException ex){
-            throw new MyFileNotFoundException("File Not found.", ex);
+            throw new MyFileNotFoundException("Error 126: File Not found.", ex);
         }
     }
 
@@ -196,5 +213,85 @@ public class FileStorageServiceImpl implements FileStorageService {
         fileInfoDto.setUrl(ServletUriComponentsBuilder.fromCurrentContextPath().path("/api/experiments/" + fileInfoDto.getExperimentId() + "/files/" + fileInfo.getFileId()).build().toUriString());
 
         return fileInfoDto;
+    }
+
+    @Override
+    public FileInfoDto uploadFile(MultipartFile file, String prefix, String extraPath, long experimentId, boolean consent) {
+        String path = prefix + extraPath;
+        String fileName = storeFile(file, path, experimentId, consent);
+        FileInfoDto fileInfoDto = new FileInfoDto();
+        if (consent) {
+            fileInfoDto.setFileId(null);
+            fileInfoDto.setDateCreated(Timestamp.valueOf(LocalDateTime.now()));
+            fileInfoDto.setExperimentId(experimentId);
+            fileInfoDto.setUrl(ServletUriComponentsBuilder.fromCurrentContextPath().path("/api/experiments" + prefix + extraPath).build().toUriString());
+            fileInfoDto.setFileType(file.getContentType());
+            fileInfoDto.setSize(file.getSize());
+            fileInfoDto.setDateUpdated(fileInfoDto.getDateCreated());
+        } else {
+            FileInfo fileInfo = findByExperimentIdAndFilename(experimentId, extraPath + "/" + fileName);
+            fileInfoDto.setFileId(fileInfo.getFileId());
+            fileInfoDto.setExperimentId(experimentId);
+            fileInfoDto.setPath(fileInfo.getFilename());
+            fileInfoDto.setSize(fileInfo.getSize());
+            fileInfoDto.setFileType(fileInfo.getFileType());
+            fileInfoDto.setDateCreated(fileInfo.getCreatedAt());
+            fileInfoDto.setDateUpdated(fileInfo.getUpdatedAt());
+            fileInfoDto.setUrl(ServletUriComponentsBuilder.fromCurrentContextPath().path("/api/experiments" + prefix + fileInfo.getFileId()).build().toUriString());
+        }
+        return fileInfoDto;
+    }
+
+    @Override
+    public List<FileInfoDto> getFiles(long experimentId){
+        List<FileInfo> fileInfoList = findByExperimentId(experimentId);
+        List<FileInfoDto> fileInfoDtoList = new ArrayList<>();
+        for(FileInfo fileInfo : fileInfoList){
+            fileInfoDtoList.add(toDto(fileInfo));
+        }
+        return fileInfoDtoList;
+    }
+
+    @Override
+    public void uploadConsent(long experimentId, String title, FileInfoDto consentUploaded) throws AssignmentNotCreatedException {
+        Experiment experiment = experimentService.getExperiment(experimentId);
+        ConsentDocument consentDocument = experiment.getConsentDocument();
+        if (consentDocument == null){
+            consentDocument = new ConsentDocument();
+            consentDocument.setFilePointer(consentUploaded.getUrl());
+            consentDocument.setExperiment(experiment);
+            consentDocument.setTitle(title);
+        } else {
+            consentDocument.setFilePointer(consentUploaded.getUrl());
+        }
+        //Let's see if we have the assignment generated in Canvas
+        if (consentDocument.getLmsAssignmentId()==null){
+            AssignmentExtended canvasAssignment = new AssignmentExtended();
+            Assignment.ExternalToolTagAttribute canvasExternalToolTagAttributes = canvasAssignment.new ExternalToolTagAttribute();
+            canvasExternalToolTagAttributes.setUrl(ServletUriComponentsBuilder.fromCurrentContextPath().path("/lti3?consent=true&experiment=" + experimentId).build().toUriString());
+            canvasAssignment.setExternalToolTagAttributes(canvasExternalToolTagAttributes);
+            canvasAssignment.setName(title);
+            //TODO: Think about the description of the assignment.
+            canvasAssignment.setDescription("You are being asked to participate in a research study.  " +
+                    "Please read the statement below, and then select your response.  " +
+                    "Your teacher will be able to see whether you submitted a response, but will not be able to see your selection.");
+            canvasAssignment.setPublished(false);
+            canvasAssignment.setPointsPossible(0.0);
+            canvasAssignment.setSubmissionTypes(Collections.singletonList("external_tool"));
+            try {
+                String canvasCourseId = org.apache.commons.lang3.StringUtils.substringBetween(experiment.getLtiContextEntity().getContext_memberships_url(), "courses/", "/names");
+                Optional<AssignmentExtended> assignment = canvasAPIClient.createCanvasAssignment(canvasAssignment,canvasCourseId, experiment.getPlatformDeployment());
+                consentDocument.setLmsAssignmentId(Integer.toString(assignment.get().getId()));
+                consentDocument.setResourceLinkId(assignment.get().getExternalToolTagAttributes().getResourceLinkId());
+            } catch (CanvasApiException e) {
+                log.info("Create the assignment failed");
+                e.printStackTrace();
+                throw new AssignmentNotCreatedException("Error 137: The assignment was not created.");
+            }
+            log.info("Here we will create the assignment");
+        }
+        consentDocument = experimentService.saveConsentDocument(consentDocument);
+        experiment.setConsentDocument(consentDocument);
+        experimentService.saveAndFlush(experiment);
     }
 }

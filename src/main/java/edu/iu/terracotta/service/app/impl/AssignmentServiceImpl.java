@@ -2,10 +2,12 @@ package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.exceptions.AssignmentDatesException;
+import edu.iu.terracotta.exceptions.AssignmentNotCreatedException;
 import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
+import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.model.ags.LineItem;
 import edu.iu.terracotta.model.ags.LineItems;
@@ -40,12 +42,15 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import edu.iu.terracotta.model.app.Assignment;
 import edu.iu.terracotta.model.app.Exposure;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
 import java.sql.Timestamp;
@@ -56,6 +61,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Component
+@SuppressWarnings({"rawtypes", "unchecked"})
 public class AssignmentServiceImpl implements AssignmentService {
 
     @Autowired
@@ -102,6 +108,16 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     @Override
+    public List<AssignmentDto> getAssignments(Long exposureId, boolean submissions) throws AssessmentNotMatchingException{
+        List<Assignment> assignments = findAllByExposureId(exposureId);
+        List<AssignmentDto> assignmentDtoList = new ArrayList<>();
+        for(Assignment assignment : assignments){
+            assignmentDtoList.add(toDto(assignment, submissions));
+        }
+        return assignmentDtoList;
+    }
+
+    @Override
     public AssignmentDto toDto(Assignment assignment, boolean submissions) throws AssessmentNotMatchingException {
 
         AssignmentDto assignmentDto = new AssignmentDto();
@@ -117,12 +133,12 @@ public class AssignmentServiceImpl implements AssignmentService {
             assignmentDto.setStarted(true);
         }
         List<Treatment> treatments = allRepositories.treatmentRepository.findByAssignment_AssignmentId(assignment.getAssignmentId());
-        List<TreatmentDto> treatmentDtos = new ArrayList<>();
+        List<TreatmentDto> treatmentDtoList = new ArrayList<>();
         for (Treatment treatment:treatments){
             TreatmentDto treatmentDto = treatmentService.toDto(treatment, submissions);
-            treatmentDtos.add(treatmentDto);
+            treatmentDtoList.add(treatmentDto);
         }
-        assignmentDto.setTreatments(treatmentDtos);
+        assignmentDto.setTreatments(treatmentDtoList);
         return assignmentDto;
     }
 
@@ -149,6 +165,24 @@ public class AssignmentServiceImpl implements AssignmentService {
 
     @Override
     public Optional<Assignment> findById(Long id) { return allRepositories.assignmentRepository.findById(id); }
+
+    @Override
+    public Assignment getAssignment(Long id){ return allRepositories.assignmentRepository.findByAssignmentId(id); }
+
+    @Override
+    public void updateAssignment(Long id, AssignmentDto assignmentDto) throws TitleValidationException{
+        Assignment assignment = allRepositories.assignmentRepository.findByAssignmentId(id);
+        if(StringUtils.isAllBlank(assignmentDto.getTitle()) && StringUtils.isAllBlank(assignment.getTitle())){
+            throw new TitleValidationException("Error 100: Please give the assignment a name.");
+        }
+        if(!StringUtils.isAllBlank(assignmentDto.getTitle()) && assignmentDto.getTitle().length() > 255) {
+            throw new TitleValidationException("Error 101: The title must be 255 characters or less.");
+        }
+        assignment.setTitle(assignmentDto.getTitle());
+        assignment.setAssignmentOrder(assignmentDto.getAssignmentOrder());
+        assignment.setSoftDeleted(assignmentDto.getSoftDeleted());
+        saveAndFlush(assignment);
+    }
 
     @Override
     public void saveAndFlush(Assignment assignmentToChange) { allRepositories.assignmentRepository.saveAndFlush(assignmentToChange); }
@@ -188,24 +222,24 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     @Override
-    public Assessment getAssessmentbyGroupId(Long experimentId, String canvasAssignmentId, Long groupId) throws AssessmentNotMatchingException {
+    public Assessment getAssessmentByGroupId(Long experimentId, String canvasAssignmentId, Long groupId) throws AssessmentNotMatchingException {
         Assignment assignment = allRepositories.assignmentRepository.findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(experimentId, canvasAssignmentId);
         if (assignment==null){
-            throw new AssessmentNotMatchingException("This assignment does not exist in Terracotta for this experiment");
+            throw new AssessmentNotMatchingException("Error 127: This assignment does not exist in Terracotta for this experiment");
         }
         Optional<ExposureGroupCondition> exposureGroupCondition = allRepositories.exposureGroupConditionRepository.getByGroup_GroupIdAndExposure_ExposureId(groupId, assignment.getExposure().getExposureId());
         if (!exposureGroupCondition.isPresent()){
-            throw new AssessmentNotMatchingException("This assignment has not a condition assigned for the participant group.");
+            throw new AssessmentNotMatchingException("Error 130: This assignment does not have a condition assigned for the participant group.");
         }
         List<Treatment> treatments = allRepositories.treatmentRepository.findByCondition_ConditionIdAndAssignment_AssignmentId(exposureGroupCondition.get().getCondition().getConditionId(), assignment.getAssignmentId());
         if (treatments.isEmpty()){
-            throw new AssessmentNotMatchingException("This assignment has not a treatment assigned.");
+            throw new AssessmentNotMatchingException("Error 131: This assignment does not have a treatment assigned.");
         }
         if (treatments.size()>1){  //Should never happen
-            throw new AssessmentNotMatchingException("This assignment has ambiguous treatments. Please contact Terracotta administrator");
+            throw new AssessmentNotMatchingException("Error 132: This assignment has ambiguous treatments. Please contact a Terracotta administrator");
         }
         if (treatments.get(0).getAssessment()==null){
-            throw new AssessmentNotMatchingException("The treatment for this assignment has not any assessment created");
+            throw new AssessmentNotMatchingException("Error 133: The treatment for this assignment has not any assessment created");
         }
         return treatments.get(0).getAssessment();
     }
@@ -233,7 +267,7 @@ public class AssignmentServiceImpl implements AssignmentService {
                 }
             }
             //3. Check the assessment that belongs to this student
-            Assessment assessment = getAssessmentbyGroupId(experimentId, securedInfo.getCanvasAssignmentId() , participant.getGroup().getGroupId());
+            Assessment assessment = getAssessmentByGroupId(experimentId, securedInfo.getCanvasAssignmentId() , participant.getGroup().getGroupId());
             //4. Maybe create the submission and return it (it must include info about the assessment)
             // First, try to find the submissions for this assessment and participant.
             List<Submission> submissionList = submissionService.findByParticipantIdAndAssessmentId(participant.getParticipantId(), assessment.getAssessmentId());
@@ -352,4 +386,45 @@ public class AssignmentServiceImpl implements AssignmentService {
         }
     }
 
+    @Override
+    public void validateTitle(String title) throws TitleValidationException{
+        if(!StringUtils.isAllBlank(title) && title.length() > 255){
+            throw new TitleValidationException("Error 101: Assignment title must be 255 characters or less.");
+        }
+    }
+
+    @Override
+    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, long experimentId, long exposureId, long assignmentId){
+        HttpHeaders headers = new HttpHeaders();
+        headers.setLocation(ucBuilder.path("/api/experiments/{experiment_id}/exposures/{exposure_id}/assignments/{assignment_id}")
+                .buildAndExpand(experimentId, exposureId, assignmentId).toUri());
+        return headers;
+    }
+
+    @Override
+    public void buildAssignmentExtended(Assignment assignment, long experimentId, String canvasCourseId) throws AssignmentNotCreatedException{
+        AssignmentExtended canvasAssignment = new AssignmentExtended();
+        edu.ksu.canvas.model.assignment.Assignment.ExternalToolTagAttribute canvasExternalToolTagAttributes = canvasAssignment.new ExternalToolTagAttribute();
+        canvasExternalToolTagAttributes.setUrl(ServletUriComponentsBuilder.fromCurrentContextPath().path("/lti3?experiment=" + experimentId + "&assignment=" + assignment.getAssignmentId()).build().toUriString());
+        canvasAssignment.setExternalToolTagAttributes(canvasExternalToolTagAttributes);
+        canvasAssignment.setName(assignment.getTitle());
+        canvasAssignment.setDescription(null);
+        canvasAssignment.setPublished(false);
+        //TODO: This is interesting...because each condition assessment maybe has different points... so... what should we send here? 0? 100 and send a percent always????
+        canvasAssignment.setPointsPossible(100.0);
+        canvasAssignment.setSubmissionTypes(Collections.singletonList("external_tool"));
+        try {
+            Optional<AssignmentExtended> canvasAssignmentReturned = canvasAPIClient.createCanvasAssignment(canvasAssignment,
+                    canvasCourseId,
+                    assignment.getExposure().getExperiment().getPlatformDeployment());
+            assignment.setLmsAssignmentId(Integer.toString(canvasAssignmentReturned.get().getId()));
+            String jwtTokenAssignment = canvasAssignmentReturned.get().getSecureParams();
+            String resourceLinkId = apijwtService.unsecureToken(jwtTokenAssignment).getBody().get("lti_assignment_id").toString();
+            assignment.setResourceLinkId(resourceLinkId);
+        } catch (CanvasApiException e) {
+            log.info("Create the assignment failed");
+            e.printStackTrace();
+            throw new AssignmentNotCreatedException("Error 137: The assignment was not created.");
+        }
+    }
 }

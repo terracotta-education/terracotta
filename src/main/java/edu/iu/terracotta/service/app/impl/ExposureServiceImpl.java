@@ -2,6 +2,7 @@ package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentStartedException;
+import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.model.app.Condition;
 import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.Exposure;
@@ -13,10 +14,13 @@ import edu.iu.terracotta.model.app.enumerator.ExposureTypes;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.ExposureService;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,6 +38,16 @@ public class ExposureServiceImpl implements ExposureService {
     @Override
     public List<Exposure> findAllByExperimentId(long experimentId) {
         return allRepositories.exposureRepository.findByExperiment_ExperimentId(experimentId);
+    }
+
+    @Override
+    public List<ExposureDto> getExposures(Long experimentId){
+        List<Exposure> exposures = findAllByExperimentId(experimentId);
+        List<ExposureDto> exposureDtoList = new ArrayList<>();
+        for(Exposure exposure : exposures){
+            exposureDtoList.add(toDto(exposure));
+        }
+        return exposureDtoList;
     }
 
     @Override
@@ -93,7 +107,7 @@ public class ExposureServiceImpl implements ExposureService {
                     return;
                 } else {
                     if (experimentService.experimentStarted(experiment1)){
-                        throw new ExperimentStartedException("The experiment has already started. We can't modify it");
+                        throw new ExperimentStartedException("Error 110: The experiment has already started. We can't modify it");
                     } else{
                         //delete the existing exposures. That means delete the exposureGroupConditions too.
                         allRepositories.exposureGroupConditionRepository.deleteByExposure_Experiment_ExperimentId(experimentId);
@@ -119,6 +133,22 @@ public class ExposureServiceImpl implements ExposureService {
     public Optional<Exposure> findById(Long id) { return allRepositories.exposureRepository.findById(id); }
 
     @Override
+    public Exposure getExposure(Long id){ return allRepositories.exposureRepository.findByExposureId(id); }
+
+    @Override
+    public void updateExposure(Long exposureId, ExposureDto exposureDto) throws TitleValidationException{
+        Exposure exposure = allRepositories.exposureRepository.findByExposureId(exposureId);
+        if(StringUtils.isAllBlank(exposureDto.getTitle()) && StringUtils.isAllBlank(exposure.getTitle())){
+            throw new TitleValidationException("Error 100: Please give the exposure a title.");
+        }
+        if(!StringUtils.isAllBlank(exposureDto.getTitle()) && exposureDto.getTitle().length() > 255) {
+            throw new TitleValidationException("Error 101: Title must be 255 characters or less.");
+        }
+        exposure.setTitle(exposureDto.getTitle());
+        saveAndFlush(exposure);
+    }
+
+    @Override
     public void saveAndFlush(Exposure exposureToChange) { allRepositories.exposureRepository.saveAndFlush(exposureToChange); }
 
     @Override
@@ -129,6 +159,17 @@ public class ExposureServiceImpl implements ExposureService {
         return allRepositories.exposureRepository.existsByExperiment_ExperimentIdAndExposureId(experimentId,exposureId);
     }
 
+    @Override
+    public void validateTitle(String title) throws TitleValidationException{
+        if(!StringUtils.isAllBlank(title) && title.length() > 255){
+            throw new TitleValidationException("Title must be 255 characters or less.");
+        }
+    }
 
-
+    @Override
+    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long exposureId){
+        HttpHeaders headers = new HttpHeaders();
+        headers.setLocation(ucBuilder.path("/api/experiments/{experiment_id}/exposures/{id}").buildAndExpand(experimentId, exposureId).toUri());
+        return headers;
+    }
 }

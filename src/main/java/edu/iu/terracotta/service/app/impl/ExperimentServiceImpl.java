@@ -1,6 +1,8 @@
 package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.TitleValidationException;
+import edu.iu.terracotta.exceptions.WrongValueException;
 import edu.iu.terracotta.model.LtiContextEntity;
 import edu.iu.terracotta.model.LtiUserEntity;
 import edu.iu.terracotta.model.PlatformDeployment;
@@ -27,7 +29,9 @@ import org.apache.commons.lang3.EnumUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -52,6 +56,77 @@ public class ExperimentServiceImpl implements ExperimentService {
     @Override
     public List<Experiment> findAllByDeploymentIdAndCourseId(long deploymentId, long contextId) {
         return allRepositories.experimentRepository.findByPlatformDeployment_KeyIdAndLtiContextEntity_ContextId(deploymentId,contextId);
+    }
+
+    @Override
+    public List<ExperimentDto> getExperiments(long deploymentId, long contextId){
+        List<Experiment> experiments = findAllByDeploymentIdAndCourseId(deploymentId, contextId);
+        List<ExperimentDto> experimentDtoList = new ArrayList<>();
+        for(Experiment experiment : experiments){
+            experimentDtoList.add(toDto(experiment, false, false,  false));
+        }
+        return experimentDtoList;
+    }
+
+    @Override
+    public Experiment getExperiment(long experimentId){ return allRepositories.experimentRepository.findByExperimentId(experimentId); }
+
+    @Override
+    public void updateExperiment(long experimentId, long contextId, ExperimentDto experimentDto) throws TitleValidationException, WrongValueException{
+        Experiment experimentToChange = getExperiment(experimentId);
+        if(StringUtils.isAllBlank(experimentDto.getTitle()) && StringUtils.isAllBlank(experimentToChange.getTitle())){
+            throw new TitleValidationException("Error 100: Please give the experiment a title.");
+        }
+        if(!StringUtils.isBlank(experimentDto.getTitle())){
+            if(experimentDto.getTitle().length() > 255){
+                throw new TitleValidationException("Error 101: Experiment title must be 255 characters or less.");
+            }
+            if(titleAlreadyExists(experimentDto.getTitle(), contextId, experimentId)){
+                throw new TitleValidationException("Error 102: Unable to create the experiment. An experiment with title \"" + experimentDto.getTitle() + "\" already exists in this course.");
+            }
+        }
+        experimentToChange.setTitle(experimentDto.getTitle());
+        experimentToChange.setDescription(experimentDto.getDescription());
+        if (experimentToChange.getStarted()!=null
+                && (!experimentDto.getExposureType().equals(experimentToChange.getExposureType().name()))){
+            throw new WrongValueException("Error 110: The experiment has started. The Exposure Type can't be changed");
+        }
+        if (experimentToChange.getStarted()!=null
+                && (!experimentDto.getDistributionType().equals(experimentToChange.getDistributionType().name()))){
+            throw new WrongValueException("Error 110: The experiment has started. The Distribution Type can't be changed");
+        }
+        if (experimentToChange.getStarted()!=null
+                && (!experimentDto.getParticipationType().equals(experimentToChange.getParticipationType().name()))
+                && experimentToChange.getParticipationType().equals(ParticipationTypes.CONSENT)){
+            throw new WrongValueException("Error 110: The experiment has started. The Participation Type can't be changed from 'Consent' to " + experimentDto.getParticipationType());
+        }
+        if (experimentDto.getExposureType() != null) {
+            if (EnumUtils.isValidEnum(ExposureTypes.class, experimentDto.getExposureType())) {
+                experimentToChange.setExposureType(
+                        EnumUtils.getEnum(ExposureTypes.class, experimentDto.getExposureType()));
+            } else {
+                throw new WrongValueException("Error 134: " + experimentDto.getExposureType() + " is not a valid Exposure value");
+            }
+        }
+        if (experimentDto.getDistributionType() != null) {
+            if (EnumUtils.isValidEnum(DistributionTypes.class, experimentDto.getDistributionType())) {
+                experimentToChange.setDistributionType(
+                        EnumUtils.getEnum(DistributionTypes.class, experimentDto.getDistributionType()));
+            } else {
+                throw new WrongValueException("Error 134: " + experimentDto.getDistributionType() + " is not a valid Distribution value");
+            }
+        }
+        if (experimentDto.getParticipationType() != null) {
+            if (EnumUtils.isValidEnum(ParticipationTypes.class, experimentDto.getParticipationType())) {
+                experimentToChange.setParticipationType(
+                        EnumUtils.getEnum(ParticipationTypes.class, experimentDto.getParticipationType()));
+            } else {
+                throw new WrongValueException("Error 134: " + experimentDto.getParticipationType() + " is not a valid Participation value");
+            }
+        }
+        experimentToChange.setClosed(experimentDto.getClosed());
+        experimentToChange.setStarted(experimentDto.getStarted());
+        save(experimentToChange);
     }
 
     @Override
@@ -249,5 +324,22 @@ public class ExperimentServiceImpl implements ExperimentService {
         existingEmpty.setStarted(experimentDto.getStarted());
     }
 
+    @Override
+    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, long experimentId){
+        HttpHeaders headers = new HttpHeaders();
+        headers.setLocation(ucBuilder.path("/api/experiment/{id}").buildAndExpand(experimentId).toUri());
+        return headers;
+    }
 
+    @Override
+    public void validateTitle(String title, long contextId) throws TitleValidationException {
+        if(!StringUtils.isBlank(title)){
+            if(title.length() > 255){
+                throw new TitleValidationException("Error 101: Experiment title must be 255 characters or less.");
+            }
+            if(titleAlreadyExists(title, contextId, 0L)){
+                throw new TitleValidationException("Error 102: Unable to create the experiment. An experiment with title \"" + title + "\" already exists in this course.");
+            }
+        }
+    }
 }

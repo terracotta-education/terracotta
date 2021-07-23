@@ -7,13 +7,12 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 
 public interface GroupRepository extends JpaRepository<Group, Long> {
 
     List<Group> findByExperiment_ExperimentId(Long experimentId);
 
-    Optional<Group> findByGroupId(Long groupId);
+    Group findByGroupId(Long groupId);
 
     boolean existsByExperiment_ExperimentIdAndGroupId(Long experimentId, Long groupId);
 

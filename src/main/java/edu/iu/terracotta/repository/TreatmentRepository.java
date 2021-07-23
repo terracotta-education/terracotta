@@ -7,7 +7,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 
 public interface TreatmentRepository extends JpaRepository<Treatment, Long> {
 
@@ -17,6 +16,7 @@ public interface TreatmentRepository extends JpaRepository<Treatment, Long> {
 
     List<Treatment> findByAssignment_AssignmentId(Long assignmentId);
 
+    Treatment findByTreatmentId(Long treatmentId);
 
     boolean existsByCondition_Experiment_ExperimentIdAndCondition_ConditionIdAndTreatmentId(Long experimentId, Long conditionId, Long treatmentId);
 

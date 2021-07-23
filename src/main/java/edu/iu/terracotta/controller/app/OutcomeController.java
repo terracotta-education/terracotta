@@ -7,16 +7,14 @@ import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.ExposureNotMatchingException;
 import edu.iu.terracotta.exceptions.OutcomeNotMatchingException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
+import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.model.app.Outcome;
 import edu.iu.terracotta.model.app.dto.OutcomeDto;
 import edu.iu.terracotta.model.app.dto.OutcomePotentialDto;
-import edu.iu.terracotta.model.app.enumerator.LmsType;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.OutcomeService;
 import edu.iu.terracotta.utils.TextConstants;
-import org.apache.commons.lang3.EnumUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,11 +34,10 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @Controller
+@SuppressWarnings({"rawtypes", "unchecked"})
 @RequestMapping(value = OutcomeController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
 public class OutcomeController {
 
@@ -66,18 +63,13 @@ public class OutcomeController {
         apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
 
         if(apijwtService.isLearnerOrHigher(securedInfo)){
-            List<Outcome> outcomeList = outcomeService.findAllByExposureId(exposureId);
-
+            List<OutcomeDto> outcomeList = outcomeService.getOutcomes(exposureId);
             if(outcomeList.isEmpty()){
                 return new ResponseEntity<>(HttpStatus.NO_CONTENT);
             }
-            List<OutcomeDto> outcomeDtoList = new ArrayList<>();
-            for(Outcome outcome : outcomeList){
-                outcomeDtoList.add(outcomeService.toDto(outcome, false));
-            }
-            return new ResponseEntity<>(outcomeDtoList, HttpStatus.OK);
+            return new ResponseEntity<>(outcomeList, HttpStatus.OK);
         } else {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
     }
 
@@ -101,21 +93,10 @@ public class OutcomeController {
             if (updateScores) {
                 outcomeService.updateOutcomeGrades(outcomeId, securedInfo);
             }
-            Optional<Outcome> outcomeSearchResult = outcomeService.findById(outcomeId);
-
-            if(!outcomeSearchResult.isPresent()){
-                log.error("Outcome in platform {} and context {} and experiment {} and exposure {} with id {} not found",
-                        securedInfo.getPlatformDeploymentId(), securedInfo.getContextId(), experimentId, experimentId, outcomeId);
-                return new ResponseEntity("Outcome in platform " + securedInfo.getPlatformDeploymentId() + " and context " + securedInfo.getContextId() +
-                        " and experiment with id " + experimentId + " and exposure id " + exposureId + " with id " + outcomeId +  TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
-            } else {
-
-
-                OutcomeDto outcomeDto = outcomeService.toDto(outcomeSearchResult.get(), outcomeScores);
-                return new ResponseEntity<>(outcomeDto, HttpStatus.OK);
-            }
+            OutcomeDto outcomeDto = outcomeService.toDto(outcomeService.getOutcome(outcomeId), outcomeScores);
+            return new ResponseEntity<>(outcomeDto, HttpStatus.OK);
         } else {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
     }
 
@@ -126,7 +107,7 @@ public class OutcomeController {
                                                   @RequestBody OutcomeDto outcomeDto,
                                                   UriComponentsBuilder ucBuilder,
                                                   HttpServletRequest req)
-            throws ExperimentNotMatchingException, ExposureNotMatchingException, BadTokenException{
+            throws ExperimentNotMatchingException, ExposureNotMatchingException, BadTokenException, TitleValidationException {
 
         log.info("Creating Outcome: {}", outcomeDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
@@ -138,30 +119,17 @@ public class OutcomeController {
                 log.error(TextConstants.ID_IN_POST_ERROR);
                 return new ResponseEntity(TextConstants.ID_IN_POST_ERROR, HttpStatus.CONFLICT);
             }
-            if(!StringUtils.isAllBlank(outcomeDto.getTitle()) && outcomeDto.getTitle().length() > 255){
-                return new ResponseEntity("The title must be 255 characters or less.", HttpStatus.BAD_REQUEST);
-            }
 
             outcomeDto.setExposureId(exposureId);
-            if(outcomeDto.getExternal() != null) {
-                if(!outcomeDto.getExternal()){
-                    outcomeDto.setLmsOutcomeId(null);
-                    outcomeDto.setLmsType("NONE");
-                }
-            }
+            outcomeService.defaultOutcome(outcomeDto);
             Outcome outcome;
             try{
                 outcome = outcomeService.fromDto(outcomeDto);
             } catch (DataServiceException ex) {
-                return new ResponseEntity("Unable to create Outcome: " + ex.getMessage(), HttpStatus.BAD_REQUEST);
+                return new ResponseEntity("Error 105: Unable to create Outcome: " + ex.getMessage(), HttpStatus.BAD_REQUEST);
             }
-
-            Outcome outcomeSaved = outcomeService.save(outcome);
-            OutcomeDto returnedDto = outcomeService.toDto(outcomeSaved, false);
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setLocation(ucBuilder.path("/api/experiments/{experiment_id}/exposures/{exposure_id}/outcomes/{outcome_id}")
-                    .buildAndExpand(experimentId, exposureId, outcome.getOutcomeId()).toUri());
+            OutcomeDto returnedDto = outcomeService.toDto(outcomeService.save(outcome), false);
+            HttpHeaders headers = outcomeService.buildHeaders(ucBuilder, experimentId, exposureId, returnedDto.getOutcomeId());
             return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
@@ -175,7 +143,7 @@ public class OutcomeController {
                                               @PathVariable("outcome_id") Long outcomeId,
                                               @RequestBody OutcomeDto outcomeDto,
                                               HttpServletRequest req)
-            throws ExperimentNotMatchingException, OutcomeNotMatchingException, BadTokenException {
+            throws ExperimentNotMatchingException, OutcomeNotMatchingException, BadTokenException, TitleValidationException {
 
         log.info("Updating outcome with id {}", outcomeId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
@@ -183,34 +151,7 @@ public class OutcomeController {
         apijwtService.outcomeAllowed(securedInfo, experimentId, exposureId, outcomeId);
 
         if(apijwtService.isInstructorOrHigher(securedInfo)){
-            Optional<Outcome> outcomeSearchResult = outcomeService.findById(outcomeId);
-
-            if(!outcomeSearchResult.isPresent()){
-                log.error("Unable to update. Outcome with id {} not found.", outcomeId);
-                return new ResponseEntity("Unable to update. Outcome with id " + outcomeId + TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
-            }
-            if(StringUtils.isAllBlank(outcomeDto.getTitle()) && StringUtils.isAllBlank(outcomeSearchResult.get().getTitle())){
-                return new ResponseEntity("Please give the outcome a title.", HttpStatus.CONFLICT);
-            }
-            if(!StringUtils.isAllBlank(outcomeDto.getTitle()) && outcomeDto.getTitle().length() > 255){
-                return new ResponseEntity("The title must be 255 characters or less.", HttpStatus.BAD_REQUEST);
-            }
-            Outcome outcomeToChange = outcomeSearchResult.get();
-            //only allow external to be changed if the current value is null. (Only allow it to be changed once)
-            if(outcomeToChange.getExternal() == null && outcomeDto.getExternal() != null){
-                outcomeToChange.setExternal(outcomeDto.getExternal());
-                if(!outcomeDto.getExternal()){
-                    outcomeToChange.setLmsOutcomeId(null);
-                    outcomeToChange.setLmsType(EnumUtils.getEnum(LmsType.class, LmsType.none.name()));
-                } else {
-                    outcomeToChange.setLmsOutcomeId(outcomeDto.getLmsOutcomeId());
-                    outcomeToChange.setLmsType(EnumUtils.getEnum(LmsType.class, outcomeDto.getLmsType()));
-                }
-            }
-            outcomeToChange.setTitle(outcomeDto.getTitle());
-            outcomeToChange.setMaxPoints(outcomeDto.getMaxPoints());
-
-            outcomeService.saveAndFlush(outcomeToChange);
+            outcomeService.updateOutcome(outcomeId, outcomeDto);
             return new ResponseEntity<>(HttpStatus.OK);
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
@@ -255,5 +196,4 @@ public class OutcomeController {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
     }
-
 }
