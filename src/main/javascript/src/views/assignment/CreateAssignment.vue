@@ -67,12 +67,12 @@ export default {
               assignment_id: response.data.assignmentId
             }})
           } else {
-            alert("error: ", response)
+            this.$swal(`${response}`)
           }
         })
         .catch(response => {
           console.error("createAssignment | catch", {response})
-          alert('There was an error creating the assignment.')
+          this.$swal('There was an error creating the assignment.')
         })
     },
     saveExit() {

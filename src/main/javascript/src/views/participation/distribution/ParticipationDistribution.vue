@@ -69,12 +69,12 @@ export default {
             }  else if(this.experiment.distributionType==='MANUAL') {
               this.$router.push({name:'ParticipationManualDistribution', params:{experiment: experimentId}})
             } else {
-              alert('Select a distribution type')
+              this.$swal('Select a distribution type')
             }
           } else if (response?.message) {
-            alert(`Error: ${response.message}`)
+            this.$swal(`Error: ${response.message}`)
           } else {
-            alert('There was an error saving your experiment.')
+            this.$swal('There was an error saving your experiment.')
           }
         })
         .catch(response => {
