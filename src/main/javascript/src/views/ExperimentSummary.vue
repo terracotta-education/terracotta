@@ -483,7 +483,7 @@ export default {
 
       // show an alert if there's a problem creating the treatment or assessment
       if (!treatment || !assessment) {
-        alert("There was a problem creating your assessment");
+        this.$swal("There was a problem creating your assessment");
         return false;
       }
 
