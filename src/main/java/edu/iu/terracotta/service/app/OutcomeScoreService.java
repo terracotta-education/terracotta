@@ -2,7 +2,6 @@ package edu.iu.terracotta.service.app;
 
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.InvalidParticipantException;
-import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
 import edu.iu.terracotta.model.app.OutcomeScore;
 import edu.iu.terracotta.model.app.dto.OutcomeScoreDto;
 import org.springframework.http.HttpHeaders;

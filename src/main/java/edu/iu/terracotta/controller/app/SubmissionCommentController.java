@@ -4,6 +4,7 @@ import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.InvalidUserException;
 import edu.iu.terracotta.exceptions.SubmissionCommentNotMatchingException;
 import edu.iu.terracotta.exceptions.SubmissionNotMatchingException;
@@ -123,8 +124,9 @@ public class SubmissionCommentController {
                                                                       @RequestBody SubmissionCommentDto submissionCommentDto,
                                                                       UriComponentsBuilder ucBuilder,
                                                                       HttpServletRequest req)
-                throws ExperimentNotMatchingException, AssessmentNotMatchingException, SubmissionNotMatchingException, BadTokenException, InvalidUserException {
+                throws ExperimentNotMatchingException, AssessmentNotMatchingException, SubmissionNotMatchingException, BadTokenException, InvalidUserException, IdInPostException {
 
+        log.debug("Creating submission comment: {}", submissionCommentDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
@@ -132,8 +134,7 @@ public class SubmissionCommentController {
 
         if(apijwtService.isLearnerOrHigher(securedInfo)) {
             if(submissionCommentDto.getSubmissionCommentId() != null) {
-                log.error(TextConstants.ID_IN_POST_ERROR);
-                return new ResponseEntity(TextConstants.ID_IN_POST_ERROR, HttpStatus.CONFLICT);
+                throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
             }
             if(!apijwtService.isInstructorOrHigher(securedInfo)){
                 submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
@@ -168,7 +169,7 @@ public class SubmissionCommentController {
                                                         HttpServletRequest req)
                 throws ExperimentNotMatchingException, AssessmentNotMatchingException, SubmissionCommentNotMatchingException, BadTokenException, InvalidUserException {
 
-        log.info("Updating submission comment with id {}", submissionCommentId);
+        log.debug("Updating submission comment with id {}", submissionCommentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
@@ -212,7 +213,7 @@ public class SubmissionCommentController {
                 submissionCommentService.deleteById(submissionCommentId);
                 return new ResponseEntity<>(HttpStatus.OK);
             } catch (EmptyResultDataAccessException ex) {
-                log.error(ex.getMessage());
+                log.warn(ex.getMessage());
                 return new ResponseEntity<>(HttpStatus.NOT_FOUND);
             }
         } else {

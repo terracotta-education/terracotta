@@ -5,6 +5,7 @@ import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentLockedException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.GroupNotMatchingException;
+import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.model.app.Group;
 import edu.iu.terracotta.model.app.dto.GroupDto;
@@ -90,17 +91,16 @@ public class GroupController {
                                                     @RequestBody GroupDto groupDto,
                                                     UriComponentsBuilder ucBuilder,
                                                     HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, ExperimentLockedException {
+            throws ExperimentNotMatchingException, BadTokenException, ExperimentLockedException, IdInPostException {
 
-        log.info("Creating Group : {}", groupDto);
+        log.debug("Creating Group : {}", groupDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentLocked(experimentId,true);
         apijwtService.experimentAllowed(securedInfo, experimentId);
 
         if(apijwtService.isInstructorOrHigher(securedInfo)) {
             if(groupDto.getGroupId() != null) {
-                log.error(TextConstants.ID_IN_POST_ERROR);
-                return new ResponseEntity(TextConstants.ID_IN_POST_ERROR, HttpStatus.CONFLICT);
+                throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
             }
 
             groupDto.setExperimentId(experimentId);
@@ -126,7 +126,7 @@ public class GroupController {
                                                HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, GroupNotMatchingException, TitleValidationException {
 
-        log.info("Updating group with id {}", groupId);
+        log.debug("Updating group with id {}", groupId);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.groupAllowed(securedInfo, experimentId, groupId);
@@ -155,7 +155,7 @@ public class GroupController {
                 groupService.deleteById(groupId);
                 return new ResponseEntity<>(HttpStatus.OK);
             } catch (EmptyResultDataAccessException ex) {
-                log.error(ex.getMessage());
+                log.warn(ex.getMessage());
                 return new ResponseEntity<>(HttpStatus.NOT_FOUND);
             }
         }else {

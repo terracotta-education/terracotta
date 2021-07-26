@@ -4,6 +4,7 @@ import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentLockedException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.exceptions.WrongValueException;
 import edu.iu.terracotta.model.app.Experiment;
@@ -105,7 +106,7 @@ public class ExperimentController {
     public ResponseEntity<ExperimentDto> postExperiment(@RequestBody ExperimentDto experimentDto,
                                                         UriComponentsBuilder ucBuilder,
                                                         HttpServletRequest req)
-            throws BadTokenException, TitleValidationException {
+            throws BadTokenException, TitleValidationException, IdInPostException {
         log.debug("Creating Experiment : {}", experimentDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         if (securedInfo ==null){
@@ -114,8 +115,7 @@ public class ExperimentController {
 
         if (apijwtService.isInstructorOrHigher(securedInfo)) {
             if (experimentDto.getExperimentId() != null) {
-                log.error(TextConstants.ID_IN_POST_ERROR);
-                return new ResponseEntity(TextConstants.ID_IN_POST_ERROR, HttpStatus.CONFLICT);
+                throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
             }
             ExperimentDto existingEmpty = experimentService.getEmptyExperiment(securedInfo, experimentDto);
             if (existingEmpty!=null){
@@ -147,7 +147,7 @@ public class ExperimentController {
                                                  @RequestBody ExperimentDto experimentDto,
                                                  HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, WrongValueException, TitleValidationException {
-        log.info("Updating Experiment with id {}", id);
+        log.debug("Updating Experiment with id {}", id);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, id);
 
@@ -172,7 +172,7 @@ public class ExperimentController {
                 experimentService.deleteById(id);
                 return new ResponseEntity<>(HttpStatus.OK);
             } catch (EmptyResultDataAccessException ex) {
-                log.error(ex.getMessage());
+                log.warn(ex.getMessage());
                 return new ResponseEntity<>(HttpStatus.NOT_FOUND);
             }
         } else {

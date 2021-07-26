@@ -4,14 +4,12 @@ import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.MultipleChoiceLimitReachedException;
 import edu.iu.terracotta.model.app.AnswerMc;
 import edu.iu.terracotta.model.app.dto.AnswerDto;
-import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 public interface AnswerService {
 

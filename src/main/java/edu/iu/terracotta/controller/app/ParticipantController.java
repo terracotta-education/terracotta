@@ -3,6 +3,7 @@ package edu.iu.terracotta.controller.app;
 import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.model.app.Participant;
@@ -98,16 +99,15 @@ public class ParticipantController {
                                                          @RequestBody ParticipantDto participantDto,
                                                          UriComponentsBuilder ucBuilder,
                                                          HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException {
+            throws ExperimentNotMatchingException, BadTokenException, IdInPostException {
 
-        log.info("Creating Participant : {}", participantDto);
+        log.debug("Creating Participant : {}", participantDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
 
         if (apijwtService.isLearnerOrHigher(securedInfo)) {
             if (participantDto.getParticipantId() != null) {
-                log.error(TextConstants.ID_IN_POST_ERROR);
-                return new ResponseEntity(TextConstants.ID_IN_POST_ERROR, HttpStatus.CONFLICT);
+                throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
             }
 
             Participant participant;
@@ -133,7 +133,7 @@ public class ParticipantController {
                                                   @RequestBody ParticipantDto participantDto,
                                                   HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ParticipantNotMatchingException, DataServiceException {
-        log.info("Updating Participant with id {}", participantId);
+        log.debug("Updating Participant with id {}", participantId);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.participantAllowed(securedInfo, experimentId, participantId);
@@ -163,6 +163,7 @@ public class ParticipantController {
             for(ParticipantDto participantDto : participantDtoList) {
                 apijwtService.participantAllowed(securedInfo, experimentId, participantDto.getParticipantId());
                 Participant participant = participantService.getParticipant(participantDto.getParticipantId());
+                log.debug("Updating participant with id: {}", participant.getParticipantId());
                 participantMap.put(participant, participantDto);
 
             }

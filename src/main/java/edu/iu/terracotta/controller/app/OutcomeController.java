@@ -5,6 +5,7 @@ import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.ExposureNotMatchingException;
+import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.OutcomeNotMatchingException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
@@ -107,17 +108,16 @@ public class OutcomeController {
                                                   @RequestBody OutcomeDto outcomeDto,
                                                   UriComponentsBuilder ucBuilder,
                                                   HttpServletRequest req)
-            throws ExperimentNotMatchingException, ExposureNotMatchingException, BadTokenException, TitleValidationException {
+            throws ExperimentNotMatchingException, ExposureNotMatchingException, BadTokenException, TitleValidationException, IdInPostException {
 
-        log.info("Creating Outcome: {}", outcomeDto);
+        log.debug("Creating Outcome: {}", outcomeDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
 
         if(apijwtService.isInstructorOrHigher(securedInfo)){
             if(outcomeDto.getOutcomeId() != null){
-                log.error(TextConstants.ID_IN_POST_ERROR);
-                return new ResponseEntity(TextConstants.ID_IN_POST_ERROR, HttpStatus.CONFLICT);
+                throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
             }
 
             outcomeDto.setExposureId(exposureId);
@@ -145,7 +145,7 @@ public class OutcomeController {
                                               HttpServletRequest req)
             throws ExperimentNotMatchingException, OutcomeNotMatchingException, BadTokenException, TitleValidationException {
 
-        log.info("Updating outcome with id {}", outcomeId);
+        log.debug("Updating outcome with id {}", outcomeId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.outcomeAllowed(securedInfo, experimentId, exposureId, outcomeId);
@@ -175,7 +175,7 @@ public class OutcomeController {
                 outcomeService.deleteById(outcomeId);
                 return new ResponseEntity<>(HttpStatus.OK);
             } catch (EmptyResultDataAccessException ex) {
-                log.error(ex.getMessage());
+                log.warn(ex.getMessage());
                 return new ResponseEntity<>(HttpStatus.NOT_FOUND);
             }
         } else {

@@ -4,6 +4,7 @@ import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.InvalidQuestionTypeException;
 import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
 import edu.iu.terracotta.model.app.Question;
@@ -111,17 +112,16 @@ public class QuestionController {
                                                     @RequestBody QuestionDto questionDto,
                                                     UriComponentsBuilder ucBuilder,
                                                     HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, BadTokenException, InvalidQuestionTypeException {
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, BadTokenException, InvalidQuestionTypeException, IdInPostException {
 
-        log.info("Creating Question: {}", questionDto);
+        log.debug("Creating Question: {}", questionDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
 
         if(apijwtService.isInstructorOrHigher(securedInfo)) {
             if(questionDto.getQuestionId() != null) {
-                log.error(TextConstants.ID_IN_POST_ERROR);
-                return new ResponseEntity(TextConstants.ID_IN_POST_ERROR, HttpStatus.CONFLICT);
+                throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
             }
             questionDto.setAssessmentId(assessmentId);
             Question question;
@@ -158,6 +158,7 @@ public class QuestionController {
             for(QuestionDto questionDto : questionDtoList){
                 apijwtService.questionAllowed(securedInfo, assessmentId, questionDto.getQuestionId());
                 Question question = questionService.getQuestion(questionDto.getQuestionId());
+                log.debug("Updating question with id: {}", question.getQuestionId());
                 map.put(question, questionDto);
             }
             try{
@@ -184,7 +185,7 @@ public class QuestionController {
                                                HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionNotMatchingException, BadTokenException {
 
-        log.info("Updating question with id: {}", questionId);
+        log.debug("Updating question with id: {}", questionId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
@@ -221,7 +222,7 @@ public class QuestionController {
                 questionService.deleteById(questionId);
                 return new ResponseEntity<>(HttpStatus.OK);
             } catch (EmptyResultDataAccessException ex) {
-                log.error(ex.getMessage());
+                log.warn(ex.getMessage());
                 return new ResponseEntity<>(HttpStatus.NOT_FOUND);
             }
         } else {

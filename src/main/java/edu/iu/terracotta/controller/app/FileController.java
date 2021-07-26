@@ -137,7 +137,7 @@ public class FileController {
             try {
                 contentType = req.getServletContext().getMimeType(resource.getFile().getAbsolutePath());
             }catch (IOException ex) {
-                log.info("Could not determine file type.");
+                log.error("Could not determine file type.");
             }
             if(contentType == null) {
                 contentType = "application/octet-stream";
@@ -165,7 +165,7 @@ public class FileController {
             try {
                 contentType = req.getServletContext().getMimeType(resource.getFile().getAbsolutePath());
             }catch (IOException ex) {
-                log.info("Could not determine file type.");
+                log.error("Could not determine file type.");
             }
             if(contentType == null) {
                 contentType = "application/octet-stream";
@@ -198,6 +198,7 @@ public class FileController {
                         return new ResponseEntity<>(HttpStatus.NOT_MODIFIED);
                     }
                 } else {
+                    log.error("Error 126: File not found.");
                     throw new MyFileNotFoundException("Error 126: File not found.");
                 }
             } catch (MyFileNotFoundException ex){
