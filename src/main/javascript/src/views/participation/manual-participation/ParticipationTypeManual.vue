@@ -3,7 +3,7 @@
     <h1 class="my-3">
       Because you would like to
       <strong>manually determine who can participate in the experiment</strong>,
-      we've set you up to select who are enrolled in your class.
+      we've set you up to select students who are enrolled in your class.
     </h1>
 
     <v-card class="pt-5 px-5 mx-auto blue lighten-5 rounded-lg" outlined>
