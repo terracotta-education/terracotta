@@ -47,8 +47,19 @@
                   >
                     <v-expansion-panel-header>
                       <div class="panel-overview">
-                        <h2>{{ panel.title }}</h2>
-                        <p>{{ panel.description }}</p>
+                        <div class="a1">
+                          <v-img
+                            :src="panel.image"
+                            class="mr-6"
+                            :alt="panel.title"
+                            min-height="55"
+                            min-width="50"
+                          />
+                        </div>
+                        <div class="panelInformation">
+                          <h2>{{ panel.title }}</h2>
+                          <span>{{ panel.description }}</span>
+                        </div>
                       </div>
                     </v-expansion-panel-header>
                     <v-expansion-panel-content>
@@ -246,35 +257,42 @@
                                     </v-expansion-panel>
                                   </v-expansion-panels>
                                   <br />
-
-                                  <!-- {{ assignments }} -->
                                 </div>
                               </template>
                             </template>
                             <!-- participation data -->
-                             <template v-if="item.type === 'participation'">
+                            <template v-if="item.type === 'participation'">
                               <template v-if="item.description === 'CONSENT'">
                                 Informed Consent
                                 <br />
                                 {{ experiment.consent.title }}
                               </template>
-                              <template v-else-if="item.description === 'MANUAL'">
+                              <template
+                                v-else-if="item.description === 'MANUAL'"
+                              >
                                 Manual
                                 <br />
-                                10 students selected to participate out of 14 students enrolled
+                                <span
+                                  >{{ experiment.acceptedParticipants }}
+                                  students selected to participate out of
+                                  {{ experiment.potentialParticipants }}
+                                  students enrolled
+                                </span>
                               </template>
                               <template v-else>
                                 Include All Students
                                 <br />
-                                10 students selected to participate out of 14 students enrolled
+                                <span
+                                  >{{ experiment.potentialParticipants }}
+                                  students selected to participate out of
+                                  {{ experiment.potentialParticipants }}
+                                  students enrolled
+                                </span>
                               </template>
                             </template>
                           </td>
                         </tr>
                       </table>
-
-                      <br />
-                      {{ experiment }}
                     </v-expansion-panel-content>
                   </v-expansion-panel>
                 </v-expansion-panels>
@@ -344,7 +362,7 @@ export default {
       return [
         {
           title: "SelectionMethod",
-          description: 'CONSENT',
+          description: this.experiment.participationType,
           editSection: "ExperimentParticipationSelectionMethod",
           type: "participation",
         },
@@ -369,15 +387,18 @@ export default {
       {
         title: "Design",
         description: "The basic design of your experiment",
+        image: require("@/assets/design_summary.svg"),
       },
       {
         title: "Participants",
         description:
           "How students in your class become participants in your experiment",
+        image: require("@/assets/participants_summary.svg"),
       },
       {
         title: "Assignments",
         description: "All experiment assignments",
+        image: require("@/assets/assignments_summary.svg"),
       },
     ],
     conditionTreatments: {},
@@ -385,42 +406,22 @@ export default {
   methods: {
     ...mapActions({
       fetchExposures: "exposures/fetchExposures",
-      fetchAssignmentsByExposure: "assignment/fetchAssignmentsByExposure",
-      deleteAssignment: "assignment/deleteAssignment",
       checkTreatment: "treatment/checkTreatment",
       createTreatment: "treatment/createTreatment",
       createAssessment: "assessment/createAssessment",
-      fetchAssignment: "assignment/fetchAssignment",
     }),
     handleEdit(componentName) {
       this.$router.push({ name: componentName });
     },
     async getAssignmentDetails() {
       await this.fetchExposures(this.experiment.experimentId);
-      console.log("Fetch Exposures: ", JSON.stringify(this.exposures));
-      console.log("Assignments", JSON.stringify(this.assignments));
-
-      console.log("Final Treatements:", this.conditionTreatments);
       return this.exposures;
     },
     hasTreatment(conditionId, assignmentId) {
-      console.log(
-        "\n\n HAS TREATMENTConditionId + assignmentId",
-        conditionId,
-        assignmentId
-      );
       const assignmentBasedOnConditions = this.conditionTreatments[
         +conditionId
       ];
 
-      console.log("Treatments: ", this.assignmentBasedOnConditions);
-      console.log("Treatments: ", this.assignmentBasedOnConditions);
-      console.log(
-        "Return Value: ",
-        assignmentBasedOnConditions?.find(
-          (assignment) => assignment.assignmentId === assignmentId
-        ) !== undefined
-      );
       return (
         assignmentBasedOnConditions?.find(
           (assignment) => assignment.assignmentId === assignmentId
@@ -482,7 +483,6 @@ export default {
     },
     groupNameConditionMapping(groupConditionList) {
       const groupConditionMap = {};
-      console.log("GCL: ", groupConditionList);
       groupConditionList?.map(
         (group) => (groupConditionMap[group.groupName] = group.conditionName)
       );
@@ -490,28 +490,21 @@ export default {
     },
     sortedGroups(groupConditionList) {
       const newGroups = groupConditionList?.map((group) => group.groupName);
-      console.log("Sorted Group", newGroups?.sort());
       return newGroups?.sort();
     },
   },
 
   async created() {
     this.tab = this.$router.currentRoute.name === "ExperimentSummary" ? 1 : 0;
-    console.log("Created", this.experiment);
     await this.fetchExposures(this.experiment.experimentId);
-    console.log("Created-EXP", this.exposures);
     for (let c of this.conditions) {
-      console.log("c is: ", JSON.stringify(c));
       const t = await this.checkTreatment([
         this.experiment.experimentId,
         c.conditionId,
         this.assignments[0].assignmentId,
       ]);
-      console.log("t: -  ", JSON.stringify(t));
       this.conditionTreatments[c.conditionId] = t?.data;
-      console.log("Treatments: ", this.conditionTreatments);
     }
-    console.log("Final Treatements:", this.conditionTreatments);
     this.getAssignmentDetails();
   },
   beforeRouteEnter(to, from, next) {
@@ -535,7 +528,6 @@ export default {
 }
 .panel-overview {
   display: inline-flex;
-  flex-direction: column;
 }
 table {
   font-size: 16px;
@@ -557,16 +549,11 @@ table {
   }
   .rightData {
     display: flex;
-    // white-space: nowrap;
     max-width: max-content;
     flex-direction: column;
     text-align: left;
     border-left: 1px solid #e6e6e6;
     padding: 0 12px !important;
-    .conditionName {
-      font-size: 16px;
-      font-weight: 700;
-    }
     .conditionLabel:not(:last-child) {
       margin-bottom: 10px;
     }
@@ -582,7 +569,9 @@ table {
         vertical-align: text-bottom;
       }
     }
-    .conditionType {
+    .conditionType,
+    .exposureSetName,
+    .conditionName {
       font-size: 16px;
       font-weight: 700;
     }
@@ -593,10 +582,6 @@ table {
     .conditionDetail {
       margin-bottom: 0;
       padding-bottom: 0;
-    }
-    .exposureSetName {
-      font-size: 16px;
-      font-weight: 700;
     }
     .assignmentConditionName {
       text-align: left;
