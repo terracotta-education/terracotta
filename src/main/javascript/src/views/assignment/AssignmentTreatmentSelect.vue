@@ -7,7 +7,8 @@
     <template v-if="conditions">
       <v-expansion-panels class="v-expansion-panels--outlined mb-7" flat>
         <v-expansion-panel class="py-3">
-          <v-expansion-panel-header>{{ assignment.title }} ({{ assignment.treatments && assignment.treatments.length || 0 }}/{{ conditions.length }})</v-expansion-panel-header>
+          <v-expansion-panel-header>{{ assignment.title }} ({{ assignment.treatments && assignment.treatments.length || 0 }}/{{ conditions.length }})
+          </v-expansion-panel-header>
           <v-expansion-panel-content>
             <v-list class="pa-0">
 

@@ -26,9 +26,11 @@
           <v-divider class="mb-6"></v-divider>
           <v-tabs-items v-model="tab">
             <v-tab-item class="py-3" v-for="item in items" :key="item">
+              <!-- Status Panel -->
               <template v-if="item === 'status'">
                 <experiment-summary-status :experiment="experiment" />
               </template>
+              <!-- Setup Panel -->
               <template v-if="item === 'setup'">
                 <v-card
                   class="pt-5 px-5 mx-auto blue lighten-5 rounded-lg"
@@ -40,6 +42,7 @@
                     disabled to not disrupt the experiment.
                   </p>
                 </v-card>
+                <!-- Design, Participants and Assignment Panels -->
                 <v-expansion-panels class="mt-5 v-expansion-panels--icon" flat>
                   <v-expansion-panel
                     v-for="panel in setupPanels"
@@ -80,11 +83,13 @@
                             </template>
                           </td>
                           <td class="col-7 rightData">
-                            <!-- string data -->
+                            <!-- String Data -->
+                            <!-- For Experiment Title and Description -->
                             <template v-if="item.type === 'string'">
                               {{ item.description }}
                             </template>
-                            <!-- array data -->
+                            <!-- Array data -->
+                            <!-- For Experiment Condition Details -->
                             <template
                               v-if="item.type === 'array'"
                               class="arrayData"
@@ -109,7 +114,8 @@
                                 </span>
                               </label>
                             </template>
-                            <!-- constant values -->
+                            <!-- Constant values -->
+                            <!-- For Experiment Type -->
                             <template v-if="item.type === 'constant'">
                               <template v-if="item.description === 'WITHIN'">
                                 <img
@@ -145,7 +151,7 @@
                                 </p>
                               </template>
                             </template>
-                            <!-- assignment data -->
+                            <!-- Assignment data -->
                             <template v-if="item.type === 'assignments'">
                               <template v-for="(exposure, index) in exposures">
                                 <div
@@ -172,6 +178,7 @@
                                         group.groupName + group.conditionName
                                       "
                                     >
+                                    <!-- Sorted Group Names -->
                                       {{
                                         groupNameConditionMapping(
                                           exposure.groupConditionList
@@ -214,6 +221,7 @@
                                             </v-list-item-content>
 
                                             <v-list-item-action>
+                                              <!-- Assignment Edit Button -->
                                               <template
                                                 v-if="
                                                   hasTreatment(
@@ -237,6 +245,7 @@
                                                   <v-icon>mdi-pencil</v-icon>
                                                 </v-btn>
                                               </template>
+                                              <!-- Assignment Select Button -->
                                               <template v-else>
                                                 <v-btn
                                                   color="primary"
@@ -256,17 +265,18 @@
                                       </v-expansion-panel-content>
                                     </v-expansion-panel>
                                   </v-expansion-panels>
-                                  <br />
                                 </div>
                               </template>
                             </template>
-                            <!-- participation data -->
+                            <!-- Participation data -->
                             <template v-if="item.type === 'participation'">
+                              <!-- Consent Participation -->
                               <template v-if="item.description === 'CONSENT'">
                                 Informed Consent
                                 <br />
                                 {{ experiment.consent.title }}
                               </template>
+                              <!-- Manual Participation -->
                               <template
                                 v-else-if="item.description === 'MANUAL'"
                               >
@@ -279,6 +289,7 @@
                                   students enrolled
                                 </span>
                               </template>
+                              <!-- All Participation -->
                               <template v-else>
                                 Include All Students
                                 <br />
@@ -323,6 +334,7 @@ export default {
       exposures: "exposures/exposures",
       assignments: "assignment/assignments",
     }),
+    // Higher Level Section Values
     sectionValuesMap() {
       return {
         Design: this.designDetails,
@@ -330,6 +342,7 @@ export default {
         Assignments: this.assignmentDetails,
       };
     },
+    // Design Expansion View Values
     designDetails() {
       return [
         {
@@ -358,6 +371,7 @@ export default {
         },
       ];
     },
+    // Participation Expansion View Values
     participantDetails() {
       return [
         {
@@ -368,6 +382,7 @@ export default {
         },
       ];
     },
+    // Assignment Expansion View Values
     assignmentDetails() {
       return [
         {
@@ -383,6 +398,7 @@ export default {
   data: () => ({
     tab: null,
     items: ["status", "setup"],
+    // Expansion Tab Header Values
     setupPanels: [
       {
         title: "Design",
@@ -410,6 +426,7 @@ export default {
       createTreatment: "treatment/createTreatment",
       createAssessment: "assessment/createAssessment",
     }),
+    // Navigate to EDIT section
     handleEdit(componentName) {
       this.$router.push({ name: componentName });
     },
@@ -481,6 +498,7 @@ export default {
         },
       });
     },
+    // For Mapping Sorted Group Name with associated Condition
     groupNameConditionMapping(groupConditionList) {
       const groupConditionMap = {};
       groupConditionList?.map(
@@ -488,6 +506,7 @@ export default {
       );
       return groupConditionMap;
     },
+    // For Sorting Group Names
     sortedGroups(groupConditionList) {
       const newGroups = groupConditionList?.map((group) => group.groupName);
       return newGroups?.sort();
