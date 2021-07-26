@@ -7,6 +7,7 @@ import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.ExposureNotMatchingException;
+import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.model.app.dto.AssignmentDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
@@ -33,9 +34,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.http.HttpHeaders;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 
 @Controller
@@ -89,20 +88,8 @@ public class AssignmentController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assignmentAllowed(securedInfo, experimentId, exposureId, assignmentId);
         if (apijwtService.isLearnerOrHigher(securedInfo)) {
-
-            Optional<Assignment> assignmentSearchResult = assignmentService.findById(assignmentId);
-
-            if (!assignmentSearchResult.isPresent()) {
-                log.error("assignment in platform {} and context {} and experiment {} and exposure {} with id {} not found",
-                        securedInfo.getPlatformDeploymentId(), securedInfo.getContextId(), experimentId, experimentId, assignmentId);
-
-                return new ResponseEntity("assignment in platform " + securedInfo.getPlatformDeploymentId()
-                        + " and context " + securedInfo.getContextId() + " and experiment with id " + experimentId + " and exposure id " + exposureId
-                        + " with id " + assignmentId + TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
-            } else {
-                AssignmentDto assignmentDto = assignmentService.toDto(assignmentSearchResult.get(), submissions);
-                return new ResponseEntity<>(assignmentDto, HttpStatus.OK);
-            }
+            AssignmentDto assignmentDto = assignmentService.toDto(assignmentService.getAssignment(assignmentId), submissions);
+            return new ResponseEntity<>(assignmentDto, HttpStatus.OK);
         } else {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
@@ -115,17 +102,16 @@ public class AssignmentController {
                                                         @RequestBody AssignmentDto assignmentDto,
                                                         UriComponentsBuilder ucBuilder,
                                                         HttpServletRequest req)
-            throws ExperimentNotMatchingException, ExposureNotMatchingException, BadTokenException, AssessmentNotMatchingException, TitleValidationException, AssignmentNotCreatedException {
+            throws ExperimentNotMatchingException, ExposureNotMatchingException, BadTokenException, AssessmentNotMatchingException, TitleValidationException, AssignmentNotCreatedException, IdInPostException {
 
-        log.info("Creating Assignment: {}", assignmentDto);
+        log.debug("Creating Assignment: {}", assignmentDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
 
         if (apijwtService.isInstructorOrHigher(securedInfo)) {
             if (assignmentDto.getAssignmentId() != null) {
-                log.error(TextConstants.ID_IN_POST_ERROR);
-                return new ResponseEntity(TextConstants.ID_IN_POST_ERROR, HttpStatus.CONFLICT);
+                throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
             }
             assignmentService.validateTitle(assignmentDto.getTitle());
             assignmentDto.setExposureId(exposureId);
@@ -154,7 +140,7 @@ public class AssignmentController {
                                                  HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, AssignmentNotMatchingException, TitleValidationException {
 
-        log.info("Updating assignment with id: {}", assignmentId);
+        log.debug("Updating assignment with id: {}", assignmentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assignmentAllowed(securedInfo, experimentId, exposureId, assignmentId);
@@ -183,7 +169,7 @@ public class AssignmentController {
                 assignmentService.deleteById(assignmentId);
                 return new ResponseEntity<>(HttpStatus.OK);
             } catch (EmptyResultDataAccessException e) {
-                log.error(e.getMessage());
+                log.warn(e.getMessage());
                 return new ResponseEntity<>(HttpStatus.NOT_FOUND);
             }
         } else {

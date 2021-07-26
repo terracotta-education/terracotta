@@ -5,6 +5,7 @@ import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.MultipleChoiceLimitReachedException;
 import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
 import edu.iu.terracotta.model.app.AnswerMc;
@@ -132,9 +133,9 @@ public class AnswerController {
                                                 @RequestBody AnswerDto answerDto,
                                                 UriComponentsBuilder ucBuilder,
                                                 HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionNotMatchingException, BadTokenException, MultipleChoiceLimitReachedException {
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionNotMatchingException, BadTokenException, MultipleChoiceLimitReachedException, IdInPostException {
 
-        log.info("Creating Answer: {}", answerDto);
+        log.debug("Creating Answer: {}", answerDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
@@ -143,8 +144,7 @@ public class AnswerController {
         if(apijwtService.isInstructorOrHigher(securedInfo)) {
 
             if (answerDto.getAnswerId() != null) {
-                log.error(TextConstants.ID_IN_POST_ERROR);
-                return new ResponseEntity(TextConstants.ID_IN_POST_ERROR, HttpStatus.CONFLICT);
+                throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
             }
 
             answerDto.setQuestionId(questionId);
@@ -191,6 +191,7 @@ public class AnswerController {
                 for(AnswerDto answerDto : answerDtoList) {
                     apijwtService.answerAllowed(securedInfo, assessmentId, questionId, answerType, answerDto.getAnswerId());
                     AnswerMc mcAnswer = answerService.findByAnswerId(answerDto.getAnswerId());
+                    log.debug("Updating answer with id: " + mcAnswer.getAnswerMcId());
                     map.put(mcAnswer, answerDto);
                 }
                 try{
@@ -220,7 +221,7 @@ public class AnswerController {
                                              HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionNotMatchingException, AnswerNotMatchingException, BadTokenException {
 
-        log.info("Updating answer with id: {}", answerId);
+        log.debug("Updating answer with id: {}", answerId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
@@ -268,7 +269,7 @@ public class AnswerController {
                     answerService.deleteByIdMC(answerId);
                     return new ResponseEntity<>(HttpStatus.OK);
                 } catch (EmptyResultDataAccessException ex) {
-                    log.error(ex.getMessage());
+                    log.warn(ex.getMessage());
                     return new ResponseEntity<>(HttpStatus.NOT_FOUND);
                 }
             } else {

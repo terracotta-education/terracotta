@@ -5,6 +5,7 @@ import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.DuplicateQuestionException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.IdMissingException;
 import edu.iu.terracotta.exceptions.InvalidUserException;
 import edu.iu.terracotta.exceptions.QuestionSubmissionNotMatchingException;
@@ -129,9 +130,9 @@ public class QuestionSubmissionController {
                                                                         @RequestBody QuestionSubmissionDto questionSubmissionDto,
                                                                         UriComponentsBuilder ucBuilder,
                                                                         HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, SubmissionNotMatchingException, BadTokenException, InvalidUserException, DuplicateQuestionException, IdMissingException {
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, SubmissionNotMatchingException, BadTokenException, InvalidUserException, DuplicateQuestionException, IdMissingException, IdInPostException {
 
-        log.info("Creating question submission: {}", questionSubmissionDto);
+        log.debug("Creating question submission: {}", questionSubmissionDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
@@ -139,8 +140,7 @@ public class QuestionSubmissionController {
 
         if (apijwtService.isLearnerOrHigher(securedInfo)) {
             if (questionSubmissionDto.getQuestionSubmissionId() != null) {
-                log.error(TextConstants.ID_IN_POST_ERROR);
-                return new ResponseEntity(TextConstants.ID_IN_POST_ERROR, HttpStatus.CONFLICT);
+                throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
             }
             boolean student = false;
             if(!apijwtService.isInstructorOrHigher(securedInfo)){
@@ -176,7 +176,7 @@ public class QuestionSubmissionController {
                                                          HttpServletRequest req)
                 throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, BadTokenException, InvalidUserException {
 
-        log.info("Updating question submission with id {}", questionSubmissionId);
+        log.debug("Updating question submission with id {}", questionSubmissionId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
@@ -224,6 +224,7 @@ public class QuestionSubmissionController {
             for(QuestionSubmissionDto questionSubmissionDto : questionSubmissionDtoList) {
                 apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, questionSubmissionDto.getQuestionSubmissionId());
                 QuestionSubmission questionSubmission = questionSubmissionService.getQuestionSubmission(questionSubmissionDto.getQuestionSubmissionId());
+                log.debug("Updating question submission with id: {}", questionSubmission.getQuestionSubmissionId());
                 map.put(questionSubmission, questionSubmissionDto);
             }
             try{
@@ -259,7 +260,7 @@ public class QuestionSubmissionController {
                 questionSubmissionService.deleteById(questionSubmissionId);
                 return new ResponseEntity<>(HttpStatus.OK);
             } catch (EmptyResultDataAccessException ex) {
-                log.error(ex.getMessage());
+                log.warn(ex.getMessage());
                 return new ResponseEntity<>(HttpStatus.NOT_FOUND);
             }
         } else {

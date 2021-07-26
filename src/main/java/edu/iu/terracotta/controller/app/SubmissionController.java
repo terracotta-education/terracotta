@@ -4,6 +4,7 @@ import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.InvalidUserException;
 import edu.iu.terracotta.exceptions.NoSubmissionsException;
 import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
@@ -113,9 +114,9 @@ public class SubmissionController {
                                                         @RequestBody SubmissionDto submissionDto,
                                                         UriComponentsBuilder ucBuilder,
                                                         HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, BadTokenException, InvalidUserException, ParticipantNotMatchingException {
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, BadTokenException, InvalidUserException, ParticipantNotMatchingException, IdInPostException {
 
-        log.info("Creating Submission: {}", submissionDto);
+        log.debug("Creating Submission: {}", submissionDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
@@ -123,8 +124,7 @@ public class SubmissionController {
         if (submissionService.datesAllowed(experimentId,treatmentId, securedInfo)) {
             if (apijwtService.isLearnerOrHigher(securedInfo)) {
                 if (submissionDto.getSubmissionId() != null) {
-                    log.error(TextConstants.ID_IN_POST_ERROR);
-                    return new ResponseEntity(TextConstants.ID_IN_POST_ERROR, HttpStatus.CONFLICT);
+                    throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
                 }
                 submissionDto.setAssessmentId(assessmentId);
                 submissionService.validateDto(experimentId, securedInfo.getUserId(), submissionDto);
@@ -157,7 +157,7 @@ public class SubmissionController {
                                                  HttpServletRequest req)
                 throws ExperimentNotMatchingException, AssessmentNotMatchingException, SubmissionNotMatchingException, BadTokenException {
 
-        log.info("Updating submission with id {}", submissionId);
+        log.debug("Updating submission with id {}", submissionId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
@@ -193,7 +193,7 @@ public class SubmissionController {
                 submissionService.deleteById(submissionId);
                 return new ResponseEntity<>(HttpStatus.OK);
             } catch (EmptyResultDataAccessException ex) {
-                log.error(ex.getMessage());
+                log.warn(ex.getMessage());
                 return new ResponseEntity<>(HttpStatus.NOT_FOUND);
             }
         } else {

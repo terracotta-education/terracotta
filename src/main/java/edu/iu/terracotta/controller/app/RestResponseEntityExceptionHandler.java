@@ -3,6 +3,8 @@ package edu.iu.terracotta.controller.app;
 import edu.iu.terracotta.exceptions.*;
 import edu.iu.terracotta.utils.TextConstants;
 import io.jsonwebtoken.ExpiredJwtException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,11 +17,14 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 public class RestResponseEntityExceptionHandler
         extends ResponseEntityExceptionHandler {
 
+    final static Logger log = LoggerFactory.getLogger(RestResponseEntityExceptionHandler.class);
+
     @ExceptionHandler(value
             = { BadTokenException.class})
     protected ResponseEntity<Object> handleBadTokenException(
             BadTokenException ex, WebRequest request) {
         String bodyOfResponse = TextConstants.BAD_TOKEN;
+        log.warn(bodyOfResponse);
         return handleExceptionInternal(ex, bodyOfResponse,
                 new HttpHeaders(), HttpStatus.UNAUTHORIZED, request);
     }
@@ -29,6 +34,7 @@ public class RestResponseEntityExceptionHandler
     protected ResponseEntity<Object> handleExperimentNotMatchingException(
             ExperimentNotMatchingException ex, WebRequest request) {
         String bodyOfResponse = TextConstants.EXPERIMENT_NOT_MATCHING;
+        log.warn(bodyOfResponse);
         return handleExceptionInternal(ex, bodyOfResponse,
                 new HttpHeaders(), HttpStatus.UNAUTHORIZED, request);
     }
@@ -38,6 +44,7 @@ public class RestResponseEntityExceptionHandler
     protected ResponseEntity<Object> handleConditionNotMatchingException(
             ConditionNotMatchingException ex, WebRequest request) {
         String bodyOfResponse = TextConstants.CONDITION_NOT_MATCHING;
+        log.warn(bodyOfResponse);
         return handleExceptionInternal(ex, bodyOfResponse,
                 new HttpHeaders(), HttpStatus.UNAUTHORIZED, request);
     }
@@ -47,6 +54,7 @@ public class RestResponseEntityExceptionHandler
     protected ResponseEntity<Object> handleParticipantNotMatchingException(
             ParticipantNotMatchingException ex, WebRequest request) {
         String bodyOfResponse = ex.getMessage();
+        log.warn(bodyOfResponse);
         return handleExceptionInternal(ex, bodyOfResponse,
                 new HttpHeaders(), HttpStatus.UNAUTHORIZED, request);
     }
@@ -56,6 +64,7 @@ public class RestResponseEntityExceptionHandler
     protected ResponseEntity<Object> handleExposureNotMatchingException(
             ExposureNotMatchingException ex, WebRequest request) {
         String bodyOfResponse = TextConstants.EXPOSURE_NOT_MATCHING;
+        log.warn(bodyOfResponse);
         return handleExceptionInternal(ex, bodyOfResponse,
                 new HttpHeaders(), HttpStatus.UNAUTHORIZED, request);
     }
@@ -65,6 +74,7 @@ public class RestResponseEntityExceptionHandler
     protected ResponseEntity<Object> handleAssignmentNotMatchingException(
             AssignmentNotMatchingException ex, WebRequest request) {
         String bodyOfResponse = TextConstants.ASSIGNMENT_NOT_MATCHING;
+        log.warn(bodyOfResponse);
         return handleExceptionInternal(ex, bodyOfResponse,
                 new HttpHeaders(), HttpStatus.UNAUTHORIZED, request);
     }
@@ -74,6 +84,7 @@ public class RestResponseEntityExceptionHandler
     protected ResponseEntity<Object> handleTreatmentNotMatchingException(
             TreatmentNotMatchingException ex, WebRequest request) {
         String bodyOfResponse = TextConstants.TREATMENT_NOT_MATCHING;
+        log.warn(bodyOfResponse);
         return handleExceptionInternal(ex, bodyOfResponse,
                 new HttpHeaders(), HttpStatus.UNAUTHORIZED, request);
     }
@@ -83,6 +94,7 @@ public class RestResponseEntityExceptionHandler
     protected ResponseEntity<Object> handleAssessmentNotMatchingException(
             AssessmentNotMatchingException ex, WebRequest request) {
         String bodyOfResponse = ex.getMessage();
+        log.warn(bodyOfResponse);
         return handleExceptionInternal(ex, bodyOfResponse,
                 new HttpHeaders(), HttpStatus.UNAUTHORIZED, request);
     }
@@ -92,6 +104,7 @@ public class RestResponseEntityExceptionHandler
     protected ResponseEntity<Object> handleQuestionNotMatchingException(
             QuestionNotMatchingException ex, WebRequest request) {
         String bodyOfResponse = TextConstants.QUESTION_NOT_MATCHING;
+        log.warn(bodyOfResponse);
         return handleExceptionInternal(ex, bodyOfResponse,
                 new HttpHeaders(), HttpStatus.UNAUTHORIZED, request);
     }
@@ -101,6 +114,7 @@ public class RestResponseEntityExceptionHandler
     protected ResponseEntity<Object> handleAnswerNotMatchingException(
             AnswerNotMatchingException ex, WebRequest request) {
         String bodyOfResponse = TextConstants.ANSWER_NOT_MATCHING;
+        log.warn(bodyOfResponse);
         return handleExceptionInternal(ex, bodyOfResponse,
                 new HttpHeaders(), HttpStatus.UNAUTHORIZED, request);
     }
@@ -110,6 +124,7 @@ public class RestResponseEntityExceptionHandler
     protected ResponseEntity<Object> handleAnswerSubmissionNotMatchingException(
             AnswerSubmissionNotMatchingException ex, WebRequest request) {
         String bodyOfResponse = TextConstants.ANSWER_SUBMISSION_NOT_MATCHING;
+        log.warn(bodyOfResponse);
         return handleExceptionInternal(ex, bodyOfResponse,
                 new HttpHeaders(), HttpStatus.UNAUTHORIZED, request);
     }
@@ -118,6 +133,7 @@ public class RestResponseEntityExceptionHandler
     protected ResponseEntity<Object> handleGroupNotMatchingException(
             GroupNotMatchingException ex, WebRequest request) {
         String bodyOfResponse = TextConstants.GROUP_NOT_MATCHING;
+        log.warn(bodyOfResponse);
         return handleExceptionInternal(ex, bodyOfResponse,
                 new HttpHeaders(), HttpStatus.UNAUTHORIZED, request);
     }
@@ -127,6 +143,7 @@ public class RestResponseEntityExceptionHandler
     protected ResponseEntity<Object> handleSubmissionNotMatchingException(
             SubmissionNotMatchingException ex, WebRequest request) {
         String bodyOfResponse = TextConstants.SUBMISSION_NOT_MATCHING;
+        log.warn(bodyOfResponse);
         return handleExceptionInternal(ex, bodyOfResponse,
                 new HttpHeaders(), HttpStatus.UNAUTHORIZED, request);
     }
@@ -136,6 +153,7 @@ public class RestResponseEntityExceptionHandler
     protected ResponseEntity<Object> handleQuestionSubmissionNotMatchingException(
             QuestionSubmissionNotMatchingException ex, WebRequest request) {
         String bodyOfResponse = TextConstants.QUESTION_SUBMISSION_NOT_MATCHING;
+        log.warn(bodyOfResponse);
         return handleExceptionInternal(ex, bodyOfResponse,
                 new HttpHeaders(), HttpStatus.UNAUTHORIZED, request);
     }
@@ -145,6 +163,7 @@ public class RestResponseEntityExceptionHandler
     protected ResponseEntity<Object> handleSubmissionCommentNotMatchingException(
             SubmissionCommentNotMatchingException ex, WebRequest request) {
         String bodyOfResponse = TextConstants.SUBMISSION_COMMENT_NOT_MATCHING;
+        log.warn(bodyOfResponse);
         return handleExceptionInternal(ex, bodyOfResponse,
                 new HttpHeaders(), HttpStatus.UNAUTHORIZED, request);
     }
@@ -154,6 +173,7 @@ public class RestResponseEntityExceptionHandler
     protected ResponseEntity<Object> handleQuestionSubmissionCommentNotMatchingException(
             QuestionSubmissionCommentNotMatchingException ex, WebRequest request) {
         String bodyOfResponse = TextConstants.QUESTION_SUBMISSION_COMMENT_NOT_MATCHING;
+        log.warn(bodyOfResponse);
         return handleExceptionInternal(ex, bodyOfResponse,
                 new HttpHeaders(), HttpStatus.UNAUTHORIZED, request);
     }
@@ -163,6 +183,7 @@ public class RestResponseEntityExceptionHandler
     protected ResponseEntity<Object> handleOutcomeNotMatchingException(
             OutcomeNotMatchingException ex, WebRequest request) {
         String bodyOfResponse = TextConstants.OUTCOME_NOT_MATCHING;
+        log.warn(bodyOfResponse);
         return handleExceptionInternal(ex, bodyOfResponse,
                 new HttpHeaders(), HttpStatus.UNAUTHORIZED, request);
     }
@@ -172,6 +193,7 @@ public class RestResponseEntityExceptionHandler
     protected ResponseEntity<Object> handleOutcomeScoreNotMatchingException(
             OutcomeScoreNotMatchingException ex, WebRequest request) {
         String bodyOfResponse = TextConstants.OUTCOME_SCORE_NOT_MATCHING;
+        log.warn(bodyOfResponse);
         return handleExceptionInternal(ex, bodyOfResponse,
                 new HttpHeaders(), HttpStatus.UNAUTHORIZED, request);
     }
@@ -181,6 +203,7 @@ public class RestResponseEntityExceptionHandler
     protected ResponseEntity<Object> handleIdMissingException(
             IdMissingException ex, WebRequest request) {
         String bodyOfResponse = TextConstants.ID_MISSING;
+        log.warn(bodyOfResponse);
         return handleExceptionInternal(ex, bodyOfResponse,
                 new HttpHeaders(), HttpStatus.BAD_REQUEST, request);
     }
@@ -192,6 +215,7 @@ public class RestResponseEntityExceptionHandler
     protected ResponseEntity<Object> handleBadConsentFileTypeException(
             BadConsentFileTypeException ex, WebRequest request) {
         String bodyOfResponse = ex.getMessage();
+        log.warn(bodyOfResponse);
         return handleExceptionInternal(ex, bodyOfResponse,
                 new HttpHeaders(), HttpStatus.UNAUTHORIZED, request);
     }
@@ -201,6 +225,7 @@ public class RestResponseEntityExceptionHandler
     protected ResponseEntity<Object> handleExpiredJwtException(
             ExpiredJwtException ex, WebRequest request) {
         String bodyOfResponse = ex.getMessage();
+        log.warn(bodyOfResponse);
         return handleExceptionInternal(ex, bodyOfResponse,
                 new HttpHeaders(), HttpStatus.UNAUTHORIZED, request);
     }
@@ -210,6 +235,7 @@ public class RestResponseEntityExceptionHandler
     protected ResponseEntity<Object> handleParticipantNotUpdatedException(
             ParticipantNotUpdatedException ex, WebRequest request) {
         String bodyOfResponse = ex.getMessage();
+        log.warn(bodyOfResponse);
         return handleExceptionInternal(ex, bodyOfResponse,
                 new HttpHeaders(), HttpStatus.INTERNAL_SERVER_ERROR, request);
     }
@@ -219,6 +245,7 @@ public class RestResponseEntityExceptionHandler
     protected ResponseEntity<Object> handleDataServiceException(
             DataServiceException ex, WebRequest request) {
         String bodyOfResponse = ex.getMessage();
+        log.warn(bodyOfResponse);
         return handleExceptionInternal(ex, bodyOfResponse,
                 new HttpHeaders(), HttpStatus.CONFLICT, request);
     }
@@ -228,6 +255,7 @@ public class RestResponseEntityExceptionHandler
     protected ResponseEntity<Object> handleWrongValueException(
             WrongValueException ex, WebRequest request) {
         String bodyOfResponse = ex.getMessage();
+        log.warn(bodyOfResponse);
         return handleExceptionInternal(ex, bodyOfResponse,
                 new HttpHeaders(), HttpStatus.CONFLICT, request);
     }
@@ -237,6 +265,7 @@ public class RestResponseEntityExceptionHandler
     protected ResponseEntity<Object> handleAssignmentDatesException(
             AssignmentDatesException ex, WebRequest request) {
         String bodyOfResponse = ex.getMessage();
+        log.warn(bodyOfResponse);
         return handleExceptionInternal(ex, bodyOfResponse,
                 new HttpHeaders(), HttpStatus.UNAUTHORIZED, request);
     }
@@ -246,6 +275,7 @@ public class RestResponseEntityExceptionHandler
     protected ResponseEntity<Object> handleExperimentLockedException(
             ExperimentLockedException ex, WebRequest request) {
         String bodyOfResponse = ex.getMessage();
+        log.warn(bodyOfResponse);
         return handleExceptionInternal(ex, bodyOfResponse,
                 new HttpHeaders(), HttpStatus.UNAUTHORIZED, request);
     }
@@ -254,6 +284,7 @@ public class RestResponseEntityExceptionHandler
     protected ResponseEntity<Object> handleTitleValidationException(
             TitleValidationException ex, WebRequest request) {
         String bodyOfResponse = ex.getMessage();
+        log.warn(bodyOfResponse);
         if(bodyOfResponse.startsWith("Error 100") || bodyOfResponse.startsWith("Error 102")){
             return handleExceptionInternal(ex, bodyOfResponse, new HttpHeaders(), HttpStatus.CONFLICT, request);
         } else {
@@ -266,6 +297,7 @@ public class RestResponseEntityExceptionHandler
     protected ResponseEntity<Object> handleConditionsLockedException(
             ConditionsLockedException ex, WebRequest request) {
         String bodyOfResponse = ex.getMessage();
+        log.warn(bodyOfResponse);
         return handleExceptionInternal(ex, bodyOfResponse,
                 new HttpHeaders(), HttpStatus.CONFLICT, request);
     }
@@ -275,6 +307,7 @@ public class RestResponseEntityExceptionHandler
     protected ResponseEntity<Object> handleMultipleChoiceLimitReachedException(
             MultipleChoiceLimitReachedException ex, WebRequest request) {
         String bodyOfResponse = ex.getMessage();
+        log.warn(bodyOfResponse);
         return handleExceptionInternal(ex, bodyOfResponse,
                 new HttpHeaders(), HttpStatus.CONFLICT, request);
     }
@@ -284,6 +317,7 @@ public class RestResponseEntityExceptionHandler
     protected ResponseEntity<Object> handleInvalidUserException(
             InvalidUserException ex, WebRequest request) {
         String bodyOfResponse = ex.getMessage();
+        log.warn(bodyOfResponse);
         return handleExceptionInternal(ex, bodyOfResponse,
                 new HttpHeaders(), HttpStatus.UNAUTHORIZED, request);
     }
@@ -291,6 +325,7 @@ public class RestResponseEntityExceptionHandler
     @ExceptionHandler(value = {InvalidParticipantException.class})
     protected ResponseEntity<Object> handleInvalidParticipantException(InvalidParticipantException ex, WebRequest request) {
         String bodyOfResponse = ex.getMessage();
+        log.warn(bodyOfResponse);
         if(bodyOfResponse.startsWith("Error 105")) {
             return handleExceptionInternal(ex, bodyOfResponse, new HttpHeaders(), HttpStatus.BAD_REQUEST, request);
         }
@@ -302,6 +337,7 @@ public class RestResponseEntityExceptionHandler
     protected ResponseEntity<Object> handleInvalidQuestionTypeException(
             InvalidQuestionTypeException ex, WebRequest request) {
         String bodyOfResponse = ex.getMessage();
+        log.warn(bodyOfResponse);
         return handleExceptionInternal(ex, bodyOfResponse,
                 new HttpHeaders(), HttpStatus.BAD_REQUEST, request);
     }
@@ -311,6 +347,7 @@ public class RestResponseEntityExceptionHandler
     protected ResponseEntity<Object> handleDuplicateQuestionException(
             DuplicateQuestionException ex, WebRequest request){
         String bodyOfResponse = ex.getMessage();
+        log.warn(bodyOfResponse);
         return handleExceptionInternal(ex, bodyOfResponse,
                 new HttpHeaders(), HttpStatus.CONFLICT, request);
     }
@@ -318,6 +355,7 @@ public class RestResponseEntityExceptionHandler
     @ExceptionHandler(value = {NoSubmissionsException.class})
     protected ResponseEntity<Object> handleNoSubmissionsException(NoSubmissionsException ex, WebRequest request){
         String bodyOfResponse = ex.getMessage();
+        log.warn(bodyOfResponse);
         if(bodyOfResponse.startsWith("A submission")){
             return handleExceptionInternal(ex, bodyOfResponse, new HttpHeaders(), HttpStatus.NOT_FOUND, request);
         }
@@ -326,7 +364,15 @@ public class RestResponseEntityExceptionHandler
 
     @ExceptionHandler(value = {AssignmentNotCreatedException.class})
     protected ResponseEntity<Object> handleAssignmentNotCreatedException(AssignmentNotCreatedException ex, WebRequest request){
+        log.warn(ex.getMessage());
         return handleExceptionInternal(ex, ex.getMessage(), new HttpHeaders(), HttpStatus.INTERNAL_SERVER_ERROR, request);
+    }
+
+    @ExceptionHandler(value = {IdInPostException.class})
+    protected ResponseEntity<Object> handleIdInPostException(IdInPostException ex, WebRequest request){
+        String bodyOfResponse = ex.getMessage();
+        log.warn(bodyOfResponse);
+        return handleExceptionInternal(ex, bodyOfResponse, new HttpHeaders(), HttpStatus.CONFLICT, request);
     }
 
 }

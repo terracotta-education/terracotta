@@ -28,10 +28,6 @@ public class ScheduledServiceImpl implements ScheduledService {
     @Autowired
     APIDataService apiDataService;
 
-    @Scheduled(cron = "${scheduled.hello.cron:0 0 0 * * ?}")
-    public void hello(){
-        log.info("Hello :: Execution Time - {} ", dateTimeFormatter.format(LocalDateTime.now()));
-    }
 
     @Scheduled(cron = "${scheduled.restoredeletedassignments.cron:0 0 3 * * ?}")
     public void restoreDeletedAssignments() throws DataServiceException, CanvasApiException, ConnectionException, IOException {
@@ -46,6 +42,4 @@ public class ScheduledServiceImpl implements ScheduledService {
         apiDataService.cleanOldTokens();
         log.info("Deleting Old Tokens :: Ended - {} ", dateTimeFormatter.format(LocalDateTime.now()));
     }
-
-
 }

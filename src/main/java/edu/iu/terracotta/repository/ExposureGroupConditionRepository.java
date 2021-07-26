@@ -1,7 +1,6 @@
 package edu.iu.terracotta.repository;
 
 import edu.iu.terracotta.model.app.ExposureGroupCondition;
-import edu.iu.terracotta.model.app.Group;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

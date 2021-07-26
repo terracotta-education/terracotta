@@ -88,7 +88,7 @@ public class AssessmentServiceImpl implements AssessmentService {
         if (exposureGroupCondition.isPresent()){
             groupId = exposureGroupCondition.get().getGroup().getGroupId();
         } else {
-            throw new AssessmentNotMatchingException("Error 124: Assessment "+ assessment.getAssessmentId()+" without Group");
+            throw new AssessmentNotMatchingException("Error 124: Assessment "+ assessment.getAssessmentId()+" is without a Group");
         }
         Map<Participant, Boolean> participantStatus = new HashMap<>();
 
@@ -98,7 +98,7 @@ public class AssessmentServiceImpl implements AssessmentService {
                 // We add the status. False if in progress, true if submitted.
                 if (submission.getDateSubmitted() != null) {
                     participantStatus.put(submission.getParticipant(), true);
-                } else { //We considered submitted an assessment if it has been submitted at leas one time by the user
+                } else { //We considered submitted an assessment if it has been submitted at least one time by the user
                     //including if he is in the middle of taking it again.
                     if (!participantStatus.containsKey(submission.getParticipant())) {
                         participantStatus.put(submission.getParticipant(), false);

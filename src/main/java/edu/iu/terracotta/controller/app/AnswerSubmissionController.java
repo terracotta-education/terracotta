@@ -6,6 +6,7 @@ import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.InvalidUserException;
 import edu.iu.terracotta.exceptions.QuestionSubmissionNotMatchingException;
 import edu.iu.terracotta.model.app.AnswerEssaySubmission;
@@ -153,7 +154,7 @@ public class AnswerSubmissionController {
                                                                     @RequestBody AnswerSubmissionDto answerSubmissionDto,
                                                                     UriComponentsBuilder ucBuilder,
                                                                     HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, BadTokenException, InvalidUserException {
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, BadTokenException, InvalidUserException, IdInPostException {
 
         log.info("Creating answer submission: {}", answerSubmissionDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
@@ -163,8 +164,7 @@ public class AnswerSubmissionController {
 
         if(apijwtService.isLearnerOrHigher(securedInfo)){
             if(answerSubmissionDto.getAnswerSubmissionId() != null){
-                log.error(TextConstants.ID_IN_POST_ERROR);
-                return new ResponseEntity(TextConstants.ID_IN_POST_ERROR, HttpStatus.CONFLICT);
+                throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
             }
 
             if(!apijwtService.isInstructorOrHigher(securedInfo)){
@@ -272,7 +272,7 @@ public class AnswerSubmissionController {
                         answerSubmissionService.deleteByIdMC(answerSubmissionId);
                         return new ResponseEntity<>(HttpStatus.OK);
                     } catch (EmptyResultDataAccessException ex) {
-                        log.error(ex.getMessage());
+                        log.warn(ex.getMessage());
                         return new ResponseEntity<>(HttpStatus.NOT_FOUND);
                     }
                 case "ESSAY":
@@ -280,7 +280,7 @@ public class AnswerSubmissionController {
                         answerSubmissionService.deleteByIdEssay(answerSubmissionId);
                         return new ResponseEntity<>(HttpStatus.OK);
                     } catch (EmptyResultDataAccessException ex) {
-                        log.error(ex.getMessage());
+                        log.warn(ex.getMessage());
                         return new ResponseEntity<>(HttpStatus.NOT_FOUND);
                     }
                 default: return new ResponseEntity("Error 103: Answer type not supported.", HttpStatus.BAD_REQUEST);

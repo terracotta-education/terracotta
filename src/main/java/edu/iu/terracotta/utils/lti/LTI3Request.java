@@ -282,13 +282,13 @@ public class LTI3Request {
         Jws<Claims> jws = parser.parseClaimsJws(jwt);
         //This is just for logging.
         Enumeration<String> sessionAttributes = httpServletRequest.getSession().getAttributeNames();
-        log.info("----------------------BEFORE---------------------------------------------------------------------------------");
+        log.debug("----------------------BEFORE---------------------------------------------------------------------------------");
         while (sessionAttributes.hasMoreElements()) {
             String attName = sessionAttributes.nextElement();
-            log.info(attName + " : " + httpServletRequest.getSession().getAttribute(attName));
+            log.debug(attName + " : " + httpServletRequest.getSession().getAttribute(attName));
 
         }
-        log.info("-------------------------------------------------------------------------------------------------------");
+        log.debug("-------------------------------------------------------------------------------------------------------");
 
         //We check that the LTI request is a valid LTI Request and has the right type.
         String isLTI3Request = isLTI3Request(jws);
@@ -444,7 +444,7 @@ public class LTI3Request {
         try {
             session.setAttribute(LtiStrings.LTI_SESSION_DEPLOYMENT_KEY, ltiDataService.getRepos().platformDeploymentRepository.findByDeploymentId(ltiDeploymentId).get(0).getKeyId());
         } catch (Exception e) {
-            log.info("No deployment found");
+            log.error("No deployment found");
         }
 
         // Surely we need a more elaborated code here based in the huge amount of roles available.

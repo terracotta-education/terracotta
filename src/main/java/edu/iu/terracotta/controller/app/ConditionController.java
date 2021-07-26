@@ -6,6 +6,7 @@ import edu.iu.terracotta.exceptions.ConditionsLockedException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentLockedException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.model.app.Condition;
 import edu.iu.terracotta.model.app.dto.ConditionDto;
@@ -87,9 +88,9 @@ public class ConditionController {
                                                       @RequestBody ConditionDto conditionDto,
                                                       UriComponentsBuilder ucBuilder,
                                                       HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, ExperimentLockedException, TitleValidationException, ConditionsLockedException {
+            throws ExperimentNotMatchingException, BadTokenException, ExperimentLockedException, TitleValidationException, ConditionsLockedException, IdInPostException {
 
-        log.info("Creating Condition : {}", conditionDto);
+        log.debug("Creating Condition : {}", conditionDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentLocked(experimentId,true);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -97,8 +98,7 @@ public class ConditionController {
 
         if(apijwtService.isInstructorOrHigher(securedInfo)) {
             if (conditionDto.getConditionId() != null){
-                log.error(TextConstants.ID_IN_POST_ERROR);
-                return new ResponseEntity(TextConstants.ID_IN_POST_ERROR, HttpStatus.CONFLICT);
+                throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
             }
             conditionService.validateConditionName("", conditionDto.getName(), experimentId, 0L, false);
 
@@ -125,7 +125,7 @@ public class ConditionController {
                                                 HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ConditionNotMatchingException, TitleValidationException {
 
-        log.info("Updating condition with id {}", conditionId);
+        log.debug("Updating condition with id {}", conditionId);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.conditionAllowed(securedInfo, experimentId, conditionId);
@@ -157,6 +157,7 @@ public class ConditionController {
             for(ConditionDto conditionDto : conditionDtoList){
                 apijwtService.conditionAllowed(securedInfo, experimentId,conditionDto.getConditionId());
                 Condition condition = conditionService.findByConditionId(conditionDto.getConditionId());
+                log.debug("Updating condition: " + condition.getConditionId());
                 conditionService.validateConditionName(condition.getName(), conditionDto.getName(), experimentId, condition.getConditionId(), true);
                 if(conditionService.duplicateNameInPut(map, condition)) {
                     return new ResponseEntity("Error 102: Condition names must be unique. Another condition you are trying to update already has this name.", HttpStatus.CONFLICT);
@@ -193,7 +194,7 @@ public class ConditionController {
                 conditionService.deleteById(conditionId);
                 return new ResponseEntity<>(HttpStatus.OK);
             } catch (EmptyResultDataAccessException ex) {
-                log.error(ex.getMessage());
+                log.warn(ex.getMessage());
                 return new ResponseEntity<>(HttpStatus.NOT_FOUND);
             }
         } else{
