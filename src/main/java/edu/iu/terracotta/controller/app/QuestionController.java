@@ -6,6 +6,7 @@ import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.InvalidQuestionTypeException;
+import edu.iu.terracotta.exceptions.NegativePointsException;
 import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
 import edu.iu.terracotta.model.app.Question;
 import edu.iu.terracotta.model.app.dto.QuestionDto;
@@ -112,7 +113,7 @@ public class QuestionController {
                                                     @RequestBody QuestionDto questionDto,
                                                     UriComponentsBuilder ucBuilder,
                                                     HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, BadTokenException, InvalidQuestionTypeException, IdInPostException {
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, BadTokenException, InvalidQuestionTypeException, IdInPostException, NegativePointsException {
 
         log.debug("Creating Question: {}", questionDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
@@ -183,7 +184,7 @@ public class QuestionController {
                                                @PathVariable("question_id") Long questionId,
                                                @RequestBody QuestionDto questionDto,
                                                HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionNotMatchingException, BadTokenException {
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionNotMatchingException, BadTokenException, NegativePointsException {
 
         log.debug("Updating question with id: {}", questionId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
