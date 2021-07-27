@@ -575,8 +575,12 @@ public class CaliperServiceImpl implements CaliperService {
     }
 
     private boolean sendEnabled(PlatformDeployment platformDeployment){
-        if (platformDeployment.getCaliperConfiguration()!=null && platformDeployment.getCaliperConfiguration()){
-            return true;
+        if (platformDeployment.getCaliperConfiguration()!=null){
+            if (platformDeployment.getCaliperConfiguration()) {
+                return true;
+            } else {
+                return false;
+            }
         } else {
             return caliperSend;
         }
@@ -641,7 +645,6 @@ public class CaliperServiceImpl implements CaliperService {
             }
         } else {
             return sensorMap.get(0L);
-
         }
     }
 
