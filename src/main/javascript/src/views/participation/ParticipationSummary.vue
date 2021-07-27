@@ -6,75 +6,113 @@
       ><br />
       Here's a summary of your experiment participation.
     </h1>
-		<template v-if="experiment">
+    <template v-if="experiment">
+      <v-expansion-panels flat v-if="this.experiment.participationType">
+        <v-expansion-panel class="py-3 mb-3">
+          <v-expansion-panel-header
+            ><strong>Selection Method</strong></v-expansion-panel-header
+          >
+          <v-expansion-panel-content>
+            <p>{{ participationType }}</p>
+          </v-expansion-panel-content>
+        </v-expansion-panel>
+      </v-expansion-panels>
 
-			<v-expansion-panels flat v-if="this.experiment.participationType">
-				<v-expansion-panel class="py-3 mb-3">
-					<v-expansion-panel-header><strong>Selection Method</strong></v-expansion-panel-header>
-					<v-expansion-panel-content>
-					<p>{{ participationType }}</p>
-					</v-expansion-panel-content>
-				</v-expansion-panel>
-			</v-expansion-panels>
+      <v-expansion-panels
+        flat
+        v-if="this.experiment.participationType === 'CONSENT'"
+      >
+        <v-expansion-panel class="py-3 mb-3">
+          <v-expansion-panel-header
+            ><strong>Assignment Title</strong></v-expansion-panel-header
+          >
+          <v-expansion-panel-content>
+            <p>{{ this.experiment.consent.title }}</p>
+          </v-expansion-panel-content>
+        </v-expansion-panel>
+      </v-expansion-panels>
 
-			<v-expansion-panels flat v-if="this.consent && this.consent.title">
-				<v-expansion-panel class="py-3 mb-3">
-					<v-expansion-panel-header><strong>Assignment Title</strong></v-expansion-panel-header>
-					<v-expansion-panel-content>
-					<p>{{ consent.title }}</p>
-					</v-expansion-panel-content>
-				</v-expansion-panel>
-			</v-expansion-panels>
-
-		</template>
-
-		<v-btn
-			elevation="0"
-			color="primary"
-			class="mt-3"
-			@click="nextSection"
-			>
-				Continue to next section
-		</v-btn>
-	</div>
+      <v-expansion-panels
+        flat
+        v-if="this.experiment.participationType === 'CONSENT'"
+      >
+        <v-expansion-panel class="py-3 mb-3">
+          <v-expansion-panel-header
+            ><strong>Informed Consent</strong></v-expansion-panel-header
+          >
+          <v-expansion-panel-content>
+            <button class='pdfButton' @click="openPDF">Consent File</button>
+          </v-expansion-panel-content>
+        </v-expansion-panel>
+      </v-expansion-panels>
+    </template>
+    <v-btn elevation="0" color="primary" class="mt-3" @click="nextSection">
+      Continue to next section
+    </v-btn>
+  </div>
 </template>
 
 <script>
-import { mapGetters } from "vuex";
+import { mapGetters, mapActions } from "vuex";
 
 export default {
   name: "ParticipationSummary",
   props: ["experiment"],
-	computed: {
-		...mapGetters({
-			consent: 'consent/consent'
-		}),
-		participationType() {
-			let type = ''
+  computed: {
+    ...mapGetters({
+      consent: 'consent/consent'
+    }),
+    participationType() {
+      let type = ''
 
-			switch (this.experiment.participationType) {
-				case 'CONSENT':
-					type = 'Invited students to consent'
-					break
-				case 'MANUAL':
-					type = 'Manually determined students'
-					break
-				case 'AUTO':
-					type = 'Automatically included all students'
-					break
-			}
+      switch (this.experiment.participationType) {
+        case 'CONSENT':
+          type = 'Invited students to consent'
+          break
+        case 'MANUAL':
+          type = 'Manually determined students'
+          break
+        case 'AUTO':
+          type = 'Automatically included all students'
+          break
+      }
 
-			return type
-		}
-	},
-	methods: {
-		nextSection() {
-			this.$router.push({name:'AssignmentIntro', params:{experiment: this.experiment.experimentId}})
-		},
-		saveExit() {
-			this.$router.push({name:'Home', params:{experiment: this.experiment.experimentId}})
-		}
-	},
+      return type
+    }
+  },
+  methods: {
+    ...mapActions({
+      getConsentFile: "consent/getConsentFile"
+    }),
+    openPDF() {
+      this.getConsentFile(this.experiment.experimentId)
+
+	let pdfWindow = window.open('', '', '_blank')
+      pdfWindow.opener = null
+      pdfWindow.document.write(
+        "<iframe width='100%' height='100%' src='data:application/pdf;base64, " +
+          encodeURI(this.consent.file) +
+          "'></iframe>"
+      )
+      return false
+    },
+    nextSection() {
+      this.$router.push({
+        name: 'AssignmentIntro',
+        params: { experiment: this.experiment.experimentId },
+      })
+    },
+    saveExit() {
+      this.$router.push({
+        name: 'Home',
+      });
+    },
+  },
+  async created() {
+    if (this.experiment.consent.filePointer) {
+      this.getConsentFile(this.experiment.experimentId);
+    }
+  },
   beforeRouteEnter(to, from, next) {
     // Updating selection type for custom steps
     to.meta.selectionType = from.meta.selectionType
@@ -83,8 +121,17 @@ export default {
 };
 </script>
 
-<style lang="scss" >
+<style lang='scss'>
 .v-expansion-panel {
-	border: 1px solid map-get($grey, 'lighten-2');
+  border: 1px solid map-get($grey, 'lighten-2');
+
+  .pdfButton {
+	background: none!important;
+	border: none;
+	padding: 0!important;
+	color: #069;
+	text-decoration: underline;
+	cursor: pointer;
+  }
 }
 </style>
