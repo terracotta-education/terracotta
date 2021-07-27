@@ -375,4 +375,11 @@ public class RestResponseEntityExceptionHandler
         return handleExceptionInternal(ex, bodyOfResponse, new HttpHeaders(), HttpStatus.CONFLICT, request);
     }
 
+    @ExceptionHandler(value = {ExceedingLimitException.class})
+    protected ResponseEntity<Object> handleExceedingLimitException(ExceedingLimitException ex, WebRequest request){
+        String bodyOfResponse = ex.getMessage();
+        log.warn(bodyOfResponse);
+        return handleExceptionInternal(ex, bodyOfResponse, new HttpHeaders(), HttpStatus.ALREADY_REPORTED, request);
+    }
+
 }

@@ -2,6 +2,7 @@ package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.ExceedingLimitException;
 import edu.iu.terracotta.model.app.Assignment;
 import edu.iu.terracotta.model.app.Treatment;
 import edu.iu.terracotta.model.app.dto.TreatmentDto;
@@ -93,6 +94,13 @@ public class TreatmentServiceImpl implements TreatmentService {
     public boolean treatmentBelongsToExperimentAndCondition(Long experimentId, Long conditionId, Long treatmentId) {
         return allRepositories.treatmentRepository.existsByCondition_Experiment_ExperimentIdAndCondition_ConditionIdAndTreatmentId(
                 experimentId, conditionId, treatmentId);
+    }
+
+    @Override
+    public void limitToOne(long assignmentId, long conditionId) throws ExceedingLimitException {
+        if(allRepositories.treatmentRepository.existsByAssignment_AssignmentIdAndCondition_ConditionId(assignmentId, conditionId)){
+            throw new ExceedingLimitException("Error 141: A treatment for the condition " + conditionId + " and assignment " + assignmentId + " already exists.");
+        }
     }
 
     @Override

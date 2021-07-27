@@ -2,6 +2,7 @@ package edu.iu.terracotta.service.app;
 
 import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.ExceedingLimitException;
 import edu.iu.terracotta.model.app.Treatment;
 import edu.iu.terracotta.model.app.dto.TreatmentDto;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -32,6 +33,8 @@ public interface TreatmentService {
     void deleteById(Long id) throws EmptyResultDataAccessException;
 
     boolean treatmentBelongsToExperimentAndCondition(Long experimentId, Long conditionId, Long treatmentId);
+
+    void limitToOne(long assignmentId, long conditionId) throws ExceedingLimitException;
 
     HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, long experimentId, long conditionId, long treatmentId);
 }

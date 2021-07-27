@@ -4,6 +4,7 @@ import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.ConditionNotMatchingException;
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.ExceedingLimitException;
 import edu.iu.terracotta.exceptions.ExperimentLockedException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.IdInPostException;
@@ -101,7 +102,7 @@ public class TreatmentController {
                                                       @RequestBody TreatmentDto treatmentDto,
                                                       UriComponentsBuilder ucBuilder,
                                                       HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, ConditionNotMatchingException, ExperimentLockedException, AssessmentNotMatchingException, IdInPostException {
+            throws ExperimentNotMatchingException, BadTokenException, ConditionNotMatchingException, ExperimentLockedException, AssessmentNotMatchingException, IdInPostException, ExceedingLimitException {
 
         log.debug("Creating Treatment: {}", treatmentDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
@@ -124,6 +125,7 @@ public class TreatmentController {
                 return new ResponseEntity("Error 105: Unable to create Treatment: " + ex.getMessage(), HttpStatus.BAD_REQUEST);
             }
 
+            treatmentService.limitToOne(treatment.getAssignment().getAssignmentId(), conditionId);
             Treatment treatmentSaved = treatmentService.save(treatment);
             TreatmentDto returnedDto = treatmentService.toDto(treatmentSaved, false);
 

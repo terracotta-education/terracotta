@@ -60,12 +60,9 @@ public class QuestionServiceImpl implements QuestionService {
         questionDto.setPoints(question.getPoints());
         questionDto.setAssessmentId(question.getAssessment().getAssessmentId());
         questionDto.setQuestionType(question.getQuestionType().name());
-        //switch case to allow for easy addition of new question/answer types in the future.
         if (answers) {
-            switch (question.getQuestionType()) {
-                case MC:
-                    questionDto.setAnswers(answerService.findAllByQuestionIdMC(question.getQuestionId(), student));
-                    break;
+            if (question.getQuestionType() == QuestionTypes.MC) {
+                questionDto.setAnswers(answerService.findAllByQuestionIdMC(question.getQuestionId(), student));
             }
         }
         return questionDto;
@@ -97,7 +94,7 @@ public class QuestionServiceImpl implements QuestionService {
 
     @Override
     @Transactional
-    public void updateQuestion(Map<Question, QuestionDto> map){
+    public void updateQuestion(Map<Question, QuestionDto> map) {
         for(Map.Entry<Question, QuestionDto> entry : map.entrySet()){
             Question question = entry.getKey();
             QuestionDto questionDto = entry.getValue();
@@ -111,9 +108,6 @@ public class QuestionServiceImpl implements QuestionService {
     @Override
     public void saveAndFlush(Question questionToChange) { allRepositories.questionRepository.saveAndFlush(questionToChange); }
 
-    @Override
-    @Transactional
-    public void saveAllQuestions(List<Question> questionList) { allRepositories.questionRepository.saveAll(questionList); }
 
     @Override
     public void deleteById(Long id) throws EmptyResultDataAccessException {

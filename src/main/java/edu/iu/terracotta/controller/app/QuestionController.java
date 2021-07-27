@@ -147,7 +147,7 @@ public class QuestionController {
                                                 @PathVariable("assessment_id") Long assessmentId,
                                                 @RequestBody List<QuestionDto> questionDtoList,
                                                 HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionNotMatchingException, BadTokenException, DataServiceException {
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionNotMatchingException, BadTokenException, DataServiceException  {
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
