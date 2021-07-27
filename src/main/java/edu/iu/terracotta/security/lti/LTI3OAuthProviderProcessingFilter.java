@@ -74,13 +74,13 @@ public class LTI3OAuthProviderProcessingFilter extends GenericFilterBean {
             // This is just for logging.
             HttpServletRequest httpServletRequest = (HttpServletRequest) servletRequest;
             Enumeration<String> sessionAttributes = httpServletRequest.getSession().getAttributeNames();
-            log.info("-------------------------------------------------------------------------------------------------------");
+            log.debug("-------------------------------------------------------------------------------------------------------");
             while (sessionAttributes.hasMoreElements()) {
                 String attName = sessionAttributes.nextElement();
-                log.info(attName + " : " + httpServletRequest.getSession().getAttribute(attName));
+                log.debug(attName + " : " + httpServletRequest.getSession().getAttribute(attName));
 
             }
-            log.info("-------------------------------------------------------------------------------------------------------");
+            log.debug("-------------------------------------------------------------------------------------------------------");
 
             // First we validate that the state is a good state.
 
@@ -125,11 +125,11 @@ public class LTI3OAuthProviderProcessingFilter extends GenericFilterBean {
 
             this.resetAuthenticationAfterRequest();
         } catch (ExpiredJwtException eje) {
-            log.info("Security exception for user {} - {}", eje.getClaims().getSubject(), eje.getMessage());
+            log.warn("Security exception for user {} - {}", eje.getClaims().getSubject(), eje.getMessage());
             ((HttpServletResponse) servletResponse).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             log.debug("Exception " + eje.getMessage(), eje);
         } catch (SignatureException ex) {
-            log.info("Invalid JWT signature: {0}", ex.getMessage());
+            log.warn("Invalid JWT signature: {0}", ex.getMessage());
             log.debug("Exception " + ex.getMessage(), ex);
             ((HttpServletResponse) servletResponse).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         } catch (DataServiceException e) {

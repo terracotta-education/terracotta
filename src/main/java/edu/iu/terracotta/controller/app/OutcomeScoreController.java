@@ -3,6 +3,7 @@ package edu.iu.terracotta.controller.app;
 import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.InvalidParticipantException;
 import edu.iu.terracotta.exceptions.OutcomeNotMatchingException;
 import edu.iu.terracotta.exceptions.OutcomeScoreNotMatchingException;
@@ -100,16 +101,16 @@ public class OutcomeScoreController {
                                                             @RequestBody OutcomeScoreDto outcomeScoreDto,
                                                             UriComponentsBuilder ucBuilder,
                                                             HttpServletRequest req)
-            throws ExperimentNotMatchingException, OutcomeNotMatchingException, BadTokenException, InvalidParticipantException {
+            throws ExperimentNotMatchingException, OutcomeNotMatchingException, BadTokenException, InvalidParticipantException, IdInPostException {
 
+        log.debug("Creating outcome score: {}", outcomeScoreDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.outcomeAllowed(securedInfo, experimentId, exposureId, outcomeId);
 
         if(apijwtService.isInstructorOrHigher(securedInfo)){
             if(outcomeScoreDto.getOutcomeScoreId() != null) {
-                log.error(TextConstants.ID_IN_POST_ERROR);
-                return new ResponseEntity(TextConstants.ID_IN_POST_ERROR, HttpStatus.CONFLICT);
+                throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
             }
             outcomeScoreService.validateParticipant(outcomeScoreDto.getParticipantId(), experimentId);
             outcomeScoreDto.setOutcomeId(outcomeId);
@@ -138,7 +139,7 @@ public class OutcomeScoreController {
                                               HttpServletRequest req)
             throws ExperimentNotMatchingException, OutcomeNotMatchingException, OutcomeScoreNotMatchingException, BadTokenException {
 
-        log.info("Updating outcome score with id {}", outcomeScoreId);
+        log.debug("Updating outcome score with id {}", outcomeScoreId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.outcomeAllowed(securedInfo, experimentId, exposureId, outcomeId);
@@ -171,7 +172,7 @@ public class OutcomeScoreController {
                 outcomeScoreService.deleteById(outcomeScoreId);
                 return new ResponseEntity<>(HttpStatus.OK);
             } catch (EmptyResultDataAccessException ex) {
-                log.error(ex.getMessage());
+                log.warn(ex.getMessage());
                 return new ResponseEntity<>(HttpStatus.NOT_FOUND);
             }
         } else {

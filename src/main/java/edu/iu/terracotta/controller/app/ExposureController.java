@@ -5,6 +5,7 @@ import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentLockedException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.ExposureNotMatchingException;
+import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.model.app.Exposure;
 import edu.iu.terracotta.model.app.dto.ExposureDto;
@@ -86,17 +87,16 @@ public class ExposureController {
                                                     @RequestBody ExposureDto exposureDto,
                                                     UriComponentsBuilder ucBuilder,
                                                     HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, ExperimentLockedException, TitleValidationException {
+            throws ExperimentNotMatchingException, BadTokenException, ExperimentLockedException, TitleValidationException, IdInPostException {
 
-        log.info("Creating Exposure : {}", exposureDto);
+        log.debug("Creating Exposure : {}", exposureDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.experimentLocked(experimentId,true);
 
         if(apijwtService.isInstructorOrHigher(securedInfo)) {
             if(exposureDto.getExposureId() != null) {
-                log.error(TextConstants.ID_IN_POST_ERROR);
-                return new ResponseEntity(TextConstants.ID_IN_POST_ERROR, HttpStatus.CONFLICT);
+                throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
             }
 
             exposureService.validateTitle(exposureDto.getTitle());
@@ -122,7 +122,7 @@ public class ExposureController {
                                                HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ExposureNotMatchingException, TitleValidationException {
 
-        log.info("Updating exposure with id {}", exposureId);
+        log.debug("Updating exposure with id {}", exposureId);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
@@ -151,7 +151,7 @@ public class ExposureController {
                 exposureService.deleteById(exposureId);
                 return new ResponseEntity<>(HttpStatus.OK);
             } catch (EmptyResultDataAccessException ex) {
-                log.error(ex.getMessage());
+                log.warn(ex.getMessage());
                 return new ResponseEntity<>(HttpStatus.NOT_FOUND);
             }
         }else {

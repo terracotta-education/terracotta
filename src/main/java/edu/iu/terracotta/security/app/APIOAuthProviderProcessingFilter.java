@@ -101,11 +101,11 @@ public class APIOAuthProviderProcessingFilter extends GenericFilterBean {
             filterChain.doFilter(servletRequest, servletResponse);
             this.resetAuthenticationAfterRequest();
         } catch (ExpiredJwtException eje) {
-            log.info("Security exception for user {} - {}", eje.getClaims().getSubject(), eje.getMessage());
+            log.warn("Security exception for user {} - {}", eje.getClaims().getSubject(), eje.getMessage());
             ((HttpServletResponse) servletResponse).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             log.debug("Exception " + eje.getMessage(), eje);
         } catch (SignatureException ex) {
-            log.info("Invalid JWT signature: {0}", ex.getMessage());
+            log.warn("Invalid JWT signature: {0}", ex.getMessage());
             log.debug("Exception " + ex.getMessage(), ex);
             ((HttpServletResponse) servletResponse).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         }
@@ -135,7 +135,4 @@ public class APIOAuthProviderProcessingFilter extends GenericFilterBean {
     private boolean isBearerToken(String rawHeaderValue) {
         return rawHeaderValue.toLowerCase().startsWith(JWT_BEARER_TYPE.toLowerCase());
     }
-
-
-
 }

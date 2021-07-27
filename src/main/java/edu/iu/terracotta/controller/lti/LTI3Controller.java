@@ -42,7 +42,6 @@ import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.Principal;
-import java.util.ArrayList;
 import java.util.List;
 
 /**

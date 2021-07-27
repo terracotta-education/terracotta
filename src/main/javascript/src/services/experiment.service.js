@@ -21,7 +21,7 @@ function getAll() {
     headers: authHeader()
   }
 
-  return fetch(`${store.getters['api/aud']}/api/experiments`, requestOptions).then(handleResponse)
+  return fetch(`${store.getters['api/aud']}/api/experiments?participants=true`, requestOptions).then(handleResponse)
 }
 
 /**

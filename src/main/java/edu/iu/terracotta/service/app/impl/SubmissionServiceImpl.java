@@ -243,7 +243,7 @@ public class SubmissionServiceImpl implements SubmissionService {
 
     @Override
     @Transactional
-    public void finalizeAndGrade(Long submissionId, SecuredInfo securedInfo) throws DataServiceException, CanvasApiException, IOException, AssignmentDatesException {
+    public void finalizeAndGrade(Long submissionId, SecuredInfo securedInfo) throws DataServiceException, AssignmentDatesException {
         Optional<Submission> submissionOptional =  allRepositories.submissionRepository.findById(submissionId);
         if (submissionOptional.isPresent()){
             //We are not changing the submission date once it is set.

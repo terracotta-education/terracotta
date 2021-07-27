@@ -184,16 +184,28 @@ public class ExperimentServiceImpl implements ExperimentService {
             }
         }
         experimentDto.setParticipants(participantDtoList);
+        int countAnswered = 0;
+        int countAccepted = 0;
+        int countRejected = 0;
+        if (experiment.getParticipants()!=null) {
+            experimentDto.setPotentialParticipants(experiment.getParticipants().size());
+
+            for (Participant participant : experiment.getParticipants()) {
+                if (participant.getConsent() != null) {
+                    countAnswered = countAnswered + 1;
+                    if (participant.getConsent()) {
+                        countAccepted = countAccepted + 1;
+                    } else {
+                        countRejected = countRejected + 1;
+                    }
+                }
+            }
+        }
+        experimentDto.setAcceptedParticipants(countAccepted);
+        experimentDto.setRejectedParticipants(countRejected);
 
         ConsentDocument consentDocument = experiment.getConsentDocument();
         if (consentDocument !=null){
-            Integer countAnswered = 0;
-            for (Participant participant:experiment.getParticipants()){
-                if (participant.getConsent()!=null){
-                    countAnswered = countAnswered + 1;
-                }
-            }
-
             ConsentDto consentDto = new ConsentDto();
             consentDto.setConsentDocumentId(consentDocument.getConsentDocumentId());
             consentDto.setFilePointer(consentDocument.getFilePointer());

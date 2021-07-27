@@ -4,6 +4,7 @@ import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
 import edu.iu.terracotta.model.app.Assessment;
@@ -107,17 +108,16 @@ public class AssessmentController {
                                                         @RequestBody AssessmentDto assessmentDto,
                                                         UriComponentsBuilder ucBuilder,
                                                         HttpServletRequest req)
-            throws ExperimentNotMatchingException, TreatmentNotMatchingException, BadTokenException, TitleValidationException, AssessmentNotMatchingException {
+            throws ExperimentNotMatchingException, TreatmentNotMatchingException, BadTokenException, TitleValidationException, AssessmentNotMatchingException, IdInPostException {
 
-        log.info("Creating Assessment: {}", assessmentDto);
+        log.debug("Creating Assessment: {}", assessmentDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.treatmentAllowed(securedInfo, experimentId, conditionId, treatmentId);
 
         if(apijwtService.isInstructorOrHigher(securedInfo)) {
             if(assessmentDto.getAssessmentId() != null) {
-                log.error(TextConstants.ID_IN_POST_ERROR);
-                return new ResponseEntity(TextConstants.ID_IN_POST_ERROR, HttpStatus.CONFLICT);
+                throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
             }
 
             assessmentService.validateTitle(assessmentDto.getTitle());
@@ -149,7 +149,7 @@ public class AssessmentController {
                                                  HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, BadTokenException, TitleValidationException {
 
-        log.info("Updating assessment with id: {}", assessmentId);
+        log.debug("Updating assessment with id: {}", assessmentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
@@ -181,7 +181,7 @@ public class AssessmentController {
                 assessmentService.deleteById(assessmentId);
                 return new ResponseEntity<>(HttpStatus.OK);
             } catch (EmptyResultDataAccessException ex) {
-                log.error(ex.getMessage());
+                log.warn(ex.getMessage());
                 return new ResponseEntity<>(HttpStatus.NOT_FOUND);
             }
         } else {
