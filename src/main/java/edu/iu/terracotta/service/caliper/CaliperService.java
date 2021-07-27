@@ -1,6 +1,7 @@
 package edu.iu.terracotta.service.caliper;
 
 import edu.iu.terracotta.model.LtiMembershipEntity;
+import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.model.app.Assessment;
 import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.Submission;
@@ -11,7 +12,7 @@ import java.util.List;
 
 public interface CaliperService {
 
-    void send(Envelope envelope);
+    void send(Envelope envelope, PlatformDeployment platformDeployment);
 
     void sendAssignmentStarted(Submission submission, SecuredInfo securedInfo);
 

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd"
+        objectQuotingStrategy="QUOTE_ONLY_RESERVED_WORDS">
+    <changeSet id="1627399754791-1" author="ddelblanco (generated)">
+        <addColumn tableName="iss_configuration">
+            <column name="caliper_api_key" type="VARCHAR(255)"/>
+            <column name="caliper_client_id" type="VARCHAR(255)"/>
+            <column name="caliper_configuration" type="BOOLEAN"/>
+            <column name="caliper_connection_timeout" type="INT"/>
+            <column name="caliper_content_type" type="VARCHAR(255)"/>
+            <column name="caliper_host" type="VARCHAR(255)"/>
+            <column name="caliper_sensor_id" type="VARCHAR(255)"/>
+            <column name="caliper_socket_timeout" type="INT"/>
+        </addColumn>
+    </changeSet>
+
+</databaseChangeLog>

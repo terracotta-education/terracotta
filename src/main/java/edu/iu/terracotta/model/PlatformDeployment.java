@@ -60,8 +60,37 @@ public class PlatformDeployment extends BaseEntity {
     @Basic
     @Column(name = "base_url")
     private String baseUrl;
+    @Basic
+    @Column(name = "caliper_configuration")
+    private Boolean caliperConfiguration;
 
+    @Basic
+    @Column(name = "caliper_sensor_id")
+    private String caliperSensorId;
 
+    @Basic
+    @Column(name = "caliper_client_id")
+    private String caliperClientId;
+
+    @Basic
+    @Column(name = "caliper_api_key")
+    private String caliperApiKey;
+
+    @Basic
+    @Column(name = "caliper_connection_timeout")
+    private Integer caliperConnectionTimeout;
+
+    @Basic
+    @Column(name = "caliper_content_type")
+    private String caliperContentType;
+
+    @Basic
+    @Column(name = "caliper_host")
+    private String caliperHost;
+
+    @Basic
+    @Column(name = "caliper_socket_timeout")
+    private Integer caliperSocketTimeOut;
 
     @JsonIgnore
     @OneToMany(mappedBy = "platformDeployment", fetch = FetchType.LAZY)
@@ -156,6 +185,70 @@ public class PlatformDeployment extends BaseEntity {
         this.baseUrl = baseUrl;
     }
 
+    public Boolean getCaliperConfiguration() {
+        return caliperConfiguration;
+    }
+
+    public void setCaliperConfiguration(Boolean caliperConfiguration) {
+        this.caliperConfiguration = caliperConfiguration;
+    }
+
+    public String getCaliperSensorId() {
+        return caliperSensorId;
+    }
+
+    public void setCaliperSensorId(String caliperSensorId) {
+        this.caliperSensorId = caliperSensorId;
+    }
+
+    public String getCaliperClientId() {
+        return caliperClientId;
+    }
+
+    public void setCaliperClientId(String caliperClientId) {
+        this.caliperClientId = caliperClientId;
+    }
+
+    public String getCaliperApiKey() {
+        return caliperApiKey;
+    }
+
+    public void setCaliperApiKey(String caliperApiKey) {
+        this.caliperApiKey = caliperApiKey;
+    }
+
+    public Integer getCaliperConnectionTimeout() {
+        return caliperConnectionTimeout;
+    }
+
+    public void setCaliperConnectionTimeout(Integer caliperConnectionTimeout) {
+        this.caliperConnectionTimeout = caliperConnectionTimeout;
+    }
+
+    public String getCaliperContentType() {
+        return caliperContentType;
+    }
+
+    public void setCaliperContentType(String caliperContentType) {
+        this.caliperContentType = caliperContentType;
+    }
+
+    public String getCaliperHost() {
+        return caliperHost;
+    }
+
+    public void setCaliperHost(String caliperHost) {
+        this.caliperHost = caliperHost;
+    }
+
+    public Integer getCaliperSocketTimeOut() {
+        return caliperSocketTimeOut;
+    }
+
+    public void setCaliperSocketTimeOut(Integer caliperSocketTimeOut) {
+        this.caliperSocketTimeOut = caliperSocketTimeOut;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -179,6 +272,4 @@ public class PlatformDeployment extends BaseEntity {
         result = 31 * result + (deploymentId != null ? deploymentId.hashCode() : 0);
         return result;
     }
-
-
 }
