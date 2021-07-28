@@ -1,0 +1,19 @@
+{
+  "iss": "https://canvas.instructure.com",
+  "clientId": "97140000000000049",
+  "oidcEndpoint": "https://canvas.instructure.com/api/lti/authorize_redirect",
+  "jwksEndpoint": "https://canvas.instructure.com/api/lti/security/jwks",
+  "oAuth2TokenUrl": "https://unicon.instructure.com/login/oauth2/token",
+  "oAuth2TokenAud": null,
+  "deploymentId": "207:5440a08422ab1ee7794a0588b5e4cb4a094c4256",
+  "apiToken": "ADD_YOUR_OWN_API_TOKEN_9714~yidT9aCjWrM\n",
+  "baseUrl": "https://unicon.instructure.com",
+  "caliperConfiguration": true,
+  "caliperSensorId": "123",
+  "caliperClientId": "456",
+  "caliperApiKey": "YOUR_LRS_API_KEY",
+  "caliperConnectionTimeout": 10000,
+  "caliperContentType": "application/json",
+  "caliperHost": "https://YOUR_LRS_URL_HERE",
+  "caliperSocketTimeOut": 10000
+}
