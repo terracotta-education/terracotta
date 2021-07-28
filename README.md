@@ -13,6 +13,8 @@ note, to avoid some test errors if those happen, try
 
     mvn install -DskipTests=true
 
+to skip the yarn build, -Dskip.yarn can be used
+
 Quick Run
 ---------
 You can run the app in place to try it out without having to install and deploy a servlet container.
@@ -24,7 +26,7 @@ Then go to the following default URL:
     https://localhost:9090/
 
 NOTE: To run it and connect it to real LMSs it is recommended to run it in an accessible server 
-with a valid certificate.
+with a valid certificate launching the jar file with the right configuration files.
 
 Customizing
 -----------
@@ -46,9 +48,3 @@ mysql> create user 'xxxuserNamexxx'@'%' identified by 'xxxPasswordxxx'; Query OK
 
 mysql> grant all on terracotta.* to 'terracotta'@'localhost'; Query OK, 0 rows affected (0.00 sec)
 
-
-Developing the interface
----------
-You will need to run the local development script in addition to the back-end java server. 
-
-Navigate to the `src/main/javascript` directory to view the README for the front-end.
