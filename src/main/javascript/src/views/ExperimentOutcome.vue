@@ -8,7 +8,13 @@
       </router-link>
       <v-btn color="primary" elevation="0" class="saveButton" @click="$refs.childComponent.saveExit()">SAVE & EXIT</v-btn>
     </nav>
-    <router-view :key="$route.fullPath" ref="childComponent" :experiment="experiment"></router-view>
+    <article class="experiment-outcome__body">
+      <v-row>
+        <v-col cols="12">
+          <router-view :key="$route.fullPath" ref="childComponent" :experiment="experiment"></router-view>
+        </v-col>
+      </v-row>
+    </article>
   </div>
 </template>
 
@@ -28,13 +34,9 @@ export default {
   },
 
   beforeRouteEnter (to, from, next) {
-    // don't load new data after consent title screen
-    if (from.name==='ParticipationTypeConsentTitle' && to.name==='ParticipationTypeConsentFile') { next(); return;}
     return store.dispatch('experiment/fetchExperimentById', to.params.experiment_id).then(next, next)
   },
   beforeRouteUpdate (to, from, next) {
-    // don't load new data after consent title screen
-    if (from.name==='ParticipationTypeConsentTitle' && to.name==='ParticipationTypeConsentFile') { next(); return;}
     return store.dispatch('experiment/fetchExperimentById', to.params.experiment_id).then(next, next)
   },
 }
@@ -44,17 +46,10 @@ export default {
 @import '~vuetify/src/styles/main.sass';
 @import '~@/styles/variables';
 
-.experiment-steps {
-  display: grid;
+.experiment-outcome {
   min-height: 100%;
-  grid-template-rows: auto 1fr;
-  grid-template-columns: auto 1fr;
-  grid-template-areas:
-			"nav"
-			"article";
 
   > nav {
-    grid-area: nav;
     padding: 30px;
 
     display: flex;
@@ -75,19 +70,9 @@ export default {
       cursor: pointer;
     }
   }
-  > aside {
-    grid-area: aside;
-  }
   > article {
     grid-area: article;
-    padding: 0;
-  }
-
-  &__sidebar {
-    background: map-get($grey, 'lighten-4');
-    padding: 30px 45px;
-  }
-  &__body {
+    padding: 0 30px;
   }
 }
 </style>

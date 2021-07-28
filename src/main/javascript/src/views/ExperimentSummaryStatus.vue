@@ -76,7 +76,60 @@
                 </tbody>
               </template>
             </v-simple-table>
+
             <h4 class="mb-3"><strong>Outcomes</strong></h4>
+            <v-simple-table class="mb-9 v-data-table--no-outline v-data-table--light-header" v-if="experimentOutcomes.length">
+              <template v-slot:default>
+                <thead>
+                <tr>
+                  <th class="text-left">Outcome Name</th>
+                  <th class="text-left">Source</th>
+                  <th class="text-left">Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr
+                  v-for="outcome in experimentOutcomes"
+                  :key="outcome.outcomeId"
+                >
+                  <template v-if="outcome.title">
+                    <td>{{outcome.title}}</td>
+                  </template>
+                  <template v-else>
+                    <td><em>Outcome with no title</em></td>
+                  </template>
+
+                  <template v-if="!outcome.external">
+                    <td>Manual Entry</td>
+                  </template>
+                  <template v-else>
+                    <td>Gradebook</td>
+                  </template>
+
+                  <td>
+                    <v-menu>
+                      <template v-slot:activator="{ on, attrs }">
+                        <v-icon
+                          color="black"
+                          v-bind="attrs"
+                          v-on="on"
+                        >
+                          mdi-dots-horizontal
+                        </v-icon>
+                      </template>
+                      <v-list class="text-left">
+                        <v-list-item @click="handleDeleteOutcome(exposure.exposureId, outcome.outcomeId)">
+                          <v-list-item-title>Delete Outcome</v-list-item-title>
+                        </v-list-item>
+                      </v-list>
+                    </v-menu>
+                  </td>
+                </tr>
+                </tbody>
+              </template>
+            </v-simple-table>
+
+
             <v-menu offset-y>
               <template v-slot:activator="{ on, attrs }">
                 <v-btn
@@ -92,7 +145,7 @@
                 <v-list-item @click="console.log('Select item from gradebook')">
                   <v-list-item-title>Select item from gradebook</v-list-item-title>
                 </v-list-item>
-                <v-list-item :to="{name:'OutcomeScoring', params: {exposure_id:exposure.exposureId}}">
+                <v-list-item @click="handleCreateOutcome(exposure.exposureId)">
                   <v-list-item-title>Manually enter scores for each student</v-list-item-title>
                 </v-list-item>
               </v-list>
@@ -120,7 +173,8 @@ export default {
     ...mapGetters({
       assignments: 'assignment/assignments',
       conditions: 'experiment/conditions',
-      exposures: 'exposures/exposures'
+      exposures: 'exposures/exposures',
+      experimentOutcomes: 'outcome/experimentOutcomes'
     }),
     assignmentCompletion() {
       let arr = []
@@ -174,8 +228,23 @@ export default {
     }),
     ...mapActions({
       fetchAssignmentsByExposure: 'assignment/fetchAssignmentsByExposure',
-      fetchExposures: 'exposures/fetchExposures'
+      fetchExposures: 'exposures/fetchExposures',
+      fetchOutcomesByExperimentId: 'outcome/fetchOutcomesByExperimentId',
+      createOutcome: 'outcome/createOutcome',
+      deleteOutcome: 'outcome/deleteOutcome'
     }),
+    async handleCreateOutcome(exposure_id) {
+      try {
+        const outcome = await this.createOutcome([this.experiment_id, exposure_id, '', 0, false])
+        this.$router.push({name:'OutcomeScoring', params: {exposure_id, outcome_id: outcome.outcomeId}})
+      } catch(error) {
+        console.error({error})
+      }
+    },
+    async handleDeleteOutcome(exposure_id, outcome_id) {
+      await this.deleteOutcome([this.experiment_id, exposure_id, outcome_id])
+      this.fetchOutcomesByExperimentId([this.experiment_id, [...new Set(this.exposures.map(item => item.exposureId))]])
+    }
   },
   async created() {
     // reset assignments to get a clean list
@@ -187,6 +256,7 @@ export default {
       const submissions = true
       await this.fetchAssignmentsByExposure([this.experiment_id, e.exposureId, submissions])
     }
+    this.fetchOutcomesByExperimentId([this.experiment_id, [...new Set(this.exposures.map(item => item.exposureId))]])
   }
 }
 </script>
