@@ -18,7 +18,18 @@ const actions = {
   },
   setConsentFile: ({commit}, file) => {
     commit('setConsentFile', file)
-  }
+  },
+  getConsentFile: ({commit}, experiment_id) => {
+    return consentService.getConsentFile(experiment_id).then(response => {
+      if (response.status === 200) {
+        commit('setConsentFile', response.base)
+      } else {
+        console.log('getConsentFile | catch', {response})
+      }
+    })
+    .catch(response => console.log('getConsentFile | catch', {response}))
+}
+
 }
 
 const mutations = {

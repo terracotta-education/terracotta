@@ -178,7 +178,7 @@
                                         group.groupName + group.conditionName
                                       "
                                     >
-                                    <!-- Sorted Group Names -->
+                                      <!-- Sorted Group Names -->
                                       {{
                                         groupNameConditionMapping(
                                           exposure.groupConditionList
@@ -273,8 +273,11 @@
                               <!-- Consent Participation -->
                               <template v-if="item.description === 'CONSENT'">
                                 Informed Consent
-                                <br />
-                                {{ experiment.consent.title }}
+                                <button class='pdfButton'
+                                  @click="openPDF"
+                                >
+                                  {{ experiment.consent.title }}
+                                </button>
                               </template>
                               <!-- Manual Participation -->
                               <template
@@ -333,6 +336,7 @@ export default {
       conditions: "experiment/conditions",
       exposures: "exposures/exposures",
       assignments: "assignment/assignments",
+      consent: "consent/consent",
     }),
     // Higher Level Section Values
     sectionValuesMap() {
@@ -425,10 +429,23 @@ export default {
       checkTreatment: "treatment/checkTreatment",
       createTreatment: "treatment/createTreatment",
       createAssessment: "assessment/createAssessment",
+      getConsentFile: "consent/getConsentFile",
     }),
     // Navigate to EDIT section
     handleEdit(componentName) {
       this.$router.push({ name: componentName });
+    },
+    openPDF() {
+      // Second Parameter intentionally left blank
+      let pdfWindow = window.open("", "", "_blank");
+      pdfWindow.opener = null;
+      pdfWindow.document.write(
+        "<iframe width='100%' height='100%' src='data:application/pdf;base64, " +
+          encodeURI(this.consent.file) +
+          "'></iframe>"
+      );
+
+      return false;
     },
     async getAssignmentDetails() {
       await this.fetchExposures(this.experiment.experimentId);
@@ -515,6 +532,8 @@ export default {
 
   async created() {
     this.tab = this.$router.currentRoute.name === "ExperimentSummary" ? 1 : 0;
+    await this.getConsentFile(this.experiment.experimentId);
+
     await this.fetchExposures(this.experiment.experimentId);
     for (let c of this.conditions) {
       const t = await this.checkTreatment([
@@ -605,6 +624,15 @@ table {
     .assignmentConditionName {
       text-align: left;
     }
+    .pdfButton {
+      background: none!important;
+      border: none;
+      padding: 0!important;
+      color: #069;
+      text-decoration: underline;
+      cursor: pointer;
+      text-align: left;
+  }
   }
 }
 </style>
