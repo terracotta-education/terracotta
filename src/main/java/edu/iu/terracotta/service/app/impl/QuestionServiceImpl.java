@@ -2,6 +2,7 @@ package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.InvalidQuestionTypeException;
+import edu.iu.terracotta.exceptions.NegativePointsException;
 import edu.iu.terracotta.model.app.Assessment;
 import edu.iu.terracotta.model.app.Question;
 import edu.iu.terracotta.model.app.dto.QuestionDto;
@@ -69,12 +70,16 @@ public class QuestionServiceImpl implements QuestionService {
     }
 
     @Override
-    public Question fromDto(QuestionDto questionDto) throws DataServiceException {
+    public Question fromDto(QuestionDto questionDto) throws DataServiceException, NegativePointsException {
 
         Question question = new Question();
         question.setQuestionId(questionDto.getQuestionId());
         question.setHtml(questionDto.getHtml());
-        question.setPoints(questionDto.getPoints());
+        if(questionDto.getPoints() >= 0){
+            question.setPoints(questionDto.getPoints());
+        } else {
+            throw new NegativePointsException("Error 142: The point value cannot be negative.");
+        }
         question.setQuestionOrder(questionDto.getQuestionOrder());
         question.setQuestionType(EnumUtils.getEnum(QuestionTypes.class, questionDto.getQuestionType()));
         Optional<Assessment> assessment = allRepositories.assessmentRepository.findById(questionDto.getAssessmentId());
@@ -94,13 +99,17 @@ public class QuestionServiceImpl implements QuestionService {
 
     @Override
     @Transactional
-    public void updateQuestion(Map<Question, QuestionDto> map) {
+    public void updateQuestion(Map<Question, QuestionDto> map) throws NegativePointsException {
         for(Map.Entry<Question, QuestionDto> entry : map.entrySet()){
             Question question = entry.getKey();
             QuestionDto questionDto = entry.getValue();
             question.setHtml(questionDto.getHtml());
             question.setQuestionOrder(questionDto.getQuestionOrder());
-            question.setPoints(questionDto.getPoints());
+            if(questionDto.getPoints() >= 0){
+                question.setPoints(questionDto.getPoints());
+            } else {
+                throw new NegativePointsException("Error 142: The point value cannot be negative.");
+            }
             save(question);
         }
     }
