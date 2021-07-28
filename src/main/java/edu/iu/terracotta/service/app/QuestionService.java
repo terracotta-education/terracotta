@@ -2,6 +2,7 @@ package edu.iu.terracotta.service.app;
 
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.InvalidQuestionTypeException;
+import edu.iu.terracotta.exceptions.NegativePointsException;
 import edu.iu.terracotta.model.app.Question;
 import edu.iu.terracotta.model.app.dto.QuestionDto;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -20,11 +21,11 @@ public interface QuestionService {
 
     Question getQuestion(Long id);
 
-    void updateQuestion(Map<Question, QuestionDto> map);
+    void updateQuestion(Map<Question, QuestionDto> map) throws NegativePointsException;
 
     QuestionDto toDto(Question question, boolean answers, boolean student);
 
-    Question fromDto(QuestionDto questionDto) throws DataServiceException;
+    Question fromDto(QuestionDto questionDto) throws DataServiceException, NegativePointsException;
 
     Question save(Question question);
 

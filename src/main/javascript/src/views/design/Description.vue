@@ -64,7 +64,11 @@ export default {
 		slide: 0,
 		blurbs: [
 			"The study looks to test whether exposure to ones' own lexile level (and seeing how it improves over time) might improve students' learning outcomes.",
-			"The study explores how learning about the biology of skin color (vs. social construction of race) impacts students’ conception of race. It is important for science teachers to understand the impacts of teaching about skin color biology and how it may impact students' concepts of race."
+			"The study explores how learning about the biology of skin color (vs. social construction of race) impacts students’ conception of race. It is important for science teachers to understand the impacts of teaching about skin color biology and how it may impact students' concepts of race.",
+			"The purpose of this study is to evaluate the benefits of explicitly including student learning outcomes in the assignment description.  The TILT movement hypothesizes that this will help students be in better control of their learning and will reduce inequity.",
+			"This study will test whether presenting assessment questions before students watch an instructional video (“pre-questions”) will improve learning outcomes, compared with presenting the same questions after students watch the video.",
+			"This experiment tests whether multiple-choice questions can improve critical thinking performance in Introductory Psychology.  Some students will categorize critical thinking scenarios, while others will answer conventional practice questions about brain structures and psychological functions.",
+			"In this study, students will see worked examples of math problems, and will then solve similar problems.  Some of the worked examples will include a common mistake along with a correction, and other worked examples will be entirely correct.  We will examine how exposure to mistakes affects student performance."
 		]
 	}),
 	methods: {

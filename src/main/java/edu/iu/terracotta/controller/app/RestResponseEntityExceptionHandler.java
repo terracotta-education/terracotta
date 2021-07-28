@@ -382,4 +382,11 @@ public class RestResponseEntityExceptionHandler
         return handleExceptionInternal(ex, bodyOfResponse, new HttpHeaders(), HttpStatus.ALREADY_REPORTED, request);
     }
 
+    @ExceptionHandler(value = {NegativePointsException.class})
+    protected ResponseEntity<Object> handleNegativePointsException(NegativePointsException ex, WebRequest request){
+        String bodyOfResponse = ex.getMessage();
+        log.warn(bodyOfResponse);
+        return handleExceptionInternal(ex, bodyOfResponse, new HttpHeaders(), HttpStatus.CONFLICT, request);
+    }
+
 }

@@ -52,6 +52,7 @@
                 />
                 <v-text-field
                   v-model="question.points"
+                  :rules="numberRule"
                   label="Points"
                   type="number"
                   outlined
@@ -213,7 +214,11 @@ export default {
     return {
       rules: [
         v => v && !!v.trim() || 'required',
-        v => (v || '').length <= 255 || 'A maximum of 255 characters is allowed'
+        v => (v || '').length <= 255 || 'A maximum of 255 characters is allowed',
+      ],
+      numberRule: [
+        v => v && !!v.trim() || 'required',
+        v => (!isNaN(parseFloat(v))) && v >= 0 || 'The point value cannot be negative'
       ],
       extensions: [
         History,
