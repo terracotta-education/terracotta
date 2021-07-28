@@ -14,7 +14,7 @@
           </v-expansion-panel-content>
         </v-expansion-panel>
 
-        <v-expansion-panel :class="{'v-expansion-panel--selected':experiment.distributionType==='CUSTOM'}">
+        <v-expansion-panel :class="{'v-expansion-panel--selected':experiment.distributionType==='CUSTOM'}" :disabled="experiment.exposureType === 'WITHIN'">
           <v-expansion-panel-header hide-actions><img src="@/assets/custom.svg" alt="custom distribution"> Custom
           </v-expansion-panel-header>
           <v-expansion-panel-content>
@@ -23,7 +23,7 @@
           </v-expansion-panel-content>
         </v-expansion-panel>
 
-        <v-expansion-panel :class="{'v-expansion-panel--selected':experiment.distributionType==='MANUAL'}">
+        <v-expansion-panel :class="{'v-expansion-panel--selected':experiment.distributionType==='MANUAL'}" :disabled="experiment.exposureType === 'WITHIN'">
           <v-expansion-panel-header hide-actions><img src="@/assets/manual.svg" alt="Manual distribution"> Manual
           </v-expansion-panel-header>
           <v-expansion-panel-content>
