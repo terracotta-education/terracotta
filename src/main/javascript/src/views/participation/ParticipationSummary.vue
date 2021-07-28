@@ -87,7 +87,8 @@ export default {
     openPDF() {
       this.getConsentFile(this.experiment.experimentId)
 
-	let pdfWindow = window.open('', '', '_blank')
+      // Second Parameter intentionally left blank
+      let pdfWindow = window.open('', '', '_blank')
       pdfWindow.opener = null
       pdfWindow.document.write(
         "<iframe width='100%' height='100%' src='data:application/pdf;base64, " +

@@ -436,6 +436,7 @@ export default {
       this.$router.push({ name: componentName });
     },
     openPDF() {
+      // Second Parameter intentionally left blank
       let pdfWindow = window.open("", "", "_blank");
       pdfWindow.opener = null;
       pdfWindow.document.write(
