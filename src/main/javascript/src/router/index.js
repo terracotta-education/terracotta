@@ -21,6 +21,30 @@ const routes = [
         component: () => import('../views/ExperimentSummary.vue')
       },
       {
+        path: 'exposure/:exposure_id/outcome/:outcome_id',
+        component: () => import('../views/ExperimentOutcome.vue'),
+        children: [
+          {
+            path: '',
+            alias: 'outcome-scoring',
+            name: 'OutcomeScoring',
+            meta: {
+              previousStep: 'ExperimentSummary'
+            },
+            component: () => import('../views/outcome/OutcomeScoring.vue')
+          },
+          {
+            path: '',
+            alias: 'outcome-gradebook',
+            name: 'OutcomeGradebook',
+            meta: {
+              previousStep: 'ExperimentSummary'
+            },
+            component: () => import('../views/outcome/OutcomeGradebook.vue')
+          },
+        ]
+      },
+      {
         path: '',
         alias: 'design',
         component: () => import('../views/ExperimentSteps.vue'),
@@ -332,7 +356,6 @@ const routes = [
   },
   {
     path: '*',
-    name: 'Home',
     component: Home
   },
 ]

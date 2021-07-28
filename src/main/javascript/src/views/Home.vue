@@ -139,7 +139,6 @@ export default {
           try {
             this.deleteExperiment(e.experimentId)
           } catch (error) {
-            console.error("handleDeleteQuestion | catch", {error})
             this.$swal({
               text: 'Could not delete experiment.',
               icon: 'error'

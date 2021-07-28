@@ -11,6 +11,7 @@ import { condition } from './condition.module'
 import { consent } from './consent.module'
 import { exposures } from './exposures.module';
 import { participants } from './participants.module';
+import { outcome } from './outcome.module';
 import { treatment } from './treatment.module';
 
 Vue.use(Vuex)
@@ -29,6 +30,7 @@ const store = new Vuex.Store({
         consent,
         exposures,
         participants,
+        outcome,
         treatment
     }
 })

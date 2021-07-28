@@ -76,7 +76,63 @@
                 </tbody>
               </template>
             </v-simple-table>
+
             <h4 class="mb-3"><strong>Outcomes</strong></h4>
+            <v-simple-table class="mb-9 v-data-table--no-outline v-data-table--light-header" v-if="experimentOutcomes.length">
+              <template v-slot:default>
+                <thead>
+                <tr>
+                  <th class="text-left">Outcome Name</th>
+                  <th class="text-left">Source</th>
+                  <th class="text-left">Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr
+                  v-for="outcome in experimentOutcomes"
+                  :key="outcome.outcomeId"
+                >
+                  <template v-if="outcome.title">
+                    <td>{{outcome.title}}</td>
+                  </template>
+                  <template v-else>
+                    <td><em>Outcome with no title</em></td>
+                  </template>
+
+                  <template v-if="!outcome.external">
+                    <td>Manual Entry</td>
+                  </template>
+                  <template v-else>
+                    <td>Gradebook</td>
+                  </template>
+
+                  <td>
+                    <v-menu>
+                      <template v-slot:activator="{ on, attrs }">
+                        <v-icon
+                          color="black"
+                          v-bind="attrs"
+                          v-on="on"
+                        >
+                          mdi-dots-horizontal
+                        </v-icon>
+                      </template>
+                      <v-list class="text-left">
+                        <v-list-item :to="{name:'OutcomeScoring', params: {exposure_id: outcome.exposureId, outcome_id: outcome.outcomeId}}">
+                          <v-list-item-title>Edit</v-list-item-title>
+                        </v-list-item>
+                        <v-list-item @click="handleDeleteOutcome(exposure.exposureId, outcome.outcomeId)">
+                          <v-list-item-title>Delete Outcome</v-list-item-title>
+                        </v-list-item>
+                      </v-list>
+                    </v-menu>
+                  </td>
+                </tr>
+                </tbody>
+              </template>
+            </v-simple-table>
+
+
             <v-menu offset-y>
               <template v-slot:activator="{ on, attrs }">
                 <v-btn
@@ -89,10 +145,10 @@
                 </v-btn>
               </template>
               <v-list>
-                <v-list-item @click="console.log('Select item from gradebook')">
+                <v-list-item @click="handleCreateOutcome(exposure.exposureId, true)">
                   <v-list-item-title>Select item from gradebook</v-list-item-title>
                 </v-list-item>
-                <v-list-item @click="console.log('Manually enter scores for each student')">
+                <v-list-item @click="handleCreateOutcome(exposure.exposureId, false)">
                   <v-list-item-title>Manually enter scores for each student</v-list-item-title>
                 </v-list-item>
               </v-list>
@@ -120,7 +176,8 @@ export default {
     ...mapGetters({
       assignments: 'assignment/assignments',
       conditions: 'experiment/conditions',
-      exposures: 'exposures/exposures'
+      exposures: 'exposures/exposures',
+      experimentOutcomes: 'outcome/experimentOutcomes'
     }),
     assignmentCompletion() {
       let arr = []
@@ -174,8 +231,43 @@ export default {
     }),
     ...mapActions({
       fetchAssignmentsByExposure: 'assignment/fetchAssignmentsByExposure',
-      fetchExposures: 'exposures/fetchExposures'
+      fetchExposures: 'exposures/fetchExposures',
+      fetchOutcomesByExposures: 'outcome/fetchOutcomesByExposures',
+      fetchOutcomeScores: 'outcome/fetchOutcomeScores',
+      createOutcome: 'outcome/createOutcome',
+      deleteOutcome: 'outcome/deleteOutcome'
     }),
+    async handleCreateOutcome(exposure_id, external) {
+      try {
+        const outcome = await this.createOutcome([this.experiment_id, exposure_id, '', 0, external])
+        const routeName = (external) ? 'OutcomeGradebook' : 'OutcomeScoring'
+        this.$router.push({name:routeName, params: {exposure_id, outcome_id: outcome.outcomeId}})
+      } catch(error) {
+        console.error({error})
+      }
+    },
+    async handleDeleteOutcome(exposure_id, outcome_id) {
+      const reallyDelete = await this.$swal({
+        icon: 'question',
+        text: `Do you really want to delete?`,
+        showCancelButton: true,
+        confirmButtonText: 'Yes, delete it',
+        cancelButtonText: 'No, cancel',
+      })
+      // if confirmed, delete experiment
+      if (reallyDelete.isConfirmed) {
+        try {
+          await this.deleteOutcome([this.experiment_id, exposure_id, outcome_id])
+          this.fetchOutcomesByExposures([this.experiment_id, [...new Set(this.exposures.map(item => item.exposureId))]])
+        } catch (error) {
+          console.error("handleDeleteOutcome | catch", {error})
+          this.$swal({
+            text: 'Could not delete outcome.',
+            icon: 'error'
+          })
+        }
+      }
+    }
   },
   async created() {
     // reset assignments to get a clean list
@@ -187,6 +279,7 @@ export default {
       const submissions = true
       await this.fetchAssignmentsByExposure([this.experiment_id, e.exposureId, submissions])
     }
+    this.fetchOutcomesByExposures([this.experiment_id, [...new Set(this.exposures.map(item => item.exposureId))]])
   }
 }
 </script>
