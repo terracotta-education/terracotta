@@ -109,7 +109,7 @@ export default {
       });
     },
   },
-  async created() {
+  created() {
     if (this.experiment.consent.filePointer) {
       this.getConsentFile(this.experiment.experimentId);
     }
@@ -122,7 +122,7 @@ export default {
 };
 </script>
 
-<style lang='scss'>
+<style lang="scss">
 .v-expansion-panel {
   border: 1px solid map-get($grey, 'lighten-2');
 
