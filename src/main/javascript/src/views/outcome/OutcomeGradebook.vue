@@ -1,37 +1,34 @@
 <template>
-  <div v-if="experiment && exposure_id && outcome">
+  <div v-if="experiment && exposure_id">
     <h1 class="mb-6">Select gradebook item(s)</h1>
     <form @submit.prevent="saveExit">
       <v-simple-table class="mb-9 v-data-table--light-header">
         <template v-slot:default>
           <thead>
             <tr>
-              <th width="50"></th>
+              <th style="width:50px;"></th>
               <th class="text-left">Gradebook Item</th>
-              <th class="text-left" width="250">Total Points</th>
+              <th class="text-left" style="width:250px;">Total Points</th>
             </tr>
           </thead>
           <tbody>
-<!--          WIP-->
-            <tr>
+            <tr
+              v-for="(op, opIndex) in outcomePotentials"
+              :key="opIndex"
+            >
               <td>
-                <v-checkbox
-                  v-model="selected"
-                  value="25"
-                ></v-checkbox>
+                <template v-if="!outcomes.some(o=>parseInt(o.lmsOutcomeId)===parseInt(op.assignmentId))">
+                  <v-checkbox
+                    v-model="selectedAssignmentIds"
+                    :value="op.assignmentId"
+                  ></v-checkbox>
+                </template>
+                <template v-else>
+                  <v-icon>mdi-check</v-icon>
+                </template>
               </td>
-              <td>Quiz 1</td>
-              <td>25</td>
-            </tr>
-            <tr>
-              <td>
-                <v-checkbox
-                  v-model="selected"
-                  value="35"
-                ></v-checkbox>
-              </td>
-              <td>Quiz 2</td>
-              <td>35</td>
+              <td>{{op.name}}</td>
+              <td>{{op.pointsPossible}}</td>
             </tr>
           </tbody>
         </template>
@@ -48,35 +45,46 @@ export default {
   computed: {
     ...mapGetters({
       experiment: 'experiment/experiment',
-      outcome: 'outcome/outcome',
-      outcomeScores: 'outcome/outcomeScores',
-      participants: 'participants/participants'
+      outcomePotentials: 'outcome/outcomePotentials',
+      outcomes: 'outcome/outcomes'
     }),
     exposure_id() {
       return parseInt(this.$route.params.exposure_id)
     },
     experiment_id() {
       return parseInt(this.$route.params.experiment_id)
-    },
-    outcome_id() {
-      return parseInt(this.$route.params.outcome_id)
-    },
+    }
   },
   data() {
     return {
-      selected: []
+      selectedAssignmentIds: []
     }
   },
   methods: {
     ...mapActions({
-      fetchParticipants: 'participants/fetchParticipants',
-      fetchOutcomeById: 'outcome/fetchOutcomeById',
-      fetchOutcomeScores: 'outcome/fetchOutcomeScores',
-      updateOutcome: 'outcome/updateOutcome',
-      updateOutcomeScores: 'outcome/updateOutcomeScores'
+      fetchOutcomePotentials: 'outcome/fetchOutcomePotentials',
+      fetchOutcomes: 'outcome/fetchOutcomes',
+      createOutcome: 'outcome/createOutcome'
     }),
-    async saveExit() {}
+
+
+    async saveExit() {
+      try {
+        await Promise.all(this.selectedAssignmentIds.map(async assignment_id => {
+          const op = this.outcomePotentials.find(o=>parseInt(o.assignmentId)===parseInt(assignment_id))
+          // payload = experiment_id, exposure_id, title, max_points, external, lmsType, lmsOutcomeId
+          return await this.createOutcome([this.experiment_id, this.exposure_id, op.name, op.pointsPossible, true, op.type, parseInt(assignment_id)])
+        })).then(() => {
+          this.$router.push({name:'ExperimentSummary'})
+        })
+      } catch(error) {
+        console.error({error})
+      }
+    }
   },
-  async created() {}
+  async created() {
+    await this.fetchOutcomes([this.experiment_id, this.exposure_id])
+    await this.fetchOutcomePotentials(this.experiment_id)
+  }
 }
 </script>

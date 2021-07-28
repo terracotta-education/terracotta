@@ -14,7 +14,8 @@ export const outcomeService = {
   getOutcomeScoresById,
   getScoreById,
   createOutcomeScores,
-  updateOutcomeScores
+  updateOutcomeScores,
+  getOutcomePotentials
 }
 
 /**
@@ -63,7 +64,7 @@ async function getByExperimentId(experiment_id, exposures = []) {
 /**
  * Create Outcome
  */
-function create(experiment_id, exposure_id, title, max_points, external=false) {
+function create(experiment_id, exposure_id, title, max_points, external=false, lms_type='NONE', lms_outcome_id = null) {
   const requestOptions = {
     method: 'POST',
     headers: {
@@ -73,7 +74,9 @@ function create(experiment_id, exposure_id, title, max_points, external=false) {
     body: JSON.stringify({
       title,
       "maxPoints": max_points,
-      external
+      external,
+      "lmsType": lms_type,
+      "lmsOutcomeId": lms_outcome_id
     })
   }
 
@@ -215,6 +218,19 @@ async function updateOutcomeScores(experiment_id, exposure_id, outcome_id, score
       await fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/exposures/${exposure_id}/outcomes/${outcome_id}/outcome_scores`, requestOptions).then(handleResponse)
     }))
   }
+}
+
+
+/**
+ * Get Outcome Potentials by Experiment Id
+ */
+function getOutcomePotentials(experiment_id) {
+  const requestOptions = {
+    method: 'GET',
+    headers: authHeader(),
+  }
+
+  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/outcome_potentials`, requestOptions).then(handleResponse)
 }
 
 

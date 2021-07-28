@@ -118,7 +118,7 @@
                         </v-icon>
                       </template>
                       <v-list class="text-left">
-                        <v-list-item :to="{name:'OutcomeScoring', params: {exposure_id: outcome.exposureId, outcome_id: outcome.outcomeId}}">
+                        <v-list-item v-if="!outcome.external" :to="{name:'OutcomeScoring', params: {exposure_id: outcome.exposureId, outcome_id: outcome.outcomeId}}">
                           <v-list-item-title>Edit</v-list-item-title>
                         </v-list-item>
                         <v-list-item @click="handleDeleteOutcome(exposure.exposureId, outcome.outcomeId)">
@@ -145,7 +145,7 @@
                 </v-btn>
               </template>
               <v-list>
-                <v-list-item @click="handleCreateOutcome(exposure.exposureId, true)">
+                <v-list-item :to="{name:'OutcomeGradebook', params: {exposure_id: exposure.exposureId}}">
                   <v-list-item-title>Select item from gradebook</v-list-item-title>
                 </v-list-item>
                 <v-list-item @click="handleCreateOutcome(exposure.exposureId, false)">

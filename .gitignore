@@ -28,3 +28,4 @@
 /sonar-project.properties
 /.jpb/
 /src/main/resources/static/app/
+/src/main/javascript/node/
