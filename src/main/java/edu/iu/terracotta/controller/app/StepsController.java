@@ -8,6 +8,8 @@ import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.ExperimentStartedException;
+import edu.iu.terracotta.exceptions.GroupNotMatchingException;
+import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.model.app.Assignment;
 import edu.iu.terracotta.model.app.dto.StepDto;
@@ -75,7 +77,7 @@ public class StepsController {
     public ResponseEntity<Object> postStep(@PathVariable("experiment_id") Long experimentId,
                                            @RequestBody StepDto stepDto,
                                            HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, DataServiceException, ParticipantNotUpdatedException, ExperimentStartedException, ConnectionException, CanvasApiException, IOException, AssignmentDatesException, AssessmentNotMatchingException {
+            throws ExperimentNotMatchingException, BadTokenException, DataServiceException, ParticipantNotUpdatedException, ExperimentStartedException, ConnectionException, CanvasApiException, IOException, AssignmentDatesException, AssessmentNotMatchingException, GroupNotMatchingException, ParticipantNotMatchingException {
 
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);

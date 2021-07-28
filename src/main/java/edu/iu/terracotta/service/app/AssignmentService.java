@@ -6,10 +6,13 @@ import edu.iu.terracotta.exceptions.AssignmentNotCreatedException;
 import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.GroupNotMatchingException;
+import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.model.app.Assessment;
 import edu.iu.terracotta.model.app.Assignment;
+import edu.iu.terracotta.model.app.Group;
 import edu.iu.terracotta.model.app.dto.AssignmentDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -53,7 +56,11 @@ public interface AssignmentService {
 
     Assessment getAssessmentByGroupId(Long experimentId, String canvasAssignmentId, Long groupId) throws AssessmentNotMatchingException;
 
-    ResponseEntity<Object> launchAssignment(Long experimentId, SecuredInfo securedInfo) throws AssessmentNotMatchingException, ParticipantNotUpdatedException, AssignmentDatesException, DataServiceException, CanvasApiException, IOException;
+    Assessment getAssessmentByConditionId(Long experimentId, String canvasAssignmentId, Long conditionId) throws AssessmentNotMatchingException;
+
+    Group getUniqueGroupByConditionId(Long experimentId, String canvasAssignmentId, Long conditionId) throws GroupNotMatchingException;
+
+    ResponseEntity<Object> launchAssignment(Long experimentId, SecuredInfo securedInfo) throws AssessmentNotMatchingException, ParticipantNotUpdatedException, AssignmentDatesException, DataServiceException, CanvasApiException, IOException, GroupNotMatchingException, ParticipantNotMatchingException;
 
     void checkAndRestoreAllAssignmentsInCanvas() throws CanvasApiException, DataServiceException, ConnectionException, IOException;
 
