@@ -14,6 +14,21 @@
             <span>{{ experiment.title }}</span>
           </p>
         </v-col>
+        <div class="header ma-0 pa-0">
+         <v-btn
+          color="primary"
+          elevation="0"
+          @click="exportData()"
+          >Export Data</v-btn
+        >
+        <v-btn
+          color="primary"
+          elevation="0"
+          class="saveButton ml-4"
+          @click="saveExit()"
+          >SAVE & CLOSE</v-btn
+        >
+        </div>
       </v-row>
       <v-row>
         <v-col cols="12">
@@ -192,6 +207,7 @@
                                     flat
                                   >
                                     <v-expansion-panel
+                                      class="assignmentExpansionPanel"
                                       v-for="assignment in assignments.filter(
                                         (a) =>
                                           a.exposureId === exposure.exposureId
@@ -274,8 +290,8 @@
                               <template v-if="item.description === 'CONSENT'">
                                 Informed Consent
                                 <button class='pdfButton'
-                                  @click="openPDF"
-                                >
+                                 @click="openPDF"
+                                 >
                                   {{ experiment.consent.title }}
                                 </button>
                               </template>
@@ -431,6 +447,12 @@ export default {
       createAssessment: "assessment/createAssessment",
       getConsentFile: "consent/getConsentFile",
     }),
+    saveExit() {
+      this.$router.push({ name: 'Home' })
+    },
+    exportData() {
+      // TODO: Will be addressed in upcoming PR
+    },
     // Navigate to EDIT section
     handleEdit(componentName) {
       this.$router.push({ name: componentName });
@@ -567,6 +589,18 @@ export default {
 .panel-overview {
   display: inline-flex;
 }
+.saveButton {
+  background: none !important;
+  border: none;
+  padding: 0 !important;
+  color: #069 !important;
+  cursor: pointer;
+}
+.assignmentExpansionPanel {
+  &:not(:last-child) {
+    border-bottom: 2px solid #e0e0e0 !important;
+  }
+}
 table {
   font-size: 16px;
   color: black;
@@ -625,14 +659,14 @@ table {
       text-align: left;
     }
     .pdfButton {
-      background: none!important;
+      background: none !important;
       border: none;
-      padding: 0!important;
+      padding: 0 !important;
       color: #069;
       text-decoration: underline;
       cursor: pointer;
       text-align: left;
-  }
+    }
   }
 }
 </style>
