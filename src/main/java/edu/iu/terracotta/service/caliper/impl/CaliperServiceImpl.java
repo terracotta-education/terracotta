@@ -54,8 +54,7 @@ import java.util.UUID;
 @Service
 public class CaliperServiceImpl implements CaliperService {
 
-    private Sensor sensor;
-    private HttpClient httpClient;
+    private Map<Long, Sensor> sensorMap = new HashMap<>();
     public static final String DATA_VERSION = "http://purl.imsglobal.org/ctx/caliper/v1p2";
     static final Logger log = LoggerFactory.getLogger(CaliperServiceImpl.class);
     private String applicationName;
@@ -93,7 +92,7 @@ public class CaliperServiceImpl implements CaliperService {
         context = JsonldStringContext.create(DATA_VERSION);
         softwareApplication = prepareSoftwareApplication();
         if (caliperSend) {
-            sensor = Sensor.create(sensorId);
+            Sensor defaultSensor = Sensor.create(sensorId);
             HttpClientOptions httpClientOptions = new HttpClientOptions.OptionsBuilder()
                     .apiKey(apiKey)
                     .connectionTimeout(connectionTimeout)
@@ -101,14 +100,17 @@ public class CaliperServiceImpl implements CaliperService {
                     .host(host)
                     .socketTimeout(socketTimeOut)
                     .build();
-            httpClient = HttpClient.create(clientId, httpClientOptions);
-            sensor.registerClient(httpClient);
+            HttpClient defaultHttpClient = HttpClient.create(clientId, httpClientOptions);
+            defaultSensor.registerClient(defaultHttpClient);
+            sensorMap.put(0L, defaultSensor);
         }
     }
 
     @Override
-    public void send(Envelope envelope) {
+    public void send(Envelope envelope, PlatformDeployment platformDeployment) {
+        Sensor sensor = getSensor(platformDeployment);
         sensor.send(envelope);
+
     }
 
     @Override
@@ -122,7 +124,7 @@ public class CaliperServiceImpl implements CaliperService {
         org.imsglobal.caliper.entities.resource.Assessment assessment = prepareAssessment(submission, securedInfo);
         Attempt attempt = prepareAttempt(submission, actor, assessment);
         String uuid = "urn:uuid:" + UUID.randomUUID();
-        if (caliperSend) {
+        if (sendEnabled(membershipEntity.getContext().getPlatformDeployment())) {
             log.debug("Caliper event being generated: Assessment Starting Use");
 
             AssessmentEvent assessmentEvent = AssessmentEvent.builder()
@@ -139,8 +141,8 @@ public class CaliperServiceImpl implements CaliperService {
                     .generated(attempt)
                     .group(group)
                     .build();
-            Envelope envelope = new Envelope(sensor.getId(), DateTime.now(), DATA_VERSION, Collections.singletonList(assessmentEvent));
-            send(envelope);
+            Envelope envelope = new Envelope(getSensor(membershipEntity.getContext().getPlatformDeployment()).getId(), DateTime.now(), DATA_VERSION, Collections.singletonList(assessmentEvent));
+            send(envelope, submission.getParticipant().getLtiUserEntity().getPlatformDeployment());
             log.debug("Caliper event sent");
         }
         if (caliperDB) {
@@ -181,7 +183,7 @@ public class CaliperServiceImpl implements CaliperService {
         org.imsglobal.caliper.entities.resource.Assessment assessment = prepareAssessment(submission, securedInfo);
         Attempt attempt = prepareAttempt(submission, actor, assessment);
         String uuid = "urn:uuid:" + UUID.randomUUID();
-        if (caliperSend) {
+        if (sendEnabled(membershipEntity.getContext().getPlatformDeployment())) {
             log.debug("Caliper event being generated: Assessment Submitted Use");
 
             AssessmentEvent assessmentEvent = AssessmentEvent.builder()
@@ -198,8 +200,8 @@ public class CaliperServiceImpl implements CaliperService {
                     .generated(attempt)
                     .group(group)
                     .build();
-            Envelope envelope = new Envelope(sensor.getId(), DateTime.now(), DATA_VERSION, Collections.singletonList(assessmentEvent));
-            send(envelope);
+            Envelope envelope = new Envelope(getSensor(membershipEntity.getContext().getPlatformDeployment()).getId(), DateTime.now(), DATA_VERSION, Collections.singletonList(assessmentEvent));
+            send(envelope, submission.getParticipant().getLtiUserEntity().getPlatformDeployment());
             log.debug("Caliper event sent");
         }
         if (caliperDB) {
@@ -240,7 +242,7 @@ public class CaliperServiceImpl implements CaliperService {
         org.imsglobal.caliper.entities.resource.Assessment assessment = prepareAssessment(submission, securedInfo);
         Attempt attempt = prepareAttempt(submission, actor, assessment);
         String uuid = "urn:uuid:" + UUID.randomUUID();
-        if (caliperSend) {
+        if (sendEnabled(membershipEntity.getContext().getPlatformDeployment())) {
             log.debug("Caliper event being generated: Assessment Starting Use");
 
             AssessmentEvent assessmentEvent = AssessmentEvent.builder()
@@ -257,8 +259,8 @@ public class CaliperServiceImpl implements CaliperService {
                     .federatedSession(ltiSession)
                     .group(group)
                     .build();
-            Envelope envelope = new Envelope(sensor.getId(), DateTime.now(), DATA_VERSION, Collections.singletonList(assessmentEvent));
-            send(envelope);
+            Envelope envelope = new Envelope(getSensor(membershipEntity.getContext().getPlatformDeployment()).getId(), DateTime.now(), DATA_VERSION, Collections.singletonList(assessmentEvent));
+            send(envelope, submission.getParticipant().getLtiUserEntity().getPlatformDeployment());
             log.debug("Caliper event sent");
         }
         if (caliperDB) {
@@ -314,7 +316,7 @@ public class CaliperServiceImpl implements CaliperService {
         Result result = prepareResult(submission, attempt, assessment);
 
         String uuid = "urn:uuid:" + UUID.randomUUID();
-        if (caliperSend) {
+        if (sendEnabled(membershipEntity.getContext().getPlatformDeployment())) {
             log.debug("Caliper event being generated: Assessment Starting Use");
 
             ViewEvent assessmentEvent = ViewEvent.builder()
@@ -330,8 +332,8 @@ public class CaliperServiceImpl implements CaliperService {
                     .federatedSession(ltiSession)
                     .group(group)
                     .build();
-            Envelope envelope = new Envelope(sensor.getId(), DateTime.now(), DATA_VERSION, Collections.singletonList(assessmentEvent));
-            send(envelope);
+            Envelope envelope = new Envelope(getSensor(membershipEntity.getContext().getPlatformDeployment()).getId(), DateTime.now(), DATA_VERSION, Collections.singletonList(assessmentEvent));
+            send(envelope, submission.getParticipant().getLtiUserEntity().getPlatformDeployment());
             log.debug("Caliper event sent");
         }
         if (caliperDB) {
@@ -380,7 +382,7 @@ public class CaliperServiceImpl implements CaliperService {
         LtiSession ltiSession = prepareLtiSession(securedInfo, membershipEntity.getContext().getContextKey());
         CaliperOrganization group = prepareGroup(membershipEntity, securedInfo);
         String uuid = "urn:uuid:" + UUID.randomUUID();
-        if (caliperSend) {
+        if (sendEnabled(membershipEntity.getContext().getPlatformDeployment())) {
             log.debug("Caliper event being generated: Tool Use");
             ToolUseEvent toolUseEvent = ToolUseEvent.builder()
                     .id(uuid)
@@ -394,8 +396,8 @@ public class CaliperServiceImpl implements CaliperService {
                     .federatedSession(ltiSession)
                     .group(group)
                     .build();
-            Envelope envelope = new Envelope(sensor.getId(), DateTime.now(), DATA_VERSION, Collections.singletonList(toolUseEvent));
-            send(envelope);
+            Envelope envelope = new Envelope(getSensor(membershipEntity.getUser().getPlatformDeployment()).getId(), DateTime.now(), DATA_VERSION, Collections.singletonList(toolUseEvent));
+            send(envelope, membershipEntity.getUser().getPlatformDeployment());
             log.debug("Caliper event sent");
         }
         if (caliperDB) {
@@ -572,6 +574,18 @@ public class CaliperServiceImpl implements CaliperService {
         }
     }
 
+    private boolean sendEnabled(PlatformDeployment platformDeployment){
+        if (platformDeployment.getCaliperConfiguration()!=null){
+            if (platformDeployment.getCaliperConfiguration()) {
+                return true;
+            } else {
+                return false;
+            }
+        } else {
+            return caliperSend;
+        }
+    }
+
 
     private Role roleToCaliperRole(int role) {
 
@@ -610,6 +624,30 @@ public class CaliperServiceImpl implements CaliperService {
         return date;
     }
 
+    public Sensor getSensor(PlatformDeployment platformDeployment) {
+        Sensor sensor = null;
+        if ((platformDeployment.getCaliperConfiguration()!=null) && (platformDeployment.getCaliperConfiguration())){
+            if (!sensorMap.containsKey(platformDeployment.getKeyId())){
+                sensor = Sensor.create(platformDeployment.getCaliperSensorId());
+                HttpClientOptions httpClientOptions = new HttpClientOptions.OptionsBuilder()
+                        .apiKey(platformDeployment.getCaliperApiKey())
+                        .connectionTimeout(platformDeployment.getCaliperConnectionTimeout())
+                        .contentType(platformDeployment.getCaliperContentType())
+                        .host(platformDeployment.getCaliperHost())
+                        .socketTimeout(platformDeployment.getCaliperSocketTimeOut())
+                        .build();
+                HttpClient httpClient = HttpClient.create(platformDeployment.getClientId(), httpClientOptions);
+                sensor.registerClient(httpClient);
+                sensorMap.put(platformDeployment.getKeyId(), sensor);
+                return sensor;
+            } else {
+                return sensorMap.get(platformDeployment.getKeyId());
+            }
+        } else {
+            return sensorMap.get(0L);
+        }
+    }
+
     //public CaliperReferrer prepareReferrer(PlatformDeployment platformDeployment){
         //return null;
     //}
@@ -642,20 +680,15 @@ public class CaliperServiceImpl implements CaliperService {
         return caliperDB;
     }
 
-    public Sensor getSensor() {
-        return sensor;
+
+
+
+    public Map<Long, Sensor> getSensorMap() {
+        return sensorMap;
     }
 
-    public void setSensor(Sensor sensor) {
-        this.sensor = sensor;
-    }
-
-    public HttpClient getHttpClient() {
-        return httpClient;
-    }
-
-    public void setHttpClient(HttpClient httpClient) {
-        this.httpClient = httpClient;
+    public void setSensorMap(Map<Long, Sensor> sensorMap) {
+        this.sensorMap = sensorMap;
     }
 
     public SoftwareApplication getSoftwareApplication() {

@@ -207,7 +207,7 @@ export default {
       questions: 'assessment/questions'
     }),
     contDisabled() {
-      return this.assessment.questions.length<1 || this.assessment.questions.some(q => !q.html.trim()) || !this.assessment.title || !this.assessment.title.trim()
+      return this.assessment.questions.length<1 || this.assessment.questions.some(q => !q.html.trim()) || !this.assessment.title || !this.assessment.title.trim() || this.assessment.title.length>255
     }
   },
   data() {
