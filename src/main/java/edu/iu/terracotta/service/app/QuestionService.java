@@ -34,8 +34,6 @@ public interface QuestionService {
 
     void saveAndFlush(Question questionToChange);
 
-    void saveAllQuestions(List<Question> questionList);
-
     void deleteById(Long id) throws EmptyResultDataAccessException;
 
     boolean questionBelongsToAssessment(Long assessmentId, Long questionId);
