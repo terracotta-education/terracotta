@@ -20,6 +20,9 @@ public interface TreatmentRepository extends JpaRepository<Treatment, Long> {
 
     boolean existsByCondition_Experiment_ExperimentIdAndCondition_ConditionIdAndTreatmentId(Long experimentId, Long conditionId, Long treatmentId);
 
+    boolean existsByAssignment_AssignmentIdAndCondition_ConditionId(Long assignmentId, Long conditionId);
+
+
     @Transactional
     @Modifying
     @Query("delete from Treatment s where s.treatmentId = ?1")

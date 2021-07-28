@@ -195,7 +195,7 @@ public class OutcomeServiceImpl implements OutcomeService {
         Optional<Outcome> outcomeSearchResult = this.findById(outcomeId);
         Outcome outcome = outcomeSearchResult.get();
         //If this is not external we don't need to check the scores.
-        if (!outcome.getExternal()){
+        if (outcome.getExternal()==null || !outcome.getExternal()){
             return;
         }
         participantService.refreshParticipants(outcome.getExposure().getExperiment().getExperimentId(), securedInfo,outcome.getExposure().getExperiment().getParticipants());

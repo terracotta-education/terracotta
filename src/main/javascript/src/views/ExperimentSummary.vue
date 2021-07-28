@@ -379,7 +379,7 @@ export default {
     participantDetails() {
       return [
         {
-          title: "SelectionMethod",
+          title: "Selection Method",
           description: this.experiment.participationType,
           editSection: "ExperimentParticipationSelectionMethod",
           type: "participation",
