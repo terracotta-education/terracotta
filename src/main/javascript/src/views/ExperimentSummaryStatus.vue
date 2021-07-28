@@ -118,6 +118,9 @@
                         </v-icon>
                       </template>
                       <v-list class="text-left">
+                        <v-list-item :to="{name:'OutcomeScoring', params: {exposure_id: outcome.exposureId, outcome_id: outcome.outcomeId}}">
+                          <v-list-item-title>Edit</v-list-item-title>
+                        </v-list-item>
                         <v-list-item @click="handleDeleteOutcome(exposure.exposureId, outcome.outcomeId)">
                           <v-list-item-title>Delete Outcome</v-list-item-title>
                         </v-list-item>
@@ -142,10 +145,10 @@
                 </v-btn>
               </template>
               <v-list>
-                <v-list-item @click="console.log('Select item from gradebook')">
+                <v-list-item @click="handleCreateOutcome(exposure.exposureId, true)">
                   <v-list-item-title>Select item from gradebook</v-list-item-title>
                 </v-list-item>
-                <v-list-item @click="handleCreateOutcome(exposure.exposureId)">
+                <v-list-item @click="handleCreateOutcome(exposure.exposureId, false)">
                   <v-list-item-title>Manually enter scores for each student</v-list-item-title>
                 </v-list-item>
               </v-list>
@@ -229,21 +232,41 @@ export default {
     ...mapActions({
       fetchAssignmentsByExposure: 'assignment/fetchAssignmentsByExposure',
       fetchExposures: 'exposures/fetchExposures',
-      fetchOutcomesByExperimentId: 'outcome/fetchOutcomesByExperimentId',
+      fetchOutcomesByExposures: 'outcome/fetchOutcomesByExposures',
+      fetchOutcomeScores: 'outcome/fetchOutcomeScores',
       createOutcome: 'outcome/createOutcome',
       deleteOutcome: 'outcome/deleteOutcome'
     }),
-    async handleCreateOutcome(exposure_id) {
+    async handleCreateOutcome(exposure_id, external) {
       try {
-        const outcome = await this.createOutcome([this.experiment_id, exposure_id, '', 0, false])
-        this.$router.push({name:'OutcomeScoring', params: {exposure_id, outcome_id: outcome.outcomeId}})
+        const outcome = await this.createOutcome([this.experiment_id, exposure_id, '', 0, external])
+        const routeName = (external) ? 'OutcomeGradebook' : 'OutcomeScoring'
+        this.$router.push({name:routeName, params: {exposure_id, outcome_id: outcome.outcomeId}})
       } catch(error) {
         console.error({error})
       }
     },
     async handleDeleteOutcome(exposure_id, outcome_id) {
-      await this.deleteOutcome([this.experiment_id, exposure_id, outcome_id])
-      this.fetchOutcomesByExperimentId([this.experiment_id, [...new Set(this.exposures.map(item => item.exposureId))]])
+      const reallyDelete = await this.$swal({
+        icon: 'question',
+        text: `Do you really want to delete?`,
+        showCancelButton: true,
+        confirmButtonText: 'Yes, delete it',
+        cancelButtonText: 'No, cancel',
+      })
+      // if confirmed, delete experiment
+      if (reallyDelete.isConfirmed) {
+        try {
+          await this.deleteOutcome([this.experiment_id, exposure_id, outcome_id])
+          this.fetchOutcomesByExposures([this.experiment_id, [...new Set(this.exposures.map(item => item.exposureId))]])
+        } catch (error) {
+          console.error("handleDeleteOutcome | catch", {error})
+          this.$swal({
+            text: 'Could not delete outcome.',
+            icon: 'error'
+          })
+        }
+      }
     }
   },
   async created() {
@@ -256,7 +279,7 @@ export default {
       const submissions = true
       await this.fetchAssignmentsByExposure([this.experiment_id, e.exposureId, submissions])
     }
-    this.fetchOutcomesByExperimentId([this.experiment_id, [...new Set(this.exposures.map(item => item.exposureId))]])
+    this.fetchOutcomesByExposures([this.experiment_id, [...new Set(this.exposures.map(item => item.exposureId))]])
   }
 }
 </script>

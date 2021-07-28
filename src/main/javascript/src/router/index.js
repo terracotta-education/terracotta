@@ -33,6 +33,15 @@ const routes = [
             },
             component: () => import('../views/outcome/OutcomeScoring.vue')
           },
+          {
+            path: '',
+            alias: 'outcome-gradebook',
+            name: 'OutcomeGradebook',
+            meta: {
+              previousStep: 'ExperimentSummary'
+            },
+            component: () => import('../views/outcome/OutcomeGradebook.vue')
+          },
         ]
       },
       {
