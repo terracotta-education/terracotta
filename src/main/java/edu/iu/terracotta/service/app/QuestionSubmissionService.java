@@ -19,13 +19,13 @@ public interface QuestionSubmissionService {
 
     List<QuestionSubmission> findAllBySubmissionId(Long submissionId);
 
-    List<QuestionSubmissionDto> getQuestionSubmissions(Long submissionId);
+    List<QuestionSubmissionDto> getQuestionSubmissions(Long submissionId, boolean answerSubmissions, boolean questionSubmissionComments);
 
     QuestionSubmission getQuestionSubmission(Long id);
 
     void updateQuestionSubmissions(Map<QuestionSubmission, QuestionSubmissionDto> map, boolean student) throws InvalidUserException;
 
-    QuestionSubmissionDto toDto(QuestionSubmission questionSubmission, boolean questionSubmissionComments);
+    QuestionSubmissionDto toDto(QuestionSubmission questionSubmission, boolean answerSubmissions, boolean questionSubmissionComments);
 
     QuestionSubmission fromDto(QuestionSubmissionDto questionSubmissionDto) throws DataServiceException;
 
@@ -45,5 +45,5 @@ public interface QuestionSubmissionService {
 
     void validateDto(QuestionSubmissionDto questionSubmissionDto, Long assessmentId, boolean student) throws IdMissingException, DuplicateQuestionException, InvalidUserException;
 
-    HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId, Long submissionId, Long questionSubmissionId);
+    HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId, Long submissionId);
 }

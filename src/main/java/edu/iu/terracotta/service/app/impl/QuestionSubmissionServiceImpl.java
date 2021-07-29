@@ -1,17 +1,22 @@
 package edu.iu.terracotta.service.app.impl;
 
+import edu.iu.terracotta.exceptions.AnswerNotMatchingException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.DuplicateQuestionException;
 import edu.iu.terracotta.exceptions.IdMissingException;
 import edu.iu.terracotta.exceptions.InvalidUserException;
+import edu.iu.terracotta.model.app.AnswerEssaySubmission;
 import edu.iu.terracotta.model.app.AnswerMcSubmission;
 import edu.iu.terracotta.model.app.Question;
 import edu.iu.terracotta.model.app.QuestionSubmission;
 import edu.iu.terracotta.model.app.QuestionSubmissionComment;
 import edu.iu.terracotta.model.app.Submission;
+import edu.iu.terracotta.model.app.dto.AnswerSubmissionDto;
 import edu.iu.terracotta.model.app.dto.QuestionSubmissionCommentDto;
 import edu.iu.terracotta.model.app.dto.QuestionSubmissionDto;
+import edu.iu.terracotta.model.app.enumerator.QuestionTypes;
 import edu.iu.terracotta.repository.AllRepositories;
+import edu.iu.terracotta.service.app.AnswerSubmissionService;
 import edu.iu.terracotta.service.app.QuestionSubmissionCommentService;
 import edu.iu.terracotta.service.app.QuestionSubmissionService;
 import edu.iu.terracotta.utils.TextConstants;
@@ -33,6 +38,9 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
     AllRepositories allRepositories;
 
     @Autowired
+    AnswerSubmissionService answerSubmissionService;
+
+    @Autowired
     QuestionSubmissionCommentService questionSubmissionCommentService;
 
     @Override
@@ -41,11 +49,11 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
     }
 
     @Override
-    public List<QuestionSubmissionDto> getQuestionSubmissions(Long submissionId){
+    public List<QuestionSubmissionDto> getQuestionSubmissions(Long submissionId, boolean answerSubmissions, boolean questionSubmissionComments){
         List<QuestionSubmission> questionSubmissions = findAllBySubmissionId(submissionId);
         List<QuestionSubmissionDto> questionSubmissionDtoList = new ArrayList<>();
         for(QuestionSubmission questionSubmission : questionSubmissions){
-            questionSubmissionDtoList.add(toDto(questionSubmission, false));
+            questionSubmissionDtoList.add(toDto(questionSubmission, answerSubmissions, questionSubmissionComments));
         }
         return questionSubmissionDtoList;
     }
@@ -57,7 +65,7 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
 
     @Override
     @Transactional
-    public void updateQuestionSubmissions(Map<QuestionSubmission, QuestionSubmissionDto> map, boolean student) throws InvalidUserException{
+    public void updateQuestionSubmissions(Map<QuestionSubmission, QuestionSubmissionDto> map, boolean student) throws InvalidUserException {
         for(Map.Entry<QuestionSubmission, QuestionSubmissionDto> entry : map.entrySet()){
             QuestionSubmission questionSubmission = entry.getKey();
             QuestionSubmissionDto questionSubmissionDto = entry.getValue();
@@ -71,7 +79,7 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
     }
 
     @Override
-    public QuestionSubmissionDto toDto(QuestionSubmission questionSubmission, boolean questionSubmissionComments) {
+    public QuestionSubmissionDto toDto(QuestionSubmission questionSubmission, boolean answerSubmissions, boolean questionSubmissionComments) {
 
         QuestionSubmissionDto questionSubmissionDto = new QuestionSubmissionDto();
         questionSubmissionDto.setQuestionSubmissionId(questionSubmission.getQuestionSubmissionId());
@@ -88,6 +96,18 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
             }
         }
         questionSubmissionDto.setQuestionSubmissionCommentDtoList(questionSubmissionCommentDtoList);
+        List<AnswerSubmissionDto> answerSubmissionDtoList = new ArrayList<>();
+        if(answerSubmissions){
+            List<AnswerMcSubmission> answerMcSubmissions = allRepositories.answerMcSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmission.getQuestionSubmissionId());
+            List<AnswerEssaySubmission> answerEssaySubmissions = allRepositories.answerEssaySubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmission.getQuestionSubmissionId());
+            for(AnswerMcSubmission answerMcSubmission : answerMcSubmissions){
+                answerSubmissionDtoList.add(answerSubmissionService.toDtoMC(answerMcSubmission));
+            }
+            for(AnswerEssaySubmission answerEssaySubmission : answerEssaySubmissions){
+                answerSubmissionDtoList.add(answerSubmissionService.toDtoEssay(answerEssaySubmission));
+            }
+        }
+        questionSubmissionDto.setAnswerSubmissionDtoList(answerSubmissionDtoList);
         return questionSubmissionDto;
     }
 
@@ -163,10 +183,10 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
     }
 
     @Override
-    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId, Long submissionId, Long questionSubmissionId){
+    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId, Long submissionId){
         HttpHeaders headers = new HttpHeaders();
-        headers.setLocation(ucBuilder.path("/api/experiments/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}/question_submissions/{question_submission_id}")
-                .buildAndExpand(experimentId, conditionId, treatmentId, assessmentId, submissionId, questionSubmissionId).toUri());
+        headers.setLocation(ucBuilder.path("/api/experiments/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}/question_submissions")
+                .buildAndExpand(experimentId, conditionId, treatmentId, assessmentId, submissionId).toUri());
         return headers;
     }
 }
