@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 
+import edu.ksu.canvas.exception.ObjectNotFoundException;
 import edu.ksu.canvas.interfaces.SubmissionReader;
 import edu.ksu.canvas.interfaces.SubmissionWriter;
 import edu.ksu.canvas.model.Progress;
@@ -75,6 +76,36 @@ public class CanvasAPIClientImpl implements CanvasAPIClient {
         } catch (IOException ex){
             throw new CanvasApiException(
                     "Failed to get the assignments with id [" + assignmentId + "] from canvas course [" + canvasCourseId + "]", ex);
+        } catch (ObjectNotFoundException ex) {
+            return Optional.empty();
+        }
+    }
+
+    @Override
+    public Optional<AssignmentExtended> editAssignment(AssignmentExtended assignmentExtended, String canvasCourseId, PlatformDeployment platformDeployment) throws CanvasApiException {
+        try {
+            String canvasBaseUrl = platformDeployment.getBaseUrl();
+            OauthToken oauthToken = new NonRefreshableOauthToken(platformDeployment.getApiToken());
+            CanvasApiFactoryExtended apiFactory = new CanvasApiFactoryExtended(canvasBaseUrl);
+            AssignmentWriterExtended assignmentWriter = apiFactory.getWriter(AssignmentWriterExtended.class, oauthToken);
+            return assignmentWriter.editAssignment(canvasCourseId, assignmentExtended);
+        } catch (IOException ex){
+            throw new CanvasApiException(
+                    "Failed to edit the assignments with id [" + assignmentExtended.getId() + "] from canvas course [" + canvasCourseId + "]", ex);
+        }
+    }
+
+    @Override
+    public Optional<AssignmentExtended> deleteAssignment(AssignmentExtended assignmentExtended, String canvasCourseId, PlatformDeployment platformDeployment) throws CanvasApiException {
+        try {
+            String canvasBaseUrl = platformDeployment.getBaseUrl();
+            OauthToken oauthToken = new NonRefreshableOauthToken(platformDeployment.getApiToken());
+            CanvasApiFactoryExtended apiFactory = new CanvasApiFactoryExtended(canvasBaseUrl);
+            AssignmentWriterExtended assignmentWriter = apiFactory.getWriter(AssignmentWriterExtended.class, oauthToken);
+            return assignmentWriter.deleteAssignment(canvasCourseId, assignmentExtended.getId());
+        } catch (IOException ex){
+            throw new CanvasApiException(
+                    "Failed to edit the assignments with id [" + assignmentExtended.getId() + "] from canvas course [" + canvasCourseId + "]", ex);
         }
     }
 

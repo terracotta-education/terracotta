@@ -1,6 +1,9 @@
 package edu.iu.terracotta.service.app.impl;
 
+import edu.iu.terracotta.exceptions.AssignmentNotEditedException;
+import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.exceptions.WrongValueException;
 import edu.iu.terracotta.model.LtiContextEntity;
@@ -21,12 +24,15 @@ import edu.iu.terracotta.model.app.enumerator.ExposureTypes;
 import edu.iu.terracotta.model.app.enumerator.ParticipationTypes;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.AllRepositories;
+import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.app.ConditionService;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.ExposureService;
 import edu.iu.terracotta.service.app.ParticipantService;
 import org.apache.commons.lang3.EnumUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
@@ -53,6 +59,15 @@ public class ExperimentServiceImpl implements ExperimentService {
     @Autowired
     ParticipantService participantService;
 
+    @Autowired
+    AssignmentService assignmentService;
+
+    @Autowired
+    FileStorageServiceImpl fileStorageService;
+
+    static final Logger log = LoggerFactory.getLogger(ExperimentServiceImpl.class);
+
+
     @Override
     public List<Experiment> findAllByDeploymentIdAndCourseId(long deploymentId, long contextId) {
         return allRepositories.experimentRepository.findByPlatformDeployment_KeyIdAndLtiContextEntity_ContextId(deploymentId,contextId);
@@ -72,7 +87,7 @@ public class ExperimentServiceImpl implements ExperimentService {
     public Experiment getExperiment(long experimentId){ return allRepositories.experimentRepository.findByExperimentId(experimentId); }
 
     @Override
-    public void updateExperiment(long experimentId, long contextId, ExperimentDto experimentDto) throws TitleValidationException, WrongValueException{
+    public void updateExperiment(long experimentId, long contextId, ExperimentDto experimentDto, SecuredInfo securedInfo) throws TitleValidationException, WrongValueException, ParticipantNotUpdatedException {
         Experiment experimentToChange = getExperiment(experimentId);
         if(StringUtils.isAllBlank(experimentDto.getTitle()) && StringUtils.isAllBlank(experimentToChange.getTitle())){
             throw new TitleValidationException("Error 100: Please give the experiment a title.");
@@ -118,8 +133,23 @@ public class ExperimentServiceImpl implements ExperimentService {
         }
         if (experimentDto.getParticipationType() != null) {
             if (EnumUtils.isValidEnum(ParticipationTypes.class, experimentDto.getParticipationType())) {
-                experimentToChange.setParticipationType(
-                        EnumUtils.getEnum(ParticipationTypes.class, experimentDto.getParticipationType()));
+                if (!experimentToChange.getParticipationType().name().equals(experimentDto.getParticipationType())) {
+                    if (experimentToChange.getParticipationType().equals(ParticipationTypes.CONSENT)) {
+                        try {
+                            fileStorageService.deleteConsentAssignment(experimentId, securedInfo);
+                            if (experimentToChange.getConsentDocument()!=null) {
+                                allRepositories.consentDocumentRepository.delete(experimentToChange.getConsentDocument());
+                                experimentToChange.setConsentDocument(null);
+                            }
+                        } catch (CanvasApiException | AssignmentNotEditedException e) {
+                            log.warn("Consent from experiment " + experimentId + "was not deleted");
+                            e.printStackTrace();
+                        }
+                    }
+                    changeParticipantionType(experimentDto.getParticipationType(),experimentId, securedInfo);
+                    experimentToChange.setParticipationType(
+                            EnumUtils.getEnum(ParticipationTypes.class, experimentDto.getParticipationType()));
+                }
             } else {
                 throw new WrongValueException("Error 134: " + experimentDto.getParticipationType() + " is not a valid Participation value");
             }
@@ -127,6 +157,16 @@ public class ExperimentServiceImpl implements ExperimentService {
         experimentToChange.setClosed(experimentDto.getClosed());
         experimentToChange.setStarted(experimentDto.getStarted());
         save(experimentToChange);
+    }
+
+    private void changeParticipantionType(String toPT, Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException {
+        if (toPT.equals(ParticipationTypes.CONSENT.name()) || toPT.equals(ParticipationTypes.NOSET.name())){
+            participantService.setAllToNull(experimentId, securedInfo);
+        } else if (toPT.equals(ParticipationTypes.AUTO.name())){
+            participantService.setAllToTrue(experimentId, securedInfo);
+        } else if (toPT.equals(ParticipationTypes.MANUAL.name())) {
+            participantService.setAllToFalse(experimentId, securedInfo);
+        }
     }
 
     @Override
@@ -270,7 +310,14 @@ public class ExperimentServiceImpl implements ExperimentService {
     }
 
     @Override
-    public void deleteById(Long id) throws EmptyResultDataAccessException {
+    public void deleteById(Long id, SecuredInfo securedInfo) throws EmptyResultDataAccessException {
+        assignmentService.deleteAllFromExperiment(id, securedInfo);
+        try {
+            fileStorageService.deleteConsentAssignment(id, securedInfo);
+        } catch (CanvasApiException | AssignmentNotEditedException e) {
+            log.warn("Consent from experiment " + id + "was not deleted");
+            e.printStackTrace();
+        }
         allRepositories.experimentRepository.deleteByExperimentId(id);
     }
 

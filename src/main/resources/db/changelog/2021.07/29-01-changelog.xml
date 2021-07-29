@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd">
+
+    <changeSet id = "1622710000000-1" author = "ddelblanco">
+        <dropForeignKeyConstraint baseTableName="terr_experiment"
+                                  constraintName="FK_TERR_EXPERIMENT_ON_CONSENT_DOCUMENT_CONSENT_DOCUMENT"/>
+    </changeSet>
+    <changeSet id="1622710000000-2" author="ddelblanco">
+        <addForeignKeyConstraint baseTableName="terr_experiment" baseColumnNames="consent_document_consent_document_id"
+                                 constraintName="FK_TERR_EXPERIMENT_ON_CONSENT_DOCUMENT_CONSENT_DOCUMENT"
+                                 onDelete="SET NULL"
+                                 referencedTableName="terr_consent_document" referencedColumnNames="consent_document_id"/>
+    </changeSet>
+</databaseChangeLog>

@@ -2,8 +2,10 @@ package edu.iu.terracotta.controller.app;
 
 import com.google.common.net.HttpHeaders;
 import edu.iu.terracotta.exceptions.AssignmentNotCreatedException;
+import edu.iu.terracotta.exceptions.AssignmentNotEditedException;
 import edu.iu.terracotta.exceptions.BadConsentFileTypeException;
 import edu.iu.terracotta.exceptions.BadTokenException;
+import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.app.MyFileNotFoundException;
 import edu.iu.terracotta.model.app.ConsentDocument;
@@ -62,7 +64,7 @@ public class FileController {
                                                           @PathVariable("experiment_id") long experimentId,
                                                           @RequestParam(name = "title", defaultValue = "Invitation to Participate in a Research Study") String title,
                                                           HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, BadConsentFileTypeException, AssignmentNotCreatedException {
+            throws ExperimentNotMatchingException, BadTokenException, BadConsentFileTypeException, AssignmentNotCreatedException, CanvasApiException, AssignmentNotEditedException {
 
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);

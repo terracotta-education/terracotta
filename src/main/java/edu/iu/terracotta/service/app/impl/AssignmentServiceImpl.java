@@ -3,6 +3,7 @@ package edu.iu.terracotta.service.app.impl;
 import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.exceptions.AssignmentDatesException;
 import edu.iu.terracotta.exceptions.AssignmentNotCreatedException;
+import edu.iu.terracotta.exceptions.AssignmentNotEditedException;
 import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
@@ -175,7 +176,7 @@ public class AssignmentServiceImpl implements AssignmentService {
     public Assignment getAssignment(Long id){ return allRepositories.assignmentRepository.findByAssignmentId(id); }
 
     @Override
-    public void updateAssignment(Long id, AssignmentDto assignmentDto) throws TitleValidationException{
+    public void updateAssignment(Long id, AssignmentDto assignmentDto, String canvasCourseId ) throws TitleValidationException, CanvasApiException, AssignmentNotEditedException {
         Assignment assignment = allRepositories.assignmentRepository.findByAssignmentId(id);
         if(StringUtils.isAllBlank(assignmentDto.getTitle()) && StringUtils.isAllBlank(assignment.getTitle())){
             throw new TitleValidationException("Error 100: Please give the assignment a name.");
@@ -183,7 +184,10 @@ public class AssignmentServiceImpl implements AssignmentService {
         if(!StringUtils.isAllBlank(assignmentDto.getTitle()) && assignmentDto.getTitle().length() > 255) {
             throw new TitleValidationException("Error 101: The title must be 255 characters or less.");
         }
-        assignment.setTitle(assignmentDto.getTitle());
+        if (!assignment.getTitle().equals(assignmentDto.getTitle())) {
+            assignment.setTitle(assignmentDto.getTitle());
+            editAssignmentNameInCanvas(assignment,canvasCourseId,assignmentDto.getTitle());
+        }
         assignment.setAssignmentOrder(assignmentDto.getAssignmentOrder());
         assignment.setSoftDeleted(assignmentDto.getSoftDeleted());
         saveAndFlush(assignment);
@@ -193,7 +197,10 @@ public class AssignmentServiceImpl implements AssignmentService {
     public void saveAndFlush(Assignment assignmentToChange) { allRepositories.assignmentRepository.saveAndFlush(assignmentToChange); }
 
     @Override
-    public void deleteById(Long id) throws EmptyResultDataAccessException { allRepositories.assignmentRepository.deleteByAssignmentId(id); }
+    public void deleteById(Long id, String canvasCourseId) throws EmptyResultDataAccessException, CanvasApiException, AssignmentNotEditedException {
+        deleteAssignmentInCanvas(allRepositories.assignmentRepository.getOne(id), canvasCourseId);
+        allRepositories.assignmentRepository.deleteByAssignmentId(id);
+    }
 
     @Override
     public boolean assignmentBelongsToExperimentAndExposure(Long experimentId, Long exposureId, Long assignmentId) {
@@ -467,7 +474,7 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     @Override
-    public void buildAssignmentExtended(Assignment assignment, long experimentId, String canvasCourseId) throws AssignmentNotCreatedException{
+    public void createAssignmentInCanvas(Assignment assignment, long experimentId, String canvasCourseId) throws AssignmentNotCreatedException{
         AssignmentExtended canvasAssignment = new AssignmentExtended();
         edu.ksu.canvas.model.assignment.Assignment.ExternalToolTagAttribute canvasExternalToolTagAttributes = canvasAssignment.new ExternalToolTagAttribute();
         canvasExternalToolTagAttributes.setUrl(ServletUriComponentsBuilder.fromCurrentContextPath().path("/lti3?experiment=" + experimentId + "&assignment=" + assignment.getAssignmentId()).build().toUriString());
@@ -490,6 +497,59 @@ public class AssignmentServiceImpl implements AssignmentService {
             log.info("Create the assignment failed");
             e.printStackTrace();
             throw new AssignmentNotCreatedException("Error 137: The assignment was not created.");
+        }
+    }
+
+    @Override
+    public void editAssignmentNameInCanvas(Assignment assignment, String canvasCourseId, String newName) throws AssignmentNotEditedException, CanvasApiException {
+        int assignmentId = Integer.parseInt(assignment.getLmsAssignmentId());
+        Optional<AssignmentExtended> assignmentExtendedOptional = canvasAPIClient.listAssignment(canvasCourseId,assignmentId,assignment.getExposure().getExperiment().getPlatformDeployment());
+        if (!assignmentExtendedOptional.isPresent()){
+            throw new AssignmentNotEditedException("Error 136: The assignment is not linked to any Canvas assignment");
+        }
+        AssignmentExtended assignmentExtended = assignmentExtendedOptional.get();
+        assignmentExtended.setName(newName);
+        try {
+            Optional<AssignmentExtended> canvasAssignmentReturned = canvasAPIClient.editAssignment(assignmentExtended,
+                    canvasCourseId,
+                    assignment.getExposure().getExperiment().getPlatformDeployment());
+        } catch (CanvasApiException e) {
+            log.info("Edit the assignment failed");
+            e.printStackTrace();
+            throw new AssignmentNotEditedException("Error 137: The assignment was not created.");
+        }
+    }
+
+    @Override
+    public void deleteAssignmentInCanvas(Assignment assignment, String canvasCourseId) throws AssignmentNotEditedException, CanvasApiException {
+        int assignmentId = Integer.parseInt(assignment.getLmsAssignmentId());
+        Optional<AssignmentExtended> assignmentExtendedOptional = canvasAPIClient.listAssignment(canvasCourseId,assignmentId,assignment.getExposure().getExperiment().getPlatformDeployment());
+        if (!assignmentExtendedOptional.isPresent()){
+            log.warn("The assignment " + assignment.getTitle() + " (canvas id:" + assignment.getLmsAssignmentId() + ") was already deleted");
+            return;
+        }
+        AssignmentExtended assignmentExtended = assignmentExtendedOptional.get();
+        try {
+            canvasAPIClient.deleteAssignment(assignmentExtended,
+                    canvasCourseId,
+                    assignment.getExposure().getExperiment().getPlatformDeployment());
+        } catch (CanvasApiException e) {
+            log.info("Deleting the assignment failed");
+            e.printStackTrace();
+            throw new AssignmentNotEditedException("Error 137: The assignment was not created.");
+        }
+    }
+
+    @Override
+    public void deleteAllFromExperiment(Long id, SecuredInfo securedInfo) {
+        List<Assignment> assignmentList = allRepositories.assignmentRepository.findByExposure_Experiment_ExperimentId(id);
+        for (Assignment assignment:assignmentList) {
+            try {
+                deleteAssignmentInCanvas(assignment,securedInfo.getCanvasCourseId());
+            } catch (CanvasApiException | AssignmentNotEditedException e) {
+                log.warn("Assignment : " + assignment.getTitle() + "was not deleted in canvas");
+                e.printStackTrace();
+            }
         }
     }
 }
