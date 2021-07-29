@@ -15,19 +15,16 @@
           </p>
         </v-col>
         <div class="header ma-0 pa-0">
-         <v-btn
-          color="primary"
-          elevation="0"
-          @click="exportData()"
-          >Export Data</v-btn
-        >
-        <v-btn
-          color="primary"
-          elevation="0"
-          class="saveButton ml-4"
-          @click="saveExit()"
-          >SAVE & CLOSE</v-btn
-        >
+          <v-btn color="primary" elevation="0" @click="exportData()"
+            >Export Data</v-btn
+          >
+          <v-btn
+            color="primary"
+            elevation="0"
+            class="saveButton ml-4"
+            @click="saveExit()"
+            >SAVE & CLOSE</v-btn
+          >
         </div>
       </v-row>
       <v-row>
@@ -289,9 +286,7 @@
                               <!-- Consent Participation -->
                               <template v-if="item.description === 'CONSENT'">
                                 Informed Consent
-                                <button class='pdfButton'
-                                 @click="openPDF"
-                                 >
+                                <button class="pdfButton" @click="openPDF">
                                   {{ experiment.consent.title }}
                                 </button>
                               </template>
@@ -341,6 +336,7 @@
 <script>
 import store from "@/store";
 import { mapGetters, mapActions } from "vuex";
+import { saveAs } from "file-saver";
 import ExperimentSummaryStatus from "@/views/ExperimentSummaryStatus";
 
 export default {
@@ -353,6 +349,7 @@ export default {
       exposures: "exposures/exposures",
       assignments: "assignment/assignments",
       consent: "consent/consent",
+      exportdata: "exportdata/exportData",
     }),
     // Higher Level Section Values
     sectionValuesMap() {
@@ -446,12 +443,26 @@ export default {
       createTreatment: "treatment/createTreatment",
       createAssessment: "assessment/createAssessment",
       getConsentFile: "consent/getConsentFile",
+      getZip: "exportdata/fetchExportData",
     }),
     saveExit() {
-      this.$router.push({ name: 'Home' })
+      this.$router.push({ name: "Home" });
     },
+    str2bytes(str) {
+      var bytes = new Uint8Array(str.length);
+      for (var i = 0; i < str.length; i++) {
+        bytes[i] = str.charCodeAt(i);
+      }
+      return bytes;
+    },
+
     exportData() {
-      // TODO: Will be addressed in upcoming PR
+      console.log(this.exportdata);
+      const blob = new Blob([this.exportdata], {
+        type: "application/zip;",
+      });
+      
+      saveAs(blob, "ExperimentExport.zip");
     },
     // Navigate to EDIT section
     handleEdit(componentName) {
@@ -555,6 +566,7 @@ export default {
   async created() {
     this.tab = this.$router.currentRoute.name === "ExperimentSummary" ? 1 : 0;
     await this.getConsentFile(this.experiment.experimentId);
+    await this.getZip(this.experiment.experimentId);
 
     await this.fetchExposures(this.experiment.experimentId);
     for (let c of this.conditions) {

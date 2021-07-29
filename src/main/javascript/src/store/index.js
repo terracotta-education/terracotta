@@ -13,6 +13,7 @@ import { exposures } from './exposures.module';
 import { participants } from './participants.module';
 import { outcome } from './outcome.module';
 import { treatment } from './treatment.module';
+import { exportdata } from './exportdata.module';
 
 Vue.use(Vuex)
 
@@ -31,7 +32,8 @@ const store = new Vuex.Store({
         exposures,
         participants,
         outcome,
-        treatment
+        treatment,
+        exportdata
     }
 })
 
