@@ -457,12 +457,7 @@ export default {
     },
 
     exportData() {
-      console.log(this.exportdata);
-      const blob = new Blob([this.exportdata], {
-        type: "application/zip;",
-      });
-      
-      saveAs(blob, "ExperimentExport.zip");
+      saveAs(this.exportdata, `Terracotta Experiment ${this.experiment.title} Export.zip`);
     },
     // Navigate to EDIT section
     handleEdit(componentName) {

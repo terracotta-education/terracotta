@@ -9,7 +9,6 @@ const actions = {
     console.log('Here in Module', experimentId)
     return exportdataService.getZip(experimentId)
       .then(response => {
-          console.log('Response is: ', response)
         if (response.status===200) {
           commit('setExportData', response.data)
         }
