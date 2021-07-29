@@ -105,23 +105,25 @@ public class ExportServiceImpl implements ExportService {
         List<String[]> participant_treatment = new ArrayList<>();
         participant_treatment.add(new String[] {"participant_id", "exposure_id", "condition_id", "condition_name", "assignment_id", "assignment_name", "treatment_id"});
         for(Participant participant : participants){
-            String participantId = participant.getParticipantId().toString();
-            List<ExposureGroupCondition> egcList = allRepositories.exposureGroupConditionRepository.findByGroup_GroupId(participant.getGroup().getGroupId());
-            for(ExposureGroupCondition egc : egcList){
-                String exposureId = egc.getExposure().getExposureId().toString();
-                String conditionId = egc.getCondition().getConditionId().toString();
-                String conditionName = "N/A";
-                if(!StringUtils.isAllBlank(egc.getCondition().getName())){
-                    conditionName = egc.getCondition().getName();
-                }
-                List<Assignment> assignments = allRepositories.assignmentRepository.findByExposure_ExposureId(egc.getExposure().getExposureId());
-                for(Assignment assignment : assignments){
-                    String assignmentId = assignment.getAssignmentId().toString();
-                    String assignmentName = assignment.getTitle();
-                    List<Treatment> treatments = allRepositories.treatmentRepository.findByCondition_ConditionIdAndAssignment_AssignmentId(Long.parseLong(conditionId), Long.parseLong(assignmentId));
-                    for(Treatment treatment : treatments){
-                        String treatmentId = treatment.getTreatmentId().toString();
-                        participant_treatment.add(new String[] {participantId, exposureId, conditionId, conditionName, assignmentId, assignmentName, treatmentId});
+            if(participant.getGroup() != null) {
+                String participantId = participant.getParticipantId().toString();
+                List<ExposureGroupCondition> egcList = allRepositories.exposureGroupConditionRepository.findByGroup_GroupId(participant.getGroup().getGroupId());
+                for (ExposureGroupCondition egc : egcList) {
+                    String exposureId = egc.getExposure().getExposureId().toString();
+                    String conditionId = egc.getCondition().getConditionId().toString();
+                    String conditionName = "N/A";
+                    if (!StringUtils.isAllBlank(egc.getCondition().getName())) {
+                        conditionName = egc.getCondition().getName();
+                    }
+                    List<Assignment> assignments = allRepositories.assignmentRepository.findByExposure_ExposureId(egc.getExposure().getExposureId());
+                    for (Assignment assignment : assignments) {
+                        String assignmentId = assignment.getAssignmentId().toString();
+                        String assignmentName = assignment.getTitle();
+                        List<Treatment> treatments = allRepositories.treatmentRepository.findByCondition_ConditionIdAndAssignment_AssignmentId(Long.parseLong(conditionId), Long.parseLong(assignmentId));
+                        for (Treatment treatment : treatments) {
+                            String treatmentId = treatment.getTreatmentId().toString();
+                            participant_treatment.add(new String[]{participantId, exposureId, conditionId, conditionName, assignmentId, assignmentName, treatmentId});
+                        }
                     }
                 }
             }
