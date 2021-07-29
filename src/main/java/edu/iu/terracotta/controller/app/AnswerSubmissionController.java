@@ -9,6 +9,7 @@ import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.InvalidUserException;
 import edu.iu.terracotta.exceptions.QuestionSubmissionNotMatchingException;
+import edu.iu.terracotta.exceptions.TypeNotSupportedException;
 import edu.iu.terracotta.model.app.AnswerEssaySubmission;
 import edu.iu.terracotta.model.app.AnswerMcSubmission;
 import edu.iu.terracotta.model.app.dto.AnswerSubmissionDto;
@@ -154,7 +155,7 @@ public class AnswerSubmissionController {
                                                                     @RequestBody AnswerSubmissionDto answerSubmissionDto,
                                                                     UriComponentsBuilder ucBuilder,
                                                                     HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, BadTokenException, InvalidUserException, IdInPostException {
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, BadTokenException, InvalidUserException, IdInPostException, TypeNotSupportedException, DataServiceException {
 
         log.info("Creating answer submission: {}", answerSubmissionDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
@@ -173,29 +174,9 @@ public class AnswerSubmissionController {
 
             answerSubmissionDto.setQuestionSubmissionId(questionSubmissionId);
             String answerType = answerSubmissionService.getAnswerType(questionSubmissionId);
-            switch(answerType){
-                case "MC":
-                    AnswerMcSubmission answerMcSubmission;
-                    try {
-                        answerMcSubmission = answerSubmissionService.fromDtoMC(answerSubmissionDto);
-                    } catch (DataServiceException ex) {
-                        return new ResponseEntity("Error 105: Unable to create answer submission: " + ex.getMessage(), HttpStatus.BAD_REQUEST);
-                    }
-                    AnswerSubmissionDto returnedMcDto = answerSubmissionService.toDtoMC(answerSubmissionService.saveMC(answerMcSubmission));
-                    HttpHeaders headersMc = answerSubmissionService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, submissionId, questionSubmissionId, answerMcSubmission.getAnswerMcSubId());
-                    return new ResponseEntity<>(returnedMcDto, headersMc, HttpStatus.CREATED);
-                case "ESSAY":
-                    AnswerEssaySubmission answerEssaySubmission;
-                    try{
-                        answerEssaySubmission = answerSubmissionService.fromDtoEssay(answerSubmissionDto);
-                    } catch (DataServiceException ex) {
-                        return new ResponseEntity("Error 105: Unable to create answer submission: " + ex.getMessage(), HttpStatus.BAD_REQUEST);
-                    }
-                    AnswerSubmissionDto returnedEssayDto = answerSubmissionService.toDtoEssay(answerSubmissionService.saveEssay(answerEssaySubmission));
-                    HttpHeaders headersEssay = answerSubmissionService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, submissionId, questionSubmissionId, answerEssaySubmission.getAnswerEssaySubmissionId());
-                    return new ResponseEntity<>(returnedEssayDto, headersEssay, HttpStatus.CREATED);
-                default: return new ResponseEntity("Error 103: Answer type not supported.", HttpStatus.BAD_REQUEST);
-            }
+            AnswerSubmissionDto returnedDto = answerSubmissionService.postAnswerSubmission(answerType, answerSubmissionDto);
+            HttpHeaders headers = answerSubmissionService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, submissionId, questionSubmissionId, returnedDto.getAnswerSubmissionId());
+            return new ResponseEntity<>(returnedDto, headers, HttpStatus.OK);
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }

@@ -2,6 +2,7 @@ package edu.iu.terracotta.service.app;
 
 import edu.iu.terracotta.exceptions.AnswerNotMatchingException;
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.TypeNotSupportedException;
 import edu.iu.terracotta.model.app.AnswerEssaySubmission;
 import edu.iu.terracotta.model.app.AnswerMcSubmission;
 import edu.iu.terracotta.model.app.dto.AnswerSubmissionDto;
@@ -60,6 +61,8 @@ public interface AnswerSubmissionService {
     boolean essayAnswerSubmissionBelongsToQuestionSubmission(Long questionSubmissionId, Long answerEssaySubmissionId);
 
     //USED BY ALL TYPES
+    AnswerSubmissionDto postAnswerSubmission(String answerType, AnswerSubmissionDto answerSubmissionDto) throws DataServiceException, TypeNotSupportedException;
+
     String getAnswerType(Long questionSubmissionId);
 
     HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId, Long submissionId, Long questionSubmissionId, Long answerSubmissionId);

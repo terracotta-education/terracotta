@@ -389,4 +389,11 @@ public class RestResponseEntityExceptionHandler
         return handleExceptionInternal(ex, bodyOfResponse, new HttpHeaders(), HttpStatus.CONFLICT, request);
     }
 
+    @ExceptionHandler(value = {TypeNotSupportedException.class})
+    protected ResponseEntity<Object> handleTypeNotSupportedException(TypeNotSupportedException ex, WebRequest request){
+        String bodyOfResponse = ex.getMessage();
+        log.warn(bodyOfResponse);
+        return handleExceptionInternal(ex, bodyOfResponse, new HttpHeaders(), HttpStatus.BAD_REQUEST, request);
+    }
+
 }
