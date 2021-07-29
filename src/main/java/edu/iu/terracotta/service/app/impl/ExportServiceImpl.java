@@ -61,7 +61,7 @@ public class ExportServiceImpl implements ExportService {
         String exportAt = Timestamp.valueOf(LocalDateTime.now()).toString();
         List<Participant> enrolled = allRepositories.participantRepository.findByExperiment_ExperimentId(experimentId);
         String enrollmentCount = String.valueOf(enrolled.size());
-        List<Participant> participants = allRepositories.participantRepository.findByExperiment_ExperimentIdAndConsent(experimentId, true);
+        List<Participant> participants = allRepositories.participantRepository.findByExperiment_ExperimentId(experimentId);
         List<Participant> consentedParticipants = new ArrayList<>();
         for(Participant participant : participants){
             if(participant.getConsent() != null && participant.getConsent()){
