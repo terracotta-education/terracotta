@@ -41,6 +41,14 @@ const routes = [
             },
             component: () => import('../views/outcome/OutcomeGradebook.vue')
           },
+          {
+            path: 'assignment/:assignment_id/assignment-scores',
+            name: 'AssignmentScores',
+            meta: {
+              previousStep: 'ExperimentSummary'
+            },
+            component: () => import('../views/grading/AssignmentScores.vue')
+          },
         ]
       },
       {

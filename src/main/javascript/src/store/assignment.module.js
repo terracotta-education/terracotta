@@ -43,22 +43,25 @@ const actions = {
         }
       }
     } catch (error) {
-      console.log('deleteAssignment catch', {error})
+      console.error('deleteAssignment catch', {error})
     }
   },
-  createAssignment: ({commit}, payload) => {
+  async createAssignment({commit}, payload) {
     // payload = experiment_id, exposure_id, title, order
     // create the assignment, commit an update mutation, and return the status/data response
-    return assignmentService.create(...payload)
-      .then((response) => {
-        if (response?.assignmentId) {
-          commit('setAssignment', response)
-          return {
-            status: 201,
-            data: response
-          }
+    try {
+      const response = await assignmentService.create(...payload)
+
+      if (response?.assignmentId) {
+        commit('setAssignment', response)
+        return {
+          status: 201,
+          data: response
         }
-      })
+      }
+    } catch (error) {
+      console.error('createAssignment catch', {error})
+    }
   },
 }
 const mutations = {

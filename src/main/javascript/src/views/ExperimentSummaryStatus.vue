@@ -60,7 +60,7 @@
                   v-for="assignment in assignments.filter(a => a.exposureId === exposure.exposureId)"
                   :key="assignment.assignmentId"
                 >
-                  <td>{{ assignment.title }}</td>
+                  <td><router-link :to="{name: 'AssignmentScores', params: {exposure_id: exposure.exposureId,assignment_id:assignment.assignmentId}}">{{ assignment.title }}</router-link></td>
                   <td><span class="completion-status" :class="{'complete': assignmentCompletion.find(a => a.assignmentId === assignment.assignmentId).complete}">
                     {{
                       assignmentCompletion.find(a => a.assignmentId === assignment.assignmentId).complete ?
