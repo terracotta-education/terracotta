@@ -2,8 +2,10 @@ package edu.iu.terracotta.controller.app;
 
 import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.exceptions.AssignmentNotCreatedException;
+import edu.iu.terracotta.exceptions.AssignmentNotEditedException;
 import edu.iu.terracotta.exceptions.AssignmentNotMatchingException;
 import edu.iu.terracotta.exceptions.BadTokenException;
+import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.ExposureNotMatchingException;
@@ -122,7 +124,7 @@ public class AssignmentController {
                 return new ResponseEntity("Error 105: Unable to create Assignment: " + e.getMessage(), HttpStatus.BAD_REQUEST);
             }
             Assignment assignmentSaved = assignmentService.save(assignment);
-            assignmentService.buildAssignmentExtended(assignmentSaved, experimentId, securedInfo.getCanvasCourseId());
+            assignmentService.createAssignmentInCanvas(assignmentSaved, experimentId, securedInfo.getCanvasCourseId());
             assignmentService.saveAndFlush(assignmentSaved);
             AssignmentDto returnedDto = assignmentService.toDto(assignmentSaved, false);
             HttpHeaders headers = assignmentService.buildHeaders(ucBuilder, experimentId, exposureId, assignment.getAssignmentId());
@@ -138,7 +140,7 @@ public class AssignmentController {
                                                  @PathVariable("assignment_id") Long assignmentId,
                                                  @RequestBody AssignmentDto assignmentDto,
                                                  HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, AssignmentNotMatchingException, TitleValidationException {
+            throws ExperimentNotMatchingException, BadTokenException, AssignmentNotMatchingException, TitleValidationException, CanvasApiException, AssignmentNotEditedException {
 
         log.debug("Updating assignment with id: {}", assignmentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
@@ -146,7 +148,7 @@ public class AssignmentController {
         apijwtService.assignmentAllowed(securedInfo, experimentId, exposureId, assignmentId);
 
         if(apijwtService.isInstructorOrHigher(securedInfo)) {
-            assignmentService.updateAssignment(assignmentId, assignmentDto);
+            assignmentService.updateAssignment(assignmentId, assignmentDto, securedInfo.getCanvasCourseId());
             return new ResponseEntity<>(HttpStatus.OK);
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
@@ -158,7 +160,7 @@ public class AssignmentController {
                                                  @PathVariable("exposure_id") Long exposureId,
                                                  @PathVariable("assignment_id") Long assignmentId,
                                                  HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssignmentNotMatchingException, BadTokenException {
+            throws ExperimentNotMatchingException, AssignmentNotMatchingException, BadTokenException, CanvasApiException, AssignmentNotEditedException {
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -166,7 +168,7 @@ public class AssignmentController {
 
         if(apijwtService.isInstructorOrHigher(securedInfo)) {
             try{
-                assignmentService.deleteById(assignmentId);
+                assignmentService.deleteById(assignmentId, securedInfo.getCanvasCourseId());
                 return new ResponseEntity<>(HttpStatus.OK);
             } catch (EmptyResultDataAccessException e) {
                 log.warn(e.getMessage());

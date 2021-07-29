@@ -153,6 +153,7 @@ public class ParticipantServiceImpl implements ParticipantService {
     }
 
     @Override
+    @Transactional
     public List<Participant> refreshParticipants(long experimentId, SecuredInfo securedInfo, List<Participant> currentParticipantList) throws ParticipantNotUpdatedException {
 
         //We don't want to delete participants if they drop the course, so... we will keep the all participants
@@ -297,5 +298,39 @@ public class ParticipantServiceImpl implements ParticipantService {
         headers.setLocation(ucBuilder.path("/api/experiments/{experimentId}/participant/{participantId}")
                 .buildAndExpand(experimentId, participantId).toUri());
         return headers;
+    }
+
+    @Override
+    public void setAllToNull(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException {
+        List<Participant> participants = allRepositories.participantRepository.findByExperiment_ExperimentId(experimentId);
+        refreshParticipants(experimentId,securedInfo,participants);
+        for (Participant participant:participants){
+            participant.setConsent(null);
+            participant.setDateGiven(null);
+        }
+        allRepositories.participantRepository.saveAll(participants);
+    }
+
+    @Override
+    public void setAllToTrue(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException {
+        List<Participant> participants = allRepositories.participantRepository.findByExperiment_ExperimentId(experimentId);
+        refreshParticipants(experimentId,securedInfo,participants);
+        for (Participant participant:participants){
+            participant.setConsent(true);
+            participant.setDateGiven(new Timestamp(System.currentTimeMillis()));
+        }
+        allRepositories.participantRepository.saveAll(participants);
+    }
+
+    @Override
+    public void setAllToFalse(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException {
+        List<Participant> participants = allRepositories.participantRepository.findByExperiment_ExperimentId(experimentId);
+        refreshParticipants(experimentId,securedInfo,participants);
+        for (Participant participant:participants){
+            participant.setConsent(false);
+            participant.setDateGiven(new Timestamp(System.currentTimeMillis()));
+        }
+        allRepositories.participantRepository.saveAll(participants);
+
     }
 }

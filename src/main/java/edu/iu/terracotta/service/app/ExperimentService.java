@@ -1,6 +1,7 @@
 package edu.iu.terracotta.service.app;
 
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.exceptions.WrongValueException;
 import edu.iu.terracotta.model.app.ConsentDocument;
@@ -21,7 +22,7 @@ public interface ExperimentService {
 
     Experiment getExperiment(long experimentId);
 
-    void updateExperiment(long experimentId, long contextId, ExperimentDto experimentDto) throws TitleValidationException, WrongValueException;
+    void updateExperiment(long experimentId, long contextId, ExperimentDto experimentDto, SecuredInfo securedInfo) throws TitleValidationException, WrongValueException, ParticipantNotUpdatedException;
 
     Optional<Experiment> findOneByDeploymentIdAndCourseIdAndExperimentId(long deploymentId, long contextId, long id);
 
@@ -35,7 +36,7 @@ public interface ExperimentService {
 
     void saveAndFlush(Experiment experimentToChange);
 
-    void deleteById(Long id) throws EmptyResultDataAccessException;
+    void deleteById(Long id, SecuredInfo securedInfo) throws EmptyResultDataAccessException;
 
     ExperimentDto fillContextInfo(ExperimentDto experimentDto, SecuredInfo securedInfo);
 

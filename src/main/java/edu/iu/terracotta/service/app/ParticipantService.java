@@ -45,4 +45,9 @@ public interface ParticipantService {
 
     HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, long experimentId, long participantId);
 
+    void setAllToNull(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException;
+
+    void setAllToTrue(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException;
+
+    void setAllToFalse(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException;
 }

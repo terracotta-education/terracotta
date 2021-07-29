@@ -3,6 +3,7 @@ package edu.iu.terracotta.service.app;
 import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.exceptions.AssignmentDatesException;
 import edu.iu.terracotta.exceptions.AssignmentNotCreatedException;
+import edu.iu.terracotta.exceptions.AssignmentNotEditedException;
 import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
@@ -40,11 +41,11 @@ public interface AssignmentService {
 
     Assignment getAssignment(Long id);
 
-    void updateAssignment(Long assignmentId, AssignmentDto assignmentDto) throws TitleValidationException;
+    void updateAssignment(Long id, AssignmentDto assignmentDto, String canvasCourseId ) throws TitleValidationException, CanvasApiException, AssignmentNotEditedException;
 
     void saveAndFlush(Assignment assignmentToChange);
 
-    void deleteById(Long id) throws EmptyResultDataAccessException;
+    void deleteById(Long id, String canvasCourseId) throws EmptyResultDataAccessException, CanvasApiException, AssignmentNotEditedException;
 
     boolean assignmentBelongsToExperimentAndExposure(Long experimentId, Long exposureId, Long assignmentId);
 
@@ -76,5 +77,11 @@ public interface AssignmentService {
 
     HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, long experimentId, long exposureId, long assignmentId);
 
-    void buildAssignmentExtended(Assignment assignment, long experimentId, String canvasCourseId) throws AssignmentNotCreatedException;
+    void createAssignmentInCanvas(Assignment assignment, long experimentId, String canvasCourseId) throws AssignmentNotCreatedException;
+
+    void editAssignmentNameInCanvas(Assignment assignment, String canvasCourseId, String newName) throws AssignmentNotEditedException, CanvasApiException;
+
+    void deleteAssignmentInCanvas(Assignment assignment, String canvasCourseId) throws AssignmentNotEditedException, CanvasApiException;
+
+    void deleteAllFromExperiment(Long id, SecuredInfo securedInfo);
 }

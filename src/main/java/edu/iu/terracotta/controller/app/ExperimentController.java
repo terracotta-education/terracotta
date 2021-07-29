@@ -5,6 +5,7 @@ import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentLockedException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.IdInPostException;
+import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.exceptions.WrongValueException;
 import edu.iu.terracotta.model.app.Experiment;
@@ -146,13 +147,13 @@ public class ExperimentController {
     public ResponseEntity<Void> updateExperiment(@PathVariable("id") Long id,
                                                  @RequestBody ExperimentDto experimentDto,
                                                  HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, WrongValueException, TitleValidationException {
+            throws ExperimentNotMatchingException, BadTokenException, WrongValueException, TitleValidationException, ParticipantNotUpdatedException {
         log.debug("Updating Experiment with id {}", id);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, id);
 
         if (apijwtService.isInstructorOrHigher(securedInfo)) {
-            experimentService.updateExperiment(id, securedInfo.getContextId(), experimentDto);
+            experimentService.updateExperiment(id, securedInfo.getContextId(), experimentDto, securedInfo);
             return new ResponseEntity<>(HttpStatus.OK);
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
@@ -169,7 +170,7 @@ public class ExperimentController {
 
         if (apijwtService.isInstructorOrHigher(securedInfo)) {
             try {
-                experimentService.deleteById(id);
+                experimentService.deleteById(id, securedInfo);
                 return new ResponseEntity<>(HttpStatus.OK);
             } catch (EmptyResultDataAccessException ex) {
                 log.warn(ex.getMessage());

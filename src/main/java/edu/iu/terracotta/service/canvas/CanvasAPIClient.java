@@ -22,5 +22,9 @@ public interface CanvasAPIClient {
 
     Optional<AssignmentExtended> listAssignment(String canvasCourseId, int assignmentId, PlatformDeployment platformDeployment) throws CanvasApiException;
 
+    Optional<AssignmentExtended> editAssignment(AssignmentExtended assignmentExtended, String canvasCourseId, PlatformDeployment platformDeployment) throws CanvasApiException;
+
+    Optional<AssignmentExtended> deleteAssignment(AssignmentExtended assignmentExtended, String canvasCourseId, PlatformDeployment platformDeployment) throws CanvasApiException;
+
     Optional<Progress> postSubmission(edu.iu.terracotta.model.app.Submission submission, Float maxTerracottaScore) throws CanvasApiException, IOException;
 }

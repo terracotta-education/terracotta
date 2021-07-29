@@ -368,6 +368,12 @@ public class RestResponseEntityExceptionHandler
         return handleExceptionInternal(ex, ex.getMessage(), new HttpHeaders(), HttpStatus.INTERNAL_SERVER_ERROR, request);
     }
 
+    @ExceptionHandler(value = {AssignmentNotEditedException.class})
+    protected ResponseEntity<Object> handleAssignmentNotEditedException(AssignmentNotEditedException ex, WebRequest request){
+        log.warn(ex.getMessage());
+        return handleExceptionInternal(ex, ex.getMessage(), new HttpHeaders(), HttpStatus.INTERNAL_SERVER_ERROR, request);
+    }
+
     @ExceptionHandler(value = {IdInPostException.class})
     protected ResponseEntity<Object> handleIdInPostException(IdInPostException ex, WebRequest request){
         String bodyOfResponse = ex.getMessage();
