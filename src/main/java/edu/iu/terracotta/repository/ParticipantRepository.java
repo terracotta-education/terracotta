@@ -16,6 +16,8 @@ public interface ParticipantRepository extends JpaRepository<Participant, Long> 
 
   List<Participant> findByExperiment_ExperimentIdAndGroup_GroupId(Long experimentId, Long groupId);
 
+  List<Participant> findByExperiment_ExperimentIdAndConsent(Long experimentId, Boolean consent);
+
   Participant findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(Long experimentId, String userKey);
 
   Participant findByParticipantId(Long participantId);
