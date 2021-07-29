@@ -58,22 +58,22 @@ export default {
     ...mapActions({
       createAssignment: 'assignment/createAssignment'
     }),
-    saveTitle(path) {
-      this.createAssignment([this.experiment_id, this.exposure_id, this.title, 1])
-        .then(response => {
-          if (response?.status === 201) {
-            this.$router.push({name: path, params:{
+    async saveTitle(path) {
+      try {
+        const response = await this.createAssignment([this.experiment_id, this.exposure_id, this.title, 1])
+
+        if (response?.status === 201) {
+          this.$router.push({name: path, params:{
               experiment_id: this.experiment_id,
               assignment_id: response.data.assignmentId
             }})
-          } else {
-            this.$swal(`${response}`)
-          }
-        })
-        .catch(response => {
-          console.error("createAssignment | catch", {response})
-          this.$swal('There was an error creating the assignment.')
-        })
+        } else {
+          this.$swal(`${response}`)
+        }
+      } catch (error) {
+        console.error("createAssignment | catch", {error})
+        this.$swal('There was an error creating the assignment.')
+      }
     },
     saveExit() {
       this.saveTitle('Home')

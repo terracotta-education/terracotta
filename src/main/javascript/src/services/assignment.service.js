@@ -14,13 +14,14 @@ export const assignmentService = {
 /**
  * Fetch Assignment
  */
-async function fetchAssignment(experiment_id, exposure_id, assignment_id) {
+async function fetchAssignment(experiment_id, exposure_id, assignment_id, submissions=false) {
+  const includeSubmissions = (submissions) ? '?submissions=true' : ''
   const requestOptions = {
     method: 'GET',
     headers: {...authHeader()}
   }
 
-  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/exposures/${exposure_id}/assignments/${assignment_id}`, requestOptions).then(handleResponse)
+  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/exposures/${exposure_id}/assignments/${assignment_id}${includeSubmissions}`, requestOptions).then(handleResponse)
 }
 
 /**
