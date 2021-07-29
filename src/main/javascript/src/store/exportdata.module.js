@@ -1,4 +1,4 @@
-import {exportdataService} from '@/services'
+import {exportDataService} from '@/services'
 
 const state = {
   file: null,
@@ -6,8 +6,7 @@ const state = {
 
 const actions = {
   fetchExportData: ({commit}, experimentId) => {
-    console.log('Here in Module', experimentId)
-    return exportdataService.getZip(experimentId)
+    return exportDataService.getZip(experimentId)
       .then(response => {
         if (response.status===200) {
           commit('setExportData', response.data)

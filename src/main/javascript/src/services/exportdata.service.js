@@ -1,10 +1,10 @@
-import { authHeader } from "@/helpers";
-import store from "@/store/index.js";
+import { authHeader } from '@/helpers'
+import store from '@/store/index.js'
 
 /**
  * Register methods
  */
-export const exportdataService = {
+export const exportDataService = {
   getZip,
 };
 
@@ -13,13 +13,11 @@ export const exportdataService = {
  */
 function getZip(experimentId) {
   const requestOptions = {
-    method: "GET",
+    method: 'GET',
     headers: authHeader(),
   };
-  console.log("Auth Headers", authHeader());
-  console.log("experimentId", experimentId);
   return fetch(
-    `${store.getters["api/aud"]}/api/experiments/${experimentId}/zip`,
+    `${store.getters['api/aud']}/api/experiments/${experimentId}/zip`,
     requestOptions
   ).then(handleResponse);
 }
