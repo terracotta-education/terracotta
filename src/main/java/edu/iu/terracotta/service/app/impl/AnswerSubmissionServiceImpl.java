@@ -195,7 +195,6 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
     }
 
     @Override
-    @Transactional
     public AnswerSubmissionDto postAnswerSubmission(String answerType, AnswerSubmissionDto answerSubmissionDto) throws DataServiceException, TypeNotSupportedException{
         switch(answerType){
             case "MC":

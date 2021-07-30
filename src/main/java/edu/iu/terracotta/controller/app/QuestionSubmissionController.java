@@ -1,10 +1,12 @@
 package edu.iu.terracotta.controller.app;
 
 import edu.iu.terracotta.exceptions.AnswerNotMatchingException;
+import edu.iu.terracotta.exceptions.AnswerSubmissionNotMatchingException;
 import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.DuplicateQuestionException;
+import edu.iu.terracotta.exceptions.ExceedingLimitException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.IdMissingException;
@@ -142,7 +144,7 @@ public class QuestionSubmissionController {
                                                                         @RequestBody List<QuestionSubmissionDto> questionSubmissionDtoList,
                                                                         UriComponentsBuilder ucBuilder,
                                                                         HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, SubmissionNotMatchingException, BadTokenException, InvalidUserException, DuplicateQuestionException, IdMissingException, IdInPostException, DataServiceException, TypeNotSupportedException {
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, SubmissionNotMatchingException, BadTokenException, InvalidUserException, DataServiceException, DuplicateQuestionException, IdMissingException, IdInPostException, TypeNotSupportedException, ExceedingLimitException, AnswerSubmissionNotMatchingException, AnswerNotMatchingException {
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -155,26 +157,8 @@ public class QuestionSubmissionController {
                 submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
                 student = true;
             }
-            List<QuestionSubmissionDto> returnedDtoList = new ArrayList<>();
-            for(QuestionSubmissionDto questionSubmissionDto : questionSubmissionDtoList){
-                log.debug("Creating question submission: {}", questionSubmissionDto);
-                if (questionSubmissionDto.getQuestionSubmissionId() != null) {
-                    throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
-                }
-                questionSubmissionDto.setSubmissionId(submissionId);
-                QuestionSubmission questionSubmission;
-                try {
-                    questionSubmissionService.validateDto(questionSubmissionDto, assessmentId, student);
-                    questionSubmission = questionSubmissionService.fromDto(questionSubmissionDto);
-                } catch (DataServiceException ex) {
-                    return new ResponseEntity("Error 105: Unable to create question submission: " + ex.getMessage(), HttpStatus.BAD_REQUEST);
-                }
-                returnedDtoList.add(questionSubmissionService.toDto(questionSubmissionService.save(questionSubmission), false, false));
-                for(AnswerSubmissionDto answerSubmissionDto : questionSubmissionDto.getAnswerSubmissionDtoList()){
-                    answerSubmissionDto.setQuestionSubmissionId(questionSubmission.getQuestionSubmissionId());
-                    answerSubmissionService.postAnswerSubmission(questionSubmission.getQuestion().getQuestionType().toString(), answerSubmissionDto);
-                }
-            }
+            questionSubmissionService.validateAndPrepareQuestionSubmissionList(questionSubmissionDtoList, assessmentId, submissionId, student);
+            List<QuestionSubmissionDto> returnedDtoList = questionSubmissionService.postQuestionSubmissions(questionSubmissionDtoList, assessmentId, submissionId, student);
             HttpHeaders headers = questionSubmissionService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, submissionId);
             return new ResponseEntity<>(returnedDtoList, headers, HttpStatus.CREATED);
         } else {
@@ -193,7 +177,7 @@ public class QuestionSubmissionController {
                                                          @PathVariable("question_submission_id") Long questionSubmissionId,
                                                          @RequestBody QuestionSubmissionDto questionSubmissionDto,
                                                          HttpServletRequest req)
-                throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, BadTokenException, InvalidUserException {
+                throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, BadTokenException, InvalidUserException, DataServiceException, AnswerNotMatchingException, AnswerSubmissionNotMatchingException, IdMissingException {
 
         log.debug("Updating question submission with id {}", questionSubmissionId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
@@ -207,6 +191,7 @@ public class QuestionSubmissionController {
                 submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
                 student = true;
             }
+            questionSubmissionService.validateQuestionSubmission(questionSubmissionDto);
             QuestionSubmission questionSubmission = questionSubmissionService.getQuestionSubmission(questionSubmissionId);
             Map<QuestionSubmission, QuestionSubmissionDto> map = new HashMap<>();
             map.put(questionSubmission, questionSubmissionDto);
@@ -244,14 +229,8 @@ public class QuestionSubmissionController {
                 apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, questionSubmissionDto.getQuestionSubmissionId());
                 QuestionSubmission questionSubmission = questionSubmissionService.getQuestionSubmission(questionSubmissionDto.getQuestionSubmissionId());
                 log.debug("Updating question submission with id: {}", questionSubmission.getQuestionSubmissionId());
+                questionSubmissionService.validateQuestionSubmission(questionSubmissionDto);
                 map.put(questionSubmission, questionSubmissionDto);
-                for(AnswerSubmissionDto answerSubmissionDto : questionSubmissionDto.getAnswerSubmissionDtoList()){
-                    if(questionSubmission.getQuestion().getQuestionType().equals(QuestionTypes.MC)){
-                        answerSubmissionService.updateAnswerMcSubmission(answerSubmissionDto.getAnswerSubmissionId(), answerSubmissionDto);
-                    } else {
-                        answerSubmissionService.updateAnswerEssaySubmission(answerSubmissionDto.getAnswerSubmissionId(), answerSubmissionDto);
-                    }
-                }
             }
             try{
                 questionSubmissionService.updateQuestionSubmissions(map, student);
