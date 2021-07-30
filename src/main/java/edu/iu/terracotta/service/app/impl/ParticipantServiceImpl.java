@@ -85,6 +85,7 @@ public class ParticipantServiceImpl implements ParticipantService {
         if (participant.getGroup()!=null) {
             participantDto.setGroupId(participant.getGroup().getGroupId());
         }
+        participantDto.setStarted(hasStarted(participant));
         return participantDto;
     }
 
@@ -271,10 +272,12 @@ public class ParticipantServiceImpl implements ParticipantService {
             if (participantDto.getDropped()!=null) {
                 participantToChange.setDropped(participantDto.getDropped());
             }
-            if (participantDto.getGroupId()!=null && groupService.existsByExperiment_ExperimentIdAndGroupId(experiment.getExperimentId(), participantDto.getGroupId())){
-                participantToChange.setGroup(groupService.getGroup(participantDto.getGroupId()));
-            } else {
-                participantToChange.setGroup(null);
+            if (!hasStarted(participantToChange)) { //We don't allow changing the group (manually) once the experiment has started.
+                if (participantDto.getGroupId() != null && groupService.existsByExperiment_ExperimentIdAndGroupId(experiment.getExperimentId(), participantDto.getGroupId())) {
+                    participantToChange.setGroup(groupService.getGroup(participantDto.getGroupId()));
+                } else {
+                    participantToChange.setGroup(null);
+                }
             }
             participantToChange.setSource(experiment.getParticipationType());
 
@@ -290,6 +293,11 @@ public class ParticipantServiceImpl implements ParticipantService {
             }
         }
         return null;
+    }
+
+    private boolean hasStarted(Participant participant){
+        //to know if he has started we need to find at least one submission.
+        return !allRepositories.submissionRepository.findByParticipant_ParticipantId(participant.getParticipantId()).isEmpty();
     }
 
     @Override
