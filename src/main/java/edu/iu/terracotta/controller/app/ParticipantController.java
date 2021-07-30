@@ -4,6 +4,7 @@ import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.IdInPostException;
+import edu.iu.terracotta.exceptions.InvalidUserException;
 import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.model.app.Participant;
@@ -60,6 +61,7 @@ public class ParticipantController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
 
         if (apijwtService.isLearnerOrHigher(securedInfo)) {
+            boolean student = !apijwtService.isInstructorOrHigher(securedInfo);
             List<Participant> currentParticipantList = participantService.findAllByExperimentId(experimentId);
             if (apijwtService.isInstructorOrHigher(securedInfo) && refresh) {
                 currentParticipantList = participantService.refreshParticipants(experimentId, securedInfo, currentParticipantList);
@@ -67,7 +69,7 @@ public class ParticipantController {
             if (currentParticipantList.isEmpty()) {
                 return new ResponseEntity<>(HttpStatus.NO_CONTENT);
             }
-            return new ResponseEntity<>(participantService.getParticipants(currentParticipantList), HttpStatus.OK);
+            return new ResponseEntity<>(participantService.getParticipants(currentParticipantList, experimentId, securedInfo.getUserId(), student), HttpStatus.OK);
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
@@ -80,14 +82,15 @@ public class ParticipantController {
     public ResponseEntity<ParticipantDto> getParticipant(@PathVariable("experimentId") long experimentId,
                                                         @PathVariable("participant_id") long participantId,
                                                         HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, ParticipantNotMatchingException {
+            throws ExperimentNotMatchingException, BadTokenException, ParticipantNotMatchingException, InvalidUserException {
 
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.participantAllowed(securedInfo, experimentId, participantId);
 
         if (apijwtService.isLearnerOrHigher(securedInfo)) {
-            ParticipantDto participantDto = participantService.toDto(participantService.getParticipant(participantId));
+            boolean student = !apijwtService.isInstructorOrHigher(securedInfo);
+            ParticipantDto participantDto = participantService.toDto(participantService.getParticipant(participantId, experimentId, securedInfo.getUserId(), student));
             return new ResponseEntity<>(participantDto, HttpStatus.OK);
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
@@ -132,15 +135,15 @@ public class ParticipantController {
                                                   @PathVariable("participant_id") Long participantId,
                                                   @RequestBody ParticipantDto participantDto,
                                                   HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, ParticipantNotMatchingException, DataServiceException {
+            throws ExperimentNotMatchingException, BadTokenException, ParticipantNotMatchingException, DataServiceException, InvalidUserException {
         log.debug("Updating Participant with id {}", participantId);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.participantAllowed(securedInfo, experimentId, participantId);
 
-        if (apijwtService.isLearnerOrHigher(securedInfo)) {
+        if (apijwtService.isInstructorOrHigher(securedInfo)) {
             Map<Participant, ParticipantDto> map = new HashMap<>();
-            map.put(participantService.getParticipant(participantId), participantDto);
+            map.put(participantService.getParticipant(participantId, experimentId, securedInfo.getUserId(), false), participantDto);
             participantService.changeParticipant(map, experimentId);
             return new ResponseEntity<>(HttpStatus.OK);
         } else {
@@ -153,7 +156,7 @@ public class ParticipantController {
     public ResponseEntity<Void> updateParticipants(@PathVariable("experimentId") long experimentId,
                                                    @RequestBody List<ParticipantDto> participantDtoList,
                                                    HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, ParticipantNotMatchingException, DataServiceException {
+            throws ExperimentNotMatchingException, BadTokenException, ParticipantNotMatchingException, DataServiceException, InvalidUserException {
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -162,7 +165,7 @@ public class ParticipantController {
             Map<Participant, ParticipantDto> participantMap = new HashMap<>();
             for(ParticipantDto participantDto : participantDtoList) {
                 apijwtService.participantAllowed(securedInfo, experimentId, participantDto.getParticipantId());
-                Participant participant = participantService.getParticipant(participantDto.getParticipantId());
+                Participant participant = participantService.getParticipant(participantDto.getParticipantId(), experimentId, securedInfo.getUserId(), false);
                 log.debug("Updating participant with id: {}", participant.getParticipantId());
                 participantMap.put(participant, participantDto);
 
@@ -184,14 +187,14 @@ public class ParticipantController {
     public ResponseEntity<Void> deleteParticipant(@PathVariable("experimentId") long experimentId,
                                                   @PathVariable("participant_id") Long participantId,
                                                   HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, ParticipantNotMatchingException {
+            throws ExperimentNotMatchingException, BadTokenException, ParticipantNotMatchingException, InvalidUserException {
 
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.participantAllowed(securedInfo, experimentId, participantId);
 
         if (apijwtService.isInstructorOrHigher(securedInfo)) {
-            Participant participant = participantService.getParticipant(participantId);
+            Participant participant = participantService.getParticipant(participantId, experimentId, securedInfo.getUserId(), false);
             //soft delete
             participant.setDropped(true);
             participantService.saveAndFlush(participant);
