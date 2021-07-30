@@ -21,6 +21,7 @@ public class ParticipantDto {
     private String source;
     private Boolean dropped;
     private Long groupId;
+    private boolean started;
 
 
     public ParticipantDto() {}
@@ -95,5 +96,13 @@ public class ParticipantDto {
 
     public void setGroupId(Long groupId) {
         this.groupId = groupId;
+    }
+
+    public boolean getStarted() {
+        return started;
+    }
+
+    public void setStarted(boolean started) {
+        this.started = started;
     }
 }
