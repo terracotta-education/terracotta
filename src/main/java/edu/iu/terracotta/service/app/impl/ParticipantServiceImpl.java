@@ -2,6 +2,7 @@ package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.InvalidUserException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.model.LtiMembershipEntity;
 import edu.iu.terracotta.model.LtiUserEntity;
@@ -60,16 +61,32 @@ public class ParticipantServiceImpl implements ParticipantService {
     }
 
     @Override
-    public List<ParticipantDto> getParticipants(List<Participant> participants) {
+    public List<ParticipantDto> getParticipants(List<Participant> participants, long experimentId, String userId, boolean student) {
         List<ParticipantDto> participantDtoList = new ArrayList<>();
-        for(Participant participant : participants){
-            participantDtoList.add(toDto(participant));
+        if(!student){
+            for(Participant participant : participants){
+                participantDtoList.add(toDto(participant));
+            }
+            return participantDtoList;
         }
+
+        participantDtoList.add(toDto(allRepositories.participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, userId)));
         return participantDtoList;
     }
 
     @Override
-    public Participant getParticipant(long id){ return allRepositories.participantRepository.findByParticipantId(id); }
+    public Participant getParticipant(long participantId, long experimentId, String userId, boolean student) throws InvalidUserException{
+        if(!student){
+            return allRepositories.participantRepository.findByParticipantId(participantId);
+        }
+
+        Participant participant = allRepositories.participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, userId);
+        if(participant.getParticipantId().equals(participantId)){
+            return allRepositories.participantRepository.findByParticipantId(participantId);
+        } else {
+            throw new InvalidUserException("Error 146: Students are not authorized to view other participants.");
+        }
+    }
 
     @Override
     public ParticipantDto toDto(Participant participant) {
