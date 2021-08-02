@@ -5,10 +5,8 @@
 				<router-view :key="$route.fullPath"/>
 			</template>
 			<template v-else-if="hasTokens && userInfo === 'Learner'">
-				<div class="mt-5">
-					<h1>
-						This is student view.
-					</h1>
+				<div class="studentView mt-5">
+					<StudentConsent v-if="consent" :experimentId="experimentId" :userId="userId"></StudentConsent>
 				</div>
 			</template>
 			<template v-else>
@@ -34,6 +32,7 @@
 <script>
 import { mapActions, mapGetters } from "vuex";
 import store from "@/store";
+import StudentConsent from './views/student/StudentConsent.vue';
 
 export default {
   name: 'App',
@@ -41,10 +40,14 @@ export default {
   data: () => ({
     //
   }),
+  components: {StudentConsent},
 	computed: {
 		...mapGetters({
 			hasTokens: 'api/hasTokens',
-			userInfo: 'api/userInfo'
+			userInfo: 'api/userInfo',
+			experimentId: 'api/experimentId',
+			consent: 'api/consent',
+			userId: 'api/userId'
 		}),
 	},
 	methods: {
@@ -77,5 +80,8 @@ export default {
 	}
 	p {
 		padding-bottom: 15px;
+	}
+	.studentView {
+		display: flex;
 	}
 </style>

@@ -8,6 +8,7 @@ export const participantService = {
   getAll,
   getById,
   updateParticipants,
+  updateParticipant
 }
 
 /**
@@ -52,6 +53,22 @@ function updateParticipants(experiement_id, participantDetails) {
 
   return fetch(
     `${store.getters['api/aud']}/api/experiments/${experiement_id}/participants`,
+    requestOptions
+  ).then(handleResponse)
+}
+
+/**
+ * Update Participant
+ */
+ function updateParticipant(experiement_id, participantDetails) {
+  const requestOptions = {
+    method: 'PUT',
+    headers: { ...authHeader(), 'Content-Type': 'application/json' },
+    body: JSON.stringify(participantDetails),
+  }
+
+  return fetch(
+    `${store.getters['api/aud']}/api/experiments/${experiement_id}/participants/${participantDetails.participantId}`,
     requestOptions
   ).then(handleResponse)
 }
