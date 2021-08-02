@@ -7,6 +7,9 @@ const state = {
   api_token: '',
   aud: '',
   userInfo: '',
+  experimentId: '',
+  consent: '',
+  userId: ''
 }
 
 const actions = {
@@ -16,6 +19,9 @@ const actions = {
     console.log(decodedToken)
     commit('setLtiToken', token)
     commit('setAud', decodedToken.aud)
+    commit('setExperimentId', decodedToken.experimentId)
+    commit('setConsent', decodedToken.consent)
+    commit('setUserId', decodedToken.userId)
     commit('setUserInfo', userInfo(decodedToken.roles))
     dispatch('setApiToken', token)
   },
@@ -24,8 +30,12 @@ const actions = {
     return apiService.getApiToken(token)
       .then(data => {
         if (typeof data === 'string') {
+          const decodedToken = jwt_decode(data)
           commit('setApiToken', data)
-          commit('setUserInfo', userInfo(jwt_decode(data).roles))
+          commit('setExperimentId', decodedToken.experimentId)
+          commit('setConsent', decodedToken.consent)
+          commit('setUserId', decodedToken.userId)
+          commit('setUserInfo', userInfo(decodedToken.roles))
         }
       })
       .catch(response => {
@@ -37,8 +47,12 @@ const actions = {
     return apiService.refreshToken()
       .then(data => {
         if (typeof data === 'string') {
+          const decodedToken = jwt_decode(data)
           commit('setApiToken', data)
-          commit('setUserInfo', userInfo(jwt_decode(data).roles))
+          commit('setExperimentId', decodedToken.experimentId)
+          commit('setConsent', decodedToken.consent)
+          commit('setUserId', decodedToken.userId)
+          commit('setUserInfo', userInfo(decodedToken.roles))
         }
       })
       .catch(response => {
@@ -70,6 +84,15 @@ const mutations = {
   },
   setUserInfo(state, data) {
     state.userInfo = data
+  },
+  setExperimentId(state, data) {
+    state.experimentId = data
+  },
+  setConsent(state, data) {
+    state.consent = data
+  },
+  setUserId(state, data) {
+    state.userId = data
   }
 }
 
@@ -86,6 +109,15 @@ const getters = {
   },
   userInfo(state) {
     return state.userInfo
+  },
+  experimentId(state) {
+    return state.experimentId
+  },
+  consent(state) {
+    return state.consent
+  },
+  userId(state) {
+    return state.userId
   }
 }
 

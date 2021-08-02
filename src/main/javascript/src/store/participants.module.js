@@ -2,6 +2,7 @@ import { participantService } from '@/services'
 
 const state = {
   participants: null,
+  participant: null,
   groups: null,
 }
 
@@ -40,6 +41,24 @@ const actions = {
       )
   },
 
+  // payload = experiment_id, participant_data
+  async updateParticipant({ commit }, payload) {
+    try {
+      const { experimentId, participantData } = payload
+      const response = await participantService.updateParticipant(
+        experimentId,
+        participantData
+      )
+      commit('setParticipant')
+      return {
+        status: response?.status,
+        data: null,
+        }
+      }
+      catch (error) {
+        console.log('updateParticipant catch', {error, state})
+    }
+  },
   fetchGroups: ({ commit }, experimentId) => {
     return participantService
       .getGroups(experimentId)
@@ -56,7 +75,9 @@ const mutations = {
   setParticipants(state, data) {
     state.participants = data
   },
-
+  setParticipant(state, data) {
+    state.participant = data
+  },
   setParticipantsGroup(state, data) {
     state.participants = data
   },
