@@ -51,4 +51,6 @@ public interface ParticipantService {
     void setAllToTrue(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException;
 
     void setAllToFalse(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException;
+
+    boolean changeConsent(ParticipantDto participantDto, SecuredInfo securedInfo, Long experimentId);
 }
