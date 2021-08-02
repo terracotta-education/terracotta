@@ -90,7 +90,7 @@
                           <v-text-field
                             v-model="answer.html"
                             :label="`Option ${aIndex + 1}`"
-                            :rules="rules"
+                            :rules="longString"
                             hide-details
                             outlined
                             required
@@ -215,6 +215,9 @@ export default {
       rules: [
         v => v && !!v.trim() || 'required',
         v => (v || '').length <= 255 || 'A maximum of 255 characters is allowed',
+      ],
+      longString: [
+        v => v && !!v.trim() || 'required'
       ],
       numberRule: [
         v => v && !!v.trim() || 'required',
