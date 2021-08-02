@@ -1,13 +1,14 @@
 <template>
   <div class="consent-steps my-5 mx-auto">
-    <form @submit.prevent="updateConsent(answer || false)">
+    <div>
       <h2>
         For this assignment, you need to review and accept the consent.
       </h2>
       <button class="consentLink mt-2" @click="openPDF">
         Review the Consent
       </button>
-
+    </div>
+    <form @submit.prevent="updateConsent(answer || false)">
       <v-card class="mt-5">
         <v-card-title>Do you accept the consent?</v-card-title>
         <v-list class="optionList">
@@ -60,22 +61,27 @@ export default {
       getParticipants: "participants/fetchParticipants",
       updateParticipant: "participants/updateParticipant",
     }),
-    updateConsent(answer = false) {
-      const updatedParticipant = this.participants.filter(
-        (participant) => participant.user.userKey === this.userId
-      )[0];
-      updatedParticipant.consent = answer
-      this.submitParticipant(updatedParticipant)
+    updateConsent(answer) {
+      console.log(answer);
+      if (answer !== "") {
+        const updatedParticipant = this.participants.filter(
+          (participant) => participant.user.userKey === this.userId
+        )[0];
+        updatedParticipant.consent = answer;
+        this.submitParticipant(updatedParticipant);
+      }
     },
     submitParticipant(participantData) {
-      this
-        .updateParticipant({experimentId: this.experimentId, participantData})
+      this.updateParticipant({
+        experimentId: this.experimentId,
+        participantData,
+      })
         .then((response) => {
           if (response.status === 200) {
             this.$swal({
-                text: `Successfully submitted Consent`,
-                icon: 'success'
-              })
+              text: `Successfully submitted Consent`,
+              icon: "success",
+            });
           } else {
             this.$swal(response.error);
           }
@@ -109,7 +115,6 @@ export default {
 @import "~@/styles/variables";
 
 .consent-steps {
-  display: grid;
   min-height: 100%;
   grid-template-rows: auto 1fr;
   grid-template-columns: auto 1fr;
