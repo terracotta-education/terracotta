@@ -352,6 +352,7 @@ public class APIJWTServiceImpl implements APIJWTService {
           securedInfo.setLockAt(extractTimestamp(claims,"lockAt"));
           securedInfo.setUnlockAt(extractTimestamp(claims,"unlockAt"));
           securedInfo.setNonce(claims.getBody().get("nonce").toString());
+          securedInfo.setConsent((Boolean)claims.getBody().get("consent"));
           return securedInfo;
         } else {
           return null;

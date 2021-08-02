@@ -19,6 +19,7 @@ public class SecuredInfo {
     Timestamp lockAt;
     Timestamp unlockAt;
     String nonce;
+    Boolean consent;
 
     public SecuredInfo() {
     }
@@ -134,4 +135,13 @@ public class SecuredInfo {
     public void setNonce(String nonce) {
         this.nonce = nonce;
     }
+
+    public Boolean getConsent() {
+        return consent;
+    }
+
+    public void setConsent(Boolean consent) {
+        this.consent = consent;
+    }
+
 }

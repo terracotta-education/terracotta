@@ -146,9 +146,14 @@ public class ParticipantController {
             map.put(participantService.getParticipant(participantId, experimentId, securedInfo.getUserId(), false), participantDto);
             participantService.changeParticipant(map, experimentId);
             return new ResponseEntity<>(HttpStatus.OK);
-        } else {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
+        } else if (apijwtService.isLearner(securedInfo)) {
+            if (participantService.changeConsent(participantDto, securedInfo, experimentId)) {
+                return new ResponseEntity<>(HttpStatus.OK);
+            } else {
+                return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
+            }
         }
+        return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
     }
 
 

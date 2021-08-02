@@ -31,6 +31,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -300,6 +301,30 @@ public class ParticipantServiceImpl implements ParticipantService {
 
             save(participantToChange);
         }
+    }
+
+    @Override
+    public boolean changeConsent(ParticipantDto participantDto, SecuredInfo securedInfo, Long experimentId){
+
+        Participant participant = allRepositories.participantRepository.findByParticipantId(participantDto.getParticipantId());
+        if (participant == null
+                || !participant.getLtiUserEntity().getUserKey().equals(securedInfo.getUserId())
+                || securedInfo.getConsent()==null || !securedInfo.getConsent()){
+            return false;
+        }
+        //We only edit the consent here.
+        participantDto.setDropped(participant.getDropped());
+        if (participant.getGroup()==null){
+            participantDto.setGroupId(null);
+        } else {
+            participantDto.setGroupId(participant.getGroup().getGroupId());
+        }
+        Map<Participant, ParticipantDto> map = new HashMap<>();
+        map.put(participant,participantDto);
+        changeParticipant(map,experimentId);
+        return true;
+
+
     }
 
     @Override
