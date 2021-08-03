@@ -57,6 +57,7 @@ export default {
 	},
 	created() {
 		if (store.state.api.api_token) {
+			this.refreshToken()
 			setInterval(function () {
 				this.refreshToken()
 			}.bind(this), 1000 * 60 * 59)
