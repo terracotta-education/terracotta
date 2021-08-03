@@ -1,8 +1,8 @@
 <template>
   <div v-if="assignment">
-    <h1 class="pa-0 mb-7">Now, let’s upload your treatments for each condition for <strong>{{
+    <h1 class="pa-0 mb-7">Now, let’s create different versions of <strong>{{
         assignment.title
-      }}</strong></h1>
+      }}</strong> for each condition</h1>
 
     <template v-if="conditions">
       <v-expansion-panels class="v-expansion-panels--outlined mb-7" flat>
