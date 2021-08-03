@@ -62,7 +62,7 @@
           elevation="0"
           color="primary"
           :to="{ name: 'ExperimentSummary' }"
-          :disabled="shortestLength !== longestLength || longestLength < 1"
+          :disabled="(shortestLength !== longestLength && exposures.length !== 1)|| longestLength < 1"
         >Finish</v-btn>
       </div>
     </template>
