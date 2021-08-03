@@ -269,7 +269,7 @@
                                                       assignment.assignmentId
                                                     )
                                                   "
-                                                  >Select
+                                                  >Create
                                                 </v-btn>
                                               </template>
                                             </v-list-item-action>

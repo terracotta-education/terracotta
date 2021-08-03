@@ -36,7 +36,7 @@
                       color="primary"
                       outlined
                       @click="goToBuilder(condition.conditionId)"
-                    >Select
+                    >Create
                     </v-btn>
                   </template>
                 </v-list-item-action>
