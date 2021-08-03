@@ -207,7 +207,7 @@ export default {
       questions: 'assessment/questions'
     }),
     contDisabled() {
-      return this.assessment.questions.length<1 || this.assessment.questions.some(q => !q.html.trim()) || !this.assessment.title || !this.assessment.title.trim() || this.assessment.title.length>255
+      return this.assessment.questions.length<1 || this.assessment.questions.some(q => (q.html.trim() === '<p></p>')) || !this.assessment.title || !this.assessment.title.trim() || this.assessment.title.length>255
     }
   },
   data() {
@@ -220,7 +220,7 @@ export default {
         v => v && !!v.trim() || 'required'
       ],
       numberRule: [
-        v => v && !!v.trim() || 'required',
+        v => !isNaN(v) || 'required',
         v => (!isNaN(parseFloat(v))) && v >= 0 || 'The point value cannot be negative'
       ],
       extensions: [
