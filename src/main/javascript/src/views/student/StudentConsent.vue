@@ -1,16 +1,13 @@
 <template>
   <div class="consent-steps my-5 mx-auto">
     <div>
-      <h2>
-        For this assignment, you need to review and accept the consent.
-      </h2>
       <button class="consentLink mt-2" @click="openPDF">
         Review the Consent
       </button>
     </div>
     <form @submit.prevent="updateConsent(answer || false)">
       <v-card class="mt-5">
-        <v-card-title>Do you accept the consent?</v-card-title>
+        <v-card-title>In the consideration of the above, will you participate in this research study?</v-card-title>
         <v-list class="optionList">
           <v-radio-group v-model="answer">
             <v-radio
@@ -23,7 +20,7 @@
         </v-list>
       </v-card>
       <v-btn elevation="0" color="primary" class="mr-4 mt-5" type="submit">
-        Next
+        Submit
       </v-btn>
     </form>
   </div>
@@ -39,11 +36,11 @@ export default {
     answer: "",
     options: [
       {
-        label: "Yes",
+        label: "I agree to participate",
         value: true,
       },
       {
-        label: "No",
+        label: "I do not agree to participate",
         value: false,
       },
     ],
@@ -104,7 +101,7 @@ export default {
     },
   },
   async created() {
-    await this.getConsentFile(this.experimentId);
+    this.getConsentFile(this.experimentId);
     await this.getParticipants(this.experimentId);
   },
 };
