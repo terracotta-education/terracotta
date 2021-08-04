@@ -31,7 +31,6 @@
 
 <script>
 import { mapActions, mapGetters } from "vuex";
-import store from "@/store";
 import StudentConsent from './views/student/StudentConsent.vue';
 
 export default {
@@ -47,7 +46,8 @@ export default {
 			userInfo: 'api/userInfo',
 			experimentId: 'api/experimentId',
 			consent: 'api/consent',
-			userId: 'api/userId'
+			userId: 'api/userId',
+			lti_token: 'api/lti_token',
 		}),
 	},
 	methods: {
@@ -58,19 +58,11 @@ export default {
 		}),
 	},
 	async created() {
-		console.log('In Application Create')
-		await this.refreshToken()
-		if (store.state.api.api_token) {
-			await this.refreshToken()
-			setInterval(function () {
-				this.refreshToken()
-			}.bind(this), 1000 * 60 * 59)
-		}
+		localStorage.clear()
+		await this.refreshToken(this.lti_token)
 	},
 	mounted() {
-	if (store.state.api.api_token) {
-      this.refreshToken()
-    }
+      this.refreshToken(this.lti_token)
 	}
 };
 </script>
