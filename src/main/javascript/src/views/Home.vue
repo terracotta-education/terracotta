@@ -166,6 +166,7 @@ export default {
   },
   created() {
     // get experiments list
+    console.log('In Experiment Create')
     this.fetchExperiments()
 
     // reset consent data when loading the dashboard

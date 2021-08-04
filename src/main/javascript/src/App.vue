@@ -53,11 +53,15 @@ export default {
 	methods: {
 		...mapActions({
 			refreshToken: 'api/refreshToken',
+			setApiToken: 'api/setApiToken', 
+			setLtiToken: 'api/setLtiToken'
 		}),
 	},
-	created() {
+	async created() {
+		console.log('In Application Create')
+		await this.refreshToken()
 		if (store.state.api.api_token) {
-			this.refreshToken()
+			await this.refreshToken()
 			setInterval(function () {
 				this.refreshToken()
 			}.bind(this), 1000 * 60 * 59)
