@@ -97,4 +97,8 @@ public interface APIJWTService {
     void outcomeScoreAllowed(SecuredInfo securedInfo, Long outcomeId, Long outcomeScoreId) throws OutcomeScoreNotMatchingException;
 
     void answerSubmissionAllowed(SecuredInfo securedInfo, Long QuestionSubmissionId, String answerType, Long answerSubmissionId) throws AnswerSubmissionNotMatchingException;
+
+    boolean validateFileToken(String token, String fileId);
+
+    String buildFileToken(String fileId) throws GeneralSecurityException;
 }

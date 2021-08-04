@@ -250,7 +250,7 @@ public class ExperimentServiceImpl implements ExperimentService {
             consentDto.setConsentDocumentId(consentDocument.getConsentDocumentId());
             consentDto.setFilePointer(consentDocument.getFilePointer());
             consentDto.setTitle(consentDocument.getTitle());
-            consentDto.setHtml(consentDocument.getHtml());
+            consentDto.setHtml(fileStorageService.parseHTMLFiles(consentDocument.getHtml()));
             consentDto.setExpectedConsent(experiment.getParticipants().size());
             consentDto.setAnsweredConsentCount(countAnswered);
             experimentDto.setConsent(consentDto);

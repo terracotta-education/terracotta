@@ -12,6 +12,7 @@ public class FileInfoDto {
     private Long size;
     private Timestamp dateUpdated;
     private Timestamp dateCreated;
+    private String tempToken;
 
     public String getFileId() { return fileId; }
 
@@ -44,4 +45,12 @@ public class FileInfoDto {
     public Long getSize() { return size; }
 
     public void setSize(Long size) { this.size = size; }
+
+    public String getTempToken() {
+        return tempToken;
+    }
+
+    public void setTempToken(String tempToken) {
+        this.tempToken = tempToken;
+    }
 }
