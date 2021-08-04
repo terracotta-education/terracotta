@@ -42,12 +42,13 @@ const actions = {
         console.log('setApiToken | catch', {response})
       })
   },
-  refreshToken: ({commit}) => {
+  refreshToken: ({commit, dispatch}) => {
     // send a refresh to the API and receive an API token for the bearer auth header
     return apiService.refreshToken()
       .then(data => {
         if (typeof data === 'string') {
           const decodedToken = jwt_decode(data)
+          dispatch('setLtiToken', data)
           commit('setApiToken', data)
           commit('setExperimentId', decodedToken.experimentId)
           commit('setConsent', decodedToken.consent)
