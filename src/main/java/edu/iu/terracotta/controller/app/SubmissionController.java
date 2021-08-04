@@ -130,7 +130,7 @@ public class SubmissionController {
                 submissionService.validateDto(experimentId, securedInfo.getUserId(), submissionDto);
                 Submission submission;
                 try {
-                    submission = submissionService.fromDto(submissionDto);
+                    submission = submissionService.fromDto(submissionDto, apijwtService.isLearner(securedInfo));
                 } catch (DataServiceException ex) {
                     return new ResponseEntity("Error 105: Unable to create Submission: " + ex.getMessage(), HttpStatus.BAD_REQUEST);
                 }
