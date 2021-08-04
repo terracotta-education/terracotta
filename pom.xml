@@ -93,6 +93,13 @@
             <version>30.1.1-jre</version>
         </dependency>
 
+        <dependency>
+            <groupId>org.jsoup</groupId>
+            <artifactId>jsoup</artifactId>
+            <version>1.14.1</version>
+        </dependency>
+
+
         <!--CANVAS -->
         <dependency>
             <groupId>edu.ksu.canvas</groupId>

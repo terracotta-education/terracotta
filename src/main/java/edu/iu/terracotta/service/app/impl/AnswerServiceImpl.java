@@ -7,6 +7,7 @@ import edu.iu.terracotta.model.app.Question;
 import edu.iu.terracotta.model.app.dto.AnswerDto;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.AnswerService;
+import edu.iu.terracotta.service.app.FileStorageService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
@@ -25,6 +26,8 @@ public class AnswerServiceImpl implements AnswerService {
     @Autowired
     AllRepositories allRepositories;
 
+    @Autowired
+    FileStorageService fileStorageService;
 
     /*
     MULTIPLE CHOICE
@@ -51,7 +54,7 @@ public class AnswerServiceImpl implements AnswerService {
     public AnswerDto toDtoMC(AnswerMc answer, boolean student) {
         AnswerDto answerDto = new AnswerDto();
         answerDto.setAnswerId(answer.getAnswerMcId());
-        answerDto.setHtml(answer.getHtml());
+        answerDto.setHtml(fileStorageService.parseHTMLFiles(answer.getHtml()));
         answerDto.setAnswerOrder(answer.getAnswerOrder());
         answerDto.setQuestionId(answer.getQuestion().getQuestionId());
         answerDto.setAnswerType("MC");

@@ -151,6 +151,18 @@ public class APIJWTServiceImpl implements APIJWTService {
     }
 
     @Override
+    public boolean validateFileToken(String token, String fileId){
+        Jws<Claims> claims = validateToken(token);
+        if (claims != null) {
+            if (claims.getBody().get("fileId").toString().equals(fileId)){
+                return true;
+            }
+        }
+        return false;
+    }
+
+
+    @Override
     public Jwt<Header, Claims> unsecureToken(String token){
         int i = token.lastIndexOf('.');
         String withoutSignature = token.substring(0, i+1);
@@ -270,6 +282,26 @@ public class APIJWTServiceImpl implements APIJWTService {
                 lti3Request.getLtiCustom().get("unlock_at").toString(),
                 lti3Request.getNonce());
 
+    }
+
+    @Override
+    public String buildFileToken(String fileId) throws GeneralSecurityException {
+        Date date = new Date();
+        Key toolPrivateKey = OAuthUtils.loadPrivateKey(ltiDataService.getOwnPrivateKey());
+        JwtBuilder builder = Jwts.builder()
+                .setHeaderParam("kid", TextConstants.DEFAULT_KID)
+                .setHeaderParam("typ", "JWT")
+                .setIssuer("TERRACOTTA")
+                .setSubject("no_user") // The clientId
+                .setAudience(ltiDataService.getLocalUrl())  //We send here the authToken url.
+                .setExpiration(DateUtils.addSeconds(date, 3600)) //a java.util.Date
+                .setNotBefore(date) //a java.util.Date
+                .setIssuedAt(date) // for example, now
+                .claim("fileId", fileId)  //This is an specific claim to ask for tokens.
+                .signWith(SignatureAlgorithm.RS256, toolPrivateKey);  //We sign it with our own private key. The platform has the public one.
+        String token = builder.compact();
+        log.debug("Token Request: \n {} \n", token);
+        return token;
     }
 
     @Override

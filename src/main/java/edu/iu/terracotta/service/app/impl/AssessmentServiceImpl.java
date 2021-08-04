@@ -14,6 +14,7 @@ import edu.iu.terracotta.model.app.dto.QuestionDto;
 import edu.iu.terracotta.model.app.dto.SubmissionDto;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.AssessmentService;
+import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.service.app.QuestionService;
 import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.service.app.TreatmentService;
@@ -45,6 +46,10 @@ public class AssessmentServiceImpl implements AssessmentService {
     @Autowired
     SubmissionService submissionService;
 
+    @Autowired
+    FileStorageService fileStorageService;
+
+
     @Override
     public List<Assessment> findAllByTreatmentId(Long treatmentId){
         return allRepositories.assessmentRepository.findByTreatment_TreatmentId(treatmentId);
@@ -67,7 +72,7 @@ public class AssessmentServiceImpl implements AssessmentService {
         Long submissionsInProgressCount = null;
         AssessmentDto assessmentDto = new AssessmentDto();
         assessmentDto.setAssessmentId(assessment.getAssessmentId());
-        assessmentDto.setHtml(assessment.getHtml());
+        assessmentDto.setHtml(fileStorageService.parseHTMLFiles(assessment.getHtml()));
         assessmentDto.setTitle(assessment.getTitle());
         assessmentDto.setAutoSubmit(assessment.getAutoSubmit());
         assessmentDto.setNumOfSubmissions(assessment.getNumOfSubmissions());

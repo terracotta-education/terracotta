@@ -12,10 +12,15 @@ import edu.iu.terracotta.model.app.dto.FileInfoDto;
 import edu.iu.terracotta.model.canvas.AssignmentExtended;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.AllRepositories;
+import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.service.canvas.CanvasAPIClient;
 import edu.ksu.canvas.model.assignment.Assignment;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,6 +39,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.security.GeneralSecurityException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -48,6 +54,9 @@ public class FileStorageServiceImpl implements FileStorageService {
     @Value("${upload.path}")
     private String uploadDir;
 
+    @Value("${application.url}")
+    private String applicationUrl;
+
     final static Logger log = LoggerFactory.getLogger(FileStorageServiceImpl.class);
 
     @Autowired
@@ -55,6 +64,9 @@ public class FileStorageServiceImpl implements FileStorageService {
 
     @Autowired
     CanvasAPIClient canvasAPIClient;
+
+    @Autowired
+    APIJWTService apijwtService;
 
     @Autowired
     AllRepositories allRepositories;
@@ -213,7 +225,12 @@ public class FileStorageServiceImpl implements FileStorageService {
         fileInfoDto.setFileType(fileInfo.getFileType());
         fileInfoDto.setSize(fileInfo.getSize());
         fileInfoDto.setUrl(ServletUriComponentsBuilder.fromCurrentContextPath().path("/api/experiments/" + fileInfoDto.getExperimentId() + "/files/" + fileInfo.getFileId()).build().toUriString());
-
+        try {
+            fileInfoDto.setTempToken(apijwtService.buildFileToken(fileInfo.getFileId()));
+        } catch (GeneralSecurityException ex) {
+            //This shouldn't happen, but if it happens we just want a  warning in the log
+            log.warn("Error generating the file token: " + fileInfo.getFileId() + " : " + ex.getMessage());
+        }
         return fileInfoDto;
     }
 
@@ -245,7 +262,7 @@ public class FileStorageServiceImpl implements FileStorageService {
     }
 
     @Override
-    public List<FileInfoDto> getFiles(long experimentId){
+    public List<FileInfoDto> getFiles(long experimentId) {
         List<FileInfo> fileInfoList = findByExperimentId(experimentId);
         List<FileInfoDto> fileInfoDtoList = new ArrayList<>();
         for(FileInfo fileInfo : fileInfoList){
@@ -318,4 +335,41 @@ public class FileStorageServiceImpl implements FileStorageService {
             }
         }
     }
+
+    @Override
+    public String parseHTMLFiles (String html) {
+
+        if (org.apache.commons.lang3.StringUtils.isNotBlank(html)) {
+            Document doc = Jsoup.parse(html);
+            parseAndUpdateElements(doc, "src", "/files/", "?token=", true);
+            parseAndUpdateElements(doc, "href", "/files/", "?token=", true);
+            parseAndUpdateElements(doc, "src", "/api/experiments/", "/files/", false);
+            parseAndUpdateElements(doc, "href", "/api/experiments/", "/files/", false);
+            return doc.body().html();
+        }
+        return html;
+    }
+
+    private void parseAndUpdateElements(Document doc, String attribute, String prefixToSearch, String stringToSearch, boolean alreadyToken) {
+
+        Elements elements = doc.getElementsByAttributeValueStarting(attribute, applicationUrl + prefixToSearch);
+        for (Element element:elements){
+            String originalLink = element.attr(attribute);
+            if (originalLink.contains(stringToSearch)){
+                String fileId = org.apache.commons.lang3.StringUtils.substringAfterLast(originalLink,"/");
+                if (alreadyToken){
+                    fileId = org.apache.commons.lang3.StringUtils.substringBefore(fileId,"?token=");
+                }
+                try {
+                    String token = apijwtService.buildFileToken(fileId);
+                    String fileDownloadUrl = applicationUrl + "/files/" + fileId + "?token=" + token;
+                    element.attr(attribute, fileDownloadUrl);
+                } catch (GeneralSecurityException gs){
+                    //In case of problem we don't modify anything but it won't fail
+                    log.warn("Error when trying to build a file token " + fileId);
+                }
+            }
+        }
+    }
+
 }
