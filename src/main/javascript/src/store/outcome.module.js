@@ -85,6 +85,7 @@ const actions = {
     return outcomeService.getOutcomeScoresById(...payload)
       .then(response => {
         if (response.status===200 && response.data) {
+          console.log("we are in the module.js file", response.data)
           commit('setOutcomeScores', response.data)
         }
         return response
@@ -132,6 +133,7 @@ const mutations = {
     state.outcomePotentials = data
   },
   setOutcomeScores(state, data) {
+    console.log("outcome scores data: ", data)
     state.outcomeScores = data
   },
   setExperimentOutcomes(state, data) {

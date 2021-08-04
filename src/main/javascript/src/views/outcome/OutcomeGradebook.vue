@@ -73,6 +73,7 @@ export default {
         await Promise.all(this.selectedAssignmentIds.map(async assignment_id => {
           const op = this.outcomePotentials.find(o=>parseInt(o.assignmentId)===parseInt(assignment_id))
           // payload = experiment_id, exposure_id, title, max_points, external, lmsType, lmsOutcomeId
+          console.log("outcome created: ", this.experiment_id, this.exposure_id, op.name, op.pointsPossible)
           return await this.createOutcome([this.experiment_id, this.exposure_id, op.name, op.pointsPossible, true, op.type, parseInt(assignment_id)])
         })).then(() => {
           this.$router.push({name:'ExperimentSummary'})

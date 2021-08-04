@@ -23,6 +23,7 @@
             name="outcomeMaxPoints"
             v-model="outcome.maxPoints"
             label="Total Points"
+            :rules="numberRule"
             outlined
             required
           ></v-text-field>
@@ -77,7 +78,11 @@ import {mapActions, mapGetters} from 'vuex'
         outcomeScores: 'outcome/outcomeScores',
         participants: 'participants/participants'
       }),
+      exitDisabled() {
+        return this.outcome.title.length<1 || this.outcome.maxPoints<0
+      },
       exposure_id() {
+        console.log("exposure id: ", this.$route.params.exposure_id)
         return parseInt(this.$route.params.exposure_id)
       },
       exposure_title() {
@@ -87,11 +92,14 @@ import {mapActions, mapGetters} from 'vuex'
         return parseInt(this.$route.params.experiment_id)
       },
       outcome_id() {
+        console.log("outcome id:", this.$route.params.outcome_id)
         return parseInt(this.$route.params.outcome_id)
       },
       participantScoreList() {
+        console.log("this.exposures: ", this.exposures, this.outcome_id)
         let arr = []
         this.participants.map(p=>{
+          console.log("outcome scores: ", JSON.stringify(this.outcomeScores))
           const score = this.outcomeScores.filter(o=>o.participantId===p.participantId)[0]
           let item = {
             experimentId: this.experiment_id,
@@ -100,6 +108,7 @@ import {mapActions, mapGetters} from 'vuex'
           }
 
           if (typeof score !== "undefined") {
+            console.log("score:", JSON.stringify(score))
             item.outcomeScoreId = score?.outcomeScoreId
             item.outcomeId = score?.outcomeId
             item.scoreNumeric = parseInt(score?.scoreNumeric)
@@ -115,6 +124,10 @@ import {mapActions, mapGetters} from 'vuex'
         v => v && !!v.trim() || 'required',
         v => (v || '').length <= 255 || 'A maximum of 255 characters is allowed'
       ],
+      numberRule: [
+        v => v && !isNaN(v) || 'required',
+        v => (!isNaN(parseFloat(v))) && v >= 0 || 'The point value cannot be negative'
+      ],
       titleProxy: ''
     }),
     methods: {
@@ -126,15 +139,19 @@ import {mapActions, mapGetters} from 'vuex'
         updateOutcomeScores: 'outcome/updateOutcomeScores'
       }),
       async saveExit() {
-        await this.updateOutcome([this.experiment_id, this.exposure_id, this.outcome])
-        await this.updateOutcomeScores([this.experiment_id, this.exposure_id, this.outcome_id, this.participantScoreList])
-        this.$router.push({ name: this.$router.currentRoute.meta.previousStep })
+         console.log("outcomescorint.vue -> saveExit: ", JSON.stringify(this.outcome))
+        if(!this.exitDisabled){
+            await this.updateOutcome([this.experiment_id, this.exposure_id, this.outcome])
+            await this.updateOutcomeScores([this.experiment_id, this.exposure_id, this.outcome_id, this.participantScoreList])
+            this.$router.push({ name: this.$router.currentRoute.meta.previousStep })
+        }
       }
     },
     async created() {
-
+        console.log("created: ", this.experiment_id, this.exposure_id, this.outcome_id)
       await this.fetchOutcomeById([this.experiment_id, this.exposure_id, this.outcome_id])
       await this.fetchParticipants(this.experiment_id)
+      console.log("outcome id:", this.outcome_id)
       await this.fetchOutcomeScores([this.experiment_id, this.exposure_id, this.outcome_id])
     }
   }
