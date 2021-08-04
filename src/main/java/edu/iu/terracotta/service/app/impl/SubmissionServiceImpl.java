@@ -179,13 +179,15 @@ public class SubmissionServiceImpl implements SubmissionService {
     }
 
     @Override
-    public Submission fromDto(SubmissionDto submissionDto) throws DataServiceException {
+    public Submission fromDto(SubmissionDto submissionDto, boolean student) throws DataServiceException {
 
         Submission submission = new Submission();
         submission.setSubmissionId(submissionDto.getSubmissionId());
-        submission.setCalculatedGrade(submissionDto.getCalculatedGrade());
-        submission.setAlteredCalculatedGrade(submissionDto.getAlteredCalculatedGrade());
-        submission.setTotalAlteredGrade(submissionDto.getTotalAlteredGrade());
+        if (!student) {  //Students can't post a submissions and change the grades.
+            submission.setCalculatedGrade(submissionDto.getCalculatedGrade());
+            submission.setAlteredCalculatedGrade(submissionDto.getAlteredCalculatedGrade());
+            submission.setTotalAlteredGrade(submissionDto.getTotalAlteredGrade());
+        }
         submission.setDateSubmitted(submissionDto.getDateSubmitted());
         submission.setLateSubmission(submissionDto.getLateSubmission());
         Optional<Participant> participant = allRepositories.participantRepository.findById(submissionDto.getParticipantId());
