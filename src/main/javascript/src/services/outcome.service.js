@@ -125,7 +125,6 @@ function deleteOutcome(experiment_id, exposure_id, outcome_id) {
  * Get Outcome Scores by Outcome Id
  */
 function getOutcomeScoresById(experiment_id, exposure_id, outcome_id) {
-    console.log("outcome.service.js getOutcomeScoresById: ", experiment_id, exposure_id, outcome_id)
   const requestOptions = {
     method: 'GET',
     headers: authHeader(),
@@ -179,7 +178,6 @@ async function createOutcomeScores(experiment_id, exposure_id, outcome_id, score
  * POST/PUT Outcome Scores
  */
 async function updateOutcomeScores(experiment_id, exposure_id, outcome_id, scores = null) {
-    console.log("outcome.service.js updateOutcomeScores: ", experiment_id, exposure_id, outcome_id, scores)
   if (
     !scores ||
     // scores exists and is not an array
@@ -209,13 +207,11 @@ async function updateOutcomeScores(experiment_id, exposure_id, outcome_id, score
   } else if (typeof scores === 'object' && scores.outcomeScoreId) {
     requestOptions.method = 'PUT'
     requestOptions.body = JSON.stringify(scores)
-    console.log('Request Body 2', requestOptions)
 
     return await fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/exposures/${exposure_id}/outcomes/${outcome_id}/outcome_scores/${scores.outcomeScoreId}`, requestOptions).then(handleResponse)
   } else {
     requestOptions.method = 'POST'
     requestOptions.body = JSON.stringify(scores)
-    console.log('Request Body 3', requestOptions)
 
     return await Promise.all(scores.map(async score => {
       requestOptions.body = JSON.stringify({'participantId': score.participantId, 'scoreNumeric': score.scoreNumeric})

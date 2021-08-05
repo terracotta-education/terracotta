@@ -82,11 +82,9 @@ const actions = {
   },
   async fetchOutcomeScores({commit}, payload) {
     // payload = experiment_id, exposure_id, outcome_id
-    console.log('Payload...', payload)
     return outcomeService.getOutcomeScoresById(...payload)
       .then(response => {
         if ((response.status===200 || response.status===204) && response.data) {
-          console.log("we are in the module.js file", response.data)
           commit('setOutcomeScores', response.data)
         }
         return response
@@ -94,7 +92,6 @@ const actions = {
       .catch(response => console.log('fetchOutcomeScores | catch', {response}))
   },
   async updateOutcomeScores({dispatch}, payload) {
-    console.log('Payload in UpdateOutcomeScores', payload)
     // payload = experiment_id, exposure_id, outcome_id, scores
     return outcomeService.updateOutcomeScores(...payload)
       .then(() => {
@@ -122,7 +119,6 @@ const mutations = {
     state.outcomePotentials = []
   },
   setOutcome(state, data) {
-    console.log('Data is: ', data)
     // data = experiment_id, exposure_id, outcome
     const outcome = (Array.isArray(data))? data[2] : data
     if (outcome.outcomeId) {
@@ -136,7 +132,6 @@ const mutations = {
     state.outcomePotentials = data
   },
   setOutcomeScores(state, data) {
-    console.log("outcome scores data: ", data)
     state.outcomeScores = data
   },
   setExperimentOutcomes(state, data) {

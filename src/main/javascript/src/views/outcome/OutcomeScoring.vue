@@ -29,7 +29,6 @@
           ></v-text-field>
         </v-col>
       </v-row>
-      {{ this.outcome }}
       <v-row>
         <v-col cols="12">
           <v-simple-table class="mb-9 v-data-table--light-header">
@@ -83,7 +82,6 @@ import {mapActions, mapGetters} from 'vuex'
         return this.outcome.title.length<1 || this.outcome.title.length > 255 || this.outcome.maxPoints<0 || this.outcomeScores.filter((os) => os.outcomeId === this.outcome_id).some((score) => score.scoreNumeric > this.outcome.maxPoints)
       },
       exposure_id() {
-        console.log("exposure id: ", this.$route.params.exposure_id)
         return parseInt(this.$route.params.exposure_id)
       },
       exposure_title() {
@@ -93,11 +91,9 @@ import {mapActions, mapGetters} from 'vuex'
         return parseInt(this.$route.params.experiment_id)
       },
       outcome_id() {
-        console.log("outcome id:", this.$route.params.outcome_id)
         return parseInt(this.$route.params.outcome_id)
       },
       participantScoreList() {
-        // console.log("this.exposures: ", this.exposures, this.outcome_id)
         let arr = []
         const scoresAssociatedwithOutcome = this.outcomeScores.filter((score) => score.outcomeId === this.outcome_id)
         this.participants.map(p=>{
@@ -109,9 +105,8 @@ import {mapActions, mapGetters} from 'vuex'
           }
 
           if (typeof score !== "undefined") {
-            console.log("score:", JSON.stringify(score))
             item.outcomeScoreId = score?.outcomeScoreId
-            item.outcomeId = this?.outcome_id
+            item.outcomeId = this.outcome_id
             item.scoreNumeric = parseInt(score?.scoreNumeric) 
           }
 
@@ -140,7 +135,6 @@ import {mapActions, mapGetters} from 'vuex'
         updateOutcomeScores: 'outcome/updateOutcomeScores'
       }),
       async saveExit() {
-         console.log("outcomescorint.vue -> saveExit: ", JSON.stringify(this.outcome))
         if(!this.exitDisabled){
             await this.updateOutcome([this.experiment_id, this.exposure_id, this.outcome])
             await this.updateOutcomeScores([this.experiment_id, this.exposure_id, this.outcome_id, this.participantScoreList])
