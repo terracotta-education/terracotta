@@ -124,12 +124,30 @@ export default {
             this.$swal('There was an error saving your conditions.')
           })
     },
-    handleDeleteCondition(condition) {
+    async handleDeleteCondition(condition) {
       const { defaultCondition } = condition;
       if (defaultCondition) {
         this.$swal('You are attempting to delete the default condition. You must set one of the other existing conditions as the default before deleting this condition.')
       } else {
-        this.deleteCondition(condition);
+        if(condition?.conditionId){
+            const reallyDelete = await this.$swal({
+                icon: 'qesution',
+                text: `Do you really want to delete "${condition.name}"?`,
+                showCancelButton: true,
+                confirmButtonText: 'Yes, delete it',
+                cancelButtonText: 'No, cancel',
+            })
+            if(reallyDelete.isConfirmed){
+                try{
+                    this.deleteCondition(condition)
+                } catch (error) {
+                    this.$swal({
+                        text: 'Could not delete condition.',
+                        icon: 'error'
+                    })
+                }
+            }
+        }
       }
     },
     async saveExit() {
