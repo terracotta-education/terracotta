@@ -9,6 +9,7 @@ import edu.iu.terracotta.model.app.dto.QuestionDto;
 import edu.iu.terracotta.model.app.enumerator.QuestionTypes;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.AnswerService;
+import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.service.app.QuestionService;
 import org.apache.commons.lang3.EnumUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,6 +34,9 @@ public class QuestionServiceImpl implements QuestionService {
     @Autowired
     AnswerService answerService;
 
+    @Autowired
+    FileStorageService fileStorageService;
+
     @Override
     public List<Question> findAllByAssessmentId(Long assessmentId) {
         return allRepositories.questionRepository.findByAssessment_AssessmentId(assessmentId);
@@ -56,7 +60,7 @@ public class QuestionServiceImpl implements QuestionService {
 
         QuestionDto questionDto = new QuestionDto();
         questionDto.setQuestionId(question.getQuestionId());
-        questionDto.setHtml(question.getHtml());
+        questionDto.setHtml(fileStorageService.parseHTMLFiles(question.getHtml()));
         questionDto.setQuestionOrder(question.getQuestionOrder());
         questionDto.setPoints(question.getPoints());
         questionDto.setAssessmentId(question.getAssessment().getAssessmentId());

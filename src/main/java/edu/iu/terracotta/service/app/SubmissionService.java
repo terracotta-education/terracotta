@@ -32,7 +32,7 @@ public interface SubmissionService {
 
     SubmissionDto toDto(Submission submission, boolean questionSubmissions, boolean submissionComments);
 
-    Submission fromDto(SubmissionDto submissionDto) throws DataServiceException;
+    Submission fromDto(SubmissionDto submissionDto, boolean student) throws DataServiceException;
 
     Submission save(Submission submission);
 

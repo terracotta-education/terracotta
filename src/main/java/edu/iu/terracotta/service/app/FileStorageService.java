@@ -9,6 +9,7 @@ import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.core.io.Resource;
 
+import java.security.GeneralSecurityException;
 import java.util.List;
 import java.util.Optional;
 
@@ -34,11 +35,13 @@ public interface FileStorageService {
 
     List<FileInfoDto> getFiles(long experimentId);
 
-    FileInfoDto toDto(FileInfo fileInfo);
+    FileInfoDto toDto(FileInfo fileInfo) throws GeneralSecurityException;
 
     FileInfoDto uploadFile(MultipartFile multipartFile, String prefix, String extraPath, long experimentId, boolean consent);
 
     void uploadConsent(long experimentId, String title, FileInfoDto fileInfoDto) throws AssignmentNotCreatedException, CanvasApiException, AssignmentNotEditedException;
 
     void deleteConsentAssignment(long experimentId, SecuredInfo securedInfo) throws AssignmentNotEditedException, CanvasApiException;
+
+    String parseHTMLFiles (String html);
 }

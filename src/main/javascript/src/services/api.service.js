@@ -34,12 +34,11 @@ function getApiToken(token) {
 function refreshToken() {
   const requestOptions = {
     method: 'POST',
-    headers: {...authHeader()}
+    headers: { ...authHeader()}
   }
 
   return fetch(`${store.getters['api/aud']}/api/oauth/refresh`, requestOptions).then(response => {
     if (response.ok) {
-      console.log(response.text())
       return response.text()
     }
   })

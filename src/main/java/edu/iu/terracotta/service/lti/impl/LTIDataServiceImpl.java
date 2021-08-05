@@ -119,8 +119,8 @@ public class LTIDataServiceImpl implements LTIDataService {
             // check if the loading lti.resulted in a complete set of LTI data
             lti.checkCompleteLTIRequest();
             lti.setLoaded(true);
-            log.info("User " + lti.getUser().getUserKey() + " connected to the context " + lti.getLtiContextId() + " from " + lti.getKey().getBaseUrl() +
-                    ", with the client id " + lti.getAud() + " and deploymentId " + lti.getLtiDeploymentId());
+            //log.info("User " + lti.getUser().getUserKey() + " connected to the context " + lti.getLtiContextId() + " from " + lti.getKey().getBaseUrl() +
+            //        ", with the client id " + lti.getAud() + " and deploymentId " + lti.getLtiDeploymentId());
             log.debug("LTIload: loaded data for clientid= " + lti.getAud() + " deploymentid=" + lti.getLtiDeploymentId()
                     + " and context=" + lti.getLtiContextId() + ", complete=" + lti.isComplete());
         }

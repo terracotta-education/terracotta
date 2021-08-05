@@ -24,6 +24,7 @@ const actions = {
     commit('setUserId', decodedToken.userId)
     commit('setUserInfo', userInfo(decodedToken.roles))
     dispatch('setApiToken', token)
+    dispatch('refreshToken', token)
   },
   setApiToken: ({commit}, token) => {
     // send a token to the API to receive an API token for the bearer auth header
@@ -32,6 +33,7 @@ const actions = {
         if (typeof data === 'string') {
           const decodedToken = jwt_decode(data)
           commit('setApiToken', data)
+          commit('setAud', decodedToken.aud)
           commit('setExperimentId', decodedToken.experimentId)
           commit('setConsent', decodedToken.consent)
           commit('setUserId', decodedToken.userId)
@@ -42,12 +44,13 @@ const actions = {
         console.log('setApiToken | catch', {response})
       })
   },
-  refreshToken: ({commit}) => {
+  refreshToken: ({commit}, token) => {
     // send a refresh to the API and receive an API token for the bearer auth header
-    return apiService.refreshToken()
+    return apiService.refreshToken(token)
       .then(data => {
         if (typeof data === 'string') {
           const decodedToken = jwt_decode(data)
+          commit('setAud', decodedToken.aud)
           commit('setApiToken', data)
           commit('setExperimentId', decodedToken.experimentId)
           commit('setConsent', decodedToken.consent)
@@ -99,6 +102,9 @@ const mutations = {
 const getters = {
   lti_token(state) {
     return state.lti_token
+  },
+  api_token(state) {
+    return state.api_token
   },
   aud(state) {
     return state.aud
