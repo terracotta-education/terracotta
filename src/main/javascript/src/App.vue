@@ -58,10 +58,17 @@ export default {
 		}),
 	},
 	async created() {
-		localStorage.clear()
-		await this.refreshToken(this.lti_token)
+		if (this.lti_token) {
+			localStorage.clear()
+			await this.refreshToken(this.lti_token)
+			setInterval(function () {
+				localStorage.clear()
+				this.refreshToken(this.lti_token)
+			}.bind(this), 1000 * 60 * 59)
+		}
 	},
 	mounted() {
+		
       this.refreshToken(this.lti_token)
 	}
 };
