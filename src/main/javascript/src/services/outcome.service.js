@@ -140,7 +140,6 @@ function getOutcomeScoresById(experiment_id, exposure_id, outcome_id) {
  * Get Outcome Score by Outcome Score Id
  */
 function getScoreById(experiment_id, exposure_id, outcome_id, outcome_score_id) {
-    console.log("getOutcomeScore by outcome score id:", outcome_id, outcome_score_id)
   const requestOptions = {
     method: 'GET',
     headers: authHeader(),
