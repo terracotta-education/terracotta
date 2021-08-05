@@ -12,7 +12,7 @@
               <strong>
                 {{ exposure.title }}
                 <span
-                  :class="{'red--text':!assignmentIsBalanced(exposure.exposureId)}">({{ assignments.filter(a => a.exposureId === exposure.exposureId).length }})</span>
+                  :class="{'red--text':!assignmentIsBalanced(exposure.exposureId) || !allComplete(exposure.exposureId)}">({{ getComplete(exposure.exposureId) }}/{{ assignments.filter(a => a.exposureId === exposure.exposureId).length }})</span>
               </strong>
             </v-expansion-panel-header>
             <v-expansion-panel-content>
@@ -48,6 +48,9 @@
               <template v-if="!assignmentIsBalanced(exposure.exposureId)">
                 <div class="red--text mb-3">Add an assignment to balance the experiment</div>
               </template>
+             <template v-if="!allComplete(exposure.exposureId)">
+                <div class="red--text mb-3">Create a treatment for all conditions</div>
+             </template>
               <v-btn
                 elevation="0"
                 plain
@@ -62,7 +65,7 @@
           elevation="0"
           color="primary"
           :to="{ name: 'ExperimentSummary' }"
-          :disabled="(shortestLength !== longestLength && exposures.length !== 1)|| longestLength < 1"
+          :disabled="(shortestLength !== longestLength && exposures.length !== 1)|| longestLength < 1 || this.assignments.some(a => a.treatments.length < this.conditions.length)"
         >Finish</v-btn>
       </div>
     </template>
@@ -91,7 +94,7 @@ export default {
   data: () => ({
     shortestLength: 0,
     longestLength: 0,
-    loaded: false
+    loaded: false,
   }),
   methods: {
     ...mapMutations({
@@ -102,6 +105,23 @@ export default {
       fetchAssignmentsByExposure: 'assignment/fetchAssignmentsByExposure',
       deleteAssignment: 'assignment/deleteAssignment',
     }),
+    getComplete(eid){
+        let complete = 0
+        this.assignments.filter(a => a.exposureId === eid).map((filteredValue) => {if(
+            filteredValue.treatments.length === this.conditions.length) { complete += 1 }} )
+        return complete
+    },
+    allComplete(eid){
+        let allConditions = false
+        let aArray = this.assignments.filter(a => a.exposureId === eid)
+
+        if(aArray.some(a => a.treatments.length < this.conditions.length)){
+            allConditions = false
+        } else {
+            allConditions = true
+        }
+        return !!allConditions
+    },
     assignmentIsBalanced(eid) {
       // if Exposure Set Assignment array length is less than other Exposure Set Assignment arrays
       let eArr = []
