@@ -29,6 +29,7 @@
           ></v-text-field>
         </v-col>
       </v-row>
+      {{ this.outcome }}
       <v-row>
         <v-col cols="12">
           <v-simple-table class="mb-9 v-data-table--light-header">
@@ -96,10 +97,11 @@ import {mapActions, mapGetters} from 'vuex'
         return parseInt(this.$route.params.outcome_id)
       },
       participantScoreList() {
-        console.log("this.exposures: ", this.exposures, this.outcome_id)
+        // console.log("this.exposures: ", this.exposures, this.outcome_id)
         let arr = []
         this.participants.map(p=>{
           console.log("outcome scores: ", JSON.stringify(this.outcomeScores))
+          // console.log('Filtered', this.outcomeScores)
           const score = this.outcomeScores.filter(o=>o.participantId===p.participantId)[0]
           let item = {
             experimentId: this.experiment_id,
@@ -110,7 +112,7 @@ import {mapActions, mapGetters} from 'vuex'
           if (typeof score !== "undefined") {
             console.log("score:", JSON.stringify(score))
             item.outcomeScoreId = score?.outcomeScoreId
-            item.outcomeId = score?.outcomeId
+            item.outcomeId = this?.outcomeId
             item.scoreNumeric = parseInt(score?.scoreNumeric)
           }
 
@@ -141,7 +143,9 @@ import {mapActions, mapGetters} from 'vuex'
       async saveExit() {
          console.log("outcomescorint.vue -> saveExit: ", JSON.stringify(this.outcome))
         if(!this.exitDisabled){
+            console.log('UpdateOutCome --- ', this.outcome_id)
             await this.updateOutcome([this.experiment_id, this.exposure_id, this.outcome])
+            console.log('Outcome ID:', this.outcome_id)
             await this.updateOutcomeScores([this.experiment_id, this.exposure_id, this.outcome_id, this.participantScoreList])
             this.$router.push({ name: this.$router.currentRoute.meta.previousStep })
         }

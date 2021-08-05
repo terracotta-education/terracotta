@@ -92,13 +92,11 @@
                   v-for="outcome in experimentOutcomes"
                   :key="outcome.outcomeId"
                 >
-                  <template v-if="outcome.title">
+                <template v-if="outcome.exposureId === exposure.exposureId && outcome.title">
+                  <template>
                     <td>{{outcome.title}}</td>
                   </template>
-                  <template v-else>
-                    <td><em>Outcome with no title</em></td>
-                  </template>
-
+                  
                   <template v-if="!outcome.external">
                     <td>Manual Entry</td>
                   </template>
@@ -127,11 +125,11 @@
                       </v-list>
                     </v-menu>
                   </td>
+                </template>
                 </tr>
                 </tbody>
               </template>
             </v-simple-table>
-
 
             <v-menu offset-y>
               <template v-slot:activator="{ on, attrs }">

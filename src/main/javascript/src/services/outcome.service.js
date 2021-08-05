@@ -201,7 +201,8 @@ async function updateOutcomeScores(experiment_id, exposure_id, outcome_id, score
 
   if(Array.isArray(scores) && scores.find(o=>o.outcomeScoreId)) {
     requestOptions.method = 'PUT'
-
+    requestOptions.body = JSON.stringify(scores)
+    console.log('Request Body 1', requestOptions)
     return await Promise.all(scores.map(async score => {
       requestOptions.body = JSON.stringify(score)
       await fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/exposures/${exposure_id}/outcomes/${outcome_id}/outcome_scores/${score.outcomeScoreId}`, requestOptions).then(handleResponse)
@@ -210,11 +211,13 @@ async function updateOutcomeScores(experiment_id, exposure_id, outcome_id, score
   } else if (typeof scores === 'object' && scores.outcomeScoreId) {
     requestOptions.method = 'PUT'
     requestOptions.body = JSON.stringify(scores)
+    console.log('Request Body 2', requestOptions)
 
     return await fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/exposures/${exposure_id}/outcomes/${outcome_id}/outcome_scores/${scores.outcomeScoreId}`, requestOptions).then(handleResponse)
   } else {
     requestOptions.method = 'POST'
     requestOptions.body = JSON.stringify(scores)
+    console.log('Request Body 3', requestOptions)
 
     return await Promise.all(scores.map(async score => {
       requestOptions.body = JSON.stringify(score)
