@@ -40,7 +40,7 @@
               </thead>
               <tbody>
                 <tr
-                  v-for="participant in participants"
+                  v-for="participant in participantFilteredList"
                   :key="participant.participantId"
                 >
                   <td>{{ participant.user.displayName }}</td>
@@ -91,7 +91,7 @@ import {mapActions, mapGetters} from 'vuex'
       },
       participantScoreList() {
         let arr = []
-        this.participants.map(p=>{
+        this.participantFilteredList.map(p=>{
           const score = this.outcomeScores.filter(o=>o.participantId===p.participantId)[0]
           let item = {
             experimentId: this.experiment_id,
@@ -108,7 +108,13 @@ import {mapActions, mapGetters} from 'vuex'
           arr.push(item)
         })
         return arr
-      }
+      },
+      participantFilteredList() {
+          const participatingFiltered = this.participants.filter(({consent}) => consent === true)
+          return participatingFiltered;
+        }
+
+
     },
     data: () => ({
       rules: [
