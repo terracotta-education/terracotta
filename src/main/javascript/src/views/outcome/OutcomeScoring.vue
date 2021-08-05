@@ -79,7 +79,7 @@ import {mapActions, mapGetters} from 'vuex'
         participants: 'participants/participants'
       }),
       exitDisabled() {
-        return this.outcome.title.length<1 || this.outcome.maxPoints<0
+        return this.outcome.title.length<1 || this.outcome.title.length > 255 || this.outcome.maxPoints<0
       },
       exposure_id() {
         console.log("exposure id: ", this.$route.params.exposure_id)
