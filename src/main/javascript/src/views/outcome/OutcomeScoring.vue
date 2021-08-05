@@ -80,7 +80,7 @@ import {mapActions, mapGetters} from 'vuex'
         participants: 'participants/participants'
       }),
       exitDisabled() {
-        return this.outcome.title.length<1 || this.outcome.title.length > 255 || this.outcome.maxPoints<0
+        return this.outcome.title.length<1 || this.outcome.title.length > 255 || this.outcome.maxPoints<0 || this.outcomeScores.filter((os) => os.outcomeId === this.outcome_id).some((score) => score.scoreNumeric > this.outcome.maxPoints)
       },
       exposure_id() {
         console.log("exposure id: ", this.$route.params.exposure_id)
@@ -99,10 +99,9 @@ import {mapActions, mapGetters} from 'vuex'
       participantScoreList() {
         // console.log("this.exposures: ", this.exposures, this.outcome_id)
         let arr = []
+        const scoresAssociatedwithOutcome = this.outcomeScores.filter((score) => score.outcomeId === this.outcome_id)
         this.participants.map(p=>{
-          console.log("outcome scores: ", JSON.stringify(this.outcomeScores))
-          // console.log('Filtered', this.outcomeScores)
-          const score = this.outcomeScores.filter(o=>o.participantId===p.participantId)[0]
+          const score = scoresAssociatedwithOutcome.filter(o=>o.participantId===p.participantId)[0]
           let item = {
             experimentId: this.experiment_id,
             participantId: p.participantId,
@@ -112,8 +111,8 @@ import {mapActions, mapGetters} from 'vuex'
           if (typeof score !== "undefined") {
             console.log("score:", JSON.stringify(score))
             item.outcomeScoreId = score?.outcomeScoreId
-            item.outcomeId = this?.outcomeId
-            item.scoreNumeric = parseInt(score?.scoreNumeric)
+            item.outcomeId = this?.outcome_id
+            item.scoreNumeric = parseInt(score?.scoreNumeric) 
           }
 
           arr.push(item)
@@ -143,19 +142,20 @@ import {mapActions, mapGetters} from 'vuex'
       async saveExit() {
          console.log("outcomescorint.vue -> saveExit: ", JSON.stringify(this.outcome))
         if(!this.exitDisabled){
-            console.log('UpdateOutCome --- ', this.outcome_id)
             await this.updateOutcome([this.experiment_id, this.exposure_id, this.outcome])
-            console.log('Outcome ID:', this.outcome_id)
             await this.updateOutcomeScores([this.experiment_id, this.exposure_id, this.outcome_id, this.participantScoreList])
             this.$router.push({ name: this.$router.currentRoute.meta.previousStep })
+        } else {
+          this.$swal({
+            text: 'Could not update outcome due to entered data.',
+            icon: 'error'
+          })
         }
       }
     },
     async created() {
-        console.log("created: ", this.experiment_id, this.exposure_id, this.outcome_id)
       await this.fetchOutcomeById([this.experiment_id, this.exposure_id, this.outcome_id])
       await this.fetchParticipants(this.experiment_id)
-      console.log("outcome id:", this.outcome_id)
       await this.fetchOutcomeScores([this.experiment_id, this.exposure_id, this.outcome_id])
     }
   }
