@@ -66,7 +66,7 @@ const actions = {
     // payload = experiment_id, exposure_id
     return outcomeService.getAll(...payload)
       .then(response => {
-        if (response.status===200 && response.data) {
+        if ((response.status===200 || response.status===204) && response.data) {
           commit('setOutcomes', response.data)
         }
         return response
@@ -84,7 +84,7 @@ const actions = {
     // payload = experiment_id, exposure_id, outcome_id
     return outcomeService.getOutcomeScoresById(...payload)
       .then(response => {
-        if (response.status===200 && response.data) {
+        if ((response.status===200 || response.status===204) && response.data) {
           commit('setOutcomeScores', response.data)
         }
         return response

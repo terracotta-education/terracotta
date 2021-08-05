@@ -220,7 +220,7 @@ export default {
         v => v && !!v.trim() || 'required'
       ],
       numberRule: [
-        v => !isNaN(v) || 'required',
+        v => v && !isNaN(v)  || 'required',
         v => (!isNaN(parseFloat(v))) && v >= 0 || 'The point value cannot be negative'
       ],
       extensions: [
