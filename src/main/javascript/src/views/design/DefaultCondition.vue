@@ -123,6 +123,7 @@ fieldset {
 
 .radio-check {
   font-size: 14px;
+  cursor: pointer;
 
   input[type="radio"] {
     display: none;
