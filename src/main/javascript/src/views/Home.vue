@@ -34,16 +34,11 @@
           :items="experiments"
         >
           <template v-slot:item.title="{ item }">
-            <router-link v-if="item"
+            <button v-if="item"
                          class="v-data-table__link"
-                         :to="{name: 'ExperimentDesignIntro', params: {experiment_id: item.experimentId}}">
-              <template v-if="item.title">
-                {{ item.title }}
-              </template>
-              <template v-else>
-                <em>No Title</em>
-              </template>
-            </router-link>
+                         @click="handleNavigate(item.experimentId)">
+                         {{ item.title }}
+            </button>
           </template>
           <template v-slot:item.createdAt="{ item }">
             <span v-if="item.createdAt">{{ item.createdAt | formatDate }}</span>
@@ -146,6 +141,16 @@ export default {
           }
         }
       }
+    },
+    handleNavigate(experimentId) {
+        const selectedExperiment =  this.experiments.filter((experiment) => experiment.experimentId === experimentId)
+        const {exposureType, participationType, distributionType} = selectedExperiment[0]
+        const isExperimentInComplete = [exposureType, participationType, distributionType].some((value) => value === 'NOSET')
+        if(isExperimentInComplete) {
+          this.$router.push({name: 'ExperimentDesignIntro', params: {experiment_id: experimentId}})
+        } else {
+          this.$router.push({name: 'ExperimentSummary', params: {experiment_id: experimentId}})
+        }
     },
     startExperiment() {
       const _this = this
