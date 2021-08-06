@@ -37,7 +37,12 @@
             <button v-if="item"
                          class="v-data-table__link"
                          @click="handleNavigate(item.experimentId)">
-                         {{ item.title }}
+              <template v-if="item.title">
+                {{ item.title }}
+              </template>
+              <template v-else>
+                <em>No Title</em>
+              </template>
             </button>
           </template>
           <template v-slot:item.createdAt="{ item }">
