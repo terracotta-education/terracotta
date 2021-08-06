@@ -153,7 +153,9 @@ public class ConditionServiceImpl implements ConditionService {
                 throw new TitleValidationException("Error 101: Condition name must be 255 characters or less.");
             }
             if(nameAlreadyExists(dtoName, experimentId, conditionId)){
-                throw new TitleValidationException("Error 102: Unable to create the condition. A condition with title \"" + dtoName + "\" already exists in this experiment.");
+                throw new TitleValidationException("Error 102: Unable to create the condition. A condition with title \"" + dtoName + "\" already exists in this experiment. It is possible " +
+                        "that one of the other conditions has that name and has not been updated with a new one yet. If that is the case and you wish to use this name, " +
+                        "please change that condition's name first, then try again.");
             }
         }
     }
