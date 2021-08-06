@@ -13,7 +13,7 @@ export function initHeader() {
 export function authHeader() {
     if (store.state.api?.api_token) {
         return {
-            'Authorization': 'Bearer ' + store.state.api.lti_token,
+            'Authorization': 'Bearer ' + store.state.api.api_token,
             'Content-Type': 'application/json'
         };
     } else {

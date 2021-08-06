@@ -23,8 +23,7 @@ const actions = {
     commit('setConsent', decodedToken.consent)
     commit('setUserId', decodedToken.userId)
     commit('setUserInfo', userInfo(decodedToken.roles))
-    dispatch('setApiToken', token)
-    dispatch('refreshToken', token)
+    return dispatch('setApiToken', token)
   },
   setApiToken: ({commit}, token) => {
     // send a token to the API to receive an API token for the bearer auth header

@@ -48,6 +48,7 @@ export default {
 			consent: 'api/consent',
 			userId: 'api/userId',
 			lti_token: 'api/lti_token',
+			api_token: 'api/api_token'
 		}),
 	},
 	methods: {
@@ -59,11 +60,10 @@ export default {
 	},
 	async created() {
 		localStorage.clear()
-		await this.refreshToken(this.lti_token)
+		setInterval(function () {
+		this.refreshToken(this.api_token)
+		}.bind(this), 1000 * 60 * 59)
 	},
-	mounted() {
-      this.refreshToken(this.lti_token)
-	}
 };
 </script>
 
