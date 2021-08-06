@@ -251,7 +251,7 @@ public class AssignmentServiceImpl implements AssignmentService {
             throw new AssessmentNotMatchingException("Error 132: This assignment has ambiguous treatments. Please contact a Terracotta administrator");
         }
         if (treatments.get(0).getAssessment()==null){
-            throw new AssessmentNotMatchingException("Error 133: The treatment for this assignment has not any assessment created");
+            throw new AssessmentNotMatchingException("Error 133: The treatment for this assignment does not have an assessment created");
         }
         return treatments.get(0).getAssessment();
     }
