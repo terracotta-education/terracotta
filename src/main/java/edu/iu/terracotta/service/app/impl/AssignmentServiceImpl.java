@@ -428,6 +428,7 @@ public class AssignmentServiceImpl implements AssignmentService {
         //TODO... if we restore it... should we publish it? Only if it has submissions.
         long submissions = allRepositories.submissionRepository.countByAssessment_Treatment_Assignment_AssignmentId(assignment.getAssignmentId());
         canvasAssignment.setPublished(submissions > 0);
+        canvasAssignment.setGradingType("percent");
         canvasAssignment.setPointsPossible(100.0);
         canvasAssignment.setSubmissionTypes(Collections.singletonList("external_tool"));
         String canvasCourseId = StringUtils.substringBetween(assignment.getExposure().getExperiment().getLtiContextEntity().getContext_memberships_url(), "courses/", "/names");
@@ -482,7 +483,7 @@ public class AssignmentServiceImpl implements AssignmentService {
         canvasAssignment.setName(assignment.getTitle());
         canvasAssignment.setDescription(null);
         canvasAssignment.setPublished(false);
-        //TODO: This is interesting...because each condition assessment maybe has different points... so... what should we send here? 0? 100 and send a percent always????
+        canvasAssignment.setGradingType("percent");
         canvasAssignment.setPointsPossible(100.0);
         canvasAssignment.setSubmissionTypes(Collections.singletonList("external_tool"));
         try {
