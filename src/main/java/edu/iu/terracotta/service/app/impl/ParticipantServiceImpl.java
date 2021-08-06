@@ -214,7 +214,81 @@ public class ParticipantServiceImpl implements ParticipantService {
                     for (Participant participant : currentParticipantList) {
                         if (participant.getLtiMembershipEntity().getUser().getUserKey().equals(ltiUserEntity.getUserKey())) {
                             alreadyInList = true;
+                            if (experiment.getStarted()==null) {
+                                switch (participant.getSource()) {
+                                    case NOSET:
+                                        switch (experiment.getParticipationType()) {
+                                            case MANUAL:
+                                                participant.setConsent(null);
+                                                break;
+                                            case CONSENT:
+                                                participant.setConsent(false);
+                                                break;
+                                            case AUTO:
+                                                participant.setConsent(true);
+                                                participant.setDateGiven(new Timestamp(System.currentTimeMillis()));
+                                                break;
+                                            default:
+                                        }
+                                        participant.setSource(experiment.getParticipationType());
+                                        break;
+                                    case AUTO:
+                                        switch (experiment.getParticipationType()) {
+                                            case MANUAL:
+                                                participant.setConsent(null);
+                                                participant.setDateGiven(null);
+                                                participant.setDateRevoked(null);
+                                                break;
+                                            case CONSENT:
+                                                participant.setConsent(false);
+                                                participant.setDateGiven(null);
+                                                participant.setDateRevoked(null);
+                                                break;
+                                            case AUTO:
+                                                break;
+                                            default:
+                                        }
+                                        break;
+                                    case MANUAL:
+                                        switch (experiment.getParticipationType()) {
+                                            case MANUAL:
+                                                break;
+                                            case CONSENT:
+                                                participant.setConsent(false);
+                                                participant.setDateGiven(null);
+                                                participant.setDateRevoked(null);
+                                                break;
+                                            case AUTO:
+                                                participant.setConsent(true);
+                                                participant.setDateGiven(new Timestamp(System.currentTimeMillis()));
+                                                participant.setDateRevoked(null);
+                                                break;
+                                            default:
+                                        }
+                                        break;
+                                    case CONSENT:
+                                        switch (experiment.getParticipationType()) {
+                                            case MANUAL:
+                                                participant.setConsent(null);
+                                                participant.setDateGiven(null);
+                                                participant.setDateRevoked(null);
+                                                break;
+                                            case CONSENT:
+                                                break;
+                                            case AUTO:
+                                                participant.setConsent(true);
+                                                participant.setDateGiven(new Timestamp(System.currentTimeMillis()));
+                                                participant.setDateRevoked(null);
+                                                break;
+                                            default:
+                                        }
+                                        break;
+                                    default:
+                                }
+                                participant.setSource(experiment.getParticipationType());
+                            }
                             participant.setDropped(false);
+                            allRepositories.participantRepository.save(participant);
                         }
                     }
                     if (!alreadyInList) {
@@ -245,6 +319,7 @@ public class ParticipantServiceImpl implements ParticipantService {
         } catch (ConnectionException | NoSuchElementException e) {
             throw new ParticipantNotUpdatedException(e.getMessage());
         }
+        allRepositories.participantRepository.flush();
         return newParticipantList;
     }
 
