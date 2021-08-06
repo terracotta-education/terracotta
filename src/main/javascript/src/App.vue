@@ -47,15 +47,12 @@ export default {
 			experimentId: 'api/experimentId',
 			consent: 'api/consent',
 			userId: 'api/userId',
-			lti_token: 'api/lti_token',
 			api_token: 'api/api_token'
 		}),
 	},
 	methods: {
 		...mapActions({
 			refreshToken: 'api/refreshToken',
-			setApiToken: 'api/setApiToken', 
-			setLtiToken: 'api/setLtiToken'
 		}),
 	},
 	async created() {
