@@ -53,7 +53,7 @@ async function getByExperimentId(experiment_id, exposures = []) {
     method: 'GET',
     headers: authHeader()
   }
-  // For One condition experiment, there will be one exposures
+  // For One condition experiment, there will be one exposure
   if (exposures.length>=1) {
     return await Promise.all(exposures.map(async exposure_id =>
       fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/exposures/${exposure_id}/outcomes`, requestOptions).then(handleResponse)
