@@ -231,7 +231,7 @@ public class ExperimentServiceImpl implements ExperimentService {
             experimentDto.setPotentialParticipants(experiment.getParticipants().size());
 
             for (Participant participant : experiment.getParticipants()) {
-                if (participant.getConsent() != null) {
+                if (participant.getDateGiven()!=null || participant.getDateRevoked()!=null) {
                     countAnswered = countAnswered + 1;
                     if (participant.getConsent()) {
                         countAccepted = countAccepted + 1;
