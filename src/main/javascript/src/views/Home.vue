@@ -60,17 +60,16 @@
                 </v-icon>
               </template>
               <v-list dense>
-                <!--                UNCOMMENT WHEN API EXPORT FUNCTIONALITY IS READY -->
-                <!--                <v-list-item-->
-                <!--                  @click="handleExport(item)"-->
-                <!--                >-->
-                <!--                  <v-list-item-icon class="mr-3">-->
-                <!--                    <v-icon color="black">mdi-download</v-icon>-->
-                <!--                  </v-list-item-icon>-->
-                <!--                  <v-list-item-content>-->
-                <!--                    <v-list-item-title>Export</v-list-item-title>-->
-                <!--                  </v-list-item-content>-->
-                <!--                </v-list-item>-->
+                <v-list-item
+                    @click="handleExport(item)"
+                >
+                <v-list-item-icon class="mr-3">
+                <v-icon color="black">mdi-download</v-icon>
+                </v-list-item-icon>
+                <v-list-item-content>
+                <v-list-item-title>Export</v-list-item-title>
+                </v-list-item-content>
+                </v-list-item>
                 <v-list-item
                   @click="handleDelete(item)"
                 >
@@ -92,6 +91,7 @@
 
 <script>
 import {mapActions, mapGetters} from 'vuex'
+import {saveAs} from 'file-saver'
 import moment from 'moment'
 
 export default {
@@ -112,7 +112,8 @@ export default {
   },
   computed: {
     ...mapGetters({
-      experiments: 'experiment/experiments'
+      experiments: 'experiment/experiments',
+      exportdata: 'exportdata/exportData'
     })
   },
   methods: {
@@ -120,10 +121,12 @@ export default {
       fetchExperiments: 'experiment/fetchExperiments',
       createExperiment: 'experiment/createExperiment',
       deleteExperiment: 'experiment/deleteExperiment',
-      resetConsent: 'consent/resetConsent'
+      resetConsent: 'consent/resetConsent',
+      getZip: 'exportdata/fetchExportData'
     }),
-    handleExport() {
-      // TODO - add API export functionality when it's ready
+    async handleExport(item) {
+      await this.getZip(item.experimentId)
+      saveAs(this.exportdata, `Terracotta Experiment ${item.title} Export.zip`);
     },
     async handleDelete(e) {
       if (e?.experimentId) {
@@ -174,12 +177,12 @@ export default {
           })
     }
   },
-  created() {
+  async created() {
     // get experiments list
-    this.fetchExperiments()
+    await this.fetchExperiments()
 
     // reset consent data when loading the dashboard
-    this.resetConsent()
+    await this.resetConsent()
   },
 }
 </script>
