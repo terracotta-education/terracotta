@@ -344,7 +344,9 @@ public class ParticipantServiceImpl implements ParticipantService {
             ParticipantDto participantDto = entry.getValue();
             Experiment experiment = experimentService.getExperiment(experimentId);
             if (experiment.getParticipationType().equals(ParticipationTypes.CONSENT)){
-                if ((experiment.getStarted()==null) && (participantToChange.getConsent()==null && participantDto.getConsent()!=null)){
+                if ((experiment.getStarted()==null)
+                        && ((participantToChange.getConsent()==null || (!participantToChange.getConsent() && participantToChange.getDateRevoked()==null))
+                        && participantDto.getConsent()!=null)){
                     experiment.setStarted(Timestamp.valueOf(LocalDateTime.now()));
                     experimentService.save(experiment);
                 }

@@ -300,10 +300,12 @@ public class AssignmentServiceImpl implements AssignmentService {
             if (participant.getConsent() ==null) {
                 if (experiment.get().getParticipationType().equals(ParticipationTypes.AUTO)){
                     participant.setConsent(true);
+                    participant.setDateGiven(new Timestamp(System.currentTimeMillis()));
                 } else {
                     participant.setConsent(false);
+                    participant.setDateRevoked(new Timestamp(System.currentTimeMillis()));
+
                 }
-                participant.setDateGiven(new Timestamp(System.currentTimeMillis()));
             }
             //2. Check if the student is in a group (and if not assign it to the right one if consent == true)
             if (participant.getConsent()) {
