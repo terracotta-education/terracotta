@@ -351,7 +351,8 @@ public class ParticipantServiceImpl implements ParticipantService {
             }
             //If they had consent, and now they don't have, we change the dateRevoked to now.
             //In any other case, we leave the date as it is. Ignoring any value in the PUT
-            if (participantToChange.getConsent() !=null && participantToChange.getConsent() &&
+            if (participantToChange.getConsent() !=null &&
+                    (participantToChange.getConsent() || (!participantToChange.getConsent() && participantToChange.getDateRevoked()==null)) &&
                     (participantDto.getConsent()==null || !participantDto.getConsent())) {
                 participantToChange.setDateRevoked(Timestamp.valueOf(LocalDateTime.now()));
             }
