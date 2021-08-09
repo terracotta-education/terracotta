@@ -6,7 +6,15 @@
         <template v-slot:default>
           <thead>
             <tr>
-              <th style="width:50px;"></th>
+              <th style="width:50px;">
+              <v-checkbox
+                on-icon="$checkboxIndeterminate"
+                v-model="selectAll"
+                :value="selectAll"
+                color="primary"
+                @change="handleSelectAll()"
+               ></v-checkbox>
+              </th>
               <th class="text-left">Gradebook Item</th>
               <th class="text-left" style="width:250px;">Total Points</th>
             </tr>
@@ -57,7 +65,8 @@ export default {
   },
   data() {
     return {
-      selectedAssignmentIds: []
+      selectedAssignmentIds: [],
+      selectAll: false
     }
   },
   methods: {
@@ -67,6 +76,9 @@ export default {
       createOutcome: 'outcome/createOutcome'
     }),
 
+   handleSelectAll(){
+     this.selectedAssignmentIds = this.selectAll ? this.outcomePotentials.map((op) => op.assignmentId) : []
+   },
 
     async saveExit() {
       try {
