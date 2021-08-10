@@ -15,7 +15,7 @@
         <h4 class="drop-zone__title">Selected file:</h4>
         <v-card outlined>
           <v-card-text class="py-1 px-2">
-            <strong>{{ file.name }}</strong>
+            <strong>{{ fileName }}</strong>
             <v-btn
               class="remove-file"
               elevation="0"
@@ -36,7 +36,7 @@
 
 <script>
 export default {
-  props: ['existing'],
+  props: ['existing', 'fileName'],
   data() {
     return {
       file: null,

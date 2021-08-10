@@ -5,10 +5,11 @@
     <file-drop-zone
       class="my-5"
       :existing="consent.file"
+      :fileName="experiment.consent.title"
       @update="onFileChange"></file-drop-zone>
 
     <v-btn
-      :disabled="!consent.file || !consent.file.name || consent.file.name.length<1"
+      :disabled="!consent.file || !experiment.consent.title "
       class="mt-3 mb-6"
       color="primary"
       elevation="0"
