@@ -11,6 +11,8 @@ import java.util.List;
 public interface OutcomeRepository extends JpaRepository<Outcome, Long> {
     List<Outcome> findByExposure_ExposureId(Long exposureId);
 
+    List<Outcome> findByExposure_Experiment_ExperimentId(Long experimentId);
+
     Outcome findByOutcomeId(Long outcomeId);
 
     boolean existsByExposure_Experiment_ExperimentIdAndExposure_ExposureIdAndOutcomeId(Long experimentId, Long exposureId, Long outcomeId);

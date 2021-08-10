@@ -21,6 +21,8 @@ public interface OutcomeService {
 
     List<Outcome> findAllByExposureId(Long exposureId);
 
+    List<Outcome> findAllByExperiment(long experimentId);
+
     List<OutcomeDto> getOutcomes(Long exposureId);
 
     Outcome getOutcome(Long id);

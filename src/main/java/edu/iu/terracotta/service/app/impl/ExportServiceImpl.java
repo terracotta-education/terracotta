@@ -93,7 +93,10 @@ public class ExportServiceImpl implements ExportService {
                 outcomeName = outcomeScore.getOutcome().getTitle();
             }
             String pointsPossible = outcomeScore.getOutcome().getMaxPoints().toString();
-            String score = outcomeScore.getScoreNumeric().toString();
+            String score = "N/A";
+            if(outcomeScore.getScoreNumeric() != null){
+                score = outcomeScore.getScoreNumeric().toString();
+            }
             outcomeData.add(new String[]{outcomeId, participantId, exposureId, source, outcomeName, pointsPossible, score});
         }
         csvFiles.put("outcomes.csv", outcomeData);

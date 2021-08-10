@@ -1,6 +1,7 @@
 package edu.iu.terracotta.controller.app;
 
 import edu.iu.terracotta.exceptions.BadTokenException;
+import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentLockedException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
@@ -8,11 +9,13 @@ import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.exceptions.WrongValueException;
+import edu.iu.terracotta.model.app.Outcome;
 import edu.iu.terracotta.model.app.dto.ExperimentDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.ExportService;
+import edu.iu.terracotta.service.app.OutcomeService;
 import edu.iu.terracotta.utils.TextConstants;
 import edu.iu.terracotta.utils.ZipUtil;
 import org.slf4j.Logger;
@@ -55,6 +58,9 @@ public class ExperimentController {
 
     @Autowired
     APIJWTService apijwtService;
+
+    @Autowired
+    OutcomeService outcomeService;
 
 
     /**
@@ -174,12 +180,16 @@ public class ExperimentController {
     @RequestMapping(value = "/{id}/zip", method = RequestMethod.GET, produces = "application/zip")
     public ResponseEntity<ByteArrayResource> downloadZip(@PathVariable("id") Long experimentId,
                                                          HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, IOException {
+            throws ExperimentNotMatchingException, BadTokenException, IOException, CanvasApiException, ParticipantNotUpdatedException {
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
 
         if(apijwtService.isInstructorOrHigher(securedInfo)){
+            List<Outcome> outcomes = outcomeService.findAllByExperiment(experimentId);
+            for(Outcome outcome : outcomes){
+                outcomeService.updateOutcomeGrades(outcome.getOutcomeId(), securedInfo);
+            }
             Map<String, List<String[]>> csvFiles = exportService.getCsvFiles(experimentId);
             return new ResponseEntity<>(ZipUtil.generateZipFile(csvFiles), HttpStatus.OK);
         } else {
