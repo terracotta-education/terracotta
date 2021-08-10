@@ -69,6 +69,11 @@ public class OutcomeServiceImpl implements OutcomeService {
     }
 
     @Override
+    public List<Outcome> findAllByExperiment(long experimentId){
+        return allRepositories.outcomeRepository.findByExposure_Experiment_ExperimentId(experimentId);
+    }
+
+    @Override
     public List<OutcomeDto> getOutcomes(Long exposureId){
         List<Outcome> outcomes = findAllByExposureId(exposureId);
         List<OutcomeDto> outcomeDtoList = new ArrayList<>();
