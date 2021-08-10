@@ -3,12 +3,14 @@ package edu.iu.terracotta.service.app.impl;
 import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExceedingLimitException;
+import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.model.app.Assignment;
 import edu.iu.terracotta.model.app.Treatment;
 import edu.iu.terracotta.model.app.dto.TreatmentDto;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.AssessmentService;
 import edu.iu.terracotta.service.app.TreatmentService;
+import edu.iu.terracotta.utils.TextConstants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
@@ -45,6 +47,27 @@ public class TreatmentServiceImpl implements TreatmentService {
 
     @Override
     public Treatment getTreatment(Long id) { return allRepositories.treatmentRepository.findByTreatmentId(id); }
+
+    @Override
+    public TreatmentDto postTreatment(TreatmentDto treatmentDto, long conditionId) throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException {
+        if(treatmentDto.getTreatmentId() != null) {
+            throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
+        }
+        treatmentDto.setConditionId(conditionId);
+        if (treatmentDto.getAssignmentId()==null){
+            throw new DataServiceException("Error 129: Unable to create Treatment: The assignmentId is mandatory");
+        }
+        Treatment treatment;
+        try{
+            treatment = fromDto(treatmentDto);
+        } catch (DataServiceException ex) {
+            throw new DataServiceException("Error 105: Unable to create Treatment: " + ex.getMessage());
+        }
+
+        limitToOne(treatment.getAssignment().getAssignmentId(), conditionId);
+        Treatment treatmentSaved = save(treatment);
+        return toDto(treatmentSaved, false);
+    }
 
     @Override
     public TreatmentDto toDto(Treatment treatment, boolean submissions) throws AssessmentNotMatchingException {

@@ -4,6 +4,7 @@ import edu.iu.terracotta.exceptions.AssignmentDatesException;
 import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.InvalidUserException;
 import edu.iu.terracotta.exceptions.NoSubmissionsException;
 import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
@@ -122,6 +123,22 @@ public class SubmissionServiceImpl implements SubmissionService {
             throw new NoSubmissionsException("A submission for participant " + participant.getParticipantId() + "  with id " + submissionId + " not found");
         }
         return submission.get();
+    }
+
+    @Override
+    public SubmissionDto postSubmission(SubmissionDto submissionDto, long experimentId, String userId, long assessmentId, boolean student) throws IdInPostException, ParticipantNotMatchingException, InvalidUserException, DataServiceException {
+        if (submissionDto.getSubmissionId() != null) {
+            throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
+        }
+        submissionDto.setAssessmentId(assessmentId);
+        validateDto(experimentId, userId, submissionDto);
+        Submission submission;
+        try {
+            submission = fromDto(submissionDto, student);
+        } catch (DataServiceException ex) {
+            throw new DataServiceException("Error 105: Unable to create Submission: " + ex.getMessage());
+        }
+        return toDto(save(submission), false, false);
     }
 
     @Override

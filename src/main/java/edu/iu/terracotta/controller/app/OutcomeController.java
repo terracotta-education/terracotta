@@ -9,7 +9,6 @@ import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.OutcomeNotMatchingException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
-import edu.iu.terracotta.model.app.Outcome;
 import edu.iu.terracotta.model.app.dto.OutcomeDto;
 import edu.iu.terracotta.model.app.dto.OutcomePotentialDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
@@ -108,7 +107,7 @@ public class OutcomeController {
                                                   @RequestBody OutcomeDto outcomeDto,
                                                   UriComponentsBuilder ucBuilder,
                                                   HttpServletRequest req)
-            throws ExperimentNotMatchingException, ExposureNotMatchingException, BadTokenException, TitleValidationException, IdInPostException {
+            throws ExperimentNotMatchingException, ExposureNotMatchingException, BadTokenException, TitleValidationException, IdInPostException, DataServiceException {
 
         log.debug("Creating Outcome: {}", outcomeDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
@@ -116,19 +115,7 @@ public class OutcomeController {
         apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
 
         if(apijwtService.isInstructorOrHigher(securedInfo)){
-            if(outcomeDto.getOutcomeId() != null){
-                throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
-            }
-
-            outcomeDto.setExposureId(exposureId);
-            outcomeService.defaultOutcome(outcomeDto);
-            Outcome outcome;
-            try{
-                outcome = outcomeService.fromDto(outcomeDto);
-            } catch (DataServiceException ex) {
-                return new ResponseEntity("Error 105: Unable to create Outcome: " + ex.getMessage(), HttpStatus.BAD_REQUEST);
-            }
-            OutcomeDto returnedDto = outcomeService.toDto(outcomeService.save(outcome), false);
+            OutcomeDto returnedDto = outcomeService.postOutcome(outcomeDto, exposureId);
             HttpHeaders headers = outcomeService.buildHeaders(ucBuilder, experimentId, exposureId, returnedDto.getOutcomeId());
             return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
         } else {

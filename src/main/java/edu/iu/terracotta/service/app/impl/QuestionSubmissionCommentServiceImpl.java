@@ -1,12 +1,14 @@
 package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.model.LtiUserEntity;
 import edu.iu.terracotta.model.app.QuestionSubmission;
 import edu.iu.terracotta.model.app.QuestionSubmissionComment;
 import edu.iu.terracotta.model.app.dto.QuestionSubmissionCommentDto;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.QuestionSubmissionCommentService;
+import edu.iu.terracotta.utils.TextConstants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
@@ -41,6 +43,35 @@ public class QuestionSubmissionCommentServiceImpl implements QuestionSubmissionC
     @Override
     public QuestionSubmissionComment getQuestionSubmissionComment(Long id){
         return allRepositories.questionSubmissionCommentRepository.findByQuestionSubmissionCommentId(id);
+    }
+
+    @Override
+    public QuestionSubmissionCommentDto postQuestionSubmissionComment(QuestionSubmissionCommentDto questionSubmissionCommentDto, long questionSubmissionId, String userId) throws IdInPostException, DataServiceException {
+        if(questionSubmissionCommentDto.getQuestionSubmissionCommentId() != null) {
+            throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
+        }
+
+        questionSubmissionCommentDto.setQuestionSubmissionId(questionSubmissionId);
+        LtiUserEntity user = findByUserKey(userId);
+        questionSubmissionCommentDto.setCreator(user.getDisplayName());
+        QuestionSubmissionComment questionSubmissionComment;
+        try {
+            questionSubmissionComment = fromDto(questionSubmissionCommentDto);
+        } catch (DataServiceException ex) {
+            throw new DataServiceException("Error 105: Unable to create question submission comment: " + ex.getMessage());
+        }
+        return toDto(save(questionSubmissionComment));
+    }
+
+    @Override
+    public void updateQuestionSubmissionComment(QuestionSubmissionCommentDto questionSubmissionCommentDto, long questionSubmissionCommentId, long experimentId, long submissionId, String userId) throws DataServiceException {
+        QuestionSubmissionComment questionSubmissionComment = getQuestionSubmissionComment(questionSubmissionCommentId);
+        LtiUserEntity user = findByUserKey(userId);
+        if(!user.getDisplayName().equals(questionSubmissionComment.getCreator())){
+            throw new DataServiceException("Error 122: Only the creator of a comment can edit their own comment.");
+        }
+        questionSubmissionComment.setComment(questionSubmissionCommentDto.getComment());
+        saveAndFlush(questionSubmissionComment);
     }
 
     @Override

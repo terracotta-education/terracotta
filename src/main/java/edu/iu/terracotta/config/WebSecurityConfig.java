@@ -12,7 +12,6 @@
  */
 package edu.iu.terracotta.config;
 
-import edu.iu.terracotta.controller.app.AnswerController;
 import edu.iu.terracotta.security.app.APIOAuthProviderProcessingFilter;
 import edu.iu.terracotta.security.app.JwtAuthenticationProvider;
 import edu.iu.terracotta.security.lti.LTI3OAuthProviderProcessingFilter;

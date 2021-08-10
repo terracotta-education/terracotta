@@ -7,7 +7,6 @@ import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.GroupNotMatchingException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
-import edu.iu.terracotta.model.app.Group;
 import edu.iu.terracotta.model.app.dto.GroupDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
@@ -91,7 +90,7 @@ public class GroupController {
                                                     @RequestBody GroupDto groupDto,
                                                     UriComponentsBuilder ucBuilder,
                                                     HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, ExperimentLockedException, IdInPostException {
+            throws ExperimentNotMatchingException, BadTokenException, ExperimentLockedException, IdInPostException, DataServiceException {
 
         log.debug("Creating Group : {}", groupDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
@@ -99,20 +98,8 @@ public class GroupController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
 
         if(apijwtService.isInstructorOrHigher(securedInfo)) {
-            if(groupDto.getGroupId() != null) {
-                throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
-            }
-
-            groupDto.setExperimentId(experimentId);
-            Group group;
-            try{
-                group = groupService.fromDto(groupDto);
-            } catch (DataServiceException e) {
-                return new ResponseEntity("Error 105: Unable to create group:" + e.getMessage(), HttpStatus.BAD_REQUEST);
-            }
-            GroupDto returnedDto = groupService.toDto(groupService.save(group));
-
-            HttpHeaders headers = groupService.buildHeaders(ucBuilder, experimentId, group.getGroupId());
+            GroupDto returnedDto = groupService.postGroup(groupDto, experimentId);
+            HttpHeaders headers = groupService.buildHeaders(ucBuilder, experimentId, returnedDto.getGroupId());
             return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
         }else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);

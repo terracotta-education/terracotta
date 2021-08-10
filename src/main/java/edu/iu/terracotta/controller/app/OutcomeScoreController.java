@@ -7,7 +7,6 @@ import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.InvalidParticipantException;
 import edu.iu.terracotta.exceptions.OutcomeNotMatchingException;
 import edu.iu.terracotta.exceptions.OutcomeScoreNotMatchingException;
-import edu.iu.terracotta.model.app.OutcomeScore;
 import edu.iu.terracotta.model.app.dto.OutcomeScoreDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
@@ -101,7 +100,7 @@ public class OutcomeScoreController {
                                                             @RequestBody OutcomeScoreDto outcomeScoreDto,
                                                             UriComponentsBuilder ucBuilder,
                                                             HttpServletRequest req)
-            throws ExperimentNotMatchingException, OutcomeNotMatchingException, BadTokenException, InvalidParticipantException, IdInPostException {
+            throws ExperimentNotMatchingException, OutcomeNotMatchingException, BadTokenException, InvalidParticipantException, IdInPostException, DataServiceException {
 
         log.debug("Creating outcome score: {}", outcomeScoreDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
@@ -109,19 +108,7 @@ public class OutcomeScoreController {
         apijwtService.outcomeAllowed(securedInfo, experimentId, exposureId, outcomeId);
 
         if(apijwtService.isInstructorOrHigher(securedInfo)){
-            if(outcomeScoreDto.getOutcomeScoreId() != null) {
-                throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
-            }
-            outcomeScoreService.validateParticipant(outcomeScoreDto.getParticipantId(), experimentId);
-            outcomeScoreDto.setOutcomeId(outcomeId);
-            OutcomeScore outcomeScore;
-            try{
-                outcomeScore = outcomeScoreService.fromDto(outcomeScoreDto);
-            } catch (DataServiceException ex) {
-                return new ResponseEntity("Error 105: Unable to create outcome score: " + ex.getMessage(), HttpStatus.BAD_REQUEST);
-            }
-            OutcomeScoreDto returnedDto = outcomeScoreService.toDto(outcomeScoreService.save(outcomeScore));
-
+            OutcomeScoreDto returnedDto = outcomeScoreService.postOutcomeScore(outcomeScoreDto, experimentId, outcomeId);
             HttpHeaders headers = outcomeScoreService.buildHeaders(ucBuilder, experimentId, exposureId, outcomeId, returnedDto.getOutcomeScoreId());
             return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
         } else {

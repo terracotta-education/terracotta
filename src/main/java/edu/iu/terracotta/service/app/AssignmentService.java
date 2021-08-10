@@ -8,6 +8,7 @@ import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.GroupNotMatchingException;
+import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
@@ -31,6 +32,10 @@ public interface AssignmentService {
 
     List<AssignmentDto> getAssignments(Long exposureId, boolean submissions) throws AssessmentNotMatchingException;
 
+    Assignment getAssignment(Long id);
+
+    AssignmentDto postAssignment(AssignmentDto assignmentDto, long experimentId, String CavnasCourseId, long exposureId) throws DataServiceException, IdInPostException, TitleValidationException, AssessmentNotMatchingException, AssignmentNotCreatedException;
+
     AssignmentDto toDto(Assignment assignment, boolean submissions) throws AssessmentNotMatchingException;
 
     Assignment fromDto(AssignmentDto assignmentDto) throws DataServiceException;
@@ -38,8 +43,6 @@ public interface AssignmentService {
     Assignment save(Assignment assignment);
 
     Optional<Assignment> findById(Long id);
-
-    Assignment getAssignment(Long id);
 
     void updateAssignment(Long id, AssignmentDto assignmentDto, String canvasCourseId ) throws TitleValidationException, CanvasApiException, AssignmentNotEditedException;
 

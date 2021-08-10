@@ -4,6 +4,7 @@ import edu.iu.terracotta.exceptions.AssignmentDatesException;
 import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.InvalidUserException;
 import edu.iu.terracotta.exceptions.NoSubmissionsException;
 import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
@@ -27,6 +28,8 @@ public interface SubmissionService {
     List<SubmissionDto> getSubmissions(Long experimentId, String userId, Long assessmentId, boolean student) throws NoSubmissionsException;
 
     Submission getSubmission(Long experimentId, String userId, Long submissionId, boolean student) throws NoSubmissionsException;
+
+    SubmissionDto postSubmission(SubmissionDto submissionDto, long experimentId, String userId, long assessmentId, boolean student) throws IdInPostException, ParticipantNotMatchingException, InvalidUserException, DataServiceException;
 
     void updateSubmission(Long submissionId, SubmissionDto submissionDto, boolean student);
 

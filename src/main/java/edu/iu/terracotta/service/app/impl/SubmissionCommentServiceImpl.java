@@ -1,12 +1,14 @@
 package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.model.LtiUserEntity;
 import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.SubmissionComment;
 import edu.iu.terracotta.model.app.dto.SubmissionCommentDto;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.SubmissionCommentService;
+import edu.iu.terracotta.utils.TextConstants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
@@ -36,6 +38,23 @@ public class SubmissionCommentServiceImpl implements SubmissionCommentService {
             submissionCommentDtoList.add(toDto(submissionComment));
         }
         return submissionCommentDtoList;
+    }
+
+    @Override
+    public SubmissionCommentDto postSubmissionComment(SubmissionCommentDto submissionCommentDto, long submissionId, String userId) throws IdInPostException, DataServiceException {
+        if(submissionCommentDto.getSubmissionCommentId() != null) {
+            throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
+        }
+        submissionCommentDto.setSubmissionId(submissionId);
+        LtiUserEntity user = findByUserKey(userId);
+        submissionCommentDto.setCreator(user.getDisplayName());
+        SubmissionComment submissionComment;
+        try {
+            submissionComment = fromDto(submissionCommentDto);
+        } catch (DataServiceException ex) {
+            throw new DataServiceException("Error 105: Unable to create submission comment: " + ex.getMessage());
+        }
+        return toDto(save(submissionComment));
     }
 
     @Override

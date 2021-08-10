@@ -1,6 +1,7 @@
 package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.InvalidParticipantException;
 import edu.iu.terracotta.model.app.Outcome;
 import edu.iu.terracotta.model.app.OutcomeScore;
@@ -10,6 +11,7 @@ import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.OutcomeScoreService;
 import edu.iu.terracotta.service.app.OutcomeService;
 import edu.iu.terracotta.service.app.ParticipantService;
+import edu.iu.terracotta.utils.TextConstants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
@@ -46,6 +48,22 @@ public class OutcomeScoreServiceImpl implements OutcomeScoreService {
 
     @Override
     public OutcomeScore getOutcomeScore(Long id) { return allRepositories.outcomeScoreRepository.findByOutcomeScoreId(id); }
+
+    @Override
+    public OutcomeScoreDto postOutcomeScore(OutcomeScoreDto outcomeScoreDto, long experimentId, long outcomeId) throws IdInPostException, InvalidParticipantException, DataServiceException {
+        if(outcomeScoreDto.getOutcomeScoreId() != null) {
+            throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
+        }
+        validateParticipant(outcomeScoreDto.getParticipantId(), experimentId);
+        outcomeScoreDto.setOutcomeId(outcomeId);
+        OutcomeScore outcomeScore;
+        try{
+            outcomeScore = fromDto(outcomeScoreDto);
+        } catch (DataServiceException ex) {
+            throw new DataServiceException("Error 105: Unable to create outcome score: " + ex.getMessage());
+        }
+        return toDto(save(outcomeScore));
+    }
 
     @Override
     public OutcomeScoreDto toDto(OutcomeScore outcomeScore){

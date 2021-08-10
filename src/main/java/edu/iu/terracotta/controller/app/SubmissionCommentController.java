@@ -52,6 +52,8 @@ public class SubmissionCommentController {
     @Autowired
     SubmissionCommentService submissionCommentService;
 
+
+
     @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}/submission_comments", method = RequestMethod.GET,
                     produces = "application/json;")
     @ResponseBody
@@ -124,7 +126,7 @@ public class SubmissionCommentController {
                                                                       @RequestBody SubmissionCommentDto submissionCommentDto,
                                                                       UriComponentsBuilder ucBuilder,
                                                                       HttpServletRequest req)
-                throws ExperimentNotMatchingException, AssessmentNotMatchingException, SubmissionNotMatchingException, BadTokenException, InvalidUserException, IdInPostException {
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, SubmissionNotMatchingException, BadTokenException, InvalidUserException, IdInPostException, DataServiceException {
 
         log.debug("Creating submission comment: {}", submissionCommentDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
@@ -133,23 +135,11 @@ public class SubmissionCommentController {
         apijwtService.submissionAllowed(securedInfo, assessmentId, submissionId);
 
         if(apijwtService.isLearnerOrHigher(securedInfo)) {
-            if(submissionCommentDto.getSubmissionCommentId() != null) {
-                throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
-            }
             if(!apijwtService.isInstructorOrHigher(securedInfo)){
                 submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
             }
-            submissionCommentDto.setSubmissionId(submissionId);
-            LtiUserEntity user = submissionCommentService.findByUserKey(securedInfo.getUserId());
-            submissionCommentDto.setCreator(user.getDisplayName());
-            SubmissionComment submissionComment;
-            try {
-                submissionComment = submissionCommentService.fromDto(submissionCommentDto);
-            } catch (DataServiceException ex) {
-                return new ResponseEntity("Error 105: Unable to create submission comment: " + ex.getMessage(), HttpStatus.BAD_REQUEST);
-            }
-            SubmissionCommentDto returnedDto = submissionCommentService.toDto(submissionCommentService.save(submissionComment));
-            HttpHeaders headers = submissionCommentService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, submissionId, submissionComment.getSubmissionCommentId());
+            SubmissionCommentDto returnedDto = submissionCommentService.postSubmissionComment(submissionCommentDto, submissionId, securedInfo.getUserId());
+            HttpHeaders headers = submissionCommentService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, submissionId, returnedDto.getSubmissionCommentId());
             return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);

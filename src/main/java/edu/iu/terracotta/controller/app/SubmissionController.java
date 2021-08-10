@@ -50,6 +50,7 @@ public class SubmissionController {
     SubmissionService submissionService;
 
 
+
     @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions", method = RequestMethod.GET,
                     produces = "application/json;")
     @ResponseBody
@@ -114,7 +115,7 @@ public class SubmissionController {
                                                         @RequestBody SubmissionDto submissionDto,
                                                         UriComponentsBuilder ucBuilder,
                                                         HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, BadTokenException, InvalidUserException, ParticipantNotMatchingException, IdInPostException {
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, BadTokenException, InvalidUserException, ParticipantNotMatchingException, IdInPostException, DataServiceException {
 
         log.debug("Creating Submission: {}", submissionDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
@@ -123,19 +124,9 @@ public class SubmissionController {
 
         if (submissionService.datesAllowed(experimentId,treatmentId, securedInfo)) {
             if (apijwtService.isLearnerOrHigher(securedInfo)) {
-                if (submissionDto.getSubmissionId() != null) {
-                    throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
-                }
-                submissionDto.setAssessmentId(assessmentId);
-                submissionService.validateDto(experimentId, securedInfo.getUserId(), submissionDto);
-                Submission submission;
-                try {
-                    submission = submissionService.fromDto(submissionDto, apijwtService.isLearner(securedInfo));
-                } catch (DataServiceException ex) {
-                    return new ResponseEntity("Error 105: Unable to create Submission: " + ex.getMessage(), HttpStatus.BAD_REQUEST);
-                }
-                SubmissionDto returnedDto = submissionService.toDto(submissionService.save(submission), false, false);
-                HttpHeaders headers = submissionService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, submission.getSubmissionId());
+                boolean student = !apijwtService.isInstructorOrHigher(securedInfo);
+                SubmissionDto returnedDto = submissionService.postSubmission(submissionDto, experimentId, securedInfo.getUserId(), assessmentId, student);
+                HttpHeaders headers = submissionService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, returnedDto.getSubmissionId());
                 return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
             } else {
                 return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);

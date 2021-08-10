@@ -87,6 +87,20 @@ public class ExperimentServiceImpl implements ExperimentService {
     public Experiment getExperiment(long experimentId){ return allRepositories.experimentRepository.findByExperimentId(experimentId); }
 
     @Override
+    public ExperimentDto postExperiment(ExperimentDto experimentDto, SecuredInfo securedInfo) throws DataServiceException, TitleValidationException {
+        validateTitle(experimentDto.getTitle(), securedInfo.getContextId());
+
+        Experiment experiment;
+        experimentDto = fillContextInfo(experimentDto, securedInfo);
+        try {
+            experiment = fromDto(experimentDto);
+        } catch (DataServiceException e) {
+            throw new DataServiceException("Error 105: Unable to create the experiment:" + e.getMessage());
+        }
+        return toDto(save(experiment), false, false, false);
+    }
+
+    @Override
     public void updateExperiment(long experimentId, long contextId, ExperimentDto experimentDto, SecuredInfo securedInfo) throws TitleValidationException, WrongValueException, ParticipantNotUpdatedException {
         Experiment experimentToChange = getExperiment(experimentId);
         if(StringUtils.isAllBlank(experimentDto.getTitle()) && StringUtils.isAllBlank(experimentToChange.getTitle())){

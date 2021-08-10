@@ -8,6 +8,7 @@ import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.GroupNotMatchingException;
+import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
@@ -103,10 +104,9 @@ public class AssignmentServiceImpl implements AssignmentService {
     @Value("${application.url}")
     private String localUrl;
 
-
-
-
     static final Logger log = LoggerFactory.getLogger(AssignmentServiceImpl.class);
+
+
 
     @Override
     public List<Assignment> findAllByExposureId(long exposureId) {
@@ -121,6 +121,25 @@ public class AssignmentServiceImpl implements AssignmentService {
             assignmentDtoList.add(toDto(assignment, submissions));
         }
         return assignmentDtoList;
+    }
+
+    @Override
+    public AssignmentDto postAssignment(AssignmentDto assignmentDto, long experimentId, String CanvasCourseId, long exposureId) throws IdInPostException, DataServiceException, TitleValidationException, AssignmentNotCreatedException, AssessmentNotMatchingException {
+        if (assignmentDto.getAssignmentId() != null) {
+            throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
+        }
+        validateTitle(assignmentDto.getTitle());
+        assignmentDto.setExposureId(exposureId);
+        Assignment assignment;
+        try {
+            assignment = fromDto(assignmentDto);
+        } catch (DataServiceException e) {
+            throw new DataServiceException("Error 105: Unable to create Assignment: " + e.getMessage());
+        }
+        Assignment assignmentSaved = save(assignment);
+        createAssignmentInCanvas(assignmentSaved, experimentId, CanvasCourseId);
+        saveAndFlush(assignmentSaved);
+        return toDto(assignmentSaved, false);
     }
 
     @Override

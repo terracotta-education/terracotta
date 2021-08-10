@@ -2,6 +2,7 @@ package edu.iu.terracotta.service.app;
 
 import edu.iu.terracotta.exceptions.AnswerNotMatchingException;
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.TypeNotSupportedException;
 import edu.iu.terracotta.model.app.AnswerEssaySubmission;
 import edu.iu.terracotta.model.app.AnswerMcSubmission;
@@ -14,6 +15,18 @@ import java.util.List;
 import java.util.Optional;
 
 public interface AnswerSubmissionService {
+
+    //general methods
+    List<AnswerSubmissionDto> getAnswerSubmissions(long questionSubmissionId, String answerType) throws DataServiceException;
+
+    AnswerSubmissionDto getAnswerSubmission(long answerSubmissionId, String answerType) throws DataServiceException;
+
+    AnswerSubmissionDto postAnswerSubmission(AnswerSubmissionDto answerSubmissionDto, long questionSubmissionId) throws IdInPostException, DataServiceException, TypeNotSupportedException;
+
+    void updateAnswerSubmission(AnswerSubmissionDto answerSubmissionDto, long answerSubmissionId, String answerType) throws AnswerNotMatchingException, DataServiceException;
+
+    void deleteAnswerSubmission(long answerSubmissionId, String answerType) throws DataServiceException;
+
     //METHODS FOR MC ANSWER SUBMISSIONS
 
     List<AnswerMcSubmission> findByQuestionSubmissionIdMC(Long questionSubmissionId);
@@ -61,8 +74,6 @@ public interface AnswerSubmissionService {
     boolean essayAnswerSubmissionBelongsToQuestionSubmission(Long questionSubmissionId, Long answerEssaySubmissionId);
 
     //USED BY ALL TYPES
-    AnswerSubmissionDto postAnswerSubmission(String answerType, AnswerSubmissionDto answerSubmissionDto) throws DataServiceException, TypeNotSupportedException;
-
     String getAnswerType(Long questionSubmissionId);
 
     HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId, Long submissionId, Long questionSubmissionId, Long answerSubmissionId);

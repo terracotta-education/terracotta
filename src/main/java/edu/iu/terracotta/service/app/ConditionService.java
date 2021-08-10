@@ -1,6 +1,7 @@
 package edu.iu.terracotta.service.app;
 
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.model.app.Condition;
 import edu.iu.terracotta.model.app.dto.ConditionDto;
@@ -14,6 +15,8 @@ import java.util.Optional;
 
 public interface ConditionService {
     List<ConditionDto> findAllByExperimentId(long experimentId);
+
+    ConditionDto postCondition(ConditionDto conditionDto, long experimentId) throws IdInPostException, DataServiceException, TitleValidationException;
 
     ConditionDto toDto(Condition condition);
 

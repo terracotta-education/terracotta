@@ -5,7 +5,6 @@ import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.IdInPostException;
-import edu.iu.terracotta.exceptions.InvalidQuestionTypeException;
 import edu.iu.terracotta.exceptions.NegativePointsException;
 import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
 import edu.iu.terracotta.model.app.Question;
@@ -113,7 +112,7 @@ public class QuestionController {
                                                     @RequestBody QuestionDto questionDto,
                                                     UriComponentsBuilder ucBuilder,
                                                     HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, BadTokenException, InvalidQuestionTypeException, IdInPostException, NegativePointsException {
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, BadTokenException, IdInPostException, DataServiceException {
 
         log.debug("Creating Question: {}", questionDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
@@ -121,18 +120,7 @@ public class QuestionController {
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
 
         if(apijwtService.isInstructorOrHigher(securedInfo)) {
-            if(questionDto.getQuestionId() != null) {
-                throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
-            }
-            questionDto.setAssessmentId(assessmentId);
-            Question question;
-            try {
-                questionService.validateQuestionType(questionDto);
-                question = questionService.fromDto(questionDto);
-            } catch (DataServiceException ex) {
-                return new ResponseEntity("Error 105: Unable to create Question: " + ex.getMessage(), HttpStatus.BAD_REQUEST);
-            }
-            QuestionDto returnedDto = questionService.toDto(questionService.save(question), answers, true);
+            QuestionDto returnedDto = questionService.postQuestion(questionDto, assessmentId, answers);
             HttpHeaders headers = questionService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, returnedDto.getQuestionId());
             return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
         } else {

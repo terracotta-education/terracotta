@@ -2,6 +2,7 @@ package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.model.app.Experiment;
@@ -22,6 +23,7 @@ import edu.iu.terracotta.service.app.OutcomeScoreService;
 import edu.iu.terracotta.service.app.OutcomeService;
 import edu.iu.terracotta.service.app.ParticipantService;
 import edu.iu.terracotta.service.canvas.CanvasAPIClient;
+import edu.iu.terracotta.utils.TextConstants;
 import edu.ksu.canvas.model.assignment.Submission;
 import org.apache.commons.lang3.EnumUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -78,6 +80,22 @@ public class OutcomeServiceImpl implements OutcomeService {
 
     @Override
     public Outcome getOutcome(Long id) { return allRepositories.outcomeRepository.findByOutcomeId(id); }
+
+    @Override
+    public OutcomeDto postOutcome(OutcomeDto outcomeDto, long exposureId) throws IdInPostException, DataServiceException, TitleValidationException {
+        if(outcomeDto.getOutcomeId() != null){
+            throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
+        }
+        outcomeDto.setExposureId(exposureId);
+        defaultOutcome(outcomeDto);
+        Outcome outcome;
+        try{
+            outcome = fromDto(outcomeDto);
+        } catch (DataServiceException ex) {
+            throw new DataServiceException("Error 105: Unable to create Outcome: " + ex.getMessage());
+        }
+        return toDto(save(outcome), false);
+    }
 
     @Override
     public OutcomeDto toDto(Outcome outcome, boolean outcomeScores) {

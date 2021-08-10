@@ -7,7 +7,6 @@ import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.ExposureNotMatchingException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
-import edu.iu.terracotta.model.app.Exposure;
 import edu.iu.terracotta.model.app.dto.ExposureDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
@@ -87,7 +86,7 @@ public class ExposureController {
                                                     @RequestBody ExposureDto exposureDto,
                                                     UriComponentsBuilder ucBuilder,
                                                     HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, ExperimentLockedException, TitleValidationException, IdInPostException {
+            throws ExperimentNotMatchingException, BadTokenException, ExperimentLockedException, TitleValidationException, IdInPostException, DataServiceException {
 
         log.debug("Creating Exposure : {}", exposureDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
@@ -95,20 +94,8 @@ public class ExposureController {
         apijwtService.experimentLocked(experimentId,true);
 
         if(apijwtService.isInstructorOrHigher(securedInfo)) {
-            if(exposureDto.getExposureId() != null) {
-                throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
-            }
-
-            exposureService.validateTitle(exposureDto.getTitle());
-            exposureDto.setExperimentId(experimentId);
-            Exposure exposure;
-            try{
-                exposure = exposureService.fromDto(exposureDto);
-            } catch (DataServiceException e) {
-                return new ResponseEntity("Error 105: Unable to create exposure:" + e.getMessage(), HttpStatus.BAD_REQUEST);
-            }
-            ExposureDto returnedDto = exposureService.toDto(exposureService.save(exposure));
-            HttpHeaders headers = exposureService.buildHeaders(ucBuilder, experimentId, exposure.getExposureId());
+            ExposureDto returnedDto = exposureService.postExposure(exposureDto, experimentId);
+            HttpHeaders headers = exposureService.buildHeaders(ucBuilder, experimentId, returnedDto.getExposureId());
             return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
         }else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);

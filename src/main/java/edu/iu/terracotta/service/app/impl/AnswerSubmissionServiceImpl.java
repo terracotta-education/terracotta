@@ -2,6 +2,7 @@ package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.exceptions.AnswerNotMatchingException;
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.TypeNotSupportedException;
 import edu.iu.terracotta.model.app.AnswerEssaySubmission;
 import edu.iu.terracotta.model.app.AnswerMc;
@@ -15,10 +16,7 @@ import edu.iu.terracotta.utils.TextConstants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.ArrayList;
@@ -33,6 +31,81 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
 
     @Autowired
     QuestionSubmissionService questionSubmissionService;
+
+    /*
+    general methods
+     */
+    @Override
+    public List<AnswerSubmissionDto> getAnswerSubmissions(long questionSubmissionId, String answerType) throws DataServiceException {
+        switch(answerType){
+            case "MC":
+                return getAnswerMcSubmissions(questionSubmissionId);
+            case "ESSAY":
+                return getAnswerEssaySubmissions(questionSubmissionId);
+            default: throw new DataServiceException("Error 103: Answer type not supported.");
+        }
+    }
+
+    @Override
+    public AnswerSubmissionDto getAnswerSubmission(long answerSubmissionId, String answerType) throws DataServiceException {
+        switch(answerType){
+            case "MC":
+                return toDtoMC(getAnswerMcSubmission(answerSubmissionId));
+            case "ESSAY":
+                return toDtoEssay(getAnswerEssaySubmission(answerSubmissionId));
+            default: throw new DataServiceException("Error 103: Answer type not supported.");
+        }
+    }
+
+    @Override
+    public AnswerSubmissionDto postAnswerSubmission(AnswerSubmissionDto answerSubmissionDto, long questionSubmissionId) throws IdInPostException, DataServiceException, TypeNotSupportedException {
+        if(answerSubmissionDto.getAnswerSubmissionId() != null){
+            throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
+        }
+        answerSubmissionDto.setQuestionSubmissionId(questionSubmissionId);
+        String answerType = getAnswerType(questionSubmissionId);
+        switch(answerType){
+            case "MC":
+                AnswerMcSubmission answerMcSubmission;
+                try {
+                    answerMcSubmission = fromDtoMC(answerSubmissionDto);
+                } catch (DataServiceException ex) {
+                    throw new DataServiceException("Error 105: Unable to create answer submission: " + ex.getMessage());
+                }
+                return (toDtoMC(saveMC(answerMcSubmission)));
+            case "ESSAY":
+                AnswerEssaySubmission answerEssaySubmission;
+                try{
+                    answerEssaySubmission = fromDtoEssay(answerSubmissionDto);
+                } catch (DataServiceException ex) {
+                    throw new DataServiceException("Error 105: Unable to create answer submission: " + ex.getMessage());
+                }
+                return (toDtoEssay(saveEssay(answerEssaySubmission)));
+            default: throw new TypeNotSupportedException("Error 103: Answer type not supported.");
+        }
+    }
+
+    @Override
+    public void updateAnswerSubmission(AnswerSubmissionDto answerSubmissionDto, long answerSubmissionId, String answerType) throws AnswerNotMatchingException, DataServiceException {
+        switch (answerType) {
+            case "MC":
+                updateAnswerMcSubmission(answerSubmissionId, answerSubmissionDto);
+            case "ESSAY":
+                updateAnswerEssaySubmission(answerSubmissionId, answerSubmissionDto);
+            default: throw new DataServiceException("Error 103: Answer type not supported.");
+        }
+    }
+
+    @Override
+    public void deleteAnswerSubmission(long answerSubmissionId, String answerType) throws DataServiceException {
+        switch(answerType){
+            case "MC":
+                deleteByIdMC(answerSubmissionId);
+            case "ESSAY":
+                deleteByIdEssay(answerSubmissionId);
+            default: throw new DataServiceException("Error 103: Answer type not supported.");
+        }
+    }
 
     /*
     MULTIPLE CHOICE SUBMISSION METHODS
@@ -192,29 +265,6 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
     public String getAnswerType(Long questionSubmissionId){
         QuestionSubmission questionSubmission = allRepositories.questionSubmissionRepository.findByQuestionSubmissionId(questionSubmissionId);
         return questionSubmission.getQuestion().getQuestionType().toString();
-    }
-
-    @Override
-    public AnswerSubmissionDto postAnswerSubmission(String answerType, AnswerSubmissionDto answerSubmissionDto) throws DataServiceException, TypeNotSupportedException{
-        switch(answerType){
-            case "MC":
-                AnswerMcSubmission answerMcSubmission;
-                try {
-                    answerMcSubmission = fromDtoMC(answerSubmissionDto);
-                } catch (DataServiceException ex) {
-                    throw new DataServiceException("Error 105: Unable to create answer submission: " + ex.getMessage());
-                }
-                return (toDtoMC(saveMC(answerMcSubmission)));
-            case "ESSAY":
-                AnswerEssaySubmission answerEssaySubmission;
-                try{
-                    answerEssaySubmission = fromDtoEssay(answerSubmissionDto);
-                } catch (DataServiceException ex) {
-                    throw new DataServiceException("Error 105: Unable to create answer submission: " + ex.getMessage());
-                }
-                return (toDtoEssay(saveEssay(answerEssaySubmission)));
-            default: throw new TypeNotSupportedException("Error 103: Answer type not supported.");
-        }
     }
 
 

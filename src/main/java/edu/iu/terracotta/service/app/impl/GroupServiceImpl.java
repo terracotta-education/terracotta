@@ -1,6 +1,7 @@
 package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.model.app.Condition;
 import edu.iu.terracotta.model.app.Experiment;
@@ -16,6 +17,7 @@ import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.GroupService;
 import edu.iu.terracotta.service.app.ParticipantService;
+import edu.iu.terracotta.utils.TextConstants;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -60,6 +62,20 @@ public class GroupServiceImpl implements GroupService {
     @Override
     public Group getGroup(Long id) { return allRepositories.groupRepository.findByGroupId(id); }
 
+    @Override
+    public GroupDto postGroup(GroupDto groupDto, long experimentId) throws IdInPostException, DataServiceException{
+        if(groupDto.getGroupId() != null) {
+            throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
+        }
+        groupDto.setExperimentId(experimentId);
+        Group group;
+        try{
+            group = fromDto(groupDto);
+        } catch (DataServiceException e) {
+            throw new DataServiceException("Error 105: Unable to create group:" + e.getMessage());
+        }
+        return toDto(save(group));
+    }
 
     @Override
     public GroupDto toDto(Group group) {

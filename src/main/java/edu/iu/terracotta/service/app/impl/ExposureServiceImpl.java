@@ -2,6 +2,7 @@ package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentStartedException;
+import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.model.app.Condition;
 import edu.iu.terracotta.model.app.Experiment;
@@ -14,6 +15,7 @@ import edu.iu.terracotta.model.app.enumerator.ExposureTypes;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.ExposureService;
+import edu.iu.terracotta.utils.TextConstants;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -48,6 +50,23 @@ public class ExposureServiceImpl implements ExposureService {
             exposureDtoList.add(toDto(exposure));
         }
         return exposureDtoList;
+    }
+
+    @Override
+    public ExposureDto postExposure(ExposureDto exposureDto, long experimentId) throws IdInPostException, DataServiceException, TitleValidationException{
+        if(exposureDto.getExposureId() != null) {
+            throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
+        }
+
+        validateTitle(exposureDto.getTitle());
+        exposureDto.setExperimentId(experimentId);
+        Exposure exposure;
+        try{
+            exposure = fromDto(exposureDto);
+        } catch (DataServiceException e) {
+            throw new DataServiceException("Error 105: Unable to create exposure:" + e.getMessage());
+        }
+        return toDto(save(exposure));
     }
 
     @Override

@@ -10,8 +10,6 @@ import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.InvalidUserException;
 import edu.iu.terracotta.exceptions.QuestionSubmissionNotMatchingException;
 import edu.iu.terracotta.exceptions.TypeNotSupportedException;
-import edu.iu.terracotta.model.app.AnswerEssaySubmission;
-import edu.iu.terracotta.model.app.AnswerMcSubmission;
 import edu.iu.terracotta.model.app.dto.AnswerSubmissionDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
@@ -21,7 +19,6 @@ import edu.iu.terracotta.utils.TextConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -43,8 +40,7 @@ import java.util.List;
 public class AnswerSubmissionController {
 
     /**
-     This controller was built to support the addition of answer submission types. The current state of the controller supports MC (multiple choice) and ESSAY types.
-     All of the request methods can be updated to support additional types.
+     This controller was built to support the addition of answer submission types.
      */
 
     static final String REQUEST_ROOT = "api/experiments";
@@ -70,7 +66,7 @@ public class AnswerSubmissionController {
                                                                                       @PathVariable("submission_id") Long submissionId,
                                                                                       @PathVariable("question_submission_id") Long questionSubmissionId,
                                                                                       HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, BadTokenException, InvalidUserException {
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, BadTokenException, InvalidUserException, DataServiceException {
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -81,23 +77,12 @@ public class AnswerSubmissionController {
             if(!apijwtService.isInstructorOrHigher(securedInfo)){
                 submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
             }
-
             String answerType = answerSubmissionService.getAnswerType(questionSubmissionId);
-            switch (answerType) {
-                case "MC":
-                    List<AnswerSubmissionDto> answerSubmissionDtoListMC = answerSubmissionService.getAnswerMcSubmissions(questionSubmissionId);
-                    if(answerSubmissionDtoListMC.isEmpty()){
-                        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-                    }
-                    return new ResponseEntity<>(answerSubmissionDtoListMC, HttpStatus.OK);
-                case "ESSAY":
-                    List<AnswerSubmissionDto> answerSubmissionDtoListEssay = answerSubmissionService.getAnswerEssaySubmissions(questionSubmissionId);
-                    if(answerSubmissionDtoListEssay.isEmpty()){
-                        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-                    }
-                    return new ResponseEntity<>(answerSubmissionDtoListEssay, HttpStatus.OK);
-                default: return new ResponseEntity("Error 103: Answer type not supported.", HttpStatus.BAD_REQUEST);
+            List<AnswerSubmissionDto> answerSubmissionDtoList = answerSubmissionService.getAnswerSubmissions(questionSubmissionId, answerType);
+            if(answerSubmissionDtoList.isEmpty()){
+                return new ResponseEntity<>(HttpStatus.NO_CONTENT);
             }
+            return new ResponseEntity<>(answerSubmissionDtoList, HttpStatus.OK);
         } else {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
@@ -115,7 +100,7 @@ public class AnswerSubmissionController {
                                                                    @PathVariable("question_submission_id") Long questionSubmissionId,
                                                                    @PathVariable("answer_submission_id") Long answerSubmissionId,
                                                                    HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, AnswerSubmissionNotMatchingException, BadTokenException, InvalidUserException{
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, AnswerSubmissionNotMatchingException, BadTokenException, InvalidUserException, DataServiceException {
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -125,19 +110,10 @@ public class AnswerSubmissionController {
         apijwtService.answerSubmissionAllowed(securedInfo, questionSubmissionId, answerType, answerSubmissionId);
 
         if(apijwtService.isLearnerOrHigher(securedInfo)){
-
             if(!apijwtService.isInstructorOrHigher(securedInfo)){
                 submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
             }
-            if(answerType.equals("MC")){
-                AnswerSubmissionDto mcAnswerSubmissionDto = answerSubmissionService.toDtoMC(answerSubmissionService.getAnswerMcSubmission(answerSubmissionId));
-                return new ResponseEntity<>(mcAnswerSubmissionDto, HttpStatus.OK);
-            } else if (answerType.equals("ESSAY")){
-                AnswerSubmissionDto essayAnswerSubmissionDto = answerSubmissionService.toDtoEssay(answerSubmissionService.getAnswerEssaySubmission(answerSubmissionId));
-                return new ResponseEntity<>(essayAnswerSubmissionDto, HttpStatus.OK);
-            } else {
-                return new ResponseEntity("Error 103: Answer type not supported.", HttpStatus.BAD_REQUEST);
-            }
+            return new ResponseEntity<>(answerSubmissionService.getAnswerSubmission(answerSubmissionId, answerType), HttpStatus.OK);
         } else {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
@@ -164,17 +140,10 @@ public class AnswerSubmissionController {
         apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, questionSubmissionId);
 
         if(apijwtService.isLearnerOrHigher(securedInfo)){
-            if(answerSubmissionDto.getAnswerSubmissionId() != null){
-                throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
-            }
-
             if(!apijwtService.isInstructorOrHigher(securedInfo)){
                 submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
             }
-
-            answerSubmissionDto.setQuestionSubmissionId(questionSubmissionId);
-            String answerType = answerSubmissionService.getAnswerType(questionSubmissionId);
-            AnswerSubmissionDto returnedDto = answerSubmissionService.postAnswerSubmission(answerType, answerSubmissionDto);
+            AnswerSubmissionDto returnedDto = answerSubmissionService.postAnswerSubmission(answerSubmissionDto, questionSubmissionId);
             HttpHeaders headers = answerSubmissionService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, submissionId, questionSubmissionId, returnedDto.getAnswerSubmissionId());
             return new ResponseEntity<>(returnedDto, headers, HttpStatus.OK);
         } else {
@@ -198,7 +167,7 @@ public class AnswerSubmissionController {
                                                        @PathVariable("answer_submission_id") Long answerSubmissionId,
                                                        @RequestBody AnswerSubmissionDto answerSubmissionDto,
                                                        HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, AnswerSubmissionNotMatchingException, BadTokenException, InvalidUserException, AnswerNotMatchingException {
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, AnswerSubmissionNotMatchingException, BadTokenException, InvalidUserException, AnswerNotMatchingException, DataServiceException {
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -211,14 +180,11 @@ public class AnswerSubmissionController {
             if(!apijwtService.isInstructorOrHigher(securedInfo)){
                 submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
             }
-            switch (answerType) {
-                case "MC":
-                    answerSubmissionService.updateAnswerMcSubmission(answerSubmissionId, answerSubmissionDto);
-                    return new ResponseEntity<>(HttpStatus.OK);
-                case "ESSAY":
-                    answerSubmissionService.updateAnswerEssaySubmission(answerSubmissionId, answerSubmissionDto);
-                    return new ResponseEntity<>(HttpStatus.OK);
-                default: return new ResponseEntity("Error 103: Answer type not supported.", HttpStatus.BAD_REQUEST);
+            try{
+                answerSubmissionService.updateAnswerSubmission(answerSubmissionDto, answerSubmissionId, answerType);
+                return new ResponseEntity<>(HttpStatus.OK);
+            } catch (Exception e) {
+                throw new DataServiceException("Error 105: Unable to update answer submission: " + e.getMessage());
             }
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
@@ -237,7 +203,7 @@ public class AnswerSubmissionController {
                                                        @PathVariable("question_submission_id") Long questionSubmissionId,
                                                        @PathVariable("answer_submission_id") Long answerSubmissionId,
                                                        HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, AnswerSubmissionNotMatchingException, BadTokenException {
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, AnswerSubmissionNotMatchingException, BadTokenException, DataServiceException {
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -247,24 +213,11 @@ public class AnswerSubmissionController {
         apijwtService.answerSubmissionAllowed(securedInfo, questionSubmissionId, answerType, answerSubmissionId);
 
         if(apijwtService.isInstructorOrHigher(securedInfo)){
-            switch(answerType){
-                case "MC":
-                    try{
-                        answerSubmissionService.deleteByIdMC(answerSubmissionId);
-                        return new ResponseEntity<>(HttpStatus.OK);
-                    } catch (EmptyResultDataAccessException ex) {
-                        log.warn(ex.getMessage());
-                        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-                    }
-                case "ESSAY":
-                    try{
-                        answerSubmissionService.deleteByIdEssay(answerSubmissionId);
-                        return new ResponseEntity<>(HttpStatus.OK);
-                    } catch (EmptyResultDataAccessException ex) {
-                        log.warn(ex.getMessage());
-                        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-                    }
-                default: return new ResponseEntity("Error 103: Answer type not supported.", HttpStatus.BAD_REQUEST);
+            try{
+                answerSubmissionService.deleteAnswerSubmission(answerSubmissionId, answerType);
+                return new ResponseEntity<>(HttpStatus.OK);
+            } catch (DataServiceException e) {
+                throw new DataServiceException("Error 105: Could not delete answer submission. " + e.getMessage());
             }
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
