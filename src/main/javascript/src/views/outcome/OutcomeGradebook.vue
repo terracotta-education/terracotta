@@ -25,7 +25,7 @@
               :key="opIndex"
             >
               <td>
-                <template v-if="!outcomes.some(o=>parseInt(o.lmsOutcomeId)===parseInt(op.assignmentId))">
+                <template v-if="!outcomes.some(o=>parseInt(o.lmsOutcomeId)===parseInt(op.assignmentId) && o.exposureId === exposure_id)">
                   <v-checkbox
                     v-model="selectedAssignmentIds"
                     :value="op.assignmentId"
