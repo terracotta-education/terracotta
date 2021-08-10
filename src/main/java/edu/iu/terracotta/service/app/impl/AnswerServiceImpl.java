@@ -1,6 +1,7 @@
 package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.MultipleChoiceLimitReachedException;
 import edu.iu.terracotta.model.app.AnswerMc;
 import edu.iu.terracotta.model.app.Question;
@@ -8,6 +9,7 @@ import edu.iu.terracotta.model.app.dto.AnswerDto;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.AnswerService;
 import edu.iu.terracotta.service.app.FileStorageService;
+import edu.iu.terracotta.utils.TextConstants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
@@ -48,6 +50,28 @@ public class AnswerServiceImpl implements AnswerService {
     public AnswerDto getAnswerMC(Long answerId, boolean student){
         AnswerMc answerMc = allRepositories.answerMcRepository.findByAnswerMcId(answerId);
         return toDtoMC(answerMc, student);
+    }
+
+    @Override
+    public AnswerDto postAnswerMC(AnswerDto answerDto, long questionId) throws IdInPostException, DataServiceException, MultipleChoiceLimitReachedException{
+        if (answerDto.getAnswerId() != null) {
+            throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
+        }
+
+        answerDto.setQuestionId(questionId);
+        answerDto.setAnswerType(getQuestionType(questionId));
+        if ("MC".equals(answerDto.getAnswerType())) {
+            limitReached(questionId);
+            AnswerMc answerMc;
+            try {
+                answerMc = fromDtoMC(answerDto);
+            } catch (DataServiceException ex) {
+                throw new DataServiceException("Error 105: Unable to create Answer: " + ex.getMessage());
+            }
+            return toDtoMC(saveMC(answerMc), false);
+        } else {
+            throw new DataServiceException("Error 103: Answer type not supported.");
+        }
     }
 
     @Override

@@ -1,6 +1,7 @@
 package edu.iu.terracotta.service.app;
 
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.ExposureGroupCondition;
@@ -18,6 +19,8 @@ public interface GroupService {
     List<Group> findAllByExperimentId(long experimentId);
 
     List<GroupDto> getGroups(Long experimentId);
+
+    GroupDto postGroup(GroupDto groupDto, long experimentId) throws IdInPostException, DataServiceException;
 
     Group getGroup(Long id);
 

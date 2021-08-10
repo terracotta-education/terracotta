@@ -76,7 +76,6 @@ public class ParticipantController {
     }
 
 
-
     @RequestMapping(value = "/{experimentId}/participants/{participant_id}", method = RequestMethod.GET, produces = "application/json;")
     @ResponseBody
     public ResponseEntity<ParticipantDto> getParticipant(@PathVariable("experimentId") long experimentId,
@@ -97,31 +96,20 @@ public class ParticipantController {
         }
     }
 
+
     @RequestMapping(value = "/{experimentId}/participants", method = RequestMethod.POST)
     public ResponseEntity<ParticipantDto> postParticipant(@PathVariable("experimentId") long experimentId,
                                                          @RequestBody ParticipantDto participantDto,
                                                          UriComponentsBuilder ucBuilder,
                                                          HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, IdInPostException {
+            throws ExperimentNotMatchingException, BadTokenException, IdInPostException, DataServiceException {
 
         log.debug("Creating Participant : {}", participantDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
 
         if (apijwtService.isLearnerOrHigher(securedInfo)) {
-            if (participantDto.getParticipantId() != null) {
-                throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
-            }
-
-            Participant participant;
-            participantDto.setExperimentId(experimentId);
-            try {
-                participant = participantService.fromDto(participantDto);
-            } catch (DataServiceException e) {
-                return new ResponseEntity("Error 105: Unable to create the participant:" + e.getMessage(), HttpStatus.BAD_REQUEST);
-            }
-            ParticipantDto returnedDto = participantService.toDto(participantService.save(participant));
-
+            ParticipantDto returnedDto = participantService.postParticipant(participantDto, experimentId);
             HttpHeaders headers = participantService.buildHeaders(ucBuilder, experimentId, returnedDto.getParticipantId());
             return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
         } else {
@@ -173,7 +161,6 @@ public class ParticipantController {
                 Participant participant = participantService.getParticipant(participantDto.getParticipantId(), experimentId, securedInfo.getUserId(), false);
                 log.debug("Updating participant with id: {}", participant.getParticipantId());
                 participantMap.put(participant, participantDto);
-
             }
             try{
                 participantService.changeParticipant(participantMap, experimentId);
@@ -185,7 +172,6 @@ public class ParticipantController {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
     }
-
 
 
     @RequestMapping(value = "/{experimentId}/participants/{participant_id}", method = RequestMethod.DELETE)

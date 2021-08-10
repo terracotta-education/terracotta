@@ -7,7 +7,6 @@ import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
-import edu.iu.terracotta.model.app.Assessment;
 import edu.iu.terracotta.model.app.dto.AssessmentDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
@@ -32,7 +31,6 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.ArrayList;
 import java.util.List;
 
 @SuppressWarnings({"rawtypes", "unchecked"})
@@ -108,7 +106,7 @@ public class AssessmentController {
                                                         @RequestBody AssessmentDto assessmentDto,
                                                         UriComponentsBuilder ucBuilder,
                                                         HttpServletRequest req)
-            throws ExperimentNotMatchingException, TreatmentNotMatchingException, BadTokenException, TitleValidationException, AssessmentNotMatchingException, IdInPostException {
+            throws ExperimentNotMatchingException, TreatmentNotMatchingException, BadTokenException, TitleValidationException, AssessmentNotMatchingException, IdInPostException, DataServiceException {
 
         log.debug("Creating Assessment: {}", assessmentDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
@@ -116,24 +114,8 @@ public class AssessmentController {
         apijwtService.treatmentAllowed(securedInfo, experimentId, conditionId, treatmentId);
 
         if(apijwtService.isInstructorOrHigher(securedInfo)) {
-            if(assessmentDto.getAssessmentId() != null) {
-                throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
-            }
-
-            assessmentService.validateTitle(assessmentDto.getTitle());
-            assessmentDto = assessmentService.defaultAssessment(assessmentDto, treatmentId);
-            Assessment assessment;
-            try {
-                assessment = assessmentService.fromDto(assessmentDto);
-                assessment.setQuestions(new ArrayList<>());
-            } catch (DataServiceException ex) {
-                return new ResponseEntity("Error 105: Unable to create Assessment: " + ex.getMessage(), HttpStatus.BAD_REQUEST);
-            }
-
-            Assessment assessmentSaved = assessmentService.save(assessment);
-            assessmentService.updateTreatment(treatmentId, assessmentSaved);
-            AssessmentDto returnedDto = assessmentService.toDto(assessmentSaved, false, false,false, false);
-            HttpHeaders headers = assessmentService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentSaved.getAssessmentId());
+            AssessmentDto returnedDto = assessmentService.postAssessment(assessmentDto, treatmentId);
+            HttpHeaders headers = assessmentService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, returnedDto.getAssessmentId());
             return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);

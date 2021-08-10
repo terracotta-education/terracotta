@@ -2,6 +2,7 @@ package edu.iu.terracotta.service.app;
 
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentStartedException;
+import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.model.app.Exposure;
 import edu.iu.terracotta.model.app.dto.ExposureDto;
@@ -16,6 +17,8 @@ public interface ExposureService {
     List<Exposure> findAllByExperimentId(long experimentId);
 
     List<ExposureDto> getExposures(Long experimentId);
+
+    ExposureDto postExposure(ExposureDto exposureDto, long experimentId) throws IdInPostException, DataServiceException, TitleValidationException;
 
     ExposureDto toDto(Exposure exposure);
 

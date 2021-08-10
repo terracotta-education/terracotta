@@ -2,6 +2,7 @@ package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.InvalidUserException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.model.LtiMembershipEntity;
@@ -22,6 +23,7 @@ import edu.iu.terracotta.service.app.GroupService;
 import edu.iu.terracotta.service.app.ParticipantService;
 import edu.iu.terracotta.service.lti.AdvantageMembershipService;
 import edu.iu.terracotta.service.lti.LTIDataService;
+import edu.iu.terracotta.utils.TextConstants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
@@ -87,6 +89,21 @@ public class ParticipantServiceImpl implements ParticipantService {
         } else {
             throw new InvalidUserException("Error 146: Students are not authorized to view other participants.");
         }
+    }
+
+    @Override
+    public ParticipantDto postParticipant(ParticipantDto participantDto, long experimentId) throws IdInPostException, DataServiceException {
+        if (participantDto.getParticipantId() != null) {
+            throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
+        }
+        Participant participant;
+        participantDto.setExperimentId(experimentId);
+        try {
+            participant = fromDto(participantDto);
+        } catch (DataServiceException e) {
+            throw new DataServiceException("Error 105: Unable to create the participant:" + e.getMessage());
+        }
+        return toDto(save(participant));
     }
 
     @Override

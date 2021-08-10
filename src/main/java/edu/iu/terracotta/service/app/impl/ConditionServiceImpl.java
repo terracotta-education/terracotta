@@ -1,12 +1,14 @@
 package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.dto.ConditionDto;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.model.app.Condition;
 import edu.iu.terracotta.service.app.ConditionService;
+import edu.iu.terracotta.utils.TextConstants;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -36,6 +38,24 @@ public class ConditionServiceImpl implements ConditionService {
             }
         }
         return conditionDtoList;
+    }
+
+    @Override
+    public ConditionDto postCondition(ConditionDto conditionDto, long experimentId) throws IdInPostException, DataServiceException, TitleValidationException{
+        if (conditionDto.getConditionId() != null){
+            throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
+        }
+        validateConditionName("", conditionDto.getName(), experimentId, 0L, false);
+
+        conditionDto.setExperimentId(experimentId);
+        Condition condition;
+        try{
+            condition = fromDto(conditionDto);
+        } catch (DataServiceException e) {
+            throw new DataServiceException("Error 105: Unable to create condition:" + e.getMessage());
+        }
+
+        return toDto(save(condition));
     }
 
     @Override

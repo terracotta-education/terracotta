@@ -1,6 +1,7 @@
 package edu.iu.terracotta.service.app;
 
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.model.LtiUserEntity;
 import edu.iu.terracotta.model.app.QuestionSubmissionComment;
 import edu.iu.terracotta.model.app.dto.QuestionSubmissionCommentDto;
@@ -18,6 +19,10 @@ public interface QuestionSubmissionCommentService {
     List<QuestionSubmissionCommentDto> getQuestionSubmissionComments(Long questionSubmissionId);
 
     QuestionSubmissionComment getQuestionSubmissionComment(Long id);
+
+    QuestionSubmissionCommentDto postQuestionSubmissionComment(QuestionSubmissionCommentDto questionSubmissionCommentDto, long questionSubmissionId, String userId) throws IdInPostException, DataServiceException;
+
+    void updateQuestionSubmissionComment(QuestionSubmissionCommentDto questionSubmissionCommentDto, long questionSubmissionCommentId, long experimentId, long submissionId, String userId) throws DataServiceException;
 
     QuestionSubmissionCommentDto toDto(QuestionSubmissionComment questionSubmissionComment);
 

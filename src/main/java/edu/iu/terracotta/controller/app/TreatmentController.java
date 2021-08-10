@@ -9,7 +9,6 @@ import edu.iu.terracotta.exceptions.ExperimentLockedException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
-import edu.iu.terracotta.model.app.Treatment;
 import edu.iu.terracotta.model.app.dto.TreatmentDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
@@ -102,7 +101,7 @@ public class TreatmentController {
                                                       @RequestBody TreatmentDto treatmentDto,
                                                       UriComponentsBuilder ucBuilder,
                                                       HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, ConditionNotMatchingException, ExperimentLockedException, AssessmentNotMatchingException, IdInPostException, ExceedingLimitException {
+            throws ExperimentNotMatchingException, BadTokenException, ConditionNotMatchingException, ExperimentLockedException, AssessmentNotMatchingException, IdInPostException, ExceedingLimitException, DataServiceException {
 
         log.debug("Creating Treatment: {}", treatmentDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
@@ -111,25 +110,8 @@ public class TreatmentController {
         apijwtService.conditionAllowed(securedInfo, experimentId, conditionId);
 
         if(apijwtService.isInstructorOrHigher(securedInfo)) {
-            if(treatmentDto.getTreatmentId() != null) {
-                throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
-            }
-            treatmentDto.setConditionId(conditionId);
-            if (treatmentDto.getAssignmentId()==null){
-                return new ResponseEntity("Error 129: Unable to create Treatment: The assignmentId is mandatory", HttpStatus.BAD_REQUEST);
-            }
-            Treatment treatment;
-            try{
-                treatment = treatmentService.fromDto(treatmentDto);
-            } catch (DataServiceException ex) {
-                return new ResponseEntity("Error 105: Unable to create Treatment: " + ex.getMessage(), HttpStatus.BAD_REQUEST);
-            }
-
-            treatmentService.limitToOne(treatment.getAssignment().getAssignmentId(), conditionId);
-            Treatment treatmentSaved = treatmentService.save(treatment);
-            TreatmentDto returnedDto = treatmentService.toDto(treatmentSaved, false);
-
-            HttpHeaders headers = treatmentService.buildHeaders(ucBuilder, experimentId, conditionId, treatment.getTreatmentId());
+            TreatmentDto returnedDto = treatmentService.postTreatment(treatmentDto, conditionId);
+            HttpHeaders headers = treatmentService.buildHeaders(ucBuilder, experimentId, conditionId, returnedDto.getTreatmentId());
             return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);

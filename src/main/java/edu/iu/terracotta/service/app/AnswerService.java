@@ -1,6 +1,7 @@
 package edu.iu.terracotta.service.app;
 
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.MultipleChoiceLimitReachedException;
 import edu.iu.terracotta.model.app.AnswerMc;
 import edu.iu.terracotta.model.app.dto.AnswerDto;
@@ -17,6 +18,8 @@ public interface AnswerService {
     List<AnswerDto> findAllByQuestionIdMC(Long questionId, boolean student);
 
     AnswerDto getAnswerMC(Long answerId, boolean student);
+
+    AnswerDto postAnswerMC(AnswerDto answerDto, long questionId) throws IdInPostException, DataServiceException, MultipleChoiceLimitReachedException;
 
     AnswerDto toDtoMC(AnswerMc answer, boolean student);
 

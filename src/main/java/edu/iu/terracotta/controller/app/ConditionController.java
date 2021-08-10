@@ -88,7 +88,7 @@ public class ConditionController {
                                                       @RequestBody ConditionDto conditionDto,
                                                       UriComponentsBuilder ucBuilder,
                                                       HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, ExperimentLockedException, TitleValidationException, ConditionsLockedException, IdInPostException {
+            throws ExperimentNotMatchingException, BadTokenException, ExperimentLockedException, TitleValidationException, ConditionsLockedException, IdInPostException, DataServiceException {
 
         log.debug("Creating Condition : {}", conditionDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
@@ -97,21 +97,8 @@ public class ConditionController {
         apijwtService.conditionsLocked(experimentId,true);
 
         if(apijwtService.isInstructorOrHigher(securedInfo)) {
-            if (conditionDto.getConditionId() != null){
-                throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
-            }
-            conditionService.validateConditionName("", conditionDto.getName(), experimentId, 0L, false);
-
-            conditionDto.setExperimentId(experimentId);
-            Condition condition;
-            try{
-                condition = conditionService.fromDto(conditionDto);
-            } catch (DataServiceException e) {
-                return new ResponseEntity("Error 105: Unable to create condition:" + e.getMessage(), HttpStatus.BAD_REQUEST);
-            }
-
-            ConditionDto returnedDto = conditionService.toDto(conditionService.save(condition));
-            HttpHeaders headers = conditionService.buildHeader(ucBuilder, experimentId, condition.getConditionId());
+            ConditionDto returnedDto = conditionService.postCondition(conditionDto, experimentId);
+            HttpHeaders headers = conditionService.buildHeader(ucBuilder, experimentId, returnedDto.getConditionId());
             return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
         }else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);

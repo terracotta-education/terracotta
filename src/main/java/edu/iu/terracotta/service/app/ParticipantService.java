@@ -1,6 +1,7 @@
 package edu.iu.terracotta.service.app;
 
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.InvalidUserException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.model.app.Participant;
@@ -19,6 +20,8 @@ public interface ParticipantService {
     List<ParticipantDto> getParticipants(List<Participant> participants, long experimentId, String userId, boolean student);
 
     Participant getParticipant(long id, long experimentId, String userId, boolean student) throws InvalidUserException;
+
+    ParticipantDto postParticipant(ParticipantDto participantDto, long experimentId) throws IdInPostException, DataServiceException;
 
     ParticipantDto toDto(Participant participant);
 

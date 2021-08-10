@@ -8,7 +8,6 @@ import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.exceptions.WrongValueException;
-import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.dto.ExperimentDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
@@ -107,35 +106,25 @@ public class ExperimentController {
     public ResponseEntity<ExperimentDto> postExperiment(@RequestBody ExperimentDto experimentDto,
                                                         UriComponentsBuilder ucBuilder,
                                                         HttpServletRequest req)
-            throws BadTokenException, TitleValidationException, IdInPostException {
+            throws BadTokenException, TitleValidationException, IdInPostException, DataServiceException {
         log.debug("Creating Experiment : {}", experimentDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         if (securedInfo ==null){
             throw new BadTokenException(TextConstants.BAD_TOKEN);
         }
-
         if (apijwtService.isInstructorOrHigher(securedInfo)) {
             if (experimentDto.getExperimentId() != null) {
                 throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
             }
+            //if an empty experiment has been created but not used, use it.
             ExperimentDto existingEmpty = experimentService.getEmptyExperiment(securedInfo, experimentDto);
             if (existingEmpty!=null){
                 experimentService.copyDto(existingEmpty, experimentDto);
                 HttpHeaders headers = experimentService.buildHeaders(ucBuilder, existingEmpty.getExperimentId());
                 return new ResponseEntity<>(existingEmpty, headers, HttpStatus.ALREADY_REPORTED);
             }
-            experimentService.validateTitle(experimentDto.getTitle(), securedInfo.getContextId());
-
-            Experiment experiment;
-            experimentDto = experimentService.fillContextInfo(experimentDto, securedInfo);
-            try {
-                experiment = experimentService.fromDto(experimentDto);
-            } catch (DataServiceException e) {
-                return new ResponseEntity("Error 105: Unable to create the experiment:" + e.getMessage(), HttpStatus.BAD_REQUEST);
-            }
-            ExperimentDto returnedDto = experimentService.toDto(experimentService.save(experiment), false, false, false);
-
-            HttpHeaders headers = experimentService.buildHeaders(ucBuilder, experiment.getExperimentId());
+            ExperimentDto returnedDto = experimentService.postExperiment(experimentDto, securedInfo);
+            HttpHeaders headers = experimentService.buildHeaders(ucBuilder, returnedDto.getExperimentId());
             return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);

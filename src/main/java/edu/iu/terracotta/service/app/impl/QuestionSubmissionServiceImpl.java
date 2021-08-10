@@ -111,7 +111,7 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
                 returnedDtoList.add(toDto(save(questionSubmission), false, false));
                 for(AnswerSubmissionDto answerSubmissionDto : questionSubmissionDto.getAnswerSubmissionDtoList()){
                     answerSubmissionDto.setQuestionSubmissionId(questionSubmission.getQuestionSubmissionId());
-                    answerSubmissionService.postAnswerSubmission(questionSubmission.getQuestion().getQuestionType().toString(), answerSubmissionDto);
+                    answerSubmissionService.postAnswerSubmission(answerSubmissionDto, questionSubmission.getQuestionSubmissionId());
                 }
             }
         } catch (Exception ex) {

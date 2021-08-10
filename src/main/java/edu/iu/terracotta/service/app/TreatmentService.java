@@ -3,6 +3,7 @@ package edu.iu.terracotta.service.app;
 import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExceedingLimitException;
+import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.model.app.Treatment;
 import edu.iu.terracotta.model.app.dto.TreatmentDto;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -19,6 +20,8 @@ public interface TreatmentService {
     List<TreatmentDto> getTreatments(Long conditionId, boolean submissions) throws AssessmentNotMatchingException;
 
     Treatment getTreatment(Long id);
+
+    TreatmentDto postTreatment(TreatmentDto treatmentDto, long conditionId) throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException;
 
     TreatmentDto toDto(Treatment treatment, boolean submissions) throws AssessmentNotMatchingException;
 

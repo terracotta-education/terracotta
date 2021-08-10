@@ -2,6 +2,7 @@ package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.model.app.Assessment;
 import edu.iu.terracotta.model.app.ExposureGroupCondition;
@@ -18,6 +19,7 @@ import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.service.app.QuestionService;
 import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.service.app.TreatmentService;
+import edu.iu.terracotta.utils.TextConstants;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -63,6 +65,27 @@ public class AssessmentServiceImpl implements AssessmentService {
             assessmentDtoList.add(toDto(assessment, false, false, submissions, false));
         }
         return assessmentDtoList;
+    }
+
+    @Override
+    public AssessmentDto postAssessment(AssessmentDto assessmentDto, long treatmentId) throws IdInPostException, DataServiceException, TitleValidationException, AssessmentNotMatchingException{
+        if(assessmentDto.getAssessmentId() != null) {
+            throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
+        }
+
+        validateTitle(assessmentDto.getTitle());
+        assessmentDto = defaultAssessment(assessmentDto, treatmentId);
+        Assessment assessment;
+        try {
+            assessment = fromDto(assessmentDto);
+            assessment.setQuestions(new ArrayList<>());
+        } catch (DataServiceException ex) {
+            throw new DataServiceException("Error 105: Unable to create Assessment: " + ex.getMessage());
+        }
+
+        Assessment assessmentSaved = save(assessment);
+        updateTreatment(treatmentId, assessmentSaved);
+        return toDto(assessmentSaved, false, false,false, false);
     }
 
     @Override

@@ -31,7 +31,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
-import edu.iu.terracotta.model.app.Assignment;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.http.HttpHeaders;
 
@@ -104,7 +103,7 @@ public class AssignmentController {
                                                         @RequestBody AssignmentDto assignmentDto,
                                                         UriComponentsBuilder ucBuilder,
                                                         HttpServletRequest req)
-            throws ExperimentNotMatchingException, ExposureNotMatchingException, BadTokenException, AssessmentNotMatchingException, TitleValidationException, AssignmentNotCreatedException, IdInPostException {
+            throws ExperimentNotMatchingException, ExposureNotMatchingException, BadTokenException, AssessmentNotMatchingException, TitleValidationException, AssignmentNotCreatedException, IdInPostException, DataServiceException {
 
         log.debug("Creating Assignment: {}", assignmentDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
@@ -112,22 +111,8 @@ public class AssignmentController {
         apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
 
         if (apijwtService.isInstructorOrHigher(securedInfo)) {
-            if (assignmentDto.getAssignmentId() != null) {
-                throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
-            }
-            assignmentService.validateTitle(assignmentDto.getTitle());
-            assignmentDto.setExposureId(exposureId);
-            Assignment assignment;
-            try {
-                assignment = assignmentService.fromDto(assignmentDto);
-            } catch (DataServiceException e) {
-                return new ResponseEntity("Error 105: Unable to create Assignment: " + e.getMessage(), HttpStatus.BAD_REQUEST);
-            }
-            Assignment assignmentSaved = assignmentService.save(assignment);
-            assignmentService.createAssignmentInCanvas(assignmentSaved, experimentId, securedInfo.getCanvasCourseId());
-            assignmentService.saveAndFlush(assignmentSaved);
-            AssignmentDto returnedDto = assignmentService.toDto(assignmentSaved, false);
-            HttpHeaders headers = assignmentService.buildHeaders(ucBuilder, experimentId, exposureId, assignment.getAssignmentId());
+            AssignmentDto returnedDto = assignmentService.postAssignment(assignmentDto, experimentId, securedInfo.getCanvasCourseId(), exposureId);
+            HttpHeaders headers = assignmentService.buildHeaders(ucBuilder, experimentId, exposureId, returnedDto.getAssignmentId());
             return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);

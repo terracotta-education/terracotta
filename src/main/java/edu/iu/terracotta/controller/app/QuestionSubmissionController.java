@@ -15,12 +15,9 @@ import edu.iu.terracotta.exceptions.QuestionSubmissionNotMatchingException;
 import edu.iu.terracotta.exceptions.SubmissionNotMatchingException;
 import edu.iu.terracotta.exceptions.TypeNotSupportedException;
 import edu.iu.terracotta.model.app.QuestionSubmission;
-import edu.iu.terracotta.model.app.dto.AnswerSubmissionDto;
 import edu.iu.terracotta.model.app.dto.QuestionSubmissionDto;
-import edu.iu.terracotta.model.app.enumerator.QuestionTypes;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
-import edu.iu.terracotta.service.app.AnswerSubmissionService;
 import edu.iu.terracotta.service.app.QuestionSubmissionService;
 import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.utils.TextConstants;
@@ -42,7 +39,6 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -60,9 +56,6 @@ public class QuestionSubmissionController {
 
     @Autowired
     QuestionSubmissionService questionSubmissionService;
-
-    @Autowired
-    AnswerSubmissionService answerSubmissionService;
 
     @Autowired
     SubmissionService submissionService;
@@ -87,7 +80,6 @@ public class QuestionSubmissionController {
         apijwtService.submissionAllowed(securedInfo, assessmentId, submissionId);
 
         if (apijwtService.isLearnerOrHigher(securedInfo)) {
-
             if(!apijwtService.isInstructorOrHigher(securedInfo)){
                 submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
             }
@@ -122,7 +114,6 @@ public class QuestionSubmissionController {
         apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, questionSubmissionId);
 
         if (apijwtService.isLearnerOrHigher(securedInfo)) {
-
             if(!apijwtService.isInstructorOrHigher(securedInfo)){
                 submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
             }
@@ -236,7 +227,7 @@ public class QuestionSubmissionController {
                 questionSubmissionService.updateQuestionSubmissions(map, student);
                 return new ResponseEntity<>(HttpStatus.OK);
             } catch(Exception ex) {
-                throw new DataServiceException("Error 105: There was an error updating the question submission list. No question submissions were updated.");
+                throw new DataServiceException("Error 105: There was an error updating the question submission list. No question submissions were updated. " + ex.getMessage());
             }
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);

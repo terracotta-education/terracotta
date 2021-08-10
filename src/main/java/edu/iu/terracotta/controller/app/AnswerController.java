@@ -133,7 +133,7 @@ public class AnswerController {
                                                 @RequestBody AnswerDto answerDto,
                                                 UriComponentsBuilder ucBuilder,
                                                 HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionNotMatchingException, BadTokenException, MultipleChoiceLimitReachedException, IdInPostException {
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionNotMatchingException, BadTokenException, MultipleChoiceLimitReachedException, IdInPostException, DataServiceException {
 
         log.debug("Creating Answer: {}", answerDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
@@ -142,26 +142,9 @@ public class AnswerController {
         apijwtService.questionAllowed(securedInfo, assessmentId, questionId);
 
         if(apijwtService.isInstructorOrHigher(securedInfo)) {
-
-            if (answerDto.getAnswerId() != null) {
-                throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
-            }
-
-            answerDto.setQuestionId(questionId);
-            answerDto.setAnswerType(answerService.getQuestionType(questionId));
-            if ("MC".equals(answerDto.getAnswerType())) {
-                answerService.limitReached(questionId);
-                AnswerMc answerMc;
-                try {
-                    answerMc = answerService.fromDtoMC(answerDto);
-                } catch (DataServiceException ex) {
-                    return new ResponseEntity("Error 105: Unable to create Answer: " + ex.getMessage(), HttpStatus.BAD_REQUEST);
-                }
-                AnswerDto returnedMcdDto = answerService.toDtoMC(answerService.saveMC(answerMc), false);
-                HttpHeaders mcHeaders = answerService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, questionId, answerMc.getAnswerMcId());
-                return new ResponseEntity<>(returnedMcdDto, mcHeaders, HttpStatus.CREATED);
-            }
-            return new ResponseEntity("Error 103: Answer type not supported.", HttpStatus.BAD_REQUEST);
+            AnswerDto returnedMcdDto = answerService.postAnswerMC(answerDto, questionId);
+            HttpHeaders mcHeaders = answerService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, questionId, returnedMcdDto.getAnswerId());
+            return new ResponseEntity<>(returnedMcdDto, mcHeaders, HttpStatus.CREATED);
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }

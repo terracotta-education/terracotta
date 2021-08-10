@@ -1,6 +1,7 @@
 package edu.iu.terracotta.service.app;
 
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.InvalidQuestionTypeException;
 import edu.iu.terracotta.exceptions.NegativePointsException;
 import edu.iu.terracotta.model.app.Question;
@@ -20,6 +21,8 @@ public interface QuestionService {
     List<QuestionDto> getQuestions(Long assessmentId);
 
     Question getQuestion(Long id);
+
+    QuestionDto postQuestion(QuestionDto questionDto, long assessmentId, boolean answers) throws IdInPostException, DataServiceException;
 
     void updateQuestion(Map<Question, QuestionDto> map) throws NegativePointsException;
 

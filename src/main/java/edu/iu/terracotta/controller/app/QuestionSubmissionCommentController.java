@@ -8,8 +8,6 @@ import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.InvalidUserException;
 import edu.iu.terracotta.exceptions.QuestionSubmissionCommentNotMatchingException;
 import edu.iu.terracotta.exceptions.QuestionSubmissionNotMatchingException;
-import edu.iu.terracotta.model.LtiUserEntity;
-import edu.iu.terracotta.model.app.QuestionSubmissionComment;
 import edu.iu.terracotta.model.app.dto.QuestionSubmissionCommentDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
@@ -129,7 +127,7 @@ public class QuestionSubmissionCommentController {
                                                                                       @RequestBody QuestionSubmissionCommentDto questionSubmissionCommentDto,
                                                                                       UriComponentsBuilder ucBuilder,
                                                                                       HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, BadTokenException, InvalidUserException, IdInPostException {
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, BadTokenException, InvalidUserException, IdInPostException, DataServiceException {
 
         log.debug("Creating question submission comment: {}", questionSubmissionCommentDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
@@ -138,24 +136,10 @@ public class QuestionSubmissionCommentController {
         apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, questionSubmissionId);
 
         if(apijwtService.isLearnerOrHigher(securedInfo)) {
-            if(questionSubmissionCommentDto.getQuestionSubmissionCommentId() != null) {
-                throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
-            }
-
             if(!apijwtService.isInstructorOrHigher(securedInfo)){
                 submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
             }
-
-            questionSubmissionCommentDto.setQuestionSubmissionId(questionSubmissionId);
-            LtiUserEntity user = questionSubmissionCommentService.findByUserKey(securedInfo.getUserId());
-            questionSubmissionCommentDto.setCreator(user.getDisplayName());
-            QuestionSubmissionComment questionSubmissionComment;
-            try {
-                questionSubmissionComment = questionSubmissionCommentService.fromDto(questionSubmissionCommentDto);
-            } catch (DataServiceException ex) {
-                return new ResponseEntity("Error 105: Unable to create question submission comment: " + ex.getMessage(), HttpStatus.BAD_REQUEST);
-            }
-            QuestionSubmissionCommentDto returnedDto = questionSubmissionCommentService.toDto(questionSubmissionCommentService.save(questionSubmissionComment));
+            QuestionSubmissionCommentDto returnedDto = questionSubmissionCommentService.postQuestionSubmissionComment(questionSubmissionCommentDto, questionSubmissionId, securedInfo.getUserId());
             HttpHeaders headers = questionSubmissionCommentService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, submissionId, questionSubmissionId, returnedDto.getQuestionSubmissionCommentId());
             return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
         } else {
@@ -175,7 +159,7 @@ public class QuestionSubmissionCommentController {
                                                                 @PathVariable("question_submission_comment_id") Long questionSubmissionCommentId,
                                                                 @RequestBody QuestionSubmissionCommentDto questionSubmissionCommentDto,
                                                                 HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, QuestionSubmissionCommentNotMatchingException, BadTokenException, InvalidUserException {
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, QuestionSubmissionCommentNotMatchingException, BadTokenException, InvalidUserException, DataServiceException {
 
         log.debug("Updating question submission comment with id {}", questionSubmissionCommentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
@@ -185,17 +169,10 @@ public class QuestionSubmissionCommentController {
         apijwtService.questionSubmissionCommentAllowed(securedInfo, questionSubmissionId, questionSubmissionCommentId);
 
         if(apijwtService.isLearnerOrHigher(securedInfo)) {
-
             if(!apijwtService.isInstructorOrHigher(securedInfo)){
                 submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
             }
-            QuestionSubmissionComment questionSubmissionComment = questionSubmissionCommentService.getQuestionSubmissionComment(questionSubmissionCommentId);
-            LtiUserEntity user = questionSubmissionCommentService.findByUserKey(securedInfo.getUserId());
-            if(!user.getDisplayName().equals(questionSubmissionComment.getCreator())){
-                return new ResponseEntity("Error 122: Only the creator of a comment can edit their own comment.", HttpStatus.UNAUTHORIZED);
-            }
-            questionSubmissionComment.setComment(questionSubmissionCommentDto.getComment());
-            questionSubmissionCommentService.saveAndFlush(questionSubmissionComment);
+            questionSubmissionCommentService.updateQuestionSubmissionComment(questionSubmissionCommentDto, questionSubmissionCommentId, experimentId, submissionId, securedInfo.getUserId());
             return new ResponseEntity<>(HttpStatus.OK);
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);

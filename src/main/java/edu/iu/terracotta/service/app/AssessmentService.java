@@ -2,6 +2,7 @@ package edu.iu.terracotta.service.app;
 
 import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.model.app.Assessment;
 import edu.iu.terracotta.model.app.dto.AssessmentDto;
@@ -17,6 +18,8 @@ public interface AssessmentService {
     List<Assessment> findAllByTreatmentId(Long treatmentId);
 
     List<AssessmentDto> getAllAssessmentsByTreatment(Long treatmentId, boolean submissions) throws AssessmentNotMatchingException;
+
+    AssessmentDto postAssessment(AssessmentDto assessmentDto, long treatmentId) throws IdInPostException, AssessmentNotMatchingException, DataServiceException, TitleValidationException;
 
     AssessmentDto toDto(Assessment assessment, boolean questions, boolean answers, boolean submissions, boolean student) throws AssessmentNotMatchingException;
 

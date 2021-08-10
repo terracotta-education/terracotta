@@ -1,6 +1,7 @@
 package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.InvalidQuestionTypeException;
 import edu.iu.terracotta.exceptions.NegativePointsException;
 import edu.iu.terracotta.model.app.Assessment;
@@ -11,6 +12,7 @@ import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.AnswerService;
 import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.service.app.QuestionService;
+import edu.iu.terracotta.utils.TextConstants;
 import org.apache.commons.lang3.EnumUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -54,6 +56,22 @@ public class QuestionServiceImpl implements QuestionService {
 
     @Override
     public Question getQuestion(Long id){ return allRepositories.questionRepository.findByQuestionId(id); }
+
+    @Override
+    public QuestionDto postQuestion(QuestionDto questionDto, long assessmentId, boolean answers) throws IdInPostException, DataServiceException {
+        if(questionDto.getQuestionId() != null) {
+            throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
+        }
+        questionDto.setAssessmentId(assessmentId);
+        Question question;
+        try {
+            validateQuestionType(questionDto);
+            question = fromDto(questionDto);
+        } catch (DataServiceException | InvalidQuestionTypeException | NegativePointsException ex) {
+            throw new DataServiceException("Error 105: Unable to create Question: " + ex.getMessage());
+        }
+        return toDto(save(question), answers, true);
+    }
 
     @Override
     public QuestionDto toDto(Question question, boolean answers, boolean student) {

@@ -2,6 +2,7 @@ package edu.iu.terracotta.service.app;
 
 import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.model.app.Outcome;
@@ -23,6 +24,8 @@ public interface OutcomeService {
     List<OutcomeDto> getOutcomes(Long exposureId);
 
     Outcome getOutcome(Long id);
+
+    OutcomeDto postOutcome(OutcomeDto outcomeDto, long exposureId) throws IdInPostException, DataServiceException, TitleValidationException;
 
     OutcomeDto toDto(Outcome outcome, boolean outcomeScores);
 

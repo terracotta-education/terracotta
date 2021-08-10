@@ -1,6 +1,7 @@
 package edu.iu.terracotta.service.app;
 
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.InvalidParticipantException;
 import edu.iu.terracotta.model.app.OutcomeScore;
 import edu.iu.terracotta.model.app.dto.OutcomeScoreDto;
@@ -17,6 +18,8 @@ public interface OutcomeScoreService {
     List<OutcomeScoreDto> getOutcomeScores(Long outcomeId);
 
     OutcomeScore getOutcomeScore(Long id);
+
+    OutcomeScoreDto postOutcomeScore(OutcomeScoreDto outcomeScoreDto, long experimentId, long outcomeId) throws IdInPostException, DataServiceException, InvalidParticipantException;
 
     OutcomeScoreDto toDto(OutcomeScore outcomeScore);
 
