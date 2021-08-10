@@ -1,5 +1,7 @@
 package edu.iu.terracotta.service.app.impl;
 
+import edu.iu.terracotta.exceptions.CanvasApiException;
+import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.model.app.AnswerEssaySubmission;
 import edu.iu.terracotta.model.app.AnswerMc;
 import edu.iu.terracotta.model.app.AnswerMcSubmission;
@@ -7,6 +9,7 @@ import edu.iu.terracotta.model.app.Assignment;
 import edu.iu.terracotta.model.app.Condition;
 import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.ExposureGroupCondition;
+import edu.iu.terracotta.model.app.Outcome;
 import edu.iu.terracotta.model.app.OutcomeScore;
 import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.Question;
@@ -14,12 +17,15 @@ import edu.iu.terracotta.model.app.QuestionSubmission;
 import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.Treatment;
 import edu.iu.terracotta.model.app.enumerator.QuestionTypes;
+import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.ExportService;
+import edu.iu.terracotta.service.app.OutcomeService;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -34,15 +40,17 @@ public class ExportServiceImpl implements ExportService {
     @Autowired
     AllRepositories allRepositories;
 
+    @Autowired
+    OutcomeService outcomeService;
+
     @Override
-    public Map<String, List<String[]>> getCsvFiles(Long experimentId){
+    public Map<String, List<String[]>> getCsvFiles(Long experimentId, SecuredInfo securedInfo) throws CanvasApiException, ParticipantNotUpdatedException, IOException {
         Map<String, List<String[]>> csvFiles = new HashMap<>();
 
 
         /*
         experiment.csv
          */
-
         List<String[]> experimentData = new ArrayList<>();
         experimentData.add(new String[] {"experiment_id", "course_id", "experiment_title", "experiment_description", "exposure_type", "participation_type", "distribution_type",
                                             "export_at", "enrollment_cnt", "participant_cnt", "condition_cnt"});
@@ -80,10 +88,14 @@ public class ExportServiceImpl implements ExportService {
         /*
         outcomes.csv
          */
-        List<OutcomeScore> outcomes = allRepositories.outcomeScoreRepository.findByOutcome_Exposure_Experiment_ExperimentId(experimentId);
+        List<Outcome> outcomes = outcomeService.findAllByExperiment(experimentId);
+        for(Outcome outcome : outcomes){
+            outcomeService.updateOutcomeGrades(outcome.getOutcomeId(), securedInfo);
+        }
+        List<OutcomeScore> outcomeScores = allRepositories.outcomeScoreRepository.findByOutcome_Exposure_Experiment_ExperimentId(experimentId);
         List<String[]> outcomeData = new ArrayList<>();
         outcomeData.add(new String[]{"outcome_id", "participant_id", "exposure_id", "source", "outcome_name", "points_possible", "outcome_score"});
-        for(OutcomeScore outcomeScore : outcomes){
+        for(OutcomeScore outcomeScore : outcomeScores){
             String outcomeId = outcomeScore.getOutcome().getOutcomeId().toString();
             String participantId = outcomeScore.getParticipant().getParticipantId().toString();
             String exposureId = outcomeScore.getOutcome().getExposure().getExposureId().toString();
