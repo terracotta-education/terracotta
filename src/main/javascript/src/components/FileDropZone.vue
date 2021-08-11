@@ -15,7 +15,7 @@
         <h4 class="drop-zone__title">Selected file:</h4>
         <v-card outlined>
           <v-card-text class="py-1 px-2">
-            <strong>{{ fileName }}</strong>
+            <strong>Informed Consent File</strong>
             <v-btn
               class="remove-file"
               elevation="0"
