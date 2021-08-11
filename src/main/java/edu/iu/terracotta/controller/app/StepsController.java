@@ -120,6 +120,7 @@ public class StepsController {
                         return new ResponseEntity<>(TextConstants.SUBMISSION_IDS_MISSING, HttpStatus.BAD_REQUEST);
                     } else {
                         Long submissionId = Long.parseLong(submissionsId.get(0));
+                        //TODO: check if the submission belongs to the assignment that is being taken (assignment should be in the token)
                         submissionService.finalizeAndGrade(submissionId, securedInfo);
                     }
                 }else if (apijwtService.isInstructorOrHigher(securedInfo)){
