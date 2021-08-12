@@ -55,6 +55,7 @@
                   :rules="numberRule"
                   label="Points"
                   type="number"
+                  step="any"
                   outlined
                   required
                 ></v-text-field>
