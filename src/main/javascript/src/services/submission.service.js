@@ -30,7 +30,7 @@ async function getAll(
 }
 
 /**
- * Get all Submissions
+ * Update Individual Submission
  */
 async function updateSubmission(
   experiment_id,
