@@ -273,11 +273,11 @@ public class SubmissionServiceImpl implements SubmissionService {
                 }
                     submissionOptional.get().setDateSubmitted(getLastUpdatedTimeForSubmission(submissionOptional.get()));
             }
-            if (securedInfo.getLockAt() == null || submissionOptional.get().getUpdatedAt().after(securedInfo.getLockAt())) {
+            if (securedInfo.getLockAt() == null || submissionOptional.get().getDateSubmitted().after(securedInfo.getLockAt())) {
                 saveAndFlush(gradeSubmission(submissionOptional.get()));
                 caliperService.sendAssignmentSubmitted(submissionOptional.get(), securedInfo);
             } else {
-                throw new AssignmentDatesException("Error 128: Canvas Assignment is locked, we can not generate a submission with a date later than the lock date");
+                throw new AssignmentDatesException("Error 128: Canvas Assignment is locked, we can not generate/grade a submission with a date later than the lock date");
             }
         } else {
             throw new DataServiceException("Error 105: Submission not found");
