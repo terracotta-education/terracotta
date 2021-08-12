@@ -49,6 +49,14 @@ const routes = [
             },
             component: () => import('../views/grading/AssignmentScores.vue')
           },
+          {
+            path: 'assignment/:assignment_id/student-assignment-scores',
+            name: 'StudentSubmissionGrading',
+            meta: {
+              previousStep: 'AssignmentScores'
+            },
+            component: () => import('../views/grading/StudentSubmissionGrading.vue')
+          },
         ]
       },
       {
