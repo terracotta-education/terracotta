@@ -11,7 +11,9 @@
 						:to="{ name: this.$router.currentRoute.meta.previousStep }">
 						<v-icon>mdi-chevron-left</v-icon> Back
 					</router-link>
-					<v-btn color="primary" elevation="0" class="saveButton" @click="$refs.childComponent.saveExit()">SAVE & EXIT</v-btn>
+					<v-btn v-show="this.$router.currentRoute.name!=='ExperimentDesignIntro'" 
+						color="primary" elevation="0" class="saveButton" @click="$refs.childComponent.saveExit()">SAVE & EXIT
+					</v-btn>
 				</nav>
 				<article class="experiment-steps__body">
 					<v-container>
@@ -119,6 +121,7 @@
 				}
 			}
 			.saveButton {
+				margin-left:auto;
 				background: none!important;
 				border: none;
 				padding: 0!important;
