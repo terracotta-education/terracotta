@@ -1,15 +1,14 @@
 <template>
   <div v-if="consent">
     <h1>Add your study's <strong>informed consent</strong> file.</h1>
-
     <file-drop-zone
       class="my-5"
       :existing="consent.file"
-      :fileName="experiment.consent.title"
+      :fileName="consentExist"
       @update="onFileChange"></file-drop-zone>
 
     <v-btn
-      :disabled="!consent.file || !experiment.consent.title "
+      :disabled="!consent.file "
       class="mt-3 mb-6"
       color="primary"
       elevation="0"
@@ -34,7 +33,10 @@ export default {
   computed: {
     ...mapGetters({
       consent: 'consent/consent'
-    })
+    }),
+    consentExist() {
+      return this.experiment?.consent?.title || ''
+    }
   },
   methods: {
     ...mapActions({

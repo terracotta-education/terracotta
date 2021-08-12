@@ -46,6 +46,7 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Component
@@ -142,13 +143,17 @@ public class SubmissionServiceImpl implements SubmissionService {
     }
 
     @Override
-    public void updateSubmission(Long submissionId, SubmissionDto submissionDto, boolean student){
-        Submission submission = allRepositories.submissionRepository.findBySubmissionId(submissionId);
-        if(!student){
-            submission.setAlteredCalculatedGrade(submissionDto.getAlteredCalculatedGrade());
-            submission.setTotalAlteredGrade(submissionDto.getTotalAlteredGrade());
+    @Transactional
+    public void updateSubmissions(Map<Submission, SubmissionDto> map, boolean student){
+        if(!student) {
+            for (Map.Entry<Submission, SubmissionDto> entry : map.entrySet()) {
+                Submission submission = entry.getKey();
+                SubmissionDto submissionDto = entry.getValue();
+                submission.setAlteredCalculatedGrade(submissionDto.getAlteredCalculatedGrade());
+                submission.setTotalAlteredGrade(submissionDto.getTotalAlteredGrade());
+                save(submission);
+            }
         }
-        saveAndFlush(submission);
     }
 
     @Override
@@ -273,11 +278,11 @@ public class SubmissionServiceImpl implements SubmissionService {
                 }
                     submissionOptional.get().setDateSubmitted(getLastUpdatedTimeForSubmission(submissionOptional.get()));
             }
-            if (securedInfo.getLockAt() == null || submissionOptional.get().getUpdatedAt().after(securedInfo.getLockAt())) {
+            if (securedInfo.getLockAt() == null || submissionOptional.get().getDateSubmitted().after(securedInfo.getLockAt())) {
                 saveAndFlush(gradeSubmission(submissionOptional.get()));
                 caliperService.sendAssignmentSubmitted(submissionOptional.get(), securedInfo);
             } else {
-                throw new AssignmentDatesException("Error 128: Canvas Assignment is locked, we can not generate a submission with a date later than the lock date");
+                throw new AssignmentDatesException("Error 128: Canvas Assignment is locked, we can not generate/grade a submission with a date later than the lock date");
             }
         } else {
             throw new DataServiceException("Error 105: Submission not found");

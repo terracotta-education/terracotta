@@ -19,6 +19,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public interface SubmissionService {
@@ -31,7 +32,7 @@ public interface SubmissionService {
 
     SubmissionDto postSubmission(SubmissionDto submissionDto, long experimentId, String userId, long assessmentId, boolean student) throws IdInPostException, ParticipantNotMatchingException, InvalidUserException, DataServiceException;
 
-    void updateSubmission(Long submissionId, SubmissionDto submissionDto, boolean student);
+    void updateSubmissions(Map<Submission, SubmissionDto> map, boolean student);
 
     SubmissionDto toDto(Submission submission, boolean questionSubmissions, boolean submissionComments);
 

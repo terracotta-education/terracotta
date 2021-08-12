@@ -33,7 +33,9 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Controller
 @SuppressWarnings({"rawtypes", "unchecked"})
@@ -146,7 +148,7 @@ public class SubmissionController {
                                                  @PathVariable("submission_id") Long submissionId,
                                                  @RequestBody SubmissionDto submissionDto,
                                                  HttpServletRequest req)
-                throws ExperimentNotMatchingException, AssessmentNotMatchingException, SubmissionNotMatchingException, BadTokenException {
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, SubmissionNotMatchingException, BadTokenException, NoSubmissionsException {
 
         log.debug("Updating submission with id {}", submissionId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
@@ -156,8 +158,45 @@ public class SubmissionController {
 
         if(apijwtService.isLearnerOrHigher(securedInfo)) {
             boolean student = !apijwtService.isInstructorOrHigher(securedInfo);
-            submissionService.updateSubmission(submissionId, submissionDto, student);
+            Map<Submission, SubmissionDto> map = new HashMap<>();
+            Submission submission = submissionService.getSubmission(experimentId, securedInfo.getUserId(), submissionId, student);
+            map.put(submission, submissionDto);
+            submissionService.updateSubmissions(map, student);
             return new ResponseEntity<>(HttpStatus.OK);
+        } else {
+            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
+        }
+    }
+
+
+    @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions", method = RequestMethod.PUT)
+    public ResponseEntity<Void> updateSubmissions(@PathVariable("experiment_id") Long experimentId,
+                                                  @PathVariable("condition_id") Long conditionId,
+                                                  @PathVariable("treatment_id") Long treatmentId,
+                                                  @PathVariable("assessment_id") Long assessmentId,
+                                                  @RequestBody List<SubmissionDto> submissionDtoList,
+                                                  HttpServletRequest req)
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, BadTokenException, SubmissionNotMatchingException, NoSubmissionsException, DataServiceException {
+
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
+
+        if(apijwtService.isInstructorOrHigher(securedInfo)){
+            boolean student = !apijwtService.isInstructorOrHigher(securedInfo);
+            Map<Submission, SubmissionDto> map = new HashMap<>();
+            for(SubmissionDto submissionDto : submissionDtoList){
+                apijwtService.submissionAllowed(securedInfo, assessmentId, submissionDto.getSubmissionId());
+                Submission submission = submissionService.getSubmission(experimentId, securedInfo.getUserId(), submissionDto.getSubmissionId(), student);
+                log.debug("Updating submission: " + submission.getSubmissionId());
+                map.put(submission, submissionDto);
+            }
+            try{
+                submissionService.updateSubmissions(map, student);
+                return new ResponseEntity<>(HttpStatus.OK);
+            } catch (Exception e){
+                throw new DataServiceException("Error 105: There was an error updating the submission list. No submissions were updated. " + e.getMessage());
+            }
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }

@@ -468,12 +468,18 @@ public class CaliperServiceImpl implements CaliperService {
                 + "/assignments/" + securedInfo.getCanvasAssignmentId();
         Map<String, Object> extensions = new HashMap<>();
         extensions.put("canvas_assessment", canvasAssessmentId);
+        int maxAttempts = 0;
+        try {
+            maxAttempts = submission.getAssessment().getNumOfSubmissions();
+        } catch (Exception ex){
+            //Do nothing...
+        }
         org.imsglobal.caliper.entities.resource.Assessment assessment = org.imsglobal.caliper.entities.resource.Assessment.builder()
                 .name(submission.getAssessment().getTitle())
                 .id(terracottaAssessmentId)
                 .extensions(extensions)
                 .type(EntityType.ASSESSMENT)
-                .maxAttempts(submission.getAssessment().getNumOfSubmissions())
+                .maxAttempts(maxAttempts)
                 .maxScore(assessmentService.calculateMaxScore(submission.getAssessment()))
                 .version("" + submission.getAssessment().getVersion())
                 .build();
