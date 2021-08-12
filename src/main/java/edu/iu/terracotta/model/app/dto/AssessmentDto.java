@@ -18,6 +18,7 @@ public class AssessmentDto {
     private List<SubmissionDto> submissions;
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<QuestionDto> questions;
+    private Float maxPoints;
     private boolean started;
     private Long submissionsExpected;
     private Long submissionsCompletedCount;
@@ -82,5 +83,13 @@ public class AssessmentDto {
 
     public void setSubmissionsInProgressCount(Long submissionsInProgressCount) {
         this.submissionsInProgressCount = submissionsInProgressCount;
+    }
+
+    public Float getMaxPoints() {
+        return maxPoints;
+    }
+
+    public void setMaxPoints(Float maxPoints) {
+        this.maxPoints = maxPoints;
     }
 }

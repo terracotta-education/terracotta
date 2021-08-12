@@ -151,6 +151,7 @@ public class AssessmentServiceImpl implements AssessmentService {
         }
         assessmentDto.setSubmissions(submissionDtoList);
         assessmentDto.setTreatmentId(assessment.getTreatment().getTreatmentId());
+        assessmentDto.setMaxPoints(calculateMaxScore(assessment));
 
         return assessmentDto;
     }
