@@ -78,7 +78,6 @@ const routes = [
             meta: {
               currentSection: 'design',
               currentStep: 'design',
-              previousStep: 'Home'
             }
           },
           {
@@ -161,7 +160,6 @@ const routes = [
             meta: {
               currentSection: 'participation',
               currentStep: 'participation',
-              previousStep: 'ExperimentDesignSummary'
             }
           },
           {
@@ -302,7 +300,6 @@ const routes = [
             meta: {
               currentSection: 'assignments',
               currentStep: 'assignment_intro',
-              previousStep: 'ParticipationSummary'
             }
           },
           {
