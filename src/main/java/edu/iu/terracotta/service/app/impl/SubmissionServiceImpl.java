@@ -8,15 +8,20 @@ import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.InvalidUserException;
 import edu.iu.terracotta.exceptions.NoSubmissionsException;
 import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
+import edu.iu.terracotta.exceptions.SubmissionNotMatchingException;
 import edu.iu.terracotta.model.ags.Score;
 import edu.iu.terracotta.model.app.AnswerMcSubmission;
 import edu.iu.terracotta.model.app.Assessment;
 import edu.iu.terracotta.model.app.Assignment;
+import edu.iu.terracotta.model.app.Condition;
 import edu.iu.terracotta.model.app.Experiment;
+import edu.iu.terracotta.model.app.ExposureGroupCondition;
+import edu.iu.terracotta.model.app.Group;
 import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.QuestionSubmission;
 import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.SubmissionComment;
+import edu.iu.terracotta.model.app.Treatment;
 import edu.iu.terracotta.model.app.dto.QuestionSubmissionDto;
 import edu.iu.terracotta.model.app.dto.SubmissionCommentDto;
 import edu.iu.terracotta.model.app.dto.SubmissionDto;
@@ -441,4 +446,37 @@ public class SubmissionServiceImpl implements SubmissionService {
                 .buildAndExpand(experimentId, conditionId, treatmentId, assessmentId, submissionId).toUri());
         return headers;
     }
+
+    @Override
+    public void allowedSubmission(Long submissionId, SecuredInfo securedInfo) throws SubmissionNotMatchingException {
+        try {
+            Optional<Submission> submissionOptional = allRepositories.submissionRepository.findById(submissionId);
+            if (submissionOptional.isPresent()) {
+                if (!submissionOptional.get().getParticipant().getLtiUserEntity().getUserKey().equals(securedInfo.getUserId())){
+                    throw new SubmissionNotMatchingException("Submission don't belong to the user");
+                }
+                Group group = submissionOptional.get().getParticipant().getGroup();
+                Treatment treatment = submissionOptional.get().getAssessment().getTreatment();
+                Condition condition = treatment.getCondition();
+                if (group == null) {
+                    if (condition.getDefaultCondition()) {
+                        return;
+                    } else {
+                        throw new SubmissionNotMatchingException("Student not in a group, but not sending the default condition");
+                    }
+                } else {
+                    Optional<ExposureGroupCondition> exposureGroupCondition = allRepositories.exposureGroupConditionRepository.getByCondition_ConditionIdAndExposure_ExposureId(condition.getConditionId(), treatment.getAssignment().getExposure().getExposureId());
+                    if (exposureGroupCondition.isPresent() && group == exposureGroupCondition.get().getGroup()){
+                        return;
+                    } else {
+                        throw new SubmissionNotMatchingException("Student sending an assessment that does not belongs to the expected treatment");
+                    }
+                }
+            }
+        }catch (Exception ex) {
+            throw new SubmissionNotMatchingException("Error 147: Not allowed to submit this submission: " + ex.getMessage());
+        }
+        throw new SubmissionNotMatchingException("Error 147: Not allowed to submit this submission");
+    }
+
 }

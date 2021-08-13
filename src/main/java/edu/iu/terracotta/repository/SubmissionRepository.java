@@ -26,6 +26,8 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long> {
 
     List<Submission> findByAssessment_Treatment_Assignment_AssignmentId(Long assignmentId);
 
+
+
     @Transactional
     @Modifying
     @Query("delete from Submission s where s.submissionId = ?1")

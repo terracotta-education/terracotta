@@ -11,7 +11,9 @@ import edu.iu.terracotta.exceptions.ExperimentStartedException;
 import edu.iu.terracotta.exceptions.GroupNotMatchingException;
 import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
+import edu.iu.terracotta.exceptions.SubmissionNotMatchingException;
 import edu.iu.terracotta.model.app.Assignment;
+import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.dto.StepDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
@@ -77,7 +79,7 @@ public class StepsController {
     public ResponseEntity<Object> postStep(@PathVariable("experiment_id") Long experimentId,
                                            @RequestBody StepDto stepDto,
                                            HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, DataServiceException, ParticipantNotUpdatedException, ExperimentStartedException, ConnectionException, CanvasApiException, IOException, AssignmentDatesException, AssessmentNotMatchingException, GroupNotMatchingException, ParticipantNotMatchingException {
+            throws ExperimentNotMatchingException, BadTokenException, DataServiceException, ParticipantNotUpdatedException, ExperimentStartedException, ConnectionException, CanvasApiException, IOException, AssignmentDatesException, AssessmentNotMatchingException, GroupNotMatchingException, ParticipantNotMatchingException, SubmissionNotMatchingException {
 
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -120,7 +122,7 @@ public class StepsController {
                         return new ResponseEntity<>(TextConstants.SUBMISSION_IDS_MISSING, HttpStatus.BAD_REQUEST);
                     } else {
                         Long submissionId = Long.parseLong(submissionsId.get(0));
-                        //TODO: check if the submission belongs to the assignment that is being taken (assignment should be in the token)
+                        submissionService.allowedSubmission(submissionId, securedInfo);
                         submissionService.finalizeAndGrade(submissionId, securedInfo);
                     }
                 }else if (apijwtService.isInstructorOrHigher(securedInfo)){
