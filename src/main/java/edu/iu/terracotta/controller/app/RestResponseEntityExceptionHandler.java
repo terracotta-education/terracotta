@@ -142,7 +142,7 @@ public class RestResponseEntityExceptionHandler
             = {SubmissionNotMatchingException.class})
     protected ResponseEntity<Object> handleSubmissionNotMatchingException(
             SubmissionNotMatchingException ex, WebRequest request) {
-        String bodyOfResponse = TextConstants.SUBMISSION_NOT_MATCHING;
+        String bodyOfResponse = ex.getMessage();
         log.warn(bodyOfResponse);
         return handleExceptionInternal(ex, bodyOfResponse,
                 new HttpHeaders(), HttpStatus.UNAUTHORIZED, request);

@@ -498,7 +498,7 @@ public class CaliperServiceImpl implements CaliperService {
                 .count(submissionService.findByParticipantIdAndAssessmentId(submission.getParticipant().getParticipantId(), submission.getAssessment().getAssessmentId()).size())
                 .dateCreated(convertTimestamp(submission.getCreatedAt()))
                 .startedAtTime(convertTimestamp(submission.getCreatedAt()))
-                .endedAtTime(convertTimestamp(submission.getDateSubmitted()))
+                .endedAtTime(convertTimestamp(submission.getDateSubmitted()).plus(1)) //To avoid the error if they submit instantaneously for some reason.
                 .build();
         return attempt;
     }
