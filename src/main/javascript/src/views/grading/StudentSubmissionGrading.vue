@@ -21,12 +21,6 @@
       </v-col>
     </v-row>
 
-    <!-- <br />
-    submissions: {{ submissions }}
-    <br />
-    <br />
-    studentResponse: {{ studentResponse }} -->
-
     <!-- Individual Question -->
     <v-card
       class="mt-5 mb-2"
@@ -53,7 +47,9 @@
                   style="max-width: 70px;max-height: 50px;"
                   v-model="questionScoreMap[question.questionId]"
                   @input="
-                    (value) => {questionScoreMap[question.questionId] = value}
+                    (value) => {
+                      questionScoreMap[question.questionId] = value;
+                    }
                   "
                 ></v-text-field>
                 <span class="totalPoints  ml-2">
@@ -223,7 +219,7 @@ export default {
         questionId
       ).answerSubmissionDtoList?.map((answer) => answer.answerId);
     },
-    
+
     cleanHTMLString(question) {
       // API is responding Question and answers wrapped in <p> tag
       let updatedQuestion = question;
@@ -247,7 +243,7 @@ export default {
           alteredGrade: +this.questionScoreMap[response.questionId],
         };
       });
-      
+
       try {
         await this.updateQuestionSubmission([
           this.experiment_id,
@@ -286,7 +282,6 @@ export default {
       this.assessment_id,
       this.submissions[0].submissionId,
     ]);
-
   },
 };
 </script>
