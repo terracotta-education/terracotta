@@ -7,6 +7,8 @@ import store from "@/store/index.js";
 export const submissionService = {
   getAll,
   updateSubmission,
+  updateQuestionSubmission,
+  studentResponse
 };
 
 /**
@@ -52,6 +54,50 @@ async function updateSubmission(
 
   return fetch(
     `${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/submissions/${submission_id}`,
+    requestOptions
+  ).then(handleResponse);
+}
+
+/**
+ * Update Individual Question Submission
+ */
+ async function updateQuestionSubmission(
+  experiment_id,
+  condition_id,
+  treatment_id,
+  assessment_id,
+  submission_id,
+  updatedResponseBody
+) {
+  const requestOptions = {
+    method: "PUT",
+    headers: authHeader(),
+    body: JSON.stringify(updatedResponseBody),
+  };
+
+  return fetch(
+    `${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/submissions/${submission_id}/question_submissions`,
+    requestOptions
+  ).then(handleResponse);
+}
+
+/**
+ * Get Student Response
+ */
+async function studentResponse(
+  experiment_id,
+  condition_id,
+  treatment_id,
+  assessment_id,
+  submission_id,
+) {
+  const requestOptions = {
+    method: "GET",
+    headers: authHeader(),
+  };
+
+  return fetch(
+    `${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/submissions/${submission_id}/question_submissions/?answer_submissions=true`,
     requestOptions
   ).then(handleResponse);
 }
