@@ -13,7 +13,7 @@
                 <tr>
                   <th class="text-left">Student Name</th>
                   <th class="text-left" style="width:250px;">
-                    Score (out of TOTAL)
+                    Score (out of {{ selectedTreatment.assessmentDto.maxPoints }})
                   </th>
                 </tr>
               </thead>
