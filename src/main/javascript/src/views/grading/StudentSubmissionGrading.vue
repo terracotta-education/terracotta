@@ -3,7 +3,7 @@
     <!-- Heading -->
     <v-row>
       <v-col cols="10">
-        <h1 class="">{{ participantName() }}'s response</h1>
+        <h1>{{ participantName() }}'s response</h1>
       </v-col>
       <v-col>
         <v-row class="studentGrade">
