@@ -97,12 +97,13 @@
                                   question.questionId
                                 ).includes(answer.answerId)
                             "
+                            readonly
                             name="selected"
                           >
                           </v-radio>
                         </v-radio-group>
                       </v-col>
-                      <v-col cols="9">
+                      <v-col cols="8">
                         <!-- Answer Text -->
                         <span>{{ cleanHTMLString(answer.html) }}</span>
                       </v-col>
@@ -205,7 +206,7 @@ export default {
     studentSubmittedAnswers(questionId) {
       this.questionScoreMap[questionId] = this.studentResponseForQuestionId(
         questionId
-      ).alteredGrade;
+      ).alteredGrade || 0;
 
       let sum = 0;
       Object.keys(this.questionScoreMap)?.map((qId) => {
