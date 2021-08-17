@@ -25,7 +25,6 @@ async function fetchAssessment(experiment_id, condition_id, treatment_id, assess
     method: 'GET',
     headers: {...authHeader()}
   }
-
   return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}?questions=true&answers=true`, requestOptions).then(handleResponse)
 }
 

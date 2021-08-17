@@ -30,6 +30,10 @@
                         params: {
                           exposure_id: exposure_id,
                           assignment_id: assignment_id,
+                          assessment_id: submission.assessmentId,
+                          condition_id: submission.conditionId,
+                          treatment_id: submission.treatmentId,
+                          participant_id: submission.participantId,
                         },
                       }"
                     >

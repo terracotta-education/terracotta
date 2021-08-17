@@ -55,7 +55,7 @@ const routes = [
             component: () => import('../views/grading/AssignmentScores.vue')
           },
           {
-            path: 'assignment/:assignment_id/student-assignment-scores',
+            path: 'assignment/:assignment_id/assessment/:assessment_id/condition/:condition_id/treatment/:treatment_id/participants/:participant_id/student-assignment-scores',
             name: 'StudentSubmissionGrading',
             meta: {
               previousStep: 'AssignmentScores'
