@@ -1,4 +1,4 @@
-import {authHeader} from '@/helpers'
+import {authHeader, isJson} from '@/helpers'
 import store from '@/store/index'
 
 /**
@@ -47,19 +47,52 @@ function refreshToken() {
 /**
  * Report to the server which step has been completed
  */
-function reportStep(experiment_id, step) {
+async function reportStep(experiment_id, step, parameters) {
   const requestOptions = {
     method: 'POST',
     headers: {...authHeader()},
     body: JSON.stringify({
-      'step': step
+      'step': step,
+      'parameters': parameters
     })
   }
 
-  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/step`, requestOptions).then(response => {
-    if (response.ok) {
-      console.log(response.text())
-      return response.text()
+  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/step`, requestOptions).then(handleResponse)
+}
+
+
+/**
+ * Handle API response
+ */
+function handleResponse(response) {
+  return response.text()
+  .then(text => {
+    const data = (text && isJson(text)) ? JSON.parse(text) : text
+
+    if (
+      !response ||
+      response.status === 401 ||
+      response.status === 402 ||
+      response.status === 500 ||
+      response.status === 404
+    ) {
+      console.log('handleResponse | 401/402/500', {response})
+    } else if (response.status === 409) {
+      return {
+        message: data
+      }
+    } else if (response.status === 204) {
+      console.log('handleResponse | 204', {text, data, response})
+      return []
     }
+
+    const dataResponse = (data) ? {
+      data,
+      status: response.status
+    } : null
+
+    return dataResponse || response
+  }).catch(text => {
+    console.error('handleResponse | catch', {text})
   })
 }

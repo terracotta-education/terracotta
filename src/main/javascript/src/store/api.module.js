@@ -8,6 +8,7 @@ const state = {
   aud: '',
   userInfo: '',
   experimentId: '',
+  assignmentId: '',
   consent: '',
   userId: ''
 }
@@ -16,11 +17,11 @@ const actions = {
   setLtiToken: ({commit, dispatch}, token) => {
     // decode token to get the aud (api base url)
     const decodedToken = jwt_decode(token)
-    console.log(decodedToken)
     commit('setLtiToken', token)
     commit('setAud', decodedToken.aud)
     commit('setExperimentId', decodedToken.experimentId)
     commit('setConsent', decodedToken.consent)
+    commit('setAssignmentId', decodedToken.canvasAssignmentId)
     commit('setUserId', decodedToken.userId)
     commit('setUserInfo', userInfo(decodedToken.roles))
     return dispatch('setApiToken', token)
@@ -34,13 +35,14 @@ const actions = {
           commit('setApiToken', data)
           commit('setAud', decodedToken.aud)
           commit('setExperimentId', decodedToken.experimentId)
+          commit('setAssignmentId', decodedToken.canvasAssignmentId)
           commit('setConsent', decodedToken.consent)
           commit('setUserId', decodedToken.userId)
           commit('setUserInfo', userInfo(decodedToken.roles))
         }
       })
       .catch(response => {
-        console.log('setApiToken | catch', {response})
+        console.error('setApiToken | catch', {response})
       })
   },
   refreshToken: ({commit}, token) => {
@@ -52,24 +54,26 @@ const actions = {
           commit('setAud', decodedToken.aud)
           commit('setApiToken', data)
           commit('setExperimentId', decodedToken.experimentId)
+          commit('setAssignmentId', decodedToken.canvasAssignmentId)
           commit('setConsent', decodedToken.consent)
           commit('setUserId', decodedToken.userId)
           commit('setUserInfo', userInfo(decodedToken.roles))
         }
       })
       .catch(response => {
-        console.log('refreshToken | catch', {response})
+        console.error('refreshToken | catch', {response})
       })
   },
-  reportStep: ({state}, {experimentId, step}) => {
+  async reportStep({state}, {experimentId, step, parameters=null}) {
     // report the current step to the server to do some magic
     // used for exposure_type, participation_type, and distribution_type selection steps
-    return apiService.reportStep(experimentId, step)
+    return await apiService.reportStep(experimentId, step, parameters)
       .then(data => {
-        console.log('reportStep | then', {state, data})
+        return data
       })
       .catch(response => {
-        console.log('reportStep | catch', {response})
+        console.error('reportStep | catch', {response, state})
+        return response
       })
   }
 }
@@ -89,6 +93,9 @@ const mutations = {
   },
   setExperimentId(state, data) {
     state.experimentId = data
+  },
+  setAssignmentId(state, data) {
+    state.assignmentId = data
   },
   setConsent(state, data) {
     state.consent = data
@@ -117,6 +124,9 @@ const getters = {
   },
   experimentId(state) {
     return state.experimentId
+  },
+  assignmentId(state) {
+    return state.assignmentId
   },
   consent(state) {
     return state.consent
