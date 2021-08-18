@@ -490,15 +490,16 @@ public class CaliperServiceImpl implements CaliperService {
 
         String terracottaSubmissionId = assessment.getExtensions().get("terracotta_assessment")
                 + "/submissions/" + submission.getSubmissionId();
+
         Attempt attempt = Attempt.builder()
                 .id(terracottaSubmissionId)
                 .type(EntityType.ATTEMPT)
                 .assignee(actor)
                 .assignable(assessment)
                 .count(submissionService.findByParticipantIdAndAssessmentId(submission.getParticipant().getParticipantId(), submission.getAssessment().getAssessmentId()).size())
-                .dateCreated(convertTimestamp(submission.getCreatedAt()))
-                .startedAtTime(convertTimestamp(submission.getCreatedAt()))
-                .endedAtTime(convertTimestamp(submission.getDateSubmitted()).plus(1)) //To avoid the error if they submit instantaneously for some reason.
+                .dateCreated(convertTimestamp(submission.getCreatedAt(), false))
+                .startedAtTime(convertTimestamp(submission.getCreatedAt(), false))
+                .endedAtTime(convertTimestamp(submission.getDateSubmitted(), true)) //To avoid the error if they submit instantaneously for some reason.
                 .build();
         return attempt;
     }
@@ -523,7 +524,7 @@ public class CaliperServiceImpl implements CaliperService {
                 .attempt(attempt)
                 .maxResultScore(assessmentService.calculateMaxScore(submission.getAssessment()))
                 .resultScore(submission.getTotalAlteredGrade())
-                .dateCreated(convertTimestamp(submission.getCreatedAt()))
+                .dateCreated(convertTimestamp(submission.getCreatedAt(), false))
                 .comment(comment)
                 .build();
         return result;
@@ -620,10 +621,13 @@ public class CaliperServiceImpl implements CaliperService {
 
     }
 
-    private DateTime convertTimestamp(Timestamp timestamp) {
+    private DateTime convertTimestamp(Timestamp timestamp, boolean plusOne) {
         DateTime date;
         try {
             date = new DateTime(timestamp.getTime());
+            if (plusOne) {
+                date.plus(1);
+            }
         } catch (Exception e) {
             date = null;
         }
