@@ -184,8 +184,8 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
     public Optional<QuestionSubmission> findById(Long id) { return allRepositories.questionSubmissionRepository.findById(id); }
 
     @Override
-    public boolean existsByAssessmentIdAndQuestionId(Long assessmentId, Long questionId) {
-        return allRepositories.questionSubmissionRepository.existsBySubmission_Assessment_AssessmentIdAndQuestion_QuestionId(assessmentId, questionId);
+    public boolean existsByAssessmentIdAndSubmissionIdAndQuestionId(Long assessmentId, Long submissionId, Long questionId) {
+        return allRepositories.questionSubmissionRepository.existsBySubmission_Assessment_AssessmentIdAndSubmission_SubmissionIdAndQuestion_QuestionId(assessmentId, submissionId, questionId);
     }
 
     @Override
@@ -217,7 +217,7 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
         if(questionSubmissionDto.getQuestionId() == null){
             throw new IdMissingException(TextConstants.ID_MISSING);
         }
-        if(questionSubmissionBelongsToAssessmentAndSubmission(assessmentId, submissionId, questionSubmissionDto.getQuestionId())){
+        if(existsByAssessmentIdAndSubmissionIdAndQuestionId(assessmentId, submissionId, questionSubmissionDto.getQuestionId())){
             throw new DuplicateQuestionException("Error 123: A question submission with question id " + questionSubmissionDto.getQuestionId() + " already exists in assessment with id " + assessmentId);
         }
         if(questionSubmissionDto.getAlteredGrade() != null && student){

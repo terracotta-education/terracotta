@@ -41,7 +41,7 @@ public interface QuestionSubmissionService {
 
     Optional<QuestionSubmission> findById(Long id);
 
-    boolean existsByAssessmentIdAndQuestionId(Long assessmentId, Long questionId);
+    boolean existsByAssessmentIdAndSubmissionIdAndQuestionId(Long assessmentId, Long submissionId, Long questionId);
 
     void saveAndFlush(QuestionSubmission questionSubmissionToChange);
 
