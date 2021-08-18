@@ -106,7 +106,6 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
                 log.debug("Creating question submission: {}", questionSubmissionDto);
                 questionSubmissionDto.setSubmissionId(submissionId);
                 QuestionSubmission questionSubmission;
-                validateDto(questionSubmissionDto, assessmentId, student);
                 questionSubmission = fromDto(questionSubmissionDto);
                 returnedDtoList.add(toDto(save(questionSubmission), false, false));
                 for(AnswerSubmissionDto answerSubmissionDto : questionSubmissionDto.getAnswerSubmissionDtoList()){
@@ -214,11 +213,11 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
     }
 
     @Override
-    public void validateDto(QuestionSubmissionDto questionSubmissionDto, Long assessmentId, boolean student) throws IdMissingException, DuplicateQuestionException, InvalidUserException {
+    public void validateDtoPost(QuestionSubmissionDto questionSubmissionDto, Long assessmentId, Long submissionId, boolean student) throws IdMissingException, DuplicateQuestionException, InvalidUserException {
         if(questionSubmissionDto.getQuestionId() == null){
             throw new IdMissingException(TextConstants.ID_MISSING);
         }
-        if(existsByAssessmentIdAndQuestionId(assessmentId, questionSubmissionDto.getQuestionId())){
+        if(questionSubmissionBelongsToAssessmentAndSubmission(assessmentId, submissionId, questionSubmissionDto.getQuestionId())){
             throw new DuplicateQuestionException("Error 123: A question submission with question id " + questionSubmissionDto.getQuestionId() + " already exists in assessment with id " + assessmentId);
         }
         if(questionSubmissionDto.getAlteredGrade() != null && student){
@@ -241,7 +240,7 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
                 if(questionSubmissionDto.getQuestionSubmissionId() != null){
                     throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
                 }
-                validateDto(questionSubmissionDto, assessmentId, student);
+                validateDtoPost(questionSubmissionDto, assessmentId, submissionId, student);
                 questionSubmissionDto.setSubmissionId(submissionId);
                 QuestionSubmission questionSubmission = fromDto(questionSubmissionDto);
                 if(questionSubmission.getQuestion().getQuestionType().equals(QuestionTypes.MC) || questionSubmission.getQuestion().getQuestionType().equals(QuestionTypes.ESSAY)){

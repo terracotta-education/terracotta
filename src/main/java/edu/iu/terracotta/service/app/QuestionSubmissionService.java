@@ -51,7 +51,7 @@ public interface QuestionSubmissionService {
 
     QuestionSubmission automaticGradingMC(QuestionSubmission questionSubmission, AnswerMcSubmission answerMcSubmission);
 
-    void validateDto(QuestionSubmissionDto questionSubmissionDto, Long assessmentId, boolean student) throws IdMissingException, DuplicateQuestionException, InvalidUserException;
+    void validateDtoPost(QuestionSubmissionDto questionSubmissionDto, Long assessmentId, Long submissionId, boolean student) throws IdMissingException, DuplicateQuestionException, InvalidUserException;
 
     HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId, Long submissionId);
 
