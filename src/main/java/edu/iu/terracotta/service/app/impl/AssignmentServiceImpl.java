@@ -388,7 +388,7 @@ public class AssignmentServiceImpl implements AssignmentService {
                     }
                 }
             }
-            if (assessment.getNumOfSubmissions() == 0 || assessment.getNumOfSubmissions() > submissionList.size()) {
+            if (assessment.getNumOfSubmissions() == null || assessment.getNumOfSubmissions() == 0 || assessment.getNumOfSubmissions() > submissionList.size()) {
                 //If it is the first submission in the experiment we mark it as started.
                 if (experiment.get().getStarted()==null){
                     experiment.get().setStarted(Timestamp.valueOf(LocalDateTime.now()));
