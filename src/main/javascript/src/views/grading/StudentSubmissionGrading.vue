@@ -35,7 +35,7 @@
               <span>{{ index + 1 }}</span>
             </v-col>
             <v-col cols="9">
-              <span class="">{{ cleanHTMLString(question.html) }}</span>
+              <span v-html="question.html"></span>
             </v-col>
             <v-col>
               <v-row class="studentGrade individualScore">
@@ -105,7 +105,7 @@
                       </v-col>
                       <v-col cols="8">
                         <!-- Answer Text -->
-                        <span>{{ cleanHTMLString(answer.html) }}</span>
+                        <span v-html="answer.html"></span>
                       </v-col>
                       <v-col>
                         <!-- Correct / Student Response -->
@@ -221,20 +221,6 @@ export default {
       ).answerSubmissionDtoList?.map((answer) => answer.answerId);
     },
 
-    cleanHTMLString(question) {
-      // API is responding Question and answers wrapped in <p> tag
-      let updatedQuestion = question;
-      if (question.startsWith("<p>")) {
-        updatedQuestion = updatedQuestion.substring(3);
-      }
-      if (question.endsWith("</p>")) {
-        updatedQuestion = updatedQuestion.substring(
-          0,
-          updatedQuestion.length - 4
-        );
-      }
-      return updatedQuestion;
-    },
     async saveExit() {
       const updateSubmissions = this.studentResponse.map((response) => {
         return {
