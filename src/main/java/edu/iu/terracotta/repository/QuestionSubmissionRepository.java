@@ -18,6 +18,8 @@ public interface QuestionSubmissionRepository extends JpaRepository<QuestionSubm
 
     boolean existsBySubmission_Assessment_AssessmentIdAndQuestion_QuestionId(Long assessmentId, Long questionId);
 
+    boolean existsBySubmission_Assessment_AssessmentIdAndSubmission_SubmissionIdAndQuestion_QuestionId(Long assessmentId, Long submissionId, Long questionId);
+
     boolean existsBySubmission_Assessment_AssessmentIdAndSubmission_SubmissionIdAndQuestionSubmissionId(Long assessmentId, Long submissionId, Long questionSubmissionId);
 
     @Transactional
