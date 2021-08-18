@@ -8,6 +8,7 @@ const state = {
   aud: '',
   userInfo: '',
   experimentId: '',
+  assignmentId: '',
   consent: '',
   userId: ''
 }
@@ -21,6 +22,7 @@ const actions = {
     commit('setAud', decodedToken.aud)
     commit('setExperimentId', decodedToken.experimentId)
     commit('setConsent', decodedToken.consent)
+    commit('setAssignmentId', decodedToken.canvasAssignmentId)
     commit('setUserId', decodedToken.userId)
     commit('setUserInfo', userInfo(decodedToken.roles))
     return dispatch('setApiToken', token)
@@ -34,6 +36,7 @@ const actions = {
           commit('setApiToken', data)
           commit('setAud', decodedToken.aud)
           commit('setExperimentId', decodedToken.experimentId)
+          commit('setAssignmentId', decodedToken.canvasAssignmentId)
           commit('setConsent', decodedToken.consent)
           commit('setUserId', decodedToken.userId)
           commit('setUserInfo', userInfo(decodedToken.roles))
@@ -52,6 +55,7 @@ const actions = {
           commit('setAud', decodedToken.aud)
           commit('setApiToken', data)
           commit('setExperimentId', decodedToken.experimentId)
+          commit('setAssignmentId', decodedToken.canvasAssignmentId)
           commit('setConsent', decodedToken.consent)
           commit('setUserId', decodedToken.userId)
           commit('setUserInfo', userInfo(decodedToken.roles))
@@ -90,6 +94,9 @@ const mutations = {
   setExperimentId(state, data) {
     state.experimentId = data
   },
+  setAssignmentId(state, data) {
+    state.assignmentId = data
+  },
   setConsent(state, data) {
     state.consent = data
   },
@@ -117,6 +124,9 @@ const getters = {
   },
   experimentId(state) {
     return state.experimentId
+  },
+  assignmentId(state) {
+    return state.assignmentId
   },
   consent(state) {
     return state.consent

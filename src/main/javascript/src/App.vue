@@ -7,6 +7,7 @@
 			<template v-else-if="hasTokens && userInfo === 'Learner'">
 				<div class="studentView mt-5">
 					<StudentConsent v-if="consent" :experimentId="experimentId" :userId="userId"></StudentConsent>
+          <StudentQuiz v-if="assignmentId" :assignmentId="assignmentId" ></StudentQuiz>
 				</div>
 			</template>
 			<template v-else>
@@ -31,6 +32,7 @@
 
 <script>
 import { mapActions, mapGetters } from "vuex";
+import StudentQuiz from './views/student/StudentQuiz.vue';
 import StudentConsent from './views/student/StudentConsent.vue';
 
 export default {
@@ -39,12 +41,16 @@ export default {
   data: () => ({
     //
   }),
-  components: {StudentConsent},
+  components: {
+    StudentQuiz,
+    StudentConsent
+  },
 	computed: {
 		...mapGetters({
 			hasTokens: 'api/hasTokens',
 			userInfo: 'api/userInfo',
 			experimentId: 'api/experimentId',
+      assignmentId: 'api/assignmentId',
 			consent: 'api/consent',
 			userId: 'api/userId',
 			api_token: 'api/api_token'
@@ -56,10 +62,10 @@ export default {
 		}),
 	},
 	async created() {
-		localStorage.clear()
-		setInterval(function () {
-		this.refreshToken(this.api_token)
-		}.bind(this), 1000 * 60 * 59)
+    localStorage.clear()
+    setInterval(function () {
+      this.refreshToken(this.api_token)
+    }.bind(this), 1000 * 60 * 59)
 	},
 };
 </script>
