@@ -7,7 +7,7 @@
 			<template v-else-if="hasTokens && userInfo === 'Learner'">
 				<div class="studentView mt-5">
 					<StudentConsent v-if="consent" :experimentId="experimentId" :userId="userId"></StudentConsent>
-          <StudentQuiz v-if="assignmentId" :assignmentId="assignmentId" ></StudentQuiz>
+          <StudentQuiz v-if="assignmentId" :experimentId="experimentId" :assignmentId="assignmentId" ></StudentQuiz>
 				</div>
 			</template>
 			<template v-else>
