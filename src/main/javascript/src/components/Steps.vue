@@ -14,7 +14,7 @@
         <span
           :class="{
             'green--text':
-              isSummary && section.key === $route.meta.currentSection,
+              (isSummary && section.key === $route.meta.currentSection || completedSections[currentSection].includes(section.key)),
           }"
           >{{ section.name }}</span
         >
@@ -156,6 +156,11 @@ export default {
           ],
         },
       ],
+      completedSections: {
+        'design': [],
+        'participation': ['design'],
+        'assignments': ['design', 'participation']
+      }
     };
   },
 };
