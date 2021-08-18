@@ -237,7 +237,6 @@ export default {
     },
     async saveExit() {
       const updateSubmissions = this.studentResponse.map((response) => {
-        console.log(JSON.stringify(response));
         return {
           questionSubmissionId: response.questionSubmissionId,
           answerSubmissionDtoList: response.answerSubmissionDtoList,
