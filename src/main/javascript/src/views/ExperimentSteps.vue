@@ -3,7 +3,7 @@
 		<template v-if="experiment">
 			<div class="experiment-steps">
 				<aside class="experiment-steps__sidebar">
-					<steps :current-section="currentSection" :current-step="currentStep" />
+					<steps :current-section="currentSection" :current-step="currentStep" :participationType="experiment.participationType"/>
 				</aside>
 				<nav>
 					<router-link

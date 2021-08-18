@@ -49,7 +49,7 @@
 
 export default {
   name: "Steps",
-  props: ["currentSection", "currentStep"],
+  props: ["currentSection", "currentStep", "participationType"],
 
   computed: {
     isSummary() {
@@ -79,7 +79,7 @@ export default {
         },
       ]
 
-      if (selectionType === "consent") {
+      if (selectionType === "consent" || this.participationType === "CONSENT") {
         steps.push({
             key: "participation_selection_consent_title",
             name: "Assignment Title",
@@ -88,17 +88,18 @@ export default {
             key: "participation_selection_consent_file",
             name: "Informed Consent",
           })
-      } else if(selectionType === "manual") {
+      } else if(selectionType === "manual" || this.participationType === "MANUAL") {
         steps.push({
             key: "select_participants",
             name: "Select Participants",
           })
-      }
+      } 
 
       if (
         selectionType === "any" ||
         selectionType === "consent" ||
-        selectionType === "manual"
+        selectionType === "manual" ||
+        selectionType === "auto"
       ) {
         steps.push({
           key: "participation_distribution",
