@@ -181,6 +181,7 @@ export default {
       fetchAssessment: "assessment/fetchAssessment",
       fetchStudentResponse: "submissions/fetchStudentResponse",
       updateQuestionSubmission: "submissions/updateQuestionSubmission",
+      reportStep: 'api/reportStep',
     }),
     participantName() {
       return this.participants.filter(
@@ -204,10 +205,15 @@ export default {
     },
 
     studentSubmittedAnswers(questionId) {
-      this.questionScoreMap[questionId] = this.studentResponseForQuestionId(
+      const alteredGrade = this.studentResponseForQuestionId(
         questionId
-      ).alteredGrade || 0;
-
+      ).alteredGrade;
+      const calculatedPoints = this.studentResponseForQuestionId(
+        questionId
+      ).calculatedPoints;
+      
+      this.questionScoreMap[questionId] = alteredGrade ? alteredGrade : calculatedPoints
+      
       let sum = 0;
       Object.keys(this.questionScoreMap)?.map((qId) => {
         this.isSameAssessmentQuestion(qId)
@@ -231,6 +237,7 @@ export default {
       });
 
       try {
+        // Update Question Submissions
         await this.updateQuestionSubmission([
           this.experiment_id,
           this.condition_id,
@@ -239,6 +246,12 @@ export default {
           this.submissions[0].submissionId,
           updateSubmissions,
         ]);
+        // Post Step to Experiment
+        await this.reportStep({
+          experimentId: this.experiment_id,
+          step: 'student_submission',
+          parameters: {'submissionIds': ''+this.submissions[0].submissionId}
+        });
         this.$router.push({
           name: this.$router.currentRoute.meta.previousStep,
         });
