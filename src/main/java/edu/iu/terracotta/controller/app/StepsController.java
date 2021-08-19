@@ -162,7 +162,7 @@ public class StepsController {
                 return new ResponseEntity<>(HttpStatus.OK);
             case LAUNCH_ASSIGNMENT:
                 //Validate permissions.
-                if(apijwtService.isLearner(securedInfo)) {
+                if(apijwtService.isLearner(securedInfo) && !apijwtService.isInstructorOrHigher(securedInfo)) {
                     return assignmentService.launchAssignment(experimentId, securedInfo);
                 } else {
                     return new ResponseEntity<>(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
