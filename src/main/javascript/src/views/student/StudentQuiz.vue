@@ -1,8 +1,8 @@
 <template>
-  <v-container fluid>
+  <v-container fluid v-if="assessment && questionValues.length > 0">
     <v-row>
       <v-col>
-        <template v-if="!submitted && questionValues.length > 0">
+        <template v-if="!submitted">
           <form v-on:submit.prevent="handleSubmit" style="width: 100%;">
             <div class="answerSection mt-5 w-100">
 
