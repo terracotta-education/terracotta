@@ -2,7 +2,7 @@
   <v-container fluid>
     <v-row>
       <v-col>
-        <template v-if="!submitted">
+        <template v-if="!submitted && questionValues.length > 0">
           <form v-on:submit.prevent="handleSubmit" style="width: 100%;">
             <div class="answerSection mt-5 w-100">
 
@@ -58,7 +58,7 @@
             </div>
 
             <v-btn
-              :disabled="questionValues && !!questionValues.find(({answerId}) => !answerId)"
+              :disabled="!!questionValues.find(({answerId}) => !answerId)"
               elevation="0"
               color="primary"
               class="mt-4"
