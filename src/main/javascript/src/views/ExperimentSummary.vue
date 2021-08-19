@@ -439,6 +439,7 @@ export default {
   methods: {
     ...mapActions({
       fetchExposures: "exposures/fetchExposures",
+      fetchAssignmentsByExposure: 'assignment/fetchAssignmentsByExposure',
       checkTreatment: "treatment/checkTreatment",
       createTreatment: "treatment/createTreatment",
       createAssessment: "assessment/createAssessment",
@@ -552,9 +553,7 @@ export default {
 
   async created() {
     this.tab = this.$router.currentRoute.name === "ExperimentSummary" ? 1 : 0;
-    await this.getConsentFile(this.experiment.experimentId);
-    await this.getZip(this.experiment.experimentId);
-
+    
     await this.fetchExposures(this.experiment.experimentId);
     for (let c of this.conditions) {
       const t = await this.checkTreatment([
@@ -564,7 +563,17 @@ export default {
       ]);
       this.conditionTreatments[c.conditionId] = t?.data;
     }
+    for (const e of this.exposures) {
+      // add submissions to assignments request
+      const submissions = true
+      await this.fetchAssignmentsByExposure([this.experiment.experimentId, e.exposureId, submissions])
+    }
     this.getAssignmentDetails();
+    await this.getZip(this.experiment.experimentId);
+    if(this.experiment.participationType === 'CONSENT') {
+      await this.getConsentFile(this.experiment.experimentId);
+    }
+
   },
   beforeRouteEnter(to, from, next) {
     return store
