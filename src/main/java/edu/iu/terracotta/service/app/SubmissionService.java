@@ -57,7 +57,7 @@ public interface SubmissionService {
 
     boolean submissionBelongsToAssessment(Long assessmentId, Long SubmissionId);
 
-    void finalizeAndGrade(Long submissionId, SecuredInfo securedInfo) throws DataServiceException, CanvasApiException, IOException, AssignmentDatesException;
+    void finalizeAndGrade(Long submissionId, SecuredInfo securedInfo) throws DataServiceException, CanvasApiException, IOException, AssignmentDatesException, ConnectionException;
 
     void grade(Long submissionId, SecuredInfo securedInfo) throws DataServiceException;
 

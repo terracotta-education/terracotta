@@ -272,7 +272,7 @@ public class SubmissionServiceImpl implements SubmissionService {
 
     @Override
     @Transactional
-    public void finalizeAndGrade(Long submissionId, SecuredInfo securedInfo) throws DataServiceException, AssignmentDatesException {
+    public void finalizeAndGrade(Long submissionId, SecuredInfo securedInfo) throws DataServiceException, AssignmentDatesException, CanvasApiException, IOException, ConnectionException {
         Optional<Submission> submissionOptional =  allRepositories.submissionRepository.findById(submissionId);
         if (submissionOptional.isPresent()){
             //We are not changing the submission date once it is set.
@@ -286,6 +286,7 @@ public class SubmissionServiceImpl implements SubmissionService {
             if (securedInfo.getLockAt() == null || submissionOptional.get().getDateSubmitted().after(securedInfo.getLockAt())) {
                 saveAndFlush(gradeSubmission(submissionOptional.get()));
                 caliperService.sendAssignmentSubmitted(submissionOptional.get(), securedInfo);
+                sendSubmissionGradeToCanvas(submissionOptional.get());
             } else {
                 throw new AssignmentDatesException("Error 128: Canvas Assignment is locked, we can not generate/grade a submission with a date later than the lock date");
             }
@@ -330,6 +331,7 @@ public class SubmissionServiceImpl implements SubmissionService {
         //We need to calculate the 2 the possible grades. Automatic and manual
         float automatic = Float.parseFloat("0");
         float manual = Float.parseFloat("0");
+        boolean altered = submission.getTotalAlteredGrade()!=null && (!submission.getTotalAlteredGrade().equals(submission.getAlteredCalculatedGrade()));
         for (QuestionSubmission questionSubmission:submission.getQuestionSubmissions()) {
             //We need to grade the question first automatically it it was not graded before.
             //If multiple choice, we take the automatic score for automatic and the manual if any for manual, and if no manual, then the automatic for manual
@@ -361,7 +363,9 @@ public class SubmissionServiceImpl implements SubmissionService {
         }
         submission.setCalculatedGrade(automatic);
         submission.setAlteredCalculatedGrade(manual);
-        submission.setTotalAlteredGrade(manual);
+        if (!altered) {
+            submission.setTotalAlteredGrade(manual);
+        }
         return submission;
     }
 
