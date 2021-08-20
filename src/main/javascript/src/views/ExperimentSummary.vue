@@ -449,7 +449,8 @@ export default {
     saveExit() {
       this.$router.push({ name: "Home" });
     },
-    exportData() {
+    async exportData() {
+      await this.getZip(this.experiment.experimentId);
       saveAs(this.exportdata, `Terracotta Experiment ${this.experiment.title} Export.zip`);
     },
     // Navigate to EDIT section
