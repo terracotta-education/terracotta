@@ -199,7 +199,7 @@ export default {
       const filteredResponse = this.studentResponse?.filter(
         (resp) => resp.questionId === questionId
       );
-      return filteredResponse.length > 0
+      return filteredResponse?.length > 0
         ? filteredResponse[0]
         : { answerSubmissionDtoList: [] };
     },
