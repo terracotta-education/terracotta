@@ -555,25 +555,26 @@ export default {
     this.tab = this.$router.currentRoute.name === "ExperimentSummary" ? 1 : 0;
     
     await this.fetchExposures(this.experiment.experimentId);
-    for (let c of this.conditions) {
-      const t = await this.checkTreatment([
-        this.experiment.experimentId,
-        c.conditionId,
-        this.assignments[0].assignmentId,
-      ]);
-      this.conditionTreatments[c.conditionId] = t?.data;
+    if (this.assignments > 0) {
+      for (let c of this.conditions) {
+        const t = await this.checkTreatment([
+          this.experiment.experimentId,
+          c.conditionId,
+          this.assignments[0].assignmentId,
+        ]);
+        this.conditionTreatments[c.conditionId] = t?.data;
+      }
+      for (const e of this.exposures) {
+        // add submissions to assignments request
+        const submissions = true
+        await this.fetchAssignmentsByExposure([this.experiment.experimentId, e.exposureId, submissions])
+      }
+      this.getAssignmentDetails();
+      await this.getZip(this.experiment.experimentId);
+      if(this.experiment.participationType === 'CONSENT') {
+        await this.getConsentFile(this.experiment.experimentId);
+      }
     }
-    for (const e of this.exposures) {
-      // add submissions to assignments request
-      const submissions = true
-      await this.fetchAssignmentsByExposure([this.experiment.experimentId, e.exposureId, submissions])
-    }
-    this.getAssignmentDetails();
-    await this.getZip(this.experiment.experimentId);
-    if(this.experiment.participationType === 'CONSENT') {
-      await this.getConsentFile(this.experiment.experimentId);
-    }
-
   },
   beforeRouteEnter(to, from, next) {
     return store

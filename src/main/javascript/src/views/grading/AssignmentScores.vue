@@ -105,7 +105,7 @@ export default {
     }),
     getParticipantName(participantId, submission) {
       this.resultValues[submission.submissionId] = submission;
-      return this.participants.filter(
+      return this.participants?.filter(
         (participant) => participant.participantId === participantId
       )[0]?.user.displayName;
     },
