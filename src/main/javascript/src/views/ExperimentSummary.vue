@@ -211,7 +211,7 @@
                                       )"
                                       :key="assignment.assignmentId"
                                     >
-                                      <v-expansion-panel-header>
+                                      <v-expansion-panel-header style="display:flex;flex-direction: row">
                                         {{ assignment.title }} ({{
                                           (assignment.treatments &&
                                             assignment.treatments.length) ||
