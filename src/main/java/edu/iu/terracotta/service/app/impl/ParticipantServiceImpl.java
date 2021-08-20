@@ -382,6 +382,7 @@ public class ParticipantServiceImpl implements ParticipantService {
             if ((participantToChange.getConsent()==null || !participantToChange.getConsent()) &&
                     (participantDto.getConsent()!=null && participantDto.getConsent())){
                 participantToChange.setDateGiven(Timestamp.valueOf(LocalDateTime.now()));
+                participantToChange.setDateRevoked(null);
             }
             participantToChange.setConsent((participantDto.getConsent()));
 

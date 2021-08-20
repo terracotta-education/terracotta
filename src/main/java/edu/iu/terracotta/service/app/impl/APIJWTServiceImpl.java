@@ -406,12 +406,12 @@ public class APIJWTServiceImpl implements APIJWTService {
 
     @Override
     public boolean isInstructor(SecuredInfo securedInfo){
-        return (securedInfo.getRoles().contains(Roles.INSTRUCTOR) || securedInfo.getRoles().contains(Roles.MEMBERSHIP_INSTRUCTOR));
+        return (securedInfo.getRoles().contains(Roles.MEMBERSHIP_INSTRUCTOR));
     }
 
     @Override
     public boolean isLearner(SecuredInfo securedInfo){
-        return (securedInfo.getRoles().contains(Roles.LEARNER) || securedInfo.getRoles().contains(Roles.MEMBERSHIP_LEARNER));
+        return (securedInfo.getRoles().contains(Roles.MEMBERSHIP_LEARNER));
     }
 
     @Override
