@@ -72,8 +72,12 @@ public class ParticipantServiceImpl implements ParticipantService {
             }
             return participantDtoList;
         }
-
-        participantDtoList.add(toDto(allRepositories.participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, userId)));
+        try {
+            participantDtoList.add(toDto(allRepositories.participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, userId)));
+        } catch (NullPointerException ex){
+            //A null pointer means that there is no participant for this experiment with that userId. We will return an empty list.
+            return participantDtoList;
+        }
         return participantDtoList;
     }
 
@@ -378,6 +382,7 @@ public class ParticipantServiceImpl implements ParticipantService {
             if ((participantToChange.getConsent()==null || !participantToChange.getConsent()) &&
                     (participantDto.getConsent()!=null && participantDto.getConsent())){
                 participantToChange.setDateGiven(Timestamp.valueOf(LocalDateTime.now()));
+                participantToChange.setDateRevoked(null);
             }
             participantToChange.setConsent((participantDto.getConsent()));
 

@@ -316,7 +316,7 @@ public class AssignmentServiceImpl implements AssignmentService {
             if (participant==null){
                 throw new ParticipantNotMatchingException(TextConstants.PARTICIPANT_NOT_MATCHING);
             }
-            if (participant.getConsent() ==null) {
+            if (participant.getConsent() ==null || (!participant.getConsent() && participant.getDateRevoked()==null)) {
                 if (experiment.get().getParticipationType().equals(ParticipationTypes.AUTO)){
                     participant.setConsent(true);
                     participant.setDateGiven(new Timestamp(System.currentTimeMillis()));
