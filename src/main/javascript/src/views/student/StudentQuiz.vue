@@ -168,7 +168,7 @@ export default {
         this.assessmentId = data.assessmentId
         this.submissionId = data.submissionId
 
-        this.fetchAssessment([
+        await this.fetchAssessment([
           experimentId,
           data.conditionId,
           data.treatmentId,
