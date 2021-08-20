@@ -555,7 +555,8 @@ export default {
     this.tab = this.$router.currentRoute.name === "ExperimentSummary" ? 1 : 0;
     
     await this.fetchExposures(this.experiment.experimentId);
-    if (this.assignments > 0) {
+    // Commenting the change for Unblock QA
+    // if (this.assignments > 0) {
       for (let c of this.conditions) {
         const t = await this.checkTreatment([
           this.experiment.experimentId,
@@ -574,7 +575,7 @@ export default {
       if(this.experiment.participationType === 'CONSENT') {
         await this.getConsentFile(this.experiment.experimentId);
       }
-    }
+    // }
   },
   beforeRouteEnter(to, from, next) {
     return store
