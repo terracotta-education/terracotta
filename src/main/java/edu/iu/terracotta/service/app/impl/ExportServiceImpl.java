@@ -96,20 +96,22 @@ public class ExportServiceImpl implements ExportService {
         List<String[]> outcomeData = new ArrayList<>();
         outcomeData.add(new String[]{"outcome_id", "participant_id", "exposure_id", "source", "outcome_name", "points_possible", "outcome_score"});
         for(OutcomeScore outcomeScore : outcomeScores){
-            String outcomeId = outcomeScore.getOutcome().getOutcomeId().toString();
-            String participantId = outcomeScore.getParticipant().getParticipantId().toString();
-            String exposureId = outcomeScore.getOutcome().getExposure().getExposureId().toString();
-            String source = outcomeScore.getOutcome().getLmsType().toString();
-            String outcomeName = "N/A";
-            if(!StringUtils.isAllBlank(outcomeScore.getOutcome().getTitle())){
-                outcomeName = outcomeScore.getOutcome().getTitle();
+            if(outcomeScore.getParticipant().getConsent() != null && outcomeScore.getParticipant().getConsent()){
+                String outcomeId = outcomeScore.getOutcome().getOutcomeId().toString();
+                String participantId = outcomeScore.getParticipant().getParticipantId().toString();
+                String exposureId = outcomeScore.getOutcome().getExposure().getExposureId().toString();
+                String source = outcomeScore.getOutcome().getLmsType().toString();
+                String outcomeName = "N/A";
+                if (!StringUtils.isAllBlank(outcomeScore.getOutcome().getTitle())) {
+                    outcomeName = outcomeScore.getOutcome().getTitle();
+                }
+                String pointsPossible = outcomeScore.getOutcome().getMaxPoints().toString();
+                String score = "N/A";
+                if (outcomeScore.getScoreNumeric() != null) {
+                    score = outcomeScore.getScoreNumeric().toString();
+                }
+                outcomeData.add(new String[]{outcomeId, participantId, exposureId, source, outcomeName, pointsPossible, score});
             }
-            String pointsPossible = outcomeScore.getOutcome().getMaxPoints().toString();
-            String score = "N/A";
-            if(outcomeScore.getScoreNumeric() != null){
-                score = outcomeScore.getScoreNumeric().toString();
-            }
-            outcomeData.add(new String[]{outcomeId, participantId, exposureId, source, outcomeName, pointsPossible, score});
         }
         csvFiles.put("outcomes.csv", outcomeData);
 
@@ -120,24 +122,26 @@ public class ExportServiceImpl implements ExportService {
         List<String[]> participant_treatment = new ArrayList<>();
         participant_treatment.add(new String[] {"participant_id", "exposure_id", "condition_id", "condition_name", "assignment_id", "assignment_name", "treatment_id"});
         for(Participant participant : participants){
-            if(participant.getGroup() != null) {
-                String participantId = participant.getParticipantId().toString();
-                List<ExposureGroupCondition> egcList = allRepositories.exposureGroupConditionRepository.findByGroup_GroupId(participant.getGroup().getGroupId());
-                for (ExposureGroupCondition egc : egcList) {
-                    String exposureId = egc.getExposure().getExposureId().toString();
-                    String conditionId = egc.getCondition().getConditionId().toString();
-                    String conditionName = "N/A";
-                    if (!StringUtils.isAllBlank(egc.getCondition().getName())) {
-                        conditionName = egc.getCondition().getName();
-                    }
-                    List<Assignment> assignments = allRepositories.assignmentRepository.findByExposure_ExposureId(egc.getExposure().getExposureId());
-                    for (Assignment assignment : assignments) {
-                        String assignmentId = assignment.getAssignmentId().toString();
-                        String assignmentName = assignment.getTitle();
-                        List<Treatment> treatments = allRepositories.treatmentRepository.findByCondition_ConditionIdAndAssignment_AssignmentId(Long.parseLong(conditionId), Long.parseLong(assignmentId));
-                        for (Treatment treatment : treatments) {
-                            String treatmentId = treatment.getTreatmentId().toString();
-                            participant_treatment.add(new String[]{participantId, exposureId, conditionId, conditionName, assignmentId, assignmentName, treatmentId});
+            if(participant.getConsent() != null && participant.getConsent()) {
+                if (participant.getGroup() != null) {
+                    String participantId = participant.getParticipantId().toString();
+                    List<ExposureGroupCondition> egcList = allRepositories.exposureGroupConditionRepository.findByGroup_GroupId(participant.getGroup().getGroupId());
+                    for (ExposureGroupCondition egc : egcList) {
+                        String exposureId = egc.getExposure().getExposureId().toString();
+                        String conditionId = egc.getCondition().getConditionId().toString();
+                        String conditionName = "N/A";
+                        if (!StringUtils.isAllBlank(egc.getCondition().getName())) {
+                            conditionName = egc.getCondition().getName();
+                        }
+                        List<Assignment> assignments = allRepositories.assignmentRepository.findByExposure_ExposureId(egc.getExposure().getExposureId());
+                        for (Assignment assignment : assignments) {
+                            String assignmentId = assignment.getAssignmentId().toString();
+                            String assignmentName = assignment.getTitle();
+                            List<Treatment> treatments = allRepositories.treatmentRepository.findByCondition_ConditionIdAndAssignment_AssignmentId(Long.parseLong(conditionId), Long.parseLong(assignmentId));
+                            for (Treatment treatment : treatments) {
+                                String treatmentId = treatment.getTreatmentId().toString();
+                                participant_treatment.add(new String[]{participantId, exposureId, conditionId, conditionName, assignmentId, assignmentName, treatmentId});
+                            }
                         }
                     }
                 }
@@ -169,16 +173,18 @@ public class ExportServiceImpl implements ExportService {
         List<String[]> submissionData = new ArrayList<>();
         submissionData.add(new String[] {"submission_id", "participant_id", "assignment_id", "treatment_id", "submitted_at", "calculated_score", "override_score", "final_score"});
         for(Submission submission : submissions){
-            if(submission.getDateSubmitted() != null){
-                String submittedAt = submission.getDateSubmitted().toString();
-                String participantId = submission.getParticipant().getParticipantId().toString();
-                String assignmentId = submission.getAssessment().getTreatment().getAssignment().getAssignmentId().toString();
-                String treatmentId = submission.getAssessment().getTreatment().getTreatmentId().toString();
-                String calculatedScore = submission.getCalculatedGrade().toString();
-                String overrideScore = submission.getAlteredCalculatedGrade().toString();
-                String finalScore = submission.getTotalAlteredGrade().toString();
-                String submissionId = submission.getSubmissionId().toString();
-                submissionData.add(new String[] {submissionId, participantId, assignmentId, treatmentId, submittedAt, calculatedScore, overrideScore, finalScore});
+            if(submission.getParticipant().getConsent() != null && submission.getParticipant().getConsent()) {
+                if (submission.getDateSubmitted() != null) {
+                    String submittedAt = submission.getDateSubmitted().toString();
+                    String participantId = submission.getParticipant().getParticipantId().toString();
+                    String assignmentId = submission.getAssessment().getTreatment().getAssignment().getAssignmentId().toString();
+                    String treatmentId = submission.getAssessment().getTreatment().getTreatmentId().toString();
+                    String calculatedScore = submission.getCalculatedGrade().toString();
+                    String overrideScore = submission.getAlteredCalculatedGrade().toString();
+                    String finalScore = submission.getTotalAlteredGrade().toString();
+                    String submissionId = submission.getSubmissionId().toString();
+                    submissionData.add(new String[]{submissionId, participantId, assignmentId, treatmentId, submittedAt, calculatedScore, overrideScore, finalScore});
+                }
             }
         }
         csvFiles.put("submissions.csv", submissionData);
@@ -213,58 +219,60 @@ public class ExportServiceImpl implements ExportService {
         questionSubmissionData.add(new String[] {"item_response_id", "submission_id", "assignment_id", "condition_id", "treatment_id", "participant_id", "item_id", "response_type", "response", "response_id", "response_position",
                                                 "correctness", "responded_at", "points_possible", "calculated_score", "override_score"});
         for(QuestionSubmission questionSubmission : questionSubmissions) {
-            String itemResponseId = questionSubmission.getQuestionSubmissionId().toString();
-            String submissionId = questionSubmission.getSubmission().getSubmissionId().toString();
-            String assignmentId = questionSubmission.getQuestion().getAssessment().getTreatment().getAssignment().getAssignmentId().toString();
-            String conditionId = questionSubmission.getQuestion().getAssessment().getTreatment().getCondition().getConditionId().toString();
-            String treatmentId = questionSubmission.getQuestion().getAssessment().getTreatment().getTreatmentId().toString();
-            String participantId = questionSubmission.getSubmission().getParticipant().getParticipantId().toString();
-            String itemId = questionSubmission.getQuestion().getQuestionId().toString();
-            String responseType = questionSubmission.getQuestion().getQuestionType().toString();
-            String response = "N/A";
-            String responseId = "N/A";
-            String responsePosition = "N/A";
-            String correctness = "N/A";
-            String calculatedScore = "N/A";
-            String overrideScore = "N/A";
-            if(questionSubmission.getQuestion().getQuestionType().equals(QuestionTypes.MC)){
-                List<AnswerMcSubmission> answerMcSubmissions = allRepositories.answerMcSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmission.getQuestionSubmissionId());
-                if(!answerMcSubmissions.isEmpty()){
-                    AnswerMcSubmission answerMcSubmission = answerMcSubmissions.get(0);
-                    if(!StringUtils.isAllBlank(answerMcSubmission.getAnswerMc().getHtml())){
-                        response = answerMcSubmission.getAnswerMc().getHtml();
+            if(questionSubmission.getSubmission().getParticipant().getConsent() != null && questionSubmission.getSubmission().getParticipant().getConsent()) {
+                String itemResponseId = questionSubmission.getQuestionSubmissionId().toString();
+                String submissionId = questionSubmission.getSubmission().getSubmissionId().toString();
+                String assignmentId = questionSubmission.getQuestion().getAssessment().getTreatment().getAssignment().getAssignmentId().toString();
+                String conditionId = questionSubmission.getQuestion().getAssessment().getTreatment().getCondition().getConditionId().toString();
+                String treatmentId = questionSubmission.getQuestion().getAssessment().getTreatment().getTreatmentId().toString();
+                String participantId = questionSubmission.getSubmission().getParticipant().getParticipantId().toString();
+                String itemId = questionSubmission.getQuestion().getQuestionId().toString();
+                String responseType = questionSubmission.getQuestion().getQuestionType().toString();
+                String response = "N/A";
+                String responseId = "N/A";
+                String responsePosition = "N/A";
+                String correctness = "N/A";
+                String calculatedScore = "N/A";
+                String overrideScore = "N/A";
+                if (questionSubmission.getQuestion().getQuestionType().equals(QuestionTypes.MC)) {
+                    List<AnswerMcSubmission> answerMcSubmissions = allRepositories.answerMcSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmission.getQuestionSubmissionId());
+                    if (!answerMcSubmissions.isEmpty()) {
+                        AnswerMcSubmission answerMcSubmission = answerMcSubmissions.get(0);
+                        if (!StringUtils.isAllBlank(answerMcSubmission.getAnswerMc().getHtml())) {
+                            response = answerMcSubmission.getAnswerMc().getHtml();
+                        }
+                        responseId = answerMcSubmission.getAnswerMc().getAnswerMcId().toString();
+                        responsePosition = Character.toString(mapResponsePosition(Long.parseLong(itemId), answerMcSubmission.getAnswerMc().getAnswerMcId()));
+                        correctness = answerMcSubmission.getAnswerMc().getCorrect().toString().toUpperCase();
                     }
-                    responseId = answerMcSubmission.getAnswerMc().getAnswerMcId().toString();
-                    responsePosition = Character.toString(mapResponsePosition(Long.parseLong(itemId), answerMcSubmission.getAnswerMc().getAnswerMcId()));
-                    correctness = answerMcSubmission.getAnswerMc().getCorrect().toString().toUpperCase();
-                }
-                if(questionSubmission.getCalculatedPoints() != null){
-                    calculatedScore = questionSubmission.getCalculatedPoints().toString();
-                }
-                if(questionSubmission.getAlteredGrade() != null) {
-                    overrideScore = questionSubmission.getAlteredGrade().toString();
-                }
-            } else if(questionSubmission.getQuestion().getQuestionType().equals(QuestionTypes.ESSAY)){
-                List<AnswerEssaySubmission> answerEssaySubmissions = allRepositories.answerEssaySubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmission.getQuestionSubmissionId());
-                if(!answerEssaySubmissions.isEmpty()){
-                    AnswerEssaySubmission answerEssaySubmission = answerEssaySubmissions.get(0);
-                    if(!StringUtils.isAllBlank(answerEssaySubmission.getResponse())){
-                        response = answerEssaySubmission.getResponse();
+                    if (questionSubmission.getCalculatedPoints() != null) {
+                        calculatedScore = questionSubmission.getCalculatedPoints().toString();
                     }
-                    if(questionSubmission.getCalculatedPoints() != null)
-                        calculatedScore = answerEssaySubmission.getQuestionSubmission().getCalculatedPoints().toString();
-                    if(questionSubmission.getAlteredGrade() != null)
-                        overrideScore = answerEssaySubmission.getQuestionSubmission().getAlteredGrade().toString();
+                    if (questionSubmission.getAlteredGrade() != null) {
+                        overrideScore = questionSubmission.getAlteredGrade().toString();
+                    }
+                } else if (questionSubmission.getQuestion().getQuestionType().equals(QuestionTypes.ESSAY)) {
+                    List<AnswerEssaySubmission> answerEssaySubmissions = allRepositories.answerEssaySubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmission.getQuestionSubmissionId());
+                    if (!answerEssaySubmissions.isEmpty()) {
+                        AnswerEssaySubmission answerEssaySubmission = answerEssaySubmissions.get(0);
+                        if (!StringUtils.isAllBlank(answerEssaySubmission.getResponse())) {
+                            response = answerEssaySubmission.getResponse();
+                        }
+                        if (questionSubmission.getCalculatedPoints() != null)
+                            calculatedScore = answerEssaySubmission.getQuestionSubmission().getCalculatedPoints().toString();
+                        if (questionSubmission.getAlteredGrade() != null)
+                            overrideScore = answerEssaySubmission.getQuestionSubmission().getAlteredGrade().toString();
+                    }
                 }
-            }
 
-            String respondedAt = "N/A";
-            if(questionSubmission.getSubmission().getDateSubmitted() != null){
-                respondedAt = questionSubmission.getSubmission().getDateSubmitted().toString();
+                String respondedAt = "N/A";
+                if (questionSubmission.getSubmission().getDateSubmitted() != null) {
+                    respondedAt = questionSubmission.getSubmission().getDateSubmitted().toString();
+                }
+                String pointsPossible = questionSubmission.getQuestion().getPoints().toString();
+                questionSubmissionData.add(new String[]{itemResponseId, submissionId, assignmentId, conditionId, treatmentId, participantId, itemId, responseType, response, responseId, responsePosition, correctness,
+                        respondedAt, pointsPossible, calculatedScore, overrideScore});
             }
-            String pointsPossible = questionSubmission.getQuestion().getPoints().toString();
-            questionSubmissionData.add(new String[] {itemResponseId, submissionId, assignmentId, conditionId, treatmentId, participantId, itemId, responseType, response, responseId, responsePosition, correctness,
-                                                        respondedAt, pointsPossible, calculatedScore, overrideScore});
         }
         csvFiles.put("item_responses.csv", questionSubmissionData);
 
