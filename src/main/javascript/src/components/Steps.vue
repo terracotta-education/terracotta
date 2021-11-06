@@ -233,7 +233,7 @@ ul.component-steps {
             position: absolute;
             height: 108%;
             width: 14px;
-            background: map-get($light-blue, "base");
+            background: map-get($blue, "base");
             left: 0;
             bottom: 30px;
             z-index: -1;
