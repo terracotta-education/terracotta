@@ -99,6 +99,6 @@ export default {
 //             and then when a participant is selected, Minus sign
 //             is displaying in different color
 .mdi-minus-box {
-  color: #1d9dff !important;
+  color: map-get($blue, "base") !important;
 }
 </style>
