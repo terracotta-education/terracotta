@@ -33,7 +33,7 @@
     <v-card class="mt-5 pa-5 mx-auto lighten-5 rounded-lg" outlined>
       <p class="pa-0 my-0" v-for="group in sortedGroups()" :key="group">
         {{ group }} will receive
-        <v-chip class="ma-2" color="primary" label>
+        <v-chip class="ma-2" :color="conditionColorMapping[groupNameConditionMapping[group]]" label>
           {{ groupNameConditionMapping[group] }}</v-chip
         >
       </p>
@@ -64,6 +64,7 @@ export default {
   computed: {
     ...mapGetters({
       exposures: "exposures/exposures",
+      conditionColorMapping: "condition/conditionColorMapping",
     }),
     exposureType() {
       return this.experiment.exposureType;

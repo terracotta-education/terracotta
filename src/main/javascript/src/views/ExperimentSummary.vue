@@ -176,7 +176,7 @@
                                   <br />
                                   <div
                                     class="groupNames"
-                                    :key="group.groupId"
+                                    :key="group"
                                     v-for="group in sortedGroups(
                                       exposure.groupConditionList
                                     )"
@@ -184,10 +184,12 @@
                                     {{ group }} will receive
                                     <v-chip
                                       class="ma-2"
-                                      color="primary"
+                                      :color="conditionColorMapping[groupNameConditionMapping(
+                                          exposure.groupConditionList
+                                        )[group]]"
                                       label
                                       :key="
-                                        group.groupName + group.conditionName
+                                        group
                                       "
                                     >
                                       <!-- Sorted Group Names -->
@@ -350,6 +352,7 @@ export default {
       assignments: "assignment/assignments",
       consent: "consent/consent",
       exportdata: "exportdata/exportData",
+      conditionColorMapping: "condition/conditionColorMapping",
     }),
     // Higher Level Section Values
     sectionValuesMap() {
