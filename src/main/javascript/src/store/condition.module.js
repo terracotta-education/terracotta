@@ -93,7 +93,39 @@ const actions = {
 
 const mutations = {}
 
-const getters = {}
+const CONDITION_COLORS = [
+  '#FFCCBC',
+  '#FFECB3',
+  '#F0F4C3',
+  '#C8E6C9',
+  '#B2EBF2',
+  '#BBDEFB',
+  '#D1C4E9',
+  '#F8BBD0',
+  '#D7CCC8',
+  '#FFE0B2',
+  '#FFF9C4',
+  '#DCEDC8',
+  '#B2DFDB',
+  '#B3E5FC',
+  '#C5CAE9',
+  '#E1BEE7',
+  '#E1BEE7',
+  '#CFD8DC',
+];
+const getters = {
+  conditionColorMapping(_state, _getters, _rootState, rootGetters) {
+    const exposures = rootGetters['exposures/exposures'];
+    // Base the color mapping on the order of conditions in the first exposure
+    const groupConditionList = exposures?.length > 0 ? exposures[0].groupConditionList : [];
+    const conditionColorMap = {};
+    for (let index = 0; index < groupConditionList.length; index++) {
+      const groupCondition = groupConditionList[index];
+      conditionColorMap[groupCondition.conditionName] = CONDITION_COLORS[index % CONDITION_COLORS.length]
+    }
+    return conditionColorMap;
+  }
+}
 
 export const condition = {
   namespaced: true,
