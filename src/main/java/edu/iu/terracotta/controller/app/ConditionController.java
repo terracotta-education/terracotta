@@ -4,6 +4,7 @@ import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.ConditionNotMatchingException;
 import edu.iu.terracotta.exceptions.ConditionsLockedException;
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.ExperimentConditionLimitReachedException;
 import edu.iu.terracotta.exceptions.ExperimentLockedException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.IdInPostException;
@@ -88,7 +89,7 @@ public class ConditionController {
                                                       @RequestBody ConditionDto conditionDto,
                                                       UriComponentsBuilder ucBuilder,
                                                       HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, ExperimentLockedException, TitleValidationException, ConditionsLockedException, IdInPostException, DataServiceException {
+            throws ExperimentNotMatchingException, BadTokenException, ExperimentLockedException, TitleValidationException, ConditionsLockedException, IdInPostException, DataServiceException, ExperimentConditionLimitReachedException {
 
         log.debug("Creating Condition : {}", conditionDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);

@@ -1,6 +1,7 @@
 package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.ExperimentConditionLimitReachedException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.model.app.Experiment;
@@ -41,11 +42,12 @@ public class ConditionServiceImpl implements ConditionService {
     }
 
     @Override
-    public ConditionDto postCondition(ConditionDto conditionDto, long experimentId) throws IdInPostException, DataServiceException, TitleValidationException{
+    public ConditionDto postCondition(ConditionDto conditionDto, long experimentId) throws IdInPostException, DataServiceException, TitleValidationException, ExperimentConditionLimitReachedException {
         if (conditionDto.getConditionId() != null){
             throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
         }
         validateConditionName("", conditionDto.getName(), experimentId, 0L, false);
+        validateMaximumConditionsNotReached(experimentId);
 
         conditionDto.setExperimentId(experimentId);
         Condition condition;
@@ -177,6 +179,14 @@ public class ConditionServiceImpl implements ConditionService {
                         "that one of the other conditions has that name and has not been updated with a new one yet. If that is the case and you wish to use this name, " +
                         "please change that condition's name first, then try again.");
             }
+        }
+    }
+
+    private void validateMaximumConditionsNotReached(long experimentId) throws ExperimentConditionLimitReachedException {
+        List<Condition> conditions = allRepositories.conditionRepository.findByExperiment_ExperimentId(experimentId);
+        if (conditions.size() >= 16) {
+            throw new ExperimentConditionLimitReachedException(
+                    "Error ###: The experiment conditions limit of 16 conditions has been reached.");
         }
     }
 }
