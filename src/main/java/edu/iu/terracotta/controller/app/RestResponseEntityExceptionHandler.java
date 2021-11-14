@@ -402,4 +402,10 @@ public class RestResponseEntityExceptionHandler
         return handleExceptionInternal(ex, bodyOfResponse, new HttpHeaders(), HttpStatus.BAD_REQUEST, request);
     }
 
+    @ExceptionHandler(value = {ExperimentConditionLimitReachedException.class})
+    protected ResponseEntity<Object> handleExperimentConditionReachedException(ExperimentConditionLimitReachedException ex, WebRequest request){
+        String bodyOfResponse = ex.getMessage();
+        log.warn(bodyOfResponse);
+        return handleExceptionInternal(ex, bodyOfResponse, new HttpHeaders(), HttpStatus.BAD_REQUEST, request);
+    }
 }

@@ -59,6 +59,7 @@
           color="blue"
           class="add_condition px-0 mb-10"
           text
+          v-if="experiment.conditions.length < 16"
         >Add another condition
         </v-btn>
       </div>
@@ -97,7 +98,6 @@ export default {
       v => (v || '').length <= 255 || 'A maximum of 255 characters is allowed'
     ]
   }),
-
   methods: {
     ...mapActions({
       createCondition: 'condition/createCondition',
