@@ -13,6 +13,7 @@ export default new Vuetify({
             light: {
                 primary: '#0077D2',
                 success: '#008568',
+                error: '#f64747',
             }
         }
     }
