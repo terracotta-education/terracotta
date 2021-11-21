@@ -1,5 +1,18 @@
 <template>
   <div class="consent-steps my-5 mx-auto">
+    <v-alert
+      v-if="participant && participant.started && !participant.consent"
+      prominent
+      type="error"
+    >
+      <v-row align="center">
+        <v-col class="grow">
+          You have already accessed an assignment that is part of this study. At
+          this time, no matter your response to the following question, you
+          cannot be included in this study.
+        </v-col>
+      </v-row>
+    </v-alert>
     <div>
       <button class="consentLink mt-2" @click="openPDF">
         Review the Consent
@@ -7,7 +20,10 @@
     </div>
     <form @submit.prevent="updateConsent(answer || false)">
       <v-card class="mt-5">
-        <v-card-title>In the consideration of the above, will you participate in this research study?</v-card-title>
+        <v-card-title
+          >In the consideration of the above, will you participate in this
+          research study?</v-card-title
+        >
         <v-list class="optionList">
           <v-radio-group v-model="answer">
             <v-radio
@@ -51,6 +67,15 @@ export default {
       consent: "consent/consent",
       participants: "participants/participants",
     }),
+    participant() {
+      const filteredParticipants =
+        this.participants && Array.isArray(this.participants)
+          ? this.participants.filter(
+              (participant) => participant.user.userKey === this.userId
+            )
+          : [];
+      return filteredParticipants.length === 1 ? filteredParticipants[0] : null;
+    },
   },
   methods: {
     ...mapActions({
@@ -61,10 +86,11 @@ export default {
     updateConsent(answer) {
       console.log(answer);
       if (answer !== "") {
-        const updatedParticipant = this.participants.filter(
-          (participant) => participant.user.userKey === this.userId
-        )[0];
-        updatedParticipant.consent = answer;
+        // Update a clone of this participant object
+        const updatedParticipant = {
+          ...this.participant,
+          consent: answer
+        };
         this.submitParticipant(updatedParticipant);
       }
     },
@@ -79,8 +105,11 @@ export default {
               text: `Successfully submitted Consent`,
               icon: "success",
             });
-          } else {
-            this.$swal(response.error);
+          } else if (response.message) {
+            this.$swal({
+              text: response.message, 
+              icon: 'error'
+            });
           }
         })
         .catch((response) => {
