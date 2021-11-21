@@ -62,6 +62,10 @@
           v-if="experiment.conditions.length < 16"
         >Add another condition
         </v-btn>
+        <v-alert type="error" v-else>
+          You have reached the maximum number of conditions (16) allowed by the
+          experiment builder.
+        </v-alert>
       </div>
 
       <v-btn

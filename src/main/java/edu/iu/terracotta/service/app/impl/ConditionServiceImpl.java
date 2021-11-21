@@ -186,7 +186,7 @@ public class ConditionServiceImpl implements ConditionService {
         List<Condition> conditions = allRepositories.conditionRepository.findByExperiment_ExperimentId(experimentId);
         if (conditions.size() >= 16) {
             throw new ExperimentConditionLimitReachedException(
-                    "Error ###: The experiment conditions limit of 16 conditions has been reached.");
+                    "Error 148: The experiment conditions limit of 16 conditions has been reached.");
         }
     }
 }
