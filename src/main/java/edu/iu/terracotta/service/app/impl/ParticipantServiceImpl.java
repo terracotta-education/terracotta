@@ -412,6 +412,11 @@ public class ParticipantServiceImpl implements ParticipantService {
                 || securedInfo.getConsent()==null || !securedInfo.getConsent()){
             return false;
         }
+        // Don't allow changing consent to consent=true if started and not consenting
+        if (hasStarted(participant) && participant.getConsent() != null && !participant.getConsent()
+                && participantDto.getConsent() != null && participantDto.getConsent()) {
+            return false;
+        }
         //We only edit the consent here.
         participantDto.setDropped(participant.getDropped());
         if (participant.getGroup()==null){

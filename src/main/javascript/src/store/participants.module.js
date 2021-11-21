@@ -44,19 +44,15 @@ const actions = {
   // payload = experiment_id, participant_data
   async updateParticipant({ commit }, payload) {
     try {
-      const { experimentId, participantData } = payload
+      const { experimentId, participantData } = payload;
       const response = await participantService.updateParticipant(
         experimentId,
         participantData
-      )
-      commit('setParticipant')
-      return {
-        status: response?.status,
-        data: null,
-        }
-      }
-      catch (error) {
-        console.log('updateParticipant catch', {error, state})
+      );
+      commit("setParticipant");
+      return response;
+    } catch (error) {
+      console.log("updateParticipant catch", { error, state });
     }
   },
   fetchGroups: ({ commit }, experimentId) => {

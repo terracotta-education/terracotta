@@ -1,4 +1,4 @@
-import { authHeader } from '@/helpers'
+import { authHeader, isJson } from '@/helpers'
 import store from '@/store/index.js'
 
 // /**
@@ -80,15 +80,19 @@ function handleResponse(response) {
   return response
     .text()
     .then((text) => {
-      const data = text && JSON.parse(text)
+      const data = (text && isJson(text)) ? JSON.parse(text) : text
 
       if (!response || !response.ok) {
         if (
-          response.status === 401 ||
           response.status === 402 ||
           response.status === 500
         ) {
-          console.log('handleResponse | 401/402/500', { response })
+          console.log('handleResponse | 402/500', { response })
+        } else if (response.status === 401) {
+          console.log('handleResponse | 401', { response })
+          return {
+            message: data
+          }
         } else if (response.status === 404) {
           console.log('handleResponse | 404', { response })
         }
