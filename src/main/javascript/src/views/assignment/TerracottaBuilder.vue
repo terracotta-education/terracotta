@@ -24,7 +24,7 @@
         outlined
       ></v-textarea>
 
-      <h4 class="mb-3"><strong>Multiple Choice Questions</strong></h4>
+      <h4 class="mb-3"><strong>Questions</strong></h4>
 
       <template v-if="questions && questions.length>0">
         <v-expansion-panels class="v-expansion-panels--outlined mb-6" flat accordion>
@@ -60,7 +60,7 @@
                   required
                 ></v-text-field>
 
-                <template v-if="question.answers">
+                <template v-if="question.questionType === 'MC'">
                   <h4><strong>Options</strong></h4>
                   <p class="ma-0 mb-3">Select correct option(s) below</p>
 
@@ -113,7 +113,7 @@
                 </template>
 
                 <v-row>
-                  <v-col>
+                  <v-col v-if="question.questionType === 'MC'">
                     <v-btn
                       elevation="0"
                       color="primary"
@@ -153,15 +153,13 @@
         <p class="grey--text">Add questions to continue</p>
       </template>
 
-      <v-btn
-        elevation="0"
-        color="primary"
-        class="mr-4 mb-3 px-0"
-        @click="handleAddQuestion('MC')"
-        plain
-      >
-        Add Question
-      </v-btn>
+      <div>
+        <h4><strong>Add Question</strong></h4>
+        <v-btn-toggle>
+          <v-btn @click="handleAddQuestion('MC')">Multiple Choice</v-btn>
+          <v-btn @click="handleAddQuestion('ESSAY')">Essay</v-btn>
+        </v-btn-toggle>
+      </div>
       <br>
       <v-btn
         :disabled="contDisabled"
@@ -204,11 +202,11 @@ export default {
     },
     ...mapGetters({
       assignment: 'assignment/assignment',
-      assessment: 'assessment/assessment',
-      questions: 'assessment/questions'
+      storeAssessment: 'assessment/assessment',
+      storeQuestions: 'assessment/questions'
     }),
     contDisabled() {
-      return this.assessment.questions.length<1 || this.assessment.questions.some(q => (q.html.trim() === '<p></p>')) || !this.assessment.title || !this.assessment.title.trim() || this.assessment.title.length>255
+      return !this.questions || this.questions.length<1 || this.questions.some(q => (q.html.trim() === '<p></p>')) || !this.assessment.title || !this.assessment.title.trim() || this.assessment.title.length>255
     }
   },
   data() {
@@ -244,7 +242,9 @@ export default {
         HorizontalRule,
         Paragraph,
         HardBreak
-      ]
+      ],
+      questions: null,
+      assessment: null,
     }
   },
   methods: {
@@ -261,7 +261,7 @@ export default {
     async handleAddQuestion(questionType) {
       // POST QUESTION
       try {
-        await this.createQuestion([
+        const response = await this.createQuestion([
           this.experiment.experimentId,
           this.condition_id,
           this.treatment_id,
@@ -270,7 +270,8 @@ export default {
           questionType,
           0,
           ''
-        ])
+        ]);
+        this.questions.push(JSON.parse(JSON.stringify(response.data)));
       } catch (error) {
         console.error(error)
       }
@@ -278,7 +279,7 @@ export default {
     async handleAddAnswer (question) {
       // POST ANSWER
       try {
-        await this.createAnswer([
+        const response = await this.createAnswer([
           this.experiment.experimentId,
           this.condition_id,
           this.treatment_id,
@@ -288,6 +289,7 @@ export default {
           false,
           0
         ])
+        question.answers.push(JSON.parse(JSON.stringify(response.data)));
       } catch (error) {
         console.error(error)
       }
@@ -298,14 +300,16 @@ export default {
     async handleDeleteAnswer(q, a) {
       // DELETE ANSWER
       try {
-        return await this.deleteAnswer([
+        await this.deleteAnswer([
           this.experiment.experimentId,
           this.condition_id,
           this.treatment_id,
           this.assessment_id,
           q.questionId,
           a.answerId
-        ])
+        ]);
+        const answerIndex = q.answers.findIndex(answer => answer.answerId === a.answerId);
+        q.answers.splice(answerIndex, 1);
       } catch (error) {
         console.error("handleDeleteAnswer | catch", {error})
         this.$swal('there was a problem deleting the answer')
@@ -322,13 +326,18 @@ export default {
       });
       if (reallyDelete?.isConfirmed) {
         try {
-          return await this.deleteQuestion([
+          await this.deleteQuestion([
             this.experiment.experimentId,
             this.condition.conditionId,
             this.treatment_id,
             this.assessment_id,
             question.questionId
           ])
+          // splice the question out of questions array
+          const questionIndex = this.questions.findIndex(que => que.questionId === question.questionId);
+          if (questionIndex >= 0) {
+            this.questions.splice(questionIndex, 1);
+          }
         } catch (error) {
           console.error("handleDeleteQuestion | catch", {error})
           this.$swal('there was a problem deleting the question')
@@ -402,7 +411,7 @@ export default {
       )
     },
     async saveAll (routeName) {
-      if (this.assessment.questions.some(q => !q.html)) {
+      if (this.questions.some(q => !q.html)) {
         this.$swal('Please fill or delete empty questions.')
         return false
       }
@@ -419,8 +428,11 @@ export default {
       this.saveAll('home')
     }
   },
-  created() {
-    this.fetchAssessment([this.experiment.experimentId, this.condition_id, this.treatment_id, this.assessment_id])
+  async created() {
+    await this.fetchAssessment([this.experiment.experimentId, this.condition_id, this.treatment_id, this.assessment_id])
+    // Clone assessment and questions so we can manipulate their values
+    this.assessment = JSON.parse(JSON.stringify(this.storeAssessment));
+    this.questions = JSON.parse(JSON.stringify(this.storeQuestions));
   },
   components: {
     TiptapVuetify
