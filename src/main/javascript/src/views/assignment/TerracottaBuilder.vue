@@ -155,10 +155,8 @@
 
       <div>
         <h4><strong>Add Question</strong></h4>
-        <v-btn-toggle>
-          <v-btn @click="handleAddQuestion('MC')">Multiple Choice</v-btn>
-          <v-btn @click="handleAddQuestion('ESSAY')">Essay</v-btn>
-        </v-btn-toggle>
+        <v-btn @click="handleAddQuestion('MC')" color="primary" elevation="0" outlined class="mr-1">Multiple Choice</v-btn>
+        <v-btn @click="handleAddQuestion('ESSAY')" color="primary" elevation="0" outlined class="mr-1">Essay</v-btn>
       </div>
       <br>
       <v-btn
