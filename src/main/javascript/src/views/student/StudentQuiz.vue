@@ -5,7 +5,6 @@
         <template v-if="!submitted">
           <form v-on:submit.prevent="handleSubmit" style="width: 100%;">
             <div class="answerSection mt-5 w-100">
-
               <!-- Question -->
               <v-card
                 class="mt-5 mb-2"
@@ -22,43 +21,76 @@
                       <span v-html="question.html"></span>
                     </v-col>
                     <v-col>
-                      <div class="total-points text-right ml-2">{{ question.points }} Point{{ (question.points > 1)? 's' : '' }}</div>
+                      <div class="total-points text-right ml-2">
+                        {{ question.points }} Point{{
+                          question.points > 1 ? "s" : ""
+                        }}
+                      </div>
                     </v-col>
                   </v-row>
                 </v-card-title>
                 <!-- Options (Answers) -->
-                <v-card-text v-if="questionValues.length>0">
-                  <v-row
-                    v-for="answer in question.answers"
-                    :key="answer.answerId"
-                  >
-                    <v-col cols="1">
-                      &nbsp;
-                    </v-col>
-                    <v-col cols="10">
-                      <v-card outlined>
-                        <v-card-title class="py-0">
-                          <div class="question-input">
-                            <v-radio-group v-model="questionValues.find(({questionId}) => questionId===question.questionId).answerId">
-                              <v-radio
-                                class="radioButton"
-                                :value="answer.answerId"
+                <v-card-text v-if="questionValues.length > 0">
+                  <template v-if="question.questionType === 'MC'">
+                    <v-row
+                      v-for="answer in question.answers"
+                      :key="answer.answerId"
+                    >
+                      <v-col cols="1">
+                        &nbsp;
+                      </v-col>
+                      <v-col cols="10">
+                        <v-card outlined>
+                          <v-card-title class="py-0">
+                            <div class="question-input">
+                              <v-radio-group
+                                v-model="
+                                  questionValues.find(
+                                    ({ questionId }) =>
+                                      questionId === question.questionId
+                                  ).answerId
+                                "
                               >
-                              </v-radio>
-                            </v-radio-group>
-                            <span v-html="answer.html"></span>
-                          </div>
-                        </v-card-title>
-                      </v-card>
-                    </v-col>
-                  </v-row>
-
+                                <v-radio
+                                  class="radioButton"
+                                  :value="answer.answerId"
+                                >
+                                </v-radio>
+                              </v-radio-group>
+                              <span v-html="answer.html"></span>
+                            </div>
+                          </v-card-title>
+                        </v-card>
+                      </v-col>
+                    </v-row>
+                  </template>
+                  <template v-else-if="question.questionType === 'ESSAY'">
+                    <v-row>
+                      <v-col cols="1">
+                        &nbsp;
+                      </v-col>
+                      <v-col cols="10">
+                        <v-card outlined>
+                          <v-card-title class="py-0">
+                            <v-textarea
+                              v-model="
+                                questionValues.find(
+                                  ({ questionId }) =>
+                                    questionId === question.questionId
+                                ).response
+                              "
+                            />
+                          </v-card-title>
+                        </v-card>
+                      </v-col>
+                    </v-row>
+                  </template>
                 </v-card-text>
               </v-card>
             </div>
 
             <v-btn
-              :disabled="!!questionValues.find(({answerId}) => !answerId)"
+              :disabled="!allQuestionsAnswered"
               elevation="0"
               color="primary"
               class="mt-4"
@@ -77,11 +109,11 @@
 </template>
 
 <script>
-import {mapActions, mapGetters} from 'vuex';
+import { mapActions, mapGetters } from "vuex";
 
 export default {
-  name: 'StudentQuiz',
-  props: ['experimentId','assignmentId'],
+  name: "StudentQuiz",
+  props: ["experimentId", "assignmentId"],
   data() {
     return {
       maxPoints: 0,
@@ -90,50 +122,78 @@ export default {
       treatmentId: null,
       submissionId: null,
       assessmentId: null,
-      submitted: false
+      submitted: false,
     };
   },
   computed: {
     ...mapGetters({
-      assessment: 'assessment/assessment',
+      assessment: "assessment/assessment",
     }),
+    allQuestionsAnswered() {
+      for (const question of this.assessment.questions) {
+        if (question.questionType === "MC") {
+          const answer = this.questionValues.find(
+            ({ questionId }) => questionId === question.questionId
+          ).answerId;
+          if (answer === null) {
+            return false;
+          }
+        } else if (question.questionType === "ESSAY") {
+          const answer = this.questionValues.find(
+            ({ questionId }) => questionId === question.questionId
+          ).response;
+          if (answer === null || answer.trim() === "") {
+            return false;
+          }
+        } else {
+          console.log(
+            "Unexpected question type",
+            question.questionType,
+            question
+          );
+        }
+      }
+      return true;
+    },
   },
   methods: {
     ...mapActions({
-      reportStep: 'api/reportStep',
+      reportStep: "api/reportStep",
       fetchAssessment: "assessment/fetchAssessment",
       createQuestionSubmission: "submissions/createQuestionSubmission",
     }),
     async handleSubmit() {
       const reallySubmit = await this.$swal({
-        icon: 'question',
-        text: 'Are you ready to submit your answers?',
+        icon: "question",
+        text: "Are you ready to submit your answers?",
         showCancelButton: true,
-        confirmButtonText: 'Yes, submit',
-        cancelButtonText: 'No, cancel',
-      })
-      if(reallySubmit.isConfirmed){
-        try{
-          this.submitQuiz()
+        confirmButtonText: "Yes, submit",
+        cancelButtonText: "No, cancel",
+      });
+      if (reallySubmit.isConfirmed) {
+        try {
+          this.submitQuiz();
         } catch (error) {
           this.$swal({
-            text: 'Could not submit',
-            icon: 'error'
-          })
+            text: "Could not submit",
+            icon: "error",
+          });
         }
       }
     },
     async submitQuiz() {
       try {
-        const experimentId = this.experimentId
-        const step = 'student_submission'
-        const parameters = {submissionIds:this.submissionId}
-        const questions = this.questionValues.map(q => {
+        const experimentId = this.experimentId;
+        const step = "student_submission";
+        const parameters = { submissionIds: this.submissionId };
+        const questions = this.questionValues.map((q) => {
           return {
             questionId: q.questionId,
-            answerSubmissionDtoList: [{answerId:q.answerId}]
-          }
-        })
+            answerSubmissionDtoList: [
+              { answerId: q.answerId, response: q.response },
+            ],
+          };
+        });
 
         // submit questions - updateQuestionSubmission()
         await this.createQuestionSubmission([
@@ -142,31 +202,31 @@ export default {
           this.treatmentId,
           this.assessmentId,
           this.submissionId,
-          questions
-        ])
+          questions,
+        ]);
 
         // submit step
-        await this.reportStep({experimentId, step, parameters})
+        await this.reportStep({ experimentId, step, parameters });
 
-        this.submitted = true
+        this.submitted = true;
       } catch (e) {
-        console.error({e})
+        console.error({ e });
       }
-    }
+    },
   },
   async created() {
-    const experimentId = this.experimentId
-    const step = 'launch_assignment'
+    const experimentId = this.experimentId;
+    const step = "launch_assignment";
 
     try {
-      const stepResponse = await this.reportStep({experimentId, step})
+      const stepResponse = await this.reportStep({ experimentId, step });
 
       if (stepResponse?.status === 200) {
-        const data = stepResponse?.data
-        this.conditionId = data.conditionId
-        this.treatmentId = data.treatmentId
-        this.assessmentId = data.assessmentId
-        this.submissionId = data.submissionId
+        const data = stepResponse?.data;
+        this.conditionId = data.conditionId;
+        this.treatmentId = data.treatmentId;
+        this.assessmentId = data.assessmentId;
+        this.submissionId = data.submissionId;
 
         await this.fetchAssessment([
           experimentId,
@@ -175,20 +235,20 @@ export default {
           data.assessmentId,
         ]);
 
-        this.questionValues = this.assessment.questions.map(q => {
+        this.questionValues = this.assessment.questions.map((q) => {
           return {
             questionId: q.questionId,
-            answerId: null
-          }
-        })
+            answerId: null,
+            response: null,
+          };
+        });
       }
     } catch (e) {
-      console.error({e})
+      console.error({ e });
     }
-  }
-}
+  },
+};
 </script>
-
 
 <style lang="scss" scoped>
 .total-points {
