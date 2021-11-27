@@ -289,6 +289,9 @@ export default {
           false,
           0
         ])
+        if (!question.answers) {
+          question.answers = [];
+        }
         question.answers.push(JSON.parse(JSON.stringify(response.data)));
       } catch (error) {
         console.error(error)
