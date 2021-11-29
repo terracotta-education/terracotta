@@ -37,7 +37,8 @@
               <v-expansion-panel-header class="text-left">
                 <h2 class="pa-0">
                   {{ qIndex + 1 }}
-                  <span class="pl-3" v-if="question.html" v-html="question.html" ></span>
+                  <v-chip label x-small color="primary" outlined>{{ questionTypeLabels[question.questionType] }}</v-chip>
+                  <span class="pl-3 question-text" v-if="question.html" v-html="question.html" ></span>
                 </h2>
               </v-expansion-panel-header>
               <v-expansion-panel-content>
@@ -205,7 +206,13 @@ export default {
     }),
     contDisabled() {
       return !this.questions || this.questions.length<1 || this.questions.some(q => (q.html.trim() === '<p></p>')) || !this.assessment.title || !this.assessment.title.trim() || this.assessment.title.length>255
-    }
+    },
+    questionTypeLabels() {
+      return {
+        MC: "Multiple Choice",
+        ESSAY: "Essay",
+      }
+    },
   },
   data() {
     return {
@@ -454,7 +461,7 @@ export default {
         text-overflow: ellipsis;
         white-space: nowrap;
 
-        > span {
+        > .question-text {
           * {
             display: inline;
             font-size: 16px;
