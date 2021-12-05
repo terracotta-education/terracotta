@@ -38,9 +38,6 @@
               <v-expansion-panel-header class="text-left">
                 <h2 class="pa-0">
                   {{ qIndex + 1 }}
-                  <v-chip label x-small color="primary" outlined>{{
-                    questionTypeLabels[question.questionType]
-                  }}</v-chip>
                   <span
                     class="pl-3 question-text"
                     v-if="question.html"
@@ -64,25 +61,35 @@
         <p class="grey--text">Add questions to continue</p>
       </template>
 
-      <div>
-        <h4><strong>Add Question</strong></h4>
-        <v-btn
-          @click="handleAddQuestion('MC')"
-          color="primary"
-          elevation="0"
-          outlined
-          class="mr-1"
-          >Multiple Choice</v-btn
-        >
-        <v-btn
-          @click="handleAddQuestion('ESSAY')"
-          color="primary"
-          elevation="0"
-          outlined
-          class="mr-1"
-          >Essay</v-btn
-        >
-      </div>
+      <v-menu offset-y>
+        <template v-slot:activator="{ on, attrs }">
+          <v-btn
+            color="primary"
+            elevation="0"
+            plain
+            v-bind="attrs"
+            v-on="on"
+            class="mb-3"
+          >
+            Add Question
+            <v-icon>mdi-chevron-down</v-icon>
+          </v-btn>
+        </template>
+        <v-list>
+          <v-list-item @click="handleAddQuestion('ESSAY')">
+            <v-list-item-title
+              ><v-icon class="mr-1">mdi-text</v-icon> Short
+              answer</v-list-item-title
+            >
+          </v-list-item>
+          <v-list-item @click="handleAddQuestion('MC')">
+            <v-list-item-title
+              ><v-icon class="mr-1">mdi-radiobox-marked</v-icon> Multiple
+              choice</v-list-item-title
+            >
+          </v-list-item>
+        </v-list>
+      </v-menu>
       <br />
       <v-btn
         :disabled="contDisabled"
@@ -141,12 +148,6 @@ export default {
         !this.assessment.title.trim() ||
         this.assessment.title.length > 255
       );
-    },
-    questionTypeLabels() {
-      return {
-        MC: "Multiple Choice",
-        ESSAY: "Essay",
-      };
     },
     questionTypeComponents() {
       return {
