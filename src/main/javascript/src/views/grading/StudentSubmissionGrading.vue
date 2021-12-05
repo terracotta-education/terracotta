@@ -62,72 +62,88 @@
 
         <!-- Answer Section -->
         <div class="answerSection mt-5 w-100">
-          <div
-            v-for="answer in question.answers"
-            :key="answer.answerId"
-            class="w-100"
-          >
+          <template v-if="question.questionType === 'MC'">
+            <div
+              v-for="answer in question.answers"
+              :key="answer.answerId"
+              class="w-100"
+            >
+              <v-row>
+                <v-col cols="1">
+                  &nbsp;
+                </v-col>
+                <v-col cols="10">
+                  <v-card
+                    :class="[
+                      'abc',
+                      answer.correct ? 'correctAnswer' : '',
+                      studentSubmittedAnswers(question.questionId).includes(
+                        answer.answerId
+                      )
+                        ? 'wrongAnswer'
+                        : '',
+                    ]"
+                    outlined
+                  >
+                    <v-card-title>
+                      <v-row>
+                        <v-col cols="1">
+                          <!-- Radio Button -->
+                          <v-radio-group v-model="selected">
+                            <v-radio
+                              class="radioButton"
+                              :value="
+                                answer.correct ||
+                                  studentSubmittedAnswers(
+                                    question.questionId
+                                  ).includes(answer.answerId)
+                              "
+                              readonly
+                              name="selected"
+                            >
+                            </v-radio>
+                          </v-radio-group>
+                        </v-col>
+                        <v-col cols="8">
+                          <!-- Answer Text -->
+                          <span v-html="answer.html"></span>
+                        </v-col>
+                        <v-col>
+                          <!-- Correct / Student Response -->
+                          <span v-if="answer.correct" class="correctAnswerText"
+                            >Correct Response</span
+                          >
+                          <span
+                            v-else-if="
+                              studentSubmittedAnswers(
+                                question.questionId
+                              ).includes(answer.answerId)
+                            "
+                            class="studentResponse"
+                            >Student Response</span
+                          >
+                        </v-col>
+                      </v-row>
+                    </v-card-title>
+                  </v-card>
+                </v-col>
+              </v-row>
+            </div>
+          </template>
+          <template v-else-if="question.questionType === 'ESSAY'">
             <v-row>
               <v-col cols="1">
                 &nbsp;
               </v-col>
               <v-col cols="10">
-                <v-card
-                  :class="[
-                    'abc',
-                    answer.correct ? 'correctAnswer' : '',
-                    studentSubmittedAnswers(question.questionId).includes(
-                      answer.answerId
-                    )
-                      ? 'wrongAnswer'
-                      : '',
-                  ]"
-                  outlined
-                >
+                <v-card outlined>
                   <v-card-title>
-                    <v-row>
-                      <v-col cols="1">
-                        <!-- Radio Button -->
-                        <v-radio-group v-model="selected">
-                          <v-radio
-                            class="radioButton"
-                            :value="
-                              answer.correct ||
-                                studentSubmittedAnswers(
-                                  question.questionId
-                                ).includes(answer.answerId)
-                            "
-                            readonly
-                            name="selected"
-                          >
-                          </v-radio>
-                        </v-radio-group>
-                      </v-col>
-                      <v-col cols="8">
-                        <!-- Answer Text -->
-                        <span v-html="answer.html"></span>
-                      </v-col>
-                      <v-col>
-                        <!-- Correct / Student Response -->
-                        <span v-if="answer.correct" class="correctAnswerText"
-                          >Correct Response</span
-                        >
-                        <span
-                          v-else-if="
-                            studentSubmittedAnswers(
-                              question.questionId
-                            ).includes(answer.answerId)
-                          "
-                          class="studentResponse"
-                          >Student Response</span
-                        >
-                      </v-col>
-                    </v-row>
+                    {{ studentSubmittedEssayResponse(question.questionId) }}
                   </v-card-title>
                 </v-card>
               </v-col>
             </v-row>
-          </div>
+          </template>
         </div>
       </v-card-title>
     </v-card>
@@ -181,7 +197,7 @@ export default {
       fetchAssessment: "assessment/fetchAssessment",
       fetchStudentResponse: "submissions/fetchStudentResponse",
       updateQuestionSubmission: "submissions/updateQuestionSubmission",
-      reportStep: 'api/reportStep',
+      reportStep: "api/reportStep",
     }),
     participantName() {
       return this.participants.filter(
@@ -205,26 +221,20 @@ export default {
     },
 
     studentSubmittedAnswers(questionId) {
-      const alteredGrade = this.studentResponseForQuestionId(
-        questionId
-      ).alteredGrade;
-      const calculatedPoints = this.studentResponseForQuestionId(
-        questionId
-      ).calculatedPoints;
-      
-      this.questionScoreMap[questionId] = alteredGrade ? alteredGrade : calculatedPoints
-      
-      let sum = 0;
-      Object.keys(this.questionScoreMap)?.map((qId) => {
-        this.isSameAssessmentQuestion(qId)
-          ? (sum = sum + this.questionScoreMap[qId])
-          : sum;
-      });
-      this.maxPoints = sum;
-
       return this.studentResponseForQuestionId(
         questionId
       ).answerSubmissionDtoList?.map((answer) => answer.answerId);
+    },
+
+    studentSubmittedEssayResponse(questionId) {
+      const answerSubmissionDtoList = this.studentResponseForQuestionId(
+        questionId
+      ).answerSubmissionDtoList;
+      if (!answerSubmissionDtoList || answerSubmissionDtoList.length === 0) {
+        return null;
+      } else {
+        return answerSubmissionDtoList[0].response;
+      }
     },
 
     async saveExit() {
@@ -249,8 +259,8 @@ export default {
         // Post Step to Experiment
         await this.reportStep({
           experimentId: this.experiment_id,
-          step: 'student_submission',
-          parameters: {'submissionIds': ''+this.submissions[0].submissionId}
+          step: "student_submission",
+          parameters: { submissionIds: "" + this.submissions[0].submissionId },
         });
         this.$router.push({
           name: this.$router.currentRoute.meta.previousStep,
@@ -281,6 +291,28 @@ export default {
       this.assessment_id,
       this.submissions[0].submissionId,
     ]);
+
+    // Initialize questionScoreMap
+    const questionScoreMap = {};
+    for (const question of this.assessment.questions) {
+      const questionId = question.questionId;
+      const alteredGrade = this.studentResponseForQuestionId(questionId)
+        .alteredGrade;
+      const calculatedPoints = this.studentResponseForQuestionId(questionId)
+        .calculatedPoints;
+
+      questionScoreMap[questionId] = alteredGrade ? alteredGrade : calculatedPoints;
+    }
+    this.questionScoreMap = questionScoreMap;
+
+    // Initialize maxPoints
+    let sum = 0;
+    Object.keys(this.questionScoreMap)?.map((qId) => {
+      this.isSameAssessmentQuestion(qId)
+        ? (sum = sum + this.questionScoreMap[qId])
+        : sum;
+    });
+    this.maxPoints = sum;
   },
 };
 </script>
