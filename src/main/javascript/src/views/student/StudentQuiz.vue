@@ -32,58 +32,23 @@
                 <!-- Options (Answers) -->
                 <v-card-text v-if="questionValues.length > 0">
                   <template v-if="question.questionType === 'MC'">
-                    <v-row
-                      v-for="answer in question.answers"
-                      :key="answer.answerId"
-                    >
-                      <v-col cols="1">
-                        &nbsp;
-                      </v-col>
-                      <v-col cols="10">
-                        <v-card outlined>
-                          <v-card-title class="py-0">
-                            <div class="question-input">
-                              <v-radio-group
-                                v-model="
-                                  questionValues.find(
-                                    ({ questionId }) =>
-                                      questionId === question.questionId
-                                  ).answerId
-                                "
-                              >
-                                <v-radio
-                                  class="radioButton"
-                                  :value="answer.answerId"
-                                >
-                                </v-radio>
-                              </v-radio-group>
-                              <span v-html="answer.html"></span>
-                            </div>
-                          </v-card-title>
-                        </v-card>
-                      </v-col>
-                    </v-row>
+                    <multiple-choice-response-editor
+                      :answers="question.answers"
+                      v-model="
+                        questionValues.find(
+                          ({ questionId }) => questionId === question.questionId
+                        ).answerId
+                      "
+                    />
                   </template>
                   <template v-else-if="question.questionType === 'ESSAY'">
-                    <v-row>
-                      <v-col cols="1">
-                        &nbsp;
-                      </v-col>
-                      <v-col cols="10">
-                        <v-card outlined>
-                          <v-card-title class="py-0">
-                            <v-textarea
-                              v-model="
-                                questionValues.find(
-                                  ({ questionId }) =>
-                                    questionId === question.questionId
-                                ).response
-                              "
-                            />
-                          </v-card-title>
-                        </v-card>
-                      </v-col>
-                    </v-row>
+                    <essay-response-editor
+                      v-model="
+                        questionValues.find(
+                          ({ questionId }) => questionId === question.questionId
+                        ).response
+                      "
+                    />
                   </template>
                 </v-card-text>
               </v-card>
@@ -110,10 +75,16 @@
 
 <script>
 import { mapActions, mapGetters } from "vuex";
+import EssayResponseEditor from "./EssayResponseEditor.vue";
+import MultipleChoiceResponseEditor from "./MultipleChoiceResponseEditor.vue";
 
 export default {
   name: "StudentQuiz",
   props: ["experimentId", "assignmentId"],
+  components: {
+    EssayResponseEditor,
+    MultipleChoiceResponseEditor,
+  },
   data() {
     return {
       maxPoints: 0,
@@ -256,17 +227,9 @@ export default {
   font-size: 16px;
   font-weight: 400;
 }
-.question-input {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-}
+
 .individualScore {
   margin-left: 1px;
-}
-
-.radioButton {
-  margin-top: 2px;
 }
 
 .cardDetails {
