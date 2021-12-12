@@ -1,12 +1,21 @@
 package edu.iu.terracotta.model.events;
 
+import java.sql.Timestamp;
+
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.Lob;
+import javax.persistence.ManyToOne;
 import javax.persistence.Table;
-import java.sql.Timestamp;
+
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
+import edu.iu.terracotta.model.app.Participant;
 
 @Table(name = "terr_event")
 @Entity
@@ -78,6 +87,15 @@ public class Event {
 
     @Column(name = "lti_context_id")
     private String ltiContextId;
+
+    @Column(name = "json")
+    @Lob
+    private String json;
+
+    @JoinColumn(name = "participant_participant_id", nullable = true)
+    @ManyToOne(optional = true)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    private Participant participant;
 
 
     // The profile/action
@@ -265,5 +283,22 @@ public class Event {
 
     public void setLtiContextId(String ltiContextId) {
         this.ltiContextId = ltiContextId;
+    }
+
+    public String getJson() {
+        return json;
+    }
+
+    public void setJson(String json) {
+        this.json = json;
+    }
+
+
+    public Participant getParticipant() {
+        return participant;
+    }
+
+    public void setParticipant(Participant participant) {
+        this.participant = participant;
     }
 }

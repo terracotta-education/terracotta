@@ -10,5 +10,6 @@ import java.util.Map;
 
 public interface ExportService {
     Map<String, List<String[]>> getCsvFiles(Long experimentId, SecuredInfo securedInfo) throws CanvasApiException, ParticipantNotUpdatedException, IOException;
+    Map<String, String> getJsonFiles(Long experimentId);
 }
 
