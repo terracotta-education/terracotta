@@ -17,6 +17,7 @@ import edu.iu.terracotta.model.app.QuestionSubmission;
 import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.Treatment;
 import edu.iu.terracotta.model.app.enumerator.QuestionTypes;
+import edu.iu.terracotta.model.events.Event;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.ExportService;
@@ -296,6 +297,28 @@ public class ExportServiceImpl implements ExportService {
         return csvFiles;
     }
 
+    @Override
+    public Map<String, String> getJsonFiles(Long experimentId) {
+        Map<String, String> jsonFiles = new HashMap<>();
+
+        /*
+         * events.json
+         */
+        List<Event> events = allRepositories.eventRepository.findByParticipant_Experiment_ExperimentId(experimentId);
+        List<String> caliperJsonEvents = new ArrayList<>();
+        for (Event event : events) {
+            // TODO: skip events for non-consenting participants
+            // backwards compatibility: 'json' column was introduced later
+            if (event.getJson() == null) {
+                continue;
+            }
+            caliperJsonEvents.add(event.getJson());
+        }
+        String eventsJson = "[" + String.join(",", caliperJsonEvents) + "]";
+        jsonFiles.put("events.json", eventsJson);
+
+        return jsonFiles;
+    }
 
     public char mapResponsePosition(Long questionId, Long answerId){
         List<AnswerMc> answerList = allRepositories.answerMcRepository.findByQuestion_QuestionId(questionId);

@@ -182,7 +182,8 @@ public class ExperimentController {
 
         if(apijwtService.isInstructorOrHigher(securedInfo)){
             Map<String, List<String[]>> csvFiles = exportService.getCsvFiles(experimentId, securedInfo);
-            return new ResponseEntity<>(ZipUtil.generateZipFile(csvFiles), HttpStatus.OK);
+            Map<String, String> jsonFiles = exportService.getJsonFiles(experimentId);
+            return new ResponseEntity<>(ZipUtil.generateZipFile(csvFiles, jsonFiles), HttpStatus.OK);
         } else {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }

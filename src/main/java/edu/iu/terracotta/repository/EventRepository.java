@@ -1,8 +1,12 @@
 package edu.iu.terracotta.repository;
 
-import edu.iu.terracotta.model.events.Event;
+import java.util.List;
+
 import org.springframework.data.jpa.repository.JpaRepository;
+
+import edu.iu.terracotta.model.events.Event;
 
 public interface EventRepository extends JpaRepository<Event, Long> {
 
+    List<Event> findByParticipant_Experiment_ExperimentId(Long experimentId);
 }

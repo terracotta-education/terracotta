@@ -1,0 +1,27 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+    xmlns:pro="http://www.liquibase.org/xml/ns/pro"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd http://www.liquibase.org/xml/ns/pro http://www.liquibase.org/xml/ns/pro/liquibase-pro-4.1.xsd http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.1.xsd">
+    <changeSet author="machrist (generated)" id="1639327422240-3">
+        <addColumn tableName="terr_event">
+            <column name="json" type="CLOB"/>
+        </addColumn>
+    </changeSet>
+    <changeSet author="machrist (generated)" id="1639348637840-4">
+        <addColumn tableName="terr_event">
+            <column name="participant_participant_id" type="BIGINT"/>
+        </addColumn>
+    </changeSet>
+    <changeSet author="machrist (generated)" id="1639348637840-6">
+        <createIndex indexName="FK_EVENT_PARTICIPANT_ID" tableName="terr_event">
+            <column name="participant_participant_id"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="machrist (generated)" id="1639348637840-7">
+        <addForeignKeyConstraint baseColumnNames="participant_participant_id" baseTableName="terr_event" 
+                                 constraintName="FK_EVENT_PARTICIPANT_ID" deferrable="false" 
+                                 initiallyDeferred="false" onDelete="CASCADE" onUpdate="RESTRICT"
+                                 referencedColumnNames="participant_id" referencedTableName="terr_participant" validate="true"/>
+    </changeSet>
+</databaseChangeLog>
