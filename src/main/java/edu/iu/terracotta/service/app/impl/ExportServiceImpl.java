@@ -307,12 +307,13 @@ public class ExportServiceImpl implements ExportService {
         List<Event> events = allRepositories.eventRepository.findByParticipant_Experiment_ExperimentId(experimentId);
         List<String> caliperJsonEvents = new ArrayList<>();
         for (Event event : events) {
-            // TODO: skip events for non-consenting participants
-            // backwards compatibility: 'json' column was introduced later
-            if (event.getJson() == null) {
-                continue;
+            if (event.getParticipant().getConsent() != null && event.getParticipant().getConsent()) {
+                // backwards compatibility: 'json' column was introduced later
+                if (event.getJson() == null) {
+                    continue;
+                }
+                caliperJsonEvents.add(event.getJson());
             }
-            caliperJsonEvents.add(event.getJson());
         }
         String eventsJson = "[" + String.join(",", caliperJsonEvents) + "]";
         jsonFiles.put("events.json", eventsJson);
