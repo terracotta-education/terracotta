@@ -23,6 +23,8 @@ import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.ExportService;
 import edu.iu.terracotta.service.app.OutcomeService;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -35,8 +37,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 @Service
 public class ExportServiceImpl implements ExportService {
+
+    static final Logger log = LoggerFactory.getLogger(ExportServiceImpl.class);
 
     @Autowired
     AllRepositories allRepositories;
@@ -307,12 +316,14 @@ public class ExportServiceImpl implements ExportService {
         List<Event> events = allRepositories.eventRepository.findByParticipant_Experiment_ExperimentId(experimentId);
         List<String> caliperJsonEvents = new ArrayList<>();
         for (Event event : events) {
-            // TODO: skip events for non-consenting participants
-            // backwards compatibility: 'json' column was introduced later
-            if (event.getJson() == null) {
-                continue;
+            if (event.getParticipant().getConsent() != null && event.getParticipant().getConsent()) {
+                // backwards compatibility: 'json' column was introduced later
+                if (event.getJson() == null) {
+                    continue;
+                }
+                // Filter out personally identifying fields
+                caliperJsonEvents.add(removePersonalIdentifiersFromEvent(event.getJson()));
             }
-            caliperJsonEvents.add(event.getJson());
         }
         String eventsJson = "[" + String.join(",", caliperJsonEvents) + "]";
         jsonFiles.put("events.json", eventsJson);
@@ -331,5 +342,31 @@ public class ExportServiceImpl implements ExportService {
             }
         }
         return 'X';
+    }
+
+    private String removePersonalIdentifiersFromEvent(String eventJson) {
+
+        String[] personalIdentifierFieldNames = {
+                "canvas_login_id", "canvas_user_name", "canvas_global_id", "canvas_user_id", "canvas_user_global_id"
+        };
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            JsonNode root = objectMapper.readTree(eventJson);
+            for (String fieldName : personalIdentifierFieldNames) {
+                List<JsonNode> nodes = root.findParents(fieldName);
+                if (nodes != null) {
+                    for (JsonNode jsonNode : nodes) {
+                        ((ObjectNode)jsonNode).remove(fieldName);
+                    }
+                } else {
+                    log.debug("No nodes where found for field name {}", fieldName);
+                }
+            }
+            return objectMapper.writeValueAsString(root);
+        } catch (JsonProcessingException e) {
+            log.error("Failure while trying to remove personally identifying information from event JSON", e);
+            // For safety, just return an empty object
+            return "{}";
+        }
     }
 }
