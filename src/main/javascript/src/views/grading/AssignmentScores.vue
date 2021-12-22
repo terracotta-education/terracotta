@@ -34,6 +34,7 @@
                           condition_id: submission.conditionId,
                           treatment_id: submission.treatmentId,
                           participant_id: submission.participantId,
+                          submission_id: submission.submissionId,
                         },
                       }"
                     >

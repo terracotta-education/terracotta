@@ -77,7 +77,7 @@
                     :class="[
                       'abc',
                       answer.correct ? 'correctAnswer' : '',
-                      studentSubmittedAnswers(question.questionId).includes(
+                      studentSubmittedAnswers[question.questionId].includes(
                         answer.answerId
                       )
                         ? 'wrongAnswer'
@@ -89,17 +89,17 @@
                       <v-row>
                         <v-col cols="1">
                           <!-- Radio Button -->
-                          <v-radio-group v-model="selected">
+                          <v-radio-group
+                            :value="
+                              studentSubmittedAnswers[question.questionId].find(
+                                (a) => a === answer.answerId
+                              )
+                            "
+                          >
                             <v-radio
                               class="radioButton"
-                              :value="
-                                answer.correct ||
-                                  studentSubmittedAnswers(
-                                    question.questionId
-                                  ).includes(answer.answerId)
-                              "
+                              :value="answer.answerId"
                               readonly
-                              name="selected"
                             >
                             </v-radio>
                           </v-radio-group>
@@ -115,9 +115,9 @@
                           >
                           <span
                             v-else-if="
-                              studentSubmittedAnswers(
+                              studentSubmittedAnswers[
                                 question.questionId
-                              ).includes(answer.answerId)
+                              ].includes(answer.answerId)
                             "
                             class="studentResponse"
                             >Student Response</span
@@ -138,7 +138,7 @@
               <v-col cols="10">
                 <v-card outlined>
                   <v-card-title>
-                    {{ studentSubmittedEssayResponse(question.questionId) }}
+                    {{ studentSubmittedAnswers[question.questionId] }}
                   </v-card-title>
                 </v-card>
               </v-col>
@@ -182,10 +182,29 @@ export default {
     experiment_id() {
       return parseInt(this.$route.params.experiment_id);
     },
+    submission_id() {
+      return parseInt(this.$route.params.submission_id);
+    },
+    studentSubmittedAnswers() {
+      const answers = {};
+      if (this.assessment && this.assessment.questions) {
+        for (const question of this.assessment.questions) {
+          if (question.questionType === "MC") {
+            answers[question.questionId] = this.studentSubmittedMCAnswers(
+              question.questionId
+            );
+          } else if (question.questionType === "ESSAY") {
+            answers[question.questionId] = this.studentSubmittedEssayResponse(
+              question.questionId
+            );
+          }
+        }
+      }
+      return answers;
+    },
   },
   data() {
     return {
-      selected: true,
       questionScoreMap: {},
       maxPoints: 0,
     };
@@ -220,10 +239,10 @@ export default {
         : { answerSubmissionDtoList: [] };
     },
 
-    studentSubmittedAnswers(questionId) {
+    studentSubmittedMCAnswers(questionId) {
       return this.studentResponseForQuestionId(
         questionId
-      ).answerSubmissionDtoList?.map((answer) => answer.answerId);
+      ).answerSubmissionDtoList.map((answer) => answer.answerId);
     },
 
     studentSubmittedEssayResponse(questionId) {
@@ -253,14 +272,14 @@ export default {
           this.condition_id,
           this.treatment_id,
           this.assessment_id,
-          this.submissions[0].submissionId,
+          this.submission_id,
           updateSubmissions,
         ]);
         // Post Step to Experiment
         await this.reportStep({
           experimentId: this.experiment_id,
           step: "student_submission",
-          parameters: { submissionIds: "" + this.submissions[0].submissionId },
+          parameters: { submissionIds: "" + this.submission_id },
         });
         this.$router.push({
           name: this.$router.currentRoute.meta.previousStep,
@@ -289,7 +308,7 @@ export default {
       this.condition_id,
       this.treatment_id,
       this.assessment_id,
-      this.submissions[0].submissionId,
+      this.submission_id,
     ]);
 
     // Initialize questionScoreMap
@@ -301,7 +320,9 @@ export default {
       const calculatedPoints = this.studentResponseForQuestionId(questionId)
         .calculatedPoints;
 
-      questionScoreMap[questionId] = alteredGrade ? alteredGrade : calculatedPoints;
+      questionScoreMap[questionId] = alteredGrade
+        ? alteredGrade
+        : calculatedPoints;
     }
     this.questionScoreMap = questionScoreMap;
 
