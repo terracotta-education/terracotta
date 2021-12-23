@@ -39,7 +39,7 @@ public class Participant extends BaseEntity {
     private LtiUserEntity ltiUserEntity;
 
     @JoinColumn(name = "lti_membership_entity_membership_id", nullable = false)
-    @OneToOne(optional = false)
+    @ManyToOne(optional = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
     private LtiMembershipEntity ltiMembershipEntity;
 
