@@ -10,7 +10,6 @@ import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
-import javax.persistence.OneToOne;
 import javax.persistence.Table;
 import java.util.List;
 
@@ -33,7 +32,7 @@ public class QuestionSubmission extends BaseEntity {
     private Float alteredGrade;
 
     @JoinColumn(name = "question_question_id", nullable = false)
-    @OneToOne(optional = false)
+    @ManyToOne(optional = false)
     private Question question;
 
     @OneToMany(mappedBy = "questionSubmission", orphanRemoval = true)
