@@ -15,6 +15,7 @@ package edu.iu.terracotta.controller.lti;
 import com.google.common.hash.Hashing;
 import edu.iu.terracotta.repository.PlatformDeploymentRepository;
 import edu.iu.terracotta.model.PlatformDeployment;
+import edu.iu.terracotta.model.ToolDeployment;
 import edu.iu.terracotta.model.lti.dto.LoginInitiationDTO;
 import edu.iu.terracotta.service.lti.LTIDataService;
 import edu.iu.terracotta.utils.TextConstants;
@@ -35,6 +36,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -96,11 +98,19 @@ public class OIDCController {
         // We search for the platformDeployment.
         // We will try all the options here (from more detailed to less), and we will deal with the error if there are more than one result.
         if (clientIdValue != null && deploymentIdValue != null) {
-            platformDeploymentListEntityList = platformDeploymentRepository.findByIssAndClientIdAndDeploymentId(loginInitiationDTO.getIss(), clientIdValue, deploymentIdValue);
+            // search for platformDeployment by iss, clientId and deploymentIdValue
+            platformDeploymentListEntityList = platformDeploymentRepository.findByIssAndClientIdAndToolDeployments_LtiDeploymentId(loginInitiationDTO.getIss(), clientIdValue, deploymentIdValue);
+            if (platformDeploymentListEntityList.isEmpty()) {
+                // if missing, check if we can automatically create a ToolDeployment
+                ToolDeployment toolDeployment = this.ltiDataService.findOrCreateToolDeployment(loginInitiationDTO.getIss(), clientIdValue, deploymentIdValue);
+                if (toolDeployment != null) {
+                    platformDeploymentListEntityList = Collections.singletonList(toolDeployment.getPlatformDeployment());
+                }
+            }
         } else if (clientIdValue != null) {
             platformDeploymentListEntityList = platformDeploymentRepository.findByIssAndClientId(loginInitiationDTO.getIss(), clientIdValue);
         } else if (deploymentIdValue != null) {
-            platformDeploymentListEntityList = platformDeploymentRepository.findByIssAndDeploymentId(loginInitiationDTO.getIss(), deploymentIdValue);
+            platformDeploymentListEntityList = platformDeploymentRepository.findByIssAndToolDeployments_LtiDeploymentId(loginInitiationDTO.getIss(), deploymentIdValue);
         } else {
             platformDeploymentListEntityList = platformDeploymentRepository.findByIss(loginInitiationDTO.getIss());
         }
@@ -119,9 +129,6 @@ public class OIDCController {
         PlatformDeployment lti3KeyEntity = platformDeploymentListEntityList.get(0);
         if (clientIdValue == null) {
             clientIdValue = lti3KeyEntity.getClientId();
-        }
-        if (deploymentIdValue == null) {
-            deploymentIdValue = lti3KeyEntity.getDeploymentId();
         }
         try {
             // We are going to create the OIDC request,

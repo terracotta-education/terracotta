@@ -13,7 +13,9 @@
 package edu.iu.terracotta.controller.lti;
 
 import edu.iu.terracotta.repository.PlatformDeploymentRepository;
+import edu.iu.terracotta.repository.ToolDeploymentRepository;
 import edu.iu.terracotta.model.PlatformDeployment;
+import edu.iu.terracotta.model.ToolDeployment;
 import edu.iu.terracotta.utils.TextConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,6 +50,9 @@ public class ConfigurationController {
 
     @Autowired
     PlatformDeploymentRepository platformDeploymentRepository;
+
+    @Autowired
+    ToolDeploymentRepository toolDeploymentRepository;
 
 
     /**
@@ -87,11 +92,17 @@ public class ConfigurationController {
     public ResponseEntity<String> createDeployment(@RequestBody PlatformDeployment platformDeployment, UriComponentsBuilder ucBuilder) {
         log.info("Creating Deployment : {}", platformDeployment);
 
-        if (!platformDeploymentRepository.findByIssAndClientIdAndDeploymentId(platformDeployment.getIss(), platformDeployment.getClientId(), platformDeployment.getDeploymentId()).isEmpty()) {
+        if (!platformDeploymentRepository.findByIssAndClientId(platformDeployment.getIss(), platformDeployment.getClientId()).isEmpty()) {
             log.error("Unable to create. A platformDeployment like that already exist");
-            return new ResponseEntity("Unable to create. A platformDeployment with same key already exist.", HttpStatus.CONFLICT);
+            return new ResponseEntity<String>("Unable to create. A platformDeployment with same key already exist.", HttpStatus.CONFLICT);
         }
         PlatformDeployment platformDeploymentSaved = platformDeploymentRepository.save(platformDeployment);
+        if (platformDeployment.getToolDeployments() != null) {
+            for (ToolDeployment toolDeployment : platformDeployment.getToolDeployments()) {
+                toolDeployment.setPlatformDeployment(platformDeploymentSaved);
+                toolDeploymentRepository.save(toolDeployment);
+            }
+        }
 
         HttpHeaders headers = new HttpHeaders();
         headers.setLocation(ucBuilder.path("/config/{id}").buildAndExpand(platformDeploymentSaved.getKeyId()).toUri());
@@ -112,10 +123,20 @@ public class ConfigurationController {
         PlatformDeployment platformDeploymentToChange = platformDeploymentSearchResult.get();
         platformDeploymentToChange.setoAuth2TokenUrl(platformDeployment.getoAuth2TokenUrl());
         platformDeploymentToChange.setClientId(platformDeployment.getClientId());
-        platformDeploymentToChange.setDeploymentId(platformDeployment.getDeploymentId());
         platformDeploymentToChange.setIss(platformDeployment.getIss());
         platformDeploymentToChange.setOidcEndpoint(platformDeployment.getOidcEndpoint());
         platformDeploymentToChange.setJwksEndpoint(platformDeployment.getJwksEndpoint());
+        platformDeploymentToChange.setEnableAutomaticDeployments(platformDeployment.getEnableAutomaticDeployments());
+
+        // add any missing ToolDeployments
+        for (ToolDeployment toolDeployment : platformDeployment.getToolDeployments()) {
+            if (platformDeploymentToChange.getToolDeployments().stream()
+                    .noneMatch(td -> td.getLtiDeploymentId().equals(toolDeployment.getLtiDeploymentId()))) {
+                toolDeployment.setPlatformDeployment(platformDeploymentToChange);
+                ToolDeployment savedToolDeployment = toolDeploymentRepository.save(toolDeployment);
+                platformDeploymentToChange.getToolDeployments().add(savedToolDeployment);
+            }
+        }
 
         platformDeploymentRepository.saveAndFlush(platformDeploymentToChange);
         return new ResponseEntity<>(platformDeploymentToChange, HttpStatus.OK);

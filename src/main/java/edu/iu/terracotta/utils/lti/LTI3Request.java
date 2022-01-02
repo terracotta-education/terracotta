@@ -33,6 +33,7 @@ import edu.iu.terracotta.model.LtiMembershipEntity;
 import edu.iu.terracotta.model.LtiResultEntity;
 import edu.iu.terracotta.model.LtiUserEntity;
 import edu.iu.terracotta.model.PlatformDeployment;
+import edu.iu.terracotta.model.ToolDeployment;
 import edu.iu.terracotta.utils.LtiStrings;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -48,6 +49,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.Key;
+import java.text.MessageFormat;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
@@ -85,6 +87,7 @@ public class LTI3Request {
 
     // these are populated by the loadLTIDataFromDB operation
     PlatformDeployment key;
+    ToolDeployment toolDeployment;
     LtiContextEntity context;
     LtiLinkEntity link;
     LtiMembershipEntity membership;
@@ -308,13 +311,18 @@ public class LTI3Request {
         // We update the database in case we have new values. (New users, new resources...etc)
         if (isLTI3Request.equals(LtiStrings.LTI_MESSAGE_TYPE_RESOURCE_LINK) || isLTI3Request.equals(LtiStrings.LTI_MESSAGE_TYPE_DEEP_LINKING)) {
             //Load data from DB related with this request and update it if needed with the new values.
-            PlatformDeployment platformDeployment = ltiDataService.getRepos().platformDeploymentRepository.findByIssAndClientIdAndDeploymentId(this.iss, this.aud, ltiDeploymentId).get(0);
+            ToolDeployment toolDeployment = ltiDataService.findOrCreateToolDeployment(this.iss, this.aud, this.ltiDeploymentId);
+            if (toolDeployment == null) {
+                throw new IllegalStateException(
+                        MessageFormat.format("Could not find a tool deployment for iss: {0}, clientId: {1}, ltiDeploymentId: {2}",
+                                this.iss, this.aud, this.ltiDeploymentId));
+            }
             ltiDataService.loadLTIDataFromDB(this, linkId);
             if (update) {
                 if (isLTI3Request.equals(LtiStrings.LTI_MESSAGE_TYPE_RESOURCE_LINK)) {
-                    ltiDataService.upsertLTIDataInDB(this, platformDeployment, linkId);
+                    ltiDataService.upsertLTIDataInDB(this, toolDeployment, linkId);
                 } else {
-                    ltiDataService.upsertLTIDataInDB(this, platformDeployment, null);
+                    ltiDataService.upsertLTIDataInDB(this, toolDeployment, null);
                 }
             }
         }
@@ -442,7 +450,8 @@ public class LTI3Request {
         session.setAttribute(LtiStrings.LTI_SESSION_CONTEXT_ID, ltiContextId);
         session.setAttribute(LtiStrings.LTI_SESSION_CONTEXT_ID, ltiContextId);
         try {
-            session.setAttribute(LtiStrings.LTI_SESSION_DEPLOYMENT_KEY, ltiDataService.getRepos().platformDeploymentRepository.findByIssAndClientIdAndDeploymentId(iss, aud, ltiDeploymentId).get(0).getKeyId());
+            ToolDeployment toolDeployment = this.ltiDataService.findOrCreateToolDeployment(iss, aud, ltiDeploymentId);
+            session.setAttribute(LtiStrings.LTI_SESSION_TOOL_DEPLOYMENT_ID, toolDeployment.getLtiDeploymentId());
         } catch (Exception e) {
             log.error("No deployment found");
         }
@@ -467,7 +476,7 @@ public class LTI3Request {
             correct = isCorrect.equals("true");
             // NOTE: This is just to hardcode some demo information.
             try {
-                deepLinkJwts = DeepLinkUtils.generateDeepLinkJWT(ltiDataService, ltiDataService.getRepos().platformDeploymentRepository.findByDeploymentId(ltiDeploymentId).get(0),
+                deepLinkJwts = DeepLinkUtils.generateDeepLinkJWT(ltiDataService, ltiDataService.getRepos().platformDeploymentRepository.findByToolDeployments_LtiDeploymentId(ltiDeploymentId).get(0),
                         this, ltiDataService.getLocalUrl());
             } catch (GeneralSecurityException | IOException | NullPointerException ex) {
                 log.error("Error creating the DeepLinking Response", ex);
@@ -1105,6 +1114,14 @@ public class LTI3Request {
 
     public void setKey(PlatformDeployment key) {
         this.key = key;
+    }
+
+    public ToolDeployment getToolDeployment() {
+        return toolDeployment;
+    }
+
+    public void setToolDeployment(ToolDeployment toolDeployment) {
+        this.toolDeployment = toolDeployment;
     }
 
     public void setContext(LtiContextEntity context) {

@@ -19,6 +19,7 @@ import edu.iu.terracotta.model.LtiLinkEntity;
 import edu.iu.terracotta.model.LtiMembershipEntity;
 import edu.iu.terracotta.model.LtiUserEntity;
 import edu.iu.terracotta.model.PlatformDeployment;
+import edu.iu.terracotta.model.ToolDeployment;
 import edu.iu.terracotta.service.lti.LTIDataService;
 import edu.iu.terracotta.utils.LtiStrings;
 import edu.iu.terracotta.utils.lti.LTI3Request;
@@ -82,13 +83,14 @@ public class LTIDataServiceImpl implements LTIDataService {
             link = lti.getLtiTargetLinkUrl().substring(lti.getLtiTargetLinkUrl().lastIndexOf("?link=") + 6);
         }
 
-        String sqlDeployment = "SELECT k, c, l, m, u" +
+        String sqlDeployment = "SELECT k, c, l, m, u, t" +
                 " FROM PlatformDeployment k " +
-                "LEFT JOIN k.contexts c ON c.contextKey = :context " + // LtiContextEntity
+                "LEFT JOIN k.toolDeployments t " + // ToolDeployment
+                "LEFT JOIN t.contexts c ON c.contextKey = :context " + // LtiContextEntity
                 "LEFT JOIN c.links l ON l.linkKey = :link " + // LtiLinkEntity
                 "LEFT JOIN c.memberships m " + // LtiMembershipEntity
                 "LEFT JOIN m.user u ON u.userKey = :user " +
-                " WHERE k.clientId = :clientId AND k.deploymentId = :deploymentId AND k.iss = :iss AND (m IS NULL OR (m.context = c AND m.user = u))";
+                " WHERE k.clientId = :clientId AND t.ltiDeploymentId = :deploymentId AND k.iss = :iss AND (m IS NULL OR (m.context = c AND m.user = u))";
         Query qDeployment = repos.entityManager.createQuery(sqlDeployment);
         qDeployment.setMaxResults(1);
         qDeployment.setParameter("clientId", lti.getAud());
@@ -104,17 +106,16 @@ public class LTIDataServiceImpl implements LTIDataService {
             log.debug("LTIload: No lti.results found for client_id: " + lti.getAud() + " and  deployment_id:" + lti.getLtiDeploymentId());
         } else {
             //If there is a result, then we load the data in the LTI request.
-            // k, c, l, m, u, s, r
+            // k, c, l, m, u, t
             Object[] row = rows.get(0);
             if (row.length > 0) {
-                PlatformDeployment platformDeployment = (PlatformDeployment) row[0];
-                platformDeployment.setDeploymentId(lti.getLtiDeploymentId());
                 lti.setKey((PlatformDeployment) row[0]);
             }
             if (row.length > 1) lti.setContext((LtiContextEntity) row[1]);
             if (row.length > 2) lti.setLink((LtiLinkEntity) row[2]);
             if (row.length > 3) lti.setMembership((LtiMembershipEntity) row[3]);
             if (row.length > 4) lti.setUser((LtiUserEntity) row[4]);
+            if (row.length > 5) lti.setToolDeployment((ToolDeployment) row[5]);
 
             // check if the loading lti.resulted in a complete set of LTI data
             lti.checkCompleteLTIRequest();
@@ -130,14 +131,14 @@ public class LTIDataServiceImpl implements LTIDataService {
     @Override
     @Transactional
     // We update the information for the context, user, membership, link (if received), etc...  with new information on the LTI Request.
-    public int upsertLTIDataInDB(LTI3Request lti, PlatformDeployment platformDeployment, String link) throws DataServiceException {
+    public int upsertLTIDataInDB(LTI3Request lti, ToolDeployment toolDeployment, String link) throws DataServiceException {
         if (repos == null) {
             throw new DataServiceException("access to the repos is required");
         }
-        if (platformDeployment == null)
-            throw new DataServiceException("Key data must not be null to update dara");
-        if (lti.getKey() == null) {
-            lti.setKey(platformDeployment);
+        if (toolDeployment == null)
+            throw new DataServiceException("ToolDeployment data must not be null to update data");
+        if (lti.getToolDeployment() == null) {
+            lti.setToolDeployment(toolDeployment);
         }
         if (link == null) {
             link = lti.getLtiTargetLinkUrl().substring(lti.getLtiTargetLinkUrl().lastIndexOf("?link=") + 6);
@@ -150,9 +151,9 @@ public class LTIDataServiceImpl implements LTIDataService {
         int updates = 0;
         if (lti.getContext() == null && lti.getLtiDeploymentId() != null) {
             //Context is not in the lti request at this moment. Let's see if it exists:
-            LtiContextEntity ltiContextEntity = repos.contexts.findByContextKeyAndPlatformDeployment(lti.getLtiContextId(), platformDeployment);
+            LtiContextEntity ltiContextEntity = repos.contexts.findByContextKeyAndToolDeployment(lti.getLtiContextId(), toolDeployment);
             if (ltiContextEntity == null) {
-                LtiContextEntity newContext = new LtiContextEntity(lti.getLtiContextId(), lti.getKey(), lti.getLtiContextTitle(), lti.getLtiNamesRoleServiceContextMembershipsUrl(), lti.getLtiEndpointLineItems(), null);
+                LtiContextEntity newContext = new LtiContextEntity(lti.getLtiContextId(), lti.getToolDeployment(), lti.getLtiContextTitle(), lti.getLtiNamesRoleServiceContextMembershipsUrl(), lti.getLtiEndpointLineItems(), null);
                 lti.setContext(repos.contexts.save(newContext));
                 inserts++;
                 log.debug("LTIupdate: Inserted context id=" + lti.getLtiContextId());
@@ -207,10 +208,10 @@ public class LTIDataServiceImpl implements LTIDataService {
         }
 
         if (lti.getUser() == null && lti.getSub() != null) {
-            LtiUserEntity ltiUserEntity = repos.users.findByUserKeyAndPlatformDeployment(lti.getSub(), platformDeployment);
+            LtiUserEntity ltiUserEntity = repos.users.findByUserKeyAndPlatformDeployment(lti.getSub(), toolDeployment.getPlatformDeployment());
 
             if (ltiUserEntity == null) {
-                LtiUserEntity newUser = new LtiUserEntity(lti.getSub(), null, platformDeployment);
+                LtiUserEntity newUser = new LtiUserEntity(lti.getSub(), null, toolDeployment.getPlatformDeployment());
                 newUser.setDisplayName(lti.getLtiName());
                 newUser.setEmail(lti.getLtiEmail());
                 if (lti.getLtiCustom().containsKey("canvas_user_id")) {
@@ -340,6 +341,34 @@ public class LTIDataServiceImpl implements LTIDataService {
     @Override
     public LtiMembershipEntity saveLtiMembershipEntity(LtiMembershipEntity ltiMembershipEntity) {
         return repos.members.save(ltiMembershipEntity);
+    }
+
+    @Override
+    public ToolDeployment findOrCreateToolDeployment(String iss, String clientId, String ltiDeploymentId) {
+        ToolDeployment toolDeployment = null;
+        List<ToolDeployment> toolDeployments = repos.toolDeploymentRepository
+                .findByPlatformDeployment_IssAndPlatformDeployment_ClientIdAndLtiDeploymentId(iss, clientId,
+                        ltiDeploymentId);
+        if (toolDeployments.isEmpty()) {
+            // if missing, look for platformDeployment by iss and clientId
+            List<PlatformDeployment> platformDeployments = repos.platformDeploymentRepository.findByIssAndClientId(iss, clientId);
+            if (!platformDeployments.isEmpty()) {
+                // if enableAutomaticDeployments is true then add this ltiDeploymentId as a new ToolDeployment
+                PlatformDeployment platformDeployment = platformDeployments.get(0);
+                if (platformDeployment.getEnableAutomaticDeployments() != null && platformDeployment.getEnableAutomaticDeployments()) {
+                    log.info("Automatically creating tool deployment for {}, adding "
+                            + "it to platform deployment key_id: {} matching iss: {} and clientId: {}",
+                            ltiDeploymentId, platformDeployment.getKeyId(), iss, clientId);
+                    toolDeployment = new ToolDeployment();
+                    toolDeployment.setLtiDeploymentId(ltiDeploymentId);
+                    toolDeployment.setPlatformDeployment(platformDeployment);
+                    toolDeployment = repos.toolDeploymentRepository.save(toolDeployment);
+                }
+            }
+        } else {
+            toolDeployment = toolDeployments.get(0);
+        }
+        return toolDeployment;
     }
 
     @Override

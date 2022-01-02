@@ -14,10 +14,10 @@ package edu.iu.terracotta.controller.lti;
 
 
 import edu.iu.terracotta.repository.LtiContextRepository;
-import edu.iu.terracotta.repository.PlatformDeploymentRepository;
+import edu.iu.terracotta.repository.ToolDeploymentRepository;
 import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.model.LtiContextEntity;
-import edu.iu.terracotta.model.PlatformDeployment;
+import edu.iu.terracotta.model.ToolDeployment;
 import edu.iu.terracotta.model.ags.LineItem;
 import edu.iu.terracotta.model.ags.LineItems;
 import edu.iu.terracotta.model.oauth2.LTIToken;
@@ -58,7 +58,7 @@ public class AgsController {
     LtiContextRepository ltiContextRepository;
 
     @Autowired
-    PlatformDeploymentRepository platformDeploymentRepository;
+    ToolDeploymentRepository toolDeploymentRepository;
 
     @Autowired
     AdvantageAGSService advantageAGSServiceService;
@@ -70,19 +70,19 @@ public class AgsController {
         //LTI Advantage services doesn't need a session to access to the membership, but we implemented this control here
         // to avoid access to all the courses and platforms.
         HttpSession session = req.getSession();
-        if (session.getAttribute(LtiStrings.LTI_SESSION_DEPLOYMENT_KEY) != null) {
+        if (session.getAttribute(LtiStrings.LTI_SESSION_TOOL_DEPLOYMENT_ID) != null) {
             model.addAttribute(TextConstants.NO_SESSION_VALUES, false);
-            Long deployment = (Long) session.getAttribute(LtiStrings.LTI_SESSION_DEPLOYMENT_KEY);
+            Long toolDeploymentId = (Long) session.getAttribute(LtiStrings.LTI_SESSION_TOOL_DEPLOYMENT_ID);
             String contextId = (String) session.getAttribute(LtiStrings.LTI_SESSION_CONTEXT_ID);
             //We find the right deployment:
-            Optional<PlatformDeployment> platformDeployment = platformDeploymentRepository.findById(deployment);
-            if (platformDeployment.isPresent()) {
+            Optional<ToolDeployment> toolDeployment = toolDeploymentRepository.findById(toolDeploymentId);
+            if (toolDeployment.isPresent()) {
                 //Get the context in the query
-                LtiContextEntity context = ltiContextRepository.findByContextKeyAndPlatformDeployment(contextId, platformDeployment.get());
+                LtiContextEntity context = ltiContextRepository.findByContextKeyAndToolDeployment(contextId, toolDeployment.get());
 
                 //Call the ags service to get the users on the context
                 // 1. Get the token
-                LTIToken LTIToken = advantageAGSServiceService.getToken("lineitems", platformDeployment.get());
+                LTIToken LTIToken = advantageAGSServiceService.getToken("lineitems", toolDeployment.get().getPlatformDeployment());
                 log.info(TextConstants.TOKEN + LTIToken.getAccess_token());
                 // 2. Call the service
                 LineItems lineItemsResult = advantageAGSServiceService.getLineItems(LTIToken, context);
@@ -106,19 +106,19 @@ public class AgsController {
         //LTI Advantage services doesn't need a session to access to the membership, but we implemented this control here
         // to avoid access to all the courses and platforms.
         HttpSession session = req.getSession();
-        if (session.getAttribute(LtiStrings.LTI_SESSION_DEPLOYMENT_KEY) != null) {
+        if (session.getAttribute(LtiStrings.LTI_SESSION_TOOL_DEPLOYMENT_ID) != null) {
             model.addAttribute(TextConstants.NO_SESSION_VALUES, false);
-            Long deployment = (Long) session.getAttribute(LtiStrings.LTI_SESSION_DEPLOYMENT_KEY);
+            Long toolDeploymentId = (Long) session.getAttribute(LtiStrings.LTI_SESSION_TOOL_DEPLOYMENT_ID);
             String contextId = (String) session.getAttribute(LtiStrings.LTI_SESSION_CONTEXT_ID);
             //We find the right deployment:
-            Optional<PlatformDeployment> platformDeployment = platformDeploymentRepository.findById(deployment);
-            if (platformDeployment.isPresent()) {
+            Optional<ToolDeployment> toolDeployment = toolDeploymentRepository.findById(toolDeploymentId);
+            if (toolDeployment.isPresent()) {
                 //Get the context in the query
-                LtiContextEntity context = ltiContextRepository.findByContextKeyAndPlatformDeployment(contextId, platformDeployment.get());
+                LtiContextEntity context = ltiContextRepository.findByContextKeyAndToolDeployment(contextId, toolDeployment.get());
 
                 //Call the ags service to post a lineitem
                 // 1. Get the token
-                LTIToken LTIToken = advantageAGSServiceService.getToken("lineitems", platformDeployment.get());
+                LTIToken LTIToken = advantageAGSServiceService.getToken("lineitems", toolDeployment.get().getPlatformDeployment());
                 log.info(TextConstants.TOKEN + LTIToken.getAccess_token());
 
                 // 2. Call the service
@@ -144,19 +144,19 @@ public class AgsController {
         //LTI Advantage services doesn't need a session to access to the membership, but we implemented this control here
         // to avoid access to all the courses and platforms.
         HttpSession session = req.getSession();
-        if (session.getAttribute(LtiStrings.LTI_SESSION_DEPLOYMENT_KEY) != null) {
+        if (session.getAttribute(LtiStrings.LTI_SESSION_TOOL_DEPLOYMENT_ID) != null) {
             model.addAttribute(TextConstants.NO_SESSION_VALUES, false);
-            Long deployment = (Long) session.getAttribute(LtiStrings.LTI_SESSION_DEPLOYMENT_KEY);
+            Long toolDeploymentId = (Long) session.getAttribute(LtiStrings.LTI_SESSION_TOOL_DEPLOYMENT_ID);
             String contextId = (String) session.getAttribute(LtiStrings.LTI_SESSION_CONTEXT_ID);
             //We find the right deployment:
-            Optional<PlatformDeployment> platformDeployment = platformDeploymentRepository.findById(deployment);
-            if (platformDeployment.isPresent()) {
+            Optional<ToolDeployment> toolDeployment = toolDeploymentRepository.findById(toolDeploymentId);
+            if (toolDeployment.isPresent()) {
                 //Get the context in the query
-                LtiContextEntity context = ltiContextRepository.findByContextKeyAndPlatformDeployment(contextId, platformDeployment.get());
+                LtiContextEntity context = ltiContextRepository.findByContextKeyAndToolDeployment(contextId, toolDeployment.get());
 
                 //Call the ags service to post a lineitem
                 // 1. Get the token
-                LTIToken LTIToken = advantageAGSServiceService.getToken("lineitems", platformDeployment.get());
+                LTIToken LTIToken = advantageAGSServiceService.getToken("lineitems", toolDeployment.get().getPlatformDeployment());
                 log.info(TextConstants.TOKEN + LTIToken.getAccess_token());
 
                 // 2. Call the service
@@ -182,19 +182,19 @@ public class AgsController {
         //LTI Advantage services doesn't need a session to access to the membership, but we implemented this control here
         // to avoid access to all the courses and platforms.
         HttpSession session = req.getSession();
-        if (session.getAttribute(LtiStrings.LTI_SESSION_DEPLOYMENT_KEY) != null) {
+        if (session.getAttribute(LtiStrings.LTI_SESSION_TOOL_DEPLOYMENT_ID) != null) {
             model.addAttribute(TextConstants.NO_SESSION_VALUES, false);
-            Long deployment = (Long) session.getAttribute(LtiStrings.LTI_SESSION_DEPLOYMENT_KEY);
+            Long toolDeploymentId = (Long) session.getAttribute(LtiStrings.LTI_SESSION_TOOL_DEPLOYMENT_ID);
             String contextId = (String) session.getAttribute(LtiStrings.LTI_SESSION_CONTEXT_ID);
             //We find the right deployment:
-            Optional<PlatformDeployment> platformDeployment = platformDeploymentRepository.findById(deployment);
-            if (platformDeployment.isPresent()) {
+            Optional<ToolDeployment> toolDeployment = toolDeploymentRepository.findById(toolDeploymentId);
+            if (toolDeployment.isPresent()) {
                 //Get the context in the query
-                LtiContextEntity context = ltiContextRepository.findByContextKeyAndPlatformDeployment(contextId, platformDeployment.get());
+                LtiContextEntity context = ltiContextRepository.findByContextKeyAndToolDeployment(contextId, toolDeployment.get());
 
                 //Call the ags service to post a lineitem
                 // 1. Get the token
-                LTIToken LTIToken = advantageAGSServiceService.getToken("lineitems", platformDeployment.get());
+                LTIToken LTIToken = advantageAGSServiceService.getToken("lineitems", toolDeployment.get().getPlatformDeployment());
                 log.info(TextConstants.TOKEN + LTIToken.getAccess_token());
 
                 // 2. Call the service
@@ -221,19 +221,19 @@ public class AgsController {
         //LTI Advantage services doesn't need a session to access to the membership, but we implemented this control here
         // to avoid access to all the courses and platforms.
         HttpSession session = req.getSession();
-        if (session.getAttribute(LtiStrings.LTI_SESSION_DEPLOYMENT_KEY) != null) {
+        if (session.getAttribute(LtiStrings.LTI_SESSION_TOOL_DEPLOYMENT_ID) != null) {
             model.addAttribute(TextConstants.NO_SESSION_VALUES, false);
-            Long deployment = (Long) session.getAttribute(LtiStrings.LTI_SESSION_DEPLOYMENT_KEY);
+            Long toolDeploymentId = (Long) session.getAttribute(LtiStrings.LTI_SESSION_TOOL_DEPLOYMENT_ID);
             String contextId = (String) session.getAttribute(LtiStrings.LTI_SESSION_CONTEXT_ID);
             //We find the right deployment:
-            Optional<PlatformDeployment> platformDeployment = platformDeploymentRepository.findById(deployment);
-            if (platformDeployment.isPresent()) {
+            Optional<ToolDeployment> toolDeployment = toolDeploymentRepository.findById(toolDeploymentId);
+            if (toolDeployment.isPresent()) {
                 //Get the context in the query
-                LtiContextEntity context = ltiContextRepository.findByContextKeyAndPlatformDeployment(contextId, platformDeployment.get());
+                LtiContextEntity context = ltiContextRepository.findByContextKeyAndToolDeployment(contextId, toolDeployment.get());
 
                 //Call the ags service to post a lineitem
                 // 1. Get the token
-                LTIToken LTIToken = advantageAGSServiceService.getToken("lineitems", platformDeployment.get());
+                LTIToken LTIToken = advantageAGSServiceService.getToken("lineitems", toolDeployment.get().getPlatformDeployment());
                 log.info(TextConstants.TOKEN + LTIToken.getAccess_token());
 
                 // 2. Call the service

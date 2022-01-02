@@ -1,0 +1,41 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+    xmlns:pro="http://www.liquibase.org/xml/ns/pro"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd http://www.liquibase.org/xml/ns/pro http://www.liquibase.org/xml/ns/pro/liquibase-pro-4.1.xsd http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.1.xsd">
+
+    <changeSet author="machrist (generated)" id="1640792942527-2">
+        <addColumn tableName="lti_context">
+            <column name="deployment_id" type="BIGINT">
+            </column>
+        </addColumn>
+    </changeSet>
+    <changeSet author="machrist (generated)" id="1640792942527-3">
+        <comment>
+            Populate new deployment_id column. Need to do this before making
+            column non-nullable and foreign keyed to lti_tool_deployment.
+        </comment>
+        <sql dbms="mysql">
+            UPDATE
+                lti_context lc
+            SET
+                deployment_id = (
+                    SELECT
+                        td.deployment_id
+                    FROM
+                        lti_tool_deployment td
+                        INNER JOIN iss_configuration ic ON td.key_id = ic.key_id
+                    WHERE
+                        ic.key_id = lc.key_id
+                )
+        </sql>
+    </changeSet>
+    <changeSet author="machrist (generated)" id="1640792942527-4">
+        <addNotNullConstraint columnDataType="BIGINT" columnName="deployment_id" tableName="lti_context"/>
+    </changeSet>
+    <changeSet author="machrist (generated)" id="1640792942527-6">
+        <addForeignKeyConstraint baseColumnNames="deployment_id" baseTableName="lti_context"
+                constraintName="FK_LTI_CONTEXT_ON_DEPLOYMENT_ID" referencedColumnNames="deployment_id"
+                referencedTableName="lti_tool_deployment" />
+    </changeSet>
+</databaseChangeLog>

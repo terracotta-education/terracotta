@@ -25,7 +25,7 @@ public class LtiStrings {
     public static final String LTI_SESSION_USER_ID = "user_id";
     public static final String LTI_SESSION_USER_ROLE = "user_role";
     public static final String LTI_SESSION_CONTEXT_ID = "context_id";
-    public static final String LTI_SESSION_DEPLOYMENT_KEY = "deployment_key";
+    public static final String LTI_SESSION_TOOL_DEPLOYMENT_ID = "tool_deployment_id";
 
     //BASICS
     public static final String LTI_MESSAGE_TYPE = "https://purl.imsglobal.org/spec/lti/claim/message_type";
