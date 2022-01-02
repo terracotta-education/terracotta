@@ -1,0 +1,13 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext" xmlns:pro="http://www.liquibase.org/xml/ns/pro" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd http://www.liquibase.org/xml/ns/pro http://www.liquibase.org/xml/ns/pro/liquibase-pro-4.1.xsd http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.1.xsd">
+    <changeSet author="machrist" id="1640535896383-1">
+        <comment>Migrate deployment data from iss_configuration to new lti_tool_deployment table.</comment>
+        <sql dbms="mysql">
+            insert into lti_tool_deployment (lti_deployment_id, key_id, entity_version) select deployment_id, key_id, 0 from iss_configuration
+        </sql>
+    </changeSet>
+    <changeSet author="machrist" id="1640535896383-2">
+        <comment>deployment_id moved to lti_deployment_id on new lti_tool_deployment table.</comment>
+        <dropColumn columnName="deployment_id" tableName="iss_configuration"/>
+    </changeSet>
+</databaseChangeLog>

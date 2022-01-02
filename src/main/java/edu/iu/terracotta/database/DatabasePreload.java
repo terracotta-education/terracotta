@@ -14,9 +14,12 @@ package edu.iu.terracotta.database;
 
 import edu.iu.terracotta.repository.LtiUserRepository;
 import edu.iu.terracotta.repository.PlatformDeploymentRepository;
+import edu.iu.terracotta.repository.ToolDeploymentRepository;
 import edu.iu.terracotta.config.ApplicationConfig;
 import edu.iu.terracotta.model.LtiUserEntity;
 import edu.iu.terracotta.model.PlatformDeployment;
+import edu.iu.terracotta.model.ToolDeployment;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,6 +50,9 @@ public class DatabasePreload {
     @Autowired
     @SuppressWarnings({"SpringJavaAutowiredMembersInspection", "SpringJavaAutowiringInspection"})
     PlatformDeploymentRepository platformDeploymentRepository;
+    @Autowired
+    @SuppressWarnings({"SpringJavaAutowiredMembersInspection", "SpringJavaAutowiringInspection"})
+    ToolDeploymentRepository toolDeploymentRepository;
 
     @Autowired
     PlatformDeploymentResourceService platformDeploymentResources;
@@ -69,7 +75,11 @@ public class DatabasePreload {
         Set<PlatformDeployment> deploymentPlatforms = platformDeploymentResources.getResources(PlatformDeployment.class);
         for (PlatformDeployment deploymentPlatform : deploymentPlatforms) {
             log.info("Storing: " + deploymentPlatform.getKeyId() + " : " + deploymentPlatform.getIss());
-            platformDeploymentRepository.save(deploymentPlatform);
+            PlatformDeployment savedDeploymentPlatform = platformDeploymentRepository.save(deploymentPlatform);
+            for (ToolDeployment toolDeployment : deploymentPlatform.getToolDeployments()) {
+                toolDeployment.setPlatformDeployment(savedDeploymentPlatform);
+                toolDeploymentRepository.save(toolDeployment);
+            }
         }
 
         Set<LtiUserEntity> users = ltiUserEntityResourceService.getResources(LtiUserEntity.class);

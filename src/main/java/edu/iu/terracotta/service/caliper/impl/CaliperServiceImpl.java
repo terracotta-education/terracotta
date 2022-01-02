@@ -133,16 +133,16 @@ public class CaliperServiceImpl implements CaliperService {
                 .eventTime(DateTime.now())
                 .membership(prepareMembership(participant, securedInfo))
                 .object(assessment)
-                .referrer(prepareReferrer(membershipEntity.getContext().getPlatformDeployment()))
+                .referrer(prepareReferrer(membershipEntity.getUser().getPlatformDeployment()))
                 .federatedSession(ltiSession)
                 .generated(attempt)
                 .group(group)
                 .build();
         Envelope envelope = null;
-        if (sendEnabled(membershipEntity.getContext().getPlatformDeployment())) {
+        if (sendEnabled(membershipEntity.getUser().getPlatformDeployment())) {
             log.debug("Caliper event being generated: Assessment Starting Use");
 
-            envelope = new Envelope(getSensor(membershipEntity.getContext().getPlatformDeployment()).getId(), DateTime.now(), DATA_VERSION, Collections.singletonList(assessmentEvent));
+            envelope = new Envelope(getSensor(membershipEntity.getUser().getPlatformDeployment()).getId(), DateTime.now(), DATA_VERSION, Collections.singletonList(assessmentEvent));
             send(envelope, submission.getParticipant().getLtiUserEntity().getPlatformDeployment());
             log.debug("Caliper event sent");
         }
@@ -195,16 +195,16 @@ public class CaliperServiceImpl implements CaliperService {
                 .eventTime(DateTime.now())
                 .membership(prepareMembership(participant, securedInfo))
                 .object(assessment)
-                .referrer(prepareReferrer(membershipEntity.getContext().getPlatformDeployment()))
+                .referrer(prepareReferrer(membershipEntity.getUser().getPlatformDeployment()))
                 .federatedSession(ltiSession)
                 .generated(attempt)
                 .group(group)
                 .build();
         Envelope envelope = null;
-        if (sendEnabled(membershipEntity.getContext().getPlatformDeployment())) {
+        if (sendEnabled(membershipEntity.getUser().getPlatformDeployment())) {
             log.debug("Caliper event being generated: Assessment Submitted Use");
 
-            envelope = new Envelope(getSensor(membershipEntity.getContext().getPlatformDeployment()).getId(), DateTime.now(), DATA_VERSION, Collections.singletonList(assessmentEvent));
+            envelope = new Envelope(getSensor(membershipEntity.getUser().getPlatformDeployment()).getId(), DateTime.now(), DATA_VERSION, Collections.singletonList(assessmentEvent));
             send(envelope, submission.getParticipant().getLtiUserEntity().getPlatformDeployment());
             log.debug("Caliper event sent");
         }
@@ -258,15 +258,15 @@ public class CaliperServiceImpl implements CaliperService {
                 .membership(prepareMembership(participant, securedInfo))
                 .object(assessment)
                 .generated(attempt)
-                .referrer(prepareReferrer(membershipEntity.getContext().getPlatformDeployment()))
+                .referrer(prepareReferrer(membershipEntity.getUser().getPlatformDeployment()))
                 .federatedSession(ltiSession)
                 .group(group)
                 .build();
         Envelope envelope = null;
-        if (sendEnabled(membershipEntity.getContext().getPlatformDeployment())) {
+        if (sendEnabled(membershipEntity.getUser().getPlatformDeployment())) {
             log.debug("Caliper event being generated: Assessment Starting Use");
 
-            envelope = new Envelope(getSensor(membershipEntity.getContext().getPlatformDeployment()).getId(), DateTime.now(), DATA_VERSION, Collections.singletonList(assessmentEvent));
+            envelope = new Envelope(getSensor(membershipEntity.getUser().getPlatformDeployment()).getId(), DateTime.now(), DATA_VERSION, Collections.singletonList(assessmentEvent));
             send(envelope, submission.getParticipant().getLtiUserEntity().getPlatformDeployment());
             log.debug("Caliper event sent");
         }
@@ -334,15 +334,15 @@ public class CaliperServiceImpl implements CaliperService {
                 .eventTime(DateTime.now())
                 .membership(prepareMembership(participant, securedInfo))
                 .object(result)
-                .referrer(prepareReferrer(membershipEntity.getContext().getPlatformDeployment()))
+                .referrer(prepareReferrer(membershipEntity.getUser().getPlatformDeployment()))
                 .federatedSession(ltiSession)
                 .group(group)
                 .build();
         Envelope envelope = null;
-        if (sendEnabled(membershipEntity.getContext().getPlatformDeployment())) {
+        if (sendEnabled(membershipEntity.getUser().getPlatformDeployment())) {
             log.debug("Caliper event being generated: Assessment Starting Use");
 
-            envelope = new Envelope(getSensor(membershipEntity.getContext().getPlatformDeployment()).getId(), DateTime.now(), DATA_VERSION, Collections.singletonList(assessmentEvent));
+            envelope = new Envelope(getSensor(membershipEntity.getUser().getPlatformDeployment()).getId(), DateTime.now(), DATA_VERSION, Collections.singletonList(assessmentEvent));
             send(envelope, submission.getParticipant().getLtiUserEntity().getPlatformDeployment());
             log.debug("Caliper event sent");
         }
@@ -402,12 +402,12 @@ public class CaliperServiceImpl implements CaliperService {
                 .context(context)
                 .eventTime(DateTime.now())
                 .object(softwareApplication)
-                .referrer(prepareReferrer(membershipEntity.getContext().getPlatformDeployment()))
+                .referrer(prepareReferrer(membershipEntity.getUser().getPlatformDeployment()))
                 .federatedSession(ltiSession)
                 .group(group)
                 .build();
         Envelope envelope = null;
-        if (sendEnabled(membershipEntity.getContext().getPlatformDeployment())) {
+        if (sendEnabled(membershipEntity.getUser().getPlatformDeployment())) {
             log.debug("Caliper event being generated: Tool Use");
             envelope = new Envelope(getSensor(membershipEntity.getUser().getPlatformDeployment()).getId(), DateTime.now(), DATA_VERSION, Collections.singletonList(toolUseEvent));
             send(envelope, membershipEntity.getUser().getPlatformDeployment());
@@ -570,7 +570,7 @@ public class CaliperServiceImpl implements CaliperService {
 
     private CaliperOrganization prepareGroup(LtiMembershipEntity participant, SecuredInfo securedInfo){
         LtiContextEntity contextEntity = participant.getContext();
-        String canvasCourseId = participant.getContext().getPlatformDeployment().getBaseUrl()
+        String canvasCourseId = participant.getUser().getPlatformDeployment().getBaseUrl()
                 + "/courses/" + securedInfo.getCanvasCourseId();
         return CourseSection.builder()
                 .name(contextEntity.getTitle())
@@ -579,7 +579,6 @@ public class CaliperServiceImpl implements CaliperService {
     }
 
     private Membership prepareMembership(Participant participant, SecuredInfo securedInfo){
-        LtiContextEntity contextEntity = participant.getLtiMembershipEntity().getContext();
         String canvasCourseId = participant.getLtiUserEntity().getPlatformDeployment().getBaseUrl()
                 + "/courses/" + securedInfo.getCanvasCourseId();
         return Membership.builder()

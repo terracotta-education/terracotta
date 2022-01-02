@@ -12,8 +12,6 @@
  */
 package edu.iu.terracotta.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-
 import javax.persistence.Basic;
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -52,9 +50,6 @@ public class PlatformDeployment extends BaseEntity {
     @Column(name = "oAuth2_token_aud")
     private String oAuth2TokenAud;  // Sometimes, for example D2L, has a different aud for the tokens.
     @Basic
-    @Column(name = "deployment_id")
-    private String deploymentId;  // Where in the platform we need to ask for the oidc authentication.
-    @Basic
     @Column(name = "api_token")
     private String apiToken;
     @Basic
@@ -92,9 +87,12 @@ public class PlatformDeployment extends BaseEntity {
     @Column(name = "caliper_socket_timeout")
     private Integer caliperSocketTimeOut;
 
-    @JsonIgnore
+    @Basic
+    @Column(name = "enable_automatic_deployments", nullable = false)
+    private Boolean enableAutomaticDeployments = false;
+
     @OneToMany(mappedBy = "platformDeployment", fetch = FetchType.LAZY)
-    private Set<LtiContextEntity> contexts;
+    private Set<ToolDeployment> toolDeployments;
 
 
     public long getKeyId() {
@@ -153,20 +151,12 @@ public class PlatformDeployment extends BaseEntity {
         this.oAuth2TokenAud = oAuth2TokenAud;
     }
 
-    public String getDeploymentId() {
-        return deploymentId;
+    public Set<ToolDeployment> getToolDeployments() {
+        return toolDeployments;
     }
 
-    public void setDeploymentId(String deploymentId) {
-        this.deploymentId = deploymentId;
-    }
-
-    public Set<LtiContextEntity> getContexts() {
-        return contexts;
-    }
-
-    public void setContexts(Set<LtiContextEntity> contexts) {
-        this.contexts = contexts;
+    public void setToolDeployments(Set<ToolDeployment> toolDeployments) {
+        this.toolDeployments = toolDeployments;
     }
 
     public String getApiToken() {
@@ -249,6 +239,14 @@ public class PlatformDeployment extends BaseEntity {
         this.caliperSocketTimeOut = caliperSocketTimeOut;
     }
 
+    public Boolean getEnableAutomaticDeployments() {
+        return enableAutomaticDeployments;
+    }
+
+    public void setEnableAutomaticDeployments(Boolean enableAutomaticDeployments) {
+        this.enableAutomaticDeployments = enableAutomaticDeployments;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -258,8 +256,7 @@ public class PlatformDeployment extends BaseEntity {
 
         if (keyId != that.keyId) return false;
         if (!Objects.equals(iss, that.iss)) return false;
-        if (!Objects.equals(clientId, that.clientId)) return false;
-        return Objects.equals(deploymentId, that.deploymentId);
+        return Objects.equals(clientId, that.clientId);
     }
 
     @Override
@@ -269,7 +266,6 @@ public class PlatformDeployment extends BaseEntity {
         result = 31 * result + (clientId != null ? clientId.hashCode() : 0);
         result = 31 * result + (oidcEndpoint != null ? oidcEndpoint.hashCode() : 0);
         result = 31 * result + (oAuth2TokenUrl != null ? oAuth2TokenUrl.hashCode() : 0);
-        result = 31 * result + (deploymentId != null ? deploymentId.hashCode() : 0);
         return result;
     }
 }

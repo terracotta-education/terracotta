@@ -15,12 +15,15 @@ package edu.iu.terracotta.controller.lti;
 
 import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.repository.LtiContextRepository;
-import edu.iu.terracotta.repository.PlatformDeploymentRepository;
+import edu.iu.terracotta.repository.ToolDeploymentRepository;
 import edu.iu.terracotta.model.LtiContextEntity;
-import edu.iu.terracotta.model.PlatformDeployment;
+import edu.iu.terracotta.model.ToolDeployment;
 import edu.iu.terracotta.model.membership.CourseUsers;
 import edu.iu.terracotta.model.oauth2.LTIToken;
 import edu.iu.terracotta.service.lti.AdvantageMembershipService;
+import edu.iu.terracotta.utils.LtiStrings;
+import edu.iu.terracotta.utils.TextConstants;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,7 +52,7 @@ public class MembershipController {
     LtiContextRepository ltiContextRepository;
 
     @Autowired
-    PlatformDeploymentRepository platformDeploymentRepository;
+    ToolDeploymentRepository toolDeploymentRepository;
 
     @Autowired
     AdvantageMembershipService advantageMembershipService;
@@ -62,28 +65,28 @@ public class MembershipController {
         //LTI Advantage services doesn't need a session to access to the membership, but we implemented this control here
         // to avoid access to all the courses and platforms.
         HttpSession session = req.getSession();
-        if (session.getAttribute("deployment_key") != null) {
-            model.addAttribute("noSessionValues", false);
-            Long deployment = (Long) session.getAttribute("deployment_key");
-            String contextId = (String) session.getAttribute("context_id");
+        if (session.getAttribute(LtiStrings.LTI_SESSION_TOOL_DEPLOYMENT_ID) != null) {
+            model.addAttribute(TextConstants.NO_SESSION_VALUES, false);
+            Long deployment = (Long) session.getAttribute(LtiStrings.LTI_SESSION_TOOL_DEPLOYMENT_ID);
+            String contextId = (String) session.getAttribute(LtiStrings.LTI_SESSION_CONTEXT_ID);
             //We find the right deployment:
-            Optional<PlatformDeployment> platformDeployment = platformDeploymentRepository.findById(deployment);
-            if (platformDeployment.isPresent()) {
+            Optional<ToolDeployment> toolDeployment = toolDeploymentRepository.findById(deployment);
+            if (toolDeployment.isPresent()) {
                 //Get the context in the query
-                LtiContextEntity context = ltiContextRepository.findByContextKeyAndPlatformDeployment(contextId, platformDeployment.get());
+                LtiContextEntity context = ltiContextRepository.findByContextKeyAndToolDeployment(contextId, toolDeployment.get());
 
                 //Call the membership service to get the users on the context
                 // 1. Get the token
-                LTIToken LTIToken = advantageMembershipService.getToken(platformDeployment.get());
+                LTIToken LTIToken = advantageMembershipService.getToken(toolDeployment.get().getPlatformDeployment());
 
                 // 2. Call the service
                 CourseUsers courseUsers = advantageMembershipService.callMembershipService(LTIToken, context);
 
                 // 3. update the model
-                model.addAttribute("results", courseUsers.getCourseUserList());
+                model.addAttribute(TextConstants.RESULTS, courseUsers.getCourseUserList());
             }
         } else {
-            model.addAttribute("noSessionValues", true);
+            model.addAttribute(TextConstants.NO_SESSION_VALUES, true);
         }
         return "ltiAdvMembershipMain";
     }

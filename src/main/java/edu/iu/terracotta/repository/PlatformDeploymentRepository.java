@@ -25,11 +25,11 @@ public interface PlatformDeploymentRepository extends JpaRepository<PlatformDepl
 
     List<PlatformDeployment> findByClientId(String clientId);
 
-    List<PlatformDeployment> findByDeploymentId(String deploymentId);
+    List<PlatformDeployment> findByToolDeployments_LtiDeploymentId(String ltiDeploymentId);
 
     List<PlatformDeployment> findByIssAndClientId(String iss, String clientId);
 
-    List<PlatformDeployment> findByIssAndDeploymentId(String iss, String deploymentId);
+    List<PlatformDeployment> findByIssAndToolDeployments_LtiDeploymentId(String iss, String ltiDeploymentId);
 
-    List<PlatformDeployment> findByIssAndClientIdAndDeploymentId(String iss, String clientId, String deploymentId);
+    List<PlatformDeployment> findByIssAndClientIdAndToolDeployments_LtiDeploymentId(String iss, String clientId, String ltiDeploymentId);
 }

@@ -56,8 +56,8 @@ public class LtiContextEntity extends BaseEntity {
     private String settings;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "key_id", referencedColumnName = "key_id", nullable = false)
-    private PlatformDeployment platformDeployment;
+    @JoinColumn(name = "deployment_id", referencedColumnName = "deployment_id", nullable = false)
+    private ToolDeployment toolDeployment;
 
     @OneToMany(mappedBy = "context")
     private Set<LtiLinkEntity> links;
@@ -67,20 +67,20 @@ public class LtiContextEntity extends BaseEntity {
     public LtiContextEntity() {
     }
 
-    public LtiContextEntity(String contextKey, PlatformDeployment platformDeployment, String title, String json) {
+    public LtiContextEntity(String contextKey, ToolDeployment toolDeployment, String title, String json) {
         if (!StringUtils.isNotBlank(contextKey)) throw new AssertionError();
-        if (platformDeployment == null) throw new AssertionError();
+        if (toolDeployment == null) throw new AssertionError();
         this.contextKey = contextKey;
-        this.platformDeployment = platformDeployment;
+        this.toolDeployment = toolDeployment;
         this.title = title;
         this.json = json;
     }
 
-    public LtiContextEntity(String contextKey, PlatformDeployment platformDeployment, String title, String context_memberships_url, String lineitems, String json) {
+    public LtiContextEntity(String contextKey, ToolDeployment toolDeployment, String title, String context_memberships_url, String lineitems, String json) {
         if (!StringUtils.isNotBlank(contextKey)) throw new AssertionError();
-        if (platformDeployment == null) throw new AssertionError();
+        if (toolDeployment == null) throw new AssertionError();
         this.contextKey = contextKey;
-        this.platformDeployment = platformDeployment;
+        this.toolDeployment = toolDeployment;
         this.title = title;
         this.context_memberships_url = context_memberships_url;
         this.lineitems = lineitems;
@@ -127,12 +127,12 @@ public class LtiContextEntity extends BaseEntity {
         this.settings = settings;
     }
 
-    public PlatformDeployment getPlatformDeployment() {
-        return platformDeployment;
+    public ToolDeployment getToolDeployment() {
+        return toolDeployment;
     }
 
-    public void setPlatformDeployment(PlatformDeployment platformDeployment) {
-        this.platformDeployment = platformDeployment;
+    public void setToolDeployment(ToolDeployment toolDeployment) {
+        this.toolDeployment = toolDeployment;
     }
 
     public Set<LtiLinkEntity> getLinks() {

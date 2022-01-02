@@ -12,19 +12,18 @@
  */
 package edu.iu.terracotta.repository;
 
-import edu.iu.terracotta.model.LtiContextEntity;
-import edu.iu.terracotta.model.ToolDeployment;
+import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * NOTE: use of this interface magic makes all subclass-based (CGLIB) proxies fail
- */
+import edu.iu.terracotta.model.ToolDeployment;
+
 @Transactional
-public interface LtiContextRepository extends JpaRepository<LtiContextEntity, Long> {
+public interface ToolDeploymentRepository extends JpaRepository<ToolDeployment, Long> {
 
-    LtiContextEntity findByContextKey(String key);
-
-    LtiContextEntity findByContextKeyAndToolDeployment(String contextKey, ToolDeployment toolDeployment);
+    List<ToolDeployment> findByPlatformDeployment_Iss(String iss);
+    List<ToolDeployment> findByPlatformDeployment_IssAndLtiDeploymentId(String iss, String ltiDeploymentId);
+    List<ToolDeployment> findByPlatformDeployment_IssAndPlatformDeployment_ClientId(String iss, String clientId);
+    List<ToolDeployment> findByPlatformDeployment_IssAndPlatformDeployment_ClientIdAndLtiDeploymentId(String iss, String clientId, String ltiDeploymentId);
 }

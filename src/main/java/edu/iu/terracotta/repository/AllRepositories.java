@@ -50,6 +50,9 @@ public class AllRepositories {
     public PlatformDeploymentRepository platformDeploymentRepository;
 
     @Autowired
+    public ToolDeploymentRepository toolDeploymentRepository;
+
+    @Autowired
     public ApiOneUseTokenRepository apiOneUseTokenRepository;
 
     @Autowired
