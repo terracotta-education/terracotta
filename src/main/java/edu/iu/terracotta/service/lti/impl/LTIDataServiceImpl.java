@@ -85,11 +85,11 @@ public class LTIDataServiceImpl implements LTIDataService {
 
         String sqlDeployment = "SELECT k, c, l, m, u, t" +
                 " FROM PlatformDeployment k " +
+                "LEFT JOIN LtiUserEntity u ON u.platformDeployment = k AND u.userKey = :user " + // LtiUser
                 "LEFT JOIN k.toolDeployments t " + // ToolDeployment
                 "LEFT JOIN t.contexts c ON c.contextKey = :context " + // LtiContextEntity
                 "LEFT JOIN c.links l ON l.linkKey = :link " + // LtiLinkEntity
-                "LEFT JOIN c.memberships m " + // LtiMembershipEntity
-                "LEFT JOIN m.user u ON u.userKey = :user " +
+                "LEFT JOIN c.memberships m ON m.user = u " + // LtiMembershipEntity
                 " WHERE k.clientId = :clientId AND t.ltiDeploymentId = :deploymentId AND k.iss = :iss AND (m IS NULL OR (m.context = c AND m.user = u))";
         Query qDeployment = repos.entityManager.createQuery(sqlDeployment);
         qDeployment.setMaxResults(1);
