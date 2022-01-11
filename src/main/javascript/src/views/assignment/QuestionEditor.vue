@@ -5,6 +5,7 @@
       placeholder="Question"
       class="mb-6 outlined"
       :extensions="extensions"
+      :native-extensions="nativeExtensions"
       :card-props="{ flat: true }"
       :rules="rules"
       required
@@ -66,6 +67,8 @@ import {
   History,
 } from "tiptap-vuetify";
 import { clone } from "@/helpers";
+import YoutubeEmbed from "./tiptap/YoutubeEmbed";
+import YoutubeEmbedExtension from "./tiptap/YoutubeEmbedExtension";
 
 /*
  * Events:
@@ -113,7 +116,9 @@ export default {
         HorizontalRule,
         Paragraph,
         HardBreak,
+        YoutubeEmbedExtension,
       ],
+      nativeExtensions: [new YoutubeEmbed()],
     };
   },
   components: {
@@ -163,7 +168,7 @@ export default {
       font-style: normal;
     }
   }
-  &__toolbar {
+  .tiptap-vuetify-editor__toolbar {
     border-top: 1px solid map-get($grey, "base");
     border-radius: 0 !important;
   }
