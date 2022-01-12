@@ -12,6 +12,12 @@ export default class Iframe extends Node {
       attrs: {
         youtubeID: {
             default: null
+        },
+        height: {
+            default: 315
+        },
+        width: {
+            default: 560
         }
       },
       group: "block",
@@ -21,6 +27,8 @@ export default class Iframe extends Node {
           tag: "iframe",
           getAttrs: dom => ({
             youtubeID: dom.getAttribute('data-youtube-id'),
+            height: dom.getAttribute('height'),
+            width: dom.getAttribute('width'),
           })
         }
       ],
@@ -29,6 +37,8 @@ export default class Iframe extends Node {
         {
           src: `https://www.youtube.com/embed/${node.attrs.youtubeID}`,
           "data-youtube-id": node.attrs.youtubeID,
+          height: node.attrs.height,
+          width: node.attrs.width,
           frameborder: 0,
           allowfullscreen: "true",
           allow:

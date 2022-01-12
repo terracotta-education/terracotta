@@ -43,12 +43,32 @@ export default {
     };
   },
   computed: {
-    youtubeID() {
+    iframe() {
       const parser = new DOMParser();
       const doc = parser.parseFromString(this.embedCode, "text/html");
-      const iframe = doc.querySelector("iframe");
+      return doc.querySelector("iframe");
+    },
+    height() {
+      if (this.iframe && this.iframe.height && parseInt(this.iframe.height)) {
+        const height = parseInt(this.iframe.height);
+        return height;
+      } else {
+        // Return undefined so that default value will be used
+        return undefined;
+      }
+    },
+    width() {
+      if (this.iframe && this.iframe.width && parseInt(this.iframe.width)) {
+        const width = parseInt(this.iframe.width);
+        return width;
+      } else {
+        // Return undefined so that default value will be used
+        return undefined;
+      }
+    },
+    youtubeID() {
       // Supports pasting in the iframe embed code, or the short url
-      const url = iframe ? iframe.src : this.embedCode;
+      const url = this.iframe ? this.iframe.src : this.embedCode;
       const youtubeID = url ? this.youtubeParser(url) : null;
       return youtubeID ? youtubeID : null;
     },
@@ -68,9 +88,13 @@ export default {
     },
     add() {
       const youtubeID = this.youtubeID;
+      const height = this.height;
+      const width = this.width;
       if (youtubeID) {
         this.context.commands[this.nativeExtensionName]({
           youtubeID,
+          height,
+          width,
         });
       }
       this.close();
