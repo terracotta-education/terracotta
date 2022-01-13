@@ -41,7 +41,7 @@
                   <span
                     class="pl-3 question-text"
                     v-if="question.html"
-                    v-html="question.html"
+                    v-html="textOnly(question.html)"
                   ></span>
                 </h2>
               </v-expansion-panel-header>
@@ -309,6 +309,12 @@ export default {
     saveExit() {
       this.saveAll("home");
     },
+    textOnly(htmlString) {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(htmlString, "text/html");
+      // Add a space between adjacent children
+      return [...doc.body.children].map((c) => c.innerText).join(" ");
+    },
   },
   async created() {
     await this.fetchAssessment([
@@ -342,14 +348,12 @@ export default {
       white-space: nowrap;
 
       > .question-text {
-        * {
-          display: inline;
-          font-size: 16px;
-          line-height: 1em;
-          margin: 0;
-          padding: 0;
-          vertical-align: middle;
-        }
+        display: inline;
+        font-size: 16px;
+        line-height: 1em;
+        margin: 0;
+        padding: 0;
+        vertical-align: middle;
       }
     }
   }
