@@ -8,7 +8,7 @@ import YoutubeEmbedDialog from "./YoutubeEmbedDialog.vue";
 // tiptap-vuetify extension - adds a button to the toolbar
 export default class YoutubeEmbedExtension {
   get availableActions() {
-    const nativeExtensionName = "iframe";
+    const nativeExtensionName = "youtube-embed";
     return [
       {
         render: new ExtensionActionRenderBtn({

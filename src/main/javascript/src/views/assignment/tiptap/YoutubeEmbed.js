@@ -55,10 +55,9 @@ function nodePasteRule(regexp, type, getAttrs) {
 }
 
 // Tiptap Node extension
-export default class Iframe extends Node {
+export default class YoutubeEmbed extends Node {
   get name() {
-    // TODO: rename to "youtube"
-    return "iframe";
+    return "youtube-embed";
   }
 
   get schema() {
@@ -78,7 +77,7 @@ export default class Iframe extends Node {
       selectable: false,
       parseDOM: [
         {
-          tag: "iframe",
+          tag: "iframe[data-youtube-id]",
           getAttrs: (dom) => ({
             youtubeID: dom.getAttribute("data-youtube-id"),
             height: dom.getAttribute("height"),
