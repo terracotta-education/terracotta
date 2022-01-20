@@ -65,10 +65,10 @@ export default {
 			const step = "exposure_type"
 
 			this.updateExperiment(e)
-					.then(response => {
+					.then(async response => {
             if (typeof response?.status !== "undefined" && response?.status === 200) {
               // report the current step
-              this.reportStep({experimentId, step})
+              await this.reportStep({experimentId, step})
               if (this.experiment.exposureType==='BETWEEN' || this.experiment.exposureType==='WITHIN') {
                 this.$router.push({name:'ExperimentDesignDefaultCondition', params:{experiment: experimentId}})
               } else {
