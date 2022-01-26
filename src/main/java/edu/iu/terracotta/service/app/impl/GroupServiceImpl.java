@@ -282,6 +282,10 @@ public class GroupServiceImpl implements GroupService {
                     moreUnbalanced = exposureGroupCondition.getGroup();
                 }
             }
+            // In case the groups are perfectly balanced, by default pick the first group
+            if (moreUnbalanced == null) {
+                moreUnbalanced = exposureGroupCondition.getGroup();
+            }
         }
         return moreUnbalanced;
     }
