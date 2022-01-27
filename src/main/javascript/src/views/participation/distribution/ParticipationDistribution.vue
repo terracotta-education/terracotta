@@ -57,10 +57,10 @@ export default {
       const step = 'distribution_type'
 
       this.updateExperiment(e)
-        .then(response => {
+        .then(async response => {
           if (typeof response?.status !== 'undefined' && response?.status === 200) {
             // report the current step
-            this.reportStep({experimentId, step})
+            await this.reportStep({experimentId, step})
             // forward to correct path after selection
             if (this.experiment.distributionType==='EVEN') {
               this.$router.push({name:'ParticipationSummary', params:{experiment: experimentId}})
