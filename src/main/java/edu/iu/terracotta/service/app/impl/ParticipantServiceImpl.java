@@ -350,6 +350,7 @@ public class ParticipantServiceImpl implements ParticipantService {
     }
 
     @Override
+    @Transactional
     public void prepareParticipation(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException {
 
         List<Participant> currentParticipantList =
@@ -456,6 +457,7 @@ public class ParticipantServiceImpl implements ParticipantService {
     }
 
     @Override
+    @Transactional
     public void setAllToNull(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException {
         List<Participant> participants = allRepositories.participantRepository.findByExperiment_ExperimentId(experimentId);
         refreshParticipants(experimentId,securedInfo,participants);
@@ -467,6 +469,7 @@ public class ParticipantServiceImpl implements ParticipantService {
     }
 
     @Override
+    @Transactional
     public void setAllToTrue(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException {
         List<Participant> participants = allRepositories.participantRepository.findByExperiment_ExperimentId(experimentId);
         refreshParticipants(experimentId,securedInfo,participants);
@@ -478,6 +481,7 @@ public class ParticipantServiceImpl implements ParticipantService {
     }
 
     @Override
+    @Transactional
     public void setAllToFalse(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException {
         List<Participant> participants = allRepositories.participantRepository.findByExperiment_ExperimentId(experimentId);
         refreshParticipants(experimentId,securedInfo,participants);

@@ -53,10 +53,10 @@ export default {
 			const step = "participation_type"
 
 			this.updateExperiment(e)
-					.then(response => {
+					.then(async response => {
             if (typeof response?.status !== "undefined" && response?.status === 200) {
               // report the current step
-              this.reportStep({experimentId, step})
+              await this.reportStep({experimentId, step})
 
               // route based on participation type selection
               if (e.participationType==='CONSENT') {

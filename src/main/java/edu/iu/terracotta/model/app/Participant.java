@@ -18,9 +18,14 @@ import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToOne;
 import javax.persistence.Table;
+import javax.persistence.UniqueConstraint;
+
 import java.sql.Timestamp;
 
-@Table(name = "terr_participant")
+@Table(name = "terr_participant", uniqueConstraints = {
+        @UniqueConstraint(columnNames = { "experiment_experiment_id", "lti_user_entity_user_id" }),
+        @UniqueConstraint(columnNames = { "experiment_experiment_id", "lti_membership_entity_membership_id" })
+})
 @Entity
 public class Participant extends BaseEntity {
     @Column(name = "participant_id", nullable = false)
