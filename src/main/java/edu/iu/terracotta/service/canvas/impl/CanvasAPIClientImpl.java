@@ -2,6 +2,7 @@ package edu.iu.terracotta.service.canvas.impl;
 
 import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.model.PlatformDeployment;
+import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.canvas.AssignmentExtended;
 import edu.iu.terracotta.service.canvas.AssignmentReaderExtended;
 import edu.iu.terracotta.service.canvas.AssignmentWriterExtended;
@@ -127,7 +128,8 @@ public class CanvasAPIClientImpl implements CanvasAPIClient {
         String canvasCourseId = getCanvasCourseId(submission.getParticipant().getLtiMembershipEntity().getContext().getContext_memberships_url());
         int assignmentId = Integer.parseInt(submission.getAssessment().getTreatment().getAssignment().getLmsAssignmentId());
         String canvasUserId = submission.getParticipant().getLtiUserEntity().getLmsUserId();
-        Optional<AssignmentExtended> assignmentExtended = listAssignment(canvasCourseId,assignmentId,submission.getParticipant().getLtiUserEntity().getPlatformDeployment());
+        PlatformDeployment platformDeployment = submission.getParticipant().getLtiUserEntity().getPlatformDeployment();
+        Optional<AssignmentExtended> assignmentExtended = listAssignment(canvasCourseId,assignmentId,platformDeployment);
         if (!assignmentExtended.isPresent()){
             throw new CanvasApiException(
                     "Failed to get the assignments with id [" + assignmentId + "] from canvas course [" + canvasCourseId + "]");
@@ -144,7 +146,28 @@ public class CanvasAPIClientImpl implements CanvasAPIClient {
         }
         grade = grade * maxCanvasScore / Double.parseDouble(maxTerracottaScore.toString());
 
-        PlatformDeployment platformDeployment = submission.getParticipant().getLtiUserEntity().getPlatformDeployment();
+        return postGrade(platformDeployment, canvasCourseId, assignmentId, canvasUserId, grade);
+    }
+
+    @Override
+    public Optional<Progress> postConsentSubmission(Participant participant) throws CanvasApiException, IOException {
+        String canvasCourseId = getCanvasCourseId(participant.getLtiMembershipEntity().getContext().getContext_memberships_url());
+        int assignmentId = Integer.parseInt(participant.getExperiment().getConsentDocument().getLmsAssignmentId());
+        String canvasUserId = participant.getLtiUserEntity().getLmsUserId();
+        PlatformDeployment platformDeployment = participant.getLtiUserEntity().getPlatformDeployment();
+        Optional<AssignmentExtended> assignmentExtended = listAssignment(canvasCourseId,assignmentId,platformDeployment);
+        if (!assignmentExtended.isPresent()){
+            throw new CanvasApiException(
+                    "Failed to get the assignments with id [" + assignmentId + "] from canvas course [" + canvasCourseId + "]");
+        }
+
+        Double grade = Double.valueOf("1.0");
+
+        return postGrade(platformDeployment, canvasCourseId, assignmentId, canvasUserId, grade);
+    }
+
+    private Optional<Progress> postGrade(PlatformDeployment platformDeployment, String canvasCourseId, int assignmentId,
+            String canvasUserId, Double grade) throws IOException {
         String canvasBaseUrl = platformDeployment.getBaseUrl();
         OauthToken oauthToken = new NonRefreshableOauthToken(platformDeployment.getApiToken());
         CanvasApiFactoryExtended apiFactory = new CanvasApiFactoryExtended(canvasBaseUrl);

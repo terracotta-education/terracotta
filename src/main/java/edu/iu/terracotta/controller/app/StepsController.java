@@ -13,7 +13,6 @@ import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.exceptions.SubmissionNotMatchingException;
 import edu.iu.terracotta.model.app.Assignment;
-import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.dto.StepDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
