@@ -1,5 +1,6 @@
 package edu.iu.terracotta.service.app.impl;
 
+import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.IdInPostException;
@@ -21,15 +22,20 @@ import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.GroupService;
 import edu.iu.terracotta.service.app.ParticipantService;
+import edu.iu.terracotta.service.canvas.CanvasAPIClient;
 import edu.iu.terracotta.service.lti.AdvantageMembershipService;
 import edu.iu.terracotta.service.lti.LTIDataService;
 import edu.iu.terracotta.utils.TextConstants;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.io.IOException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -57,6 +63,10 @@ public class ParticipantServiceImpl implements ParticipantService {
     @Autowired
     ExperimentService experimentService;
 
+    @Autowired
+    CanvasAPIClient canvasAPIClient;
+
+    static final Logger log = LoggerFactory.getLogger(ParticipantServiceImpl.class);
 
     @Override
     public List<Participant> findAllByExperimentId(long experimentId) {
@@ -405,6 +415,7 @@ public class ParticipantServiceImpl implements ParticipantService {
     }
 
     @Override
+    @Transactional
     public boolean changeConsent(ParticipantDto participantDto, SecuredInfo securedInfo, Long experimentId){
 
         Participant participant = allRepositories.participantRepository.findByParticipantId(participantDto.getParticipantId());
@@ -428,6 +439,13 @@ public class ParticipantServiceImpl implements ParticipantService {
         Map<Participant, ParticipantDto> map = new HashMap<>();
         map.put(participant,participantDto);
         changeParticipant(map,experimentId);
+
+        try {
+            canvasAPIClient.postConsentSubmission(participant);
+        } catch (CanvasApiException | IOException e) {
+            throw new RuntimeException("Failed to post grade to Canvas for consent submission", e);
+        }
+
         return true;
 
 

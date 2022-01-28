@@ -295,7 +295,8 @@ public class FileStorageServiceImpl implements FileStorageService {
                     "Please read the statement below, and then select your response.  " +
                     "Your teacher will be able to see whether you submitted a response, but will not be able to see your selection.");
             canvasAssignment.setPublished(false);
-            canvasAssignment.setPointsPossible(0.0);
+            canvasAssignment.setGradingType("points");
+            canvasAssignment.setPointsPossible(1.0);
             canvasAssignment.setSubmissionTypes(Collections.singletonList("external_tool"));
             try {
                 Optional<AssignmentExtended> assignment = canvasAPIClient.createCanvasAssignment(canvasAssignment,canvasCourseId, experiment.getPlatformDeployment());
