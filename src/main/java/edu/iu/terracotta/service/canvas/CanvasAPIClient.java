@@ -2,6 +2,7 @@ package edu.iu.terracotta.service.canvas;
 
 import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.model.PlatformDeployment;
+import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.canvas.AssignmentExtended;
 import edu.ksu.canvas.model.Progress;
 import edu.ksu.canvas.model.assignment.Submission;
@@ -27,4 +28,13 @@ public interface CanvasAPIClient {
     Optional<AssignmentExtended> deleteAssignment(AssignmentExtended assignmentExtended, String canvasCourseId, PlatformDeployment platformDeployment) throws CanvasApiException;
 
     Optional<Progress> postSubmission(edu.iu.terracotta.model.app.Submission submission, Float maxTerracottaScore) throws CanvasApiException, IOException;
+
+    /**
+     * Post a 1.0 point score for the consent assignment back to Canvas.
+     * @param participant
+     * @return
+     * @throws CanvasApiException
+     * @throws IOException
+     */
+    Optional<Progress> postConsentSubmission(Participant participant) throws CanvasApiException, IOException;
 }
