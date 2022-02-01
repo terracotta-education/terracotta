@@ -424,6 +424,15 @@ public class ParticipantServiceImpl implements ParticipantService {
                 || securedInfo.getConsent()==null || !securedInfo.getConsent()){
             return false;
         }
+
+        // Regardless of whether consent is changed or not, record a grade of
+        // 1.0 point for the consent assignment
+        try {
+            canvasAPIClient.postConsentSubmission(participant);
+        } catch (CanvasApiException | IOException e) {
+            throw new RuntimeException("Failed to post grade to Canvas for consent submission", e);
+        }
+
         // Don't allow changing consent to consent=true if started and not consenting
         if (hasStarted(participant) && participant.getConsent() != null && !participant.getConsent()
                 && participantDto.getConsent() != null && participantDto.getConsent()) {
@@ -439,12 +448,6 @@ public class ParticipantServiceImpl implements ParticipantService {
         Map<Participant, ParticipantDto> map = new HashMap<>();
         map.put(participant,participantDto);
         changeParticipant(map,experimentId);
-
-        try {
-            canvasAPIClient.postConsentSubmission(participant);
-        } catch (CanvasApiException | IOException e) {
-            throw new RuntimeException("Failed to post grade to Canvas for consent submission", e);
-        }
 
         return true;
 
