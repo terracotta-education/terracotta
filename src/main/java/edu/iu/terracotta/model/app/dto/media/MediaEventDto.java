@@ -3,12 +3,8 @@ package edu.iu.terracotta.model.app.dto.media;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.imsglobal.caliper.actions.Action;
-import org.imsglobal.caliper.entities.resource.MediaLocation;
-import org.imsglobal.caliper.events.Event;
 import org.imsglobal.caliper.events.EventType;
 import org.joda.time.DateTime;
-
-import java.util.Date;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class MediaEventDto extends AbstractDto {
@@ -28,7 +24,7 @@ public class MediaEventDto extends AbstractDto {
 
     private MediaObjectDto object;
 
-    private MediaLocationDto location;
+    private MediaLocationDto target;
 
     private final DateTime eventTime = new DateTime();
 
@@ -98,12 +94,12 @@ public class MediaEventDto extends AbstractDto {
         this.object = object;
     }
 
-    public MediaLocationDto getLocation() {
-        return location;
+    public MediaLocationDto getTarget() {
+        return target;
     }
 
-    public void setLocation(MediaLocationDto location) {
-        this.location = location;
+    public void setTarget(MediaLocationDto target) {
+        this.target = target;
     }
 
     public DateTime getEventTime() {

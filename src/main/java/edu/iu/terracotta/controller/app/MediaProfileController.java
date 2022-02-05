@@ -2,9 +2,11 @@ package edu.iu.terracotta.controller.app;
 
 import edu.iu.terracotta.exceptions.*;
 import edu.iu.terracotta.model.app.dto.media.MediaEventDto;
-import org.imsglobal.caliper.events.MediaEvent;
+import edu.iu.terracotta.model.events.Event;
+import edu.iu.terracotta.service.app.MediaService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -22,9 +24,11 @@ import javax.servlet.http.HttpServletRequest;
 @RequestMapping(value = MediaProfileController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
 public class MediaProfileController {
 
-    static final Logger log = LoggerFactory.getLogger(GroupController.class);
+    static final Logger LOGGER = LoggerFactory.getLogger(MediaProfileController.class);
     static final String REQUEST_ROOT = "api/media";
 
+    @Autowired
+    private MediaService mediaService;
 
 //    @RequestMapping(value = "/{experiment_id}/groups", method = RequestMethod.GET, produces = "application/json")
 //    @ResponseBody
@@ -47,15 +51,19 @@ public class MediaProfileController {
 //    }
 
     @RequestMapping(value = "/{media_event_id}/events", method = RequestMethod.POST)
-    public ResponseEntity<MediaEvent> postMediaEvent(@PathVariable("media_event_id") Long mediaEventId,
-                                                     @RequestBody MediaEventDto mediaEventDto,
-                                                     UriComponentsBuilder ucBuilder,
-                                                     HttpServletRequest req)
+    public ResponseEntity<MediaEventDto> postMediaEvent(@PathVariable("media_event_id") Long mediaEventId,
+                                                        @RequestBody MediaEventDto mediaEventDto,
+                                                        UriComponentsBuilder ucBuilder,
+                                                        HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ExperimentLockedException, IdInPostException, DataServiceException {
         try {
-            return new ResponseEntity<>(HttpStatus.OK);
+            Event event = mediaService.fromDto(mediaEventDto);
+            mediaService.save(event);
+            return new ResponseEntity<>(mediaEventDto, HttpStatus.OK);
         } catch (Exception ex) {
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+            String msg = "Error occurred while saving media event, reason: " + ex.getMessage();
+            LOGGER.error(msg, ex);
+            return new ResponseEntity(msg, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 //
