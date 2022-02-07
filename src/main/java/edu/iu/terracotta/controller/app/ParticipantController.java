@@ -1,10 +1,12 @@
 package edu.iu.terracotta.controller.app;
 
 import edu.iu.terracotta.exceptions.BadTokenException;
+import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.InvalidUserException;
+import edu.iu.terracotta.exceptions.ParticipantAlreadyStartedException;
 import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.model.app.Participant;
@@ -12,6 +14,7 @@ import edu.iu.terracotta.model.app.dto.ParticipantDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.ParticipantService;
+import edu.iu.terracotta.service.canvas.CanvasAPIClient;
 import edu.iu.terracotta.utils.TextConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,6 +33,8 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.HttpServletRequest;
+
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -48,6 +53,8 @@ public class ParticipantController {
     @Autowired
     APIJWTService apijwtService;
 
+    @Autowired
+    CanvasAPIClient canvasAPIClient;
 
 
     @RequestMapping(value = "/{experimentId}/participants", method = RequestMethod.GET, produces = "application/json;")
@@ -135,10 +142,28 @@ public class ParticipantController {
             participantService.changeParticipant(map, experimentId);
             return new ResponseEntity<>(HttpStatus.OK);
         } else if (apijwtService.isLearner(securedInfo)) {
-            if (participantService.changeConsent(participantDto, securedInfo, experimentId)) {
-                return new ResponseEntity<>(HttpStatus.OK);
-            } else {
-                return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
+
+            // Regardless of whether consent is changed or not, record a grade of
+            // 1.0 point for the consent assignment
+            Participant participant = participantService.getParticipant(participantId, experimentId, securedInfo.getUserId(), true);
+            try {
+                canvasAPIClient.postConsentSubmission(participant);
+            } catch (CanvasApiException | IOException e) {
+                throw new RuntimeException("Failed to post grade to Canvas for consent submission", e);
+            }
+
+            try {
+                if (participantService.changeConsent(participantDto, securedInfo, experimentId)) {
+                    return new ResponseEntity<>(HttpStatus.OK);
+                } else {
+                    return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
+                }
+            } catch (ParticipantAlreadyStartedException e) {
+                log.debug("Participant {} has already started: " + e.getMessage(), participantId);
+                return new ResponseEntity(
+                        "Error 149: Grade for consent assignment has been posted, but consent " +
+                                "to participate in the study cannot be updated since student has already accessed an assignment.",
+                        HttpStatus.UNAUTHORIZED);
             }
         }
         return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);

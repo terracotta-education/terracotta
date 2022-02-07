@@ -1,10 +1,10 @@
 package edu.iu.terracotta.service.app.impl;
 
-import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.InvalidUserException;
+import edu.iu.terracotta.exceptions.ParticipantAlreadyStartedException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.model.LtiMembershipEntity;
 import edu.iu.terracotta.model.LtiUserEntity;
@@ -22,7 +22,6 @@ import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.GroupService;
 import edu.iu.terracotta.service.app.ParticipantService;
-import edu.iu.terracotta.service.canvas.CanvasAPIClient;
 import edu.iu.terracotta.service.lti.AdvantageMembershipService;
 import edu.iu.terracotta.service.lti.LTIDataService;
 import edu.iu.terracotta.utils.TextConstants;
@@ -35,7 +34,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import java.io.IOException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -62,9 +60,6 @@ public class ParticipantServiceImpl implements ParticipantService {
 
     @Autowired
     ExperimentService experimentService;
-
-    @Autowired
-    CanvasAPIClient canvasAPIClient;
 
     static final Logger log = LoggerFactory.getLogger(ParticipantServiceImpl.class);
 
@@ -416,7 +411,7 @@ public class ParticipantServiceImpl implements ParticipantService {
 
     @Override
     @Transactional
-    public boolean changeConsent(ParticipantDto participantDto, SecuredInfo securedInfo, Long experimentId){
+    public boolean changeConsent(ParticipantDto participantDto, SecuredInfo securedInfo, Long experimentId) throws ParticipantAlreadyStartedException{
 
         Participant participant = allRepositories.participantRepository.findByParticipantId(participantDto.getParticipantId());
         if (participant == null
@@ -425,18 +420,10 @@ public class ParticipantServiceImpl implements ParticipantService {
             return false;
         }
 
-        // Regardless of whether consent is changed or not, record a grade of
-        // 1.0 point for the consent assignment
-        try {
-            canvasAPIClient.postConsentSubmission(participant);
-        } catch (CanvasApiException | IOException e) {
-            throw new RuntimeException("Failed to post grade to Canvas for consent submission", e);
-        }
-
         // Don't allow changing consent to consent=true if started and not consenting
         if (hasStarted(participant) && participant.getConsent() != null && !participant.getConsent()
                 && participantDto.getConsent() != null && participantDto.getConsent()) {
-            return false;
+            throw new ParticipantAlreadyStartedException("Participant has already started experiment, consent cannot be changed to given");
         }
         //We only edit the consent here.
         participantDto.setDropped(participant.getDropped());
