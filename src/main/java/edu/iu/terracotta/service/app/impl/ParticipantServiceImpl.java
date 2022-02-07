@@ -420,7 +420,6 @@ public class ParticipantServiceImpl implements ParticipantService {
             return false;
         }
 
-        // TODO: throw a checked exception that the participant has already started
         // Don't allow changing consent to consent=true if started and not consenting
         if (hasStarted(participant) && participant.getConsent() != null && !participant.getConsent()
                 && participantDto.getConsent() != null && participantDto.getConsent()) {
