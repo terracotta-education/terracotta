@@ -23,9 +23,57 @@ const loadYoutubeIframeAPI = function({ commit }) {
   };
 };
 
+const sendEvent = function({
+  experiment_id,
+  condition_id,
+  treatment_id,
+  assessment_id,
+  submission_id,
+  question_id,
+  videoURL,
+  duration,
+  currentTime,
+  action,
+}) {
+  const event = {
+    type: "MediaEvent",
+    profile: "MediaProfile",
+    action: action,
+    object: {
+      id: videoURL,
+      type: "VideoObject",
+      mediaType: "video/vnd.youtube.yt",
+      duration: moment.duration(duration, "s").toISOString(),
+      extensions: {
+        terracotta_question_id: question_id,
+        terracotta_submission_id: submission_id,
+      },
+    },
+    target: {
+      id: `${videoURL}?t=${Math.floor(duration)}s`,
+      type: "MediaLocation",
+      currentTime: moment.duration(currentTime, "s").toISOString(),
+    },
+    eventTime: new Date().toISOString(),
+  };
+  // Fire and forget
+  mediaEventsService.createVideoEvent({
+    experiment_id,
+    condition_id,
+    treatment_id,
+    assessment_id,
+    submission_id,
+    event,
+  });
+};
+
 const actions = {
   getYT({ commit, state }, { callback }) {
-      console.log("getYT", state.youtubeIFrameAPI, state.isLoadingYoutubeIFrameAPI);
+    console.log(
+      "getYT",
+      state.youtubeIFrameAPI,
+      state.isLoadingYoutubeIFrameAPI
+    );
     if (!state.youtubeIFrameAPI && !state.isLoadingYoutubeIFrameAPI) {
       loadYoutubeIframeAPI({ commit });
     }
@@ -38,50 +86,41 @@ const actions = {
     }
     checkForYTLibrary();
   },
-  videoStarted(
-    context,
-    {
-      experiment_id,
-      condition_id,
-      treatment_id,
-      assessment_id,
-      submission_id,
-      question_id,
-      videoURL,
-      duration,
-      currentTime,
-    }
-  ) {
-    const event = {
-      type: "MediaEvent",
-      profile: "MediaProfile",
-      action: "Started",
-      object: {
-        id: videoURL,
-        type: "VideoObject",
-        mediaType: "video/vnd.youtube.yt",
-        duration: moment.duration(duration, 's').toISOString(),
-        extensions: {
-          terracotta_question_id: question_id,
-          terracotta_submission_id: submission_id,
-        },
-      },
-      target: {
-        id: `${videoURL}?t=${Math.floor(duration)}s`,
-        type: "MediaLocation",
-        currentTime: moment.duration(currentTime, 's').toISOString(),
-      },
-      eventTime: new Date().toISOString(),
-    };
-    // Fire and forget
-    mediaEventsService.createVideoEvent({
-      experiment_id,
-      condition_id,
-      treatment_id,
-      assessment_id,
-      submission_id,
-      event,
-    });
+  videoStarted(context, payload) {
+    sendEvent({ ...payload, action: "Started" });
+  },
+  videoEnded(context, payload) {
+    sendEvent({ ...payload, action: "Ended" });
+  },
+  videoPaused(context, payload) {
+    sendEvent({ ...payload, action: "Paused" });
+  },
+  videoResumed(context, payload) {
+    sendEvent({ ...payload, action: "Resumed" });
+  },
+  videoRestarted(context, payload) {
+    sendEvent({ ...payload, action: "Restarted" });
+  },
+  videoJumpedTo(context, payload) {
+    sendEvent({ ...payload, action: "JumpedTo" });
+  },
+  videoChangedResolution(context, payload) {
+    sendEvent({ ...payload, action: "ChangedResolution" });
+  },
+  videoChangedSpeed(context, payload) {
+    sendEvent({ ...payload, action: "ChangedSpeed" });
+  },
+  videoEnteredFullScreen(context, payload) {
+    sendEvent({ ...payload, action: "EnteredFullScreen" });
+  },
+  videoExitedFullScreen(context, payload) {
+    sendEvent({ ...payload, action: "ExitedFullScreen" });
+  },
+  videoMuted(context, payload) {
+    sendEvent({ ...payload, action: "Muted" });
+  },
+  videoUnmuted(context, payload) {
+    sendEvent({ ...payload, action: "Unmuted" });
   },
 };
 

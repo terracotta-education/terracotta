@@ -7,21 +7,6 @@
 <script>
 import { mapActions } from "vuex";
 
-const STATES = {
-  NOT_STARTED: 0,
-  STARTED: 1,
-  ENDED: 2,
-  PAUSED: 3,
-  RESUMED: 4,
-  RESTARTED: 5,
-  JUMPED_TO: 6,
-  CHANGED_RESOLUTION: 7,
-  CHANGED_SPEED: 8,
-  ENTERED_FULLSCREEN: 9,
-  EXITED_FULLSCREEN: 10,
-  MUTED: 11,
-  UNMUTED: 12,
-};
 export default {
   // TODO: is there any way to get these, except questionId, from the store?
   props: [
@@ -39,7 +24,21 @@ export default {
     };
   },
   methods: {
-    ...mapActions("mediaevents", ["getYT", "videoStarted"]),
+    ...mapActions("mediaevents", [
+      "getYT",
+      "videoStarted",
+      "videoEnded",
+      "videoPaused",
+      "videoResumed",
+      "videoRestarted",
+      "videoJumpedTo",
+      "videoChangedResolution",
+      "videoChangedSpeed",
+      "videoEnteredFullScreen",
+      "videoExitedFullScreen",
+      "videoMuted",
+      "videoUnmuted",
+    ]),
     getPlayerState(player) {
       for (const playerState of this.playerStates) {
         if (playerState.player === player) {
@@ -70,14 +69,17 @@ export default {
             },
             onStateChange: (event) => {
               const state = this.getPlayerState(event.target);
-              if (event.data === 1 && !state.started) {
+              if (event.data === YT.PlayerState.PLAYING && !state.started) {
                 state.started = true;
                 this.onVideoStarted(state);
-              } else if (event.data === 0) {
+              } else if (event.data === YT.PlayerState.ENDED) {
                 this.onVideoEnded(state);
-              } else if (event.data === 2) {
+              } else if (event.data === YT.PlayerState.PAUSED) {
                 this.onVideoPaused(state);
-              } else if (event.data === 1 && state.started) {
+              } else if (
+                event.data === YT.PlayerState.PLAYING &&
+                state.started
+              ) {
                 // Try to determine if restarted by seeing if the current time
                 // is less than 1s and less than previous current time
                 if (
@@ -111,78 +113,79 @@ export default {
         this.playerStates.push({
           player,
           started: false,
-          currentState: STATES.NOT_STARTED,
           currentTime: -1,
           muted: false,
         });
       }
     },
-    onVideoStarted(playerState) {
-      playerState.currentState = STATES.STARTED;
-      playerState.currentTime = playerState.player.getCurrentTime();
-      this.videoStarted({
+    sendVideoEvent(storeAction, player) {
+      this[storeAction]({
         experiment_id: this.experimentId,
         condition_id: this.conditionId,
         treatment_id: this.treatmentId,
         assessment_id: this.assessmentId,
         submission_id: this.submissionId,
         question_id: this.questionId,
-        videoURL: playerState.player.getVideoUrl(),
-        duration: playerState.player.getDuration(),
-        currentTime: playerState.player.getCurrentTime(),
+        videoURL: player.getVideoUrl(),
+        duration: player.getDuration(),
+        currentTime: player.getCurrentTime(),
       });
     },
-    onVideoEnded(playerState) {
-      playerState.currentState = STATES.ENDED;
+    onVideoStarted(playerState) {
       playerState.currentTime = playerState.player.getCurrentTime();
+      this.sendVideoEvent("videoStarted", playerState.player);
+    },
+    onVideoEnded(playerState) {
+      playerState.currentTime = playerState.player.getCurrentTime();
+      this.sendVideoEvent("videoEnded", playerState.player);
     },
     onVideoPaused(playerState) {
-      playerState.currentState = STATES.PAUSED;
       playerState.currentTime = playerState.player.getCurrentTime();
+      this.sendVideoEvent("videoPaused", playerState.player);
     },
     onVideoResumed(playerState) {
-      playerState.currentState = STATES.RESUMED;
       playerState.currentTime = playerState.player.getCurrentTime();
+      this.sendVideoEvent("videoResumed", playerState.player);
     },
     onVideoRestarted(playerState) {
-      playerState.currentState = STATES.RESTARTED;
       playerState.currentTime = playerState.player.getCurrentTime();
+      this.sendVideoEvent("videoRestarted", playerState.player);
     },
     onVideoJumpedTo(playerState) {
-      playerState.currentState = STATES.JUMPED_TO;
       playerState.currentTime = playerState.player.getCurrentTime();
+      this.sendVideoEvent("videoJumpedTo", playerState.player);
     },
     onChangedResolution(playerState) {
       // TODO: map hd720 -> 720?
       // TODO: map hd1080 -> 1080?
       // TODO: map large -> 480?
       // TODO: map medium -> 360?
-      playerState.currentState = STATES.CHANGED_RESOLUTION;
       playerState.currentTime = playerState.player.getCurrentTime();
+      this.sendVideoEvent("videoChangedResolution", playerState.player);
     },
     onChangedSpeed(playerState) {
-      playerState.currentState = STATES.CHANGED_SPEED;
       playerState.currentTime = playerState.player.getCurrentTime();
+      this.sendVideoEvent("videoChangedSpeed", playerState.player);
     },
     onFullscreenChange(event) {
       const playerState = this.getPlayerStateByIframe(event.target);
       if (document.fullscreenElement) {
-        playerState.currentState = STATES.ENTERED_FULLSCREEN;
         playerState.currentTime = playerState.player.getCurrentTime();
+        this.sendVideoEvent("videoEnteredFullScreen", playerState.player);
       } else {
-        playerState.currentState = STATES.EXITED_FULLSCREEN;
         playerState.currentTime = playerState.player.getCurrentTime();
+        this.sendVideoEvent("videoExitedFullScreen", playerState.player);
       }
     },
     onMuted(playerState) {
-      playerState.currentState = STATES.MUTED;
       playerState.currentTime = playerState.player.getCurrentTime();
       playerState.muted = true;
+      this.sendVideoEvent("videoMuted", playerState.player);
     },
     onUnmuted(playerState) {
-      playerState.currentState = STATES.UNMUTED;
       playerState.currentTime = playerState.player.getCurrentTime();
       playerState.muted = false;
+      this.sendVideoEvent("videoUnmuted", playerState.player);
     },
     pollApiInfo() {
       // Detect state changes by polling API information at some interval. For
@@ -208,7 +211,7 @@ export default {
     const allYoutubeIframes = this.$el.querySelectorAll(
       "iframe[data-youtube-id]"
     );
-    // Remove fullscreenchange listers
+    // Remove fullscreenchange listeners
     for (const iframe of allYoutubeIframes) {
       iframe.removeEventListener("fullscreenchange", this.onFullscreenChange);
     }
