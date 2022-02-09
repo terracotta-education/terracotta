@@ -1,29 +1,68 @@
 package edu.iu.terracotta.service.app.impl;
 
+import edu.iu.terracotta.exceptions.NoSubmissionsException;
 import edu.iu.terracotta.exceptions.ParameterMissingException;
+import edu.iu.terracotta.model.LtiMembershipEntity;
+import edu.iu.terracotta.model.app.Participant;
+import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.dto.media.*;
 import edu.iu.terracotta.model.events.Event;
+import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.AllRepositories;
+import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.MediaService;
+import edu.iu.terracotta.service.app.SubmissionService;
+import edu.iu.terracotta.service.common.Utils;
 import org.imsglobal.caliper.actions.Action;
+import org.imsglobal.caliper.context.JsonldContext;
+import org.imsglobal.caliper.context.JsonldStringContext;
 import org.imsglobal.caliper.entities.EntityType;
+import org.imsglobal.caliper.entities.agent.CaliperOrganization;
+import org.imsglobal.caliper.entities.agent.Person;
+import org.imsglobal.caliper.entities.agent.SoftwareApplication;
+import org.imsglobal.caliper.entities.session.LtiSession;
 import org.imsglobal.caliper.events.EventType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Component
 public class MediaServiceImpl implements MediaService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MediaServiceImpl.class);
 
+    public static final String DATA_VERSION = "http://purl.imsglobal.org/ctx/caliper/v1p2";
+
     @Autowired
     private AllRepositories allRepositories;
+
+    @Autowired
+    private SubmissionService submissionService;
+
+    @Autowired
+    private APIJWTService apijwtService;
+
+
+    private String applicationName;
+    private String applicationUrl;
+    private final SoftwareApplication softwareApplication;
+    private final JsonldContext context;
+
+    @Autowired
+    public MediaServiceImpl(@Value("${application.name}") final String applicationNameAttribute,
+                            @Value("${application.url}") final String applicationUrlAttribute) {
+        applicationName = applicationNameAttribute;
+        applicationUrl = applicationUrlAttribute;
+        context = JsonldStringContext.create(DATA_VERSION);
+        softwareApplication = Utils.prepareSoftwareApplication(applicationName, applicationUrl);
+    }
 
     @Override
     public MediaEventDto toDto(Event mediaEvent) {
@@ -67,59 +106,53 @@ public class MediaServiceImpl implements MediaService {
     }
 
     @Override
-    public edu.iu.terracotta.model.events.Event fromDto(MediaEventDto mediaEventDto) throws ParameterMissingException {
+    public edu.iu.terracotta.model.events.Event fromDto(MediaEventDto mediaEventDto, SecuredInfo securedInfo,
+                                                        Long experimentId, Long submissionId) throws ParameterMissingException, NoSubmissionsException {
         edu.iu.terracotta.model.events.Event event = new edu.iu.terracotta.model.events.Event();
-        if (mediaEventDto.getId() == null || mediaEventDto.getId().isEmpty()) {
-            throw new ParameterMissingException("MediaEvent Id not found");
-        }
+
         if (mediaEventDto.getEventTime() == null) {
             throw new ParameterMissingException("Event time is empty");
         }
-        if (mediaEventDto.getActor() == null) {
-            throw new ParameterMissingException("MediaEvent Actor not found");
-        }
+
         if (mediaEventDto.getAction() == null) {
             throw new ParameterMissingException("MediaEvent Action not found");
         }
-        if (mediaEventDto.getGroup() == null) {
-            throw new ParameterMissingException("MediaEvent Group not found");
-        }
+
 
         if (mediaEventDto.getObject() == null) {
             throw new ParameterMissingException("MediaEvent Object not found");
         }
+        boolean student = !apijwtService.isInstructorOrHigher(securedInfo);
+        Submission submission = submissionService.getSubmission(experimentId, securedInfo.getUserId(), submissionId, student);
+        Participant participant = submission.getParticipant();
+        Person actor = Utils.prepareActor(participant, securedInfo.getCanvasUserGlobalId(), applicationUrl);
 
-        if (mediaEventDto.getTarget() == null) {
-            throw new ParameterMissingException("MediaEvent Target not found");
-        }
+        LtiMembershipEntity membershipEntity = participant.getLtiMembershipEntity();
 
-        if (mediaEventDto.getMembership() == null) {
-            throw new ParameterMissingException("MediaEvent Membership not found");
-        }
+        LtiSession ltiSession = Utils.prepareLtiSession(applicationUrl, securedInfo, membershipEntity.getContext().getContextKey());
 
-        if (mediaEventDto.getMembership().getRoles().length == 0) {
-            throw new ParameterMissingException("MediaEvent Membership  roles not found");
-        }
+        CaliperOrganization group = Utils.prepareGroup(membershipEntity, securedInfo);
 
-        if (mediaEventDto.getSession() == null) {
-            throw new ParameterMissingException("MediaEvent Session not found");
-        }
-        event.setCaliperId(mediaEventDto.getId());
+        String uuid = "urn:uuid:" + UUID.randomUUID();
+        event.setCaliperId(uuid);
         event.setEventTime(new Timestamp(mediaEventDto.getEventTime().getMillis()));
-        event.setActorId(mediaEventDto.getActor().getId());
-        event.setActorType(mediaEventDto.getActor().getType().name());
+        event.setActorId(actor.getId());
+        event.setActorType(actor.getType().value());
         event.setType(mediaEventDto.getType().name());
         event.setProfile(mediaEventDto.getProfile());
         event.setAction(mediaEventDto.getAction().name());
-        event.setGroup(mediaEventDto.getGroup().getId());
+
+
+        event.setGroup(group.getId());
         event.setObjectId(mediaEventDto.getObject().getId());
         event.setObjectType(mediaEventDto.getObject().getMediaType());
+        event.setReferredType(EntityType.VIDEO_OBJECT.value());
         event.setTargetId(mediaEventDto.getTarget().getId());
         event.setTargetType(mediaEventDto.getTarget().getType().name());
-        event.setMembershipId(mediaEventDto.getMembership().getId());
-        event.setMembershipRoles(mediaEventDto.getMembership().getRoles()[0]);
-        event.setFederatedSession(mediaEventDto.getSession().getId());
-        event.setLtiContextId(mediaEventDto.getContext());
+        event.setMembershipId(membershipEntity.getUser().getUserKey());
+        event.setMembershipRoles(Utils.roleToString(membershipEntity.getRole()));
+        event.setFederatedSession(ltiSession.getId());
+        event.setLtiContextId(membershipEntity.getContext().getContextKey());
         return event;
     }
 
