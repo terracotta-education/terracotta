@@ -2,7 +2,6 @@ package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.exceptions.NoSubmissionsException;
 import edu.iu.terracotta.exceptions.ParameterMissingException;
-import edu.iu.terracotta.model.LtiMembershipEntity;
 import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.dto.media.*;
@@ -12,15 +11,13 @@ import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.MediaService;
 import edu.iu.terracotta.service.app.SubmissionService;
+import edu.iu.terracotta.service.caliper.impl.CaliperServiceImpl;
 import edu.iu.terracotta.service.common.Utils;
 import org.imsglobal.caliper.actions.Action;
 import org.imsglobal.caliper.context.JsonldContext;
 import org.imsglobal.caliper.context.JsonldStringContext;
 import org.imsglobal.caliper.entities.EntityType;
-import org.imsglobal.caliper.entities.agent.CaliperOrganization;
-import org.imsglobal.caliper.entities.agent.Person;
 import org.imsglobal.caliper.entities.agent.SoftwareApplication;
-import org.imsglobal.caliper.entities.session.LtiSession;
 import org.imsglobal.caliper.events.EventType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,10 +25,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.sql.Timestamp;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 @Component
 public class MediaServiceImpl implements MediaService {
@@ -48,6 +43,9 @@ public class MediaServiceImpl implements MediaService {
 
     @Autowired
     private APIJWTService apijwtService;
+
+    @Autowired
+    private CaliperServiceImpl caliperService;
 
 
     private String applicationName;
@@ -106,8 +104,8 @@ public class MediaServiceImpl implements MediaService {
     }
 
     @Override
-    public edu.iu.terracotta.model.events.Event fromDto(MediaEventDto mediaEventDto, SecuredInfo securedInfo,
-                                                        Long experimentId, Long submissionId) throws ParameterMissingException, NoSubmissionsException {
+    public void fromDto(MediaEventDto mediaEventDto, SecuredInfo securedInfo,
+                        Long experimentId, Long submissionId) throws ParameterMissingException, NoSubmissionsException {
         edu.iu.terracotta.model.events.Event event = new edu.iu.terracotta.model.events.Event();
 
         if (mediaEventDto.getEventTime() == null) {
@@ -125,35 +123,7 @@ public class MediaServiceImpl implements MediaService {
         boolean student = !apijwtService.isInstructorOrHigher(securedInfo);
         Submission submission = submissionService.getSubmission(experimentId, securedInfo.getUserId(), submissionId, student);
         Participant participant = submission.getParticipant();
-        Person actor = Utils.prepareActor(participant, securedInfo.getCanvasUserGlobalId(), applicationUrl);
-
-        LtiMembershipEntity membershipEntity = participant.getLtiMembershipEntity();
-
-        LtiSession ltiSession = Utils.prepareLtiSession(applicationUrl, securedInfo, membershipEntity.getContext().getContextKey());
-
-        CaliperOrganization group = Utils.prepareGroup(membershipEntity, securedInfo);
-
-        String uuid = "urn:uuid:" + UUID.randomUUID();
-        event.setCaliperId(uuid);
-        event.setEventTime(new Timestamp(mediaEventDto.getEventTime().getMillis()));
-        event.setActorId(actor.getId());
-        event.setActorType(actor.getType().value());
-        event.setType(mediaEventDto.getType().name());
-        event.setProfile(mediaEventDto.getProfile());
-        event.setAction(mediaEventDto.getAction().name());
-
-
-        event.setGroup(group.getId());
-        event.setObjectId(mediaEventDto.getObject().getId());
-        event.setObjectType(mediaEventDto.getObject().getMediaType());
-        event.setReferredType(EntityType.VIDEO_OBJECT.value());
-        event.setTargetId(mediaEventDto.getTarget().getId());
-        event.setTargetType(mediaEventDto.getTarget().getType().name());
-        event.setMembershipId(membershipEntity.getUser().getUserKey());
-        event.setMembershipRoles(Utils.roleToString(membershipEntity.getRole()));
-        event.setFederatedSession(ltiSession.getId());
-        event.setLtiContextId(membershipEntity.getContext().getContextKey());
-        return event;
+        caliperService.sendMediaEvent(mediaEventDto, participant, securedInfo, submission);
     }
 
     @Override

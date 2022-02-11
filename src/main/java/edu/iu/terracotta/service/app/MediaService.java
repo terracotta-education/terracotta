@@ -13,7 +13,7 @@ public interface MediaService {
 
     MediaEventDto toDto(Event mediaEvent);
 
-    edu.iu.terracotta.model.events.Event fromDto(MediaEventDto mediaEventDto, SecuredInfo securedInfo,
+    void fromDto(MediaEventDto mediaEventDto, SecuredInfo securedInfo,
                                                  Long experimentId, Long submissionId) throws ParameterMissingException, NoSubmissionsException;
 
     Event save(Event mediaEvent);

@@ -6,17 +6,17 @@ import org.imsglobal.caliper.entities.EntityType;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class MediaObjectDto extends AbstractDto {
 
-    private EntityType entityType;
+    private EntityType type;
     private String name;
     private String mediaType;
     private String duration;
 
-    public EntityType getEntityType() {
-        return entityType;
+    public EntityType getType() {
+        return type;
     }
 
-    public void setEntityType(EntityType entityType) {
-        this.entityType = entityType;
+    public void setType(EntityType type) {
+        this.type = type;
     }
 
     public String getName() {
