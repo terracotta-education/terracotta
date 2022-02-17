@@ -122,7 +122,6 @@ export default class YoutubeEmbed extends Node {
         new RegExp(`<iframe .*src="https://www.youtube.com.*></iframe>`, "g"),
         type,
         (match) => {
-          console.log(match);
           const text = match[0];
           const iframe = parseIframeEmbed(text);
           const youtubeID = youtubeParser(iframe.src);

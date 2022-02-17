@@ -86,7 +86,6 @@ import { mapActions, mapGetters } from "vuex";
 import EssayResponseEditor from "./EssayResponseEditor.vue";
 import MultipleChoiceResponseEditor from "./MultipleChoiceResponseEditor.vue";
 import YoutubeEventCapture from "./YoutubeEventCapture.vue";
-// Youtube IFrame API /* global YT */
 
 export default {
   name: "StudentQuiz",
@@ -195,54 +194,6 @@ export default {
         console.error({ e });
       }
     },
-    // changeBorderColor(playerStatus) {
-    //   var color;
-    //   if (playerStatus == -1) {
-    //     color = "#37474F"; // unstarted = gray
-    //   } else if (playerStatus == 0) {
-    //     color = "#FFFF00"; // ended = yellow
-    //   } else if (playerStatus == 1) {
-    //     color = "#33691E"; // playing = green
-    //   } else if (playerStatus == 2) {
-    //     color = "#DD2C00"; // paused = red
-    //   } else if (playerStatus == 3) {
-    //     color = "#AA00FF"; // buffering = purple
-    //   } else if (playerStatus == 5) {
-    //     color = "#FF6DOO"; // video cued = orange
-    //   }
-    //   if (color) {
-    //     this.$el.querySelector(
-    //       "iframe[data-youtube-id]"
-    //     ).style.borderColor = color;
-    //   }
-    // },
-    // youtubeIframeAPIInit() {
-    //   console.log("iframe API available");
-    //   // Wait a tick for the question html to render with any youtube iframes
-    //   console.log(
-    //     "youtube iframes",
-    //     this.$el.querySelectorAll("iframe[data-youtube-id]")
-    //   );
-    //   this.$nextTick(() => {
-    //     console.log(
-    //       "nextTick youtube iframes",
-    //       this.$el.querySelectorAll("iframe[data-youtube-id]")
-    //     );
-    //     this.$el.querySelector("iframe[data-youtube-id]").style.border =
-    //       "4px solid black";
-    //     new YT.Player(this.$el.querySelector("iframe[data-youtube-id]"), {
-    //       events: {
-    //         onReady: (event) => {
-    //           console.log("ready", event);
-    //         },
-    //         onStateChange: (event) => {
-    //           console.log("onStateChange", event);
-    //           this.changeBorderColor(event.data);
-    //         },
-    //       },
-    //     });
-    //   });
-    // },
   },
   async created() {
     const experimentId = this.experimentId;
@@ -277,15 +228,6 @@ export default {
       console.error({ e });
     }
   },
-  // mounted() {
-  //   // TODO: only load this script if there are youtube embeds in questions?
-  //   var tag = document.createElement("script");
-  //   tag.id = "iframe-demo";
-  //   tag.src = "https://www.youtube.com/iframe_api";
-  //   var firstScriptTag = document.getElementsByTagName("script")[0];
-  //   firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-  //   window.onYouTubeIframeAPIReady = this.youtubeIframeAPIInit;
-  // },
 };
 </script>
 
