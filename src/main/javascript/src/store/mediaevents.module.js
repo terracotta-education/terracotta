@@ -45,10 +45,6 @@ const sendEvent = function({
       type: "VideoObject",
       mediaType: "video/vnd.youtube.yt",
       duration: moment.duration(duration, "s").toISOString(),
-      extensions: {
-        terracotta_question_id: question_id,
-        terracotta_submission_id: submission_id,
-      },
     },
     target: {
       id: videoURL,
@@ -64,6 +60,7 @@ const sendEvent = function({
     treatment_id,
     assessment_id,
     submission_id,
+    question_id,
     event,
   });
 };

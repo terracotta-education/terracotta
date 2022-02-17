@@ -17,6 +17,7 @@ async function createVideoEvent({
   treatment_id,
   assessment_id,
   submission_id,
+  question_id,
   event,
 }) {
   const requestOptions = {
@@ -25,7 +26,7 @@ async function createVideoEvent({
     body: JSON.stringify(event),
   };
 
-  const url = `${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/submissions/${submission_id}/media_event`;
+  const url = `${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/submissions/${submission_id}/questions/${question_id}/media_event`;
   // console.log(requestOptions.method, url, event);
   return fetch(url, requestOptions).then(handleResponse);
 }

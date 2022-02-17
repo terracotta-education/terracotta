@@ -21,7 +21,7 @@ public interface CaliperService {
 
     void sendAssignmentRestarted(Submission submission, SecuredInfo securedInfo);
 
-    void sendMediaEvent(MediaEventDto mediaEventDto, Participant participant, SecuredInfo securedInfo, Submission submission);
+    void sendMediaEvent(MediaEventDto mediaEventDto, Participant participant, SecuredInfo securedInfo, Submission submission, Long questionId);
 
     void sendNavigationEvent(Participant participant, String whereTo, SecuredInfo securedInfo);
 
