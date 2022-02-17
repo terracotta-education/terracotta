@@ -9,4 +9,5 @@ import edu.iu.terracotta.model.events.Event;
 public interface EventRepository extends JpaRepository<Event, Long> {
 
     List<Event> findByParticipant_Experiment_ExperimentId(Long experimentId);
+    List<Event> findByType(String type);
 }
