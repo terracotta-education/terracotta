@@ -30,6 +30,7 @@ const sendEvent = function({
   assessment_id,
   submission_id,
   question_id,
+  originalVideoUrl,
   videoURL,
   duration,
   currentTime,
@@ -40,7 +41,7 @@ const sendEvent = function({
     profile: "MediaProfile",
     action: action,
     object: {
-      id: videoURL,
+      id: originalVideoUrl,
       type: "VideoObject",
       mediaType: "video/vnd.youtube.yt",
       duration: moment.duration(duration, "s").toISOString(),
@@ -50,7 +51,7 @@ const sendEvent = function({
       },
     },
     target: {
-      id: `${videoURL}?t=${Math.floor(duration)}s`,
+      id: videoURL,
       type: "MediaLocation",
       currentTime: moment.duration(currentTime, "s").toISOString(),
     },
@@ -69,11 +70,6 @@ const sendEvent = function({
 
 const actions = {
   getYT({ commit, state }, { callback }) {
-    console.log(
-      "getYT",
-      state.youtubeIFrameAPI,
-      state.isLoadingYoutubeIFrameAPI
-    );
     if (!state.youtubeIFrameAPI && !state.isLoadingYoutubeIFrameAPI) {
       loadYoutubeIframeAPI({ commit });
     }
