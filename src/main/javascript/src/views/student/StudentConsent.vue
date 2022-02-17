@@ -60,28 +60,19 @@ export default {
         value: false,
       },
     ],
+    participant: null,
   }),
 
   computed: {
     ...mapGetters({
       consent: "consent/consent",
-      participants: "participants/participants",
     }),
-    participant() {
-      const filteredParticipants =
-        this.participants && Array.isArray(this.participants)
-          ? this.participants.filter(
-              (participant) => participant.user.userKey === this.userId
-            )
-          : [];
-      return filteredParticipants.length === 1 ? filteredParticipants[0] : null;
-    },
   },
   methods: {
     ...mapActions({
       getConsentFile: "consent/getConsentFile",
-      getParticipants: "participants/fetchParticipants",
       updateParticipant: "participants/updateParticipant",
+      reportStep: "api/reportStep",
     }),
     updateConsent(answer) {
       console.log(answer);
@@ -89,7 +80,7 @@ export default {
         // Update a clone of this participant object
         const updatedParticipant = {
           ...this.participant,
-          consent: answer
+          consent: answer,
         };
         this.submitParticipant(updatedParticipant);
       }
@@ -107,8 +98,8 @@ export default {
             });
           } else if (response.message) {
             this.$swal({
-              text: response.message, 
-              icon: 'error'
+              text: response.message,
+              icon: "error",
             });
           }
         })
@@ -131,7 +122,11 @@ export default {
   },
   async created() {
     this.getConsentFile(this.experimentId);
-    await this.getParticipants(this.experimentId);
+    const stepResponse = await this.reportStep({
+      experimentId: this.experimentId,
+      step: "launch_consent_assignment",
+    });
+    this.participant = stepResponse.data;
   },
 };
 </script>

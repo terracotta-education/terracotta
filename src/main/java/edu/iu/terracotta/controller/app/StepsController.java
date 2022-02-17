@@ -13,6 +13,8 @@ import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.exceptions.SubmissionNotMatchingException;
 import edu.iu.terracotta.model.app.Assignment;
+import edu.iu.terracotta.model.app.Participant;
+import edu.iu.terracotta.model.app.dto.ParticipantDto;
 import edu.iu.terracotta.model.app.dto.StepDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
@@ -72,6 +74,7 @@ public class StepsController {
     final static String STUDENT_SUBMISSION = "student_submission";
     final static String POST_ASSIGNMENT = "post_assignment";
     final static String LAUNCH_ASSIGNMENT = "launch_assignment";
+    final static String LAUNCH_CONSENT_ASSIGNMENT = "launch_consent_assignment";
 
 
     @RequestMapping(value = "/{experiment_id}/step", method = RequestMethod.POST)
@@ -163,6 +166,22 @@ public class StepsController {
                 //Validate permissions.
                 if(apijwtService.isLearner(securedInfo) && !apijwtService.isInstructorOrHigher(securedInfo)) {
                     return assignmentService.launchAssignment(experimentId, securedInfo);
+                } else {
+                    return new ResponseEntity<>(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
+                }
+            case LAUNCH_CONSENT_ASSIGNMENT:
+                //Validate permissions.
+                if(apijwtService.isLearner(securedInfo) && !apijwtService.isInstructorOrHigher(securedInfo)) {
+                    // Return this student's participant record, refreshing the list of participants if necessary
+                    List<Participant> currentParticipantList = participantService.findAllByExperimentId(experimentId);
+                    List<ParticipantDto> studentUserAsParticipant = participantService.getParticipants(
+                            currentParticipantList, experimentId, securedInfo.getUserId(), true);
+                    if (studentUserAsParticipant.isEmpty()) {
+                        participantService.refreshParticipants(experimentId, securedInfo, currentParticipantList);
+                        studentUserAsParticipant = participantService.getParticipants(
+                            currentParticipantList, experimentId, securedInfo.getUserId(), true);
+                    }
+                    return new ResponseEntity<>(studentUserAsParticipant.get(0), HttpStatus.OK);
                 } else {
                     return new ResponseEntity<>(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
                 }
