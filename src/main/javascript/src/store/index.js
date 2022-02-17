@@ -15,12 +15,20 @@ import { outcome } from './outcome.module';
 import { treatment } from './treatment.module';
 import { exportdata } from './exportdata.module';
 import { submissions } from './submission.module';
+import { mediaevents } from "./mediaevents.module";
 
 Vue.use(Vuex)
 
 const store = new Vuex.Store({
     plugins: [createPersistedState({
-        key: 'terracotta'
+        key: 'terracotta',
+        filter: (mutation)=> {
+            // Filter out all mediaevents from persisted store
+            if (/^mediaevents\/.*/.test(mutation.type)) {
+                return false;
+            }
+            return true;
+        }
     })],
     modules: {
         api,
@@ -35,7 +43,8 @@ const store = new Vuex.Store({
         outcome,
         treatment,
         exportdata,
-        submissions
+        submissions,
+        mediaevents,
     },
     strict: process.env.NODE_ENV !== 'production',
 })

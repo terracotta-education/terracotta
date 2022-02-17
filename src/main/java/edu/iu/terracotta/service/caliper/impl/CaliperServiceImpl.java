@@ -8,6 +8,7 @@ import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.SubmissionComment;
 import edu.iu.terracotta.model.app.dto.media.MediaEventDto;
+import edu.iu.terracotta.model.app.dto.media.MediaLocationDto;
 import edu.iu.terracotta.model.app.dto.media.MediaObjectDto;
 import edu.iu.terracotta.model.events.Event;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
@@ -25,10 +26,12 @@ import org.imsglobal.caliper.clients.HttpClientOptions;
 import org.imsglobal.caliper.context.JsonldContext;
 import org.imsglobal.caliper.context.JsonldStringContext;
 import org.imsglobal.caliper.entities.CaliperReferrer;
+import org.imsglobal.caliper.entities.CaliperTargetable;
 import org.imsglobal.caliper.entities.EntityType;
 import org.imsglobal.caliper.entities.agent.*;
 import org.imsglobal.caliper.entities.outcome.Result;
 import org.imsglobal.caliper.entities.resource.Attempt;
+import org.imsglobal.caliper.entities.resource.MediaLocation;
 import org.imsglobal.caliper.entities.session.LtiSession;
 import org.imsglobal.caliper.events.*;
 import org.joda.time.DateTime;
@@ -291,24 +294,25 @@ public class CaliperServiceImpl implements CaliperService {
 
     @Override
     public void sendMediaEvent(MediaEventDto mediaEventDto, Participant participant, SecuredInfo securedInfo,
-                               Submission submission) {
-        DateTime time = DateTime.now();
+                               Submission submission, Long questionId) {
         LtiMembershipEntity membershipEntity = participant.getLtiMembershipEntity();
         Person actor = prepareActor(participant, securedInfo.getCanvasUserGlobalId());
         LtiSession ltiSession = prepareLtiSession(securedInfo, membershipEntity.getContext().getContextKey());
         CaliperOrganization group = prepareGroup(membershipEntity, securedInfo);
         org.imsglobal.caliper.entities.resource.MediaObject mediaObject = prepareMediaObject(mediaEventDto.getObject(),
-                submission, securedInfo);
+                submission, securedInfo, questionId);
+        MediaLocation mediaLocation = prepareMediaLocation(mediaEventDto.getTarget());
         String uuid = "urn:uuid:" + UUID.randomUUID();
         org.imsglobal.caliper.events.MediaEvent mediaEvent = MediaEvent.builder()
                 .id(uuid)
                 .actor(actor)
-                .action(Action.RESTARTED)
+                .action(mediaEventDto.getAction())
                 .edApp(softwareApplication)
                 .context(context)
-                .eventTime(DateTime.now())
+                .eventTime(mediaEventDto.getEventTime())
                 .membership(prepareMembership(participant, securedInfo))
                 .object(mediaObject)
+                .target(mediaLocation)
                 .referrer(prepareReferrer(membershipEntity.getUser().getPlatformDeployment()))
                 .federatedSession(ltiSession)
                 .group(group)
@@ -329,21 +333,25 @@ public class CaliperServiceImpl implements CaliperService {
             event.setEventTime(new Timestamp(mediaEventDto.getEventTime().getMillis()));
             event.setActorId(actor.getId());
             event.setActorType(actor.getType().value());
-            event.setType(mediaEventDto.getType().name());
+            event.setPlatform_deployment(membershipEntity.getUser().getPlatformDeployment().getBaseUrl());
+            event.setType(mediaEventDto.getType().value());
             event.setProfile(mediaEventDto.getProfile());
-            event.setAction(mediaEventDto.getAction().name());
+            event.setAction(mediaEventDto.getAction().value());
 
 
             event.setGroup(group.getId());
             event.setObjectId(mediaEventDto.getObject().getId());
-            event.setObjectType(mediaEventDto.getObject().getMediaType());
-            event.setReferredType(EntityType.VIDEO_OBJECT.value());
+            event.setObjectType(mediaEventDto.getObject().getType().value());
+            event.setReferrerId(membershipEntity.getUser().getPlatformDeployment().getBaseUrl());
+            event.setReferredType(EntityType.SOFTWARE_APPLICATION.value());
             event.setTargetId(mediaEventDto.getTarget().getId());
-            event.setTargetType(mediaEventDto.getTarget().getType().name());
+            event.setTargetType(mediaEventDto.getTarget().getType().value());
             event.setMembershipId(membershipEntity.getUser().getUserKey());
             event.setMembershipRoles(Utils.roleToString(membershipEntity.getRole()));
             event.setFederatedSession(ltiSession.getId());
             event.setLtiContextId(membershipEntity.getContext().getContextKey());
+            event.setParticipant(submission.getParticipant());
+            populateJSONColumn(event, envelope, mediaEvent);
             saveEvent(event);
             log.debug("Event Saved");
         }
@@ -548,10 +556,7 @@ public class CaliperServiceImpl implements CaliperService {
     }
 
     private org.imsglobal.caliper.entities.resource.Assessment prepareAssessment(Submission submission, SecuredInfo securedInfo) {
-        String terracottaAssessmentId = applicationUrl + "/api/experiments/" + submission.getAssessment().getTreatment().getCondition().getExperiment().getExperimentId()
-                + "/conditions/" + submission.getAssessment().getTreatment().getCondition().getConditionId()
-                + "/treatments/" + submission.getAssessment().getTreatment().getTreatmentId()
-                + "/assessments/" + submission.getAssessment().getAssessmentId();
+        String terracottaAssessmentId = buildTerracottaAssessmentId(submission);
         String canvasAssessmentId = submission.getParticipant().getLtiUserEntity().getPlatformDeployment().getBaseUrl()
                 + "/courses/" + securedInfo.getCanvasCourseId()
                 + "/assignments/" + securedInfo.getCanvasAssignmentId();
@@ -575,19 +580,22 @@ public class CaliperServiceImpl implements CaliperService {
         return assessment;
     }
 
-    private org.imsglobal.caliper.entities.resource.MediaObject prepareMediaObject(MediaObjectDto mediaObjectDto,
-                                                                                   Submission submission, SecuredInfo securedInfo) {
-        String submissionId = applicationUrl + "/api/experiments/" + submission.getAssessment().getTreatment().getCondition().getExperiment().getExperimentId()
+    private String buildTerracottaAssessmentId(Submission submission) {
+        String terracottaAssessmentId = applicationUrl + "/api/experiments/" + submission.getAssessment().getTreatment().getCondition().getExperiment().getExperimentId()
                 + "/conditions/" + submission.getAssessment().getTreatment().getCondition().getConditionId()
                 + "/treatments/" + submission.getAssessment().getTreatment().getTreatmentId()
-                + "/assessments/" + submission.getAssessment().getAssessmentId()
-                + "/submissions/" + submission.getSubmissionId();
-        String canvasAssessmentId = submission.getParticipant().getLtiUserEntity().getPlatformDeployment().getBaseUrl()
-                + "/courses/" + securedInfo.getCanvasCourseId()
-                + "/assignments/" + securedInfo.getCanvasAssignmentId();
+                + "/assessments/" + submission.getAssessment().getAssessmentId();
+        return terracottaAssessmentId;
+    }
+
+    private org.imsglobal.caliper.entities.resource.MediaObject prepareMediaObject(MediaObjectDto mediaObjectDto,
+                                                                                   Submission submission, SecuredInfo securedInfo, Long questionId) {
+        String terracottaAssessmentId = buildTerracottaAssessmentId(submission);
+        String submissionId = terracottaAssessmentId + "/submissions/" + submission.getSubmissionId();
+        String questionIdUrl = terracottaAssessmentId + "/questions/" + questionId;
         Map<String, Object> extensions = new HashMap<>();
         extensions.put("terracotta_submission_id", submissionId);
-        extensions.put("terracotta_question_id", canvasAssessmentId);
+        extensions.put("terracotta_question_id", questionIdUrl);
         org.imsglobal.caliper.entities.resource.MediaObject mediaObject = org.imsglobal.caliper.entities.resource.MediaObject.builder()
                 .name(mediaObjectDto.getName())
                 .id(mediaObjectDto.getId())
@@ -599,9 +607,18 @@ public class CaliperServiceImpl implements CaliperService {
         return mediaObject;
     }
 
+    private MediaLocation prepareMediaLocation(MediaLocationDto target) {
+        MediaLocation mediaLocation = MediaLocation.builder()
+                .id(target.getId())
+                .type(target.getType())
+                .currentTime(target.getCurrentTime())
+                .build();
+        return mediaLocation;
+    }
+
     private Attempt prepareAttempt(Submission submission, Person actor, org.imsglobal.caliper.entities.resource.Assessment assessment) {
 
-        String terracottaSubmissionId = assessment.getExtensions().get("terracotta_assessment")
+        String terracottaSubmissionId = assessment.getId()
                 + "/submissions/" + submission.getSubmissionId();
 
         Attempt attempt = Attempt.builder()
@@ -619,7 +636,7 @@ public class CaliperServiceImpl implements CaliperService {
 
     private Result prepareResult(Submission submission, Attempt attempt, org.imsglobal.caliper.entities.resource.Assessment assessment) {
 
-        String terracottaSubmissionId = assessment.getExtensions().get("terracotta_assessment")
+        String terracottaSubmissionId = assessment.getId()
                 + "/submissions/" + submission.getSubmissionId();
         String comment = null;
         boolean firstComment = true;

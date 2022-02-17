@@ -5,7 +5,6 @@
         <template v-if="!submitted">
           <form v-on:submit.prevent="handleSubmit" style="width: 100%;">
             <div class="answerSection mt-5 w-100">
-              <!-- Question -->
               <v-card
                 class="mt-5 mb-2"
                 outlined
@@ -18,7 +17,16 @@
                       <span>{{ index + 1 }}</span>
                     </v-col>
                     <v-col cols="8">
-                      <span v-html="question.html"></span>
+                      <youtube-event-capture
+                        :experimentId="experimentId"
+                        :assessmentId="assessmentId"
+                        :conditionId="conditionId"
+                        :questionId="question.questionId"
+                        :submissionId="submissionId"
+                        :treatmentId="treatmentId"
+                      >
+                        <span v-html="question.html"></span>
+                      </youtube-event-capture>
                     </v-col>
                     <v-col>
                       <div class="total-points text-right ml-2">
@@ -77,6 +85,7 @@
 import { mapActions, mapGetters } from "vuex";
 import EssayResponseEditor from "./EssayResponseEditor.vue";
 import MultipleChoiceResponseEditor from "./MultipleChoiceResponseEditor.vue";
+import YoutubeEventCapture from "./YoutubeEventCapture.vue";
 
 export default {
   name: "StudentQuiz",
@@ -84,6 +93,7 @@ export default {
   components: {
     EssayResponseEditor,
     MultipleChoiceResponseEditor,
+    YoutubeEventCapture,
   },
   data() {
     return {

@@ -14,7 +14,7 @@ public interface MediaService {
     MediaEventDto toDto(Event mediaEvent);
 
     void fromDto(MediaEventDto mediaEventDto, SecuredInfo securedInfo,
-                                                 Long experimentId, Long submissionId) throws ParameterMissingException, NoSubmissionsException;
+                                                 Long experimentId, Long submissionId, Long questionId) throws ParameterMissingException, NoSubmissionsException;
 
     Event save(Event mediaEvent);
 

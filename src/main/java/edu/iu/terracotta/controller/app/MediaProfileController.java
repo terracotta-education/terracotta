@@ -37,24 +37,26 @@ public class MediaProfileController {
 
 
     @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/" +
-            "assessments/{assessment_id}/submissions/{submission_id}/media_event", method = RequestMethod.POST)
+            "assessments/{assessment_id}/submissions/{submission_id}/questions/{question_id}/media_event", method = RequestMethod.POST)
     public ResponseEntity postMediaEvent(@PathVariable("experiment_id") Long experimentId,
                                          @PathVariable("condition_id") Long conditionId,
                                          @PathVariable("treatment_id") Long treatmentId,
                                          @PathVariable("assessment_id") Long assessmentId,
                                          @PathVariable("submission_id") Long submissionId,
+                                         @PathVariable("question_id") Long questionId,
                                          @RequestBody MediaEventDto mediaEventDto,
                                          UriComponentsBuilder ucBuilder,
                                          HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ExperimentLockedException, IdInPostException, DataServiceException,
-            TreatmentNotMatchingException, ParameterMissingException, SubmissionNotMatchingException, NoSubmissionsException {
+            TreatmentNotMatchingException, ParameterMissingException, SubmissionNotMatchingException, NoSubmissionsException, QuestionNotMatchingException {
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.treatmentAllowed(securedInfo, experimentId, conditionId, treatmentId);
         apijwtService.submissionAllowed(securedInfo, assessmentId, submissionId);
+        apijwtService.questionAllowed(securedInfo, assessmentId, questionId);
 
-        mediaService.fromDto(mediaEventDto, securedInfo, experimentId, submissionId);
+        mediaService.fromDto(mediaEventDto, securedInfo, experimentId, submissionId, questionId);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
 
     }

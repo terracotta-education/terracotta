@@ -88,7 +88,7 @@ export default class YoutubeEmbed extends Node {
       toDOM: (node) => [
         "iframe",
         {
-          src: `https://www.youtube.com/embed/${node.attrs.youtubeID}`,
+          src: `https://www.youtube.com/embed/${node.attrs.youtubeID}?enablejsapi=1`,
           "data-youtube-id": node.attrs.youtubeID,
           height: node.attrs.height,
           width: node.attrs.width,
@@ -96,7 +96,9 @@ export default class YoutubeEmbed extends Node {
           allowfullscreen: "true",
           allow:
             "accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture",
-          // You can set the width and height here also
+          // This doesn't work. Must add enablejsapi as a query parameter of the
+          // src attribute, see above.
+          // enablejsapi: "true",
         },
       ],
     };
@@ -120,7 +122,6 @@ export default class YoutubeEmbed extends Node {
         new RegExp(`<iframe .*src="https://www.youtube.com.*></iframe>`, "g"),
         type,
         (match) => {
-          console.log(match);
           const text = match[0];
           const iframe = parseIframeEmbed(text);
           const youtubeID = youtubeParser(iframe.src);

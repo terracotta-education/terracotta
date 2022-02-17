@@ -105,7 +105,7 @@ public class MediaServiceImpl implements MediaService {
 
     @Override
     public void fromDto(MediaEventDto mediaEventDto, SecuredInfo securedInfo,
-                        Long experimentId, Long submissionId) throws ParameterMissingException, NoSubmissionsException {
+                        Long experimentId, Long submissionId, Long questionId) throws ParameterMissingException, NoSubmissionsException {
         edu.iu.terracotta.model.events.Event event = new edu.iu.terracotta.model.events.Event();
 
         if (mediaEventDto.getEventTime() == null) {
@@ -123,7 +123,7 @@ public class MediaServiceImpl implements MediaService {
         boolean student = !apijwtService.isInstructorOrHigher(securedInfo);
         Submission submission = submissionService.getSubmission(experimentId, securedInfo.getUserId(), submissionId, student);
         Participant participant = submission.getParticipant();
-        caliperService.sendMediaEvent(mediaEventDto, participant, securedInfo, submission);
+        caliperService.sendMediaEvent(mediaEventDto, participant, securedInfo, submission, questionId);
     }
 
     @Override
