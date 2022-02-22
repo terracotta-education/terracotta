@@ -53,8 +53,6 @@
                       :is="questionTypeComponents[question.questionType]"
                       :question="question"
                       @delete="handleDeleteQuestion"
-                      @page-break-after="handlePageBreakAfter"
-                      @page-break-after-remove="handlePageBreakAfterRemove"
                     />
                   </v-expansion-panel-content>
                 </template>
@@ -229,7 +227,6 @@ export default {
       fetchAssessment: "assessment/fetchAssessment",
       updateAssessment: "assessment/updateAssessment",
       createQuestion: "assessment/createQuestion",
-      createQuestionAtIndex: "assessment/createQuestionAtIndex",
       updateQuestion: "assessment/updateQuestion",
       deleteQuestion: "assessment/deleteQuestion",
       updateAnswer: "assessment/updateAnswer",
@@ -263,50 +260,6 @@ export default {
       } catch (error) {
         console.error("handleDeleteQuestion | catch", { error });
         this.$swal("there was a problem deleting the question");
-      }
-    },
-    async handlePageBreakAfter(question) {
-      console.log("handlePageBreakAfter", question);
-      try {
-        const questionIndex = this.questions.findIndex(
-          (que) => que.questionId === question.questionId
-        );
-        await this.createQuestionAtIndex({
-          payload: [
-            this.experiment.experimentId,
-            this.condition_id,
-            this.treatment_id,
-            this.assessment_id,
-            0,
-            "PAGE_BREAK",
-            0,
-            "",
-          ],
-          // Put the PAGE_BREAK just after this question
-          questionIndex: questionIndex + 1,
-        });
-      } catch (error) {
-        console.error("handlePageBreakAfter | catch", { error });
-        this.$swal("there was a problem adding a page break");
-      }
-    },
-    async handlePageBreakAfterRemove(question) {
-      try {
-        const questionIndex = this.questions.findIndex(
-          (que) => que.questionId === question.questionId
-        );
-        // find the PAGE_BREAK question after this question
-        const pageBreakQuestion = this.questions[questionIndex + 1];
-        await this.deleteQuestion([
-          this.experiment.experimentId,
-          this.condition.conditionId,
-          this.treatment_id,
-          this.assessment_id,
-          pageBreakQuestion.questionId,
-        ]);
-      } catch (error) {
-        console.error("handlePageBreakAfter | catch", { error });
-        this.$swal("there was a problem adding a page break");
       }
     },
     async handleSaveAssessment() {

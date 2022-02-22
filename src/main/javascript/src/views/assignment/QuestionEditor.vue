@@ -77,10 +77,9 @@ import {
   HorizontalRule,
   History,
 } from "tiptap-vuetify";
-import { clone } from "@/helpers";
 import YoutubeEmbed from "./tiptap/YoutubeEmbed";
 import YoutubeEmbedExtension from "./tiptap/YoutubeEmbedExtension";
-import { mapGetters, mapMutations } from "vuex";
+import { mapActions, mapGetters, mapMutations } from "vuex";
 
 /*
  * Events:
@@ -134,6 +133,18 @@ export default {
     ...mapGetters({
       questions: "assessment/questions",
     }),
+    experiment_id() {
+      return parseInt(this.$route.params.experiment_id);
+    },
+    treatment_id() {
+      return parseInt(this.$route.params.treatment_id);
+    },
+    assessment_id() {
+      return parseInt(this.$route.params.assessment_id);
+    },
+    condition_id() {
+      return parseInt(this.$route.params.condition_id);
+    },
     isPageBreakAfter() {
       const questionIndex = this.questions.findIndex(
         (que) => que.questionId === this.question.questionId
@@ -170,9 +181,10 @@ export default {
     ...mapMutations({
       updateQuestions: "assessment/updateQuestions",
     }),
-    cloneValue() {
-      return clone(this.value);
-    },
+    ...mapActions({
+      createQuestionAtIndex: "assessment/createQuestionAtIndex",
+      deleteQuestion: "assessment/deleteQuestion",
+    }),
     async handleDeleteQuestion(question) {
       // DELETE QUESTION
       const reallyDelete = await this.$swal({
@@ -187,15 +199,47 @@ export default {
       }
     },
     async addPageBreakAfter(question) {
-      this.$emit("page-break-after", question);
+      try {
+        const questionIndex = this.questions.findIndex(
+          (que) => que.questionId === question.questionId
+        );
+        await this.createQuestionAtIndex({
+          payload: [
+            this.experiment_id,
+            this.condition_id,
+            this.treatment_id,
+            this.assessment_id,
+            0,
+            "PAGE_BREAK",
+            0,
+            "",
+          ],
+          // Put the PAGE_BREAK just after this question
+          questionIndex: questionIndex + 1,
+        });
+      } catch (error) {
+        console.error("addPageBreakAfter | catch", { error });
+        this.$swal("there was a problem adding a page break");
+      }
     },
     async removePageBreakAfter(question) {
-      this.$emit("page-break-after-remove", question);
-    },
-  },
-  watch: {
-    value() {
-      this.question = this.cloneValue();
+      try {
+        const questionIndex = this.questions.findIndex(
+          (que) => que.questionId === question.questionId
+        );
+        // find the PAGE_BREAK question after this question
+        const pageBreakQuestion = this.questions[questionIndex + 1];
+        await this.deleteQuestion([
+          this.experiment_id,
+          this.condition_id,
+          this.treatment_id,
+          this.assessment_id,
+          pageBreakQuestion.questionId,
+        ]);
+      } catch (error) {
+        console.error("removePageBreakAfter | catch", { error });
+        this.$swal("there was a problem removing a page break");
+      }
     },
   },
 };
