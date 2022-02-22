@@ -177,13 +177,16 @@ export default {
         const currentPage = pages[pages.length - 1];
         if (question.questionType === "PAGE_BREAK") {
           currentPage.pageBreakAfter = true;
-          pages.push({
-            key: pages.length,
-            pageBreakAfter: false,
-            questions: [],
-            questionStartIndex:
-              currentPage.questionStartIndex + currentPage.questions.length,
-          });
+          // Add another page if this isn't the last question
+          if (question !== this.questions[this.questions.length - 1]) {
+            pages.push({
+              key: pages.length,
+              pageBreakAfter: false,
+              questions: [],
+              questionStartIndex:
+                currentPage.questionStartIndex + currentPage.questions.length,
+            });
+          }
         } else {
           currentPage.questions.push(question);
         }
