@@ -27,7 +27,7 @@
         <template v-for="questionPage in questionPages">
           <div :key="questionPage.key">
             <v-expansion-panels
-              class="v-expansion-panels--outlined mb-6"
+              class="v-expansion-panels--outlined"
               flat
               accordion
               :key="questionPage.key"
@@ -73,7 +73,7 @@
             plain
             v-bind="attrs"
             v-on="on"
-            class="mb-3"
+            class="mb-3 mt-3"
           >
             Add Question
             <v-icon>mdi-chevron-down</v-icon>

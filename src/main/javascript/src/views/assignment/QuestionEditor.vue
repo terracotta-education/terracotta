@@ -39,17 +39,22 @@
               v-if="isPageBreakAfter"
               @click="removePageBreakAfter(question)"
             >
-              <v-list-item-title
-                >Remove page break after question</v-list-item-title
+              <v-list-item-title>
+                <v-icon class="mr-2">mdi-format-page-break</v-icon>
+                Remove page break after question</v-list-item-title
               >
             </v-list-item>
             <v-list-item v-else @click="addPageBreakAfter(question)">
-              <v-list-item-title
-                >Add page break after question</v-list-item-title
+              <v-list-item-title>
+                <v-icon class="mr-2">mdi-format-page-break</v-icon>
+                Add page break after question</v-list-item-title
               >
             </v-list-item>
             <v-list-item @click="handleDeleteQuestion(question)">
-              <v-list-item-title>Delete Question</v-list-item-title>
+              <v-list-item-title>
+                <v-icon class="mr-2">mdi-delete-outline</v-icon>
+                Delete Question</v-list-item-title
+              >
             </v-list-item>
           </v-list>
         </v-menu>
@@ -183,11 +188,11 @@ export default {
     async handleDeleteQuestion(question) {
       // DELETE QUESTION
       const reallyDelete = await this.$swal({
-        icon: 'question',
+        icon: "question",
         text: `Are you sure you want to delete the question?`,
         showCancelButton: true,
-        confirmButtonText: 'Yes, delete it',
-        cancelButtonText: 'No, cancel',
+        confirmButtonText: "Yes, delete it",
+        cancelButtonText: "No, cancel",
       });
       if (reallyDelete?.isConfirmed) {
         try {
@@ -196,11 +201,11 @@ export default {
             this.condition_id,
             this.treatment_id,
             this.assessment_id,
-            question.questionId
-          ])
+            question.questionId,
+          ]);
         } catch (error) {
-          console.error("handleDeleteQuestion | catch", {error})
-          this.$swal('there was a problem deleting the question')
+          console.error("handleDeleteQuestion | catch", { error });
+          this.$swal("there was a problem deleting the question");
         }
       }
     },
