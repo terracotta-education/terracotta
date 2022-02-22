@@ -1,7 +1,7 @@
 <template>
   <div>
     <tiptap-vuetify
-      v-model="question.html"
+      v-model="html"
       placeholder="Question"
       class="mb-6 outlined"
       :extensions="extensions"
@@ -9,17 +9,15 @@
       :card-props="{ flat: true }"
       :rules="rules"
       required
-      @input="emitValueChanged"
     />
     <v-text-field
-      v-model="question.points"
+      v-model="points"
       :rules="numberRule"
       label="Points"
       type="number"
       step="any"
       outlined
       required
-      @input="emitValueChanged"
     ></v-text-field>
 
     <!-- default slot for answer options or other custom content -->
@@ -37,6 +35,19 @@
             </v-icon>
           </template>
           <v-list class="text-left">
+            <v-list-item
+              v-if="isPageBreakAfter"
+              @click="removePageBreakAfter(question)"
+            >
+              <v-list-item-title
+                >Remove page break after question</v-list-item-title
+              >
+            </v-list-item>
+            <v-list-item v-else @click="addPageBreakAfter(question)">
+              <v-list-item-title
+                >Add page break after question</v-list-item-title
+              >
+            </v-list-item>
             <v-list-item @click="handleDeleteQuestion(question)">
               <v-list-item-title>Delete Question</v-list-item-title>
             </v-list-item>
@@ -69,19 +80,17 @@ import {
 import { clone } from "@/helpers";
 import YoutubeEmbed from "./tiptap/YoutubeEmbed";
 import YoutubeEmbedExtension from "./tiptap/YoutubeEmbedExtension";
+import { mapGetters, mapMutations } from "vuex";
 
 /*
  * Events:
- * - input: question has been updated
- *   - args: question
  * - delete: user has confirmed deletion of a question
  *   - args: question
  */
 export default {
-  props: ["value"],
+  props: ["question"],
   data() {
     return {
-      question: this.cloneValue(),
       rules: [
         (v) => (v && !!v.trim()) || "required",
         (v) =>
@@ -121,10 +130,46 @@ export default {
       nativeExtensions: [new YoutubeEmbed()],
     };
   },
+  computed: {
+    ...mapGetters({
+      questions: "assessment/questions",
+    }),
+    isPageBreakAfter() {
+      const questionIndex = this.questions.findIndex(
+        (que) => que.questionId === this.question.questionId
+      );
+      if (questionIndex + 1 < this.questions.length) {
+        return this.questions[questionIndex + 1].questionType === "PAGE_BREAK";
+      } else {
+        return false;
+      }
+    },
+    html: {
+      // two-way computed property
+      get() {
+        return this.question.html;
+      },
+      set(value) {
+        this.updateQuestions({ ...this.question, html: value });
+      },
+    },
+    points: {
+      // two-way computed property
+      get() {
+        return this.question.points;
+      },
+      set(value) {
+        this.updateQuestions({ ...this.question, points: value });
+      },
+    },
+  },
   components: {
     TiptapVuetify,
   },
   methods: {
+    ...mapMutations({
+      updateQuestions: "assessment/updateQuestions",
+    }),
     cloneValue() {
       return clone(this.value);
     },
@@ -141,8 +186,11 @@ export default {
         this.$emit("delete", question);
       }
     },
-    emitValueChanged() {
-      this.$emit("input", this.question);
+    async addPageBreakAfter(question) {
+      this.$emit("page-break-after", question);
+    },
+    async removePageBreakAfter(question) {
+      this.$emit("page-break-after-remove", question);
     },
   },
   watch: {

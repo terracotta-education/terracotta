@@ -6,7 +6,7 @@
     </h1>
     <form @submit.prevent="saveAll('AssignmentYourAssignments')" class="my-5">
       <v-text-field
-        v-model="assessment.title"
+        v-model="title"
         :rules="rules"
         label="Treatment name"
         placeholder="e.g. Lorem ipsum"
@@ -15,7 +15,7 @@
         required
       ></v-text-field>
       <v-textarea
-        v-model="assessment.html"
+        v-model="html"
         label="Instructions or description (optional)"
         placeholder="e.g. Lorem ipsum"
         outlined
@@ -23,39 +23,46 @@
 
       <h4 class="mb-3"><strong>Questions</strong></h4>
 
-      <template v-if="questions && questions.length > 0">
-        <v-expansion-panels
-          class="v-expansion-panels--outlined mb-6"
-          flat
-          accordion
-        >
-          <v-expansion-panel
-            v-for="(question, qIndex) in questions"
-            :key="qIndex"
-            class="text-left"
-          >
-            <template v-if="question">
-              <v-expansion-panel-header class="text-left">
-                <h2 class="pa-0">
-                  {{ qIndex + 1 }}
-                  <span
-                    class="pl-3 question-text"
-                    v-if="question.html"
-                    v-html="textOnly(question.html)"
-                  ></span>
-                </h2>
-              </v-expansion-panel-header>
-              <v-expansion-panel-content>
-                <component
-                  :is="questionTypeComponents[question.questionType]"
-                  :value="question"
-                  @input="handleQuestionChanged"
-                  @delete="handleDeleteQuestion"
-                />
-              </v-expansion-panel-content>
-            </template>
-          </v-expansion-panel>
-        </v-expansion-panels>
+      <template v-if="questionPages && questionPages.length > 0">
+        <template v-for="questionPage in questionPages">
+          <div :key="questionPage.key">
+            <v-expansion-panels
+              class="v-expansion-panels--outlined mb-6"
+              flat
+              accordion
+              :key="questionPage.key"
+            >
+              <v-expansion-panel
+                v-for="(question, qIndex) in questionPage.questions"
+                :key="qIndex"
+                class="text-left"
+              >
+                <template v-if="question">
+                  <v-expansion-panel-header class="text-left">
+                    <h2 class="pa-0">
+                      {{ questionPage.questionStartIndex + qIndex + 1 }}
+                      <span
+                        class="pl-3 question-text"
+                        v-if="question.html"
+                        v-html="textOnly(question.html)"
+                      ></span>
+                    </h2>
+                  </v-expansion-panel-header>
+                  <v-expansion-panel-content>
+                    <component
+                      :is="questionTypeComponents[question.questionType]"
+                      :question="question"
+                      @delete="handleDeleteQuestion"
+                      @page-break-after="handlePageBreakAfter"
+                      @page-break-after-remove="handlePageBreakAfterRemove"
+                    />
+                  </v-expansion-panel-content>
+                </template>
+              </v-expansion-panel>
+            </v-expansion-panels>
+            <page-break v-if="questionPage.pageBreakAfter" />
+          </div>
+        </template>
       </template>
       <template v-else>
         <p class="grey--text">Add questions to continue</p>
@@ -105,10 +112,10 @@
 </template>
 
 <script>
-import { clone } from "@/helpers";
-import { mapActions, mapGetters } from "vuex";
+import { mapActions, mapGetters, mapMutations } from "vuex";
 import MultipleChoiceQuestionEditor from "./MultipleChoiceQuestionEditor.vue";
 import QuestionEditor from "./QuestionEditor.vue";
+import PageBreak from "./PageBreak.vue";
 
 export default {
   name: "TerracottaBuilder",
@@ -136,8 +143,8 @@ export default {
     },
     ...mapGetters({
       assignment: "assignment/assignment",
-      storeAssessment: "assessment/assessment",
-      storeQuestions: "assessment/questions",
+      assessment: "assessment/assessment",
+      questions: "assessment/questions",
     }),
     contDisabled() {
       return (
@@ -155,6 +162,55 @@ export default {
         ESSAY: QuestionEditor,
       };
     },
+    /**
+     * Use PAGE_BREAK questions to break the questions into pages.
+     */
+    questionPages() {
+      const pages = [];
+      if (!this.questions || this.questions.length === 0) {
+        return pages;
+      }
+      pages.push({
+        key: pages.length,
+        pageBreakAfter: false,
+        questions: [],
+        questionStartIndex: 0,
+      });
+      for (const question of this.questions) {
+        const currentPage = pages[pages.length - 1];
+        if (question.questionType === "PAGE_BREAK") {
+          currentPage.pageBreakAfter = true;
+          pages.push({
+            key: pages.length,
+            pageBreakAfter: false,
+            questions: [],
+            questionStartIndex:
+              currentPage.questionStartIndex + currentPage.questions.length,
+          });
+        } else {
+          currentPage.questions.push(question);
+        }
+      }
+      return pages;
+    },
+    title: {
+      // two-way computed property
+      get() {
+        return this.assessment.title;
+      },
+      set(value) {
+        this.setAssessment({ ...this.assessment, title: value });
+      },
+    },
+    html: {
+      // two-way computed property
+      get() {
+        return this.assessment.html;
+      },
+      set(value) {
+        this.setAssessment({ ...this.assessment, html: value });
+      },
+    },
   },
   data() {
     return {
@@ -163,15 +219,17 @@ export default {
         (v) =>
           (v || "").length <= 255 || "A maximum of 255 characters is allowed",
       ],
-      questions: null,
-      assessment: null,
     };
   },
   methods: {
+    ...mapMutations({
+      setAssessment: "assessment/setAssessment",
+    }),
     ...mapActions({
       fetchAssessment: "assessment/fetchAssessment",
       updateAssessment: "assessment/updateAssessment",
       createQuestion: "assessment/createQuestion",
+      createQuestionAtIndex: "assessment/createQuestionAtIndex",
       updateQuestion: "assessment/updateQuestion",
       deleteQuestion: "assessment/deleteQuestion",
       updateAnswer: "assessment/updateAnswer",
@@ -179,7 +237,7 @@ export default {
     async handleAddQuestion(questionType) {
       // POST QUESTION
       try {
-        const response = await this.createQuestion([
+        await this.createQuestion([
           this.experiment.experimentId,
           this.condition_id,
           this.treatment_id,
@@ -189,17 +247,8 @@ export default {
           0,
           "",
         ]);
-        this.questions.push(clone(response.data));
       } catch (error) {
         console.error(error);
-      }
-    },
-    handleQuestionChanged(question) {
-      const questionIndex = this.questions.findIndex(
-        (que) => que.questionId === question.questionId
-      );
-      if (questionIndex >= 0) {
-        this.questions.splice(questionIndex, 1, question);
       }
     },
     async handleDeleteQuestion(question) {
@@ -211,16 +260,53 @@ export default {
           this.assessment_id,
           question.questionId,
         ]);
-        // splice the question out of questions array
-        const questionIndex = this.questions.findIndex(
-          (que) => que.questionId === question.questionId
-        );
-        if (questionIndex >= 0) {
-          this.questions.splice(questionIndex, 1);
-        }
       } catch (error) {
         console.error("handleDeleteQuestion | catch", { error });
         this.$swal("there was a problem deleting the question");
+      }
+    },
+    async handlePageBreakAfter(question) {
+      console.log("handlePageBreakAfter", question);
+      try {
+        const questionIndex = this.questions.findIndex(
+          (que) => que.questionId === question.questionId
+        );
+        await this.createQuestionAtIndex({
+          payload: [
+            this.experiment.experimentId,
+            this.condition_id,
+            this.treatment_id,
+            this.assessment_id,
+            0,
+            "PAGE_BREAK",
+            0,
+            "",
+          ],
+          // Put the PAGE_BREAK just after this question
+          questionIndex: questionIndex + 1,
+        });
+      } catch (error) {
+        console.error("handlePageBreakAfter | catch", { error });
+        this.$swal("there was a problem adding a page break");
+      }
+    },
+    async handlePageBreakAfterRemove(question) {
+      try {
+        const questionIndex = this.questions.findIndex(
+          (que) => que.questionId === question.questionId
+        );
+        // find the PAGE_BREAK question after this question
+        const pageBreakQuestion = this.questions[questionIndex + 1];
+        await this.deleteQuestion([
+          this.experiment.experimentId,
+          this.condition.conditionId,
+          this.treatment_id,
+          this.assessment_id,
+          pageBreakQuestion.questionId,
+        ]);
+      } catch (error) {
+        console.error("handlePageBreakAfter | catch", { error });
+        this.$swal("there was a problem adding a page break");
       }
     },
     async handleSaveAssessment() {
@@ -323,13 +409,11 @@ export default {
       this.treatment_id,
       this.assessment_id,
     ]);
-    // Clone assessment and questions so we can manipulate their values
-    this.assessment = clone(this.storeAssessment);
-    this.questions = clone(this.storeQuestions);
   },
   components: {
     QuestionEditor,
     MultipleChoiceQuestionEditor,
+    PageBreak,
   },
 };
 </script>

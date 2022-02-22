@@ -58,14 +58,40 @@ const actions = {
       console.log('updateAssessment catch', error)
     }
   },
-  async createQuestion({commit}, payload) {
+  async createQuestion({dispatch}, payload) {
+    // payload = experiment_id, condition_id, treatment_id, assessment_id, question_order, question_type, points, body
+    // create the assessment question, commit an update mutation, and return the status/data response
+    await dispatch("createQuestionAtIndex", { payload });
+  },
+  async createQuestionAtIndex({commit}, {payload, questionIndex = -1}) {
     // payload = experiment_id, condition_id, treatment_id, assessment_id, question_order, question_type, points, body
     // create the assessment question, commit an update mutation, and return the status/data response
     try {
+      // TODO: remove this
+      console.log("payload", payload);
+      if (payload[5] === "PAGE_BREAK") {
+        const question = {
+          questionId: -1,
+          html: "",
+          assessmentId: payload.assessment_id,
+          points: 0,
+          questionOrder: 0,
+          questionType: "PAGE_BREAK",
+        };
+        commit("updateQuestionsAtIndex", {question, questionIndex});
+        return {
+          status: 200,
+          data: question,
+        };
+      }
       const response = await assessmentService.createQuestion(...payload)
       const question = response?.data
       if (question?.questionId) {
-        commit('updateQuestions', question)
+        if (questionIndex >= 0) {
+          commit("updateQuestionsAtIndex", { question, questionIndex });
+        } else {
+          commit("updateQuestions", question);
+        }
         return {
           status: response?.status,
           data: question
@@ -92,6 +118,11 @@ const actions = {
   },
   async deleteQuestion({commit}, payload) {
     const questionId = payload[4]
+    // TODO: remove
+    if (questionId === -1) {
+      commit('deleteQuestion', questionId)
+      return {status: 200, data: null};
+    }
     // payload = experiment_id, condition_id, treatment_id, assessment_id, question_id
     // delete question, commit mutation, and return the status/data response
     try {
@@ -181,10 +212,13 @@ const mutations = {
     // check for same id and update if exists
     const foundIndex = state.assessment.questions?.findIndex(q => parseInt(q.questionId) === parseInt(question.questionId))
     if (foundIndex >= 0) {
-      state.assessment.questions[foundIndex] = question
+      state.assessment.questions.splice(foundIndex, 1, question);
     } else {
       state.assessment.questions.push(question)
     }
+  },
+  updateQuestionsAtIndex(state, {question, questionIndex}) {
+    state.assessment.questions.splice(questionIndex, 0, question);
   },
   deleteQuestion(state, qid) {
     state.assessment.questions = [...state.assessment.questions?.filter(q => parseInt(q.questionId) !== parseInt(qid))]
@@ -204,7 +238,7 @@ const mutations = {
         const foundIndex = q.answers.findIndex(a => parseInt(a.answerId) === parseInt(answer.answerId))
 
         if (foundIndex >= 0) {
-          q.answers[foundIndex] = answer
+          q.answers.splice(foundIndex, 1, answer);
         } else {
           q.answers = [...q.answers, answer]
         }
@@ -219,7 +253,7 @@ const mutations = {
   deleteAnswer(state, answer_id) {
     const aid = parseInt(answer_id)
     state.assessment.questions = state.assessment.questions.map((q) => {
-      return {...q, answers: q.answers.filter(a => parseInt(a.answerId) !== aid)}
+      return {...q, answers: q.answers?.filter(a => parseInt(a.answerId) !== aid)}
     })
   },
 }
