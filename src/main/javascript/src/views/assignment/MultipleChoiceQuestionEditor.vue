@@ -68,11 +68,7 @@
 <script>
 import { mapActions, mapMutations } from "vuex";
 import QuestionEditor from "./QuestionEditor.vue";
-/*
- * Events:
- * - delete: user has confirmed deletion of a question
- *   - args: question
- */
+
 export default {
   props: ["question"],
   components: { QuestionEditor },

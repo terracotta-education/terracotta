@@ -52,7 +52,6 @@
                     <component
                       :is="questionTypeComponents[question.questionType]"
                       :question="question"
-                      @delete="handleDeleteQuestion"
                     />
                   </v-expansion-panel-content>
                 </template>
@@ -246,20 +245,6 @@ export default {
         ]);
       } catch (error) {
         console.error(error);
-      }
-    },
-    async handleDeleteQuestion(question) {
-      try {
-        await this.deleteQuestion([
-          this.experiment.experimentId,
-          this.condition.conditionId,
-          this.treatment_id,
-          this.assessment_id,
-          question.questionId,
-        ]);
-      } catch (error) {
-        console.error("handleDeleteQuestion | catch", { error });
-        this.$swal("there was a problem deleting the question");
       }
     },
     async handleSaveAssessment() {

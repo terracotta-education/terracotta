@@ -81,11 +81,6 @@ import YoutubeEmbed from "./tiptap/YoutubeEmbed";
 import YoutubeEmbedExtension from "./tiptap/YoutubeEmbedExtension";
 import { mapActions, mapGetters, mapMutations } from "vuex";
 
-/*
- * Events:
- * - delete: user has confirmed deletion of a question
- *   - args: question
- */
 export default {
   props: ["question"],
   data() {
@@ -188,14 +183,25 @@ export default {
     async handleDeleteQuestion(question) {
       // DELETE QUESTION
       const reallyDelete = await this.$swal({
-        icon: "question",
+        icon: 'question',
         text: `Are you sure you want to delete the question?`,
         showCancelButton: true,
-        confirmButtonText: "Yes, delete it",
-        cancelButtonText: "No, cancel",
+        confirmButtonText: 'Yes, delete it',
+        cancelButtonText: 'No, cancel',
       });
       if (reallyDelete?.isConfirmed) {
-        this.$emit("delete", question);
+        try {
+          return await this.deleteQuestion([
+            this.experiment_id,
+            this.condition_id,
+            this.treatment_id,
+            this.assessment_id,
+            question.questionId
+          ])
+        } catch (error) {
+          console.error("handleDeleteQuestion | catch", {error})
+          this.$swal('there was a problem deleting the question')
+        }
       }
     },
     async addPageBreakAfter(question) {
