@@ -10,6 +10,8 @@ const actions = {
     try {
       const response = await assessmentService.fetchAssessment(...payload)
       const assessment = response?.data
+      // TODO: remove this once we have server side sorting of questions
+      assessment.questions.sort((a, b) => a.questionOrder - b.questionOrder);
 
       commit('setAssessment', assessment)
     } catch (error) {
@@ -58,14 +60,23 @@ const actions = {
       console.log('updateAssessment catch', error)
     }
   },
-  async createQuestion({commit}, payload) {
+  async createQuestion({dispatch}, payload) {
+    // payload = experiment_id, condition_id, treatment_id, assessment_id, question_order, question_type, points, body
+    // create the assessment question, commit an update mutation, and return the status/data response
+    await dispatch("createQuestionAtIndex", { payload });
+  },
+  async createQuestionAtIndex({commit}, {payload, questionIndex = -1}) {
     // payload = experiment_id, condition_id, treatment_id, assessment_id, question_order, question_type, points, body
     // create the assessment question, commit an update mutation, and return the status/data response
     try {
       const response = await assessmentService.createQuestion(...payload)
       const question = response?.data
       if (question?.questionId) {
-        commit('updateQuestions', question)
+        if (questionIndex >= 0) {
+          commit("updateQuestionsAtIndex", { question, questionIndex });
+        } else {
+          commit("updateQuestions", question);
+        }
         return {
           status: response?.status,
           data: question
@@ -181,10 +192,13 @@ const mutations = {
     // check for same id and update if exists
     const foundIndex = state.assessment.questions?.findIndex(q => parseInt(q.questionId) === parseInt(question.questionId))
     if (foundIndex >= 0) {
-      state.assessment.questions[foundIndex] = question
+      state.assessment.questions.splice(foundIndex, 1, question);
     } else {
       state.assessment.questions.push(question)
     }
+  },
+  updateQuestionsAtIndex(state, {question, questionIndex}) {
+    state.assessment.questions.splice(questionIndex, 0, question);
   },
   deleteQuestion(state, qid) {
     state.assessment.questions = [...state.assessment.questions?.filter(q => parseInt(q.questionId) !== parseInt(qid))]
@@ -204,7 +218,7 @@ const mutations = {
         const foundIndex = q.answers.findIndex(a => parseInt(a.answerId) === parseInt(answer.answerId))
 
         if (foundIndex >= 0) {
-          q.answers[foundIndex] = answer
+          q.answers.splice(foundIndex, 1, answer);
         } else {
           q.answers = [...q.answers, answer]
         }
@@ -219,7 +233,7 @@ const mutations = {
   deleteAnswer(state, answer_id) {
     const aid = parseInt(answer_id)
     state.assessment.questions = state.assessment.questions.map((q) => {
-      return {...q, answers: q.answers.filter(a => parseInt(a.answerId) !== aid)}
+      return {...q, answers: q.answers?.filter(a => parseInt(a.answerId) !== aid)}
     })
   },
 }
@@ -232,6 +246,9 @@ const getters = {
   },
   assessments: (state) => {
     return state.assessments
+  },
+  answerableQuestions: (state, getters) => {
+    return getters.questions.filter(q => q.questionType !== "PAGE_BREAK");
   }
 }
 
