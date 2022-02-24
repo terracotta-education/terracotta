@@ -3,7 +3,11 @@
     <v-row>
       <v-col>
         <template v-if="!submitted">
-          <div v-if="assessment.html" v-html="assessment.html" />
+          <!-- only display assessment instructions on the first page -->
+          <div
+            v-if="assessment.html && questionPageIndex === 0"
+            v-html="assessment.html"
+          />
           <form v-on:submit.prevent="handleSubmit" style="width: 100%;">
             <div class="answerSection mt-5 w-100">
               <v-card
