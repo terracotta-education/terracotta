@@ -10,6 +10,8 @@ const actions = {
     try {
       const response = await assessmentService.fetchAssessment(...payload)
       const assessment = response?.data
+      // TODO: remove this once we have server side sorting of questions
+      assessment.questions.sort((a, b) => a.questionOrder - b.questionOrder);
 
       commit('setAssessment', assessment)
     } catch (error) {
@@ -67,23 +69,6 @@ const actions = {
     // payload = experiment_id, condition_id, treatment_id, assessment_id, question_order, question_type, points, body
     // create the assessment question, commit an update mutation, and return the status/data response
     try {
-      // TODO: remove this
-      console.log("payload", payload);
-      if (payload[5] === "PAGE_BREAK") {
-        const question = {
-          questionId: -1,
-          html: "",
-          assessmentId: payload.assessment_id,
-          points: 0,
-          questionOrder: 0,
-          questionType: "PAGE_BREAK",
-        };
-        commit("updateQuestionsAtIndex", {question, questionIndex});
-        return {
-          status: 200,
-          data: question,
-        };
-      }
       const response = await assessmentService.createQuestion(...payload)
       const question = response?.data
       if (question?.questionId) {
@@ -118,11 +103,6 @@ const actions = {
   },
   async deleteQuestion({commit}, payload) {
     const questionId = payload[4]
-    // TODO: remove
-    if (questionId === -1) {
-      commit('deleteQuestion', questionId)
-      return {status: 200, data: null};
-    }
     // payload = experiment_id, condition_id, treatment_id, assessment_id, question_id
     // delete question, commit mutation, and return the status/data response
     try {
@@ -266,6 +246,9 @@ const getters = {
   },
   assessments: (state) => {
     return state.assessments
+  },
+  answerableQuestions: (state, getters) => {
+    return getters.questions.filter(q => q.questionType !== "PAGE_BREAK");
   }
 }
 

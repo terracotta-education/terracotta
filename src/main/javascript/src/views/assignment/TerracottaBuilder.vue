@@ -142,6 +142,7 @@ export default {
       assignment: "assignment/assignment",
       assessment: "assessment/assessment",
       questions: "assessment/questions",
+      answerableQuestions: "assessment/answerableQuestions",
     }),
     contDisabled() {
       return (
@@ -317,7 +318,7 @@ export default {
       );
     },
     async saveAll(routeName) {
-      if (this.questions.some((q) => !q.html)) {
+      if (this.answerableQuestions.some((q) => !q.html)) {
         this.$swal("Please fill or delete empty questions.");
         return false;
       }
