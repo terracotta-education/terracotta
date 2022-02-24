@@ -249,6 +249,40 @@ const getters = {
   },
   answerableQuestions: (state, getters) => {
     return getters.questions.filter(q => q.questionType !== "PAGE_BREAK");
+  },
+  /**
+   * Use PAGE_BREAK questions to break the questions into pages.
+   */
+  questionPages: (state, getters) => {
+      const pages = [];
+      if (!getters.questions || getters.questions.length === 0) {
+        return pages;
+      }
+      pages.push({
+        key: pages.length,
+        pageBreakAfter: false,
+        questions: [],
+        questionStartIndex: 0,
+      });
+      for (const question of getters.questions) {
+        const currentPage = pages[pages.length - 1];
+        if (question.questionType === "PAGE_BREAK") {
+          currentPage.pageBreakAfter = true;
+          // Add another page if this isn't the last question
+          if (question !== getters.questions[getters.questions.length - 1]) {
+            pages.push({
+              key: pages.length,
+              pageBreakAfter: false,
+              questions: [],
+              questionStartIndex:
+                currentPage.questionStartIndex + currentPage.questions.length,
+            });
+          }
+        } else {
+          currentPage.questions.push(question);
+        }
+      }
+      return pages;
   }
 }
 

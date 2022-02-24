@@ -143,6 +143,7 @@ export default {
       assessment: "assessment/assessment",
       questions: "assessment/questions",
       answerableQuestions: "assessment/answerableQuestions",
+      questionPages: "assessment/questionPages",
     }),
     contDisabled() {
       return (
@@ -159,40 +160,6 @@ export default {
         MC: MultipleChoiceQuestionEditor,
         ESSAY: QuestionEditor,
       };
-    },
-    /**
-     * Use PAGE_BREAK questions to break the questions into pages.
-     */
-    questionPages() {
-      const pages = [];
-      if (!this.questions || this.questions.length === 0) {
-        return pages;
-      }
-      pages.push({
-        key: pages.length,
-        pageBreakAfter: false,
-        questions: [],
-        questionStartIndex: 0,
-      });
-      for (const question of this.questions) {
-        const currentPage = pages[pages.length - 1];
-        if (question.questionType === "PAGE_BREAK") {
-          currentPage.pageBreakAfter = true;
-          // Add another page if this isn't the last question
-          if (question !== this.questions[this.questions.length - 1]) {
-            pages.push({
-              key: pages.length,
-              pageBreakAfter: false,
-              questions: [],
-              questionStartIndex:
-                currentPage.questionStartIndex + currentPage.questions.length,
-            });
-          }
-        } else {
-          currentPage.questions.push(question);
-        }
-      }
-      return pages;
     },
     title: {
       // two-way computed property
