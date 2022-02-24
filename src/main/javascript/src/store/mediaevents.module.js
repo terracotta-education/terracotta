@@ -3,23 +3,21 @@ import moment from "moment";
 
 // Youtube IFrame API
 
-const state = {
-  youtubeIFrameAPI: null,
-  isLoadingYoutubeIFrameAPI: false,
-};
+let youtubeIFrameAPI = null;
+let isLoadingYoutubeIFrameAPI = false;
 
-const loadYoutubeIframeAPI = function({ commit }) {
-  commit("setIsLoadingYoutubeIFrameAPI", { isLoadingYoutubeIFrameAPI: true });
+const state = {};
+
+const loadYoutubeIframeAPI = function() {
+  isLoadingYoutubeIFrameAPI = true;
   var tag = document.createElement("script");
   tag.id = "iframe-api";
   tag.src = "https://www.youtube.com/iframe_api";
   var firstScriptTag = document.getElementsByTagName("script")[0];
   firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
   window.onYouTubeIframeAPIReady = () => {
-    commit("setYoutubeIFrameAPI", { youtubeIFrameAPI: window.YT });
-    commit("setIsLoadingYoutubeIFrameAPI", {
-      isLoadingYoutubeIFrameAPI: false,
-    });
+    youtubeIFrameAPI = window.YT;
+    isLoadingYoutubeIFrameAPI = false;
   };
 };
 
@@ -66,13 +64,13 @@ const sendEvent = function({
 };
 
 const actions = {
-  getYT({ commit, state }, { callback }) {
-    if (!state.youtubeIFrameAPI && !state.isLoadingYoutubeIFrameAPI) {
+  getYT({ commit }, { callback }) {
+    if (!youtubeIFrameAPI && !isLoadingYoutubeIFrameAPI) {
       loadYoutubeIframeAPI({ commit });
     }
     function checkForYTLibrary() {
-      if (state.youtubeIFrameAPI) {
-        callback(state.youtubeIFrameAPI);
+      if (youtubeIFrameAPI) {
+        callback(youtubeIFrameAPI);
       } else {
         setTimeout(checkForYTLibrary, 50);
       }
@@ -117,14 +115,7 @@ const actions = {
   },
 };
 
-const mutations = {
-  setYoutubeIFrameAPI(state, { youtubeIFrameAPI }) {
-    state.youtubeIFrameAPI = youtubeIFrameAPI;
-  },
-  setIsLoadingYoutubeIFrameAPI(state, { isLoadingYoutubeIFrameAPI }) {
-    state.isLoadingYoutubeIFrameAPI = isLoadingYoutubeIFrameAPI;
-  },
-};
+const mutations = {};
 
 const getters = {};
 

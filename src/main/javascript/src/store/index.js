@@ -21,14 +21,7 @@ Vue.use(Vuex)
 
 const store = new Vuex.Store({
     plugins: [createPersistedState({
-        key: 'terracotta',
-        filter: (mutation)=> {
-            // Filter out all mediaevents from persisted store
-            if (/^mediaevents\/.*/.test(mutation.type)) {
-                return false;
-            }
-            return true;
-        }
+        key: 'terracotta'
     })],
     modules: {
         api,
