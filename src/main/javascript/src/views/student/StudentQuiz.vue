@@ -8,7 +8,11 @@
             v-if="assessment.html && questionPageIndex === 0"
             v-html="assessment.html"
           />
-          <form v-on:submit.prevent="handleSubmit" style="width: 100%;">
+          <form
+            v-on:submit.prevent="handleSubmit"
+            style="width: 100%;"
+            ref="form"
+          >
             <div class="answerSection mt-5 w-100">
               <v-card
                 class="mt-5 mb-2"
@@ -71,7 +75,7 @@
 
             <v-btn
               v-if="hasNextQuestionPage"
-              @click.prevent="questionPageIndex++"
+              @click.prevent="nextPage"
               :disabled="!allCurrentPageQuestionsAnswered"
               elevation="0"
               color="primary"
@@ -227,6 +231,12 @@ export default {
         }
       }
       return true;
+    },
+    nextPage() {
+      this.questionPageIndex++;
+      this.$nextTick(() => {
+        this.$refs.form.scrollIntoView({ behavior: "smooth" });
+      });
     },
   },
   async created() {
