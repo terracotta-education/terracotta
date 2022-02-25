@@ -41,7 +41,7 @@ public class QuestionServiceImpl implements QuestionService {
 
     @Override
     public List<Question> findAllByAssessmentId(Long assessmentId) {
-        return allRepositories.questionRepository.findByAssessment_AssessmentId(assessmentId);
+        return allRepositories.questionRepository.findByAssessment_AssessmentIdOrderByQuestionId(assessmentId);
     }
 
     @Override

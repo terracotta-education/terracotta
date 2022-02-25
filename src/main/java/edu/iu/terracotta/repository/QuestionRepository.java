@@ -11,7 +11,7 @@ import java.util.Optional;
 
 public interface QuestionRepository extends JpaRepository<Question, Long> {
 
-    List<Question> findByAssessment_AssessmentId(Long assessmentId);
+    List<Question> findByAssessment_AssessmentIdOrderByQuestionId(Long assessmentId);
 
     List<Question> findByAssessment_Treatment_Condition_Experiment_ExperimentId(Long experimentId);
 

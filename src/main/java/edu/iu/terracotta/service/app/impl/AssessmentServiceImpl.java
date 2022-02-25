@@ -4,21 +4,12 @@ import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
-import edu.iu.terracotta.model.app.Assessment;
-import edu.iu.terracotta.model.app.ExposureGroupCondition;
-import edu.iu.terracotta.model.app.Participant;
-import edu.iu.terracotta.model.app.Question;
-import edu.iu.terracotta.model.app.Submission;
-import edu.iu.terracotta.model.app.Treatment;
+import edu.iu.terracotta.model.app.*;
 import edu.iu.terracotta.model.app.dto.AssessmentDto;
 import edu.iu.terracotta.model.app.dto.QuestionDto;
 import edu.iu.terracotta.model.app.dto.SubmissionDto;
 import edu.iu.terracotta.repository.AllRepositories;
-import edu.iu.terracotta.service.app.AssessmentService;
-import edu.iu.terracotta.service.app.FileStorageService;
-import edu.iu.terracotta.service.app.QuestionService;
-import edu.iu.terracotta.service.app.SubmissionService;
-import edu.iu.terracotta.service.app.TreatmentService;
+import edu.iu.terracotta.service.app.*;
 import edu.iu.terracotta.utils.TextConstants;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,11 +18,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 @Component
 public class AssessmentServiceImpl implements AssessmentService {
@@ -53,23 +40,23 @@ public class AssessmentServiceImpl implements AssessmentService {
 
 
     @Override
-    public List<Assessment> findAllByTreatmentId(Long treatmentId){
+    public List<Assessment> findAllByTreatmentId(Long treatmentId) {
         return allRepositories.assessmentRepository.findByTreatment_TreatmentId(treatmentId);
     }
 
     @Override
-    public List<AssessmentDto> getAllAssessmentsByTreatment(Long treatmentId, boolean submissions) throws AssessmentNotMatchingException{
+    public List<AssessmentDto> getAllAssessmentsByTreatment(Long treatmentId, boolean submissions) throws AssessmentNotMatchingException {
         List<Assessment> assessmentList = findAllByTreatmentId(treatmentId);
         List<AssessmentDto> assessmentDtoList = new ArrayList<>();
-        for(Assessment assessment : assessmentList){
+        for (Assessment assessment : assessmentList) {
             assessmentDtoList.add(toDto(assessment, false, false, submissions, false));
         }
         return assessmentDtoList;
     }
 
     @Override
-    public AssessmentDto postAssessment(AssessmentDto assessmentDto, long treatmentId) throws IdInPostException, DataServiceException, TitleValidationException, AssessmentNotMatchingException{
-        if(assessmentDto.getAssessmentId() != null) {
+    public AssessmentDto postAssessment(AssessmentDto assessmentDto, long treatmentId) throws IdInPostException, DataServiceException, TitleValidationException, AssessmentNotMatchingException {
+        if (assessmentDto.getAssessmentId() != null) {
             throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
         }
 
@@ -85,7 +72,7 @@ public class AssessmentServiceImpl implements AssessmentService {
 
         Assessment assessmentSaved = save(assessment);
         updateTreatment(treatmentId, assessmentSaved);
-        return toDto(assessmentSaved, false, false,false, false);
+        return toDto(assessmentSaved, false, false, false, false);
     }
 
     @Override
@@ -100,9 +87,9 @@ public class AssessmentServiceImpl implements AssessmentService {
         assessmentDto.setAutoSubmit(assessment.getAutoSubmit());
         assessmentDto.setNumOfSubmissions(assessment.getNumOfSubmissions());
         List<QuestionDto> questionDtoList = new ArrayList<>();
-        if(questions){
-            List<Question> questionList = allRepositories.questionRepository.findByAssessment_AssessmentId(assessment.getAssessmentId());
-            for(Question question : questionList) {
+        if (questions) {
+            List<Question> questionList = allRepositories.questionRepository.findByAssessment_AssessmentIdOrderByQuestionId(assessment.getAssessmentId());
+            for (Question question : questionList) {
                 questionDtoList.add(questionService.toDto(question, answers, student));
             }
         }
@@ -111,16 +98,16 @@ public class AssessmentServiceImpl implements AssessmentService {
         Long conditionId = assessment.getTreatment().getCondition().getConditionId();
         Long exposureId = assessment.getTreatment().getAssignment().getExposure().getExposureId();
         Optional<ExposureGroupCondition> exposureGroupCondition =
-                allRepositories.exposureGroupConditionRepository.getByCondition_ConditionIdAndExposure_ExposureId(conditionId,exposureId);
+                allRepositories.exposureGroupConditionRepository.getByCondition_ConditionIdAndExposure_ExposureId(conditionId, exposureId);
         Long groupId = null;
-        if (exposureGroupCondition.isPresent()){
+        if (exposureGroupCondition.isPresent()) {
             groupId = exposureGroupCondition.get().getGroup().getGroupId();
         } else {
-            throw new AssessmentNotMatchingException("Error 124: Assessment "+ assessment.getAssessmentId()+" is without a Group");
+            throw new AssessmentNotMatchingException("Error 124: Assessment " + assessment.getAssessmentId() + " is without a Group");
         }
         Map<Participant, Boolean> participantStatus = new HashMap<>();
 
-        if(submissions) {
+        if (submissions) {
             for (Submission submission : assessment.getSubmissions()) {
                 submissionDtoList.add(submissionService.toDto(submission, false, false));
                 // We add the status. False if in progress, true if submitted.
@@ -146,7 +133,7 @@ public class AssessmentServiceImpl implements AssessmentService {
             assessmentDto.setSubmissionsCompletedCount(submissionsCompletedCount);
             assessmentDto.setSubmissionsInProgressCount(submissionsInProgressCount);
         }
-        if(assessment.getSubmissions()!=null && !assessment.getSubmissions().isEmpty()){
+        if (assessment.getSubmissions() != null && !assessment.getSubmissions().isEmpty()) {
             assessmentDto.setStarted(true);
         }
         assessmentDto.setSubmissions(submissionDtoList);
@@ -167,7 +154,7 @@ public class AssessmentServiceImpl implements AssessmentService {
         assessment.setAutoSubmit(assessmentDto.getAutoSubmit());
         assessment.setNumOfSubmissions(assessmentDto.getNumOfSubmissions());
         Optional<Treatment> treatment = allRepositories.treatmentRepository.findById(assessmentDto.getTreatmentId());
-        if(treatment.isPresent()) {
+        if (treatment.isPresent()) {
             assessment.setTreatment(treatment.get());
         } else {
             throw new DataServiceException("The treatment for the assessment does not exist");
@@ -176,21 +163,27 @@ public class AssessmentServiceImpl implements AssessmentService {
     }
 
     @Override
-    public Assessment save(Assessment assessment) { return allRepositories.assessmentRepository.save(assessment); }
+    public Assessment save(Assessment assessment) {
+        return allRepositories.assessmentRepository.save(assessment);
+    }
 
     @Override
-    public Optional<Assessment> findById(Long id) { return allRepositories.assessmentRepository.findById(id); }
+    public Optional<Assessment> findById(Long id) {
+        return allRepositories.assessmentRepository.findById(id);
+    }
 
     @Override
-    public Assessment getAssessment(Long id) { return allRepositories.assessmentRepository.findByAssessmentId(id); }
+    public Assessment getAssessment(Long id) {
+        return allRepositories.assessmentRepository.findByAssessmentId(id);
+    }
 
     @Override
-    public void updateAssessment(Long id, AssessmentDto assessmentDto) throws TitleValidationException{
+    public void updateAssessment(Long id, AssessmentDto assessmentDto) throws TitleValidationException {
         Assessment assessment = allRepositories.assessmentRepository.findByAssessmentId(id);
-        if(StringUtils.isAllBlank(assessmentDto.getTitle()) && StringUtils.isAllBlank(assessment.getTitle())){
+        if (StringUtils.isAllBlank(assessmentDto.getTitle()) && StringUtils.isAllBlank(assessment.getTitle())) {
             throw new TitleValidationException("Error 100: Please give the assessment a title.");
         }
-        if(!StringUtils.isAllBlank(assessmentDto.getTitle()) && assessmentDto.getTitle().length() > 255){
+        if (!StringUtils.isAllBlank(assessmentDto.getTitle()) && assessmentDto.getTitle().length() > 255) {
             throw new TitleValidationException("Error 101: Assessment title must be 255 characters or less.");
         }
         assessment.setHtml(assessmentDto.getHtml());
@@ -202,10 +195,14 @@ public class AssessmentServiceImpl implements AssessmentService {
     }
 
     @Override
-    public void saveAndFlush(Assessment assessmentToChange) { allRepositories.assessmentRepository.saveAndFlush(assessmentToChange); }
+    public void saveAndFlush(Assessment assessmentToChange) {
+        allRepositories.assessmentRepository.saveAndFlush(assessmentToChange);
+    }
 
     @Override
-    public void deleteById(Long id) throws EmptyResultDataAccessException { allRepositories.assessmentRepository.deleteByAssessmentId(id); }
+    public void deleteById(Long id) throws EmptyResultDataAccessException {
+        allRepositories.assessmentRepository.deleteByAssessmentId(id);
+    }
 
     @Override
     public boolean assessmentBelongsToExperimentAndConditionAndTreatment(Long experimentId, Long conditionId, Long treatmentId, Long assessmentId) {
@@ -215,25 +212,25 @@ public class AssessmentServiceImpl implements AssessmentService {
     }
 
     @Override
-    public Float calculateMaxScore(Assessment assessment){
+    public Float calculateMaxScore(Assessment assessment) {
         float score = Float.parseFloat("0");
-        for (Question question:assessment.getQuestions()){
+        for (Question question : assessment.getQuestions()) {
             score = score + question.getPoints();
         }
         return score;
     }
 
     @Override
-    public void validateTitle(String title) throws TitleValidationException{
-        if(!StringUtils.isAllBlank(title) && title.length() > 255){
+    public void validateTitle(String title) throws TitleValidationException {
+        if (!StringUtils.isAllBlank(title) && title.length() > 255) {
             throw new TitleValidationException("Error 101: Assessment title must be 255 characters or less.");
         }
     }
 
     @Override
-    public AssessmentDto defaultAssessment(AssessmentDto assessmentDto, Long treatmentId){
+    public AssessmentDto defaultAssessment(AssessmentDto assessmentDto, Long treatmentId) {
         assessmentDto.setTreatmentId(treatmentId);
-        if(assessmentDto.getNumOfSubmissions() == null) {
+        if (assessmentDto.getNumOfSubmissions() == null) {
             assessmentDto.setNumOfSubmissions(1);
         }
         assessmentDto.setAutoSubmit(true);
@@ -242,14 +239,14 @@ public class AssessmentServiceImpl implements AssessmentService {
     }
 
     @Override
-    public void updateTreatment(Long treatmentId, Assessment assessment){
+    public void updateTreatment(Long treatmentId, Assessment assessment) {
         Treatment treatment = allRepositories.treatmentRepository.findByTreatmentId(treatmentId);
         treatment.setAssessment(assessment);
         treatmentService.saveAndFlush(treatment);
     }
 
     @Override
-    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId){
+    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId) {
         HttpHeaders headers = new HttpHeaders();
         headers.setLocation(ucBuilder.path("/api/experiments/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}")
                 .buildAndExpand(experimentId, conditionId, treatmentId, assessmentId).toUri());
