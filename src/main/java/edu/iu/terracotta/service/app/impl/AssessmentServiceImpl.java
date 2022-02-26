@@ -88,7 +88,7 @@ public class AssessmentServiceImpl implements AssessmentService {
         assessmentDto.setNumOfSubmissions(assessment.getNumOfSubmissions());
         List<QuestionDto> questionDtoList = new ArrayList<>();
         if (questions) {
-            List<Question> questionList = allRepositories.questionRepository.findByAssessment_AssessmentIdOrderByQuestionId(assessment.getAssessmentId());
+            List<Question> questionList = allRepositories.questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(assessment.getAssessmentId());
             for (Question question : questionList) {
                 questionDtoList.add(questionService.toDto(question, answers, student));
             }
