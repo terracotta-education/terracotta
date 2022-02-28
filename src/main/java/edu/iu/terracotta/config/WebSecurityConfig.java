@@ -46,6 +46,7 @@ import java.util.UUID;
 @Import(SecurityAutoConfiguration.class)
 public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
+    private static final Logger logger = LoggerFactory.getLogger(WebSecurityConfig.class);
 
     @Order(10) // VERY HIGH
     @Configuration
@@ -138,6 +139,11 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
         @Autowired
         private JwtAuthenticationProvider jwtAuthenticationProvider;
 
+
+        @Value("${api.oauth.provider.processing.filter.enabled:true}")
+        private boolean apioAuthProviderProcessingFilterEnabled;
+
+
         @PostConstruct
         public void init() {
             apioAuthProviderProcessingFilter = new APIOAuthProviderProcessingFilter(apiJwtService, apiDataService);
@@ -152,13 +158,27 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
         @Override
         protected void configure(HttpSecurity http) throws Exception {
-            http.requestMatchers()
+            HttpSecurity httpSecurity = http.requestMatchers()
                     .antMatchers("/api/**")
                     .and()
-                    .addFilterBefore(new CorsFilter(new CorsConfigurationSourceImpl()), BasicAuthenticationFilter.class)
-                    //TODO IMPORTANT. Enable this line for production
-                    //.addFilterBefore(apioAuthProviderProcessingFilter, UsernamePasswordAuthenticationFilter.class)
-                    .authorizeRequests().anyRequest().permitAll().and().csrf().disable().headers().frameOptions().disable();
+                    .addFilterBefore(new CorsFilter(new CorsConfigurationSourceImpl()),
+                            BasicAuthenticationFilter.class);
+            if (apioAuthProviderProcessingFilterEnabled) {
+                logger.info("Adding APIOAuthProviderProcessingFilter to all /api/ requests");
+                httpSecurity = httpSecurity
+                        .addFilterBefore(apioAuthProviderProcessingFilter,
+                                UsernamePasswordAuthenticationFilter.class);
+            }
+            httpSecurity
+                    .authorizeRequests()
+                    .anyRequest()
+                    .permitAll()
+                    .and()
+                    .csrf()
+                    .disable()
+                    .headers()
+                    .frameOptions()
+                    .disable();
         }
     }
 
