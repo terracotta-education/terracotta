@@ -120,7 +120,10 @@ export default {
         });
       }
     },
-    sendVideoEvent(storeAction, {player, originalVideoUrl}) {
+    sendVideoEvent(
+      storeAction,
+      { player, originalVideoUrl, extensions = null }
+    ) {
       this[storeAction]({
         experiment_id: this.experimentId,
         condition_id: this.conditionId,
@@ -132,6 +135,7 @@ export default {
         videoURL: player.getVideoUrl(),
         duration: player.getDuration(),
         currentTime: player.getCurrentTime(),
+        extensions,
       });
     },
     onVideoStarted(playerState) {
@@ -158,17 +162,38 @@ export default {
       playerState.currentTime = playerState.player.getCurrentTime();
       this.sendVideoEvent("videoJumpedTo", playerState);
     },
-    onChangedResolution(playerState) {
-      // TODO: map hd720 -> 720?
-      // TODO: map hd1080 -> 1080?
-      // TODO: map large -> 480?
-      // TODO: map medium -> 360?
+    onChangedResolution(playerState, resolution) {
+      // Map qualitative resolutions to number of vertical lines of resolution
+      // https://developers.google.com/youtube/iframe_api_reference#Events
+      const RESOLUTIONS = {
+        tiny: "144",
+        small: "240",
+        medium: "360",
+        large: "480",
+        hd720: "720",
+        hd1080: "1080",
+        hd1440: "1440",
+        hd2160: "2160",
+        // "highres": "2160", // couldn't find an actual example of this, so I'm not sure what 'highres' means
+      };
       playerState.currentTime = playerState.player.getCurrentTime();
-      this.sendVideoEvent("videoChangedResolution", playerState);
+      const payload = {
+        ...playerState,
+        extensions: {
+          resolution: RESOLUTIONS?.[resolution] || resolution,
+        },
+      };
+      this.sendVideoEvent("videoChangedResolution", payload);
     },
-    onChangedSpeed(playerState) {
+    onChangedSpeed(playerState, speed) {
       playerState.currentTime = playerState.player.getCurrentTime();
-      this.sendVideoEvent("videoChangedSpeed", playerState);
+      const payload = {
+        ...playerState,
+        extensions: {
+          speed,
+        },
+      };
+      this.sendVideoEvent("videoChangedSpeed", payload);
     },
     onFullscreenChange(event) {
       const playerState = this.getPlayerStateByIframe(event.target);
