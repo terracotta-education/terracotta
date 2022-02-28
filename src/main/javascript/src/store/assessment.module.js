@@ -10,8 +10,6 @@ const actions = {
     try {
       const response = await assessmentService.fetchAssessment(...payload)
       const assessment = response?.data
-      // TODO: remove this once we have server side sorting of questions
-      assessment.questions.sort((a, b) => a.questionOrder - b.questionOrder);
 
       commit('setAssessment', assessment)
     } catch (error) {
