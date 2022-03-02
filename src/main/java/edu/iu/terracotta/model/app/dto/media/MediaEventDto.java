@@ -6,6 +6,8 @@ import org.imsglobal.caliper.actions.Action;
 import org.imsglobal.caliper.events.EventType;
 import org.joda.time.DateTime;
 
+import java.util.Map;
+
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class MediaEventDto extends AbstractDto {
 
@@ -35,6 +37,8 @@ public class MediaEventDto extends AbstractDto {
     private MembershipDto membership;
 
     private SessionDto session;
+
+    private  Map<String, Object> extensions;
 
     public String getContext() {
         return context;
@@ -136,5 +140,14 @@ public class MediaEventDto extends AbstractDto {
 
     public void setSession(SessionDto session) {
         this.session = session;
+    }
+
+
+    public Map<String, Object> getExtensions() {
+        return extensions;
+    }
+
+    public void setExtensions(Map<String, Object> extensions) {
+        this.extensions = extensions;
     }
 }

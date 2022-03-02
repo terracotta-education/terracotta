@@ -312,6 +312,7 @@ public class CaliperServiceImpl implements CaliperService {
                 .eventTime(mediaEventDto.getEventTime())
                 .membership(prepareMembership(participant, securedInfo))
                 .object(mediaObject)
+                .extensions(mediaEventDto.getExtensions())
                 .target(mediaLocation)
                 .referrer(prepareReferrer(membershipEntity.getUser().getPlatformDeployment()))
                 .federatedSession(ltiSession)
