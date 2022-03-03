@@ -33,6 +33,7 @@ const sendEvent = function({
   duration,
   currentTime,
   action,
+  extensions,
 }) {
   const event = {
     type: "MediaEvent",
@@ -51,6 +52,9 @@ const sendEvent = function({
     },
     eventTime: new Date().toISOString(),
   };
+  if (extensions) {
+    event.extensions = extensions;
+  }
   // Fire and forget
   mediaEventsService.createVideoEvent({
     experiment_id,
