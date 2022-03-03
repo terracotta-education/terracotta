@@ -26,7 +26,6 @@ import org.imsglobal.caliper.clients.HttpClientOptions;
 import org.imsglobal.caliper.context.JsonldContext;
 import org.imsglobal.caliper.context.JsonldStringContext;
 import org.imsglobal.caliper.entities.CaliperReferrer;
-import org.imsglobal.caliper.entities.CaliperTargetable;
 import org.imsglobal.caliper.entities.EntityType;
 import org.imsglobal.caliper.entities.agent.*;
 import org.imsglobal.caliper.entities.outcome.Result;
@@ -34,6 +33,7 @@ import org.imsglobal.caliper.entities.resource.Attempt;
 import org.imsglobal.caliper.entities.resource.MediaLocation;
 import org.imsglobal.caliper.entities.session.LtiSession;
 import org.imsglobal.caliper.events.*;
+import org.imsglobal.caliper.events.MediaEvent.Builder;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -303,7 +303,7 @@ public class CaliperServiceImpl implements CaliperService {
                 submission, securedInfo, questionId);
         MediaLocation mediaLocation = prepareMediaLocation(mediaEventDto.getTarget());
         String uuid = "urn:uuid:" + UUID.randomUUID();
-        org.imsglobal.caliper.events.MediaEvent mediaEvent = MediaEvent.builder()
+        Builder<?> builder = MediaEvent.builder()
                 .id(uuid)
                 .actor(actor)
                 .action(mediaEventDto.getAction())
@@ -311,8 +311,11 @@ public class CaliperServiceImpl implements CaliperService {
                 .context(context)
                 .eventTime(mediaEventDto.getEventTime())
                 .membership(prepareMembership(participant, securedInfo))
-                .object(mediaObject)
-                .extensions(mediaEventDto.getExtensions())
+                .object(mediaObject);
+        if (mediaEventDto.getExtensions() != null) {
+            builder.extensions(mediaEventDto.getExtensions());
+        }
+        org.imsglobal.caliper.events.MediaEvent mediaEvent = builder
                 .target(mediaLocation)
                 .referrer(prepareReferrer(membershipEntity.getUser().getPlatformDeployment()))
                 .federatedSession(ltiSession)
