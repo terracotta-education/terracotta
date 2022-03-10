@@ -11,10 +11,11 @@ const actions = {
     commit('setConsentFile', null)
   },
   createConsent: ({state}, experiment_id) => {
-    return consentService.create(experiment_id, state)
-    .catch(response => {
-      console.log('setCondition | catch', {response})
-    })
+    return consentService.create(experiment_id, state).then((response) => {
+      if (response.status !== 200) {
+        throw new Error("Consent file upload failed");
+      }
+    });
   },
   setConsentFile: ({commit}, file) => {
     commit('setConsentFile', file)
