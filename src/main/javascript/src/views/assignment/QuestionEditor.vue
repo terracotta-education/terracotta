@@ -1,24 +1,23 @@
 <template>
   <div>
     <tiptap-vuetify
-      v-model="question.html"
+      v-model="html"
       placeholder="Question"
       class="mb-6 outlined"
       :extensions="extensions"
+      :native-extensions="nativeExtensions"
       :card-props="{ flat: true }"
       :rules="rules"
       required
-      @input="emitValueChanged"
     />
     <v-text-field
-      v-model="question.points"
+      v-model="points"
       :rules="numberRule"
       label="Points"
       type="number"
       step="any"
       outlined
       required
-      @input="emitValueChanged"
     ></v-text-field>
 
     <!-- default slot for answer options or other custom content -->
@@ -36,8 +35,26 @@
             </v-icon>
           </template>
           <v-list class="text-left">
+            <v-list-item
+              v-if="isPageBreakAfter"
+              @click="removePageBreakAfter(question)"
+            >
+              <v-list-item-title>
+                <v-icon class="mr-2">mdi-format-page-break</v-icon>
+                Remove page break after question</v-list-item-title
+              >
+            </v-list-item>
+            <v-list-item v-else @click="addPageBreakAfter(question)">
+              <v-list-item-title>
+                <v-icon class="mr-2">mdi-format-page-break</v-icon>
+                Add page break after question</v-list-item-title
+              >
+            </v-list-item>
             <v-list-item @click="handleDeleteQuestion(question)">
-              <v-list-item-title>Delete Question</v-list-item-title>
+              <v-list-item-title>
+                <v-icon class="mr-2">mdi-delete-outline</v-icon>
+                Delete Question</v-list-item-title
+              >
             </v-list-item>
           </v-list>
         </v-menu>
@@ -65,20 +82,14 @@ import {
   HorizontalRule,
   History,
 } from "tiptap-vuetify";
-import { clone } from "@/helpers";
+import YoutubeEmbed from "./tiptap/YoutubeEmbed";
+import YoutubeEmbedExtension from "./tiptap/YoutubeEmbedExtension";
+import { mapActions, mapGetters, mapMutations } from "vuex";
 
-/*
- * Events:
- * - input: question has been updated
- *   - args: question
- * - delete: user has confirmed deletion of a question
- *   - args: question
- */
 export default {
-  props: ["value"],
+  props: ["question"],
   data() {
     return {
-      question: this.cloneValue(),
       rules: [
         (v) => (v && !!v.trim()) || "required",
         (v) =>
@@ -113,16 +124,67 @@ export default {
         HorizontalRule,
         Paragraph,
         HardBreak,
+        YoutubeEmbedExtension,
       ],
+      nativeExtensions: [new YoutubeEmbed()],
     };
+  },
+  computed: {
+    ...mapGetters({
+      questions: "assessment/questions",
+    }),
+    experiment_id() {
+      return parseInt(this.$route.params.experiment_id);
+    },
+    treatment_id() {
+      return parseInt(this.$route.params.treatment_id);
+    },
+    assessment_id() {
+      return parseInt(this.$route.params.assessment_id);
+    },
+    condition_id() {
+      return parseInt(this.$route.params.condition_id);
+    },
+    isPageBreakAfter() {
+      const questionIndex = this.questions.findIndex(
+        (que) => que.questionId === this.question.questionId
+      );
+      if (questionIndex + 1 < this.questions.length) {
+        return this.questions[questionIndex + 1].questionType === "PAGE_BREAK";
+      } else {
+        return false;
+      }
+    },
+    html: {
+      // two-way computed property
+      get() {
+        return this.question.html;
+      },
+      set(value) {
+        this.updateQuestions({ ...this.question, html: value });
+      },
+    },
+    points: {
+      // two-way computed property
+      get() {
+        return this.question.points;
+      },
+      set(value) {
+        this.updateQuestions({ ...this.question, points: value });
+      },
+    },
   },
   components: {
     TiptapVuetify,
   },
   methods: {
-    cloneValue() {
-      return clone(this.value);
-    },
+    ...mapMutations({
+      updateQuestions: "assessment/updateQuestions",
+    }),
+    ...mapActions({
+      createQuestionAtIndex: "assessment/createQuestionAtIndex",
+      deleteQuestion: "assessment/deleteQuestion",
+    }),
     async handleDeleteQuestion(question) {
       // DELETE QUESTION
       const reallyDelete = await this.$swal({
@@ -133,16 +195,62 @@ export default {
         cancelButtonText: "No, cancel",
       });
       if (reallyDelete?.isConfirmed) {
-        this.$emit("delete", question);
+        try {
+          return await this.deleteQuestion([
+            this.experiment_id,
+            this.condition_id,
+            this.treatment_id,
+            this.assessment_id,
+            question.questionId,
+          ]);
+        } catch (error) {
+          console.error("handleDeleteQuestion | catch", { error });
+          this.$swal("there was a problem deleting the question");
+        }
       }
     },
-    emitValueChanged() {
-      this.$emit("input", this.question);
+    async addPageBreakAfter(question) {
+      try {
+        const questionIndex = this.questions.findIndex(
+          (que) => que.questionId === question.questionId
+        );
+        await this.createQuestionAtIndex({
+          payload: [
+            this.experiment_id,
+            this.condition_id,
+            this.treatment_id,
+            this.assessment_id,
+            0,
+            "PAGE_BREAK",
+            0,
+            "",
+          ],
+          // Put the PAGE_BREAK just after this question
+          questionIndex: questionIndex + 1,
+        });
+      } catch (error) {
+        console.error("addPageBreakAfter | catch", { error });
+        this.$swal("there was a problem adding a page break");
+      }
     },
-  },
-  watch: {
-    value() {
-      this.question = this.cloneValue();
+    async removePageBreakAfter(question) {
+      try {
+        const questionIndex = this.questions.findIndex(
+          (que) => que.questionId === question.questionId
+        );
+        // find the PAGE_BREAK question after this question
+        const pageBreakQuestion = this.questions[questionIndex + 1];
+        await this.deleteQuestion([
+          this.experiment_id,
+          this.condition_id,
+          this.treatment_id,
+          this.assessment_id,
+          pageBreakQuestion.questionId,
+        ]);
+      } catch (error) {
+        console.error("removePageBreakAfter | catch", { error });
+        this.$swal("there was a problem removing a page break");
+      }
     },
   },
 };
@@ -163,7 +271,7 @@ export default {
       font-style: normal;
     }
   }
-  &__toolbar {
+  .tiptap-vuetify-editor__toolbar {
     border-top: 1px solid map-get($grey, "base");
     border-radius: 0 !important;
   }

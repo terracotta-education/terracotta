@@ -89,7 +89,7 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
             for(AnswerSubmissionDto answerSubmissionDto : questionSubmissionDto.getAnswerSubmissionDtoList()){
                 if(questionSubmission.getQuestion().getQuestionType().equals(QuestionTypes.MC)){
                     answerSubmissionService.updateAnswerMcSubmission(answerSubmissionDto.getAnswerSubmissionId(), answerSubmissionDto);
-                } else {
+                } else if (questionSubmission.getQuestion().getQuestionType().equals(QuestionTypes.ESSAY)){
                     answerSubmissionService.updateAnswerEssaySubmission(answerSubmissionDto.getAnswerSubmissionId(), answerSubmissionDto);
                 }
             }

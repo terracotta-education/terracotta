@@ -15,6 +15,7 @@ import { outcome } from './outcome.module';
 import { treatment } from './treatment.module';
 import { exportdata } from './exportdata.module';
 import { submissions } from './submission.module';
+import { mediaevents } from "./mediaevents.module";
 
 Vue.use(Vuex)
 
@@ -35,7 +36,8 @@ const store = new Vuex.Store({
         outcome,
         treatment,
         exportdata,
-        submissions
+        submissions,
+        mediaevents,
     },
     strict: process.env.NODE_ENV !== 'production',
 })

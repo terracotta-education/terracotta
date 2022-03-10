@@ -3,22 +3,41 @@
     <v-row>
       <v-col>
         <template v-if="!submitted">
-          <form v-on:submit.prevent="handleSubmit" style="width: 100%;">
+          <!-- only display assessment instructions on the first page -->
+          <div
+            v-if="assessment.html && questionPageIndex === 0"
+            v-html="assessment.html"
+          />
+          <form
+            v-on:submit.prevent="handleSubmit"
+            style="width: 100%;"
+            ref="form"
+          >
             <div class="answerSection mt-5 w-100">
-              <!-- Question -->
               <v-card
                 class="mt-5 mb-2"
                 outlined
-                v-for="(question, index) in assessment.questions"
+                v-for="(question, index) in currentQuestionPage.questions"
                 :key="question.questionId"
               >
                 <v-card-title>
                   <v-row>
                     <v-col cols="1">
-                      <span>{{ index + 1 }}</span>
+                      <span>{{
+                        currentQuestionPage.questionStartIndex + index + 1
+                      }}</span>
                     </v-col>
                     <v-col cols="8">
-                      <span v-html="question.html"></span>
+                      <youtube-event-capture
+                        :experimentId="experimentId"
+                        :assessmentId="assessmentId"
+                        :conditionId="conditionId"
+                        :questionId="question.questionId"
+                        :submissionId="submissionId"
+                        :treatmentId="treatmentId"
+                      >
+                        <span v-html="question.html"></span>
+                      </youtube-event-capture>
                     </v-col>
                     <v-col>
                       <div class="total-points text-right ml-2">
@@ -55,6 +74,18 @@
             </div>
 
             <v-btn
+              v-if="hasNextQuestionPage"
+              @click.prevent="nextPage"
+              :disabled="!allCurrentPageQuestionsAnswered"
+              elevation="0"
+              color="primary"
+              class="mt-4"
+              type="button"
+            >
+              Next
+            </v-btn>
+            <v-btn
+              v-else
               :disabled="!allQuestionsAnswered"
               elevation="0"
               color="primary"
@@ -77,6 +108,7 @@
 import { mapActions, mapGetters } from "vuex";
 import EssayResponseEditor from "./EssayResponseEditor.vue";
 import MultipleChoiceResponseEditor from "./MultipleChoiceResponseEditor.vue";
+import YoutubeEventCapture from "./YoutubeEventCapture.vue";
 
 export default {
   name: "StudentQuiz",
@@ -84,6 +116,7 @@ export default {
   components: {
     EssayResponseEditor,
     MultipleChoiceResponseEditor,
+    YoutubeEventCapture,
   },
   data() {
     return {
@@ -94,37 +127,26 @@ export default {
       submissionId: null,
       assessmentId: null,
       submitted: false,
+      questionPageIndex: 0,
     };
   },
   computed: {
     ...mapGetters({
       assessment: "assessment/assessment",
+      answerableQuestions: "assessment/answerableQuestions",
+      questionPages: "assessment/questionPages",
     }),
+    allCurrentPageQuestionsAnswered() {
+      return this.areAllQuestionsAnswered(this.currentQuestionPage.questions);
+    },
     allQuestionsAnswered() {
-      for (const question of this.assessment.questions) {
-        if (question.questionType === "MC") {
-          const answer = this.questionValues.find(
-            ({ questionId }) => questionId === question.questionId
-          ).answerId;
-          if (answer === null) {
-            return false;
-          }
-        } else if (question.questionType === "ESSAY") {
-          const answer = this.questionValues.find(
-            ({ questionId }) => questionId === question.questionId
-          ).response;
-          if (answer === null || answer.trim() === "") {
-            return false;
-          }
-        } else {
-          console.log(
-            "Unexpected question type",
-            question.questionType,
-            question
-          );
-        }
-      }
-      return true;
+      return this.areAllQuestionsAnswered(this.answerableQuestions);
+    },
+    currentQuestionPage() {
+      return this.questionPages[this.questionPageIndex];
+    },
+    hasNextQuestionPage() {
+      return this.questionPageIndex < this.questionPages.length - 1;
     },
   },
   methods: {
@@ -184,6 +206,38 @@ export default {
         console.error({ e });
       }
     },
+    areAllQuestionsAnswered(answerableQuestions) {
+      for (const question of answerableQuestions) {
+        if (question.questionType === "MC") {
+          const answer = this.questionValues.find(
+            ({ questionId }) => questionId === question.questionId
+          ).answerId;
+          if (answer === null) {
+            return false;
+          }
+        } else if (question.questionType === "ESSAY") {
+          const answer = this.questionValues.find(
+            ({ questionId }) => questionId === question.questionId
+          ).response;
+          if (answer === null || answer.trim() === "") {
+            return false;
+          }
+        } else {
+          console.log(
+            "Unexpected question type",
+            question.questionType,
+            question
+          );
+        }
+      }
+      return true;
+    },
+    nextPage() {
+      this.questionPageIndex++;
+      this.$nextTick(() => {
+        this.$refs.form.scrollIntoView({ behavior: "smooth" });
+      });
+    },
   },
   async created() {
     const experimentId = this.experimentId;
@@ -206,7 +260,7 @@ export default {
           data.assessmentId,
         ]);
 
-        this.questionValues = this.assessment.questions.map((q) => {
+        this.questionValues = this.answerableQuestions.map((q) => {
           return {
             questionId: q.questionId,
             answerId: null,

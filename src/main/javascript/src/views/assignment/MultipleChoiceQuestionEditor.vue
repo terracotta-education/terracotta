@@ -29,13 +29,13 @@
           </v-col>
           <v-col cols="9">
             <v-text-field
-              v-model="answer.html"
+              :value="answer.html"
+              @input="updateAnswerHtml(answer, $event)"
               :label="`Option ${aIndex + 1}`"
               :rules="longString"
               hide-details
               outlined
               required
-              @input="emitValueChanged"
             ></v-text-field>
           </v-col>
           <v-col class="py-0" cols="2">
@@ -66,23 +66,15 @@
 </template>
 
 <script>
-import { clone } from "@/helpers";
-import { mapActions } from "vuex";
+import { mapActions, mapMutations } from "vuex";
 import QuestionEditor from "./QuestionEditor.vue";
-/*
- * Events:
- * - input: question has been updated
- *   - args: question
- * - delete: user has confirmed deletion of a question
- *   - args: question
- */
+
 export default {
-  props: ["value"],
+  props: ["question"],
   components: { QuestionEditor },
   data() {
     return {
       longString: [(v) => (v && !!v.trim()) || "required"],
-      question: this.cloneValue(),
     };
   },
   computed: {
@@ -100,17 +92,17 @@ export default {
     },
   },
   methods: {
+    ...mapMutations({
+      updateAnswers: "assessment/updateAnswers",
+    }),
     ...mapActions({
       createAnswer: "assessment/createAnswer",
       deleteAnswer: "assessment/deleteAnswer",
     }),
-    cloneValue() {
-      return clone(this.value);
-    },
     async handleAddAnswer(question) {
       // POST ANSWER
       try {
-        const response = await this.createAnswer([
+        await this.createAnswer([
           this.experiment_id,
           this.condition_id,
           this.treatment_id,
@@ -120,18 +112,12 @@ export default {
           false,
           0,
         ]);
-        if (!question.answers) {
-          question.answers = [];
-        }
-        question.answers.push(clone(response.data));
-        this.emitValueChanged();
       } catch (error) {
         console.error(error);
       }
     },
     handleToggleCorrect(answer) {
-      answer.correct = !answer.correct;
-      this.emitValueChanged();
+      this.updateAnswers({ ...answer, correct: !answer.correct });
     },
     async handleDeleteAnswer(q, a) {
       // DELETE ANSWER
@@ -144,23 +130,13 @@ export default {
           q.questionId,
           a.answerId,
         ]);
-        const answerIndex = q.answers.findIndex(
-          (answer) => answer.answerId === a.answerId
-        );
-        q.answers.splice(answerIndex, 1);
-        this.emitValueChanged();
       } catch (error) {
         console.error("handleDeleteAnswer | catch", { error });
         this.$swal("there was a problem deleting the answer");
       }
     },
-    emitValueChanged() {
-      this.$emit("input", this.question);
-    },
-  },
-  watch: {
-    value() {
-      this.question = this.cloneValue();
+    updateAnswerHtml(answer, value) {
+      this.updateAnswers({ ...answer, html: value });
     },
   },
 };

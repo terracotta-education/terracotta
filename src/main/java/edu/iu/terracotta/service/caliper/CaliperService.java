@@ -5,6 +5,7 @@ import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.model.app.Assessment;
 import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.Submission;
+import edu.iu.terracotta.model.app.dto.media.MediaEventDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import org.imsglobal.caliper.Envelope;
 
@@ -19,6 +20,8 @@ public interface CaliperService {
     void sendAssignmentSubmitted(Submission submission, SecuredInfo securedInfo);
 
     void sendAssignmentRestarted(Submission submission, SecuredInfo securedInfo);
+
+    void sendMediaEvent(MediaEventDto mediaEventDto, Participant participant, SecuredInfo securedInfo, Submission submission, Long questionId);
 
     void sendNavigationEvent(Participant participant, String whereTo, SecuredInfo securedInfo);
 
@@ -35,4 +38,4 @@ public interface CaliperService {
                           String canvasUserName);
 
 
-    }
+}
