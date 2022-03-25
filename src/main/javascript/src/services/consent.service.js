@@ -27,13 +27,31 @@ function create(experiment_id, consent) {
   formData.append('consent', consent.file);
 
   // Axios was required for correct formData boundary
-  return axios
-    .post(
-      `${store.getters['api/aud']}/api/experiments/${experiment_id}/consent?title=${consent.title}`,
-      formData,
-      requestOptions
-    )
-    .then(handleResponse)
+  return (
+    axios
+      .post(
+        `${store.getters["api/aud"]}/api/experiments/${experiment_id}/consent?title=${consent.title}`,
+        formData,
+        requestOptions
+      )
+      // can't use handleResponse here since this is the Axios API, not Fetch API
+      .then((response) => {
+        return {
+          status: response.status,
+          message: response.statusText,
+        };
+      })
+      .catch((error) => {
+        if (error.response) {
+          return {
+            status: error.response.status,
+            message: error.response.statusText,
+          };
+        } else {
+          throw error; // re-raise error, something unexpected happened
+        }
+      })
+  );
 }
 
 /**

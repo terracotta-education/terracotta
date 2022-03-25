@@ -56,13 +56,13 @@ export default {
     },
     createFile(file) {
       if (!file.type.match('application/pdf')) {
-        alert('please select a pdf file');
+        this.$swal('Please select a pdf file.');
         this.dragging = false;
         return;
       }
 
-      if (file.size > 500000000) {
-        alert('please check file size no over 500 MB.')
+      if (file.size > 10*1024*1024) {
+        this.$swal('Please check file size is not over 10 MB.')
         this.dragging = false;
         return;
       }
