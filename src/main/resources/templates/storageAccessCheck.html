@@ -1,0 +1,80 @@
+<!--
+
+    Copyright 2021 Unicon (R)
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+-->
+<!DOCTYPE html>
+<!--suppress CheckEmptyScriptTag -->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.thymeleaf.org "
+      xml:lang="en">
+<head>
+    <title>Check for Storage Access</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <!-- <link rel="stylesheet" type="text/css" th:href="@{/css/bootstrap.min.css}"/>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/style.css}"/> -->
+</head>
+<body>
+
+<a id="requestStorageAccess" href="#" hidden>Launch Assignment</a>
+
+<script th:inline="javascript">
+    const url = [[${oicdEndpointComplete}]];
+    const targetLinkUri = [[${targetLinkUri}]];
+
+    function redirect() {
+
+        window.location.replace(url);
+    }
+
+    function requestStorageAccess(event) {
+        event.preventDefault();
+        document.requestStorageAccess().then(() => {
+            // redirect();
+            // TODO: This works but prompts for whether it is okay to re-POST
+            window.location.reload();
+        }).catch(() => {
+            console.error("Request storage access failed!");
+            // TODO: maybe display a message before redirecting to Terracotta
+            requestFullWindowLaunch();
+        })
+    }
+
+    function requestFullWindowLaunch() {
+
+        window.parent.postMessage({subject: "requestFullWindowLaunch", 
+            // data: `https://dev5.terracotta.education/oidc/login_initiations?iss=${initiation_dto.iss}&login_hint=${initiation_dto}})
+            data: targetLinkUri,
+        }, '*');
+    }
+
+    const $requestStorageAccess = document.getElementById('requestStorageAccess');
+    $requestStorageAccess.addEventListener('click', requestStorageAccess);
+
+    if (document.hasStorageAccess) {
+        document.hasStorageAccess().then((hasStorageAccess) => {
+            if (hasStorageAccess) {
+                redirect();
+            } else {
+                $requestStorageAccess.hidden = false;
+                console.log("Does not have storage access");
+            }
+        }).catch((error) => {
+            console.error(error);
+        })
+    } else {
+        redirect();
+    }
+</script>
+
+</body>
+</html>

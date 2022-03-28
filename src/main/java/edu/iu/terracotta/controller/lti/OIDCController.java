@@ -184,7 +184,12 @@ public class OIDCController {
             session.setAttribute("lti_nonce", nonceList);
             // Once all is added to the session, and we have the data ready for the html template, we redirect
             if (!ltiDataService.getDemoMode()) {
-                return "redirect:" + parameters.get("oicdEndpointComplete");
+                // storageAccessCheck will immediately do the redirect to
+                // 'oicdEndpointComplete' unless the iframe doesn't have storage
+                // access to the cookies belonging to Terracotta's domain
+                model.addAttribute("oicdEndpointComplete", parameters.get("oicdEndpointComplete"));
+                model.addAttribute("targetLinkUri", loginInitiationDTO.getTargetLinkUri());
+                return "storageAccessCheck";
             } else {
                 return "oicdRedirect";
             }
