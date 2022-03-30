@@ -301,7 +301,13 @@ public class FileStorageServiceImpl implements FileStorageService {
             try {
                 Optional<AssignmentExtended> assignment = canvasAPIClient.createCanvasAssignment(canvasAssignment,canvasCourseId, experiment.getPlatformDeployment());
                 consentDocument.setLmsAssignmentId(Integer.toString(assignment.get().getId()));
-                consentDocument.setResourceLinkId(assignment.get().getExternalToolTagAttributes().getResourceLinkId());
+                // consentDocument.setResourceLinkId(assignment.get().getExternalToolTagAttributes().getResourceLinkId());
+                // log.debug("getExternalToolTagAttributes().getResourceLinkId()={}", assignment.get().getExternalToolTagAttributes().getResourceLinkId());
+                // This seems to be a more accurate way to get the resourceLinkId
+                String jwtTokenAssignment = assignment.get().getSecureParams();
+                String resourceLinkId = apijwtService.unsecureToken(jwtTokenAssignment).getBody().get("lti_assignment_id").toString();
+                log.debug("jwtTokenAssignment lti_assignment_id = {}", resourceLinkId);
+                consentDocument.setResourceLinkId(resourceLinkId);
             } catch (CanvasApiException e) {
                 log.error("Create the assignment failed");
                 e.printStackTrace();
