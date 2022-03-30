@@ -359,7 +359,6 @@ public class SubmissionServiceImpl implements SubmissionService {
         LTIToken ltiTokenScore = advantageAGSService.getToken("scores", experiment.getPlatformDeployment());
         LTIToken ltiTokenResults = advantageAGSService.getToken("results", experiment.getPlatformDeployment());
         //find the right id to pass based on the assignment
-        advantageAGSService.getToken("", experiment.getPlatformDeployment());
         String lineitemId = assignmentService.lineItemId(assignment);
         LTIToken ltiLineItemToken = advantageAGSService.getToken("lineItem",experiment.getPlatformDeployment());
 
