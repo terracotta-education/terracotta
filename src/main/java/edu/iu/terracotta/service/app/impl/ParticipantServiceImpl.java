@@ -12,20 +12,22 @@ import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.dto.ParticipantDto;
 import edu.iu.terracotta.model.app.dto.UserDto;
 import edu.iu.terracotta.model.app.enumerator.ParticipationTypes;
+import edu.iu.terracotta.model.canvas.AssignmentExtended;
 import edu.iu.terracotta.model.membership.CourseUser;
 import edu.iu.terracotta.model.membership.CourseUsers;
 import edu.iu.terracotta.model.oauth2.LTIToken;
 import edu.iu.terracotta.model.oauth2.Roles;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.AllRepositories;
+import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.GroupService;
 import edu.iu.terracotta.service.app.ParticipantService;
+import edu.iu.terracotta.service.canvas.CanvasAPIClient;
 import edu.iu.terracotta.service.lti.AdvantageAGSService;
 import edu.iu.terracotta.service.lti.AdvantageMembershipService;
 import edu.iu.terracotta.service.lti.LTIDataService;
 import edu.iu.terracotta.utils.TextConstants;
-import edu.ksu.canvas.model.Progress;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -60,6 +62,12 @@ public class ParticipantServiceImpl implements ParticipantService {
 
     @Autowired
     AdvantageAGSService advantageAGSService;
+
+    @Autowired
+    CanvasAPIClient canvasAPIClient;
+
+    @Autowired
+    APIJWTService apijwtService;
 
     static final Logger log = LoggerFactory.getLogger(ParticipantServiceImpl.class);
 
@@ -503,7 +511,7 @@ public class ParticipantServiceImpl implements ParticipantService {
     }
 
     @Override
-    public void postConsentSubmission(Participant participant) throws ConnectionException, DataServiceException {
+    public void postConsentSubmission(Participant participant, SecuredInfo securedInfo) throws ConnectionException, DataServiceException {
         //We need, the assignment, and the iss configuration...
         PlatformDeployment platformDeployment = participant.getExperiment().getPlatformDeployment();
         Experiment experiment = participant.getExperiment();
@@ -516,6 +524,31 @@ public class ParticipantServiceImpl implements ParticipantService {
 
         Optional<LineItem> lineItem = lineItems.getLineItemList().stream().filter(li -> li.getResourceLinkId()
                 .equals(participant.getExperiment().getConsentDocument().getResourceLinkId())).findFirst();
+
+        // if we couldn't find lineitem, try to get the resource link id anew
+        // (This is needed because the resourceLinkId for a consent assignment
+        // wasn't accurately assigned previously)
+        if (!lineItem.isPresent()) {
+            int assignmentId = Integer.parseInt(experiment.getConsentDocument().getLmsAssignmentId());
+            try {
+                Optional<AssignmentExtended> consentAssignment = canvasAPIClient
+                        .listAssignment(securedInfo.getCanvasCourseId(), assignmentId, platformDeployment);
+                if (consentAssignment.isPresent()) {
+                    String jwtTokenAssignment = consentAssignment.get().getSecureParams();
+                    String resourceLinkId = apijwtService.unsecureToken(jwtTokenAssignment).getBody()
+                            .get("lti_assignment_id").toString();
+                    lineItem = lineItems.getLineItemList().stream().filter(li -> li.getResourceLinkId()
+                            .equals(resourceLinkId)).findFirst();
+                    // If we now have a lineitem, save it with the consent document
+                    if (lineItem.isPresent()) {
+                        experiment.getConsentDocument().setResourceLinkId(resourceLinkId);
+                        experimentService.saveConsentDocument(experiment.getConsentDocument());
+                    }
+                }
+            } catch (CanvasApiException e) {
+                throw new DataServiceException("Error 136: The assignment is not linked to any Canvas assignment");
+            }
+        }
 
         if (lineItem.isPresent()) {
             Score score = new Score();
