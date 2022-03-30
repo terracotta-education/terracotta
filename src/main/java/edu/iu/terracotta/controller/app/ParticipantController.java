@@ -1,20 +1,13 @@
 package edu.iu.terracotta.controller.app;
 
-import edu.iu.terracotta.exceptions.BadTokenException;
-import edu.iu.terracotta.exceptions.CanvasApiException;
-import edu.iu.terracotta.exceptions.DataServiceException;
-import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
-import edu.iu.terracotta.exceptions.IdInPostException;
-import edu.iu.terracotta.exceptions.InvalidUserException;
-import edu.iu.terracotta.exceptions.ParticipantAlreadyStartedException;
-import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
-import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
+import edu.iu.terracotta.exceptions.*;
 import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.dto.ParticipantDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.ParticipantService;
 import edu.iu.terracotta.service.canvas.CanvasAPIClient;
+import edu.iu.terracotta.service.lti.AdvantageAGSService;
 import edu.iu.terracotta.utils.TextConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,7 +47,7 @@ public class ParticipantController {
     APIJWTService apijwtService;
 
     @Autowired
-    CanvasAPIClient canvasAPIClient;
+    AdvantageAGSService advantageAGSService;
 
 
     @RequestMapping(value = "/{experimentId}/participants", method = RequestMethod.GET, produces = "application/json;")
@@ -147,8 +140,9 @@ public class ParticipantController {
             // 1.0 point for the consent assignment
             Participant participant = participantService.getParticipant(participantId, experimentId, securedInfo.getUserId(), true);
             try {
-                canvasAPIClient.postConsentSubmission(participant);
-            } catch (CanvasApiException | IOException e) {
+                participantService.postConsentSubmission(participant);
+
+            } catch (ConnectionException e) {
                 throw new RuntimeException("Failed to post grade to Canvas for consent submission", e);
             }
 

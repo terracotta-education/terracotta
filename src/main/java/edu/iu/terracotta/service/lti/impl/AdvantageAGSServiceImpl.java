@@ -12,6 +12,7 @@
  */
 package edu.iu.terracotta.service.lti.impl;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.helper.ExceptionMessageGenerator;
 import edu.iu.terracotta.model.LtiContextEntity;
@@ -301,14 +302,18 @@ public class AdvantageAGSServiceImpl implements AdvantageAGSService {
     }
 
     @Override
-    public Results postScore(LTIToken lTITokenScores, LTIToken lTITokenResults, LtiContextEntity context, String lineItemId, Score score) throws ConnectionException {
+    public Results postScore(LTIToken lTITokenScores, LTIToken lTITokenResults,
+                             LtiContextEntity context, String lineItemId, Score score) throws ConnectionException {
         log.debug(TextConstants.TOKEN + lTITokenScores.getAccess_token());
         try {
             RestTemplate restTemplate = advantageConnectorHelper.createRestTemplate();
             //We add the token in the request with this.
-            HttpEntity<Score> request = advantageConnectorHelper.createTokenizedRequestEntity(lTITokenScores, score);
+//            HttpEntity<Score> request = advantageConnectorHelper.createTokenizedRequestEntity(lTITokenScores, score);
             //The URL to get the course contents is stored in the context (in our database) because it came
             // from the platform when we created the link to the context, and we saved it then.
+            ObjectMapper Obj = new ObjectMapper();
+            String jsonStr = Obj.writeValueAsString(score);
+            HttpEntity<String> request = advantageConnectorHelper.createTokenizedRequestEntity(lTITokenScores, jsonStr);
             final String POST_SCORES = lineItemId + "/scores";
             log.debug("POST_SCORES -  " + POST_SCORES);
             ResponseEntity<Void> scoreGetResponse = restTemplate.exchange(POST_SCORES, HttpMethod.POST, request, Void.class);

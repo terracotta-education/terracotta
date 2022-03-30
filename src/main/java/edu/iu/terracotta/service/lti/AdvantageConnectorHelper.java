@@ -23,7 +23,7 @@ public interface AdvantageConnectorHelper {
     HttpEntity<LineItems> createTokenizedRequestEntity(LTIToken LTIToken, LineItems lineItems);
 
     // We put the token in the Authorization as a simple Bearer one.
-    HttpEntity<Score> createTokenizedRequestEntity(LTIToken LTIToken, Score score);
+    HttpEntity<String> createTokenizedRequestEntity(LTIToken LTIToken, String score);
 
     //Asking for a token. The scope will come in the scope parameter
     //The platformDeployment has the URL to ask for the token.

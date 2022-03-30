@@ -1,13 +1,10 @@
 package edu.iu.terracotta.service.app;
 
-import edu.iu.terracotta.exceptions.DataServiceException;
-import edu.iu.terracotta.exceptions.IdInPostException;
-import edu.iu.terracotta.exceptions.InvalidUserException;
-import edu.iu.terracotta.exceptions.ParticipantAlreadyStartedException;
-import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
+import edu.iu.terracotta.exceptions.*;
 import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.dto.ParticipantDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
+import edu.ksu.canvas.model.Progress;
 import org.springframework.http.HttpHeaders;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -57,4 +54,6 @@ public interface ParticipantService {
     void setAllToFalse(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException;
 
     boolean changeConsent(ParticipantDto participantDto, SecuredInfo securedInfo, Long experimentId) throws ParticipantAlreadyStartedException;
+
+    void postConsentSubmission(Participant participant) throws ConnectionException, DataServiceException;
 }
