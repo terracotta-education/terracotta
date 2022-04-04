@@ -553,8 +553,10 @@ public class ParticipantServiceImpl implements ParticipantService {
         if (lineItem.isPresent()) {
             Score score = new Score();
             score.setUserId(participant.getLtiUserEntity().getUserKey());
+            // Score the consent submission as 100% and let the platform scale
+            // the grade to the max number of points.
             score.setScoreGiven("1.0");
-            score.setScoreMaximum(lineItem.get().getScoreMaximum());
+            score.setScoreMaximum("1.0");
             score.setActivityProgress("Completed");
             score.setGradingProgress("FullyGraded");
 
