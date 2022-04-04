@@ -1,11 +1,8 @@
 package edu.iu.terracotta.controller.app;
 
 import edu.iu.terracotta.exceptions.*;
-import edu.iu.terracotta.model.PlatformDeployment;
-import edu.iu.terracotta.model.ToolDeployment;
 import edu.iu.terracotta.model.app.QuestionSubmission;
 import edu.iu.terracotta.model.app.dto.QuestionSubmissionDto;
-import edu.iu.terracotta.model.canvas.AssignmentExtended;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.APIJWTService;
@@ -30,7 +27,6 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 @Controller
 @SuppressWarnings({"rawtypes", "unchecked"})
@@ -147,33 +143,16 @@ public class QuestionSubmissionController {
                 student = true;
             }
 
-            //We find the right deployment:
-            Optional<ToolDeployment> toolDeployment = allRepositories.toolDeploymentRepository.findById(securedInfo.getPlatformDeploymentId());
-            if (toolDeployment.isPresent()) {
-                String litDeploymentId = toolDeployment.get().getLtiDeploymentId();
-                List<PlatformDeployment> platformDeploymentList = allRepositories.platformDeploymentRepository
-                        .findByToolDeployments_LtiDeploymentId(litDeploymentId);
-                if (!platformDeploymentList.isEmpty()) {
-                    PlatformDeployment platformDeployment = platformDeploymentList.get(0);
+            if (questionSubmissionService.canSubmit(securedInfo.getCanvasCourseId(), securedInfo.getCanvasAssignmentId(), securedInfo.getPlatformDeploymentId())) {
 
-                    Optional<AssignmentExtended> assignmentExtended = canvasAPIClient.listAssignment(securedInfo.getCanvasCourseId(),
-                            Integer.parseInt(securedInfo.getCanvasAssignmentId()), platformDeployment);
-                    if (assignmentExtended.isPresent()) {
-                        AssignmentExtended assignment = assignmentExtended.get();
-                        if (assignment.isCanSubmit()) {
-                            questionSubmissionService.validateAndPrepareQuestionSubmissionList(questionSubmissionDtoList, assessmentId, submissionId, student);
+                questionSubmissionService.validateAndPrepareQuestionSubmissionList(questionSubmissionDtoList, assessmentId, submissionId, student);
 
-                            List<QuestionSubmissionDto> returnedDtoList = questionSubmissionService.postQuestionSubmissions(questionSubmissionDtoList, assessmentId, submissionId, student);
-                            HttpHeaders headers = questionSubmissionService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, submissionId);
-                            return new ResponseEntity<>(returnedDtoList, headers, HttpStatus.CREATED);
+                List<QuestionSubmissionDto> returnedDtoList = questionSubmissionService.postQuestionSubmissions(questionSubmissionDtoList, assessmentId, submissionId, student);
+                HttpHeaders headers = questionSubmissionService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, submissionId);
+                return new ResponseEntity<>(returnedDtoList, headers, HttpStatus.CREATED);
 
-                        } else {
-                            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-                        }
-
-                    }
-
-                }
+            } else {
+                return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
             }
         }
         return new ResponseEntity<>(HttpStatus.NOT_FOUND);

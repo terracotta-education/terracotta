@@ -1,15 +1,7 @@
 package edu.iu.terracotta.service.app;
 
-import edu.iu.terracotta.exceptions.AnswerNotMatchingException;
-import edu.iu.terracotta.exceptions.AnswerSubmissionNotMatchingException;
-import edu.iu.terracotta.exceptions.DataServiceException;
-import edu.iu.terracotta.exceptions.DuplicateQuestionException;
-import edu.iu.terracotta.exceptions.ExceedingLimitException;
-import edu.iu.terracotta.exceptions.IdInPostException;
-import edu.iu.terracotta.exceptions.IdMissingException;
-import edu.iu.terracotta.exceptions.InvalidUserException;
-import edu.iu.terracotta.exceptions.QuestionSubmissionNotMatchingException;
-import edu.iu.terracotta.exceptions.TypeNotSupportedException;
+import edu.iu.terracotta.exceptions.*;
+import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.model.app.AnswerMcSubmission;
 import edu.iu.terracotta.model.app.QuestionSubmission;
 import edu.iu.terracotta.model.app.dto.QuestionSubmissionDto;
@@ -58,4 +50,7 @@ public interface QuestionSubmissionService {
     void validateAndPrepareQuestionSubmissionList(List<QuestionSubmissionDto> questionSubmissionDtoList, long assessmentId, long submissionId, boolean student) throws IdInPostException, DataServiceException, DuplicateQuestionException, InvalidUserException, IdMissingException, AnswerSubmissionNotMatchingException, AnswerNotMatchingException, ExceedingLimitException, TypeNotSupportedException;
 
     void validateQuestionSubmission(QuestionSubmissionDto questionSubmissionDto) throws DataServiceException;
+
+
+    boolean canSubmit(String canvasCourseId, String assignmentId, long deploymentId) throws CanvasApiException;
 }
