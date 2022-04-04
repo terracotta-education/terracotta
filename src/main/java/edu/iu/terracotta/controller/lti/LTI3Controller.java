@@ -40,6 +40,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.Principal;
 import java.util.List;
@@ -149,7 +151,8 @@ public class LTI3Controller {
                         lti3Request.getLtiCustom().getOrDefault("canvas_login_id", "Anonymous").toString(),
                         lti3Request.getLtiRoles(),
                         lti3Request.getLtiCustom().getOrDefault("canvas_user_name", "Anonymous").toString());
-                return "redirect:/app/app.html?token=" + oneTimeToken;
+                String targetLinkUri = URLEncoder.encode(lti3Request.getLtiTargetLinkUrl(), StandardCharsets.UTF_8.toString());
+                return "redirect:/app/app.html?token=" + oneTimeToken + "&targetLinkUri=" + targetLinkUri;
             }
         } catch (SignatureException ex) {
             model.addAttribute(TextConstants.ERROR, ex.getMessage());
@@ -162,5 +165,6 @@ public class LTI3Controller {
             return TextConstants.LTI3ERROR;
         }
     }
+
 
 }

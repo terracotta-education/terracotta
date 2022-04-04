@@ -5,10 +5,15 @@
 				<router-view :key="$route.fullPath"/>
 			</template>
 			<template v-else-if="hasTokens && userInfo === 'Learner'">
-				<div class="studentView mt-5">
-					<StudentConsent v-if="consent" :experimentId="experimentId" :userId="userId"></StudentConsent>
-        <StudentQuiz v-if="!consent && assignmentId" :experimentId="experimentId" :assignmentId="assignmentId" ></StudentQuiz>
-				</div>
+				<template v-if="$route.name === 'first-party'">
+					<router-view/>
+				</template>
+				<template v-else>
+					<div class="studentView mt-5">
+						<StudentConsent v-if="consent" :experimentId="experimentId" :userId="userId"></StudentConsent>
+						<StudentQuiz v-if="!consent && assignmentId" :experimentId="experimentId" :assignmentId="assignmentId" ></StudentQuiz>
+					</div>
+				</template>
 			</template>
 			<template v-else>
 				<v-row justify="center">

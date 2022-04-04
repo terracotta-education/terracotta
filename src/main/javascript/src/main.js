@@ -16,6 +16,7 @@ Vue.use(VueSweetalert2);
 const url = new URL(window.location.href);
 const params = new URLSearchParams(url.search);
 const tokenParam = params.get('token');
+const targetLinkUriParam = params.get("targetLinkUri");
 
 if (tokenParam) {
   store.dispatch('api/setLtiToken',tokenParam).then(startVue)
@@ -31,12 +32,28 @@ function startVue() {
 
   cleanURL()
 
-  new Vue({
+  const vue = new Vue({
     store,
     router,
     vuetify,
-    render: h => h(App),
-  }).$mount('#app')
+    render: (h) => h(App),
+  }).$mount("#app");
+
+  if (targetLinkUriParam) {
+    // console.log("has targetLinkUri", targetLinkUriParam);
+    const targetLinkUrl = new URL(targetLinkUriParam);
+    const targetLinkUriParams = new URLSearchParams(targetLinkUrl.search);
+    const platformRedirectUrl = targetLinkUriParams.get(
+      "platform_redirect_url"
+    );
+    if (platformRedirectUrl) {
+      // console.log('has platformRedirectUrl', platformRedirectUrl);
+      vue.$router.replace({
+        name: "first-party",
+        params: { platformRedirectUrl },
+      });
+    }
+  }
 }
 
 function cleanURL() {

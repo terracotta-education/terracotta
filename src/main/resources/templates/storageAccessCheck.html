@@ -25,7 +25,13 @@
 </head>
 <body>
 
-<a id="requestStorageAccess" href="#" hidden>Launch Assignment</a>
+<p>
+    <a id="requestStorageAccess" href="#" hidden>Launch Assignment</a>
+</p>
+
+<!-- <p>
+    <a id="fullWindow" href="#" hidden>Open Assignment in Full Window</a>
+</p> -->
 
 <script th:inline="javascript">
     const url = [[${oicdEndpointComplete}]];
@@ -52,13 +58,14 @@
     function requestFullWindowLaunch() {
 
         window.parent.postMessage({subject: "requestFullWindowLaunch", 
-            // data: `https://dev5.terracotta.education/oidc/login_initiations?iss=${initiation_dto.iss}&login_hint=${initiation_dto}})
             data: targetLinkUri,
         }, '*');
     }
 
     const $requestStorageAccess = document.getElementById('requestStorageAccess');
     $requestStorageAccess.addEventListener('click', requestStorageAccess);
+    const $fullWindow = document.getElementById('fullWindow');
+    $fullWindow.addEventListener('click', requestFullWindowLaunch);
 
     if (document.hasStorageAccess) {
         document.hasStorageAccess().then((hasStorageAccess) => {
@@ -66,6 +73,7 @@
                 redirect();
             } else {
                 $requestStorageAccess.hidden = false;
+                $fullWindow.hidden = false;
                 console.log("Does not have storage access");
             }
         }).catch((error) => {
