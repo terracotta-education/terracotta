@@ -113,6 +113,7 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
                     answerSubmissionService.postAnswerSubmission(answerSubmissionDto, questionSubmission.getQuestionSubmissionId());
                 }
             }
+
         } catch (Exception ex) {
             throw new DataServiceException("Error 105: There was an error while creating the question submissions. No question submissions or answer submissions were created: " + ex.getMessage(), ex);
         }

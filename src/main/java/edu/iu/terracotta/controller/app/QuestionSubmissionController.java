@@ -1,25 +1,17 @@
 package edu.iu.terracotta.controller.app;
 
-import edu.iu.terracotta.exceptions.AnswerNotMatchingException;
-import edu.iu.terracotta.exceptions.AnswerSubmissionNotMatchingException;
-import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
-import edu.iu.terracotta.exceptions.BadTokenException;
-import edu.iu.terracotta.exceptions.DataServiceException;
-import edu.iu.terracotta.exceptions.DuplicateQuestionException;
-import edu.iu.terracotta.exceptions.ExceedingLimitException;
-import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
-import edu.iu.terracotta.exceptions.IdInPostException;
-import edu.iu.terracotta.exceptions.IdMissingException;
-import edu.iu.terracotta.exceptions.InvalidUserException;
-import edu.iu.terracotta.exceptions.QuestionSubmissionNotMatchingException;
-import edu.iu.terracotta.exceptions.SubmissionNotMatchingException;
-import edu.iu.terracotta.exceptions.TypeNotSupportedException;
+import edu.iu.terracotta.exceptions.*;
+import edu.iu.terracotta.model.PlatformDeployment;
+import edu.iu.terracotta.model.ToolDeployment;
 import edu.iu.terracotta.model.app.QuestionSubmission;
 import edu.iu.terracotta.model.app.dto.QuestionSubmissionDto;
+import edu.iu.terracotta.model.canvas.AssignmentExtended;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
+import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.QuestionSubmissionService;
 import edu.iu.terracotta.service.app.SubmissionService;
+import edu.iu.terracotta.service.canvas.CanvasAPIClient;
 import edu.iu.terracotta.utils.TextConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,18 +22,15 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.HttpServletRequest;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Controller
 @SuppressWarnings({"rawtypes", "unchecked"})
@@ -59,6 +48,13 @@ public class QuestionSubmissionController {
 
     @Autowired
     SubmissionService submissionService;
+
+
+    @Autowired
+    AllRepositories allRepositories;
+
+    @Autowired
+    CanvasAPIClient canvasAPIClient;
 
 
     @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}/question_submissions",
@@ -80,7 +76,7 @@ public class QuestionSubmissionController {
         apijwtService.submissionAllowed(securedInfo, assessmentId, submissionId);
 
         if (apijwtService.isLearnerOrHigher(securedInfo)) {
-            if(!apijwtService.isInstructorOrHigher(securedInfo)){
+            if (!apijwtService.isInstructorOrHigher(securedInfo)) {
                 submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
             }
             List<QuestionSubmissionDto> questionSubmissionList = questionSubmissionService.getQuestionSubmissions(submissionId, answerSubmissions, questionSubmissionComments);
@@ -106,7 +102,7 @@ public class QuestionSubmissionController {
                                                                        @RequestParam(name = "answer_submissions", defaultValue = "false") boolean answerSubmissions,
                                                                        @RequestParam(name = "question_submission_comments", defaultValue = "false") boolean questionSubmissionComments,
                                                                        HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, BadTokenException, InvalidUserException{
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, BadTokenException, InvalidUserException {
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -114,7 +110,7 @@ public class QuestionSubmissionController {
         apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, questionSubmissionId);
 
         if (apijwtService.isLearnerOrHigher(securedInfo)) {
-            if(!apijwtService.isInstructorOrHigher(securedInfo)){
+            if (!apijwtService.isInstructorOrHigher(securedInfo)) {
                 submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
             }
             QuestionSubmissionDto questionSubmissionDto = questionSubmissionService.toDto(questionSubmissionService.getQuestionSubmission(questionSubmissionId), answerSubmissions, questionSubmissionComments);
@@ -128,14 +124,16 @@ public class QuestionSubmissionController {
     @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}/question_submissions",
             method = RequestMethod.POST)
     public ResponseEntity<List<QuestionSubmissionDto>> postQuestionSubmission(@PathVariable("experiment_id") Long experimentId,
-                                                                        @PathVariable("condition_id") Long conditionId,
-                                                                        @PathVariable("treatment_id") Long treatmentId,
-                                                                        @PathVariable("assessment_id") Long assessmentId,
-                                                                        @PathVariable("submission_id") Long submissionId,
-                                                                        @RequestBody List<QuestionSubmissionDto> questionSubmissionDtoList,
-                                                                        UriComponentsBuilder ucBuilder,
-                                                                        HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, SubmissionNotMatchingException, BadTokenException, InvalidUserException, DataServiceException, DuplicateQuestionException, IdMissingException, IdInPostException, TypeNotSupportedException, ExceedingLimitException, AnswerSubmissionNotMatchingException, AnswerNotMatchingException {
+                                                                              @PathVariable("condition_id") Long conditionId,
+                                                                              @PathVariable("treatment_id") Long treatmentId,
+                                                                              @PathVariable("assessment_id") Long assessmentId,
+                                                                              @PathVariable("submission_id") Long submissionId,
+                                                                              @RequestBody List<QuestionSubmissionDto> questionSubmissionDtoList,
+                                                                              UriComponentsBuilder ucBuilder,
+                                                                              HttpServletRequest req)
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, SubmissionNotMatchingException, BadTokenException,
+            InvalidUserException, DataServiceException, DuplicateQuestionException, IdMissingException, IdInPostException,
+            TypeNotSupportedException, ExceedingLimitException, AnswerSubmissionNotMatchingException, AnswerNotMatchingException, CanvasApiException, IOException {
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -144,17 +142,41 @@ public class QuestionSubmissionController {
 
         if (apijwtService.isLearnerOrHigher(securedInfo)) {
             boolean student = false;
-            if(!apijwtService.isInstructorOrHigher(securedInfo)){
+            if (!apijwtService.isInstructorOrHigher(securedInfo)) {
                 submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
                 student = true;
             }
-            questionSubmissionService.validateAndPrepareQuestionSubmissionList(questionSubmissionDtoList, assessmentId, submissionId, student);
-            List<QuestionSubmissionDto> returnedDtoList = questionSubmissionService.postQuestionSubmissions(questionSubmissionDtoList, assessmentId, submissionId, student);
-            HttpHeaders headers = questionSubmissionService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, submissionId);
-            return new ResponseEntity<>(returnedDtoList, headers, HttpStatus.CREATED);
-        } else {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
+
+            //We find the right deployment:
+            Optional<ToolDeployment> toolDeployment = allRepositories.toolDeploymentRepository.findById(securedInfo.getPlatformDeploymentId());
+            if (toolDeployment.isPresent()) {
+                String litDeploymentId = toolDeployment.get().getLtiDeploymentId();
+                List<PlatformDeployment> platformDeploymentList = allRepositories.platformDeploymentRepository
+                        .findByToolDeployments_LtiDeploymentId(litDeploymentId);
+                if (!platformDeploymentList.isEmpty()) {
+                    PlatformDeployment platformDeployment = platformDeploymentList.get(0);
+
+                    Optional<AssignmentExtended> assignmentExtended = canvasAPIClient.listAssignment(securedInfo.getCanvasCourseId(),
+                            Integer.parseInt(securedInfo.getCanvasAssignmentId()), platformDeployment);
+                    if (assignmentExtended.isPresent()) {
+                        AssignmentExtended assignment = assignmentExtended.get();
+                        if (assignment.isCanSubmit()) {
+                            questionSubmissionService.validateAndPrepareQuestionSubmissionList(questionSubmissionDtoList, assessmentId, submissionId, student);
+
+                            List<QuestionSubmissionDto> returnedDtoList = questionSubmissionService.postQuestionSubmissions(questionSubmissionDtoList, assessmentId, submissionId, student);
+                            HttpHeaders headers = questionSubmissionService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, submissionId);
+                            return new ResponseEntity<>(returnedDtoList, headers, HttpStatus.CREATED);
+
+                        } else {
+                            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
+                        }
+
+                    }
+
+                }
+            }
         }
+        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
 
@@ -168,7 +190,7 @@ public class QuestionSubmissionController {
                                                          @PathVariable("question_submission_id") Long questionSubmissionId,
                                                          @RequestBody QuestionSubmissionDto questionSubmissionDto,
                                                          HttpServletRequest req)
-                throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, BadTokenException, InvalidUserException, DataServiceException, AnswerNotMatchingException, AnswerSubmissionNotMatchingException, IdMissingException {
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, BadTokenException, InvalidUserException, DataServiceException, AnswerNotMatchingException, AnswerSubmissionNotMatchingException, IdMissingException {
 
         log.debug("Updating question submission with id {}", questionSubmissionId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
@@ -176,9 +198,9 @@ public class QuestionSubmissionController {
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
         apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, questionSubmissionId);
 
-        if(apijwtService.isLearnerOrHigher(securedInfo)) {
+        if (apijwtService.isLearnerOrHigher(securedInfo)) {
             boolean student = false;
-            if(!apijwtService.isInstructorOrHigher(securedInfo)){
+            if (!apijwtService.isInstructorOrHigher(securedInfo)) {
                 submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
                 student = true;
             }
@@ -195,7 +217,7 @@ public class QuestionSubmissionController {
 
 
     @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}/question_submissions",
-                    method = RequestMethod.PUT)
+            method = RequestMethod.PUT)
     public ResponseEntity<Void> updateQuestionSubmissions(@PathVariable("experiment_id") Long experimentId,
                                                           @PathVariable("condition_id") Long conditionId,
                                                           @PathVariable("treatment_id") Long treatmentId,
@@ -203,30 +225,30 @@ public class QuestionSubmissionController {
                                                           @PathVariable("submission_id") Long submissionId,
                                                           @RequestBody List<QuestionSubmissionDto> questionSubmissionDtoList,
                                                           HttpServletRequest req)
-                throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, DataServiceException, BadTokenException, InvalidUserException, AnswerNotMatchingException {
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, DataServiceException, BadTokenException, InvalidUserException, AnswerNotMatchingException {
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
 
-        if(apijwtService.isLearnerOrHigher(securedInfo)){
+        if (apijwtService.isLearnerOrHigher(securedInfo)) {
             boolean student = false;
-            if(!apijwtService.isInstructorOrHigher(securedInfo)){
+            if (!apijwtService.isInstructorOrHigher(securedInfo)) {
                 submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
                 student = true;
             }
             Map<QuestionSubmission, QuestionSubmissionDto> map = new HashMap<>();
-            for(QuestionSubmissionDto questionSubmissionDto : questionSubmissionDtoList) {
+            for (QuestionSubmissionDto questionSubmissionDto : questionSubmissionDtoList) {
                 apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, questionSubmissionDto.getQuestionSubmissionId());
                 QuestionSubmission questionSubmission = questionSubmissionService.getQuestionSubmission(questionSubmissionDto.getQuestionSubmissionId());
                 log.debug("Updating question submission with id: {}", questionSubmission.getQuestionSubmissionId());
                 questionSubmissionService.validateQuestionSubmission(questionSubmissionDto);
                 map.put(questionSubmission, questionSubmissionDto);
             }
-            try{
+            try {
                 questionSubmissionService.updateQuestionSubmissions(map, student);
                 return new ResponseEntity<>(HttpStatus.OK);
-            } catch(Exception ex) {
+            } catch (Exception ex) {
                 throw new DataServiceException("Error 105: There was an error updating the question submission list. No question submissions were updated. " + ex.getMessage());
             }
         } else {
@@ -236,7 +258,7 @@ public class QuestionSubmissionController {
 
 
     @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}/question_submissions/{question_submission_id}",
-                    method = RequestMethod.DELETE)
+            method = RequestMethod.DELETE)
     public ResponseEntity<Void> deleteQuestionSubmission(@PathVariable("experiment_id") Long experimentId,
                                                          @PathVariable("condition_id") Long conditionId,
                                                          @PathVariable("treatment_id") Long treatmentId,
@@ -244,15 +266,15 @@ public class QuestionSubmissionController {
                                                          @PathVariable("submission_id") Long submissionId,
                                                          @PathVariable("question_submission_id") Long questionSubmissionId,
                                                          HttpServletRequest req)
-                throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, BadTokenException {
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, BadTokenException {
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
         apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, questionSubmissionId);
 
-        if(apijwtService.isInstructorOrHigher(securedInfo)){
-            try{
+        if (apijwtService.isInstructorOrHigher(securedInfo)) {
+            try {
                 questionSubmissionService.deleteById(questionSubmissionId);
                 return new ResponseEntity<>(HttpStatus.OK);
             } catch (EmptyResultDataAccessException ex) {
