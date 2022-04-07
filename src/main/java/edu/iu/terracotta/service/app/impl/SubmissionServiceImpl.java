@@ -374,7 +374,8 @@ public class SubmissionServiceImpl implements SubmissionService {
         } else {
             score.setScoreGiven(submission.getAlteredCalculatedGrade().toString());
         }
-        score.setScoreMaximum(lineItem.getScoreMaximum());
+        Float maxTerracottaScore = assessmentService.calculateMaxScore(submission.getAssessment());
+        score.setScoreMaximum(maxTerracottaScore.toString());
         score.setActivityProgress("Completed");
         score.setGradingProgress("FullyGraded");
 
