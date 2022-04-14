@@ -187,6 +187,7 @@ public class OIDCController {
                 // storageAccessCheck will immediately do the redirect to
                 // 'oicdEndpointComplete' unless the iframe doesn't have storage
                 // access to the cookies belonging to Terracotta's domain
+                model.addAttribute("initiation_dto", loginInitiationDTO);
                 model.addAttribute("oicdEndpointComplete", parameters.get("oicdEndpointComplete"));
                 model.addAttribute("targetLinkUri", loginInitiationDTO.getTargetLinkUri());
                 return "storageAccessCheck";

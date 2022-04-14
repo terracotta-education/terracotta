@@ -29,30 +29,47 @@
     <a id="requestStorageAccess" href="#" hidden>Launch Assignment</a>
 </p>
 
-<!-- <p>
-    <a id="fullWindow" href="#" hidden>Open Assignment in Full Window</a>
-</p> -->
+
+<form id="loginForm" action="/oidc/login_initiations" method="post" hidden>
+    <div class="form-group">
+        <label for="iss">iss:</label>
+        <input type="text" id="iss" name="iss" th:value="${initiation_dto.iss}" class="form-control"/>
+    </div>
+    <div class="form-group">
+        <label for="login_hint">login_hint:</label>
+        <input type="text" id="login_hint" name="login_hint" th:value="${initiation_dto.loginHint}" class="form-control"/>
+    </div>
+    <div class="form-group">
+        <label for="target_link_uri">target_link_uri:</label>
+        <input type="text" id="target_link_uri" name="target_link_uri" th:value="${initiation_dto.targetLinkUri}" class="form-control"/>
+    </div>
+    <div class="form-group">
+        <label for="lti_message_hint">lti_message_hint:</label>
+        <input type="text" id="lti_message_hint" name="lti_message_hint" th:value="${initiation_dto.ltiMessageHint}" class="form-control"/>
+    </div>
+    <div class="form-group">
+        <label for="client_id">client_id:</label>
+        <input type="text" id="client_id" name="client_id" th:value="${initiation_dto.clientId}" class="form-control"/>
+    </div>
+    <div class="form-group" th:if="${not #strings.isEmpty(initiation_dto.deploymentId)}">
+        <label for="lti_deployment_id">lti_deployment_id:</label>
+        <input type="text" id="lti_deployment_id" name="lti_deployment_id" th:value="${initiation_dto.deploymentId}" class="form-control"/>
+    </div>
+    <input type="submit" value="Submit" class="btn btn-primary">
+</form>
 
 <script th:inline="javascript">
     const url = [[${oicdEndpointComplete}]];
     const targetLinkUri = [[${targetLinkUri}]];
 
-    function redirect() {
+    function continueOIDCLogin() {
 
         window.location.replace(url);
     }
 
-    function requestStorageAccess(event) {
-        event.preventDefault();
-        document.requestStorageAccess().then(() => {
-            // redirect();
-            // TODO: This works but prompts for whether it is okay to re-POST
-            window.location.reload();
-        }).catch(() => {
-            console.error("Request storage access failed!");
-            // TODO: maybe display a message before redirecting to Terracotta
-            requestFullWindowLaunch();
-        })
+    function restartLoginProcess() {
+
+        document.getElementById("loginForm").submit();
     }
 
     function requestFullWindowLaunch() {
@@ -62,25 +79,39 @@
         }, '*');
     }
 
+
+    function requestStorageAccess(event) {
+        event.preventDefault();
+        document.requestStorageAccess().then(() => {
+            // Since we only now have storage access, restart the login process
+            // so that terracotta server can set a cookie for the session
+            restartLoginProcess();
+        }).catch(() => {
+            console.error("Request storage access failed!");
+            // TODO: maybe display a message before redirecting to Terracotta?
+
+            // This happens on Safari when there is no first-party interaction,
+            // so we'll redirect to Terracotta for a first-party interaction
+            requestFullWindowLaunch();
+        })
+    }
+
     const $requestStorageAccess = document.getElementById('requestStorageAccess');
     $requestStorageAccess.addEventListener('click', requestStorageAccess);
-    const $fullWindow = document.getElementById('fullWindow');
-    $fullWindow.addEventListener('click', requestFullWindowLaunch);
 
     if (document.hasStorageAccess) {
         document.hasStorageAccess().then((hasStorageAccess) => {
             if (hasStorageAccess) {
-                redirect();
+                continueOIDCLogin();
             } else {
                 $requestStorageAccess.hidden = false;
-                $fullWindow.hidden = false;
                 console.log("Does not have storage access");
             }
         }).catch((error) => {
             console.error(error);
         })
     } else {
-        redirect();
+        continueOIDCLogin();
     }
 </script>
 
