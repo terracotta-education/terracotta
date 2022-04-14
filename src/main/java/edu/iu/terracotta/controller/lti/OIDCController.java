@@ -195,6 +195,7 @@ public class OIDCController {
                 return "oicdRedirect";
             }
         } catch (Exception ex) {
+            log.error("Failed creating OIDC request", ex);
             model.addAttribute(TextConstants.ERROR, ex.getMessage());
             return TextConstants.LTI3ERROR;
         }
