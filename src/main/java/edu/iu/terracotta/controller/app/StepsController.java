@@ -68,7 +68,10 @@ public class StepsController {
     public ResponseEntity<Object> postStep(@PathVariable("experiment_id") Long experimentId,
                                            @RequestBody StepDto stepDto,
                                            HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, DataServiceException, ParticipantNotUpdatedException, ExperimentStartedException, ConnectionException, CanvasApiException, IOException, AssignmentDatesException, AssessmentNotMatchingException, GroupNotMatchingException, ParticipantNotMatchingException, SubmissionNotMatchingException {
+            throws ExperimentNotMatchingException, BadTokenException, DataServiceException,
+            ParticipantNotUpdatedException, ExperimentStartedException, ConnectionException, CanvasApiException,
+            IOException, AssignmentDatesException, AssessmentNotMatchingException, GroupNotMatchingException,
+            ParticipantNotMatchingException, SubmissionNotMatchingException {
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -107,7 +110,7 @@ public class StepsController {
                 }
 
                 if (questionSubmissionService.canSubmit(securedInfo.getCanvasCourseId(),
-                        securedInfo.getCanvasAssignmentId(), securedInfo.getPlatformDeploymentId())) {
+                        securedInfo.getCanvasAssignmentId(), securedInfo.getCanvasUserId(), securedInfo.getPlatformDeploymentId())) {
                     if (apijwtService.isLearner(securedInfo) && !apijwtService.isInstructorOrHigher(securedInfo)) {
                         if (submissionsId.size() > 1) {
                             return new ResponseEntity<>(TextConstants.SUBMISSION_IDS_MISSING, HttpStatus.BAD_REQUEST);
@@ -157,7 +160,13 @@ public class StepsController {
             case LAUNCH_ASSIGNMENT:
                 //Validate permissions.
                 if (apijwtService.isLearner(securedInfo) && !apijwtService.isInstructorOrHigher(securedInfo)) {
-                    return assignmentService.launchAssignment(experimentId, securedInfo);
+
+                    if (questionSubmissionService.canSubmit(securedInfo.getCanvasCourseId(),
+                            securedInfo.getCanvasAssignmentId(), securedInfo.getCanvasUserId(), securedInfo.getPlatformDeploymentId())) {
+                        return assignmentService.launchAssignment(experimentId, securedInfo);
+                    } else {
+                        return new ResponseEntity<>(TextConstants.MAX_SUBMISSION_ATTEMPTS_REACHED, HttpStatus.UNAUTHORIZED);
+                    }
                 } else {
                     return new ResponseEntity<>(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
                 }

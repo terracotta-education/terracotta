@@ -23,6 +23,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -307,7 +308,8 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
     }
 
     @Override
-    public boolean canSubmit(String canvasCourseId, String assignmentId, long deploymentId) throws CanvasApiException {
+    public boolean canSubmit(String canvasCourseId, String assignmentId, String canvasUserId, long deploymentId) throws CanvasApiException,
+            IOException {
         //We find the right deployment:
         Optional<ToolDeployment> toolDeployment = allRepositories.toolDeploymentRepository.findById(deploymentId);
         if (toolDeployment.isPresent()) {
@@ -319,9 +321,18 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
 
                 Optional<AssignmentExtended> assignmentExtended = canvasAPIClient.listAssignment(canvasCourseId,
                         Integer.parseInt(assignmentId), platformDeployment);
-                if (assignmentExtended.isPresent()) {
+                List<edu.ksu.canvas.model.assignment.Submission> submissionsList = canvasAPIClient.listSubmissions(Integer.parseInt(assignmentId),
+                        canvasCourseId, platformDeployment);
+
+                Optional<edu.ksu.canvas.model.assignment.Submission> submission = submissionsList.stream().filter(sub -> sub.getUser().getId() == Integer.parseInt(canvasUserId)).findFirst();
+                if (assignmentExtended.isPresent() && submission.isPresent()) {
                     AssignmentExtended assignment = assignmentExtended.get();
-                    return assignment.isCanSubmit();
+                    int allowedAttempts = assignment.getAllowedAttempts();
+                    int attempt = submission.get().getAttempt();
+                    if (attempt < allowedAttempts) {
+                        return true;
+                    }
+
                 }
             }
         }

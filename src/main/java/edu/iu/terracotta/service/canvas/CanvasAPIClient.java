@@ -19,6 +19,8 @@ public interface CanvasAPIClient {
 
     List<Submission> listSubmissions(Integer assignmentId, String canvasCourseId, PlatformDeployment platformDeployment) throws CanvasApiException, IOException;
 
+    List<Submission> listSubmissionsForGivenUser(Integer assignmentId, String canvasCourseId, String canvasUserId, PlatformDeployment platformDeployment) throws CanvasApiException, IOException;
+
     Optional<AssignmentExtended> checkAssignmentExists(Integer assignmentId, String canvasCourseId, PlatformDeployment platformDeployment) throws CanvasApiException;
 
     Optional<AssignmentExtended> listAssignment(String canvasCourseId, int assignmentId, PlatformDeployment platformDeployment) throws CanvasApiException;

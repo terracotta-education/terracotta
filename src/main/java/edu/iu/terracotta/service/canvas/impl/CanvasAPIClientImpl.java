@@ -7,7 +7,9 @@ import edu.iu.terracotta.model.canvas.AssignmentExtended;
 import edu.iu.terracotta.service.canvas.AssignmentReaderExtended;
 import edu.iu.terracotta.service.canvas.AssignmentWriterExtended;
 import edu.iu.terracotta.service.canvas.CanvasAPIClient;
+import edu.iu.terracotta.service.canvas.SubmissionReaderExtended;
 import edu.ksu.canvas.exception.ObjectNotFoundException;
+import edu.ksu.canvas.impl.SubmissionImpl;
 import edu.ksu.canvas.interfaces.SubmissionReader;
 import edu.ksu.canvas.interfaces.SubmissionWriter;
 import edu.ksu.canvas.model.Progress;
@@ -22,10 +24,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 
 @Service
@@ -115,6 +114,19 @@ public class CanvasAPIClientImpl implements CanvasAPIClient {
         OauthToken oauthToken = new NonRefreshableOauthToken(platformDeployment.getApiToken());
         CanvasApiFactoryExtended apiFactory = new CanvasApiFactoryExtended(canvasBaseUrl);
         SubmissionReader submissionReader = apiFactory.getReader(SubmissionReader.class, oauthToken);
+        GetSubmissionsOptions submissionsOptions = new GetSubmissionsOptions(canvasCourseId, assignmentId);
+        submissionsOptions.includes(Collections.singletonList(GetSubmissionsOptions.Include.USER));
+        return submissionReader.getCourseSubmissions(submissionsOptions);
+    }
+
+
+    @Override
+    public List<Submission> listSubmissionsForGivenUser(Integer assignmentId, String canvasCourseId, String canvasUserId,
+                                                        PlatformDeployment platformDeployment) throws CanvasApiException, IOException {
+        String canvasBaseUrl = platformDeployment.getBaseUrl();
+        OauthToken oauthToken = new NonRefreshableOauthToken(platformDeployment.getApiToken());
+        CanvasApiFactoryExtended apiFactory = new CanvasApiFactoryExtended(canvasBaseUrl);
+        SubmissionImpl submissionReader = apiFactory.getReader(SubmissionImpl.class, oauthToken);
         GetSubmissionsOptions submissionsOptions = new GetSubmissionsOptions(canvasCourseId, assignmentId);
         submissionsOptions.includes(Collections.singletonList(GetSubmissionsOptions.Include.USER));
         return submissionReader.getCourseSubmissions(submissionsOptions);

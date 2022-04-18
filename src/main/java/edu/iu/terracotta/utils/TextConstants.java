@@ -61,5 +61,6 @@ public class TextConstants {
     public static final String GROUP_PENDING = "Error 115: Group_Pending: The student has not been assigned to a group";
     public static final String ASSIGNMENT_LOCKED = "Error 116: The assignment is not open at this moment";
     public static final String LIMIT_OF_SUBMISSIONS_REACHED ="Error 117: You can't answer this assignment again";
+    public static final String MAX_SUBMISSION_ATTEMPTS_REACHED = "Error 118: Max submission attempts already reached";
 
 }

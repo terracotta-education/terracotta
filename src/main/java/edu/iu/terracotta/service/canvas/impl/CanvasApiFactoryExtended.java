@@ -2,6 +2,7 @@ package edu.iu.terracotta.service.canvas.impl;
 
 import edu.iu.terracotta.service.canvas.AssignmentReaderExtended;
 import edu.iu.terracotta.service.canvas.AssignmentWriterExtended;
+import edu.iu.terracotta.service.canvas.SubmissionReaderExtended;
 import edu.ksu.canvas.CanvasApiFactory;
 import edu.ksu.canvas.impl.*;
 import edu.ksu.canvas.interfaces.*;
@@ -43,13 +44,13 @@ public class CanvasApiFactoryExtended {
     }
 
     public <T extends CanvasReader> T getReader(Class<T> type, OauthToken oauthToken) {
-        return this.getReader(type, oauthToken, (Integer)null);
+        return this.getReader(type, oauthToken, (Integer) null);
     }
 
     public <T extends CanvasReader> T getReader(Class<T> type, OauthToken oauthToken, Integer paginationPageSize) {
         LOG.debug("Factory call to instantiate class: " + type.getName());
         RestClient restClient = new RefreshingRestClient();
-        Class<T> concreteClass = (Class)this.readerMap.get(type);
+        Class<T> concreteClass = (Class) this.readerMap.get(type);
         if (concreteClass == null) {
             throw new UnsupportedOperationException("No implementation for requested interface found: " + type.getName());
         } else {
@@ -71,7 +72,7 @@ public class CanvasApiFactoryExtended {
     public <T extends CanvasWriter> T getWriter(Class<T> type, OauthToken oauthToken, Boolean serializeNulls) {
         LOG.debug("Factory call to instantiate class: " + type.getName());
         RestClient restClient = new RefreshingRestClient();
-        Class<T> concreteClass = (Class)this.writerMap.get(type);
+        Class<T> concreteClass = (Class) this.writerMap.get(type);
         if (concreteClass == null) {
             throw new UnsupportedOperationException("No implementation for requested interface found: " + type.getName());
         } else {
@@ -107,6 +108,7 @@ public class CanvasApiFactoryExtended {
         this.readerMap.put(PageReader.class, PageImpl.class);
         this.readerMap.put(EnrollmentTermReader.class, EnrollmentTermImpl.class);
         this.readerMap.put(SubmissionReader.class, SubmissionImpl.class);
+        this.readerMap.put(SubmissionReaderExtended.class, SubmissionExtendedImpl.class);
         this.readerMap.put(AssignmentGroupReader.class, AssignmentGroupImpl.class);
         this.readerMap.put(RoleReader.class, RoleImpl.class);
         this.readerMap.put(ExternalToolReader.class, ExternalToolImpl.class);

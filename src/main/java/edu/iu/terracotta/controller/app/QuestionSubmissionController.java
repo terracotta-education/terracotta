@@ -143,7 +143,8 @@ public class QuestionSubmissionController {
                 student = true;
             }
 
-            if (questionSubmissionService.canSubmit(securedInfo.getCanvasCourseId(), securedInfo.getCanvasAssignmentId(), securedInfo.getPlatformDeploymentId())) {
+            if (questionSubmissionService.canSubmit(securedInfo.getCanvasCourseId(), securedInfo.getCanvasAssignmentId(),securedInfo.getCanvasUserId(),
+                    securedInfo.getPlatformDeploymentId())) {
 
                 questionSubmissionService.validateAndPrepareQuestionSubmissionList(questionSubmissionDtoList, assessmentId, submissionId, student);
 
@@ -152,7 +153,7 @@ public class QuestionSubmissionController {
                 return new ResponseEntity<>(returnedDtoList, headers, HttpStatus.CREATED);
 
             } else {
-                return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
+                return new ResponseEntity(TextConstants.MAX_SUBMISSION_ATTEMPTS_REACHED, HttpStatus.UNAUTHORIZED);
             }
         }
         return new ResponseEntity<>(HttpStatus.NOT_FOUND);

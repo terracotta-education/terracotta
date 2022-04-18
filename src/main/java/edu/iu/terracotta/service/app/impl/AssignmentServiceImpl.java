@@ -474,6 +474,10 @@ public class AssignmentServiceImpl implements AssignmentService {
 
     private ResponseEntity<Object> createSubmission(Long experimentId, Assessment assessment, Participant participant, SecuredInfo securedInfo) {
         if (submissionService.datesAllowed(experimentId,assessment.getTreatment().getTreatmentId(),securedInfo)){
+
+
+
+
             Submission submission = submissionService.createNewSubmission(assessment, participant, securedInfo);
             caliperService.sendAssignmentStarted(submission, securedInfo);
             SubmissionDto submissionDto = submissionService.toDto(submission,true, false);
