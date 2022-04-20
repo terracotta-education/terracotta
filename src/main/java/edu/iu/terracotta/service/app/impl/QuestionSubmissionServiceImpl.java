@@ -328,14 +328,16 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
                 if (assignmentExtended.isPresent() && submission.isPresent()) {
                     AssignmentExtended assignment = assignmentExtended.get();
                     int allowedAttempts = assignment.getAllowedAttempts();
-                    int attempt = submission.get().getAttempt();
-                    if (attempt < allowedAttempts) {
-                        return true;
+                    int attempt = 0;
+                    if (submission.get().getAttempt() != null && allowedAttempts >0) {
+                        attempt = submission.get().getAttempt();
+                        if (attempt >= allowedAttempts) {
+                            return false;
+                        }
                     }
-
                 }
             }
         }
-        return false;
+        return true;
     }
 }
