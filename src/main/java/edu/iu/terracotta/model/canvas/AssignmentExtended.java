@@ -10,9 +10,9 @@ public class AssignmentExtended extends Assignment {
 
 private String secureParams;
 
-private int allowedAttempts;
+private int allowedAttempts = -1;
 
-private boolean canSubmit;
+private boolean canSubmit = true;
 
     public String getSecureParams() {
         return secureParams;
