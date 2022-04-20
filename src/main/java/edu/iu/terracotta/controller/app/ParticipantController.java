@@ -140,7 +140,7 @@ public class ParticipantController {
             // 1.0 point for the consent assignment
             Participant participant = participantService.getParticipant(participantId, experimentId, securedInfo.getUserId(), true);
             try {
-                participantService.postConsentSubmission(participant);
+                participantService.postConsentSubmission(participant, securedInfo);
 
             } catch (ConnectionException e) {
                 throw new RuntimeException("Failed to post grade to Canvas for consent submission", e);

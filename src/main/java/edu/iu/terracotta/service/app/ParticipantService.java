@@ -55,5 +55,5 @@ public interface ParticipantService {
 
     boolean changeConsent(ParticipantDto participantDto, SecuredInfo securedInfo, Long experimentId) throws ParticipantAlreadyStartedException;
 
-    void postConsentSubmission(Participant participant) throws ConnectionException, DataServiceException;
+    void postConsentSubmission(Participant participant, SecuredInfo securedInfo) throws ConnectionException, DataServiceException;
 }
