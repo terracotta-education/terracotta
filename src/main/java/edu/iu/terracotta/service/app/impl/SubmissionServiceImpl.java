@@ -123,7 +123,7 @@ public class SubmissionServiceImpl implements SubmissionService {
 
     @Override
     @Transactional
-    public void updateSubmissions(Map<Submission, SubmissionDto> map, boolean student) {
+    public void updateSubmissions(Map<Submission, SubmissionDto> map, boolean student) throws ConnectionException, DataServiceException {
         if (!student) {
             for (Map.Entry<Submission, SubmissionDto> entry : map.entrySet()) {
                 Submission submission = entry.getKey();
@@ -131,6 +131,7 @@ public class SubmissionServiceImpl implements SubmissionService {
                 submission.setAlteredCalculatedGrade(submissionDto.getAlteredCalculatedGrade());
                 submission.setTotalAlteredGrade(submissionDto.getTotalAlteredGrade());
                 save(submission);
+                sendSubmissionGradeToCanvasWithLTI(submission);
             }
         }
     }
