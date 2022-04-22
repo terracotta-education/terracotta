@@ -126,9 +126,7 @@ const getters = {
     return state.experimentId
   },
   assignmentId(state) {
-    // If there is no Canvas assignment id, it defaults to "$Canvas.assignment.id"
-    const result = parseInt(state.assignmentId);
-    return !isNaN(result) ? result : null;
+    return state.assignmentId
   },
   consent(state) {
     return state.consent
