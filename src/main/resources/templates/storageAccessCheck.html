@@ -1,0 +1,72 @@
+<!--
+
+    Copyright 2021 Unicon (R)
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+-->
+<!DOCTYPE html>
+<!--suppress CheckEmptyScriptTag -->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.thymeleaf.org "
+      xml:lang="en">
+<head>
+    <title>Check for Storage Access</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+</head>
+<body>
+
+
+<script th:inline="javascript">
+    const url = [[${oicdEndpointComplete}]];
+    const targetLinkUri = [[${targetLinkUri}]];
+    const iss = [[${iss}]];
+    const login_hint = [[${login_hint}]];
+    const client_id = [[${client_id}]];
+    const lti_message_hint = [[${lti_message_hint}]];
+    const lti_deployment_id = [[${lti_deployment_id}]];
+
+    function continueOIDCLogin() {
+
+        window.location.replace(url);
+    }
+
+    function redirectToStorageAccessRequest() {
+
+        let storageAccessRequestURL = "/app/storageAccessRequest.html";
+        storageAccessRequestURL += `?iss=${encodeURIComponent(iss)}`;
+        storageAccessRequestURL += `&login_hint=${encodeURIComponent(login_hint)}`;
+        storageAccessRequestURL += `&client_id=${encodeURIComponent(client_id)}`;
+        storageAccessRequestURL += `&lti_message_hint=${encodeURIComponent(lti_message_hint)}`;
+        storageAccessRequestURL += `&targetLinkUri=${encodeURIComponent(targetLinkUri)}`;
+        if (lti_deployment_id) {
+            storageAccessRequestURL += `&lti_deployment_id=${encodeURIComponent(lti_deployment_id)}`;
+        }
+        window.location.replace(storageAccessRequestURL);
+    }
+
+    if (document.hasStorageAccess) {
+        document.hasStorageAccess().then((hasStorageAccess) => {
+            if (hasStorageAccess) {
+                continueOIDCLogin();
+            } else {
+                console.log("Does not have storage access");
+                redirectToStorageAccessRequest();
+            }
+        }).catch((error) => {
+            console.error(error);
+        })
+    } else {
+        continueOIDCLogin();
+    }
+</script>
+
+</body>
+</html>

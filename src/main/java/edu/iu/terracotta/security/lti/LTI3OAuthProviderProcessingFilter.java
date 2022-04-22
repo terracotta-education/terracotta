@@ -30,6 +30,7 @@ import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
+import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -121,6 +122,9 @@ public class LTI3OAuthProviderProcessingFilter extends GenericFilterBean {
                 }
             }
 
+            // Now that the user is authenticated, if this their first time, set
+            // the first-party-interaction cookie
+            createFirstPartyInteractionCookieIfMissing(servletResponse, httpServletRequest);
             filterChain.doFilter(servletRequest, servletResponse);
 
             this.resetAuthenticationAfterRequest();
@@ -134,6 +138,28 @@ public class LTI3OAuthProviderProcessingFilter extends GenericFilterBean {
             ((HttpServletResponse) servletResponse).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         } catch (DataServiceException e) {
             log.error("Error in the Data Service", e);
+        }
+    }
+
+    private void createFirstPartyInteractionCookieIfMissing(ServletResponse servletResponse, HttpServletRequest httpServletRequest) {
+        boolean hasFirstPartyInteractionCookie = false;
+        if (httpServletRequest.getCookies() != null) {
+            for (Cookie cookie : httpServletRequest.getCookies()) {
+                if (cookie.getName().equals("first-party-interaction")) {
+                    hasFirstPartyInteractionCookie = true;
+                    break;
+                }
+            }
+        }
+        if (!hasFirstPartyInteractionCookie) {
+            // A permanent first-party cookie is needed by Safari in order to be
+            // able to set cookies like the JSESSIONID in a third-party (iFrame) context
+            Cookie firstPartyInteractionCookie = new Cookie("first-party-interaction", "true");
+            firstPartyInteractionCookie.setHttpOnly(false);
+            firstPartyInteractionCookie.setSecure(true);
+            firstPartyInteractionCookie.setMaxAge(Integer.MAX_VALUE);
+            firstPartyInteractionCookie.setPath("/");
+            ((HttpServletResponse)servletResponse).addCookie(firstPartyInteractionCookie);
         }
     }
 
