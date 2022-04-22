@@ -75,7 +75,6 @@
                   @click="requestStorageAccess"
                   color="primary"
                   elevation="0"
-                  v-show="showRequestStorageAccessButton"
                   >Launch assignment</v-btn
                 >
               </v-card-actions>
@@ -159,7 +158,6 @@
 <script>
 export default {
   props: [
-    "oicdEndpointComplete",
     "targetLinkUri",
     "iss",
     "loginHint",
@@ -168,32 +166,10 @@ export default {
     "ltiDeploymentId",
   ],
   data: () => ({
-    showRequestStorageAccessButton: false,
   }),
   mounted() {
-    if (document.hasStorageAccess) { document
-        .hasStorageAccess()
-        .then((hasStorageAccess) => {
-          if (hasStorageAccess) {
-            this.continueOIDCLogin();
-          } else {
-            this.showRequestStorageAccessButton = true;
-            console.log("Does not have storage access");
-          }
-        })
-        .catch((error) => {
-          console.error(error);
-        });
-    } else {
-      this.continueOIDCLogin();
-    }
   },
   methods: {
-    continueOIDCLogin() {
-      if (this.oicdEndpointComplete) {
-        window.location.replace(this.oicdEndpointComplete);
-      }
-    },
     restartLoginProcess() {
       this.$refs.loginForm.submit();
     },

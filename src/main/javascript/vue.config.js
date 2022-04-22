@@ -8,6 +8,7 @@ module.exports = {
   pages: {
     app: 'src/main.js',
     storageAccessCheck: 'src/storageAccessCheck.js',
+    firstParty: 'src/firstPartyInteraction.js',
   },
 
   transpileDependencies: [

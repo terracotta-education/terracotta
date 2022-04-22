@@ -1,7 +1,6 @@
 import Vue from 'vue'
 import VueRouter from 'vue-router'
 import Home from '../views/Home.vue'
-import FirstParty from "../FirstParty.vue"
 
 Vue.use(VueRouter)
 
@@ -371,12 +370,6 @@ const routes = [
         ]
       },
     ]
-  },
-  {
-    path: '/first-party',
-    component: FirstParty,
-    props: true,
-    name: 'first-party',
   },
   {
     path: '*',
