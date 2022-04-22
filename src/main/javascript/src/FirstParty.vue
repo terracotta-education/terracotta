@@ -18,9 +18,14 @@
               <v-card-text class="first-party-card__text">
                 <p>
                   Click the button below to establish the connection. This will
-                  return you to your Canvas assignment, and you'll see the same
-                  pop-up window as before. It may look like nothing has changed,
-                  but please click “Launch Assignment” again.
+                  return you to
+                  {{ isAssignment ? "your Canvas assignment" : "Canvas" }}, and
+                  you'll see the same pop-up window as before. It may look like
+                  nothing has changed, but please click
+                  {{
+                    isAssignment ? '"Launch Assignment"' : '"Launch Terracotta"'
+                  }}
+                  again.
                 </p>
 
                 <v-tooltip top color="#373d3f">
@@ -52,14 +57,18 @@
           </v-col></v-row
         ></v-container
       >
-
     </v-main>
   </v-app>
 </template>
 
 <script>
 export default {
-  props: ["platformRedirectUrl"],
+  props: ["platformRedirectUrl", "assignmentId"],
+  computed: {
+    isAssignment() {
+      return !!this.assignmentId;
+    },
+  },
 };
 </script>
 

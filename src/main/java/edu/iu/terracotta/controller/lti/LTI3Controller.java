@@ -160,7 +160,7 @@ public class LTI3Controller {
                     Optional<NameValuePair> platformRedirectUrl = targetLinkQueryParams.stream()
                             .filter(nv -> "platform_redirect_url".equals(nv.getName())).findFirst();
                     if (platformRedirectUrl.isPresent()) {
-                        model.addAttribute("platform_redirect_url", platformRedirectUrl.get().getValue());
+                        model.addAttribute("targetLinkUri", lti3Request.getLtiTargetLinkUrl());
                         return "redirect:/app/firstParty.html";
                     }
                 } catch (URISyntaxException ex) {

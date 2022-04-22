@@ -6,7 +6,11 @@ Vue.config.productionTip = false;
 
 const url = new URL(window.location.href);
 const params = new URLSearchParams(url.search);
-const platformRedirectUrl = params.get("platform_redirect_url");
+const targetLinkUri = params.get("targetLinkUri");
+const targetLinkURL = new URL(targetLinkUri);
+const targetLinkUriParams = new URLSearchParams(targetLinkURL.search);
+const platformRedirectUrl = targetLinkUriParams.get("platform_redirect_url");
+const assignmentId = targetLinkUriParams.get("assignment");
 
 new Vue({
   vuetify,
@@ -14,6 +18,7 @@ new Vue({
     h(FirstParty, {
       props: {
         platformRedirectUrl,
+        assignmentId,
       },
     }),
 }).$mount("#app");

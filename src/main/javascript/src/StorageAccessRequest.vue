@@ -18,7 +18,11 @@
               <v-card-text class="storage-access-card__text">
                 <p>
                   For the best experience, we recommend
-                  <strong>opening your assignment in Chrome</strong>.
+                  <strong
+                    >opening
+                    {{ isAssignment ? "your assignment" : "Terracotta" }} in
+                    Chrome</strong
+                  >.
                 </p>
                 <p>
                   Continuing in your current browser will require a few extra
@@ -75,7 +79,8 @@
                   @click="requestStorageAccess"
                   color="primary"
                   elevation="0"
-                  >Launch assignment</v-btn
+                  >Launch
+                  {{ isAssignment ? "assignment" : "Terracotta" }}</v-btn
                 >
               </v-card-actions>
             </v-card>
@@ -164,10 +169,12 @@ export default {
     "clientId",
     "ltiMessageHint",
     "ltiDeploymentId",
+    "assignmentId",
   ],
-  data: () => ({
-  }),
-  mounted() {
+  computed: {
+    isAssignment() {
+      return !!this.assignmentId;
+    },
   },
   methods: {
     restartLoginProcess() {
