@@ -7,7 +7,7 @@ module.exports = {
   assetsDir: "./",
   pages: {
     app: 'src/main.js',
-    storageAccessCheck: 'src/storageAccessCheck.js',
+    storageAccessRequest: 'src/storageAccessRequest.js',
     firstParty: 'src/firstPartyInteraction.js',
   },
 

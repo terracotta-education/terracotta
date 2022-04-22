@@ -196,7 +196,7 @@ public class OIDCController {
                 // 'oicdEndpointComplete' unless the iframe doesn't have storage
                 // access to the cookies belonging to Terracotta's domain
                 model.addAttribute("oicdEndpointComplete", parameters.get("oicdEndpointComplete"));
-                return "redirect:/app/storageAccessCheck.html";
+                return "storageAccessCheck";
             } else {
                 return "oicdRedirect";
             }
