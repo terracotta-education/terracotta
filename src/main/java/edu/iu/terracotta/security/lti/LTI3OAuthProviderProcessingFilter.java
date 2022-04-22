@@ -155,7 +155,7 @@ public class LTI3OAuthProviderProcessingFilter extends GenericFilterBean {
             // A permanent first-party cookie is needed by Safari in order to be
             // able to set cookies like the JSESSIONID in a third-party (iFrame) context
             Cookie firstPartyInteractionCookie = new Cookie("first-party-interaction", "true");
-            firstPartyInteractionCookie.setHttpOnly(true);
+            firstPartyInteractionCookie.setHttpOnly(false);
             firstPartyInteractionCookie.setSecure(true);
             firstPartyInteractionCookie.setMaxAge(Integer.MAX_VALUE);
             firstPartyInteractionCookie.setPath("/");
