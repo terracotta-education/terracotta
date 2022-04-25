@@ -34,6 +34,7 @@
     <!-- Individual Question -->
     <v-card
       class="mt-5 mb-2"
+      :class="studentResponseCardClasses[question.questionId]"
       outlined
       v-for="(question, index) in assessment.questions"
       :key="question.questionId"
@@ -221,18 +222,28 @@ export default {
       );
     },
     ungradedEssayQuestionIndices() {
-      const questionIndices = [];
+      return this.ungradedEssayQuestions.map((q) => this.getQuestionIndex(q));
+    },
+    studentResponseCardClasses() {
+      const result = {};
+      for (const question of this.ungradedEssayQuestions) {
+        result[question.questionId] = ["unanswered-essay-response"];
+      }
+      return result;
+    },
+    ungradedEssayQuestions() {
+      const questions = [];
       if (this.assessment && this.assessment.questions) {
         for (const question of this.assessment.questions) {
           if (
             question.questionType === "ESSAY" &&
             this.questionScoreMap[question.questionId] === null
           ) {
-            questionIndices.push(this.getQuestionIndex(question));
+            questions.push(question);
           }
         }
       }
-      return questionIndices;
+      return questions;
     },
   },
   data() {
@@ -432,5 +443,9 @@ export default {
 }
 .correctAnswerText {
   color: green;
+}
+.unanswered-essay-response {
+  border: 1px solid #ffe0b2;
+  background-color: rgba(255, 224, 178, 0.1);
 }
 </style>
