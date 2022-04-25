@@ -21,15 +21,28 @@
       </v-col>
     </v-row>
 
-    <div
+    <v-card
       v-if="
         hasEssayAndNonEssayQuestions && ungradedEssayQuestionIndices.length > 0
       "
+      class="ungraded-essay-questions-notice"
+      outlined
     >
-      Please grade short answer responses ({{
-        ungradedEssayQuestionIndices.join(", ")
-      }}) manually
-    </div>
+      <v-card-text>
+        <v-row>
+          <v-col cols="1"
+            ><v-icon class="ungraded-essay-questions-notice__icon"
+              >mdi-text-box-check-outline</v-icon
+            ></v-col
+          >
+          <v-col class="ungraded-essay-questions-notice__message">
+            Please grade short answer responses ({{
+              ungradedEssayQuestionIndices.join(", ")
+            }}) manually
+          </v-col>
+        </v-row>
+      </v-card-text>
+    </v-card>
 
     <!-- Individual Question -->
     <v-card
@@ -39,6 +52,16 @@
       v-for="(question, index) in assessment.questions"
       :key="question.questionId"
     >
+      <v-chip
+        class="ungraded-essay-question-chip"
+        color="rgba(255, 224, 178, 1)"
+        v-if="ungradedEssayQuestions.includes(question)"
+      >
+        <v-icon class="ungraded-essay-question-chip__icon"
+          >mdi-text-box-check-outline</v-icon
+        >
+        Manual grade needed</v-chip
+      >
       <v-card-title class="questionSection">
         <div class="cardDetails">
           <v-row>
@@ -457,5 +480,50 @@ export default {
 .unanswered-essay-response {
   border: 1px solid #ffe0b2;
   background-color: rgba(255, 224, 178, 0.1);
+}
+.ungraded-essay-questions-notice {
+  border: 1px solid #ffe0b2;
+  background-color: rgba(255, 224, 178, 0.1);
+  margin-bottom: 40px;
+}
+.ungraded-essay-questions-notice .v-card__text {
+  color: rgba(0, 0, 0, 0.87);
+  font-family: Roboto;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+  letter-spacing: 0.15000000596046448px;
+  text-align: left;
+}
+.ungraded-essay-questions-notice__icon {
+  display: flex;
+  margin-left: auto;
+  margin-right: auto;
+  height: 37px;
+  width: 37px;
+  background: rgba(255, 224, 178, 1);
+  border-radius: calc(37px / 2);
+}
+.ungraded-essay-questions-notice__message {
+  align-self: center;
+}
+.ungraded-essay-question-chip,
+.ungraded-essay-question-chip__icon {
+  font-family: "Roboto";
+  font-style: normal;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 24px;
+
+  letter-spacing: 0.15px;
+}
+.ungraded-essay-question-chip {
+  position: relative;
+  height: 28px;
+  left: 18px;
+  top: -14px;
+}
+.ungraded-essay-question-chip__icon {
+  margin-right: 10px;
 }
 </style>
