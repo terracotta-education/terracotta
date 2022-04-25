@@ -21,6 +21,16 @@
       </v-col>
     </v-row>
 
+    <div
+      v-if="
+        hasEssayAndNonEssayQuestions && ungradedEssayQuestionIndices.length > 0
+      "
+    >
+      Please grade short answer responses ({{
+        ungradedEssayQuestionIndices.join(", ")
+      }}) manually
+    </div>
+
     <!-- Individual Question -->
     <v-card
       class="mt-5 mb-2"
@@ -202,6 +212,28 @@ export default {
       }
       return answers;
     },
+    hasEssayAndNonEssayQuestions() {
+      return (
+        this.assessment &&
+        this.assessment.questions &&
+        this.assessment.questions.some((q) => q.questionType === "ESSAY") &&
+        this.assessment.questions.some((q) => q.questionType !== "ESSAY")
+      );
+    },
+    ungradedEssayQuestionIndices() {
+      const questionIndices = [];
+      if (this.assessment && this.assessment.questions) {
+        for (const question of this.assessment.questions) {
+          if (
+            question.questionType === "ESSAY" &&
+            this.questionScoreMap[question.questionId] === null
+          ) {
+            questionIndices.push(this.getQuestionIndex(question));
+          }
+        }
+      }
+      return questionIndices;
+    },
   },
   data() {
     return {
@@ -288,6 +320,13 @@ export default {
         return Promise.reject(error);
       }
     },
+    getQuestionIndex(question) {
+      return (
+        this.assessment.questions.findIndex(
+          (q) => q.questionId === question.questionId
+        ) + 1
+      );
+    },
   },
   async created() {
     this.questionScoreMap = {};
@@ -320,9 +359,15 @@ export default {
       const calculatedPoints = this.studentResponseForQuestionId(questionId)
         .calculatedPoints;
 
-      questionScoreMap[questionId] = alteredGrade
-        ? alteredGrade
-        : calculatedPoints;
+      if (question.questionType === "ESSAY") {
+        // Essay questions have to be manually graded. The alteredGrade will be
+        // null if it hasn't been manually graded.
+        questionScoreMap[questionId] = alteredGrade;
+      } else {
+        questionScoreMap[questionId] = alteredGrade
+          ? alteredGrade
+          : calculatedPoints;
+      }
     }
     this.questionScoreMap = questionScoreMap;
 
