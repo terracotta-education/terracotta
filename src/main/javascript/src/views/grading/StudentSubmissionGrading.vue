@@ -430,19 +430,29 @@ export default {
 }
 
 .wrongAnswer {
-  background: rgba(229, 21, 62, 0.5);
   border: 1px solid rgb(229, 21, 62);
 }
 
 .correctAnswer {
-  background: rgba(56, 173, 182, 0.5);
   border: 1px solid rgb(56, 173, 182);
 }
 .studentResponse {
-  color: red;
+  color: rgb(229, 21, 62);
+  font-family: Roboto;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 20px;
+  letter-spacing: 0.25px;
+  text-align: left;
 }
 .correctAnswerText {
-  color: green;
+  color: rgba(56, 173, 182, 1);
+  font-family: Roboto;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 20px;
+  letter-spacing: 0.25px;
+  text-align: left;
 }
 .unanswered-essay-response {
   border: 1px solid #ffe0b2;
