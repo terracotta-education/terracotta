@@ -44,143 +44,149 @@
       </v-card-text>
     </v-card>
 
-    <!-- Individual Question -->
-    <v-card
-      class="mt-5 mb-2"
-      :class="studentResponseCardClasses[question.questionId]"
-      outlined
-      v-for="(question, index) in assessment.questions"
-      :key="question.questionId"
-    >
-      <v-chip
-        class="ungraded-essay-question-chip"
-        color="rgba(255, 224, 178, 1)"
-        v-if="ungradedEssayQuestions.includes(question)"
-      >
-        <v-icon class="ungraded-essay-question-chip__icon"
-          >mdi-text-box-check-outline</v-icon
+    <template v-for="questionPage in questionPages">
+      <div :key="questionPage.key">
+        <!-- Individual Question -->
+        <v-card
+          class="mt-5 mb-2"
+          :class="studentResponseCardClasses[question.questionId]"
+          outlined
+          v-for="(question, index) in questionPage.questions"
+          :key="question.questionId"
         >
-        Manual grade needed</v-chip
-      >
-      <v-card-title class="questionSection">
-        <div class="cardDetails">
-          <v-row>
-            <v-col cols="1">
-              <span>{{ index + 1 }}</span>
-            </v-col>
-            <v-col cols="9">
-              <span v-html="question.html"></span>
-            </v-col>
-            <v-col>
-              <v-row class="studentGrade individualScore">
-                <v-text-field
-                  type="number"
-                  name="questionPoints"
-                  outlined
-                  required
-                  style="max-width: 70px;max-height: 50px;"
-                  v-model="questionScoreMap[question.questionId]"
-                  @input="
-                    (value) => {
-                      questionScoreMap[question.questionId] = value;
-                    }
-                  "
-                ></v-text-field>
-                <span class="totalPoints  ml-2">
-                  / {{ question.points }} Point</span
-                >
-              </v-row>
-            </v-col>
-          </v-row>
-        </div>
-
-        <!-- Answer Section -->
-        <div class="answerSection mt-5 w-100">
-          <template v-if="question.questionType === 'MC'">
-            <div
-              v-for="answer in question.answers"
-              :key="answer.answerId"
-              class="w-100"
+          <v-chip
+            class="ungraded-essay-question-chip"
+            color="rgba(255, 224, 178, 1)"
+            v-if="ungradedEssayQuestions.includes(question)"
+          >
+            <v-icon class="ungraded-essay-question-chip__icon"
+              >mdi-text-box-check-outline</v-icon
             >
+            Manual grade needed</v-chip
+          >
+          <v-card-title class="questionSection">
+            <div class="cardDetails">
               <v-row>
                 <v-col cols="1">
-                  &nbsp;
+                  <span>{{ questionPage.questionStartIndex + index + 1 }}</span>
                 </v-col>
-                <v-col cols="10">
-                  <v-card
-                    :class="[
-                      'abc',
-                      answer.correct ? 'correctAnswer' : '',
-                      studentSubmittedAnswers[question.questionId].includes(
-                        answer.answerId
-                      )
-                        ? 'wrongAnswer'
-                        : '',
-                    ]"
-                    outlined
-                  >
-                    <v-card-title>
-                      <v-row>
-                        <v-col cols="1">
-                          <!-- Radio Button -->
-                          <v-radio-group
-                            :value="
-                              studentSubmittedAnswers[question.questionId].find(
-                                (a) => a === answer.answerId
-                              )
-                            "
-                          >
-                            <v-radio
-                              class="radioButton"
-                              :value="answer.answerId"
-                              readonly
-                            >
-                            </v-radio>
-                          </v-radio-group>
-                        </v-col>
-                        <v-col cols="8">
-                          <!-- Answer Text -->
-                          <span v-html="answer.html"></span>
-                        </v-col>
-                        <v-col>
-                          <!-- Correct / Student Response -->
-                          <span v-if="answer.correct" class="correctAnswerText"
-                            >Correct Response</span
-                          >
-                          <span
-                            v-else-if="
-                              studentSubmittedAnswers[
-                                question.questionId
-                              ].includes(answer.answerId)
-                            "
-                            class="studentResponse"
-                            >Student Response</span
-                          >
-                        </v-col>
-                      </v-row>
-                    </v-card-title>
-                  </v-card>
+                <v-col cols="9">
+                  <span v-html="question.html"></span>
+                </v-col>
+                <v-col>
+                  <v-row class="studentGrade individualScore">
+                    <v-text-field
+                      type="number"
+                      name="questionPoints"
+                      outlined
+                      required
+                      style="max-width: 70px;max-height: 50px;"
+                      v-model="questionScoreMap[question.questionId]"
+                      @input="
+                        (value) => {
+                          questionScoreMap[question.questionId] = value;
+                        }
+                      "
+                    ></v-text-field>
+                    <span class="totalPoints  ml-2">
+                      / {{ question.points }} Point</span
+                    >
+                  </v-row>
                 </v-col>
               </v-row>
             </div>
-          </template>
-          <template v-else-if="question.questionType === 'ESSAY'">
-            <v-row>
-              <v-col cols="1">
-                &nbsp;
-              </v-col>
-              <v-col cols="10">
-                <v-card outlined>
-                  <v-card-title>
-                    {{ studentSubmittedAnswers[question.questionId] }}
-                  </v-card-title>
-                </v-card>
-              </v-col>
-            </v-row>
-          </template>
-        </div>
-      </v-card-title>
-    </v-card>
+
+            <!-- Answer Section -->
+            <div class="answerSection mt-5 w-100">
+              <template v-if="question.questionType === 'MC'">
+                <div
+                  v-for="answer in question.answers"
+                  :key="answer.answerId"
+                  class="w-100"
+                >
+                  <v-row>
+                    <v-col cols="1">
+                      &nbsp;
+                    </v-col>
+                    <v-col cols="10">
+                      <v-card
+                        :class="[
+                          'abc',
+                          answer.correct ? 'correctAnswer' : '',
+                          studentSubmittedAnswers[question.questionId].includes(
+                            answer.answerId
+                          )
+                            ? 'wrongAnswer'
+                            : '',
+                        ]"
+                        outlined
+                      >
+                        <v-card-title>
+                          <v-row>
+                            <v-col cols="1">
+                              <!-- Radio Button -->
+                              <v-radio-group
+                                :value="
+                                  studentSubmittedAnswers[
+                                    question.questionId
+                                  ].find((a) => a === answer.answerId)
+                                "
+                              >
+                                <v-radio
+                                  class="radioButton"
+                                  :value="answer.answerId"
+                                  readonly
+                                >
+                                </v-radio>
+                              </v-radio-group>
+                            </v-col>
+                            <v-col cols="8">
+                              <!-- Answer Text -->
+                              <span v-html="answer.html"></span>
+                            </v-col>
+                            <v-col>
+                              <!-- Correct / Student Response -->
+                              <span
+                                v-if="answer.correct"
+                                class="correctAnswerText"
+                                >Correct Response</span
+                              >
+                              <span
+                                v-else-if="
+                                  studentSubmittedAnswers[
+                                    question.questionId
+                                  ].includes(answer.answerId)
+                                "
+                                class="studentResponse"
+                                >Student Response</span
+                              >
+                            </v-col>
+                          </v-row>
+                        </v-card-title>
+                      </v-card>
+                    </v-col>
+                  </v-row>
+                </div>
+              </template>
+              <template v-else-if="question.questionType === 'ESSAY'">
+                <v-row>
+                  <v-col cols="1">
+                    &nbsp;
+                  </v-col>
+                  <v-col cols="10">
+                    <v-card outlined>
+                      <v-card-title>
+                        {{ studentSubmittedAnswers[question.questionId] }}
+                      </v-card-title>
+                    </v-card>
+                  </v-col>
+                </v-row>
+              </template>
+            </div>
+          </v-card-title>
+        </v-card>
+      </div>
+    </template>
   </div>
 </template>
 
@@ -196,6 +202,7 @@ export default {
       assessment: "assessment/assessment",
       submissions: "submissions/submissions",
       studentResponse: "submissions/studentResponse",
+      questionPages: "assessment/questionPages",
     }),
 
     assessment_id() {
@@ -236,12 +243,17 @@ export default {
       }
       return answers;
     },
+    gradableQuestions() {
+      return this.assessment && this.assessment.questions
+        ? this.assessment.questions.filter(
+            (q) => q.questionType !== "PAGE_BREAK"
+          )
+        : [];
+    },
     hasEssayAndNonEssayQuestions() {
       return (
-        this.assessment &&
-        this.assessment.questions &&
-        this.assessment.questions.some((q) => q.questionType === "ESSAY") &&
-        this.assessment.questions.some((q) => q.questionType !== "ESSAY")
+        this.gradableQuestions.some((q) => q.questionType === "ESSAY") &&
+        this.gradableQuestions.some((q) => q.questionType !== "ESSAY")
       );
     },
     ungradedEssayQuestionIndices() {
@@ -355,11 +367,16 @@ export default {
       }
     },
     getQuestionIndex(question) {
-      return (
-        this.assessment.questions.findIndex(
+      for (const questionPage of this.questionPages) {
+        const index = questionPage.questions.findIndex(
           (q) => q.questionId === question.questionId
-        ) + 1
-      );
+        );
+        if (index >= 0) {
+          return questionPage.questionStartIndex + index + 1;
+        }
+      }
+      // shouldn't happen
+      return -1;
     },
   },
   async created() {
@@ -386,7 +403,7 @@ export default {
 
     // Initialize questionScoreMap
     const questionScoreMap = {};
-    for (const question of this.assessment.questions) {
+    for (const question of this.gradableQuestions) {
       const questionId = question.questionId;
       const alteredGrade = this.studentResponseForQuestionId(questionId)
         .alteredGrade;
