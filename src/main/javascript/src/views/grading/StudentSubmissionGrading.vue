@@ -339,7 +339,7 @@ export default {
         return {
           questionSubmissionId: response.questionSubmissionId,
           answerSubmissionDtoList: response.answerSubmissionDtoList,
-          alteredGrade: +this.questionScoreMap[response.questionId],
+          alteredGrade: this.questionScoreMap[response.questionId] !== null ? +this.questionScoreMap[response.questionId] : null,
         };
       });
 
