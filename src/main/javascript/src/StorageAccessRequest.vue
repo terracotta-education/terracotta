@@ -32,7 +32,12 @@
                 <ul>
                   <li>
                     Establish a first-party interaction with Terracotta.
-                    <v-tooltip top color="#373d3f">
+                    <v-tooltip
+                      top
+                      color="#373d3f"
+                      transition="slide-y-transition"
+                      max-width="360px"
+                    >
                       <template v-slot:activator="{ on, attrs }">
                         <span class="has-tooltip" v-bind="attrs" v-on="on"
                           >What is Terracotta?</span
@@ -51,7 +56,12 @@
                   <li>
                     Allow Terracotta to use cookies and website data while you
                     use Canvas.
-                    <v-tooltip top color="#373d3f">
+                    <v-tooltip
+                      top
+                      color="#373d3f"
+                      transition="slide-y-transition"
+                      max-width="360px"
+                    >
                       <template v-slot:activator="{ on, attrs }">
                         <span class="has-tooltip" v-bind="attrs" v-on="on"
                           >Why does Terracotta need this information and how

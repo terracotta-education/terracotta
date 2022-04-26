@@ -28,7 +28,12 @@
                   again.
                 </p>
 
-                <v-tooltip top color="#373d3f">
+                <v-tooltip
+                  top
+                  color="#373d3f"
+                  transition="slide-y-transition"
+                  max-width="360px"
+                >
                   <template v-slot:activator="{ on, attrs }">
                     <p class="has-tooltip" v-bind="attrs" v-on="on">
                       What is a first party interaction and why am I being asked
