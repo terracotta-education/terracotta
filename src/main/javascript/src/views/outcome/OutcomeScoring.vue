@@ -45,7 +45,7 @@
                   :key="participant.participantId"
                 >
                   <td>{{ participant.user.displayName }}</td>
-                  <td v-if="participantScoreList.length">
+                  <td v-if="participantFilteredList.length">
                     <v-text-field
                       type="number"
                       :name="participant.participantId"
@@ -96,14 +96,16 @@ import {mapActions, mapGetters} from 'vuex'
       participantScoreList() {
         let arr = []
         const scoresAssociatedwithOutcome = this.outcomeScores.filter((score) => score.outcomeId === this.outcome_id)
-        this.participantFilteredList.map(p=>{
+        let sortedRecipes = this.participantFilteredList;
+        sortedRecipes = sortedRecipes.filter(x=>x.user.displayName !== null);
+        sortedRecipes = sortedRecipes.sort((a, b)=> (a.user.displayName .toLowerCase()> b.user.displayName.toLowerCase())?1:-1);
+        sortedRecipes.map(p=>{
           const score = scoresAssociatedwithOutcome.filter(o=>o.participantId===p.participantId)[0]
           let item = {
             experimentId: this.experiment_id,
             participantId: p.participantId,
             scoreNumeric: 0
           }
-
           if (typeof score !== "undefined") {
             item.outcomeScoreId = score?.outcomeScoreId
             item.outcomeId = this.outcome_id
@@ -116,10 +118,11 @@ import {mapActions, mapGetters} from 'vuex'
       },
       participantFilteredList() {
           const participatingFiltered = this.participants.filter(({consent}) => consent === true)
-          return participatingFiltered;
+          let sortedRecipes = participatingFiltered;
+          sortedRecipes = sortedRecipes.filter(x=>x.user.displayName !== null);
+          sortedRecipes = sortedRecipes.sort((a, b)=> (a.user.displayName .toLowerCase()> b.user.displayName.toLowerCase())?1:-1);
+          return sortedRecipes;
         }
-
-
     },
     data: () => ({
       rules: [
