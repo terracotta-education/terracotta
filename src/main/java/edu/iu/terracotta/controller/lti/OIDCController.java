@@ -184,11 +184,24 @@ public class OIDCController {
             session.setAttribute("lti_nonce", nonceList);
             // Once all is added to the session, and we have the data ready for the html template, we redirect
             if (!ltiDataService.getDemoMode()) {
-                return "redirect:" + parameters.get("oicdEndpointComplete");
+                model.addAttribute("iss", loginInitiationDTO.getIss());
+                model.addAttribute("login_hint", loginInitiationDTO.getLoginHint());
+                model.addAttribute("client_id", loginInitiationDTO.getClientId());
+                model.addAttribute("lti_message_hint", loginInitiationDTO.getLtiMessageHint());
+                model.addAttribute("targetLinkUri", loginInitiationDTO.getTargetLinkUri());
+                if (loginInitiationDTO.getDeploymentId() != null) {
+                    model.addAttribute("lti_deployment_id", loginInitiationDTO.getDeploymentId());
+                }
+                // storageAccessCheck will immediately do the redirect to
+                // 'oicdEndpointComplete' unless the iframe doesn't have storage
+                // access to the cookies belonging to Terracotta's domain
+                model.addAttribute("oicdEndpointComplete", parameters.get("oicdEndpointComplete"));
+                return "storageAccessCheck";
             } else {
                 return "oicdRedirect";
             }
         } catch (Exception ex) {
+            log.error("Failed creating OIDC request", ex);
             model.addAttribute(TextConstants.ERROR, ex.getMessage());
             return TextConstants.LTI3ERROR;
         }

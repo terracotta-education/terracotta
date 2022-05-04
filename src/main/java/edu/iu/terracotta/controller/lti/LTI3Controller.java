@@ -30,6 +30,8 @@ import edu.iu.terracotta.utils.LtiStrings;
 import edu.iu.terracotta.utils.TextConstants;
 import edu.iu.terracotta.utils.lti.LTI3Request;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.utils.URIBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,9 +42,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.security.GeneralSecurityException;
 import java.security.Principal;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * This LTI 3 redirect controller will retrieve the LTI3 requests and redirect them to the right page.
@@ -149,6 +153,21 @@ public class LTI3Controller {
                         lti3Request.getLtiCustom().getOrDefault("canvas_login_id", "Anonymous").toString(),
                         lti3Request.getLtiRoles(),
                         lti3Request.getLtiCustom().getOrDefault("canvas_user_name", "Anonymous").toString());
+                
+                // Check for platform_redirect_url to determine if this is a first-party interaction request
+                try {
+                    List<NameValuePair> targetLinkQueryParams = new URIBuilder(lti3Request.getLtiTargetLinkUrl()).getQueryParams();
+                    Optional<NameValuePair> platformRedirectUrl = targetLinkQueryParams.stream()
+                            .filter(nv -> "platform_redirect_url".equals(nv.getName())).findFirst();
+                    if (platformRedirectUrl.isPresent()) {
+                        model.addAttribute("targetLinkUri", lti3Request.getLtiTargetLinkUrl());
+                        return "redirect:/app/firstParty.html";
+                    }
+                } catch (URISyntaxException ex) {
+                    model.addAttribute(TextConstants.ERROR, ex.getMessage());
+                    return TextConstants.LTI3ERROR;
+                }
+
                 return "redirect:/app/app.html?token=" + oneTimeToken;
             }
         } catch (SignatureException ex) {
@@ -162,5 +181,6 @@ public class LTI3Controller {
             return TextConstants.LTI3ERROR;
         }
     }
+
 
 }

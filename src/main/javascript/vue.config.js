@@ -5,6 +5,11 @@ module.exports = {
   indexPath: path.resolve(__dirname, "../resources/static/app/app.html"),
   publicPath: "/app/",
   assetsDir: "./",
+  pages: {
+    app: 'src/main.js',
+    storageAccessRequest: 'src/storageAccessRequest.js',
+    firstParty: 'src/firstPartyInteraction.js',
+  },
 
   transpileDependencies: [
     'vuetify'
