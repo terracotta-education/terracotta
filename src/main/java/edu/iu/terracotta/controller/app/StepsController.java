@@ -128,7 +128,7 @@ public class StepsController {
                         return new ResponseEntity<>(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
                     }
                 } else {
-                    return new ResponseEntity<>(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
+                    return new ResponseEntity<>(TextConstants.MAX_SUBMISSION_ATTEMPTS_REACHED, HttpStatus.UNAUTHORIZED);
                 }
                 return new ResponseEntity<>(HttpStatus.OK);
 

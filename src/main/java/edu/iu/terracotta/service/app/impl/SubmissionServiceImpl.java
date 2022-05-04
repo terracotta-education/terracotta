@@ -131,7 +131,7 @@ public class SubmissionServiceImpl implements SubmissionService {
                 submission.setAlteredCalculatedGrade(submissionDto.getAlteredCalculatedGrade());
                 submission.setTotalAlteredGrade(submissionDto.getTotalAlteredGrade());
                 save(submission);
-                sendSubmissionGradeToCanvasWithLTI(submission);
+//                sendSubmissionGradeToCanvasWithLTI(submission);
             }
         }
     }
