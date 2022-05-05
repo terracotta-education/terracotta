@@ -1,30 +1,19 @@
 package edu.iu.terracotta.service.app.impl;
 
-import edu.iu.terracotta.exceptions.AnswerNotMatchingException;
-import edu.iu.terracotta.exceptions.AnswerSubmissionNotMatchingException;
-import edu.iu.terracotta.exceptions.DataServiceException;
-import edu.iu.terracotta.exceptions.DuplicateQuestionException;
-import edu.iu.terracotta.exceptions.ExceedingLimitException;
-import edu.iu.terracotta.exceptions.IdInPostException;
-import edu.iu.terracotta.exceptions.IdMissingException;
-import edu.iu.terracotta.exceptions.InvalidUserException;
-import edu.iu.terracotta.exceptions.QuestionSubmissionNotMatchingException;
-import edu.iu.terracotta.exceptions.TypeNotSupportedException;
-import edu.iu.terracotta.model.app.AnswerEssaySubmission;
-import edu.iu.terracotta.model.app.AnswerMc;
-import edu.iu.terracotta.model.app.AnswerMcSubmission;
-import edu.iu.terracotta.model.app.Question;
-import edu.iu.terracotta.model.app.QuestionSubmission;
-import edu.iu.terracotta.model.app.QuestionSubmissionComment;
-import edu.iu.terracotta.model.app.Submission;
+import edu.iu.terracotta.exceptions.*;
+import edu.iu.terracotta.model.PlatformDeployment;
+import edu.iu.terracotta.model.ToolDeployment;
+import edu.iu.terracotta.model.app.*;
 import edu.iu.terracotta.model.app.dto.AnswerSubmissionDto;
 import edu.iu.terracotta.model.app.dto.QuestionSubmissionCommentDto;
 import edu.iu.terracotta.model.app.dto.QuestionSubmissionDto;
 import edu.iu.terracotta.model.app.enumerator.QuestionTypes;
+import edu.iu.terracotta.model.canvas.AssignmentExtended;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.AnswerSubmissionService;
 import edu.iu.terracotta.service.app.QuestionSubmissionCommentService;
 import edu.iu.terracotta.service.app.QuestionSubmissionService;
+import edu.iu.terracotta.service.canvas.CanvasAPIClient;
 import edu.iu.terracotta.utils.TextConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +23,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -53,16 +43,19 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
     @Autowired
     QuestionSubmissionCommentService questionSubmissionCommentService;
 
+    @Autowired
+    CanvasAPIClient canvasAPIClient;
+
     @Override
     public List<QuestionSubmission> findAllBySubmissionId(Long submissionId) {
         return allRepositories.questionSubmissionRepository.findBySubmission_SubmissionId(submissionId);
     }
 
     @Override
-    public List<QuestionSubmissionDto> getQuestionSubmissions(Long submissionId, boolean answerSubmissions, boolean questionSubmissionComments){
+    public List<QuestionSubmissionDto> getQuestionSubmissions(Long submissionId, boolean answerSubmissions, boolean questionSubmissionComments) {
         List<QuestionSubmission> questionSubmissions = findAllBySubmissionId(submissionId);
         List<QuestionSubmissionDto> questionSubmissionDtoList = new ArrayList<>();
-        for(QuestionSubmission questionSubmission : questionSubmissions){
+        for (QuestionSubmission questionSubmission : questionSubmissions) {
             questionSubmissionDtoList.add(toDto(questionSubmission, answerSubmissions, questionSubmissionComments));
         }
         return questionSubmissionDtoList;
@@ -77,19 +70,19 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
     @Transactional
     //TODO this method isn't technically fully transactional. The dto is validated beforehand.
     public void updateQuestionSubmissions(Map<QuestionSubmission, QuestionSubmissionDto> map, boolean student) throws InvalidUserException, DataServiceException, IdMissingException, QuestionSubmissionNotMatchingException, AnswerSubmissionNotMatchingException, AnswerNotMatchingException {
-        for(Map.Entry<QuestionSubmission, QuestionSubmissionDto> entry : map.entrySet()){
+        for (Map.Entry<QuestionSubmission, QuestionSubmissionDto> entry : map.entrySet()) {
             QuestionSubmission questionSubmission = entry.getKey();
             QuestionSubmissionDto questionSubmissionDto = entry.getValue();
 
-            if(questionSubmissionDto.getAlteredGrade() != null && student){
+            if (questionSubmissionDto.getAlteredGrade() != null && student) {
                 throw new InvalidUserException(TextConstants.NOT_ENOUGH_PERMISSIONS + " Students cannot alter the grades.");
             }
             questionSubmission.setAlteredGrade(questionSubmissionDto.getAlteredGrade());
             save(questionSubmission);
-            for(AnswerSubmissionDto answerSubmissionDto : questionSubmissionDto.getAnswerSubmissionDtoList()){
-                if(questionSubmission.getQuestion().getQuestionType().equals(QuestionTypes.MC)){
+            for (AnswerSubmissionDto answerSubmissionDto : questionSubmissionDto.getAnswerSubmissionDtoList()) {
+                if (questionSubmission.getQuestion().getQuestionType().equals(QuestionTypes.MC)) {
                     answerSubmissionService.updateAnswerMcSubmission(answerSubmissionDto.getAnswerSubmissionId(), answerSubmissionDto);
-                } else if (questionSubmission.getQuestion().getQuestionType().equals(QuestionTypes.ESSAY)){
+                } else if (questionSubmission.getQuestion().getQuestionType().equals(QuestionTypes.ESSAY)) {
                     answerSubmissionService.updateAnswerEssaySubmission(answerSubmissionDto.getAnswerSubmissionId(), answerSubmissionDto);
                 }
             }
@@ -101,18 +94,19 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
     //TODO this method isn't technically fully transactional. The dto is validated beforehand.
     public List<QuestionSubmissionDto> postQuestionSubmissions(List<QuestionSubmissionDto> questionSubmissionDtoList, long assessmentId, long submissionId, boolean student) throws DataServiceException {
         List<QuestionSubmissionDto> returnedDtoList = new ArrayList<>();
-        try{
-            for(QuestionSubmissionDto questionSubmissionDto : questionSubmissionDtoList){
+        try {
+            for (QuestionSubmissionDto questionSubmissionDto : questionSubmissionDtoList) {
                 log.debug("Creating question submission: {}", questionSubmissionDto);
                 questionSubmissionDto.setSubmissionId(submissionId);
                 QuestionSubmission questionSubmission;
                 questionSubmission = fromDto(questionSubmissionDto);
                 returnedDtoList.add(toDto(save(questionSubmission), false, false));
-                for(AnswerSubmissionDto answerSubmissionDto : questionSubmissionDto.getAnswerSubmissionDtoList()){
+                for (AnswerSubmissionDto answerSubmissionDto : questionSubmissionDto.getAnswerSubmissionDtoList()) {
                     answerSubmissionDto.setQuestionSubmissionId(questionSubmission.getQuestionSubmissionId());
                     answerSubmissionService.postAnswerSubmission(answerSubmissionDto, questionSubmission.getQuestionSubmissionId());
                 }
             }
+
         } catch (Exception ex) {
             throw new DataServiceException("Error 105: There was an error while creating the question submissions. No question submissions or answer submissions were created: " + ex.getMessage(), ex);
         }
@@ -131,22 +125,22 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
         questionSubmissionDto.setCalculatedPoints(questionSubmission.getCalculatedPoints());
         questionSubmissionDto.setAlteredGrade(questionSubmission.getAlteredGrade());
         List<QuestionSubmissionCommentDto> questionSubmissionCommentDtoList = new ArrayList<>();
-        if(questionSubmissionComments){
+        if (questionSubmissionComments) {
             List<QuestionSubmissionComment> questionSubmissionCommentList =
                     allRepositories.questionSubmissionCommentRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmission.getQuestionSubmissionId());
-            for(QuestionSubmissionComment questionSubmissionComment : questionSubmissionCommentList) {
+            for (QuestionSubmissionComment questionSubmissionComment : questionSubmissionCommentList) {
                 questionSubmissionCommentDtoList.add(questionSubmissionCommentService.toDto(questionSubmissionComment));
             }
         }
         questionSubmissionDto.setQuestionSubmissionCommentDtoList(questionSubmissionCommentDtoList);
         List<AnswerSubmissionDto> answerSubmissionDtoList = new ArrayList<>();
-        if(answerSubmissions){
+        if (answerSubmissions) {
             List<AnswerMcSubmission> answerMcSubmissions = allRepositories.answerMcSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmission.getQuestionSubmissionId());
             List<AnswerEssaySubmission> answerEssaySubmissions = allRepositories.answerEssaySubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmission.getQuestionSubmissionId());
-            for(AnswerMcSubmission answerMcSubmission : answerMcSubmissions){
+            for (AnswerMcSubmission answerMcSubmission : answerMcSubmissions) {
                 answerSubmissionDtoList.add(answerSubmissionService.toDtoMC(answerMcSubmission));
             }
-            for(AnswerEssaySubmission answerEssaySubmission : answerEssaySubmissions){
+            for (AnswerEssaySubmission answerEssaySubmission : answerEssaySubmissions) {
                 answerSubmissionDtoList.add(answerSubmissionService.toDtoEssay(answerEssaySubmission));
             }
         }
@@ -162,13 +156,13 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
         questionSubmission.setCalculatedPoints(questionSubmissionDto.getCalculatedPoints());
         questionSubmission.setAlteredGrade(questionSubmissionDto.getAlteredGrade());
         Optional<Submission> submission = allRepositories.submissionRepository.findById(questionSubmissionDto.getSubmissionId());
-        if(submission.isPresent()) {
+        if (submission.isPresent()) {
             questionSubmission.setSubmission(submission.get());
         } else {
-            throw new DataServiceException("Submission with submissionID: " + questionSubmissionDto.getQuestionSubmissionId() +  "  does not exist");
+            throw new DataServiceException("Submission with submissionID: " + questionSubmissionDto.getQuestionSubmissionId() + "  does not exist");
         }
         Optional<Question> question = allRepositories.questionRepository.findByAssessment_AssessmentIdAndQuestionId(submission.get().getAssessment().getAssessmentId(), questionSubmissionDto.getQuestionId());
-        if(question.isPresent()) {
+        if (question.isPresent()) {
             questionSubmission.setQuestion(question.get());
         } else {
             throw new DataServiceException("Question does not exist or does not belong to the submission and assessment");
@@ -178,10 +172,14 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
     }
 
     @Override
-    public QuestionSubmission save(QuestionSubmission questionSubmission) { return allRepositories.questionSubmissionRepository.save(questionSubmission); }
+    public QuestionSubmission save(QuestionSubmission questionSubmission) {
+        return allRepositories.questionSubmissionRepository.save(questionSubmission);
+    }
 
     @Override
-    public Optional<QuestionSubmission> findById(Long id) { return allRepositories.questionSubmissionRepository.findById(id); }
+    public Optional<QuestionSubmission> findById(Long id) {
+        return allRepositories.questionSubmissionRepository.findById(id);
+    }
 
     @Override
     public boolean existsByAssessmentIdAndSubmissionIdAndQuestionId(Long assessmentId, Long submissionId, Long questionId) {
@@ -189,10 +187,14 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
     }
 
     @Override
-    public void saveAndFlush(QuestionSubmission questionSubmissionToChange) { allRepositories.questionSubmissionRepository.saveAndFlush(questionSubmissionToChange); }
+    public void saveAndFlush(QuestionSubmission questionSubmissionToChange) {
+        allRepositories.questionSubmissionRepository.saveAndFlush(questionSubmissionToChange);
+    }
 
     @Override
-    public void deleteById(Long id) { allRepositories.questionSubmissionRepository.deleteByQuestionSubmissionId(id); }
+    public void deleteById(Long id) {
+        allRepositories.questionSubmissionRepository.deleteByQuestionSubmissionId(id);
+    }
 
     @Override
     public boolean questionSubmissionBelongsToAssessmentAndSubmission(Long assessmentId, Long submissionId, Long questionSubmissionId) {
@@ -202,8 +204,8 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
 
     @Override
     @Transactional
-    public QuestionSubmission automaticGradingMC(QuestionSubmission questionSubmission, AnswerMcSubmission answerMcSubmission){
-        if(answerMcSubmission.getAnswerMc().getCorrect()){
+    public QuestionSubmission automaticGradingMC(QuestionSubmission questionSubmission, AnswerMcSubmission answerMcSubmission) {
+        if (answerMcSubmission.getAnswerMc().getCorrect()) {
             questionSubmission.setCalculatedPoints(questionSubmission.getQuestion().getPoints());
         } else {
             questionSubmission.setCalculatedPoints(Float.valueOf("0"));
@@ -214,19 +216,19 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
 
     @Override
     public void validateDtoPost(QuestionSubmissionDto questionSubmissionDto, Long assessmentId, Long submissionId, boolean student) throws IdMissingException, DuplicateQuestionException, InvalidUserException {
-        if(questionSubmissionDto.getQuestionId() == null){
+        if (questionSubmissionDto.getQuestionId() == null) {
             throw new IdMissingException(TextConstants.ID_MISSING);
         }
-        if(existsByAssessmentIdAndSubmissionIdAndQuestionId(assessmentId, submissionId, questionSubmissionDto.getQuestionId())){
+        if (existsByAssessmentIdAndSubmissionIdAndQuestionId(assessmentId, submissionId, questionSubmissionDto.getQuestionId())) {
             throw new DuplicateQuestionException("Error 123: A question submission with question id " + questionSubmissionDto.getQuestionId() + " already exists in assessment with id " + assessmentId);
         }
-        if(questionSubmissionDto.getAlteredGrade() != null && student){
+        if (questionSubmissionDto.getAlteredGrade() != null && student) {
             throw new InvalidUserException(TextConstants.NOT_ENOUGH_PERMISSIONS + " Students cannot alter the grades.");
         }
     }
 
     @Override
-    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId, Long submissionId){
+    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId, Long submissionId) {
         HttpHeaders headers = new HttpHeaders();
         headers.setLocation(ucBuilder.path("/api/experiments/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}/question_submissions")
                 .buildAndExpand(experimentId, conditionId, treatmentId, assessmentId, submissionId).toUri());
@@ -234,20 +236,20 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
     }
 
     @Override
-    public void validateAndPrepareQuestionSubmissionList(List<QuestionSubmissionDto> questionSubmissionDtoList, long assessmentId, long submissionId, boolean student) throws IdInPostException, DataServiceException, InvalidUserException, IdMissingException, DuplicateQuestionException, AnswerNotMatchingException, AnswerSubmissionNotMatchingException, ExceedingLimitException, TypeNotSupportedException{
-        try{
-            for(QuestionSubmissionDto questionSubmissionDto : questionSubmissionDtoList){
-                if(questionSubmissionDto.getQuestionSubmissionId() != null){
+    public void validateAndPrepareQuestionSubmissionList(List<QuestionSubmissionDto> questionSubmissionDtoList, long assessmentId, long submissionId, boolean student) throws IdInPostException, DataServiceException, InvalidUserException, IdMissingException, DuplicateQuestionException, AnswerNotMatchingException, AnswerSubmissionNotMatchingException, ExceedingLimitException, TypeNotSupportedException {
+        try {
+            for (QuestionSubmissionDto questionSubmissionDto : questionSubmissionDtoList) {
+                if (questionSubmissionDto.getQuestionSubmissionId() != null) {
                     throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
                 }
                 validateDtoPost(questionSubmissionDto, assessmentId, submissionId, student);
                 questionSubmissionDto.setSubmissionId(submissionId);
                 QuestionSubmission questionSubmission = fromDto(questionSubmissionDto);
-                if(questionSubmission.getQuestion().getQuestionType().equals(QuestionTypes.MC) || questionSubmission.getQuestion().getQuestionType().equals(QuestionTypes.ESSAY)){
-                    if(questionSubmissionDto.getAnswerSubmissionDtoList() != null){
-                        if(questionSubmissionDto.getAnswerSubmissionDtoList().size() > 1){
+                if (questionSubmission.getQuestion().getQuestionType().equals(QuestionTypes.MC) || questionSubmission.getQuestion().getQuestionType().equals(QuestionTypes.ESSAY)) {
+                    if (questionSubmissionDto.getAnswerSubmissionDtoList() != null) {
+                        if (questionSubmissionDto.getAnswerSubmissionDtoList().size() > 1) {
                             throw new ExceedingLimitException("Error 145: Multiple choice and essay questions can only have one answer submission.");
-                        } else if(questionSubmissionDto.getAnswerSubmissionDtoList().size() == 0){
+                        } else if (questionSubmissionDto.getAnswerSubmissionDtoList().size() == 0) {
                             questionSubmissionDto.getAnswerSubmissionDtoList().add(new AnswerSubmissionDto());
                         }
                     } else {
@@ -256,10 +258,10 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
                     }
 
                 }
-                for(AnswerSubmissionDto answerSubmissionDto : questionSubmissionDto.getAnswerSubmissionDtoList()){
-                    if(answerSubmissionDto.getAnswerId() != null){
+                for (AnswerSubmissionDto answerSubmissionDto : questionSubmissionDto.getAnswerSubmissionDtoList()) {
+                    if (answerSubmissionDto.getAnswerId() != null) {
                         Optional<AnswerMc> answerMc = allRepositories.answerMcRepository.findByQuestion_QuestionIdAndAnswerMcId(questionSubmission.getQuestion().getQuestionId(), answerSubmissionDto.getAnswerId());
-                        if(!answerMc.isPresent()){
+                        if (!answerMc.isPresent()) {
                             throw new AnswerNotMatchingException(TextConstants.ANSWER_NOT_MATCHING);
                         }
                     }
@@ -272,29 +274,29 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
 
     @Override
     public void validateQuestionSubmission(QuestionSubmissionDto questionSubmissionDto) throws DataServiceException {
-        try{
+        try {
             QuestionSubmission questionSubmission = allRepositories.questionSubmissionRepository.findByQuestionSubmissionId(questionSubmissionDto.getQuestionSubmissionId());
-            for(AnswerSubmissionDto answerSubmissionDto : questionSubmissionDto.getAnswerSubmissionDtoList()){
-                if(answerSubmissionDto.getAnswerSubmissionId() == null){
+            for (AnswerSubmissionDto answerSubmissionDto : questionSubmissionDto.getAnswerSubmissionDtoList()) {
+                if (answerSubmissionDto.getAnswerSubmissionId() == null) {
                     throw new IdMissingException("Error 125: An existing answer submission id must be included in the request.");
                 }
                 String answerType = questionSubmission.getQuestion().getQuestionType().toString();
-                switch(answerType){
+                switch (answerType) {
                     case "MC":
                         Optional<AnswerMcSubmission> answerMcSubmission = allRepositories.answerMcSubmissionRepository.findById(answerSubmissionDto.getAnswerSubmissionId());
-                        if(!answerMcSubmission.isPresent()){
+                        if (!answerMcSubmission.isPresent()) {
                             throw new AnswerSubmissionNotMatchingException(TextConstants.ANSWER_SUBMISSION_NOT_MATCHING);
                         }
-                        if(answerSubmissionDto.getAnswerId() != null){
+                        if (answerSubmissionDto.getAnswerId() != null) {
                             Optional<AnswerMc> answerMc = allRepositories.answerMcRepository.findByQuestion_QuestionIdAndAnswerMcId(questionSubmission.getQuestion().getQuestionId(), answerSubmissionDto.getAnswerId());
-                            if(!answerMc.isPresent()){
+                            if (!answerMc.isPresent()) {
                                 throw new AnswerNotMatchingException(TextConstants.ANSWER_NOT_MATCHING);
                             }
                         }
                         break;
                     case "ESSAY":
                         Optional<AnswerEssaySubmission> answerEssaySubmission = allRepositories.answerEssaySubmissionRepository.findById(answerSubmissionDto.getAnswerSubmissionId());
-                        if(!answerEssaySubmission.isPresent()){
+                        if (!answerEssaySubmission.isPresent()) {
                             throw new AnswerSubmissionNotMatchingException(TextConstants.ANSWER_SUBMISSION_NOT_MATCHING);
                         }
                         break;
@@ -303,5 +305,39 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
         } catch (Exception ex) {
             throw new DataServiceException("Error 105: There is invalid data in the request. No question submissions or answer submissions will be updated: " + ex.getMessage());
         }
+    }
+
+    @Override
+    public boolean canSubmit(String canvasCourseId, String assignmentId, String canvasUserId, long deploymentId) throws CanvasApiException,
+            IOException {
+        //We find the right deployment:
+        Optional<ToolDeployment> toolDeployment = allRepositories.toolDeploymentRepository.findById(deploymentId);
+        if (toolDeployment.isPresent()) {
+            String litDeploymentId = toolDeployment.get().getLtiDeploymentId();
+            List<PlatformDeployment> platformDeploymentList = allRepositories.platformDeploymentRepository
+                    .findByToolDeployments_LtiDeploymentId(litDeploymentId);
+            if (!platformDeploymentList.isEmpty()) {
+                PlatformDeployment platformDeployment = platformDeploymentList.get(0);
+
+                Optional<AssignmentExtended> assignmentExtended = canvasAPIClient.listAssignment(canvasCourseId,
+                        Integer.parseInt(assignmentId), platformDeployment);
+                List<edu.ksu.canvas.model.assignment.Submission> submissionsList = canvasAPIClient.listSubmissions(Integer.parseInt(assignmentId),
+                        canvasCourseId, platformDeployment);
+
+                Optional<edu.ksu.canvas.model.assignment.Submission> submission = submissionsList.stream().filter(sub -> sub.getUser().getId() == Integer.parseInt(canvasUserId)).findFirst();
+                if (assignmentExtended.isPresent() && submission.isPresent()) {
+                    AssignmentExtended assignment = assignmentExtended.get();
+                    int allowedAttempts = assignment.getAllowedAttempts();
+                    int attempt = 0;
+                    if (submission.get().getAttempt() != null && allowedAttempts >0) {
+                        attempt = submission.get().getAttempt();
+                        if (attempt >= allowedAttempts) {
+                            return false;
+                        }
+                    }
+                }
+            }
+        }
+        return true;
     }
 }

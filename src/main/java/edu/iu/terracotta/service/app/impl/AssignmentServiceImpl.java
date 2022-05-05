@@ -306,7 +306,10 @@ public class AssignmentServiceImpl implements AssignmentService {
 
     @Override
     @Transactional
-    public ResponseEntity<Object> launchAssignment(Long experimentId, SecuredInfo securedInfo) throws AssessmentNotMatchingException, ParticipantNotUpdatedException, AssignmentDatesException, DataServiceException, CanvasApiException, IOException, GroupNotMatchingException, ParticipantNotMatchingException, ConnectionException {
+    public ResponseEntity<Object> launchAssignment(Long experimentId, SecuredInfo securedInfo) throws
+            AssessmentNotMatchingException, ParticipantNotUpdatedException, AssignmentDatesException,
+            DataServiceException, CanvasApiException, IOException, GroupNotMatchingException,
+            ParticipantNotMatchingException, ConnectionException {
         Optional<Experiment> experiment = experimentService.findById(experimentId);
         if (experiment.isPresent()) {
             List<Participant> participants = participantService.refreshParticipants(experimentId,securedInfo, experiment.get().getParticipants());
@@ -471,6 +474,10 @@ public class AssignmentServiceImpl implements AssignmentService {
 
     private ResponseEntity<Object> createSubmission(Long experimentId, Assessment assessment, Participant participant, SecuredInfo securedInfo) {
         if (submissionService.datesAllowed(experimentId,assessment.getTreatment().getTreatmentId(),securedInfo)){
+
+
+
+
             Submission submission = submissionService.createNewSubmission(assessment, participant, securedInfo);
             caliperService.sendAssignmentStarted(submission, securedInfo);
             SubmissionDto submissionDto = submissionService.toDto(submission,true, false);

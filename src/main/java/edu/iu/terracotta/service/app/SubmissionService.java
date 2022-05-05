@@ -33,7 +33,7 @@ public interface SubmissionService {
 
     SubmissionDto postSubmission(SubmissionDto submissionDto, long experimentId, String userId, long assessmentId, boolean student) throws IdInPostException, ParticipantNotMatchingException, InvalidUserException, DataServiceException;
 
-    void updateSubmissions(Map<Submission, SubmissionDto> map, boolean student);
+    void updateSubmissions(Map<Submission, SubmissionDto> map, boolean student) throws ConnectionException, DataServiceException;
 
     SubmissionDto toDto(Submission submission, boolean questionSubmissions, boolean submissionComments);
 

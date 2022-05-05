@@ -103,12 +103,14 @@ export default {
       fetchAssignment: "assignment/fetchAssignment",
       fetchSubmissions: "submissions/fetchSubmissions",
       updateSubmission: "submissions/updateSubmission",
+      reportStep: "api/reportStep",
     }),
     getParticipantName(participantId, submission) {
       this.resultValues[submission.submissionId] = submission;
       return this.participants?.filter(
         (participant) => participant.participantId === participantId
       )[0]?.user.displayName;
+
     },
     async getSubmissions(experimentId, conditionId, treatmentId, assessmentId) {
       const submissions = await this.fetchSubmissions(
@@ -135,13 +137,20 @@ export default {
               value.totalAlteredGrade,
             ]);
 
+            // Post Step to Experiment
+            await this.reportStep({
+              experimentId: value.experimentId,
+              step: "student_submission",
+              parameters: { submissionIds: "" + value.submissionId },
+            });
+
             return Promise.resolve(submission);
           } catch (error) {
             return Promise.reject(error);
           }
         })
       );
-
+      
       this.$router.push({ name: this.$router.currentRoute.meta.previousStep });
     },
   },
