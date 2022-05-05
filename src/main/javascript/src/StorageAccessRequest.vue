@@ -233,4 +233,7 @@ export default {
 .storage-access-card__text {
   color: rgba(0, 0, 0, 0.87) !important;
 }
+.v-tooltip__content {
+  opacity: 1 !important;
+}
 </style>
