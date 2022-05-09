@@ -200,7 +200,6 @@ export default {
       experiment: "experiment/experiment",
       participants: "participants/participants",
       assessment: "assessment/assessment",
-      submissions: "submissions/submissions",
       studentResponse: "submissions/studentResponse",
       questionPages: "assessment/questionPages",
     }),
@@ -289,7 +288,6 @@ export default {
   },
   methods: {
     ...mapActions({
-      fetchSubmissions: "submissions/fetchSubmissions",
       updateSubmission: "submissions/updateSubmission",
       fetchAssessment: "assessment/fetchAssessment",
       fetchStudentResponse: "submissions/fetchStudentResponse",
@@ -382,12 +380,6 @@ export default {
   async created() {
     this.questionScoreMap = {};
     this.fetchAssessment([
-      this.experiment.experimentId,
-      this.condition_id,
-      this.treatment_id,
-      this.assessment_id,
-    ]);
-    await this.fetchSubmissions([
       this.experiment.experimentId,
       this.condition_id,
       this.treatment_id,
