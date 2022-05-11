@@ -96,10 +96,7 @@ import {mapActions, mapGetters} from 'vuex'
       participantScoreList() {
         let arr = []
         const scoresAssociatedwithOutcome = this.outcomeScores.filter((score) => score.outcomeId === this.outcome_id)
-        let sortedparticipantFilteredList = this.participantFilteredList;
-        sortedparticipantFilteredList = sortedparticipantFilteredList.filter(x=>x.user.displayName !== null);
-        sortedparticipantFilteredList = sortedparticipantFilteredList.sort((a, b)=> (a.user.displayName .toLowerCase()> b.user.displayName.toLowerCase())?1:-1);
-        sortedparticipantFilteredList.map(p=>{
+        this.participantFilteredList.map(p=>{
           const score = scoresAssociatedwithOutcome.filter(o=>o.participantId===p.participantId)[0]
           let item = {
             experimentId: this.experiment_id,
@@ -111,17 +108,28 @@ import {mapActions, mapGetters} from 'vuex'
             item.outcomeId = this.outcome_id
             item.scoreNumeric = parseInt(score?.scoreNumeric) 
           }
-
-          arr.push(item)
+          arr.push(item);
         })
         return arr
       },
       participantFilteredList() {
-          const participatingFiltered = this.participants.filter(({consent}) => consent === true)
-          let sortedparticipantFilteredList = participatingFiltered;
-          sortedparticipantFilteredList = sortedparticipantFilteredList.filter(x=>x.user.displayName !== null);
-          sortedparticipantFilteredList = sortedparticipantFilteredList.sort((a, b)=> (a.user.displayName .toLowerCase()> b.user.displayName.toLowerCase())?1:-1);
-          return sortedparticipantFilteredList;
+        let sortedparticipantFilteredList = this.participants.filter(({consent}) => consent === true)
+        sortedparticipantFilteredList = sortedparticipantFilteredList.filter(x => x.user.displayName !== null);
+        let soratableNameAddedParticipants = []
+        sortedparticipantFilteredList.map(x => {
+          let dispName = x.user.displayName;
+          let sortableName = dispName;
+          if (dispName.includes(" ")) {
+            let result = dispName.split(" ");
+            if (result.length > 1) {
+              sortableName = result[result.length - 1]+result[result.length - 2]; // Assume only two names
+            }
+          }
+          x.user.sortableName = sortableName;
+          soratableNameAddedParticipants.push(x);
+        })
+        return  soratableNameAddedParticipants.sort((a, b)=> (a.user.sortableName .toLowerCase()>
+            b.user.sortableName.toLowerCase())?1:-1);
         }
     },
     data: () => ({
