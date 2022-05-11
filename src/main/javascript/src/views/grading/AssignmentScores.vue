@@ -150,7 +150,7 @@ export default {
           }
         })
       );
-      
+
       this.$router.push({ name: this.$router.currentRoute.meta.previousStep });
     },
   },

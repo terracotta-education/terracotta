@@ -2,6 +2,7 @@ package edu.iu.terracotta.controller.app;
 
 import edu.iu.terracotta.exceptions.*;
 import edu.iu.terracotta.model.app.QuestionSubmission;
+import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.dto.QuestionSubmissionDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.AllRepositories;
@@ -129,7 +130,8 @@ public class QuestionSubmissionController {
                                                                               HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, SubmissionNotMatchingException, BadTokenException,
             InvalidUserException, DataServiceException, DuplicateQuestionException, IdMissingException, IdInPostException,
-            TypeNotSupportedException, ExceedingLimitException, AnswerSubmissionNotMatchingException, AnswerNotMatchingException, CanvasApiException, IOException {
+            TypeNotSupportedException, ExceedingLimitException, AnswerSubmissionNotMatchingException, AnswerNotMatchingException, CanvasApiException,
+            IOException, NoSubmissionsException {
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -143,13 +145,21 @@ public class QuestionSubmissionController {
                 student = true;
             }
 
-            if (questionSubmissionService.canSubmit(securedInfo.getCanvasCourseId(), securedInfo.getCanvasAssignmentId(),securedInfo.getCanvasUserId(),
+            Submission submission = submissionService.
+                    getSubmission(experimentId, securedInfo.getUserId(), submissionId, student);
+            String assignmentId = submission.getAssessment().getTreatment().getAssignment()
+                    .getLmsAssignmentId();
+
+            if (questionSubmissionService.canSubmit(securedInfo.getCanvasCourseId(), assignmentId,securedInfo.getCanvasUserId(),
                     securedInfo.getPlatformDeploymentId())) {
 
-                questionSubmissionService.validateAndPrepareQuestionSubmissionList(questionSubmissionDtoList, assessmentId, submissionId, student);
+                questionSubmissionService.
+                        validateAndPrepareQuestionSubmissionList(questionSubmissionDtoList, assessmentId, submissionId, student);
 
-                List<QuestionSubmissionDto> returnedDtoList = questionSubmissionService.postQuestionSubmissions(questionSubmissionDtoList, assessmentId, submissionId, student);
-                HttpHeaders headers = questionSubmissionService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, submissionId);
+                List<QuestionSubmissionDto> returnedDtoList = questionSubmissionService.
+                        postQuestionSubmissions(questionSubmissionDtoList, assessmentId, submissionId, student);
+                HttpHeaders headers = questionSubmissionService.
+                        buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, submissionId);
                 return new ResponseEntity<>(returnedDtoList, headers, HttpStatus.CREATED);
 
             } else {
