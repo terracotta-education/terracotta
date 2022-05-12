@@ -559,8 +559,11 @@ export default {
     this.tab = this.$router.currentRoute.name === "ExperimentSummary" ? 1 : 0;
     
     await this.fetchExposures(this.experiment.experimentId);
-    // Commenting the change for Unblock QA
-    // if (this.assignments > 0) {
+      for (const e of this.exposures) {
+        // add submissions to assignments request
+        const submissions = true
+        await this.fetchAssignmentsByExposure([this.experiment.experimentId, e.exposureId, submissions])
+      }
       for (let c of this.conditions) {
         const t = await this.checkTreatment([
           this.experiment.experimentId,
@@ -568,11 +571,6 @@ export default {
           this.assignments[0].assignmentId,
         ]);
         this.conditionTreatments[c.conditionId] = t?.data;
-      }
-      for (const e of this.exposures) {
-        // add submissions to assignments request
-        const submissions = true
-        await this.fetchAssignmentsByExposure([this.experiment.experimentId, e.exposureId, submissions])
       }
       this.getAssignmentDetails();
       await this.getZip(this.experiment.experimentId);
