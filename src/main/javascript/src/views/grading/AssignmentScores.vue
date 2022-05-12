@@ -1,5 +1,5 @@
 <template>
-  <div v-if="experiment && assignment">
+  <div v-if="experiment && assignment && submissions">
     <h1 class="mb-6">{{ assignment.title }}</h1>
     <template
       v-for="(selectedTreatment, index) in selectedAssignmentTreatments"
@@ -52,8 +52,7 @@
                       style="max-width: 50px;"
                       required
                       :value="
-                        (submissions[submission.submissionId] || {})
-                          .totalAlteredGrade
+                        submissions[submission.submissionId].totalAlteredGrade
                       "
                       @input="
                         updateTotalAlteredGrade(submission.submissionId, $event)
@@ -100,7 +99,7 @@ export default {
   },
   data() {
     return {
-      submissions: {},
+      submissions: null,
       updatedSubmissions: {},
     };
   },
@@ -108,7 +107,6 @@ export default {
     ...mapActions({
       fetchParticipants: "participants/fetchParticipants",
       fetchAssignment: "assignment/fetchAssignment",
-      fetchSubmissions: "submissions/fetchSubmissions",
       updateSubmission: "submissions/updateSubmission",
       reportStep: "api/reportStep",
     }),
