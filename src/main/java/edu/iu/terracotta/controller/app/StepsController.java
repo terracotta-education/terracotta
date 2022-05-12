@@ -181,44 +181,11 @@ public class StepsController {
                 //Validate permissions.
                 if (apijwtService.isLearner(securedInfo) && !apijwtService.isInstructorOrHigher(securedInfo)) {
 
-                    List<String> submissionIds = null;
-                    if (stepDto.getParameters() != null) {
-                        submissionIds = Collections.
-                                arrayToList(StringUtils.split(stepDto.getParameters().get("submissionIds"),
-                                        ","));
-                    }
-
-                    Long submissionId = null;
-                    String assignmentId = null;
-
-                    if (submissionIds != null && submissionIds.size() > 0) {
-                        boolean std = true;
-                        submissionId = Long.parseLong(submissionIds.get(0));
-                        Submission submission = submissionService.
-                                getSubmission(experimentId, securedInfo.getUserId(), submissionId, std);
-                        assignmentId = submission.getAssessment().getTreatment().getAssignment()
-                                .getLmsAssignmentId();
-                    }
-
-                    if (assignmentId != null) {
-                        if (questionSubmissionService.canSubmit(securedInfo.getCanvasCourseId(),
-                                assignmentId, securedInfo.getCanvasUserId(), securedInfo.getPlatformDeploymentId())) {
-                            return assignmentService.launchAssignment(experimentId, securedInfo);
-                        } else {
-                            return new ResponseEntity<>(TextConstants.MAX_SUBMISSION_ATTEMPTS_REACHED, HttpStatus.UNAUTHORIZED);
-                        }
-
-                    } else if (assignmentId == null && securedInfo.getCanvasAssignmentId() != null) {
-                        if (questionSubmissionService.canSubmit(securedInfo.getCanvasCourseId(),
-                                securedInfo.getCanvasAssignmentId(), securedInfo.getCanvasUserId(),
-                                securedInfo.getPlatformDeploymentId())) {
-                            return assignmentService.launchAssignment(experimentId, securedInfo);
-                        } else {
-                            return new ResponseEntity<>(TextConstants.MAX_SUBMISSION_ATTEMPTS_REACHED, HttpStatus.UNAUTHORIZED);
-                        }
-
+                    if (questionSubmissionService.canSubmit(securedInfo.getCanvasCourseId(),
+                            securedInfo.getCanvasAssignmentId(), securedInfo.getCanvasUserId(), securedInfo.getPlatformDeploymentId())) {
+                        return assignmentService.launchAssignment(experimentId, securedInfo);
                     } else {
-                        return new ResponseEntity<>(TextConstants.SUBMISSION_IDS_MISSING, HttpStatus.UNAUTHORIZED);
+                        return new ResponseEntity<>(TextConstants.MAX_SUBMISSION_ATTEMPTS_REACHED, HttpStatus.UNAUTHORIZED);
                     }
                 } else {
                     return new ResponseEntity<>(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
