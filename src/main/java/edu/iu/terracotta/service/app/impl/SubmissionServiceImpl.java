@@ -7,6 +7,7 @@ import edu.iu.terracotta.model.app.*;
 import edu.iu.terracotta.model.app.dto.QuestionSubmissionDto;
 import edu.iu.terracotta.model.app.dto.SubmissionCommentDto;
 import edu.iu.terracotta.model.app.dto.SubmissionDto;
+import edu.iu.terracotta.model.app.enumerator.QuestionTypes;
 import edu.iu.terracotta.model.oauth2.LTIToken;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.AllRepositories;
@@ -314,7 +315,7 @@ public class SubmissionServiceImpl implements SubmissionService {
         //We need to calculate the 2 the possible grades. Automatic and manual
         float automatic = Float.parseFloat("0");
         float manual = Float.parseFloat("0");
-        boolean altered = submission.getTotalAlteredGrade() != null && (!submission.getTotalAlteredGrade().equals(submission.getAlteredCalculatedGrade()));
+        boolean altered = this.isGradeAltered(submission);
         for (QuestionSubmission questionSubmission : submission.getQuestionSubmissions()) {
             //We need to grade the question first automatically it it was not graded before.
             //If multiple choice, we take the automatic score for automatic and the manual if any for manual, and if no manual, then the automatic for manual
@@ -370,21 +371,48 @@ public class SubmissionServiceImpl implements SubmissionService {
         LineItem lineItem = advantageAGSService.getLineItem(ltiLineItemToken,experiment.getLtiContextEntity(),ids[ids.length-1]);
         Score score = new Score();
         score.setUserId(submission.getParticipant().getLtiUserEntity().getUserKey());
-        if (submission.getTotalAlteredGrade() != null) {
-            score.setScoreGiven(submission.getTotalAlteredGrade().toString());
-        } else {
-            score.setScoreGiven(submission.getAlteredCalculatedGrade().toString());
+        boolean manualGradingNeeded = this.isManualGradingNeeded(submission);
+        // Only set the score if additional manual grading isn't needed, i.e.,
+        // if the grade is complete
+        if (!manualGradingNeeded) {
+            if (submission.getTotalAlteredGrade() != null) {
+                score.setScoreGiven(submission.getTotalAlteredGrade().toString());
+            } else {
+                score.setScoreGiven(submission.getAlteredCalculatedGrade().toString());
+            }
         }
         Float maxTerracottaScore = assessmentService.calculateMaxScore(submission.getAssessment());
         score.setScoreMaximum(maxTerracottaScore.toString());
         score.setActivityProgress("Completed");
-        score.setGradingProgress("FullyGraded");
+        if (manualGradingNeeded) {
+            score.setGradingProgress("PendingManual");
+        } else {
+            score.setGradingProgress("FullyGraded");
+        }
 
         Date date = new Date();
         SimpleDateFormat dt = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
         String strDate = dt.format(date);
         score.setTimestamp(strDate);
         advantageAGSService.postScore(ltiTokenScore, ltiTokenResults, experiment.getLtiContextEntity(), lineitemId, score);
+    }
+
+    private boolean isManualGradingNeeded(Submission submission) {
+
+        // If the submission's grade has been altered, then the entire
+        // submission has been manually graded.
+        // If any of the ESSAY questions have a null alteredGrade, then the
+        // assessment still needs to be manually graded.
+        return !this.isGradeAltered(submission)
+                && submission.getQuestionSubmissions().stream().anyMatch(qs -> {
+                    return qs.getQuestion().getQuestionType() == QuestionTypes.ESSAY && qs.getAlteredGrade() == null;
+                });
+    }
+
+    private boolean isGradeAltered(Submission submission) {
+
+        Float totalAlteredGrade = submission.getTotalAlteredGrade();
+        return totalAlteredGrade != null && (!totalAlteredGrade.equals(submission.getAlteredCalculatedGrade()));
     }
 
     @Override
