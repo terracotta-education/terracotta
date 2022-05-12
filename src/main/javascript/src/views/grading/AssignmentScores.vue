@@ -1,7 +1,9 @@
 <template>
-  <div v-if="experiment && assignment">
+  <div v-if="experiment && assignment && submissions">
     <h1 class="mb-6">{{ assignment.title }}</h1>
-    <template v-for="(selectedTreatment, index) in selectedAssignmentTreatments">
+    <template
+      v-for="(selectedTreatment, index) in selectedAssignmentTreatments"
+    >
       <div :key="selectedTreatment.treatmentId" class="mt-6">
         <h3>
           {{ selectedTreatment.assessmentDto.title }}
@@ -13,7 +15,8 @@
                 <tr>
                   <th class="text-left">Student Name</th>
                   <th class="text-left" style="width:250px;">
-                    Score (out of {{ selectedTreatment.assessmentDto.maxPoints }})
+                    Score (out of
+                    {{ selectedTreatment.assessmentDto.maxPoints }})
                   </th>
                 </tr>
               </thead>
@@ -38,9 +41,7 @@
                         },
                       }"
                     >
-                      {{
-                        getParticipantName(submission.participantId, submission)
-                      }}
+                      {{ getParticipantName(submission.participantId) }}
                     </router-link>
                   </td>
                   <td>
@@ -50,8 +51,11 @@
                       placeholder="---"
                       style="max-width: 50px;"
                       required
-                      v-model="
-                        resultValues[submission.submissionId].totalAlteredGrade
+                      :value="
+                        submissions[submission.submissionId].totalAlteredGrade
+                      "
+                      @input="
+                        updateTotalAlteredGrade(submission.submissionId, $event)
                       "
                     ></v-text-field>
                   </td>
@@ -60,7 +64,7 @@
             </template>
           </v-simple-table>
         </form>
-        <template v-if="index !== selectedAssignmentTreatments.length-1">
+        <template v-if="index !== selectedAssignmentTreatments.length - 1">
           <hr />
         </template>
       </div>
@@ -69,6 +73,7 @@
 </template>
 
 <script>
+import { clone } from "@/helpers";
 import { mapActions, mapGetters } from "vuex";
 
 export default {
@@ -94,64 +99,54 @@ export default {
   },
   data() {
     return {
-      resultValues: {},
+      submissions: null,
+      updatedSubmissions: {},
     };
   },
   methods: {
     ...mapActions({
       fetchParticipants: "participants/fetchParticipants",
       fetchAssignment: "assignment/fetchAssignment",
-      fetchSubmissions: "submissions/fetchSubmissions",
       updateSubmission: "submissions/updateSubmission",
       reportStep: "api/reportStep",
     }),
-    getParticipantName(participantId, submission) {
-      this.resultValues[submission.submissionId] = submission;
+    getParticipantName(participantId) {
       return this.participants?.filter(
         (participant) => participant.participantId === participantId
       )[0]?.user.displayName;
-
-    },
-    async getSubmissions(experimentId, conditionId, treatmentId, assessmentId) {
-      const submissions = await this.fetchSubmissions(
-        experimentId,
-        conditionId,
-        treatmentId,
-        assessmentId
-      );
-      this.resultValues[treatmentId] = submissions;
-      return submissions;
     },
     async saveExit() {
-      // Update Scores and send it to backend
-      Promise.all(
-        Object.values(this.resultValues).map(async (value) => {
-          try {
-            const submission = await this.updateSubmission([
-              value.experimentId,
-              value.conditionId,
-              value.treatmentId,
-              value.assessmentId,
-              value.submissionId,
-              value.alteredCalculatedGrade,
-              value.totalAlteredGrade,
-            ]);
+      try {
+        for (const submission of Object.values(this.updatedSubmissions)) {
+          await this.updateSubmission([
+            submission.experimentId,
+            submission.conditionId,
+            submission.treatmentId,
+            submission.assessmentId,
+            submission.submissionId,
+            submission.alteredCalculatedGrade,
+            submission.totalAlteredGrade,
+          ]);
 
-            // Post Step to Experiment
-            await this.reportStep({
-              experimentId: value.experimentId,
-              step: "student_submission",
-              parameters: { submissionIds: "" + value.submissionId },
-            });
+          await this.reportStep({
+            experimentId: submission.experimentId,
+            step: "student_submission",
+            parameters: { submissionIds: "" + submission.submissionId },
+          });
+        }
 
-            return Promise.resolve(submission);
-          } catch (error) {
-            return Promise.reject(error);
-          }
-        })
-      );
-      
-      this.$router.push({ name: this.$router.currentRoute.meta.previousStep });
+        this.$router.push({
+          name: this.$router.currentRoute.meta.previousStep,
+        });
+      } catch (error) {
+        this.$swal("There was a problem saving assignment scores.");
+      }
+    },
+    updateTotalAlteredGrade(submissionId, value) {
+      const submission = this.submissions[submissionId];
+      submission.totalAlteredGrade = value;
+      // Record that this submission was updated
+      this.updatedSubmissions[submissionId] = submission;
     },
   },
   async created() {
@@ -162,6 +157,14 @@ export default {
       true,
     ]);
     await this.fetchParticipants(this.experiment_id);
+    const submissions = {};
+    for (const treatment of this.assignment.treatments) {
+      for (const submission of treatment.assessmentDto.submissions) {
+        // Create a clone of each submission that can be mutated
+        submissions[submission.submissionId] = clone(submission);
+      }
+    }
+    this.submissions = submissions;
   },
 };
 </script>
