@@ -28,7 +28,10 @@ const actions = {
       if (response?.data?.length>0) {
         assessment = response?.data[0]
       } else {
-        response = await assessmentService.createAssessment(...payload)
+        response = await assessmentService.createAssessment(...payload);
+        if (response.status !== 201) {
+          return response;
+        }
         assessment = response?.data
       }
 
