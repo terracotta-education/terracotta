@@ -19,7 +19,10 @@ const actions = {
       if (response?.data?.length>0 && response.data.find(t=>t.assignmentId===assignment_id)) {
         treatment = response.data.find(t=>t.assignmentId===assignment_id)
       } else {
-        response = await treatmentService.create(...payload)
+        response = await treatmentService.create(...payload);
+        if (response.status !== 201) {
+          return response;
+        }
         treatment = response?.data
       }
 

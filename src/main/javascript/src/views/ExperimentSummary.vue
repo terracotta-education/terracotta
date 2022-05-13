@@ -184,13 +184,15 @@
                                     {{ group }} will receive
                                     <v-chip
                                       class="ma-2"
-                                      :color="conditionColorMapping[groupNameConditionMapping(
-                                          exposure.groupConditionList
-                                        )[group]]"
-                                      label
-                                      :key="
-                                        group
+                                      :color="
+                                        conditionColorMapping[
+                                          groupNameConditionMapping(
+                                            exposure.groupConditionList
+                                          )[group]
+                                        ]
                                       "
+                                      label
+                                      :key="group"
                                     >
                                       <!-- Sorted Group Names -->
                                       {{
@@ -213,7 +215,9 @@
                                       )"
                                       :key="assignment.assignmentId"
                                     >
-                                      <v-expansion-panel-header style="display:flex;flex-direction: row">
+                                      <v-expansion-panel-header
+                                        style="display:flex;flex-direction: row"
+                                      >
                                         {{ assignment.title }} ({{
                                           (assignment.treatments &&
                                             assignment.treatments.length) ||
@@ -442,7 +446,7 @@ export default {
   methods: {
     ...mapActions({
       fetchExposures: "exposures/fetchExposures",
-      fetchAssignmentsByExposure: 'assignment/fetchAssignmentsByExposure',
+      fetchAssignmentsByExposure: "assignment/fetchAssignmentsByExposure",
       checkTreatment: "treatment/checkTreatment",
       createTreatment: "treatment/createTreatment",
       createAssessment: "assessment/createAssessment",
@@ -454,7 +458,10 @@ export default {
     },
     async exportData() {
       await this.getZip(this.experiment.experimentId);
-      saveAs(this.exportdata, `Terracotta Experiment ${this.experiment.title} Export.zip`);
+      saveAs(
+        this.exportdata,
+        `Terracotta Experiment ${this.experiment.title} Export.zip`
+      );
     },
     // Navigate to EDIT section
     handleEdit(componentName) {
@@ -517,15 +524,24 @@ export default {
         conditionId,
         assignmentId
       );
+
+      if (![200, 201].includes(treatment.status)) {
+        this.$swal(
+          `There was a problem creating your treatment: ${treatment.data}`
+        );
+        return false;
+      }
+
       // create the assessment
       const assessment = await this.handleCreateAssessment(
         conditionId,
         treatment?.data
       );
 
-      // show an alert if there's a problem creating the treatment or assessment
-      if (!treatment || !assessment) {
-        this.$swal("There was a problem creating your assessment");
+      if (![200, 201].includes(assessment.status)) {
+        this.$swal(
+          `There was a problem creating your assessment: ${assessment.data}`
+        );
         return false;
       }
 
@@ -557,26 +573,30 @@ export default {
 
   async created() {
     this.tab = this.$router.currentRoute.name === "ExperimentSummary" ? 1 : 0;
-    
+
     await this.fetchExposures(this.experiment.experimentId);
-      for (const e of this.exposures) {
-        // add submissions to assignments request
-        const submissions = true
-        await this.fetchAssignmentsByExposure([this.experiment.experimentId, e.exposureId, submissions])
-      }
-      for (let c of this.conditions) {
-        const t = await this.checkTreatment([
-          this.experiment.experimentId,
-          c.conditionId,
-          this.assignments[0].assignmentId,
-        ]);
-        this.conditionTreatments[c.conditionId] = t?.data;
-      }
-      this.getAssignmentDetails();
-      await this.getZip(this.experiment.experimentId);
-      if(this.experiment.participationType === 'CONSENT') {
-        await this.getConsentFile(this.experiment.experimentId);
-      }
+    for (const e of this.exposures) {
+      // add submissions to assignments request
+      const submissions = true;
+      await this.fetchAssignmentsByExposure([
+        this.experiment.experimentId,
+        e.exposureId,
+        submissions,
+      ]);
+    }
+    for (let c of this.conditions) {
+      const t = await this.checkTreatment([
+        this.experiment.experimentId,
+        c.conditionId,
+        this.assignments[0].assignmentId,
+      ]);
+      this.conditionTreatments[c.conditionId] = t?.data;
+    }
+    this.getAssignmentDetails();
+    await this.getZip(this.experiment.experimentId);
+    if (this.experiment.participationType === "CONSENT") {
+      await this.getConsentFile(this.experiment.experimentId);
+    }
     // }
   },
   beforeRouteEnter(to, from, next) {
