@@ -13,11 +13,9 @@
         </v-col>
       </v-row>
     </v-alert>
-    <div>
-      <button class="consentLink mt-2" @click="openPDF">
-        Review the Consent
-      </button>
-    </div>
+    <iframe
+      :src="'data:application/pdf;base64, ' + encodeURI(this.consent.file)"
+    ></iframe>
     <form @submit.prevent="updateConsent(answer || false)">
       <v-card class="mt-5">
         <v-card-title
@@ -107,18 +105,6 @@ export default {
           console.log("submitParticipant | catch", { response });
         });
     },
-    openPDF() {
-      // Second Parameter intentionally left blank
-      let pdfWindow = window.open("", "", "_blank");
-      pdfWindow.opener = null;
-      pdfWindow.document.write(
-        "<iframe width='100%' height='100%' src='data:application/pdf;base64, " +
-          encodeURI(this.consent.file) +
-          "'></iframe>"
-      );
-
-      return false;
-    },
   },
   async created() {
     this.getConsentFile(this.experimentId);
@@ -131,28 +117,17 @@ export default {
 };
 </script>
 
-<style lang="scss" scopoed>
-@import "~vuetify/src/styles/main.sass";
-@import "~@/styles/variables";
-
+<style lang="scss" scoped>
 .consent-steps {
   min-height: 100%;
-  grid-template-rows: auto 1fr;
-  grid-template-columns: auto 1fr;
-  grid-template-areas:
-    "aside nav"
-    "aside article";
   padding: 30px 45px;
 }
 
 .optionList {
   margin-left: 15px;
 }
-.consentLink {
-  background: none !important;
-  border: none;
-  padding: 0 !important;
-  color: #069 !important;
-  cursor: pointer;
+iframe {
+  width: 100%;
+  min-height: 300px;
 }
 </style>
