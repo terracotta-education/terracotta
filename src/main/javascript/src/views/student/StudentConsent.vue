@@ -14,7 +14,12 @@
       </v-row>
     </v-alert>
     <iframe
-      :src="'data:application/pdf;base64, ' + encodeURI(this.consent.file)"
+      :src="
+        'data:application/pdf;base64, ' +
+          encodeURI(this.consent.file) +
+          // pagemode=none hides thumbnails on Firefox, toolbar=0 works for other browsers
+          '#pagemode=none&toolbar=0'
+      "
     ></iframe>
     <form @submit.prevent="updateConsent(answer || false)">
       <v-card class="mt-5">
@@ -129,5 +134,6 @@ export default {
 iframe {
   width: 100%;
   min-height: 300px;
+  border: none;
 }
 </style>
