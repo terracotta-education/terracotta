@@ -113,8 +113,7 @@ import {mapActions, mapGetters} from 'vuex'
         return arr
       },
       participantFilteredList() {
-        let sortedparticipantFilteredList = this.participants.filter(({consent}) => consent === true)
-        sortedparticipantFilteredList = sortedparticipantFilteredList.filter(x => x.user.displayName !== null);
+        let sortedparticipantFilteredList = this.participants.filter(x => x.user.displayName !== null);
         let soratableNameAddedParticipants = []
         sortedparticipantFilteredList.map(x => {
           let dispName = x.user.displayName;
