@@ -6,7 +6,7 @@
 		>
 			<p><strong>Are you sure you want to include all students in your experiment automatically?</strong></p>
 			<p>One of the basic principles of ethical research is showing respect for research participants.  One way of showing this respect is by providing people an opportunity to make decisions for themselves about whether they want to participate in a study.</p>
-			<p>Terracotta is designed to make this process easy.  If you want, we can create as short assignment where your students will provide consent to be included in this experiment.</p>
+			<p>Terracotta is designed to make this process easy.  If you want, we can create a short assignment where your students will provide consent to be included in this experiment.</p>
 		</v-card>
 		<v-btn elevation="0" color="primary" class="mb-4" :to="{name: 'ParticipationDistribution'}">Yes, I want to proceed</v-btn>
 		<br>
