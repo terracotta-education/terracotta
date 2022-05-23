@@ -10,8 +10,8 @@
         :key="answer.answerId"
         class="mb-3"
       >
-        <v-row align="center">
-          <v-col class="py-0" cols="1">
+        <v-row align="center" class="flex-nowrap">
+          <v-col class="py-0">
             <v-btn
               icon
               tile
@@ -27,7 +27,7 @@
               </template>
             </v-btn>
           </v-col>
-          <v-col cols="9">
+          <v-col class="flex-basis-auto">
             <v-text-field
               :value="answer.html"
               @input="updateAnswerHtml(answer, $event)"
@@ -38,7 +38,7 @@
               required
             ></v-text-field>
           </v-col>
-          <v-col class="py-0" cols="2">
+          <v-col class="py-0">
             <v-btn
               icon
               tile
@@ -145,5 +145,8 @@ export default {
 <style lang="scss" scoped>
 .options-list {
   list-style: none;
+}
+.flex-basis-auto {
+  flex-basis: auto;
 }
 </style>
