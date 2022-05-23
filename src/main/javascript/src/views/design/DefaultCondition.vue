@@ -39,10 +39,11 @@
       class="mt-15 pt-5 px-5 mx-auto blue lighten-5 rounded-lg"
       outlined
     >
-      <p><strong>Note:</strong> It's important to specify a default condition so that we know what version of
-        assignments students should receive if they're not participating in the experiment. This condition should be
-        similar to business-as-usual; the sort of assignment that students would complete during the normal conduct of
-        the course.</p>
+      <p><strong>Note:</strong> It's important to specify a default condition so
+      that we know which version of assignments students not participating in
+      the experiment should receive. This condition should be the one closest to
+      the sort of assignment students would complete during the normal conduct
+      of the course.</p>
     </v-card>
   </div>
 </template>

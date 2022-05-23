@@ -111,13 +111,22 @@ export default {
     async goToBuilder(conditionId) {
       // create the treatment
       const treatment = await this.handleCreateTreatment(conditionId)
+
+      if (![200, 201].includes(treatment.status)) {
+        this.$swal(
+          `There was a problem creating your treatment: ${treatment.data}`
+        );
+        return false;
+      }
+
       // create the assessment
       const assessment = await this.handleCreateAssessment(conditionId, treatment?.data)
 
-      // show an alert if there's a problem creating the treatment or assessment
-      if (treatment?.data?.error || assessment?.data?.error) {
-        this.$swal('There was a problem creating your assessment')
-        return false
+      if (![200, 201].includes(assessment.status)) {
+        this.$swal(
+          `There was a problem creating your assessment: ${assessment.data}`
+        );
+        return false;
       }
 
       // // send user to builder with the treatment and assessment ids
