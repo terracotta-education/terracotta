@@ -58,6 +58,21 @@ const actions = {
     }
   },
 
+  async createNewSubmission({state}, payload) {
+    // payload = experiment_id, condition_id, treatment_id, assessment_id, submission_id, questions
+
+    try {
+      const response = await submissionService.createNewSubmission(...payload)
+      if (response) {
+        return {
+          data: response
+        }
+      }
+    } catch (error) {
+      console.error('createNewSubmission catch', {error, state})
+    }
+  },
+
   async updateQuestionSubmission({state}, payload) {
     // payload = experiment_id, condition_id, treatment_id, assessment_id, submission_id, updatedResponseBody
 

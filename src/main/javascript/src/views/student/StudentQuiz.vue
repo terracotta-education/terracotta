@@ -154,6 +154,7 @@ export default {
       reportStep: "api/reportStep",
       fetchAssessment: "assessment/fetchAssessment",
       createQuestionSubmission: "submissions/createQuestionSubmission",
+      createNewSubmission: "submissions/createNewSubmission"
     }),
     async handleSubmit() {
       const reallySubmit = await this.$swal({
@@ -178,6 +179,16 @@ export default {
       try {
         const experimentId = this.experimentId;
         const step = "student_submission";
+        if (this.submissionId === null) {
+         let response = await this.createNewSubmission([
+            this.experimentId,
+            this.conditionId,
+            this.treatmentId,
+            this.assessmentId
+          ])
+          this.submissionId = response.data.submissionId;
+        }
+
         const parameters = { submissionIds: this.submissionId };
         const questions = this.questionValues.map((q) => {
           return {

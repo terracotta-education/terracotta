@@ -1,11 +1,11 @@
 package edu.iu.terracotta.controller.app;
 
 import edu.iu.terracotta.exceptions.*;
-import edu.iu.terracotta.model.app.Submission;
+import edu.iu.terracotta.model.app.*;
 import edu.iu.terracotta.model.app.dto.SubmissionDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
-import edu.iu.terracotta.service.app.APIJWTService;
-import edu.iu.terracotta.service.app.SubmissionService;
+import edu.iu.terracotta.service.app.*;
+import edu.iu.terracotta.service.caliper.CaliperService;
 import edu.iu.terracotta.utils.TextConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,6 +23,7 @@ import javax.servlet.http.HttpServletRequest;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Controller
 @SuppressWarnings({"rawtypes", "unchecked"})
@@ -37,6 +38,18 @@ public class SubmissionController {
 
     @Autowired
     SubmissionService submissionService;
+
+    @Autowired
+    CaliperService caliperService;
+
+    @Autowired
+    ParticipantService participantService;
+
+    @Autowired
+    ExperimentService experimentService;
+
+    @Autowired
+    AssignmentService assignmentService;
 
 
     @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions", method = RequestMethod.GET,
@@ -91,6 +104,71 @@ public class SubmissionController {
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
+    }
+
+
+    @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/new_submission",
+            method = RequestMethod.POST)
+    public ResponseEntity<SubmissionDto> createNewSubmission(@PathVariable("experiment_id") Long experimentId,
+                                                             @PathVariable("condition_id") Long conditionId,
+                                                             @PathVariable("treatment_id") Long treatmentId,
+                                                             @PathVariable("assessment_id") Long assessmentId,
+                                                             UriComponentsBuilder ucBuilder,
+                                                             HttpServletRequest req)
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, BadTokenException, InvalidUserException,
+            ParticipantNotMatchingException, IdInPostException, DataServiceException, ParticipantNotUpdatedException {
+
+        log.debug("Creating new Submission: {}");
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
+
+        if (submissionService.datesAllowed(experimentId, treatmentId, securedInfo)) {
+            if (apijwtService.isLearnerOrHigher(securedInfo)) {
+                Optional<Experiment> experiment = experimentService.findById(experimentId);
+
+                if (experiment.isPresent()) {
+                    List<Participant> participants = participantService.refreshParticipants(experimentId,
+                            securedInfo, experiment.get().getParticipants());
+                    Participant participant = participantService.findParticipant(participants, securedInfo.getUserId());
+                    if (participant == null) {
+                        throw new ParticipantNotMatchingException(TextConstants.PARTICIPANT_NOT_MATCHING);
+                    }
+                    Assessment assessment = null;
+                    if (!participant.getConsent()) {
+                        //We need the default condition assessment
+                        for (Condition condition : experiment.get().getConditions()) {
+                            if (condition.getDefaultCondition()) {
+                                assessment = assignmentService.getAssessmentByConditionId(experimentId,
+                                        securedInfo.getCanvasAssignmentId(), condition.getConditionId());
+                                break;
+                            }
+                        }
+                    } else {
+                        if (participant.getGroup() != null) {
+                            assessment = assignmentService.getAssessmentByGroupId(experimentId,
+                                    securedInfo.getCanvasAssignmentId(), participant.getGroup().getGroupId());
+                        }   // There is no possible else... but if we arrive to here, then assessment will be null
+                    }
+                    if (assessment == null) {
+                        throw new AssessmentNotMatchingException("There is no assessment available for this user");
+
+                    }
+
+                    Submission submission = submissionService.createNewSubmission(assessment, participant, securedInfo);
+                    caliperService.sendAssignmentStarted(submission, securedInfo);
+                    SubmissionDto submissionDto = submissionService.toDto(submission, true, false);
+                    return new ResponseEntity<>(submissionDto, HttpStatus.CREATED);
+                } else {
+                    return new ResponseEntity(TextConstants.EXPERIMENT_NOT_MATCHING, HttpStatus.UNAUTHORIZED);
+                }
+            } else {
+                return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
+            }
+        } else {
+            return new ResponseEntity("Error 128: Assignment locked", HttpStatus.UNAUTHORIZED);
+        }
+
     }
 
 
