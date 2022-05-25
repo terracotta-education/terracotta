@@ -107,18 +107,18 @@ public class SubmissionController {
     }
 
 
-    @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/new_submission",
+
+    @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions",
             method = RequestMethod.POST)
-    public ResponseEntity<SubmissionDto> createNewSubmission(@PathVariable("experiment_id") Long experimentId,
-                                                             @PathVariable("condition_id") Long conditionId,
-                                                             @PathVariable("treatment_id") Long treatmentId,
-                                                             @PathVariable("assessment_id") Long assessmentId,
-                                                             UriComponentsBuilder ucBuilder,
-                                                             HttpServletRequest req)
+    public ResponseEntity<SubmissionDto> postSubmission(@PathVariable("experiment_id") Long experimentId,
+                                                        @PathVariable("condition_id") Long conditionId,
+                                                        @PathVariable("treatment_id") Long treatmentId,
+                                                        @PathVariable("assessment_id") Long assessmentId,
+                                                        HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, BadTokenException, InvalidUserException,
             ParticipantNotMatchingException, IdInPostException, DataServiceException, ParticipantNotUpdatedException {
 
-        log.debug("Creating new Submission: {}");
+        log.debug("Creating New Submission");
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
@@ -155,45 +155,13 @@ public class SubmissionController {
 
                     }
 
-                    Submission submission = submissionService.createNewSubmission(assessment, participant, securedInfo);
+                    Submission submission = submissionService.postSubmission(assessment, participant, securedInfo);
                     caliperService.sendAssignmentStarted(submission, securedInfo);
                     SubmissionDto submissionDto = submissionService.toDto(submission, true, false);
                     return new ResponseEntity<>(submissionDto, HttpStatus.CREATED);
                 } else {
                     return new ResponseEntity(TextConstants.EXPERIMENT_NOT_MATCHING, HttpStatus.UNAUTHORIZED);
                 }
-            } else {
-                return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-            }
-        } else {
-            return new ResponseEntity("Error 128: Assignment locked", HttpStatus.UNAUTHORIZED);
-        }
-
-    }
-
-
-    @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions",
-            method = RequestMethod.POST)
-    public ResponseEntity<SubmissionDto> postSubmission(@PathVariable("experiment_id") Long experimentId,
-                                                        @PathVariable("condition_id") Long conditionId,
-                                                        @PathVariable("treatment_id") Long treatmentId,
-                                                        @PathVariable("assessment_id") Long assessmentId,
-                                                        @RequestBody SubmissionDto submissionDto,
-                                                        UriComponentsBuilder ucBuilder,
-                                                        HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, BadTokenException, InvalidUserException, ParticipantNotMatchingException, IdInPostException, DataServiceException {
-
-        log.debug("Creating Submission: {}", submissionDto);
-        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
-        apijwtService.experimentAllowed(securedInfo, experimentId);
-        apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
-
-        if (submissionService.datesAllowed(experimentId, treatmentId, securedInfo)) {
-            if (apijwtService.isLearnerOrHigher(securedInfo)) {
-                boolean student = !apijwtService.isInstructorOrHigher(securedInfo);
-                SubmissionDto returnedDto = submissionService.postSubmission(submissionDto, experimentId, securedInfo.getUserId(), assessmentId, student);
-                HttpHeaders headers = submissionService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, returnedDto.getSubmissionId());
-                return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
             } else {
                 return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
             }

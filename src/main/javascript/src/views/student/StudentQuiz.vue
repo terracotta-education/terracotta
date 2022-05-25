@@ -154,7 +154,7 @@ export default {
       reportStep: "api/reportStep",
       fetchAssessment: "assessment/fetchAssessment",
       createQuestionSubmission: "submissions/createQuestionSubmission",
-      createNewSubmission: "submissions/createNewSubmission"
+      createPostSubmission: "submissions/createPostSubmission"
     }),
     async handleSubmit() {
       const reallySubmit = await this.$swal({
@@ -180,7 +180,7 @@ export default {
         const experimentId = this.experimentId;
         const step = "student_submission";
         if (this.submissionId === null) {
-         let response = await this.createNewSubmission([
+         let response = await this.createPostSubmission([
             this.experimentId,
             this.conditionId,
             this.treatmentId,

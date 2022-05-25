@@ -10,14 +10,14 @@ export const submissionService = {
   createQuestionSubmission,
   updateQuestionSubmission,
   studentResponse,
-  createNewSubmission,
+  postSubmission,
 };
 
 
 /**
  * Create new  Submission
  */
-async function createNewSubmission(
+async function postSubmission(
     experiment_id,
     condition_id,
     treatment_id,
@@ -29,7 +29,7 @@ async function createNewSubmission(
   };
 
   return fetch(
-      `${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/submissions/new_submission`,
+      `${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/submissions`,
       requestOptions
   ).then(handleResponse);
 }

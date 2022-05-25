@@ -58,18 +58,19 @@ const actions = {
     }
   },
 
-  async createNewSubmission({state}, payload) {
+
+  async createPostSubmission({state}, payload) {
     // payload = experiment_id, condition_id, treatment_id, assessment_id, submission_id, questions
 
     try {
-      const response = await submissionService.createNewSubmission(...payload)
+      const response = await submissionService.postSubmission(...payload)
       if (response) {
         return {
           data: response
         }
       }
     } catch (error) {
-      console.error('createNewSubmission catch', {error, state})
+      console.error('createPostSubmission catch', {error, state})
     }
   },
 

@@ -402,7 +402,6 @@ public class AssignmentServiceImpl implements AssignmentService {
                 submissionDto.setAssessmentId(assessment.getAssessmentId());
                 submissionDto.setTreatmentId(assessment.getTreatment().getTreatmentId());
                 submissionDto.setConditionId(assessment.getTreatment().getCondition().getConditionId());
-//                return createSubmission(experimentId, assessment, participant, securedInfo);
                 return  new ResponseEntity<>(submissionDto,HttpStatus.OK);
 
             } else {
@@ -477,17 +476,6 @@ public class AssignmentServiceImpl implements AssignmentService {
         sendAssignmentGradeToCanvas(assignment);
 
         return assignment;
-    }
-
-    private ResponseEntity<Object> createSubmission(Long experimentId, Assessment assessment, Participant participant, SecuredInfo securedInfo) {
-        if (submissionService.datesAllowed(experimentId,assessment.getTreatment().getTreatmentId(),securedInfo)){
-            Submission submission = submissionService.createNewSubmission(assessment, participant, securedInfo);
-            caliperService.sendAssignmentStarted(submission, securedInfo);
-            SubmissionDto submissionDto = submissionService.toDto(submission,true, false);
-            return new ResponseEntity<>(submissionDto,HttpStatus.OK);
-        } else {
-            return new ResponseEntity<>(TextConstants.ASSIGNMENT_LOCKED, HttpStatus.UNAUTHORIZED);
-        }
     }
 
     @Override
