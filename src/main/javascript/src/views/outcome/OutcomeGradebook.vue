@@ -15,7 +15,8 @@
                 @change="handleSelectAll()"
                ></v-checkbox>
               </th>
-              <th class="text-left">Gradebook Item</th>
+              <th class="text-left">
+                Gradebook Item</th>
               <th class="text-left" style="width:250px;">Total Points</th>
             </tr>
           </thead>
