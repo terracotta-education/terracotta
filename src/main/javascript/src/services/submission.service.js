@@ -9,8 +9,30 @@ export const submissionService = {
   updateSubmission,
   createQuestionSubmission,
   updateQuestionSubmission,
-  studentResponse
+  studentResponse,
+  postSubmission,
 };
+
+
+/**
+ * Create new  Submission
+ */
+async function postSubmission(
+    experiment_id,
+    condition_id,
+    treatment_id,
+    assessment_id
+) {
+  const requestOptions = {
+    method: "POST",
+    headers: authHeader(),
+  };
+
+  return fetch(
+      `${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/submissions`,
+      requestOptions
+  ).then(handleResponse);
+}
 
 /**
  * Get all Submissions

@@ -58,6 +58,22 @@ const actions = {
     }
   },
 
+
+  async createPostSubmission({state}, payload) {
+    // payload = experiment_id, condition_id, treatment_id, assessment_id, submission_id, questions
+
+    try {
+      const response = await submissionService.postSubmission(...payload)
+      if (response) {
+        return {
+          data: response
+        }
+      }
+    } catch (error) {
+      console.error('createPostSubmission catch', {error, state})
+    }
+  },
+
   async updateQuestionSubmission({state}, payload) {
     // payload = experiment_id, condition_id, treatment_id, assessment_id, submission_id, updatedResponseBody
 
