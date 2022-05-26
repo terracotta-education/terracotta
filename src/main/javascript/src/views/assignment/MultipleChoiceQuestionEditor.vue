@@ -62,6 +62,14 @@
         Add Option
       </v-btn>
     </template>
+    <template v-slot:actions-overflow>
+      <v-list-item @click="handleToggleRandomizeOptions()">
+        <v-list-item-title>
+          <v-icon class="mr-2">mdi-shuffle</v-icon>
+          Randomize Options</v-list-item-title
+        >
+      </v-list-item>
+    </template>
   </question-editor>
 </template>
 
@@ -90,15 +98,28 @@ export default {
     condition_id() {
       return parseInt(this.$route.params.condition_id);
     },
+    randomizeAnswers: {
+      // two-way computed property
+      get() {
+        return this.question.randomizeAnswers;
+      },
+      set(value) {
+        this.updateQuestions({ ...this.question, randomizeAnswers: value });
+      },
+    },
   },
   methods: {
     ...mapMutations({
       updateAnswers: "assessment/updateAnswers",
+      updateQuestions: "assessment/updateQuestions",
     }),
     ...mapActions({
       createAnswer: "assessment/createAnswer",
       deleteAnswer: "assessment/deleteAnswer",
     }),
+    async handleToggleRandomizeOptions() {
+      this.randomizeAnswers = !this.randomizeAnswers;
+    },
     async handleAddAnswer(question) {
       // POST ANSWER
       try {

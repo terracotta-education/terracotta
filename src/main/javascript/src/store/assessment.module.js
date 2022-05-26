@@ -88,7 +88,7 @@ const actions = {
     }
   },
   async updateQuestion({state}, payload) {
-    // payload = experiment_id, condition_id, treatment_id, assessment_id, question_id, html, points, questionOrder, questionType
+    // payload = experiment_id, condition_id, treatment_id, assessment_id, question_id, html, points, questionOrder, questionType, randomizeAnswers
     // update question and return the status/data response
     try {
       const response = await assessmentService.updateQuestion(...payload)

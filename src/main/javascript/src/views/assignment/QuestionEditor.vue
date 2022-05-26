@@ -35,6 +35,7 @@
             </v-icon>
           </template>
           <v-list class="text-left">
+            <slot name="actions-overflow"></slot>
             <v-list-item
               v-if="isPageBreakAfter"
               @click="removePageBreakAfter(question)"

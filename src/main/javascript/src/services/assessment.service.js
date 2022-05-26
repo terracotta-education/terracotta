@@ -118,7 +118,8 @@ async function updateQuestion(
   html,
   points,
   questionOrder,
-  questionType
+  questionType,
+  randomizeAnswers,
 ) {
   const requestOptions = {
     method: 'PUT',
@@ -127,7 +128,8 @@ async function updateQuestion(
       html,
       points,
       questionOrder,
-      questionType
+      questionType,
+      randomizeAnswers,
     })
   }
 
