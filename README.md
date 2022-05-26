@@ -48,3 +48,120 @@ mysql> create user 'xxxuserNamexxx'@'%' identified by 'xxxPasswordxxx'; Query OK
 
 mysql> grant all on terracotta.* to 'terracotta'@'localhost'; Query OK, 0 rows affected (0.00 sec)
 
+
+Creating database migration scripts
+---------
+
+Use the following steps to mostly automate creation of a liquibase database migration script. You will need [Liquibase](https://www.liquibase.com/) installed. Following was tested with Liquibase version 4.6.2.
+
+1. Create a fresh MySQL database using Docker.
+
+    ```
+    docker run --name mysql57 -p 3406:3306 -e MYSQL_ROOT_PASSWORD=root -e MYSQL_DATABASE=terracotta -d mysql:5.7
+    ```
+
+2. Configure your local application.properties file to connect to this Docker MySQL database. Also set the `ddl-auto` setting to `update`.
+
+    application-local.properties
+    ```
+    ...
+    spring.jpa.hibernate.ddl-auto=update
+    # spring.jpa.hibernate.ddl-auto=validate
+
+    # Local docker instance
+    spring.datasource.url=jdbc:mysql://localhost:3406/terracotta
+    spring.datasource.driverClassName=com.mysql.cj.jdbc.Driver
+    spring.datasource.username=root
+    spring.datasource.password=root
+    ```
+
+3. Assuming you've already made your code modifications to the JPA entities, start up your Terracotta application locally.
+
+    ```
+    java -jar target/terracotta-0.1.jar --spring.config.location=../application-local.properties
+    ```
+
+   This will bring your Docker MySQL database up-to-date with your JPA mappings.
+
+4. Create a liquibase configuration file that connects to your development environment database and uses your Docker MySQL database as the reference database.
+
+    liquibase.properties:
+    ```
+    # DEV database
+    url:  jdbc:mysql://localhost:3309/terracotta
+    username: terracotta
+    password: YOUR_TERRACOTTA_USER_PASSWORD
+    classpath:  mysql-connector-java-8.0.27.jar
+
+    # docker database, created with:
+    #       docker run --name mysql57 -p 3406:3306 -e MYSQL_ROOT_PASSWORD=root -e MYSQL_DATABASE=terracotta -d mysql:5.7
+    referenceUrl: jdbc:mysql://localhost:3406/terracotta
+    referenceUsername: root
+    referencePassword: root
+
+    liquibase.hub.mode=off
+    ```
+
+    Note: above I used SSH port forwarding to forward port 3309 locally to the
+    development database server and port. Also, you'll need to [download a
+    mysql-connector-java
+    jar](https://mvnrepository.com/artifact/mysql/mysql-connector-java) file.
+
+5. Run liquibase to generate a diff between your development database and the Docker MySQL database.
+
+    For example:
+
+    ```
+    liquibase --changeLogFile=terracotta/src/main/resources/db/changelog/2022.05/26-01-changelog.xml diffChangeLog
+    ```
+
+    The naming format is to put the changelog file in a directory named
+    `YYYY.MM` and name it `DD-NN-changelog.xml`, where `YYYY` is the 4 digit
+    year, `MM` is the two digit month, `DD` is the two digit day, and `NN` is a
+    two digit incrementing counter for the changelog, starting with `01`, in
+    case there are multiple changelogs generated in a given day. In the above
+    example, the changelog was the first one generated on May 26, 2022.
+
+6. Inspect the generated changelog file. You will likely need to fix up a few things, such as:
+
+    - to help make the scripts database independent, use the following generic data types:
+        - BOOLEAN
+        - CURRENCY
+        - UUID
+        - CLOB
+        - BLOB
+        - DATE
+        - DATETIME
+        - TIME
+        - BIGINT
+    - give foreign key and other constraints proper names 
+
+7. To verify your migration script, stop and remove your Docker MySQL container
+   and create a fresh new one. Also, set `ddl-auto` to `validate`, then start up
+   your application.
+
+    ```
+    docker stop mysql57
+    docker rm mysql57
+    docker run --name mysql57 -p 3406:3306 -e MYSQL_ROOT_PASSWORD=root -e MYSQL_DATABASE=terracotta -d mysql:5.7
+    ```
+
+    application-local.properties:
+    ```
+    ...
+    # spring.jpa.hibernate.ddl-auto=update
+    spring.jpa.hibernate.ddl-auto=validate
+
+    # Local docker instance
+    spring.datasource.url=jdbc:mysql://localhost:3406/terracotta
+    spring.datasource.driverClassName=com.mysql.cj.jdbc.Driver
+    spring.datasource.username=root
+    spring.datasource.password=root
+    ```
+
+    ```
+    java -jar target/terracotta-0.1.jar --spring.config.location=../application-local.properties
+    ```
+
+    A successful application start will indicate that the migration scripts are
+    complete and up-to-date with the JPA mappings.
