@@ -197,6 +197,9 @@ public class OutcomeServiceImpl implements OutcomeService {
                 List<Assignment> matched = assignmentList.stream().filter(x -> {
                     if (assignmentExtended.getId().intValue() == Integer.valueOf(x.getLmsAssignmentId()).intValue()) {
                         return true;
+                    } else if (experiment.get().getConsentDocument() != null && assignmentExtended.getId().intValue() ==
+                            Integer.valueOf(experiment.get().getConsentDocument().getLmsAssignmentId()).intValue()) {
+                        return true;
                     }
                     return false;
                 }).collect(Collectors.toList());
