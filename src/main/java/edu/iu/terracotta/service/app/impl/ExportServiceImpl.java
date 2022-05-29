@@ -104,7 +104,7 @@ public class ExportServiceImpl implements ExportService {
         }
         List<OutcomeScore> outcomeScores = allRepositories.outcomeScoreRepository.findByOutcome_Exposure_Experiment_ExperimentId(experimentId);
         List<String[]> outcomeData = new ArrayList<>();
-        outcomeData.add(new String[]{"outcome_id", "participant_id", "exposure_id", "source", "outcome_name", "points_possible", "outcome_score"});
+        outcomeData.add(new String[]{"outcome_id", "participant_id", "exposure_id", "source", "outcome_name", "points_possible", "outcome_score","condition_name","condition_id"});
         for(OutcomeScore outcomeScore : outcomeScores){
             if(outcomeScore.getParticipant().getConsent() != null && outcomeScore.getParticipant().getConsent()){
                 String outcomeId = outcomeScore.getOutcome().getOutcomeId().toString();
@@ -120,7 +120,10 @@ public class ExportServiceImpl implements ExportService {
                 if (outcomeScore.getScoreNumeric() != null) {
                     score = outcomeScore.getScoreNumeric().toString();
                 }
-                outcomeData.add(new String[]{outcomeId, participantId, exposureId, source, outcomeName, pointsPossible, score});
+                for(Condition condition: conditions) {
+                    outcomeData.add(new String[]{outcomeId, participantId, exposureId, source, outcomeName, pointsPossible, score,
+                            condition.getName(),String.valueOf(condition.getConditionId())});
+                }
             }
         }
         csvFiles.put("outcomes.csv", outcomeData);
