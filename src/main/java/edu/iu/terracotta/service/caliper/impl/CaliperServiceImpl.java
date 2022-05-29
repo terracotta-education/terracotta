@@ -131,6 +131,9 @@ public class CaliperServiceImpl implements CaliperService {
         extenstions.put("terracotta_treatment_id", treatmentId);
 
 
+        assessment.getExtensions().putAll(extenstions);
+
+
 
         AssessmentEvent assessmentEvent = AssessmentEvent.builder()
                 .id(uuid)
@@ -145,7 +148,6 @@ public class CaliperServiceImpl implements CaliperService {
                 .federatedSession(ltiSession)
                 .generated(attempt)
                 .group(group)
-                .extensions(extenstions)
                 .build();
         Envelope envelope = null;
         if (sendEnabled(membershipEntity.getUser().getPlatformDeployment())) {
@@ -208,6 +210,8 @@ public class CaliperServiceImpl implements CaliperService {
         extenstions.put("terracotta_assessmentId_id",assessmentId);
         extenstions.put("terracotta_treatment_id", treatmentId);
 
+        assessment.getExtensions().putAll(extenstions);
+
         AssessmentEvent assessmentEvent = AssessmentEvent.builder()
                 .id(uuid)
                 .actor(actor)
@@ -221,7 +225,6 @@ public class CaliperServiceImpl implements CaliperService {
                 .federatedSession(ltiSession)
                 .generated(attempt)
                 .group(group)
-                .extensions(extenstions)
                 .build();
         Envelope envelope = null;
         if (sendEnabled(membershipEntity.getUser().getPlatformDeployment())) {
@@ -283,6 +286,8 @@ public class CaliperServiceImpl implements CaliperService {
         extenstions.put("terracotta_assessmentId_id",assessmentId);
         extenstions.put("terracotta_treatment_id", treatmentId);
 
+        assessment.getExtensions().putAll(extenstions);
+
         AssessmentEvent assessmentEvent = AssessmentEvent.builder()
                 .id(uuid)
                 .actor(actor)
@@ -296,7 +301,6 @@ public class CaliperServiceImpl implements CaliperService {
                 .referrer(prepareReferrer(membershipEntity.getUser().getPlatformDeployment()))
                 .federatedSession(ltiSession)
                 .group(group)
-                .extensions(extenstions)
                 .build();
         Envelope envelope = null;
         if (sendEnabled(membershipEntity.getUser().getPlatformDeployment())) {
@@ -358,6 +362,8 @@ public class CaliperServiceImpl implements CaliperService {
         extenstions.put("terracotta_assessmentId_id",assessmentId);
         extenstions.put("terracotta_treatment_id", treatmentId);
 
+        mediaObject.getExtensions().putAll(extenstions);
+
         Builder<?> builder = MediaEvent.builder()
                 .id(uuid)
                 .actor(actor)
@@ -368,10 +374,7 @@ public class CaliperServiceImpl implements CaliperService {
                 .membership(prepareMembership(participant, securedInfo))
                 .object(mediaObject);
         if (mediaEventDto.getExtensions() != null) {
-            mediaEventDto.getExtensions().putAll(extenstions);
             builder.extensions(mediaEventDto.getExtensions());
-        }else {
-            builder.extensions(extenstions);
         }
         org.imsglobal.caliper.events.MediaEvent mediaEvent = builder
                 .target(mediaLocation)
@@ -458,6 +461,7 @@ public class CaliperServiceImpl implements CaliperService {
         extenstions.put("terracotta_assessmentId_id",assessmentId);
         extenstions.put("terracotta_treatment_id", treatmentId);
 
+        result.getExtensions().putAll(extenstions);
 
         ViewEvent assessmentEvent = ViewEvent.builder()
                 .id(uuid)
@@ -529,6 +533,7 @@ public class CaliperServiceImpl implements CaliperService {
         LtiSession ltiSession = prepareLtiSession(securedInfo, membershipEntity.getContext().getContextKey());
         CaliperOrganization group = prepareGroup(membershipEntity, securedInfo);
         String uuid = "urn:uuid:" + UUID.randomUUID();
+
 
         ToolUseEvent toolUseEvent = ToolUseEvent.builder()
                 .id(uuid)
