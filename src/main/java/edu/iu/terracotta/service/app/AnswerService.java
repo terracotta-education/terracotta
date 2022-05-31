@@ -21,7 +21,7 @@ public interface AnswerService {
 
     AnswerDto postAnswerMC(AnswerDto answerDto, long questionId) throws IdInPostException, DataServiceException, MultipleChoiceLimitReachedException;
 
-    AnswerDto toDtoMC(AnswerMc answer, boolean student);
+    AnswerDto toDtoMC(AnswerMc answer, int answerOrder, boolean student);
 
     AnswerMc fromDtoMC(AnswerDto answerDto) throws DataServiceException;
 

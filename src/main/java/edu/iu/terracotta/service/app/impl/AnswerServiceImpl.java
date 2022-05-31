@@ -5,6 +5,7 @@ import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.MultipleChoiceLimitReachedException;
 import edu.iu.terracotta.model.app.AnswerMc;
 import edu.iu.terracotta.model.app.Question;
+import edu.iu.terracotta.model.app.QuestionMc;
 import edu.iu.terracotta.model.app.dto.AnswerDto;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.AnswerService;
@@ -18,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -37,10 +39,17 @@ public class AnswerServiceImpl implements AnswerService {
     @Override
     public List<AnswerDto> findAllByQuestionIdMC(Long questionId, boolean student) {
         List<AnswerMc> answerList = allRepositories.answerMcRepository.findByQuestion_QuestionId(questionId);
+        QuestionMc questionMc = allRepositories.questionMcRepository.getOne(questionId);
+        // if isRandomizeAnswers, then for students return answers in random
+        // order and update answerOrder appropriately in the DTO
+        if (student && questionMc.isRandomizeAnswers()) {
+            Collections.shuffle(answerList);
+        }
         List<AnswerDto> answerDtoList = new ArrayList<>();
         if(!answerList.isEmpty()){
+            int answerOrder = 0;
             for(AnswerMc answerMc : answerList){
-                answerDtoList.add(toDtoMC(answerMc, student));
+                answerDtoList.add(toDtoMC(answerMc, answerOrder++, student));
             }
         }
         return answerDtoList;
@@ -49,7 +58,7 @@ public class AnswerServiceImpl implements AnswerService {
     @Override
     public AnswerDto getAnswerMC(Long answerId, boolean student){
         AnswerMc answerMc = allRepositories.answerMcRepository.findByAnswerMcId(answerId);
-        return toDtoMC(answerMc, student);
+        return toDtoMC(answerMc, answerMc.getAnswerOrder(), student);
     }
 
     @Override
@@ -68,18 +77,18 @@ public class AnswerServiceImpl implements AnswerService {
             } catch (DataServiceException ex) {
                 throw new DataServiceException("Error 105: Unable to create Answer: " + ex.getMessage());
             }
-            return toDtoMC(saveMC(answerMc), false);
+            return toDtoMC(saveMC(answerMc), answerMc.getAnswerOrder(),false);
         } else {
             throw new DataServiceException("Error 103: Answer type not supported.");
         }
     }
 
     @Override
-    public AnswerDto toDtoMC(AnswerMc answer, boolean student) {
+    public AnswerDto toDtoMC(AnswerMc answer, int answerOrder, boolean student) {
         AnswerDto answerDto = new AnswerDto();
         answerDto.setAnswerId(answer.getAnswerMcId());
         answerDto.setHtml(fileStorageService.parseHTMLFiles(answer.getHtml()));
-        answerDto.setAnswerOrder(answer.getAnswerOrder());
+        answerDto.setAnswerOrder(answerOrder);
         answerDto.setQuestionId(answer.getQuestion().getQuestionId());
         answerDto.setAnswerType("MC");
         if(student){

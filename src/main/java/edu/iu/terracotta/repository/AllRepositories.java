@@ -83,6 +83,9 @@ public class AllRepositories {
     public QuestionRepository questionRepository;
 
     @Autowired
+    public QuestionMcRepository questionMcRepository;
+
+    @Autowired
     public AssessmentRepository assessmentRepository;
 
     @Autowired
