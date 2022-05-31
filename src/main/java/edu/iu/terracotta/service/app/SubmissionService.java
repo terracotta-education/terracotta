@@ -31,7 +31,7 @@ public interface SubmissionService {
 
     Submission getSubmission(Long experimentId, String userId, Long submissionId, boolean student) throws NoSubmissionsException;
 
-    SubmissionDto postSubmission(SubmissionDto submissionDto, long experimentId, String userId, long assessmentId, boolean student) throws IdInPostException, ParticipantNotMatchingException, InvalidUserException, DataServiceException;
+    Submission postSubmission(Assessment assessment, Participant participant, SecuredInfo securedInfo) throws IdInPostException, ParticipantNotMatchingException, InvalidUserException, DataServiceException;
 
     void updateSubmissions(Map<Submission, SubmissionDto> map, boolean student) throws ConnectionException, DataServiceException;
 
@@ -69,7 +69,6 @@ public interface SubmissionService {
 
     boolean datesAllowed(Long experimentId, Long treatmentId, SecuredInfo securedInfo);
 
-    Submission createNewSubmission(Assessment assessment, Participant participant, SecuredInfo securedInfo);
 
     void validateUser(Long experimentId, String userId, Long submissionId) throws InvalidUserException;
 
