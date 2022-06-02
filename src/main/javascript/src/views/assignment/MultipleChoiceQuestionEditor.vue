@@ -51,24 +51,25 @@
         </v-row>
       </li>
     </ul>
-    <template v-slot:actions>
-      <v-btn
-        elevation="0"
-        color="primary"
-        class="px-0"
-        @click="handleAddAnswer(question)"
-        plain
-      >
-        Add Option
-      </v-btn>
-    </template>
-    <template v-slot:actions-overflow>
-      <v-list-item @click="handleToggleRandomizeOptions()">
-        <v-list-item-title>
-          <v-icon class="mr-2">mdi-shuffle</v-icon>
-          Randomize Options</v-list-item-title
+    <v-row align="center" class="flex-nowrap">
+      <v-col cols="auto"><div class="icon-button-spacer"></div></v-col>
+      <v-col cols="auto">
+        <v-btn
+          elevation="0"
+          color="primary"
+          class="px-0"
+          @click="handleAddAnswer(question)"
+          plain
         >
-      </v-list-item>
+          Add Option
+        </v-btn>
+      </v-col>
+    </v-row>
+    <template v-slot:actions>
+      <div class="d-flex align-center">
+        <div>Randomize options</div>
+        <v-switch v-model="randomizeAnswers" class="mt-0 ml-3" />
+      </div>
     </template>
   </question-editor>
 </template>
@@ -164,10 +165,15 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+@import "~vuetify/src/components/VBtn/_variables.scss";
 .options-list {
   list-style: none;
 }
 .flex-basis-auto {
   flex-basis: auto;
+}
+.icon-button-spacer {
+  // In order to line up with checkbox icon column, size the same as a default button
+  width: #{map-get($map: $btn-sizes, $key: "default")}px;
 }
 </style>
