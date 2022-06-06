@@ -136,7 +136,9 @@ Use the following steps to mostly automate creation of a liquibase database migr
         - BIGINT
     - give foreign key and other constraints proper names 
 
-7. To verify your migration script, stop and remove your Docker MySQL container
+7. Add the changelog file to changelog-master.xml.
+
+8. To verify your migration script, stop and remove your Docker MySQL container
    and create a fresh new one. Also, set `ddl-auto` to `validate`, then start up
    your application.
 
