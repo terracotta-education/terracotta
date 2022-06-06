@@ -107,12 +107,19 @@ public class SubmissionServiceImpl implements SubmissionService {
     }
 
     @Override
-    public Submission postSubmission(Assessment assessment, Participant participant, SecuredInfo securedInfo) throws IdInPostException, ParticipantNotMatchingException, InvalidUserException, DataServiceException {
-        Submission submission = new Submission();
-        submission.setAssessment(assessment);
-        submission.setParticipant(participant);
-        submission = save(submission);
-        return submission;
+    public SubmissionDto postSubmission(SubmissionDto submissionDto, long experimentId, String userId, long assessmentId, boolean student) throws IdInPostException, ParticipantNotMatchingException, InvalidUserException, DataServiceException {
+        if (submissionDto.getSubmissionId() != null) {
+            throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
+        }
+        submissionDto.setAssessmentId(assessmentId);
+        validateDto(experimentId, userId, submissionDto);
+        Submission submission;
+        try {
+            submission = fromDto(submissionDto, student);
+        } catch (DataServiceException ex) {
+            throw new DataServiceException("Error 105: Unable to create Submission: " + ex.getMessage());
+        }
+        return toDto(save(submission), false, false);
     }
 
     @Override
@@ -282,6 +289,14 @@ public class SubmissionServiceImpl implements SubmissionService {
         }
     }
 
+    @Override
+    public Submission createNewSubmission(Assessment assessment, Participant participant, SecuredInfo securedInfo) {
+        Submission submission = new Submission();
+        submission.setAssessment(assessment);
+        submission.setParticipant(participant);
+        submission = save(submission);
+        return submission;
+    }
 
     @Override
     @Transactional
