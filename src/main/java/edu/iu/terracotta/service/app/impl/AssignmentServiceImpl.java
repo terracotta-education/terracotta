@@ -371,23 +371,23 @@ public class AssignmentServiceImpl implements AssignmentService {
                 for (Submission submission : submissionList) {
                     //   - if one of them is not submitted, (and we can use it, we need to return that one),
                     if (submission.getDateSubmitted() == null) {
-                        if (!submissionService.datesAllowed(experimentId, assessment.getTreatment().getTreatmentId(), securedInfo)) {
-                            submissionService.finalizeAndGrade(submission.getSubmissionId(), securedInfo);//We close it... and we need to save it.
-                        } else {
+                        // if (!submissionService.datesAllowed(experimentId, assessment.getTreatment().getTreatmentId(), securedInfo)) {
+                        //     submissionService.finalizeAndGrade(submission.getSubmissionId(), securedInfo);//We close it... and we need to save it.
+                        // } else {
                             //   if one is not submitted and you can't open it again,
-                            if (submission.getAssessment().getAutoSubmit()) {
+                            // if (submission.getAssessment().getAutoSubmit()) {
                                 //if (submission.getAssessment().getNumOfSubmissions() == 0 || submission.getAssessment().getNumOfSubmissions() > submissionList.size()) {
                                     // TODO: it should ask the user (you have an ongoing submission, opening a new one will send the current... do you want to proceed?  or
                                 //   submissionService.finalizeAndGrade(submission.getSubmissionId(), securedInfo);
                                 //} else {
                                     // TODO: you have an ongoing submission that was not submitted. Do you want to submit it now)
-                                submissionService.finalizeAndGrade(submission.getSubmissionId(), securedInfo);
+                                // submissionService.finalizeAndGrade(submission.getSubmissionId(), securedInfo);
                                 // }
-                            } else {
+                            // } else {
                                 caliperService.sendAssignmentRestarted(submission, securedInfo);
                                 return new ResponseEntity<>(submissionService.toDto(submission, true, false), HttpStatus.OK);
-                            }
-                        }
+                            // }
+                        // }
                     }
                 }
             }
