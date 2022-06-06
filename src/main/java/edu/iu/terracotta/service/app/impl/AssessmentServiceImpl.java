@@ -109,10 +109,11 @@ public class AssessmentServiceImpl implements AssessmentService {
 
         if (submissions) {
             for (Submission submission : assessment.getSubmissions()) {
-                submissionDtoList.add(submissionService.toDto(submission, false, false));
                 // We add the status. False if in progress, true if submitted.
                 if (submission.getDateSubmitted() != null) {
                     participantStatus.put(submission.getParticipant(), true);
+                    // Only include the submission if it was submitted
+                    submissionDtoList.add(submissionService.toDto(submission, false, false));
                 } else { //We considered submitted an assessment if it has been submitted at least one time by the user
                     //including if he is in the middle of taking it again.
                     if (!participantStatus.containsKey(submission.getParticipant())) {
