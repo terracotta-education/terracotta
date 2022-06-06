@@ -1,0 +1,43 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+    xmlns:pro="http://www.liquibase.org/xml/ns/pro"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd http://www.liquibase.org/xml/ns/pro http://www.liquibase.org/xml/ns/pro/liquibase-pro-4.1.xsd http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.1.xsd">
+    <changeSet author="machrist (generated)" id="1654021313214-1">
+        <addColumn tableName="terr_answer_mc_submission">
+            <column name="answer_position" type="INT"/>
+        </addColumn>
+    </changeSet>
+    <changeSet author="machrist" id="1654021313214-2">
+        <comment>Populate answer_position.</comment>
+        <sql dbms="mysql">
+            <![CDATA[
+            update
+                terr_answer_mc_submission s,
+                (
+                select
+                    tams.answer_mc_sub_id,
+                    tqs.question_question_id,
+                    (
+                    select
+                        count(1)
+                    from
+                        terr_answer_mc tam
+                    where
+                        tam.question_question_id = tqs.question_question_id
+                        and tam.answer_order < tam2.answer_order) answer_position
+                from
+                    terr_answer_mc_submission tams
+                inner join terr_question_submission tqs on
+                    tqs.question_submission_id = tams.quest_sub_quest_sub_id
+                inner join terr_answer_mc tam2 on
+                    tam2.answer_id = tams.answer_mc_answer_id) t
+            set
+                s.answer_position = t.answer_position
+            where
+                s.answer_mc_sub_id = t.answer_mc_sub_id
+            ;
+            ]]>
+        </sql>
+    </changeSet>
+</databaseChangeLog>
