@@ -79,20 +79,18 @@ public class OutcomeServiceImpl implements OutcomeService {
     public List<OutcomeDto> getOutcomes(Long exposureId){
         List<Outcome> outcomes = findAllByExposureId(exposureId);
         List<OutcomeDto> outcomeDtoList = new ArrayList<>();
-        for (Outcome outcome : outcomes) {
+        for(Outcome outcome : outcomes) {
             outcomeDtoList.add(toDto(outcome, false));
         }
         return outcomeDtoList;
     }
 
     @Override
-    public Outcome getOutcome(Long id){
-        return allRepositories.outcomeRepository.findByOutcomeId(id);
-    }
+    public Outcome getOutcome(Long id){ return allRepositories.outcomeRepository.findByOutcomeId(id); }
 
     @Override
     public OutcomeDto postOutcome(OutcomeDto outcomeDto, long exposureId) throws IdInPostException, DataServiceException, TitleValidationException {
-        if (outcomeDto.getOutcomeId() != null){
+        if(outcomeDto.getOutcomeId() != null){
             throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
         }
         outcomeDto.setExposureId(exposureId);
@@ -117,7 +115,7 @@ public class OutcomeServiceImpl implements OutcomeService {
         outcomeDto.setMaxPoints(outcome.getMaxPoints());
         outcomeDto.setExternal(outcome.getExternal());
         List<OutcomeScoreDto> outcomeScoreDtoList = new ArrayList<>();
-        if (outcomeScores){
+        if(outcomeScores) {
             List<OutcomeScore> outcomeScoreList = allRepositories.outcomeScoreRepository.findByOutcome_OutcomeId(outcome.getOutcomeId());
             for (OutcomeScore outcomeScore : outcomeScoreList){
                 outcomeScoreDtoList.add(outcomeScoreService.toDto(outcomeScore));
@@ -148,7 +146,7 @@ public class OutcomeServiceImpl implements OutcomeService {
     }
 
     @Override
-    public Outcome save(Outcome outcome){ return allRepositories.outcomeRepository.save(outcome); }
+    public Outcome save(Outcome outcome) { return allRepositories.outcomeRepository.save(outcome); }
 
     @Override
     public Optional<Outcome> findById(Long id) { return allRepositories.outcomeRepository.findById(id); }
@@ -186,7 +184,9 @@ public class OutcomeServiceImpl implements OutcomeService {
     public void deleteById(Long id) { allRepositories.outcomeRepository.deleteByOutcomeId(id); }
 
     @Override
-    public boolean outcomeBelongsToExperimentAndExposure(Long experimentId, Long exposureId, Long outcomeId) { return allRepositories.outcomeRepository.existsByExposure_Experiment_ExperimentIdAndExposure_ExposureIdAndOutcomeId(experimentId, exposureId, outcomeId); }
+    public boolean outcomeBelongsToExperimentAndExposure(Long experimentId, Long exposureId, Long outcomeId){
+        return allRepositories.outcomeRepository.existsByExposure_Experiment_ExperimentIdAndExposure_ExposureIdAndOutcomeId(experimentId, exposureId, outcomeId);
+    }
 
     @Override
     public List<OutcomePotentialDto> potentialOutcomes(Long experimentId) throws DataServiceException, CanvasApiException {
@@ -239,7 +239,7 @@ public class OutcomeServiceImpl implements OutcomeService {
         List<OutcomeScore> newScores = new ArrayList<>();
         String canvasCourseId = StringUtils.substringBetween(outcome.getExposure().getExperiment().getLtiContextEntity().getContext_memberships_url(), "courses/", "/names");
         List<Submission> submissions = canvasAPIClient.listSubmissions(Integer.parseInt(outcome.getLmsOutcomeId()), canvasCourseId, outcome.getExposure().getExperiment().getPlatformDeployment());
-        for (Submission submission : submissions) {
+        for (Submission submission:submissions) {
             boolean found = false;
             for (OutcomeScore outcomeScore:outcome.getOutcomeScores()){
                 if (outcomeScore.getParticipant().getLtiUserEntity().getEmail() != null && outcomeScore.getParticipant().getLtiUserEntity().getEmail().equals(submission.getUser().getLoginId()) && outcomeScore.getParticipant().getLtiUserEntity().getDisplayName().equals(submission.getUser().getName())) {
@@ -253,7 +253,7 @@ public class OutcomeServiceImpl implements OutcomeService {
                 }
             }
             if (!found) {
-                for (OutcomeScore outcomeScore:outcome.getOutcomeScores()) {
+                for (OutcomeScore outcomeScore:outcome.getOutcomeScores()){
                     if (outcomeScore.getParticipant().getLtiUserEntity().getDisplayName().equals(submission.getUser().getName())) {
                         found = true;
                         if (submission.getScore()!= null) {
@@ -267,13 +267,13 @@ public class OutcomeServiceImpl implements OutcomeService {
                 }
             }
             if (!found) {
-                for (Participant participant:outcome.getExposure().getExperiment().getParticipants()) {
+                for (Participant participant:outcome.getExposure().getExperiment().getParticipants()){
                     if (participant.getLtiUserEntity().getEmail() != null && participant.getLtiUserEntity().getEmail().equals(submission.getUser().getLoginId()) && participant.getLtiUserEntity().getDisplayName().equals(submission.getUser().getName())) {
                         found = true;
                         OutcomeScore outcomeScore = new OutcomeScore();
                         outcomeScore.setOutcome(outcome);
                         outcomeScore.setParticipant(participant);
-                        if (submission.getScore()!= null) {
+                        if (submission.getScore()!=null) {
                             outcomeScore.setScoreNumeric(submission.getScore().floatValue());
                         } else {
                             outcomeScore.setScoreNumeric(null);
@@ -289,7 +289,7 @@ public class OutcomeServiceImpl implements OutcomeService {
                         OutcomeScore outcomeScore = new OutcomeScore();
                         outcomeScore.setOutcome(outcome);
                         outcomeScore.setParticipant(participant);
-                        if (submission.getScore()!= null) {
+                        if (submission.getScore()!=null) {
                             outcomeScore.setScoreNumeric(submission.getScore().floatValue());
                         } else {
                             outcomeScore.setScoreNumeric(null);
@@ -302,7 +302,7 @@ public class OutcomeServiceImpl implements OutcomeService {
 
         }
 
-        for (OutcomeScore outcomeScore:newScores) {
+        for (OutcomeScore outcomeScore:newScores){
             outcomeScoreService.save(outcomeScore);
         }
         //TODO, what to do if the outcome score is there but the participant is dropped.
@@ -311,11 +311,11 @@ public class OutcomeServiceImpl implements OutcomeService {
 
     @Override
     public void defaultOutcome(OutcomeDto outcomeDto) throws TitleValidationException {
-        if(!StringUtils.isAllBlank(outcomeDto.getTitle()) && outcomeDto.getTitle().length() > 255) {
+        if(!StringUtils.isAllBlank(outcomeDto.getTitle()) && outcomeDto.getTitle().length() > 255){
             throw new TitleValidationException("Error 101: The title must be 255 characters or less.");
         }
         if(outcomeDto.getExternal() != null) {
-            if(!outcomeDto.getExternal()) {
+            if(!outcomeDto.getExternal()){
                 outcomeDto.setLmsOutcomeId(null);
                 outcomeDto.setLmsType("NONE");
             }
