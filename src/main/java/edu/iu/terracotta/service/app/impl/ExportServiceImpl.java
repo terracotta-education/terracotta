@@ -31,11 +31,7 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -109,7 +105,7 @@ public class ExportServiceImpl implements ExportService {
             if(outcomeScore.getParticipant().getConsent() != null && outcomeScore.getParticipant().getConsent()){
                 String outcomeId = outcomeScore.getOutcome().getOutcomeId().toString();
                 String participantId = outcomeScore.getParticipant().getParticipantId().toString();
-                String exposureId = outcomeScore.getOutcome().getExposure().getExposureId().toString();
+                Long exposureId = outcomeScore.getOutcome().getExposure().getExposureId();
                 String source = outcomeScore.getOutcome().getLmsType().toString();
                 String outcomeName = "N/A";
                 if (!StringUtils.isAllBlank(outcomeScore.getOutcome().getTitle())) {
@@ -120,10 +116,14 @@ public class ExportServiceImpl implements ExportService {
                 if (outcomeScore.getScoreNumeric() != null) {
                     score = outcomeScore.getScoreNumeric().toString();
                 }
-                for(Condition condition: conditions) {
-                    outcomeData.add(new String[]{outcomeId, participantId, exposureId, source, outcomeName, pointsPossible, score,
-                            condition.getName(),String.valueOf(condition.getConditionId())});
-                }
+                Long  groupId = outcomeScore.getParticipant().getGroup().getGroupId();
+               Optional<ExposureGroupCondition> groupConditionOptional =
+                       allRepositories.exposureGroupConditionRepository.getByGroup_GroupIdAndExposure_ExposureId(groupId,exposureId);
+               if (groupConditionOptional.isPresent()){
+                  ExposureGroupCondition groupCondition =  groupConditionOptional.get();
+                   outcomeData.add(new String[]{outcomeId, participantId, String.valueOf(exposureId), source, outcomeName, pointsPossible, score,
+                           groupCondition.getCondition().getName(),String.valueOf(groupCondition.getCondition().getConditionId())});
+               }
             }
         }
         csvFiles.put("outcomes.csv", outcomeData);
