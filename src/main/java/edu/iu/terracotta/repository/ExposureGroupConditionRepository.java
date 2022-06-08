@@ -19,7 +19,7 @@ public interface ExposureGroupConditionRepository extends JpaRepository<Exposure
 
     Optional<ExposureGroupCondition> getByCondition_ConditionIdAndExposure_ExposureId(Long conditionId, Long exposureId);
 
-
+    Optional<ExposureGroupCondition>  getByGroup_GroupIdAndCondition_ConditionId(Long groupId, Long conditionId);
 
 
 
