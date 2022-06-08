@@ -117,24 +117,6 @@ public class CaliperServiceImpl implements CaliperService {
         org.imsglobal.caliper.entities.resource.Assessment assessment = prepareAssessment(submission, securedInfo);
         Attempt attempt = prepareAttempt(submission, actor, assessment);
         String uuid = "urn:uuid:" + UUID.randomUUID();
-
-        Map<String, Object> extenstions = new HashMap<>();
-
-        Long assignmentId = submission.getAssessment().getTreatment().getAssignment().getAssignmentId();
-        Long assessmentId = submission.getAssessment().getAssessmentId();
-        Long treatmentId = submission.getAssessment().getTreatment().getTreatmentId();
-
-        extenstions.put("terracotta_assignment_id",assignmentId);
-        extenstions.put("terracotta_submission_id",submission.getSubmissionId());
-        extenstions.put("terracotta_submission_id",submission.getSubmissionId());
-        extenstions.put("terracotta_assessmentId_id",assessmentId);
-        extenstions.put("terracotta_treatment_id", treatmentId);
-
-
-        assessment.getExtensions().putAll(extenstions);
-
-
-
         AssessmentEvent assessmentEvent = AssessmentEvent.builder()
                 .id(uuid)
                 .actor(actor)
@@ -197,21 +179,6 @@ public class CaliperServiceImpl implements CaliperService {
         org.imsglobal.caliper.entities.resource.Assessment assessment = prepareAssessment(submission, securedInfo);
         Attempt attempt = prepareAttempt(submission, actor, assessment);
         String uuid = "urn:uuid:" + UUID.randomUUID();
-
-        Map<String, Object> extenstions = new HashMap<>();
-
-        Long assignmentId = submission.getAssessment().getTreatment().getAssignment().getAssignmentId();
-        Long assessmentId = submission.getAssessment().getAssessmentId();
-        Long treatmentId = submission.getAssessment().getTreatment().getTreatmentId();
-
-        extenstions.put("terracotta_assignment_id",assignmentId);
-        extenstions.put("terracotta_submission_id",submission.getSubmissionId());
-        extenstions.put("terracotta_submission_id",submission.getSubmissionId());
-        extenstions.put("terracotta_assessmentId_id",assessmentId);
-        extenstions.put("terracotta_treatment_id", treatmentId);
-
-        assessment.getExtensions().putAll(extenstions);
-
         AssessmentEvent assessmentEvent = AssessmentEvent.builder()
                 .id(uuid)
                 .actor(actor)
@@ -274,20 +241,6 @@ public class CaliperServiceImpl implements CaliperService {
         org.imsglobal.caliper.entities.resource.Assessment assessment = prepareAssessment(submission, securedInfo);
         Attempt attempt = prepareAttempt(submission, actor, assessment);
         String uuid = "urn:uuid:" + UUID.randomUUID();
-        Map<String, Object> extenstions = new HashMap<>();
-
-        Long assignmentId = submission.getAssessment().getTreatment().getAssignment().getAssignmentId();
-        Long assessmentId = submission.getAssessment().getAssessmentId();
-        Long treatmentId = submission.getAssessment().getTreatment().getTreatmentId();
-
-        extenstions.put("terracotta_assignment_id",assignmentId);
-        extenstions.put("terracotta_submission_id",submission.getSubmissionId());
-        extenstions.put("terracotta_submission_id",submission.getSubmissionId());
-        extenstions.put("terracotta_assessmentId_id",assessmentId);
-        extenstions.put("terracotta_treatment_id", treatmentId);
-
-        assessment.getExtensions().putAll(extenstions);
-
         AssessmentEvent assessmentEvent = AssessmentEvent.builder()
                 .id(uuid)
                 .actor(actor)
@@ -350,20 +303,6 @@ public class CaliperServiceImpl implements CaliperService {
                 submission, securedInfo, questionId);
         MediaLocation mediaLocation = prepareMediaLocation(mediaEventDto.getTarget());
         String uuid = "urn:uuid:" + UUID.randomUUID();
-        Map<String, Object> extenstions = new HashMap<>();
-
-        Long assignmentId = submission.getAssessment().getTreatment().getAssignment().getAssignmentId();
-        Long assessmentId = submission.getAssessment().getAssessmentId();
-        Long treatmentId = submission.getAssessment().getTreatment().getTreatmentId();
-
-        extenstions.put("terracotta_assignment_id",assignmentId);
-        extenstions.put("terracotta_submission_id",submission.getSubmissionId());
-        extenstions.put("terracotta_submission_id",submission.getSubmissionId());
-        extenstions.put("terracotta_assessmentId_id",assessmentId);
-        extenstions.put("terracotta_treatment_id", treatmentId);
-
-        mediaObject.getExtensions().putAll(extenstions);
-
         Builder<?> builder = MediaEvent.builder()
                 .id(uuid)
                 .actor(actor)
@@ -448,21 +387,6 @@ public class CaliperServiceImpl implements CaliperService {
         Result result = prepareResult(submission, attempt, assessment);
 
         String uuid = "urn:uuid:" + UUID.randomUUID();
-
-        Map<String, Object> extenstions = new HashMap<>();
-
-        Long assignmentId = submission.getAssessment().getTreatment().getAssignment().getAssignmentId();
-        Long assessmentId = submission.getAssessment().getAssessmentId();
-        Long treatmentId = submission.getAssessment().getTreatment().getTreatmentId();
-
-        extenstions.put("terracotta_assignment_id",assignmentId);
-        extenstions.put("terracotta_submission_id",submission.getSubmissionId());
-        extenstions.put("terracotta_submission_id",submission.getSubmissionId());
-        extenstions.put("terracotta_assessmentId_id",assessmentId);
-        extenstions.put("terracotta_treatment_id", treatmentId);
-
-        result.getExtensions().putAll(extenstions);
-
         ViewEvent assessmentEvent = ViewEvent.builder()
                 .id(uuid)
                 .actor(actor)
@@ -475,7 +399,6 @@ public class CaliperServiceImpl implements CaliperService {
                 .referrer(prepareReferrer(membershipEntity.getUser().getPlatformDeployment()))
                 .federatedSession(ltiSession)
                 .group(group)
-                .extensions(extenstions)
                 .build();
         Envelope envelope = null;
         if (sendEnabled(membershipEntity.getUser().getPlatformDeployment())) {
@@ -533,8 +456,6 @@ public class CaliperServiceImpl implements CaliperService {
         LtiSession ltiSession = prepareLtiSession(securedInfo, membershipEntity.getContext().getContextKey());
         CaliperOrganization group = prepareGroup(membershipEntity, securedInfo);
         String uuid = "urn:uuid:" + UUID.randomUUID();
-
-
         ToolUseEvent toolUseEvent = ToolUseEvent.builder()
                 .id(uuid)
                 .actor(actor)
