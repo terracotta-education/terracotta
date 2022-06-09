@@ -194,7 +194,7 @@ public class OutcomeServiceImpl implements OutcomeService {
             String canvasCourseId = StringUtils.substringBetween(experiment.get().getLtiContextEntity().getContext_memberships_url(), "courses/", "/names");
             List<AssignmentExtended> assignmentExtendedList = canvasAPIClient.listAssignments(canvasCourseId,experiment.get().getPlatformDeployment());
             for (AssignmentExtended assignmentExtended:assignmentExtendedList){
-                    outcomePotentialDtos.add(assignmentExtendedToOutcomePotentialDto(assignmentExtended));
+                outcomePotentialDtos.add(assignmentExtendedToOutcomePotentialDto(assignmentExtended));
             }
         } else {
             throw new DataServiceException("Error 105: Experiment does not exist.");
