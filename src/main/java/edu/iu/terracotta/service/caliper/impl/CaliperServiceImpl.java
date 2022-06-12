@@ -476,8 +476,6 @@ public class CaliperServiceImpl implements CaliperService {
         LtiSession ltiSession = prepareLtiSession(securedInfo, membershipEntity.getContext().getContextKey());
         CaliperOrganization group = prepareGroup(membershipEntity, securedInfo);
         String uuid = "urn:uuid:" + UUID.randomUUID();
-
-
         ToolUseEvent toolUseEvent = ToolUseEvent.builder()
                 .id(uuid)
                 .actor(actor)

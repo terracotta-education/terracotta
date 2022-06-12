@@ -277,12 +277,11 @@ public class AdvantageAGSServiceImpl implements AdvantageAGSService {
                 String nextPage = advantageConnectorHelper.nextPage(resultsGetResponse.getHeaders());
                 log.debug("We have next page: " + nextPage);
                 while (nextPage != null) {
-                    ResponseEntity<Results> responseForNextPage = restTemplate.exchange(nextPage, HttpMethod.GET,
-                            request, Results.class);
-                    Results nextResultsList = responseForNextPage.getBody();
-                    List<Result> nextResults = nextResultsList
-                            .getResultList();
-                    log.debug("We have {} results in the next page", nextResultsList.getResultList().size());
+                    ResponseEntity<Result[]> responseForNextPage = restTemplate.exchange(nextPage, HttpMethod.GET,
+                            request, Result[].class);
+                    List<Result> nextResults = new ArrayList<>(
+                            Arrays.asList(Objects.requireNonNull(responseForNextPage.getBody())));
+                    log.debug("We have {} results in the next page", nextResults.size());
                     resultList.addAll(nextResults);
                     nextPage = advantageConnectorHelper.nextPage(responseForNextPage.getHeaders());
                 }
@@ -302,7 +301,7 @@ public class AdvantageAGSServiceImpl implements AdvantageAGSService {
     }
 
     @Override
-    public Results postScore(LTIToken lTITokenScores, LTIToken lTITokenResults,
+    public void postScore(LTIToken lTITokenScores, LTIToken lTITokenResults,
                              LtiContextEntity context, String lineItemId, Score score) throws ConnectionException {
         log.debug(TextConstants.TOKEN + lTITokenScores.getAccess_token());
         try {
@@ -319,7 +318,8 @@ public class AdvantageAGSServiceImpl implements AdvantageAGSService {
             ResponseEntity<Void> scoreGetResponse = restTemplate.exchange(POST_SCORES, HttpMethod.POST, request, Void.class);
             HttpStatus status = scoreGetResponse.getStatusCode();
             if (status.is2xxSuccessful()) {
-                return getResults(lTITokenResults, context, lineItemId);
+                // return getResults(lTITokenResults, context, lineItemId);
+                return;
             } else {
                 String exceptionMsg = "Can't post scores";
                 log.error(exceptionMsg);
