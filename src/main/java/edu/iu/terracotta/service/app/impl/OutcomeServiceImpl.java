@@ -79,14 +79,14 @@ public class OutcomeServiceImpl implements OutcomeService {
     public List<OutcomeDto> getOutcomes(Long exposureId){
         List<Outcome> outcomes = findAllByExposureId(exposureId);
         List<OutcomeDto> outcomeDtoList = new ArrayList<>();
-        for(Outcome outcome : outcomes) {
+        for(Outcome outcome : outcomes){
             outcomeDtoList.add(toDto(outcome, false));
         }
         return outcomeDtoList;
     }
 
     @Override
-    public Outcome getOutcome(Long id){ return allRepositories.outcomeRepository.findByOutcomeId(id); }
+    public Outcome getOutcome(Long id) { return allRepositories.outcomeRepository.findByOutcomeId(id); }
 
     @Override
     public OutcomeDto postOutcome(OutcomeDto outcomeDto, long exposureId) throws IdInPostException, DataServiceException, TitleValidationException {
@@ -117,7 +117,7 @@ public class OutcomeServiceImpl implements OutcomeService {
         List<OutcomeScoreDto> outcomeScoreDtoList = new ArrayList<>();
         if(outcomeScores) {
             List<OutcomeScore> outcomeScoreList = allRepositories.outcomeScoreRepository.findByOutcome_OutcomeId(outcome.getOutcomeId());
-            for (OutcomeScore outcomeScore : outcomeScoreList){
+            for(OutcomeScore outcomeScore : outcomeScoreList) {
                 outcomeScoreDtoList.add(outcomeScoreService.toDto(outcomeScore));
             }
         }
@@ -136,9 +136,9 @@ public class OutcomeServiceImpl implements OutcomeService {
         outcome.setLmsOutcomeId(outcomeDto.getLmsOutcomeId());
         outcome.setExternal(outcomeDto.getExternal());
         Optional<Exposure> exposure = exposureService.findById(outcomeDto.getExposureId());
-        if (exposure.isPresent()){
+        if(exposure.isPresent()){
             outcome.setExposure(exposure.get());
-        } else {
+        } else{
             throw new DataServiceException("Exposure for outcome does not exist.");
         }
 
@@ -238,8 +238,8 @@ public class OutcomeServiceImpl implements OutcomeService {
         participantService.refreshParticipants(outcome.getExposure().getExperiment().getExperimentId(), securedInfo,outcome.getExposure().getExperiment().getParticipants());
         List<OutcomeScore> newScores = new ArrayList<>();
         String canvasCourseId = StringUtils.substringBetween(outcome.getExposure().getExperiment().getLtiContextEntity().getContext_memberships_url(), "courses/", "/names");
-        List<Submission> submissions = canvasAPIClient.listSubmissions(Integer.parseInt(outcome.getLmsOutcomeId()), canvasCourseId, outcome.getExposure().getExperiment().getPlatformDeployment());
-        for (Submission submission:submissions) {
+        List<Submission> submissions = canvasAPIClient.listSubmissions(Integer.parseInt(outcome.getLmsOutcomeId()),canvasCourseId,outcome.getExposure().getExperiment().getPlatformDeployment());
+        for (Submission submission:submissions){
             boolean found = false;
             for (OutcomeScore outcomeScore:outcome.getOutcomeScores()){
                 if (outcomeScore.getParticipant().getLtiUserEntity().getEmail() != null && outcomeScore.getParticipant().getLtiUserEntity().getEmail().equals(submission.getUser().getLoginId()) && outcomeScore.getParticipant().getLtiUserEntity().getDisplayName().equals(submission.getUser().getName())) {
@@ -256,7 +256,7 @@ public class OutcomeServiceImpl implements OutcomeService {
                 for (OutcomeScore outcomeScore:outcome.getOutcomeScores()){
                     if (outcomeScore.getParticipant().getLtiUserEntity().getDisplayName().equals(submission.getUser().getName())) {
                         found = true;
-                        if (submission.getScore()!= null) {
+                        if (submission.getScore()!=null) {
                             outcomeScore.setScoreNumeric(submission.getScore().floatValue());
                         } else {
                             outcomeScore.setScoreNumeric(null);
