@@ -7,6 +7,7 @@ import edu.iu.terracotta.model.app.QuestionSubmission;
 import edu.iu.terracotta.model.app.dto.QuestionSubmissionDto;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
@@ -51,6 +52,8 @@ public interface QuestionSubmissionService {
     void validateAndPrepareQuestionSubmissionList(List<QuestionSubmissionDto> questionSubmissionDtoList, long assessmentId, long submissionId, boolean student) throws IdInPostException, DataServiceException, DuplicateQuestionException, InvalidUserException, IdMissingException, AnswerSubmissionNotMatchingException, AnswerNotMatchingException, ExceedingLimitException, TypeNotSupportedException;
 
     void validateQuestionSubmission(QuestionSubmissionDto questionSubmissionDto) throws DataServiceException;
+
+    void saveSubmissionFile(long submissionId, MultipartFile file) throws IOException;
 
 
     boolean canSubmit(String canvasCourseId, String assignmentId, String canvasUserIs, long deploymentId) throws CanvasApiException, IOException;

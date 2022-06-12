@@ -2,6 +2,7 @@ package edu.iu.terracotta.model.app.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -13,6 +14,7 @@ public class QuestionSubmissionDto {
     private Float calculatedPoints;
     private Float alteredGrade;
     private Long submissionId;
+    private MultipartFile file;
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<QuestionSubmissionCommentDto> questionSubmissionCommentDtoList;
     @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -45,4 +47,12 @@ public class QuestionSubmissionDto {
     public List<AnswerSubmissionDto> getAnswerSubmissionDtoList() { return answerSubmissionDtoList; }
 
     public void setAnswerSubmissionDtoList(List<AnswerSubmissionDto> answerSubmissionDtoList) { this.answerSubmissionDtoList = answerSubmissionDtoList; }
+
+    public MultipartFile getFile() {
+        return file;
+    }
+
+    public void setFile(MultipartFile file) {
+        this.file = file;
+    }
 }

@@ -21,6 +21,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.HttpServletRequest;
@@ -150,7 +151,7 @@ public class QuestionSubmissionController {
             String assignmentId = submission.getAssessment().getTreatment().getAssignment()
                     .getLmsAssignmentId();
 
-            if (questionSubmissionService.canSubmit(securedInfo.getCanvasCourseId(), assignmentId,securedInfo.getCanvasUserId(),
+            if (questionSubmissionService.canSubmit(securedInfo.getCanvasCourseId(), assignmentId, securedInfo.getCanvasUserId(),
                     securedInfo.getPlatformDeploymentId())) {
 
                 questionSubmissionService.
@@ -276,4 +277,41 @@ public class QuestionSubmissionController {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
     }
+
+    @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}/question_submissions/{question_submission_id}/upload",
+            method = RequestMethod.POST, consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
+    public ResponseEntity<Void> uploadFile(@PathVariable("experiment_id") Long experimentId,
+                                           @PathVariable("condition_id") Long conditionId,
+                                           @PathVariable("treatment_id") Long treatmentId,
+                                           @PathVariable("assessment_id") Long assessmentId,
+                                           @PathVariable("submission_id") Long submissionId,
+                                           @PathVariable("question_submission_id") Long questionSubmissionId,
+                                           @RequestPart("file") MultipartFile file,
+                                           HttpServletRequest req)
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, BadTokenException {
+
+        if (file.isEmpty()) {
+            log.error("Invalid file ");
+            return new ResponseEntity(TextConstants.FILE_MISSING, HttpStatus.BAD_REQUEST);
+        }
+
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
+        apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, questionSubmissionId);
+
+        if (apijwtService.isLearnerOrHigher(securedInfo)) {
+            try {
+                questionSubmissionService.saveSubmissionFile(questionSubmissionId, file);
+                return new ResponseEntity<>(HttpStatus.OK);
+            } catch (IOException ex) {
+                log.warn(ex.getMessage());
+                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+            }
+        } else {
+            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
+        }
+    }
+
+
 }

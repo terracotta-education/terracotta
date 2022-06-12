@@ -2,15 +2,7 @@ package edu.iu.terracotta.model.app;
 
 import edu.iu.terracotta.model.BaseEntity;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
-import javax.persistence.OneToMany;
-import javax.persistence.Table;
+import javax.persistence.*;
 import java.util.List;
 
 @Table(name = "terr_question_submission")
@@ -38,28 +30,64 @@ public class QuestionSubmission extends BaseEntity {
     @OneToMany(mappedBy = "questionSubmission", orphanRemoval = true)
     private List<QuestionSubmissionComment> questionSubmissionComments;
 
+    @Lob
+    @Column(name = "file_content")
+    private byte[] file;
 
-    public Long getQuestionSubmissionId() { return questionSubmissionId; }
 
-    public void setQuestionSubmissionId(Long questionSubmissionId) { this.questionSubmissionId = questionSubmissionId; }
+    public Long getQuestionSubmissionId() {
+        return questionSubmissionId;
+    }
 
-    public Float getCalculatedPoints() { return calculatedPoints; }
+    public void setQuestionSubmissionId(Long questionSubmissionId) {
+        this.questionSubmissionId = questionSubmissionId;
+    }
 
-    public void setCalculatedPoints(Float calculatedPoints) { this.calculatedPoints = calculatedPoints; }
+    public Float getCalculatedPoints() {
+        return calculatedPoints;
+    }
 
-    public Float getAlteredGrade() { return alteredGrade; }
+    public void setCalculatedPoints(Float calculatedPoints) {
+        this.calculatedPoints = calculatedPoints;
+    }
 
-    public void setAlteredGrade(Float alteredGrade) { this.alteredGrade = alteredGrade; }
+    public Float getAlteredGrade() {
+        return alteredGrade;
+    }
 
-    public Question getQuestion() { return question; }
+    public void setAlteredGrade(Float alteredGrade) {
+        this.alteredGrade = alteredGrade;
+    }
 
-    public void setQuestion(Question question) { this.question = question; }
+    public Question getQuestion() {
+        return question;
+    }
 
-    public Submission getSubmission() { return submission; }
+    public void setQuestion(Question question) {
+        this.question = question;
+    }
 
-    public void setSubmission(Submission submission) { this.submission = submission; }
+    public Submission getSubmission() {
+        return submission;
+    }
 
-    public List<QuestionSubmissionComment> getQuestionSubmissionComments() { return questionSubmissionComments; }
+    public void setSubmission(Submission submission) {
+        this.submission = submission;
+    }
 
-    public void setQuestionSubmissionComments(List<QuestionSubmissionComment> questionSubmissionComments) { this.questionSubmissionComments = questionSubmissionComments; }
+    public List<QuestionSubmissionComment> getQuestionSubmissionComments() {
+        return questionSubmissionComments;
+    }
+
+    public void setQuestionSubmissionComments(List<QuestionSubmissionComment> questionSubmissionComments) {
+        this.questionSubmissionComments = questionSubmissionComments;
+    }
+
+    public byte[] getFile() {
+        return file;
+    }
+
+    public void setFile(byte[] file) {
+        this.file = file;
+    }
 }
