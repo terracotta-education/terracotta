@@ -20,7 +20,6 @@ public interface ConditionRepository extends JpaRepository<Condition, Long> {
 
     boolean existsByConditionIdAndDefaultCondition(Long conditionId, Boolean defaultCondition);
 
-
     List<Condition> findByNameAndExperiment_ExperimentIdAndConditionIdIsNot(String name, Long experimentId,Long conditionId);
 
     @Transactional

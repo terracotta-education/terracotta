@@ -191,7 +191,4 @@ public class ConditionController {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
     }
-
-
-
 }

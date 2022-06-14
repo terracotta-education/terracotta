@@ -40,17 +40,7 @@ const actions = {
               console.log('createCondition | catch', {response})
             })
   },
-  // async updateConditions({dispatch}, conditions) {
-  //   if (conditions.length > 0) {
-  //     return Promise.all(
-  //       conditions.map(async (condition) => {
-  //         if (condition?.conditionId) {
-  //           return dispatch('updateCondition', condition)
-  //         }
-  //       })
-  //     )
-  //   }
-  // },
+
   updateCondition: ({commit}, condition) => {
     return conditionService.update(condition)
             .then((response) => {
