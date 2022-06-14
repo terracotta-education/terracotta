@@ -48,4 +48,6 @@ public interface ConditionService {
     HttpHeaders buildHeader(UriComponentsBuilder ucBuilder, Long experimentId, Long conditionId);
 
     void validateConditionName(String conditionName, String dtoName, Long experimentId, Long conditionId, boolean required) throws TitleValidationException;
+
+    void  validateConditionNames(List<ConditionDto> conditionDtoList, Long experimentId, boolean required)  throws TitleValidationException;
 }
