@@ -82,6 +82,7 @@ public class AssessmentController {
                                                        @RequestParam(name = "questions", defaultValue = "false") boolean questions,
                                                        @RequestParam(name = "answers", defaultValue = "false") boolean answers,
                                                        @RequestParam(name = "submissions", defaultValue = "false") boolean submissions,
+                                                       @RequestParam(name = "submission_id", required = false) Long submissionId,
                                                        HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, AssessmentNotMatchingException {
 
@@ -91,13 +92,13 @@ public class AssessmentController {
 
         if(apijwtService.isLearnerOrHigher(securedInfo)) {
             boolean student = !apijwtService.isInstructorOrHigher(securedInfo);
-            AssessmentDto assessmentDto = assessmentService.toDto(assessmentService.getAssessment(assessmentId), questions, answers, submissions, student);
+            AssessmentDto assessmentDto = assessmentService.toDto(assessmentService.getAssessment(assessmentId),
+                    submissionId, questions, answers, submissions, student);
             return new ResponseEntity<>(assessmentDto, HttpStatus.OK);
         } else {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
     }
-
 
     @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments", method = RequestMethod.POST)
     public ResponseEntity<AssessmentDto> postAssessment(@PathVariable("experiment_id") Long experimentId,

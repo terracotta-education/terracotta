@@ -255,6 +255,8 @@ public class ExportServiceImpl implements ExportService {
                             response = answerMcSubmission.getAnswerMc().getHtml();
                         }
                         responseId = answerMcSubmission.getAnswerMc().getAnswerMcId().toString();
+                        // TODO: use answerPosition if not null, otherwise map it
+                        // TODO: **OR** figure out answerPosition from answerMcSubmissionOptions
                         responsePosition = Character.toString(mapResponsePosition(Long.parseLong(itemId), answerMcSubmission.getAnswerMc().getAnswerMcId()));
                         correctness = answerMcSubmission.getAnswerMc().getCorrect().toString().toUpperCase();
                     }

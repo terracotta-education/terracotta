@@ -4,8 +4,9 @@ import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.MultipleChoiceLimitReachedException;
 import edu.iu.terracotta.model.app.AnswerMc;
+import edu.iu.terracotta.model.app.AnswerMcSubmissionOption;
 import edu.iu.terracotta.model.app.Question;
-import edu.iu.terracotta.model.app.QuestionMc;
+import edu.iu.terracotta.model.app.QuestionSubmission;
 import edu.iu.terracotta.model.app.dto.AnswerDto;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.AnswerService;
@@ -19,7 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -39,19 +40,43 @@ public class AnswerServiceImpl implements AnswerService {
     @Override
     public List<AnswerDto> findAllByQuestionIdMC(Long questionId, boolean student) {
         List<AnswerMc> answerList = allRepositories.answerMcRepository.findByQuestion_QuestionId(questionId);
-        QuestionMc questionMc = allRepositories.questionMcRepository.getOne(questionId);
-        // if isRandomizeAnswers, then for students return answers in random
-        // order and update answerOrder appropriately in the DTO
-        if (student && questionMc.isRandomizeAnswers()) {
-            Collections.shuffle(answerList);
-        }
         List<AnswerDto> answerDtoList = new ArrayList<>();
-        if(!answerList.isEmpty()){
-            int answerOrder = 0;
-            for(AnswerMc answerMc : answerList){
-                answerDtoList.add(toDtoMC(answerMc, answerOrder++, student));
+        if (!answerList.isEmpty()) {
+            for (AnswerMc answerMc : answerList) {
+                answerDtoList.add(toDtoMC(answerMc, answerMc.getAnswerOrder(), student));
             }
         }
+        return answerDtoList;
+    }
+
+    /**
+     * Apply submission specific, possibly random, ordering to answers.
+     */
+    @Override
+    public List<AnswerDto> findAllByQuestionIdMC(QuestionSubmission questionSubmission) {
+        List<AnswerMc> answerList = allRepositories.answerMcRepository
+                .findByQuestion_QuestionId(questionSubmission.getQuestion().getQuestionId());
+
+        // Get the answers in the order they are to be presented for this submission
+        List<AnswerMcSubmissionOption> answerMcSubmissionOptions = questionSubmission.getAnswerMcSubmissionOptions();
+
+        // sort options
+        answerMcSubmissionOptions.sort(Comparator.comparingLong(AnswerMcSubmissionOption::getAnswerOrder));
+
+        // loop over them and add to dto list
+        List<AnswerDto> answerDtoList = new ArrayList<>();
+        int answerOrder = 0;
+        for (AnswerMcSubmissionOption answerMcSubmissionOption : answerMcSubmissionOptions) {
+            answerDtoList.add(toDtoMC(answerMcSubmissionOption.getAnswerMc(), answerOrder++, true));
+        }
+
+        // check for any missing answers and add them to the list as well
+        for (AnswerMc answerMc : answerList) {
+            if (answerDtoList.stream().noneMatch(a -> a.getAnswerId().equals(answerMc.getAnswerMcId()))) {
+                answerDtoList.add(toDtoMC(answerMc, answerOrder++, true));
+            }
+        }
+
         return answerDtoList;
     }
 

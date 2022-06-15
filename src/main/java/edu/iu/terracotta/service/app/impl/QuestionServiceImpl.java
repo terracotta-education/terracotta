@@ -7,6 +7,7 @@ import edu.iu.terracotta.exceptions.NegativePointsException;
 import edu.iu.terracotta.model.app.Assessment;
 import edu.iu.terracotta.model.app.Question;
 import edu.iu.terracotta.model.app.QuestionMc;
+import edu.iu.terracotta.model.app.QuestionSubmission;
 import edu.iu.terracotta.model.app.dto.QuestionDto;
 import edu.iu.terracotta.model.app.enumerator.QuestionTypes;
 import edu.iu.terracotta.repository.AllRepositories;
@@ -76,6 +77,11 @@ public class QuestionServiceImpl implements QuestionService {
 
     @Override
     public QuestionDto toDto(Question question, boolean answers, boolean student) {
+        return toDto(question, null, answers, student);
+    }
+
+    @Override
+    public QuestionDto toDto(Question question, Long submissionId, boolean answers, boolean student) {
 
         QuestionDto questionDto = new QuestionDto();
         questionDto.setQuestionId(question.getQuestionId());
@@ -86,7 +92,18 @@ public class QuestionServiceImpl implements QuestionService {
         questionDto.setQuestionType(question.getQuestionType().name());
         if (question.getQuestionType() == QuestionTypes.MC) {
             if (answers) {
-                questionDto.setAnswers(answerService.findAllByQuestionIdMC(question.getQuestionId(), student));
+                Optional<QuestionSubmission> questionSubmission = Optional.empty();
+                if (submissionId != null) {
+                    questionSubmission = this.allRepositories.questionSubmissionRepository
+                            .findByQuestion_QuestionIdAndSubmission_SubmissionId(question.getQuestionId(),
+                                    submissionId);
+                }
+                if (questionSubmission.isPresent()) {
+                    // Apply submission specific order to answers
+                    questionDto.setAnswers(answerService.findAllByQuestionIdMC(questionSubmission.get()));
+                } else {
+                    questionDto.setAnswers(answerService.findAllByQuestionIdMC(question.getQuestionId(), student));
+                }
             }
             questionDto.setRandomizeAnswers(((QuestionMc) question).isRandomizeAnswers());
         }

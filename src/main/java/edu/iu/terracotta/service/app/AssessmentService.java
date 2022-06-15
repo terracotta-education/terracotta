@@ -23,6 +23,9 @@ public interface AssessmentService {
 
     AssessmentDto toDto(Assessment assessment, boolean questions, boolean answers, boolean submissions, boolean student) throws AssessmentNotMatchingException;
 
+    AssessmentDto toDto(Assessment assessment, Long submissionId, boolean questions, boolean answers,
+            boolean submissions, boolean student) throws AssessmentNotMatchingException;
+
     Assessment fromDto(AssessmentDto assessmentDto) throws DataServiceException;
 
     Assessment save(Assessment assessment);

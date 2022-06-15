@@ -4,6 +4,7 @@ import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.MultipleChoiceLimitReachedException;
 import edu.iu.terracotta.model.app.AnswerMc;
+import edu.iu.terracotta.model.app.QuestionSubmission;
 import edu.iu.terracotta.model.app.dto.AnswerDto;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
@@ -16,6 +17,8 @@ public interface AnswerService {
 
     //METHODS FOR MC ANSWERS
     List<AnswerDto> findAllByQuestionIdMC(Long questionId, boolean student);
+
+    List<AnswerDto> findAllByQuestionIdMC(QuestionSubmission questionSubmission);
 
     AnswerDto getAnswerMC(Long answerId, boolean student);
 

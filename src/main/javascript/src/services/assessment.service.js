@@ -6,6 +6,7 @@ import store from '@/store/index.js'
  */
 export const assessmentService = {
   fetchAssessment,
+  fetchAssessmentForSubmission,
   fetchAssessments,
   createAssessment,
   updateAssessment,
@@ -26,6 +27,14 @@ async function fetchAssessment(experiment_id, condition_id, treatment_id, assess
     headers: {...authHeader()}
   }
   return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}?questions=true&answers=true`, requestOptions).then(handleResponse)
+}
+
+async function fetchAssessmentForSubmission(experiment_id, condition_id, treatment_id, assessment_id, submission_id) {
+  const requestOptions = {
+    method: 'GET',
+    headers: {...authHeader()}
+  }
+  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}?questions=true&answers=true&submission_id=${submission_id}`, requestOptions).then(handleResponse)
 }
 
 /**

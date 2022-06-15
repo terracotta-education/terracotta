@@ -152,7 +152,7 @@ export default {
   methods: {
     ...mapActions({
       reportStep: "api/reportStep",
-      fetchAssessment: "assessment/fetchAssessment",
+      fetchAssessmentForSubmission: "assessment/fetchAssessmentForSubmission",
       createQuestionSubmission: "submissions/createQuestionSubmission",
     }),
     async handleSubmit() {
@@ -183,6 +183,7 @@ export default {
           return {
             questionId: q.questionId,
             answerSubmissionDtoList: [
+              // TODO: for each answerId also get the answerPosition from answerOrder
               { answerId: q.answerId, response: q.response },
             ],
           };
@@ -253,11 +254,12 @@ export default {
         this.assessmentId = data.assessmentId;
         this.submissionId = data.submissionId;
 
-        await this.fetchAssessment([
+        await this.fetchAssessmentForSubmission([
           experimentId,
           data.conditionId,
           data.treatmentId,
           data.assessmentId,
+          data.submissionId,
         ]);
 
         this.questionValues = this.answerableQuestions.map((q) => {

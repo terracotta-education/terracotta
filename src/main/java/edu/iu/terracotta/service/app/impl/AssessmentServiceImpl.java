@@ -77,6 +77,12 @@ public class AssessmentServiceImpl implements AssessmentService {
 
     @Override
     public AssessmentDto toDto(Assessment assessment, boolean questions, boolean answers, boolean submissions, boolean student) throws AssessmentNotMatchingException {
+        return toDto(assessment, null, questions, answers, submissions, student);
+    }
+
+    @Override
+    public AssessmentDto toDto(Assessment assessment, Long submissionId, boolean questions, boolean answers,
+            boolean submissions, boolean student) throws AssessmentNotMatchingException {
 
         Long submissionsCompletedCount = null;
         Long submissionsInProgressCount = null;
@@ -90,7 +96,12 @@ public class AssessmentServiceImpl implements AssessmentService {
         if (questions) {
             List<Question> questionList = allRepositories.questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(assessment.getAssessmentId());
             for (Question question : questionList) {
-                questionDtoList.add(questionService.toDto(question, answers, student));
+                if (submissionId != null) {
+                    // apply submission specific ordering to of answers
+                    questionDtoList.add(questionService.toDto(question, submissionId, answers, student));
+                } else {
+                    questionDtoList.add(questionService.toDto(question, answers, student));
+                }
             }
         }
         assessmentDto.setQuestions(questionDtoList);
