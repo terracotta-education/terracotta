@@ -40,17 +40,7 @@ const actions = {
               console.log('createCondition | catch', {response})
             })
   },
-  async updateConditions({dispatch}, conditions) {
-    if (conditions.length > 0) {
-      return Promise.all(
-        conditions.map(async (condition) => {
-          if (condition?.conditionId) {
-            return dispatch('updateCondition', condition)
-          }
-        })
-      )
-    }
-  },
+
   updateCondition: ({commit}, condition) => {
     return conditionService.update(condition)
             .then((response) => {
@@ -64,6 +54,23 @@ const actions = {
               console.log('setCondition | catch', {response})
             })
   },
+
+  updateConditions: ({commit}, conditions) => {
+    return conditionService.updateAll(conditions)
+        .then((response) => {
+          if (response.status === 200) {
+            // commit mutation from experiment module
+            commit('experiment/setConditions', conditions, {root: true})
+          }
+          return response
+        })
+        .catch(response => {
+          console.log('setConditions | catch', {response})
+        })
+  },
+
+
+
   setDefaultCondition({dispatch}, payload) {
     if (!payload || !payload.conditions || !payload.defaultConditionId) {
       return false
