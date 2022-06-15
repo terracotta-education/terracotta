@@ -7,9 +7,11 @@ import store from "@/store/index.js";
 export const submissionService = {
   getAll,
   updateSubmission,
-  createQuestionSubmission,
-  updateQuestionSubmission,
-  studentResponse
+  getQuestionSubmissions,
+  createQuestionSubmissions,
+  updateQuestionSubmissions,
+  studentResponse,
+  createAnswerSubmission,
 };
 
 /**
@@ -62,7 +64,7 @@ async function updateSubmission(
 /**
  * Send Question Submissions
  */
- async function createQuestionSubmission(
+async function createQuestionSubmissions(
   experiment_id,
   condition_id,
   treatment_id,
@@ -83,9 +85,9 @@ async function updateSubmission(
 }
 
 /**
- * Update Individual Question Submission
+ * Update Question Submissions
  */
- async function updateQuestionSubmission(
+async function updateQuestionSubmissions(
   experiment_id,
   condition_id,
   treatment_id,
@@ -105,6 +107,24 @@ async function updateSubmission(
   ).then(handleResponse);
 }
 
+async function getQuestionSubmissions(
+  experiment_id,
+  condition_id,
+  treatment_id,
+  assessment_id,
+  submission_id
+) {
+  const requestOptions = {
+    method: "GET",
+    headers: authHeader(),
+  };
+
+  return fetch(
+    `${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/submissions/${submission_id}/question_submissions`,
+    requestOptions
+  ).then(handleResponse);
+}
+
 /**
  * Get Student Response
  */
@@ -113,7 +133,7 @@ async function studentResponse(
   condition_id,
   treatment_id,
   assessment_id,
-  submission_id,
+  submission_id
 ) {
   const requestOptions = {
     method: "GET",
@@ -122,6 +142,30 @@ async function studentResponse(
 
   return fetch(
     `${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/submissions/${submission_id}/question_submissions/?answer_submissions=true`,
+    requestOptions
+  ).then(handleResponse);
+}
+
+/**
+ * POST Answer Submission
+ */
+async function createAnswerSubmission(
+  experiment_id,
+  condition_id,
+  treatment_id,
+  assessment_id,
+  submission_id,
+  question_submission_id,
+  answerSubmission
+) {
+  const requestOptions = {
+    method: "POST",
+    headers: authHeader(),
+    body: JSON.stringify(answerSubmission),
+  };
+
+  return fetch(
+    `${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/submissions/${submission_id}/question_submissions/${question_submission_id}/answer_submissions`,
     requestOptions
   ).then(handleResponse);
 }
@@ -148,8 +192,8 @@ function handleResponse(response) {
 
         return response;
       } else if (response.status === 204) {
-        console.log('handleResponse | 204', {text, data, response})
-        return []
+        console.log("handleResponse | 204", { text, data, response });
+        return [];
       }
 
       return data || response;

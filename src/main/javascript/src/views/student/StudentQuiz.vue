@@ -128,6 +128,7 @@ export default {
       assessmentId: null,
       submitted: false,
       questionPageIndex: 0,
+      questionSubmissions: null,
     };
   },
   computed: {
@@ -135,6 +136,7 @@ export default {
       assessment: "assessment/assessment",
       answerableQuestions: "assessment/answerableQuestions",
       questionPages: "assessment/questionPages",
+      // questionSubmissions: "submissions/questionSubmissions",
     }),
     allCurrentPageQuestionsAnswered() {
       return this.areAllQuestionsAnswered(this.currentQuestionPage.questions);
@@ -153,7 +155,9 @@ export default {
     ...mapActions({
       reportStep: "api/reportStep",
       fetchAssessmentForSubmission: "assessment/fetchAssessmentForSubmission",
-      createQuestionSubmission: "submissions/createQuestionSubmission",
+      fetchQuestionSubmissions: "submissions/fetchQuestionSubmissions",
+      createQuestionSubmissions: "submissions/createQuestionSubmissions",
+      createAnswerSubmission: "submissions/createAnswerSubmission",
     }),
     async handleSubmit() {
       const reallySubmit = await this.$swal({
@@ -179,25 +183,54 @@ export default {
         const experimentId = this.experimentId;
         const step = "student_submission";
         const parameters = { submissionIds: this.submissionId };
-        const questions = this.questionValues.map((q) => {
-          return {
+        const allQuestionSubmissions = this.questionValues.map((q) => {
+          const existingQuestionSubmission = this.questionSubmissions.find(
+            (qs) => qs.questionId === q.questionId
+          );
+          const questionSubmissionId =
+            existingQuestionSubmission?.questionSubmissionId;
+          const questionSubmission = {
+            questionSubmissionId,
             questionId: q.questionId,
             answerSubmissionDtoList: [
-              // TODO: for each answerId also get the answerPosition from answerOrder
               { answerId: q.answerId, response: q.response },
             ],
           };
+          return questionSubmission;
         });
 
-        // submit questions - updateQuestionSubmission()
-        await this.createQuestionSubmission([
-          this.experimentId,
-          this.conditionId,
-          this.treatmentId,
-          this.assessmentId,
-          this.submissionId,
-          questions,
-        ]);
+        // separate question submissions into existing and new by whether they have id
+        const existingQuestionSubmissions = allQuestionSubmissions.filter(
+          (qs) => !!qs.questionSubmissionId
+        );
+        const newQuestionSubmissions = allQuestionSubmissions.filter(
+          (qs) => !qs.questionSubmissionId
+        );
+
+        // call createAnswerSubmission for all existing question submissions
+        for (const questionSubmission of existingQuestionSubmissions) {
+          await this.createAnswerSubmission([
+            this.experimentId,
+            this.conditionId,
+            this.treatmentId,
+            this.assessmentId,
+            this.submissionId,
+            questionSubmission.questionSubmissionId,
+            questionSubmission.answerSubmissionDtoList[0],
+          ]);
+        }
+
+        // call createQuestionSubmissions for all new question submissions
+        if (newQuestionSubmissions.length > 0) {
+          await this.createQuestionSubmissions([
+            this.experimentId,
+            this.conditionId,
+            this.treatmentId,
+            this.assessmentId,
+            this.submissionId,
+            newQuestionSubmissions,
+          ]);
+        }
 
         // submit step
         await this.reportStep({ experimentId, step, parameters });
@@ -261,6 +294,8 @@ export default {
           data.assessmentId,
           data.submissionId,
         ]);
+
+        this.questionSubmissions = data.questionSubmissionDtoList;
 
         this.questionValues = this.answerableQuestions.map((q) => {
           return {
