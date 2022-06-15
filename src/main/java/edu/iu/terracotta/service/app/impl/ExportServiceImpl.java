@@ -59,7 +59,7 @@ public class ExportServiceImpl implements ExportService {
          */
         List<String[]> experimentData = new ArrayList<>();
         experimentData.add(new String[] {"experiment_id", "course_id", "experiment_title", "experiment_description", "exposure_type", "participation_type", "distribution_type",
-                                            "export_at", "enrollment_cnt", "participant_cnt", "condition_cnt"});
+                "export_at", "enrollment_cnt", "participant_cnt", "condition_cnt"});
         Experiment experiment = allRepositories.experimentRepository.findByExperimentId(experimentId);
         String exportExperimentId = experiment.getExperimentId().toString();
         String courseId = String.valueOf(experiment.getLtiContextEntity().getContextId());
@@ -86,7 +86,7 @@ public class ExportServiceImpl implements ExportService {
         List<Condition> conditions = allRepositories.conditionRepository.findByExperiment_ExperimentId(experimentId);
         String conditionCount = String.valueOf(conditions.size());
         experimentData.add(new String[]{exportExperimentId, courseId, experimentTitle, experimentDescription, exposureType, participationType, distributionType, exportAt, enrollmentCount,
-            participantCount, conditionCount});
+                participantCount, conditionCount});
         csvFiles.put("experiment.csv", experimentData);
 
 
@@ -116,6 +116,7 @@ public class ExportServiceImpl implements ExportService {
                 if (outcomeScore.getScoreNumeric() != null) {
                     score = outcomeScore.getScoreNumeric().toString();
                 }
+                outcomeData.add(new String[]{outcomeId, participantId, String.valueOf(exposureId), source, outcomeName, pointsPossible, score});
                 Long  groupId = outcomeScore.getParticipant().getGroup().getGroupId();
                Optional<ExposureGroupCondition> groupConditionOptional =
                        allRepositories.exposureGroupConditionRepository.getByGroup_GroupIdAndExposure_ExposureId(groupId,exposureId);
@@ -230,7 +231,7 @@ public class ExportServiceImpl implements ExportService {
         List<QuestionSubmission> questionSubmissions = allRepositories.questionSubmissionRepository.findBySubmission_Participant_Experiment_ExperimentId(experimentId);
         List<String[]> questionSubmissionData = new ArrayList<>();
         questionSubmissionData.add(new String[] {"item_response_id", "submission_id", "assignment_id", "condition_id", "treatment_id", "participant_id", "item_id", "response_type", "response", "response_id", "response_position",
-                                                "correctness", "responded_at", "points_possible", "calculated_score", "override_score"});
+                "correctness", "responded_at", "points_possible", "calculated_score", "override_score"});
         for(QuestionSubmission questionSubmission : questionSubmissions) {
             if(questionSubmission.getSubmission().getParticipant().getConsent() != null && questionSubmission.getSubmission().getParticipant().getConsent()) {
                 String itemResponseId = questionSubmission.getQuestionSubmissionId().toString();
