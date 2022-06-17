@@ -288,7 +288,6 @@ export default {
   },
   methods: {
     ...mapActions({
-      updateSubmission: "submissions/updateSubmission",
       fetchAssessment: "assessment/fetchAssessment",
       fetchStudentResponse: "submissions/fetchStudentResponse",
       updateQuestionSubmissions: "submissions/updateQuestionSubmissions",

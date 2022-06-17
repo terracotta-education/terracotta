@@ -169,10 +169,10 @@ export default {
       });
       if (reallySubmit.isConfirmed) {
         try {
-          this.submitQuiz();
+          await this.submitQuiz();
         } catch (error) {
           this.$swal({
-            text: "Could not submit",
+            text: "Could not submit: " + error.message,
             icon: "error",
           });
         }
@@ -216,7 +216,7 @@ export default {
           (qs) => qs.answerSubmissionDtoList[0]
         );
         if (answerSubmissions.length > 0) {
-          await this.createAnswerSubmissions([
+          const { data, status } = await this.createAnswerSubmissions([
             this.experimentId,
             this.conditionId,
             this.treatmentId,
@@ -224,11 +224,14 @@ export default {
             this.submissionId,
             answerSubmissions,
           ]);
+          if (status && ![200, 201].includes(status)) {
+            throw Error("Error submitting quiz: " + data);
+          }
         }
 
         // call createQuestionSubmissions for all new question submissions
         if (newQuestionSubmissions.length > 0) {
-          await this.createQuestionSubmissions([
+          const { data, status } = await this.createQuestionSubmissions([
             this.experimentId,
             this.conditionId,
             this.treatmentId,
@@ -236,14 +239,25 @@ export default {
             this.submissionId,
             newQuestionSubmissions,
           ]);
+          if (status && ![200, 201].includes(status)) {
+            throw Error("Error submitting quiz: " + data);
+          }
         }
 
         // submit step
-        await this.reportStep({ experimentId, step, parameters });
+        const { data, status } = await this.reportStep({
+          experimentId,
+          step,
+          parameters,
+        });
+        if (status && ![200, 201].includes(status)) {
+          throw Error("Error submitting quiz: " + data);
+        }
 
         this.submitted = true;
       } catch (e) {
         console.error({ e });
+        throw e; // rethrow
       }
     },
     areAllQuestionsAnswered(answerableQuestions) {

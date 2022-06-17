@@ -1,4 +1,4 @@
-import { authHeader } from "@/helpers";
+import { authHeader, isJson } from "@/helpers";
 import store from "@/store/index.js";
 
 // /**
@@ -176,7 +176,7 @@ function handleResponse(response) {
   return response
     .text()
     .then((text) => {
-      const data = text && JSON.parse(text);
+      const data = text && isJson(text) ? JSON.parse(text) : text;
 
       if (!response || !response.ok) {
         if (
@@ -195,7 +195,9 @@ function handleResponse(response) {
         return [];
       }
 
-      return data || response;
+      const dataResponse = data ? { data, status: response.status } : null;
+
+      return dataResponse || response;
     })
     .catch((text) => {
       console.log("handleResponse | catch", { text });
