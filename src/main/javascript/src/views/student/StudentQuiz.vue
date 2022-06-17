@@ -157,7 +157,7 @@ export default {
       fetchAssessmentForSubmission: "assessment/fetchAssessmentForSubmission",
       fetchQuestionSubmissions: "submissions/fetchQuestionSubmissions",
       createQuestionSubmissions: "submissions/createQuestionSubmissions",
-      createAnswerSubmission: "submissions/createAnswerSubmission",
+      createAnswerSubmissions: "submissions/createAnswerSubmissions",
     }),
     async handleSubmit() {
       const reallySubmit = await this.$swal({
@@ -193,7 +193,11 @@ export default {
             questionSubmissionId,
             questionId: q.questionId,
             answerSubmissionDtoList: [
-              { answerId: q.answerId, response: q.response },
+              {
+                answerId: q.answerId,
+                response: q.response,
+                questionSubmissionId,
+              },
             ],
           };
           return questionSubmission;
@@ -208,15 +212,17 @@ export default {
         );
 
         // call createAnswerSubmission for all existing question submissions
-        for (const questionSubmission of existingQuestionSubmissions) {
-          await this.createAnswerSubmission([
+        const answerSubmissions = existingQuestionSubmissions.map(
+          (qs) => qs.answerSubmissionDtoList[0]
+        );
+        if (answerSubmissions.length > 0) {
+          await this.createAnswerSubmissions([
             this.experimentId,
             this.conditionId,
             this.treatmentId,
             this.assessmentId,
             this.submissionId,
-            questionSubmission.questionSubmissionId,
-            questionSubmission.answerSubmissionDtoList[0],
+            answerSubmissions,
           ]);
         }
 

@@ -11,7 +11,7 @@ export const submissionService = {
   createQuestionSubmissions,
   updateQuestionSubmissions,
   studentResponse,
-  createAnswerSubmission,
+  createAnswerSubmissions,
 };
 
 /**
@@ -147,25 +147,24 @@ async function studentResponse(
 }
 
 /**
- * POST Answer Submission
+ * POST Answer Submissions
  */
-async function createAnswerSubmission(
+async function createAnswerSubmissions(
   experiment_id,
   condition_id,
   treatment_id,
   assessment_id,
   submission_id,
-  question_submission_id,
-  answerSubmission
+  answerSubmissions
 ) {
   const requestOptions = {
     method: "POST",
     headers: authHeader(),
-    body: JSON.stringify(answerSubmission),
+    body: JSON.stringify(answerSubmissions),
   };
 
   return fetch(
-    `${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/submissions/${submission_id}/question_submissions/${question_submission_id}/answer_submissions`,
+    `${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/submissions/${submission_id}/answer_submissions`,
     requestOptions
   ).then(handleResponse);
 }

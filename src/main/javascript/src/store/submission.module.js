@@ -85,18 +85,18 @@ const actions = {
     }
   },
 
-  async createAnswerSubmission({state}, payload) {
-    // payload = experiment_id, condition_id, treatment_id, assessment_id, submission_id, question_submission_id, answerSubmission
+  async createAnswerSubmissions({state}, payload) {
+    // payload = experiment_id, condition_id, treatment_id, assessment_id, submission_id, answerSubmissions
 
     try {
-      const response = await submissionService.createAnswerSubmission(...payload)
+      const response = await submissionService.createAnswerSubmissions(...payload)
       if (response) {
         return {
           data: response
         }
       }
     } catch (error) {
-      console.error('createAnswerSubmission catch', {error, state})
+      console.error('createAnswerSubmissions catch', {error, state})
     }
   },
 }
