@@ -27,11 +27,6 @@ public class AnswerMcSubmission extends BaseEntity {
     @ManyToOne
     private AnswerMc answerMc;
 
-    @Column(name = "answer_position")
-    private Integer answerPosition;
-
-    // TODO: map to answerMcSubmissionOptions
-
     public Long getAnswerMcSubId() { return answerMcSubId; }
 
     public void setAnswerMcSubId(Long answerMcSubId) { this.answerMcSubId = answerMcSubId; }
