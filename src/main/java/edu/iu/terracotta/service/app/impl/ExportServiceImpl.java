@@ -5,6 +5,7 @@ import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.model.app.AnswerEssaySubmission;
 import edu.iu.terracotta.model.app.AnswerMc;
 import edu.iu.terracotta.model.app.AnswerMcSubmission;
+import edu.iu.terracotta.model.app.AnswerMcSubmissionOption;
 import edu.iu.terracotta.model.app.Assignment;
 import edu.iu.terracotta.model.app.Condition;
 import edu.iu.terracotta.model.app.Experiment;
@@ -13,6 +14,7 @@ import edu.iu.terracotta.model.app.Outcome;
 import edu.iu.terracotta.model.app.OutcomeScore;
 import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.Question;
+import edu.iu.terracotta.model.app.QuestionMc;
 import edu.iu.terracotta.model.app.QuestionSubmission;
 import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.Treatment;
@@ -32,6 +34,7 @@ import java.io.IOException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -255,9 +258,9 @@ public class ExportServiceImpl implements ExportService {
                             response = answerMcSubmission.getAnswerMc().getHtml();
                         }
                         responseId = answerMcSubmission.getAnswerMc().getAnswerMcId().toString();
-                        // TODO: use answerPosition if not null, otherwise map it
-                        // TODO: **OR** figure out answerPosition from answerMcSubmissionOptions
-                        responsePosition = Character.toString(mapResponsePosition(Long.parseLong(itemId), answerMcSubmission.getAnswerMc().getAnswerMcId()));
+                        responsePosition = Character.toString(mapResponsePosition(Long.parseLong(itemId),
+                                answerMcSubmission.getAnswerMc().getAnswerMcId(),
+                                questionSubmission.getAnswerMcSubmissionOptions()));
                         correctness = answerMcSubmission.getAnswerMc().getCorrect().toString().toUpperCase();
                     }
                     if (questionSubmission.getCalculatedPoints() != null) {
@@ -294,7 +297,8 @@ public class ExportServiceImpl implements ExportService {
 
         List<AnswerMc> answerMcs = allRepositories.answerMcRepository.findByQuestion_Assessment_Treatment_Condition_Experiment_ExperimentId(experimentId);
         List<String[]> answerData = new ArrayList<>();
-        answerData.add(new String[] {"response_id", "item_id", "response", "response_position", "correct"});
+        answerData.add(
+                new String[] { "response_id", "item_id", "response", "response_position", "correct", "randomized" });
         for(AnswerMc answerMc : answerMcs){
             String responseId = answerMc.getAnswerMcId().toString();
             String itemId = answerMc.getQuestion().getQuestionId().toString();
@@ -304,7 +308,9 @@ public class ExportServiceImpl implements ExportService {
             }
             String responsePosition = Character.toString(mapResponsePosition(Long.parseLong(itemId), Long.parseLong(responseId)));
             String correct = answerMc.getCorrect().toString().toUpperCase();
-            answerData.add(new String[] {responseId, itemId, response, responsePosition, correct});
+            QuestionMc question = (QuestionMc) answerMc.getQuestion();
+            String randomized = Boolean.toString(question.isRandomizeAnswers()).toUpperCase();
+            answerData.add(new String[] { responseId, itemId, response, responsePosition, correct, randomized });
         }
         csvFiles.put("response_options.csv", answerData);
 
@@ -336,9 +342,37 @@ public class ExportServiceImpl implements ExportService {
         return jsonFiles;
     }
 
-    public char mapResponsePosition(Long questionId, Long answerId){
-        List<AnswerMc> answerList = allRepositories.answerMcRepository.findByQuestion_QuestionId(questionId);
-        answerList.sort(Comparator.comparingLong(AnswerMc::getAnswerOrder));
+    /**
+     * Return the original order of the answer in the list of options.
+     * 
+     * @param questionId
+     * @param answerId
+     * @return
+     */
+    public char mapResponsePosition(Long questionId, Long answerId) {
+        return mapResponsePosition(questionId, answerId, Collections.emptyList());
+    }
+
+    /**
+     * Consider possible random ordering of options in figuring out position.
+     * 
+     * @param questionId
+     * @param answerId
+     * @param answerMcSubmissionOptions
+     * @return
+     */
+    public char mapResponsePosition(Long questionId, Long answerId,
+            List<AnswerMcSubmissionOption> answerMcSubmissionOptions) {
+        List<AnswerMc> answerList = null;
+        // Randomized option order is stored in AnswerMcSubmissionOptions, sort
+        // AnswerMc's by its order
+        if (answerMcSubmissionOptions.stream().anyMatch(o -> o.getAnswerMc().getAnswerMcId() == answerId)) {
+            answerMcSubmissionOptions.sort(Comparator.comparingInt(AnswerMcSubmissionOption::getAnswerOrder));
+            answerList = answerMcSubmissionOptions.stream().map(o -> o.getAnswerMc()).collect(Collectors.toList());
+        } else {
+            answerList = allRepositories.answerMcRepository.findByQuestion_QuestionId(questionId);
+            answerList.sort(Comparator.comparingLong(AnswerMc::getAnswerOrder));
+        }
         char position;
         for(AnswerMc answerMc : answerList){
             if(answerMc.getAnswerMcId().equals(answerId)){
