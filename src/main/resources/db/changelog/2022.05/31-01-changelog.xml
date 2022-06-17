@@ -39,5 +39,8 @@
             ;
             ]]>
         </sql>
+        <rollback>
+            update terr_answer_mc_submission set answer_position = null;
+        </rollback>
     </changeSet>
 </databaseChangeLog>
