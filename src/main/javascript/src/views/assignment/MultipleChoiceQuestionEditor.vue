@@ -67,8 +67,11 @@
     </v-row>
     <template v-slot:actions>
       <div class="d-flex align-center">
-        <div>Randomize options</div>
-        <v-switch v-model="randomizeAnswers" class="mt-0 ml-3" />
+        <v-switch
+          v-model="randomizeAnswers"
+          class="randomize-answers-switch"
+          label="Randomize options"
+        />
       </div>
     </template>
   </question-editor>
@@ -175,5 +178,15 @@ export default {
 .icon-button-spacer {
   // In order to line up with checkbox icon column, size the same as a default button
   width: #{map-get($map: $btn-sizes, $key: "default")}px;
+}
+.randomize-answers-switch {
+  margin-top: 0px;
+}
+.randomize-answers-switch::v-deep .v-input__slot {
+  // Put the label before the switch
+  flex-direction: row-reverse;
+}
+.randomize-answers-switch::v-deep .v-input--selection-controls__input {
+  margin-left: 10px;
 }
 </style>

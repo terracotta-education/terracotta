@@ -27,7 +27,7 @@
       <v-col cols="auto" class="flex-grow-1 py-0">
         <slot name="actions"> </slot>
       </v-col>
-      <v-col cols="auto" class="text-right align-self-center py-0">
+      <v-col cols="auto" class="text-right py-0">
         <v-menu>
           <template v-slot:activator="{ on, attrs }">
             <v-icon color="black" v-bind="attrs" v-on="on">
