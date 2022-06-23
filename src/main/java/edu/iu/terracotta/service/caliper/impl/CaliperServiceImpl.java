@@ -877,21 +877,23 @@ public class CaliperServiceImpl implements CaliperService {
         Long assessmentId = submission.getAssessment().getAssessmentId();
         Long treatmentId = submission.getAssessment().getTreatment().getTreatmentId();
 
-        Long groupId = participant.getGroup().getGroupId();
+        if (participant.getGroup() != null) {
+            Long groupId = participant.getGroup().getGroupId();
 
-        Long conditionId = submission.getAssessment().getTreatment().getCondition().getConditionId();
+            Long conditionId = submission.getAssessment().getTreatment().getCondition().getConditionId();
+            extenstions.put("terracotta_condition_id", conditionId);
 
-        Optional<ExposureGroupCondition> groupCondition = allRepositories.exposureGroupConditionRepository
-                .getByGroup_GroupIdAndCondition_ConditionId(groupId, conditionId);
+            Optional<ExposureGroupCondition> groupCondition = allRepositories.exposureGroupConditionRepository
+                    .getByGroup_GroupIdAndCondition_ConditionId(groupId, conditionId);
 
-        if (groupCondition.isPresent()) {
-            extenstions.put("terracotta_exposure_id", groupCondition.get().getExposure().getExposureId());
+            if (groupCondition.isPresent()) {
+                extenstions.put("terracotta_exposure_id", groupCondition.get().getExposure().getExposureId());
+            }
         }
 
         extenstions.put("terracotta_assignment_id", assignmentId);
         extenstions.put("terracotta_assessment_id", assessmentId);
         extenstions.put("terracotta_treatment_id", treatmentId);
-        extenstions.put("terracotta_condition_id", conditionId);
         return extenstions;
     }
 }
