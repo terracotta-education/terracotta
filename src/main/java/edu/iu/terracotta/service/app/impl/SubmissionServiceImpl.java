@@ -301,15 +301,11 @@ public class SubmissionServiceImpl implements SubmissionService {
         for (Question question : assessment.getQuestions()) {
             if (question.getQuestionType() == QuestionTypes.MC) {
                 QuestionMc questionMc = (QuestionMc) question;
-                // TODO: create a QuestionSubmission for each question and then from the
-                // frontend, call updateQuestionSubmissions
                 if (questionMc.isRandomizeAnswers()) {
                     QuestionSubmission questionSubmission = new QuestionSubmission();
                     questionSubmission.setQuestion(question);
                     questionSubmission.setSubmission(submission);
                     questionSubmission = allRepositories.questionSubmissionRepository.save(questionSubmission);
-                    // List<AnswerMcSubmissionOption> answerMcSubmissionOptions = new ArrayList<>();
-                    // questionSubmission.setAnswerMcSubmissionOptions(answerMcSubmissionOptions);
                     List<AnswerMc> answers = allRepositories.answerMcRepository
                             .findByQuestion_QuestionId(question.getQuestionId());
                     Collections.shuffle(answers);
@@ -319,7 +315,6 @@ public class SubmissionServiceImpl implements SubmissionService {
                         answerMcSubmissionOption.setAnswerMc(answerMc);
                         answerMcSubmissionOption.setAnswerOrder(order++);
                         answerMcSubmissionOption.setQuestionSubmission(questionSubmission);
-                        // answerMcSubmissionOptions.add(answerMcSubmissionOption);
                         allRepositories.answerMcSubmissionOptionRepository.save(answerMcSubmissionOption);
                     }
                 }

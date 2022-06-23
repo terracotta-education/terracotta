@@ -5,12 +5,15 @@ import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.IdInPostException;
+import edu.iu.terracotta.exceptions.NoSubmissionsException;
+import edu.iu.terracotta.exceptions.SubmissionNotMatchingException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
 import edu.iu.terracotta.model.app.dto.AssessmentDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.AssessmentService;
+import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.utils.TextConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,6 +50,8 @@ public class AssessmentController {
     @Autowired
     APIJWTService apijwtService;
 
+    @Autowired
+    SubmissionService submissionService;
 
     @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments", method = RequestMethod.GET, produces = "application/json;")
     @ResponseBody
@@ -84,14 +89,23 @@ public class AssessmentController {
                                                        @RequestParam(name = "submissions", defaultValue = "false") boolean submissions,
                                                        @RequestParam(name = "submission_id", required = false) Long submissionId,
                                                        HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, AssessmentNotMatchingException {
+            throws ExperimentNotMatchingException, BadTokenException, AssessmentNotMatchingException,
+            SubmissionNotMatchingException, NoSubmissionsException {
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
+        if (submissionId != null) {
+            apijwtService.submissionAllowed(securedInfo, assessmentId, submissionId);
+        }
 
         if(apijwtService.isLearnerOrHigher(securedInfo)) {
             boolean student = !apijwtService.isInstructorOrHigher(securedInfo);
+            if (student && submissionId != null) {
+                // This will throw NoSubmissionsException if the submission doesn't belong to
+                // the student
+                this.submissionService.getSubmission(experimentId, securedInfo.getUserId(), submissionId, student);
+            }
             AssessmentDto assessmentDto = assessmentService.toDto(assessmentService.getAssessment(assessmentId),
                     submissionId, questions, answers, submissions, student);
             return new ResponseEntity<>(assessmentDto, HttpStatus.OK);

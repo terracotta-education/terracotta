@@ -6,7 +6,6 @@ public class AnswerSubmissionDto {
     private Long answerId;
     private Long questionSubmissionId;
     private String response;
-    // TODO: add answerPosition here too
 
     public Long getAnswerSubmissionId() { return answerSubmissionId; }
 
