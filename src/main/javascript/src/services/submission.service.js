@@ -188,11 +188,9 @@ function handleResponse(response) {
         } else if (response.status === 404) {
           console.log("handleResponse | 404", { response });
         }
-
-        return response;
       } else if (response.status === 204) {
         console.log("handleResponse | 204", { text, data, response });
-        return [];
+        return { data: [], status: response.status };
       }
 
       const dataResponse = data ? { data, status: response.status } : null;
