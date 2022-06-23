@@ -5,8 +5,10 @@ import edu.iu.terracotta.exceptions.AnswerSubmissionNotMatchingException;
 import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.ExceedingLimitException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.IdInPostException;
+import edu.iu.terracotta.exceptions.IdMissingException;
 import edu.iu.terracotta.exceptions.InvalidUserException;
 import edu.iu.terracotta.exceptions.QuestionSubmissionNotMatchingException;
 import edu.iu.terracotta.exceptions.TypeNotSupportedException;
@@ -19,7 +21,6 @@ import edu.iu.terracotta.utils.TextConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -29,9 +30,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.util.UriComponentsBuilder;
-
 import javax.servlet.http.HttpServletRequest;
+import javax.transaction.Transactional;
+
 import java.util.List;
 
 @Controller
@@ -120,32 +121,37 @@ public class AnswerSubmissionController {
     }
 
 
-    @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}/question_submissions/{question_submission_id}/answer_submissions",
+    @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}/answer_submissions",
                     method = RequestMethod.POST)
-    public ResponseEntity<AnswerSubmissionDto> postAnswerSubmission(@PathVariable("experiment_id") Long experimentId,
-                                                                    @PathVariable("condition_id") Long conditionId,
-                                                                    @PathVariable("treatment_id") Long treatmentId,
-                                                                    @PathVariable("assessment_id") Long assessmentId,
-                                                                    @PathVariable("submission_id") Long submissionId,
-                                                                    @PathVariable("question_submission_id") Long questionSubmissionId,
-                                                                    @RequestBody AnswerSubmissionDto answerSubmissionDto,
-                                                                    UriComponentsBuilder ucBuilder,
-                                                                    HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, BadTokenException, InvalidUserException, IdInPostException, TypeNotSupportedException, DataServiceException {
+    @Transactional
+    public ResponseEntity<List<AnswerSubmissionDto>> postAnswerSubmissions(
+            @PathVariable("experiment_id") Long experimentId,
+            @PathVariable("condition_id") Long conditionId,
+            @PathVariable("treatment_id") Long treatmentId,
+            @PathVariable("assessment_id") Long assessmentId,
+            @PathVariable("submission_id") Long submissionId,
+            @RequestBody List<AnswerSubmissionDto> answerSubmissionDtoList,
+            HttpServletRequest req)
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException,
+            QuestionSubmissionNotMatchingException, BadTokenException, InvalidUserException, IdInPostException,
+            TypeNotSupportedException, DataServiceException, IdMissingException, ExceedingLimitException {
 
-        log.info("Creating answer submission: {}", answerSubmissionDto);
+        log.info("Creating answer submissions: {}", answerSubmissionDtoList);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
-        apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, questionSubmissionId);
+        for (AnswerSubmissionDto answerSubmissionDto : answerSubmissionDtoList) {
+            apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId,
+                    answerSubmissionDto.getQuestionSubmissionId());
+        }
 
         if(apijwtService.isLearnerOrHigher(securedInfo)){
             if(!apijwtService.isInstructorOrHigher(securedInfo)){
                 submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
             }
-            AnswerSubmissionDto returnedDto = answerSubmissionService.postAnswerSubmission(answerSubmissionDto, questionSubmissionId);
-            HttpHeaders headers = answerSubmissionService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, submissionId, questionSubmissionId, returnedDto.getAnswerSubmissionId());
-            return new ResponseEntity<>(returnedDto, headers, HttpStatus.OK);
+            List<AnswerSubmissionDto> returnedDtoList = answerSubmissionService
+                    .postAnswerSubmissions(answerSubmissionDtoList);
+            return new ResponseEntity<>(returnedDtoList, HttpStatus.OK);
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }

@@ -128,6 +128,7 @@ export default {
       assessmentId: null,
       submitted: false,
       questionPageIndex: 0,
+      questionSubmissions: null,
     };
   },
   computed: {
@@ -135,6 +136,7 @@ export default {
       assessment: "assessment/assessment",
       answerableQuestions: "assessment/answerableQuestions",
       questionPages: "assessment/questionPages",
+      // questionSubmissions: "submissions/questionSubmissions",
     }),
     allCurrentPageQuestionsAnswered() {
       return this.areAllQuestionsAnswered(this.currentQuestionPage.questions);
@@ -152,9 +154,10 @@ export default {
   methods: {
     ...mapActions({
       reportStep: "api/reportStep",
-      fetchAssessment: "assessment/fetchAssessment",
-      createQuestionSubmission: "submissions/createQuestionSubmission",
-      createPostSubmission: "submissions/createPostSubmission"
+      fetchAssessmentForSubmission: "assessment/fetchAssessmentForSubmission",
+      fetchQuestionSubmissions: "submissions/fetchQuestionSubmissions",
+      createQuestionSubmissions: "submissions/createQuestionSubmissions",
+      createAnswerSubmissions: "submissions/createAnswerSubmissions",
     }),
     async handleSubmit() {
       const reallySubmit = await this.$swal({
@@ -166,10 +169,10 @@ export default {
       });
       if (reallySubmit.isConfirmed) {
         try {
-          this.submitQuiz();
+          await this.submitQuiz();
         } catch (error) {
           this.$swal({
-            text: "Could not submit",
+            text: "Could not submit: " + error.message,
             icon: "error",
           });
         }
@@ -179,42 +182,82 @@ export default {
       try {
         const experimentId = this.experimentId;
         const step = "student_submission";
-        if (this.submissionId === null) {
-         let response = await this.createPostSubmission([
+        const parameters = { submissionIds: this.submissionId };
+        const allQuestionSubmissions = this.questionValues.map((q) => {
+          const existingQuestionSubmission = this.questionSubmissions.find(
+            (qs) => qs.questionId === q.questionId
+          );
+          const questionSubmissionId =
+            existingQuestionSubmission?.questionSubmissionId;
+          const questionSubmission = {
+            questionSubmissionId,
+            questionId: q.questionId,
+            answerSubmissionDtoList: [
+              {
+                answerId: q.answerId,
+                response: q.response,
+                questionSubmissionId,
+              },
+            ],
+          };
+          return questionSubmission;
+        });
+
+        // separate question submissions into existing and new by whether they have id
+        const existingQuestionSubmissions = allQuestionSubmissions.filter(
+          (qs) => !!qs.questionSubmissionId
+        );
+        const newQuestionSubmissions = allQuestionSubmissions.filter(
+          (qs) => !qs.questionSubmissionId
+        );
+
+        // call createAnswerSubmission for all existing question submissions
+        const answerSubmissions = existingQuestionSubmissions.map(
+          (qs) => qs.answerSubmissionDtoList[0]
+        );
+        if (answerSubmissions.length > 0) {
+          const { data, status } = await this.createAnswerSubmissions([
             this.experimentId,
             this.conditionId,
             this.treatmentId,
-            this.assessmentId
-          ])
-          this.submissionId = response.data.submissionId;
+            this.assessmentId,
+            this.submissionId,
+            answerSubmissions,
+          ]);
+          if (status && ![200, 201].includes(status)) {
+            throw Error("Error submitting quiz: " + data);
+          }
         }
 
-        const parameters = { submissionIds: this.submissionId };
-        const questions = this.questionValues.map((q) => {
-          return {
-            questionId: q.questionId,
-            answerSubmissionDtoList: [
-              { answerId: q.answerId, response: q.response },
-            ],
-          };
-        });
-
-        // submit questions - updateQuestionSubmission()
-        await this.createQuestionSubmission([
-          this.experimentId,
-          this.conditionId,
-          this.treatmentId,
-          this.assessmentId,
-          this.submissionId,
-          questions,
-        ]);
+        // call createQuestionSubmissions for all new question submissions
+        if (newQuestionSubmissions.length > 0) {
+          const { data, status } = await this.createQuestionSubmissions([
+            this.experimentId,
+            this.conditionId,
+            this.treatmentId,
+            this.assessmentId,
+            this.submissionId,
+            newQuestionSubmissions,
+          ]);
+          if (status && ![200, 201].includes(status)) {
+            throw Error("Error submitting quiz: " + data);
+          }
+        }
 
         // submit step
-        await this.reportStep({ experimentId, step, parameters });
+        const { data, status } = await this.reportStep({
+          experimentId,
+          step,
+          parameters,
+        });
+        if (status && ![200, 201].includes(status)) {
+          throw Error("Error submitting quiz: " + data);
+        }
 
         this.submitted = true;
       } catch (e) {
         console.error({ e });
+        throw e; // rethrow
       }
     },
     areAllQuestionsAnswered(answerableQuestions) {
@@ -264,12 +307,15 @@ export default {
         this.assessmentId = data.assessmentId;
         this.submissionId = data.submissionId;
 
-        await this.fetchAssessment([
+        await this.fetchAssessmentForSubmission([
           experimentId,
           data.conditionId,
           data.treatmentId,
           data.assessmentId,
+          data.submissionId,
         ]);
+
+        this.questionSubmissions = data.questionSubmissionDtoList;
 
         this.questionValues = this.answerableQuestions.map((q) => {
           return {

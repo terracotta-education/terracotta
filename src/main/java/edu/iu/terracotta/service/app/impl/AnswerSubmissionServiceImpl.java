@@ -2,7 +2,9 @@ package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.exceptions.AnswerNotMatchingException;
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.ExceedingLimitException;
 import edu.iu.terracotta.exceptions.IdInPostException;
+import edu.iu.terracotta.exceptions.IdMissingException;
 import edu.iu.terracotta.exceptions.TypeNotSupportedException;
 import edu.iu.terracotta.model.app.AnswerEssaySubmission;
 import edu.iu.terracotta.model.app.AnswerMc;
@@ -82,6 +84,43 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
                 }
                 return (toDtoEssay(saveEssay(answerEssaySubmission)));
             default: throw new TypeNotSupportedException("Error 103: Answer type not supported.");
+        }
+    }
+
+    public List<AnswerSubmissionDto> postAnswerSubmissions(List<AnswerSubmissionDto> answerSubmissionDtoList)
+            throws IdMissingException, ExceedingLimitException, TypeNotSupportedException, IdInPostException,
+            DataServiceException {
+
+        List<AnswerSubmissionDto> returnedDtoList = new ArrayList<>();
+
+        for (AnswerSubmissionDto answerSubmissionDto : answerSubmissionDtoList) {
+            if (answerSubmissionDto.getQuestionSubmissionId() == null) {
+                throw new IdMissingException(TextConstants.ID_MISSING);
+            }
+            if (existsByQuestionSubmissionId(answerSubmissionDto.getQuestionSubmissionId())) {
+                throw new ExceedingLimitException(
+                        "Error 145: Multiple choice and essay questions can only have one answer submission.");
+            }
+            AnswerSubmissionDto returnedDto = postAnswerSubmission(answerSubmissionDto,
+                    answerSubmissionDto.getQuestionSubmissionId());
+            returnedDtoList.add(returnedDto);
+        }
+
+        return returnedDtoList;
+    }
+
+    private boolean existsByQuestionSubmissionId(Long questionSubmissionId) throws TypeNotSupportedException {
+        String answerType = getAnswerType(questionSubmissionId);
+        switch (answerType) {
+            case "MC":
+                List<AnswerMcSubmission> existingMcSubmissions = findByQuestionSubmissionIdMC(questionSubmissionId);
+                return !existingMcSubmissions.isEmpty();
+            case "ESSAY":
+                List<AnswerEssaySubmission> existingEssaySubmissions = findAllByQuestionSubmissionIdEssay(
+                        questionSubmissionId);
+                return !existingEssaySubmissions.isEmpty();
+            default:
+                throw new TypeNotSupportedException("Error 103: Answer type not supported.");
         }
     }
 

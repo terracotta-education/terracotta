@@ -6,6 +6,8 @@ import edu.iu.terracotta.exceptions.InvalidQuestionTypeException;
 import edu.iu.terracotta.exceptions.NegativePointsException;
 import edu.iu.terracotta.model.app.Assessment;
 import edu.iu.terracotta.model.app.Question;
+import edu.iu.terracotta.model.app.QuestionMc;
+import edu.iu.terracotta.model.app.QuestionSubmission;
 import edu.iu.terracotta.model.app.dto.QuestionDto;
 import edu.iu.terracotta.model.app.enumerator.QuestionTypes;
 import edu.iu.terracotta.repository.AllRepositories;
@@ -75,6 +77,11 @@ public class QuestionServiceImpl implements QuestionService {
 
     @Override
     public QuestionDto toDto(Question question, boolean answers, boolean student) {
+        return toDto(question, null, answers, student);
+    }
+
+    @Override
+    public QuestionDto toDto(Question question, Long submissionId, boolean answers, boolean student) {
 
         QuestionDto questionDto = new QuestionDto();
         questionDto.setQuestionId(question.getQuestionId());
@@ -83,10 +90,22 @@ public class QuestionServiceImpl implements QuestionService {
         questionDto.setPoints(question.getPoints());
         questionDto.setAssessmentId(question.getAssessment().getAssessmentId());
         questionDto.setQuestionType(question.getQuestionType().name());
-        if (answers) {
-            if (question.getQuestionType() == QuestionTypes.MC) {
-                questionDto.setAnswers(answerService.findAllByQuestionIdMC(question.getQuestionId(), student));
+        if (question.getQuestionType() == QuestionTypes.MC) {
+            if (answers) {
+                Optional<QuestionSubmission> questionSubmission = Optional.empty();
+                if (submissionId != null) {
+                    questionSubmission = this.allRepositories.questionSubmissionRepository
+                            .findByQuestion_QuestionIdAndSubmission_SubmissionId(question.getQuestionId(),
+                                    submissionId);
+                }
+                if (questionSubmission.isPresent()) {
+                    // Apply submission specific order to answers
+                    questionDto.setAnswers(answerService.findAllByQuestionIdMC(questionSubmission.get()));
+                } else {
+                    questionDto.setAnswers(answerService.findAllByQuestionIdMC(question.getQuestionId(), student));
+                }
             }
+            questionDto.setRandomizeAnswers(((QuestionMc) question).isRandomizeAnswers());
         }
         return questionDto;
     }
@@ -94,7 +113,15 @@ public class QuestionServiceImpl implements QuestionService {
     @Override
     public Question fromDto(QuestionDto questionDto) throws DataServiceException, NegativePointsException {
 
-        Question question = new Question();
+        Question question;
+        QuestionTypes questionType = QuestionTypes.valueOf(questionDto.getQuestionType());
+        if (questionType == QuestionTypes.MC) {
+            QuestionMc questionMc = new QuestionMc();
+            questionMc.setRandomizeAnswers(questionDto.isRandomizeAnswers());
+            question = questionMc;
+        } else {
+            question = new Question();
+        }
         question.setQuestionId(questionDto.getQuestionId());
         question.setHtml(questionDto.getHtml());
         if(questionDto.getPoints() >= 0){
@@ -103,7 +130,7 @@ public class QuestionServiceImpl implements QuestionService {
             throw new NegativePointsException("Error 142: The point value cannot be negative.");
         }
         question.setQuestionOrder(questionDto.getQuestionOrder());
-        question.setQuestionType(EnumUtils.getEnum(QuestionTypes.class, questionDto.getQuestionType()));
+        question.setQuestionType(questionType);
         Optional<Assessment> assessment = allRepositories.assessmentRepository.findById(questionDto.getAssessmentId());
         if(assessment.isPresent()) {
             question.setAssessment(assessment.get());
@@ -131,6 +158,9 @@ public class QuestionServiceImpl implements QuestionService {
                 question.setPoints(questionDto.getPoints());
             } else {
                 throw new NegativePointsException("Error 142: The point value cannot be negative.");
+            }
+            if(question.getQuestionType() == QuestionTypes.MC) {
+                ((QuestionMc)question).setRandomizeAnswers(questionDto.isRandomizeAnswers());
             }
             save(question);
         }

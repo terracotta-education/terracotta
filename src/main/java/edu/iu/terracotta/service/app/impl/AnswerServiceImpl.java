@@ -4,7 +4,9 @@ import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.MultipleChoiceLimitReachedException;
 import edu.iu.terracotta.model.app.AnswerMc;
+import edu.iu.terracotta.model.app.AnswerMcSubmissionOption;
 import edu.iu.terracotta.model.app.Question;
+import edu.iu.terracotta.model.app.QuestionSubmission;
 import edu.iu.terracotta.model.app.dto.AnswerDto;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.AnswerService;
@@ -18,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -38,18 +41,49 @@ public class AnswerServiceImpl implements AnswerService {
     public List<AnswerDto> findAllByQuestionIdMC(Long questionId, boolean student) {
         List<AnswerMc> answerList = allRepositories.answerMcRepository.findByQuestion_QuestionId(questionId);
         List<AnswerDto> answerDtoList = new ArrayList<>();
-        if(!answerList.isEmpty()){
-            for(AnswerMc answerMc : answerList){
-                answerDtoList.add(toDtoMC(answerMc, student));
+        if (!answerList.isEmpty()) {
+            for (AnswerMc answerMc : answerList) {
+                answerDtoList.add(toDtoMC(answerMc, answerMc.getAnswerOrder(), student));
             }
         }
+        return answerDtoList;
+    }
+
+    /**
+     * Apply submission specific, possibly random, ordering to answers.
+     */
+    @Override
+    public List<AnswerDto> findAllByQuestionIdMC(QuestionSubmission questionSubmission) {
+        List<AnswerMc> answerList = allRepositories.answerMcRepository
+                .findByQuestion_QuestionId(questionSubmission.getQuestion().getQuestionId());
+
+        // Get the answers in the order they are to be presented for this submission
+        List<AnswerMcSubmissionOption> answerMcSubmissionOptions = questionSubmission.getAnswerMcSubmissionOptions();
+
+        // sort options
+        answerMcSubmissionOptions.sort(Comparator.comparingLong(AnswerMcSubmissionOption::getAnswerOrder));
+
+        // loop over them and add to dto list
+        List<AnswerDto> answerDtoList = new ArrayList<>();
+        int answerOrder = 0;
+        for (AnswerMcSubmissionOption answerMcSubmissionOption : answerMcSubmissionOptions) {
+            answerDtoList.add(toDtoMC(answerMcSubmissionOption.getAnswerMc(), answerOrder++, true));
+        }
+
+        // check for any missing answers and add them to the list as well
+        for (AnswerMc answerMc : answerList) {
+            if (answerDtoList.stream().noneMatch(a -> a.getAnswerId().equals(answerMc.getAnswerMcId()))) {
+                answerDtoList.add(toDtoMC(answerMc, answerOrder++, true));
+            }
+        }
+
         return answerDtoList;
     }
 
     @Override
     public AnswerDto getAnswerMC(Long answerId, boolean student){
         AnswerMc answerMc = allRepositories.answerMcRepository.findByAnswerMcId(answerId);
-        return toDtoMC(answerMc, student);
+        return toDtoMC(answerMc, answerMc.getAnswerOrder(), student);
     }
 
     @Override
@@ -68,18 +102,18 @@ public class AnswerServiceImpl implements AnswerService {
             } catch (DataServiceException ex) {
                 throw new DataServiceException("Error 105: Unable to create Answer: " + ex.getMessage());
             }
-            return toDtoMC(saveMC(answerMc), false);
+            return toDtoMC(saveMC(answerMc), answerMc.getAnswerOrder(),false);
         } else {
             throw new DataServiceException("Error 103: Answer type not supported.");
         }
     }
 
     @Override
-    public AnswerDto toDtoMC(AnswerMc answer, boolean student) {
+    public AnswerDto toDtoMC(AnswerMc answer, int answerOrder, boolean student) {
         AnswerDto answerDto = new AnswerDto();
         answerDto.setAnswerId(answer.getAnswerMcId());
         answerDto.setHtml(fileStorageService.parseHTMLFiles(answer.getHtml()));
-        answerDto.setAnswerOrder(answer.getAnswerOrder());
+        answerDto.setAnswerOrder(answerOrder);
         answerDto.setQuestionId(answer.getQuestion().getQuestionId());
         answerDto.setAnswerType("MC");
         if(student){

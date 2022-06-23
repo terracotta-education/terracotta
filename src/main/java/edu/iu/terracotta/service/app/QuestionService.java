@@ -28,6 +28,8 @@ public interface QuestionService {
 
     QuestionDto toDto(Question question, boolean answers, boolean student);
 
+    QuestionDto toDto(Question question, Long submissionId, boolean answers, boolean student);
+
     Question fromDto(QuestionDto questionDto) throws DataServiceException, NegativePointsException;
 
     Question save(Question question);
