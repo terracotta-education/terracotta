@@ -308,12 +308,6 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
         }
     }
 
-    @Override
-    public void saveSubmissionFile(long questionSubmissionId, MultipartFile file) throws IOException {
-      QuestionSubmission submission =   allRepositories.questionSubmissionRepository.findByQuestionSubmissionId(questionSubmissionId);
-      submission.setFile(file.getBytes());
-      allRepositories.questionSubmissionRepository.save(submission);
-    }
 
     @Override
     public boolean canSubmit(String canvasCourseId, String assignmentId, String canvasUserId, long deploymentId) throws CanvasApiException,

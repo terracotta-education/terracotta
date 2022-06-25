@@ -140,13 +140,15 @@ public class ConditionController {
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
 
+        conditionService.validateConditionNames(conditionDtoList,experimentId,true);
+
         if(apijwtService.isInstructorOrHigher(securedInfo)){
             Map<Condition, ConditionDto> map = new HashMap<>();
             for(ConditionDto conditionDto : conditionDtoList){
                 apijwtService.conditionAllowed(securedInfo, experimentId,conditionDto.getConditionId());
                 Condition condition = conditionService.findByConditionId(conditionDto.getConditionId());
                 log.debug("Updating condition: " + condition.getConditionId());
-                conditionService.validateConditionName(condition.getName(), conditionDto.getName(), experimentId, condition.getConditionId(), true);
+
                 if(conditionService.duplicateNameInPut(map, condition)) {
                     return new ResponseEntity("Error 102: Condition names must be unique. Another condition you are trying to update already has this name.", HttpStatus.CONFLICT);
                 }

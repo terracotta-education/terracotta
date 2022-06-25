@@ -6,6 +6,7 @@ public class AnswerSubmissionDto {
     private Long answerId;
     private Long questionSubmissionId;
     private String response;
+    private  byte[] fileContent;
 
     public Long getAnswerSubmissionId() { return answerSubmissionId; }
 
@@ -22,4 +23,12 @@ public class AnswerSubmissionDto {
     public String getResponse() { return response; }
 
     public void setResponse(String response) { this.response = response; }
+
+    public byte[] getFileContent() {
+        return fileContent;
+    }
+
+    public void setFileContent(byte[] fileContent) {
+        this.fileContent = fileContent;
+    }
 }

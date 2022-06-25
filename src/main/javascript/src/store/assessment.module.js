@@ -16,6 +16,16 @@ const actions = {
       console.error('setAssessment catch', error)
     }
   },
+  async fetchAssessmentForSubmission({commit}, payload) {
+    try {
+      const response = await assessmentService.fetchAssessmentForSubmission(...payload)
+      const assessment = response?.data
+
+      commit('setAssessment', assessment)
+    } catch (error) {
+      console.error('setAssessment catch', error)
+    }
+  },
   async createAssessment ({commit}, payload) {
     // payload = experiment_id, condition_id, treatment_id, title, body
     // create the assessment, commit an update mutation, and return the status/data response
@@ -88,7 +98,7 @@ const actions = {
     }
   },
   async updateQuestion({state}, payload) {
-    // payload = experiment_id, condition_id, treatment_id, assessment_id, question_id, html, points, questionOrder, questionType
+    // payload = experiment_id, condition_id, treatment_id, assessment_id, question_id, html, points, questionOrder, questionType, randomizeAnswers
     // update question and return the status/data response
     try {
       const response = await assessmentService.updateQuestion(...payload)

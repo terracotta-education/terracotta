@@ -1,0 +1,40 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext" xmlns:pro="http://www.liquibase.org/xml/ns/pro" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd http://www.liquibase.org/xml/ns/pro http://www.liquibase.org/xml/ns/pro/liquibase-pro-4.1.xsd http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.1.xsd">
+    <changeSet author="machrist (generated)" id="1655135803403-1">
+        <createTable tableName="terr_answer_mc_submission_option">
+            <column autoIncrement="true" name="answer_mc_sub_option_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP DEFAULT CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="DATETIME"/>
+            <column name="entity_version" type="INT"/>
+            <column name="answer_order" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="answer_mc_answer_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="quest_sub_quest_sub_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+    <changeSet author="machrist (generated)" id="1655135803403-2">
+        <createIndex indexName="FK_TERR_ANSWER_MC_SUB_OPTION_ON_QUEST_SUB_QUEST_SUB_ID" tableName="terr_answer_mc_submission_option">
+            <column name="quest_sub_quest_sub_id"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="machrist (generated)" id="1655135803403-3">
+        <createIndex indexName="FK_TERR_ANSWER_MC_SUB_OPTION_ON_ANSWER_MC_ANSWER_ID" tableName="terr_answer_mc_submission_option">
+            <column name="answer_mc_answer_id"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="machrist (generated)" id="1655135803403-4">
+        <addForeignKeyConstraint baseColumnNames="quest_sub_quest_sub_id" baseTableName="terr_answer_mc_submission_option" constraintName="FK_TERR_ANSWER_MC_SUB_OPTION_ON_QUEST_SUB_QUEST_SUB_ID" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="RESTRICT" referencedColumnNames="question_submission_id" referencedTableName="terr_question_submission" validate="true"/>
+    </changeSet>
+    <changeSet author="machrist (generated)" id="1655135803403-5">
+        <addForeignKeyConstraint baseColumnNames="answer_mc_answer_id" baseTableName="terr_answer_mc_submission_option" constraintName="FK_TERR_ANSWER_MC_SUB_OPTION_ON_ANSWER_MC_ANSWER_ID" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="RESTRICT" referencedColumnNames="answer_id" referencedTableName="terr_answer_mc" validate="true"/>
+    </changeSet>
+</databaseChangeLog>

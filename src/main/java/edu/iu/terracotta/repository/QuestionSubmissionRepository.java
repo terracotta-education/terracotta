@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface QuestionSubmissionRepository extends JpaRepository<QuestionSubmission, Long> {
 
@@ -15,6 +16,9 @@ public interface QuestionSubmissionRepository extends JpaRepository<QuestionSubm
     List<QuestionSubmission> findBySubmission_Participant_Experiment_ExperimentId(Long experimentId);
 
     QuestionSubmission findByQuestionSubmissionId(Long questionSubmissionId);
+
+    Optional<QuestionSubmission> findByQuestion_QuestionIdAndSubmission_SubmissionId(long questionId,
+            long submissionId);
 
     boolean existsBySubmission_Assessment_AssessmentIdAndQuestion_QuestionId(Long assessmentId, Long questionId);
 

@@ -30,9 +30,8 @@ public class QuestionSubmission extends BaseEntity {
     @OneToMany(mappedBy = "questionSubmission", orphanRemoval = true)
     private List<QuestionSubmissionComment> questionSubmissionComments;
 
-    @Lob
-    @Column(name = "file_content")
-    private byte[] file;
+    @OneToMany(mappedBy = "questionSubmission")
+    private List<AnswerMcSubmissionOption> answerMcSubmissionOptions;
 
 
     public Long getQuestionSubmissionId() {
@@ -83,11 +82,12 @@ public class QuestionSubmission extends BaseEntity {
         this.questionSubmissionComments = questionSubmissionComments;
     }
 
-    public byte[] getFile() {
-        return file;
+    public List<AnswerMcSubmissionOption> getAnswerMcSubmissionOptions() {
+        return answerMcSubmissionOptions;
     }
 
-    public void setFile(byte[] file) {
-        this.file = file;
+    public void setAnswerMcSubmissionOptions(List<AnswerMcSubmissionOption> answerMcSubmissionOptions) {
+        this.answerMcSubmissionOptions = answerMcSubmissionOptions;
     }
+
 }

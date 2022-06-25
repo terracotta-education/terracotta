@@ -5,6 +5,7 @@ import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.model.app.AnswerEssaySubmission;
 import edu.iu.terracotta.model.app.AnswerMc;
 import edu.iu.terracotta.model.app.AnswerMcSubmission;
+import edu.iu.terracotta.model.app.AnswerMcSubmissionOption;
 import edu.iu.terracotta.model.app.Assignment;
 import edu.iu.terracotta.model.app.Condition;
 import edu.iu.terracotta.model.app.Experiment;
@@ -13,6 +14,7 @@ import edu.iu.terracotta.model.app.Outcome;
 import edu.iu.terracotta.model.app.OutcomeScore;
 import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.Question;
+import edu.iu.terracotta.model.app.QuestionMc;
 import edu.iu.terracotta.model.app.QuestionSubmission;
 import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.Treatment;
@@ -31,11 +33,8 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -63,7 +62,7 @@ public class ExportServiceImpl implements ExportService {
          */
         List<String[]> experimentData = new ArrayList<>();
         experimentData.add(new String[] {"experiment_id", "course_id", "experiment_title", "experiment_description", "exposure_type", "participation_type", "distribution_type",
-                                            "export_at", "enrollment_cnt", "participant_cnt", "condition_cnt"});
+                "export_at", "enrollment_cnt", "participant_cnt", "condition_cnt"});
         Experiment experiment = allRepositories.experimentRepository.findByExperimentId(experimentId);
         String exportExperimentId = experiment.getExperimentId().toString();
         String courseId = String.valueOf(experiment.getLtiContextEntity().getContextId());
@@ -90,7 +89,7 @@ public class ExportServiceImpl implements ExportService {
         List<Condition> conditions = allRepositories.conditionRepository.findByExperiment_ExperimentId(experimentId);
         String conditionCount = String.valueOf(conditions.size());
         experimentData.add(new String[]{exportExperimentId, courseId, experimentTitle, experimentDescription, exposureType, participationType, distributionType, exportAt, enrollmentCount,
-            participantCount, conditionCount});
+                participantCount, conditionCount});
         csvFiles.put("experiment.csv", experimentData);
 
 
@@ -109,7 +108,7 @@ public class ExportServiceImpl implements ExportService {
             if(outcomeScore.getParticipant().getConsent() != null && outcomeScore.getParticipant().getConsent()){
                 String outcomeId = outcomeScore.getOutcome().getOutcomeId().toString();
                 String participantId = outcomeScore.getParticipant().getParticipantId().toString();
-                String exposureId = outcomeScore.getOutcome().getExposure().getExposureId().toString();
+                Long exposureId = outcomeScore.getOutcome().getExposure().getExposureId();
                 String source = outcomeScore.getOutcome().getLmsType().toString();
                 String outcomeName = "N/A";
                 if (!StringUtils.isAllBlank(outcomeScore.getOutcome().getTitle())) {
@@ -120,7 +119,15 @@ public class ExportServiceImpl implements ExportService {
                 if (outcomeScore.getScoreNumeric() != null) {
                     score = outcomeScore.getScoreNumeric().toString();
                 }
-                outcomeData.add(new String[]{outcomeId, participantId, exposureId, source, outcomeName, pointsPossible, score});
+                outcomeData.add(new String[]{outcomeId, participantId, String.valueOf(exposureId), source, outcomeName, pointsPossible, score});
+                Long  groupId = outcomeScore.getParticipant().getGroup().getGroupId();
+               Optional<ExposureGroupCondition> groupConditionOptional =
+                       allRepositories.exposureGroupConditionRepository.getByGroup_GroupIdAndExposure_ExposureId(groupId,exposureId);
+               if (groupConditionOptional.isPresent()){
+                  ExposureGroupCondition groupCondition =  groupConditionOptional.get();
+                   outcomeData.add(new String[]{outcomeId, participantId, String.valueOf(exposureId), source, outcomeName, pointsPossible, score,
+                           groupCondition.getCondition().getName(),String.valueOf(groupCondition.getCondition().getConditionId())});
+               }
             }
         }
         csvFiles.put("outcomes.csv", outcomeData);
@@ -227,7 +234,7 @@ public class ExportServiceImpl implements ExportService {
         List<QuestionSubmission> questionSubmissions = allRepositories.questionSubmissionRepository.findBySubmission_Participant_Experiment_ExperimentId(experimentId);
         List<String[]> questionSubmissionData = new ArrayList<>();
         questionSubmissionData.add(new String[] {"item_response_id", "submission_id", "assignment_id", "condition_id", "treatment_id", "participant_id", "item_id", "response_type", "response", "response_id", "response_position",
-                                                "correctness", "responded_at", "points_possible", "calculated_score", "override_score"});
+                "correctness", "responded_at", "points_possible", "calculated_score", "override_score"});
         for(QuestionSubmission questionSubmission : questionSubmissions) {
             if(questionSubmission.getSubmission().getParticipant().getConsent() != null && questionSubmission.getSubmission().getParticipant().getConsent()) {
                 String itemResponseId = questionSubmission.getQuestionSubmissionId().toString();
@@ -252,7 +259,9 @@ public class ExportServiceImpl implements ExportService {
                             response = answerMcSubmission.getAnswerMc().getHtml();
                         }
                         responseId = answerMcSubmission.getAnswerMc().getAnswerMcId().toString();
-                        responsePosition = Character.toString(mapResponsePosition(Long.parseLong(itemId), answerMcSubmission.getAnswerMc().getAnswerMcId()));
+                        responsePosition = Character.toString(mapResponsePosition(Long.parseLong(itemId),
+                                answerMcSubmission.getAnswerMc().getAnswerMcId(),
+                                questionSubmission.getAnswerMcSubmissionOptions()));
                         correctness = answerMcSubmission.getAnswerMc().getCorrect().toString().toUpperCase();
                     }
                     if (questionSubmission.getCalculatedPoints() != null) {
@@ -289,7 +298,8 @@ public class ExportServiceImpl implements ExportService {
 
         List<AnswerMc> answerMcs = allRepositories.answerMcRepository.findByQuestion_Assessment_Treatment_Condition_Experiment_ExperimentId(experimentId);
         List<String[]> answerData = new ArrayList<>();
-        answerData.add(new String[] {"response_id", "item_id", "response", "response_position", "correct"});
+        answerData.add(
+                new String[] { "response_id", "item_id", "response", "response_position", "correct", "randomized" });
         for(AnswerMc answerMc : answerMcs){
             String responseId = answerMc.getAnswerMcId().toString();
             String itemId = answerMc.getQuestion().getQuestionId().toString();
@@ -299,7 +309,9 @@ public class ExportServiceImpl implements ExportService {
             }
             String responsePosition = Character.toString(mapResponsePosition(Long.parseLong(itemId), Long.parseLong(responseId)));
             String correct = answerMc.getCorrect().toString().toUpperCase();
-            answerData.add(new String[] {responseId, itemId, response, responsePosition, correct});
+            QuestionMc question = (QuestionMc) answerMc.getQuestion();
+            String randomized = Boolean.toString(question.isRandomizeAnswers()).toUpperCase();
+            answerData.add(new String[] { responseId, itemId, response, responsePosition, correct, randomized });
         }
         csvFiles.put("response_options.csv", answerData);
 
@@ -331,9 +343,37 @@ public class ExportServiceImpl implements ExportService {
         return jsonFiles;
     }
 
-    public char mapResponsePosition(Long questionId, Long answerId){
-        List<AnswerMc> answerList = allRepositories.answerMcRepository.findByQuestion_QuestionId(questionId);
-        answerList.sort(Comparator.comparingLong(AnswerMc::getAnswerOrder));
+    /**
+     * Return the original order of the answer in the list of options.
+     * 
+     * @param questionId
+     * @param answerId
+     * @return
+     */
+    public char mapResponsePosition(Long questionId, Long answerId) {
+        return mapResponsePosition(questionId, answerId, Collections.emptyList());
+    }
+
+    /**
+     * Consider possible random ordering of options in figuring out position.
+     * 
+     * @param questionId
+     * @param answerId
+     * @param answerMcSubmissionOptions
+     * @return
+     */
+    public char mapResponsePosition(Long questionId, Long answerId,
+            List<AnswerMcSubmissionOption> answerMcSubmissionOptions) {
+        List<AnswerMc> answerList = null;
+        // Randomized option order is stored in AnswerMcSubmissionOptions, sort
+        // AnswerMc's by its order
+        if (answerMcSubmissionOptions.stream().anyMatch(o -> o.getAnswerMc().getAnswerMcId() == answerId)) {
+            answerMcSubmissionOptions.sort(Comparator.comparingInt(AnswerMcSubmissionOption::getAnswerOrder));
+            answerList = answerMcSubmissionOptions.stream().map(o -> o.getAnswerMc()).collect(Collectors.toList());
+        } else {
+            answerList = allRepositories.answerMcRepository.findByQuestion_QuestionId(questionId);
+            answerList.sort(Comparator.comparingLong(AnswerMc::getAnswerOrder));
+        }
         char position;
         for(AnswerMc answerMc : answerList){
             if(answerMc.getAnswerMcId().equals(answerId)){

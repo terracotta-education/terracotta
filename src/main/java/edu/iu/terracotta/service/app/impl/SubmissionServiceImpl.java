@@ -107,12 +107,19 @@ public class SubmissionServiceImpl implements SubmissionService {
     }
 
     @Override
-    public Submission postSubmission(Assessment assessment, Participant participant, SecuredInfo securedInfo) throws IdInPostException, ParticipantNotMatchingException, InvalidUserException, DataServiceException {
-        Submission submission = new Submission();
-        submission.setAssessment(assessment);
-        submission.setParticipant(participant);
-        submission = save(submission);
-        return submission;
+    public SubmissionDto postSubmission(SubmissionDto submissionDto, long experimentId, String userId, long assessmentId, boolean student) throws IdInPostException, ParticipantNotMatchingException, InvalidUserException, DataServiceException {
+        if (submissionDto.getSubmissionId() != null) {
+            throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
+        }
+        submissionDto.setAssessmentId(assessmentId);
+        validateDto(experimentId, userId, submissionDto);
+        Submission submission;
+        try {
+            submission = fromDto(submissionDto, student);
+        } catch (DataServiceException ex) {
+            throw new DataServiceException("Error 105: Unable to create Submission: " + ex.getMessage());
+        }
+        return toDto(save(submission), false, false);
     }
 
     @Override
@@ -282,6 +289,40 @@ public class SubmissionServiceImpl implements SubmissionService {
         }
     }
 
+    @Override
+    public Submission createNewSubmission(Assessment assessment, Participant participant, SecuredInfo securedInfo) {
+        Submission submission = new Submission();
+        submission.setAssessment(assessment);
+        submission.setParticipant(participant);
+        submission = save(submission);
+
+        // for each randomized MC question, create a QuestionSubmission and
+        // randomized list of AnswerMcSubmissionOptions
+        for (Question question : assessment.getQuestions()) {
+            if (question.getQuestionType() == QuestionTypes.MC) {
+                QuestionMc questionMc = (QuestionMc) question;
+                if (questionMc.isRandomizeAnswers()) {
+                    QuestionSubmission questionSubmission = new QuestionSubmission();
+                    questionSubmission.setQuestion(question);
+                    questionSubmission.setSubmission(submission);
+                    questionSubmission = allRepositories.questionSubmissionRepository.save(questionSubmission);
+                    List<AnswerMc> answers = allRepositories.answerMcRepository
+                            .findByQuestion_QuestionId(question.getQuestionId());
+                    Collections.shuffle(answers);
+                    int order = 0;
+                    for (AnswerMc answerMc : answers) {
+                        AnswerMcSubmissionOption answerMcSubmissionOption = new AnswerMcSubmissionOption();
+                        answerMcSubmissionOption.setAnswerMc(answerMc);
+                        answerMcSubmissionOption.setAnswerOrder(order++);
+                        answerMcSubmissionOption.setQuestionSubmission(questionSubmission);
+                        allRepositories.answerMcSubmissionOptionRepository.save(answerMcSubmissionOption);
+                    }
+                }
+            }
+        }
+
+        return submission;
+    }
 
     @Override
     @Transactional

@@ -26,5 +26,6 @@ public interface AdvantageAGSService {
 
     Results getResults(LTIToken LTITokenResults, LtiContextEntity context, String lineItemId) throws ConnectionException;
 
-    Results postScore(LTIToken LTITokenScores, LTIToken LTITokenResults,LtiContextEntity context, String lineItemId, Score score) throws ConnectionException;
+    void postScore(LTIToken LTITokenScores, LTIToken LTITokenResults, LtiContextEntity context,
+            String lineItemId, Score score) throws ConnectionException;
 }

@@ -53,8 +53,5 @@ public interface QuestionSubmissionService {
 
     void validateQuestionSubmission(QuestionSubmissionDto questionSubmissionDto) throws DataServiceException;
 
-    void saveSubmissionFile(long submissionId, MultipartFile file) throws IOException;
-
-
     boolean canSubmit(String canvasCourseId, String assignmentId, String canvasUserIs, long deploymentId) throws CanvasApiException, IOException;
 }

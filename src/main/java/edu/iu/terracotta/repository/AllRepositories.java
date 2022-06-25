@@ -80,7 +80,13 @@ public class AllRepositories {
     public AnswerMcRepository answerMcRepository;
 
     @Autowired
+    public AnswerMcSubmissionOptionRepository answerMcSubmissionOptionRepository;
+
+    @Autowired
     public QuestionRepository questionRepository;
+
+    @Autowired
+    public QuestionMcRepository questionMcRepository;
 
     @Autowired
     public AssessmentRepository assessmentRepository;
@@ -120,6 +126,9 @@ public class AllRepositories {
 
     @Autowired
     public AnswerEssaySubmissionRepository answerEssaySubmissionRepository;
+
+    @Autowired
+    public AnswerFileSubmissionRepository answerFileSubmissionRepository;
 
     @Autowired
     public EventRepository eventRepository;
