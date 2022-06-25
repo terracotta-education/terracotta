@@ -104,20 +104,10 @@ public interface AnswerSubmissionService {
     void deleteByIdFile(Long id) throws EmptyResultDataAccessException;
 
     boolean fileAnswerSubmissionBelongsToQuestionSubmission(Long questionSubmissionId, Long answerFileSubmissionId);
-
-
-
-
-
+    
     //USED BY ALL TYPES
     String getAnswerType(Long questionSubmissionId);
 
     HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId, Long submissionId, Long questionSubmissionId, Long answerSubmissionId);
-
-
-
-
-
-
 
 }

@@ -394,8 +394,6 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
                 existsByQuestionSubmission_QuestionSubmissionIdAndAnswerFileSubmissionId(questionSubmissionId, answerFileSubmissionId);
     }
 
-
-
     @Override
     public String getAnswerType(Long questionSubmissionId){
         QuestionSubmission questionSubmission = allRepositories.questionSubmissionRepository.findByQuestionSubmissionId(questionSubmissionId);
