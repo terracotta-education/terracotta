@@ -62,5 +62,6 @@ public class TextConstants {
     public static final String ASSIGNMENT_LOCKED = "Error 116: The assignment is not open at this moment";
     public static final String LIMIT_OF_SUBMISSIONS_REACHED ="Error 117: You can't answer this assignment again";
     public static final String MAX_SUBMISSION_ATTEMPTS_REACHED = "Error 150: Max submission attempts already reached";
+    public static final String FILE_MISSING = "Error 151: The request does not contain a file";
 
 }

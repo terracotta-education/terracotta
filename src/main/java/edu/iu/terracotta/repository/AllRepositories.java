@@ -128,6 +128,9 @@ public class AllRepositories {
     public AnswerEssaySubmissionRepository answerEssaySubmissionRepository;
 
     @Autowired
+    public AnswerFileSubmissionRepository answerFileSubmissionRepository;
+
+    @Autowired
     public EventRepository eventRepository;
 
 

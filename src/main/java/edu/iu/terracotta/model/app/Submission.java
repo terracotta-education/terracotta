@@ -55,6 +55,8 @@ public class Submission extends BaseEntity {
     private List<SubmissionComment> submissionComments;
 
 
+
+
     public Long getSubmissionId() { return submissionId; }
 
     public void setSubmissionId(Long submissionId) { this.submissionId = submissionId; }
