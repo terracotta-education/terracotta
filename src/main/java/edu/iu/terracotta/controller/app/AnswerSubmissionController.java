@@ -8,7 +8,6 @@ import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.AnswerSubmissionService;
 import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.utils.TextConstants;
-import liquibase.pro.packaged.O;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +21,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.transaction.Transactional;
 import java.io.IOException;
 import java.util.List;
 
@@ -111,32 +111,35 @@ public class AnswerSubmissionController {
     }
 
 
-    @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}/question_submissions/{question_submission_id}/answer_submissions",
+    @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}/answer_submissions",
             method = RequestMethod.POST)
-    public ResponseEntity<AnswerSubmissionDto> postAnswerSubmission(@PathVariable("experiment_id") Long experimentId,
-                                                                    @PathVariable("condition_id") Long conditionId,
-                                                                    @PathVariable("treatment_id") Long treatmentId,
-                                                                    @PathVariable("assessment_id") Long assessmentId,
-                                                                    @PathVariable("submission_id") Long submissionId,
-                                                                    @PathVariable("question_submission_id") Long questionSubmissionId,
-                                                                    @RequestBody AnswerSubmissionDto answerSubmissionDto,
-                                                                    UriComponentsBuilder ucBuilder,
-                                                                    HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, BadTokenException, InvalidUserException, IdInPostException, TypeNotSupportedException, DataServiceException {
+    @Transactional
+    public ResponseEntity<List<AnswerSubmissionDto>> postAnswerSubmissions(@PathVariable("experiment_id") Long experimentId,
+                                                                           @PathVariable("condition_id") Long conditionId,
+                                                                           @PathVariable("treatment_id") Long treatmentId,
+                                                                           @PathVariable("assessment_id") Long assessmentId,
+                                                                           @PathVariable("submission_id") Long submissionId,
+                                                                           @RequestBody List<AnswerSubmissionDto> answerSubmissionDtoList,
+                                                                           HttpServletRequest req) throws ExperimentNotMatchingException,
+            AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, BadTokenException, InvalidUserException, IdInPostException,
+            TypeNotSupportedException, DataServiceException, IdMissingException, ExceedingLimitException {
 
-        log.info("Creating answer submission: {}", answerSubmissionDto);
+        log.info("Creating answer submissions: {}", answerSubmissionDtoList);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
-        apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, questionSubmissionId);
+        for (AnswerSubmissionDto answerSubmissionDto : answerSubmissionDtoList) {
+            apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId,
+                    answerSubmissionDto.getQuestionSubmissionId());
+        }
 
         if (apijwtService.isLearnerOrHigher(securedInfo)) {
             if (!apijwtService.isInstructorOrHigher(securedInfo)) {
                 submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
             }
-            AnswerSubmissionDto returnedDto = answerSubmissionService.postAnswerSubmission(answerSubmissionDto, questionSubmissionId);
-            HttpHeaders headers = answerSubmissionService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, submissionId, questionSubmissionId, returnedDto.getAnswerSubmissionId());
-            return new ResponseEntity<>(returnedDto, headers, HttpStatus.OK);
+            List<AnswerSubmissionDto> returnedDtoList = answerSubmissionService
+                    .postAnswerSubmissions(answerSubmissionDtoList);
+            return new ResponseEntity<>(returnedDtoList, HttpStatus.OK);
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
@@ -233,10 +236,14 @@ public class AnswerSubmissionController {
             log.error("Invalid file ");
             return new ResponseEntity(TextConstants.FILE_MISSING, HttpStatus.BAD_REQUEST);
         }
+        String fileName = file.getResource().getFilename();
+        String mimeType = file.getContentType();
 
         ObjectMapper objectMapper = new ObjectMapper();
-        AnswerSubmissionDto answerSubmissionDto = objectMapper.readValue(answerSubmissionDtoStr,AnswerSubmissionDto.class);
+        AnswerSubmissionDto answerSubmissionDto = objectMapper.readValue(answerSubmissionDtoStr, AnswerSubmissionDto.class);
         answerSubmissionDto.setFileContent(file.getBytes());
+        answerSubmissionDto.setFileName(fileName);
+        answerSubmissionDto.setMimeType(mimeType);
         log.info("Creating answer submission: {}", answerSubmissionDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);

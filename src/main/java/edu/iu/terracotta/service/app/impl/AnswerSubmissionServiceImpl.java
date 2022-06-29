@@ -324,6 +324,8 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
         answerSubmissionDto.setAnswerSubmissionId(fileAnswer.getAnswerFileSubmissionId());
         answerSubmissionDto.setQuestionSubmissionId(fileAnswer.getQuestionSubmission().getQuestionSubmissionId());
         answerSubmissionDto.setFileContent(fileAnswer.getFile());
+        answerSubmissionDto.setMimeType(fileAnswer.getMimeType());
+        answerSubmissionDto.setFileName(fileAnswer.getFileName());
         return answerSubmissionDto;
     }
 
@@ -332,6 +334,8 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
         AnswerFileSubmission answerFileSubmission = new AnswerFileSubmission();
         answerFileSubmission.setAnswerFileSubmissionId(answerSubmissionDto.getAnswerSubmissionId());
         answerFileSubmission.setFile(answerSubmissionDto.getFileContent());
+        answerFileSubmission.setFileName(answerSubmissionDto.getFileName());
+        answerFileSubmission.setMimeType(answerSubmissionDto.getMimeType());
         Optional<QuestionSubmission> questionSubmission = questionSubmissionService.findById(answerSubmissionDto.getQuestionSubmissionId());
         if(questionSubmission.isPresent()){
             answerFileSubmission.setQuestionSubmission(questionSubmission.get());
