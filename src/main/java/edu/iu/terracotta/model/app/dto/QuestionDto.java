@@ -14,6 +14,7 @@ public class QuestionDto {
     private Integer questionOrder;
     private String questionType;
     private List<AnswerDto> answers;
+    private boolean randomizeAnswers; // only applies to 'MC' questions
 
 
     public Long getQuestionId() { return questionId; }
@@ -46,5 +47,12 @@ public class QuestionDto {
 
     public void setAnswers(List<AnswerDto> answers) {
         this.answers = answers;
+    }
+
+    public boolean isRandomizeAnswers() {
+        return randomizeAnswers;
+    }
+    public void setRandomizeAnswers(boolean randomizeAnswers) {
+        this.randomizeAnswers = randomizeAnswers;
     }
 }

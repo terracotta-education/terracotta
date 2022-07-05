@@ -38,6 +38,8 @@ public class QuestionSubmission extends BaseEntity {
     @OneToMany(mappedBy = "questionSubmission", orphanRemoval = true)
     private List<QuestionSubmissionComment> questionSubmissionComments;
 
+    @OneToMany(mappedBy = "questionSubmission")
+    private List<AnswerMcSubmissionOption> answerMcSubmissionOptions;
 
     public Long getQuestionSubmissionId() { return questionSubmissionId; }
 
@@ -62,4 +64,12 @@ public class QuestionSubmission extends BaseEntity {
     public List<QuestionSubmissionComment> getQuestionSubmissionComments() { return questionSubmissionComments; }
 
     public void setQuestionSubmissionComments(List<QuestionSubmissionComment> questionSubmissionComments) { this.questionSubmissionComments = questionSubmissionComments; }
+
+    public List<AnswerMcSubmissionOption> getAnswerMcSubmissionOptions() {
+        return answerMcSubmissionOptions;
+    }
+
+    public void setAnswerMcSubmissionOptions(List<AnswerMcSubmissionOption> answerMcSubmissionOptions) {
+        this.answerMcSubmissionOptions = answerMcSubmissionOptions;
+    }
 }

@@ -4,10 +4,10 @@ import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentConditionLimitReachedException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
+import edu.iu.terracotta.model.app.Condition;
 import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.dto.ConditionDto;
 import edu.iu.terracotta.repository.AllRepositories;
-import edu.iu.terracotta.model.app.Condition;
 import edu.iu.terracotta.service.app.ConditionService;
 import edu.iu.terracotta.utils.TextConstants;
 import org.apache.commons.lang3.StringUtils;
@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class ConditionServiceImpl implements ConditionService {
@@ -33,8 +34,8 @@ public class ConditionServiceImpl implements ConditionService {
     public List<ConditionDto> findAllByExperimentId(long experimentId) {
         List<Condition> conditions = allRepositories.conditionRepository.findByExperiment_ExperimentId(experimentId);
         List<ConditionDto> conditionDtoList = new ArrayList<>();
-        if(!conditions.isEmpty()){
-            for(Condition condition : conditions) {
+        if (!conditions.isEmpty()) {
+            for (Condition condition : conditions) {
                 conditionDtoList.add(toDto(condition));
             }
         }
@@ -43,7 +44,7 @@ public class ConditionServiceImpl implements ConditionService {
 
     @Override
     public ConditionDto postCondition(ConditionDto conditionDto, long experimentId) throws IdInPostException, DataServiceException, TitleValidationException, ExperimentConditionLimitReachedException {
-        if (conditionDto.getConditionId() != null){
+        if (conditionDto.getConditionId() != null) {
             throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
         }
         validateConditionName("", conditionDto.getName(), experimentId, 0L, false);
@@ -51,7 +52,7 @@ public class ConditionServiceImpl implements ConditionService {
 
         conditionDto.setExperimentId(experimentId);
         Condition condition;
-        try{
+        try {
             condition = fromDto(conditionDto);
         } catch (DataServiceException e) {
             throw new DataServiceException("Error 105: Unable to create condition:" + e.getMessage());
@@ -79,7 +80,7 @@ public class ConditionServiceImpl implements ConditionService {
         Condition condition = new Condition();
         condition.setConditionId(conditionDto.getConditionId());
         Optional<Experiment> experiment = allRepositories.experimentRepository.findById(conditionDto.getExperimentId());
-        if (experiment.isPresent()){
+        if (experiment.isPresent()) {
             condition.setExperiment(experiment.get());
         } else {
             throw new DataServiceException("The experiment for the condition does not exist");
@@ -98,10 +99,14 @@ public class ConditionServiceImpl implements ConditionService {
     }
 
     @Override
-    public Optional<Condition> findById(Long id) { return allRepositories.conditionRepository.findById(id); }
+    public Optional<Condition> findById(Long id) {
+        return allRepositories.conditionRepository.findById(id);
+    }
 
     @Override
-    public Condition findByConditionId(Long conditionId) { return allRepositories.conditionRepository.findByConditionId(conditionId); }
+    public Condition findByConditionId(Long conditionId) {
+        return allRepositories.conditionRepository.findByConditionId(conditionId);
+    }
 
     @Override
     public ConditionDto getCondition(Long id) {
@@ -109,12 +114,14 @@ public class ConditionServiceImpl implements ConditionService {
     }
 
     @Override
-    public void saveAndFlush(Condition conditionToChange) { allRepositories.conditionRepository.saveAndFlush(conditionToChange); }
+    public void saveAndFlush(Condition conditionToChange) {
+        allRepositories.conditionRepository.saveAndFlush(conditionToChange);
+    }
 
     @Override
     @Transactional
-    public void updateCondition(Map<Condition, ConditionDto> map){
-        for(Map.Entry<Condition, ConditionDto> entry : map.entrySet()){
+    public void updateCondition(Map<Condition, ConditionDto> map) {
+        for (Map.Entry<Condition, ConditionDto> entry : map.entrySet()) {
             Condition condition = entry.getKey();
             ConditionDto conditionDto = entry.getValue();
             condition.setName(conditionDto.getName());
@@ -131,19 +138,19 @@ public class ConditionServiceImpl implements ConditionService {
 
     @Override
     public boolean conditionBelongsToExperiment(Long experimentId, Long conditionId) {
-        return allRepositories.conditionRepository.existsByExperiment_ExperimentIdAndConditionId(experimentId,conditionId);
+        return allRepositories.conditionRepository.existsByExperiment_ExperimentIdAndConditionId(experimentId, conditionId);
     }
 
     @Override
-    public boolean nameAlreadyExists(String name, Long experimentId, Long conditionId){
+    public boolean nameAlreadyExists(String name, Long experimentId, Long conditionId) {
         return allRepositories.conditionRepository.existsByNameAndExperiment_ExperimentIdAndConditionIdIsNot(name, experimentId, conditionId);
     }
 
     @Override
-    public boolean duplicateNameInPut(Map<Condition, ConditionDto> map, Condition condition){
-        for(Map.Entry<Condition, ConditionDto> entry : map.entrySet()){
+    public boolean duplicateNameInPut(Map<Condition, ConditionDto> map, Condition condition) {
+        for (Map.Entry<Condition, ConditionDto> entry : map.entrySet()) {
             Condition conditionInPut = entry.getKey();
-            if(condition.getName().equals(conditionInPut.getName())){
+            if (condition.getName().equals(conditionInPut.getName())) {
                 return true;
             }
         }
@@ -151,12 +158,12 @@ public class ConditionServiceImpl implements ConditionService {
     }
 
     @Override
-    public boolean isDefaultCondition(Long conditionId){
+    public boolean isDefaultCondition(Long conditionId) {
         return allRepositories.conditionRepository.existsByConditionIdAndDefaultCondition(conditionId, true);
     }
 
     @Override
-    public HttpHeaders buildHeader(UriComponentsBuilder ucBuilder, Long experimentId, Long conditionId){
+    public HttpHeaders buildHeader(UriComponentsBuilder ucBuilder, Long experimentId, Long conditionId) {
         HttpHeaders headers = new HttpHeaders();
         headers.setLocation(ucBuilder.path("/api/experiments/{experiment_id}/conditions/{condition_id}")
                 .buildAndExpand(experimentId, conditionId).toUri());
@@ -164,23 +171,62 @@ public class ConditionServiceImpl implements ConditionService {
     }
 
     @Override
-    public void validateConditionName(String conditionName, String dtoName, Long experimentId, Long conditionId, boolean required) throws TitleValidationException{
-        if(required){
-            if(StringUtils.isAllBlank(dtoName) && StringUtils.isAllBlank(conditionName)){
+    public void validateConditionName(String conditionName, String dtoName, Long experimentId, Long conditionId, boolean required) throws TitleValidationException {
+        if (required) {
+            if (StringUtils.isAllBlank(dtoName) && StringUtils.isAllBlank(conditionName)) {
                 throw new TitleValidationException("Error 100: Please give the condition a name.");
             }
         }
-        if(!StringUtils.isBlank(dtoName)){
-            if(dtoName.length() > 255){
+        if (!StringUtils.isBlank(dtoName)) {
+            if (dtoName.length() > 255) {
                 throw new TitleValidationException("Error 101: Condition name must be 255 characters or less.");
             }
-            if(nameAlreadyExists(dtoName, experimentId, conditionId)){
+            if (nameAlreadyExists(dtoName, experimentId, conditionId)) {
                 throw new TitleValidationException("Error 102: Unable to create the condition. A condition with title \"" + dtoName + "\" already exists in this experiment. It is possible " +
                         "that one of the other conditions has that name and has not been updated with a new one yet. If that is the case and you wish to use this name, " +
                         "please change that condition's name first, then try again.");
             }
         }
     }
+
+    @Override
+    public void validateConditionNames(List<ConditionDto> conditionDtoList, Long experimentId, boolean required) throws TitleValidationException {
+        if (required) {
+            for (ConditionDto conditionDto : conditionDtoList) {
+                if (StringUtils.isAllBlank(conditionDto.getName())) {
+                    throw new TitleValidationException("Error 100: Please give the condition a name.");
+                }
+                if (!StringUtils.isBlank(conditionDto.getName())) {
+                    if (conditionDto.getName().length() > 255) {
+                        throw new TitleValidationException("Error 101: Condition name must be 255 characters or less.");
+                    }
+                }
+            }
+        }
+
+        for (ConditionDto condto : conditionDtoList) {
+            List<Condition> conditions = allRepositories.conditionRepository.
+                    findByNameAndExperiment_ExperimentIdAndConditionIdIsNot(condto.getName(), experimentId, condto.getConditionId());
+            if (!conditions.isEmpty()) {
+                for (Condition con : conditions) {
+                    List duplicates = conditionDtoList.stream().filter(co -> {
+                        if (co.getConditionId() == con.getConditionId() && co.getName().equals(con.getName())) {
+                            return true;
+                        }
+                        return false;
+                    }).collect(Collectors.toList());
+
+                    if (!duplicates.isEmpty()) {
+                        throw new TitleValidationException("Error 102: Unable to create the condition. A condition with title \"" + condto.getName() + "\" already exists in this experiment. It is possible " +
+                                "that one of the other conditions has that name and has not been updated with a new one yet. If that is the case and you wish to use this name, " +
+                                "please change that condition's name first, then try again.");
+                    }
+                }
+
+            }
+        }
+    }
+
 
     private void validateMaximumConditionsNotReached(long experimentId) throws ExperimentConditionLimitReachedException {
         List<Condition> conditions = allRepositories.conditionRepository.findByExperiment_ExperimentId(experimentId);

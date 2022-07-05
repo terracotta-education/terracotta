@@ -1,4 +1,4 @@
-import { authHeader } from "@/helpers";
+import { authHeader, isJson } from "@/helpers";
 import store from "@/store/index.js";
 
 // /**
@@ -7,32 +7,12 @@ import store from "@/store/index.js";
 export const submissionService = {
   getAll,
   updateSubmission,
-  createQuestionSubmission,
-  updateQuestionSubmission,
+  getQuestionSubmissions,
+  createQuestionSubmissions,
+  updateQuestionSubmissions,
   studentResponse,
-  postSubmission,
+  createAnswerSubmissions,
 };
-
-
-/**
- * Create new  Submission
- */
-async function postSubmission(
-    experiment_id,
-    condition_id,
-    treatment_id,
-    assessment_id
-) {
-  const requestOptions = {
-    method: "POST",
-    headers: authHeader(),
-  };
-
-  return fetch(
-      `${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/submissions`,
-      requestOptions
-  ).then(handleResponse);
-}
 
 /**
  * Get all Submissions
@@ -84,7 +64,7 @@ async function updateSubmission(
 /**
  * Send Question Submissions
  */
- async function createQuestionSubmission(
+async function createQuestionSubmissions(
   experiment_id,
   condition_id,
   treatment_id,
@@ -105,9 +85,9 @@ async function updateSubmission(
 }
 
 /**
- * Update Individual Question Submission
+ * Update Question Submissions
  */
- async function updateQuestionSubmission(
+async function updateQuestionSubmissions(
   experiment_id,
   condition_id,
   treatment_id,
@@ -127,6 +107,24 @@ async function updateSubmission(
   ).then(handleResponse);
 }
 
+async function getQuestionSubmissions(
+  experiment_id,
+  condition_id,
+  treatment_id,
+  assessment_id,
+  submission_id
+) {
+  const requestOptions = {
+    method: "GET",
+    headers: authHeader(),
+  };
+
+  return fetch(
+    `${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/submissions/${submission_id}/question_submissions`,
+    requestOptions
+  ).then(handleResponse);
+}
+
 /**
  * Get Student Response
  */
@@ -135,7 +133,7 @@ async function studentResponse(
   condition_id,
   treatment_id,
   assessment_id,
-  submission_id,
+  submission_id
 ) {
   const requestOptions = {
     method: "GET",
@@ -149,13 +147,36 @@ async function studentResponse(
 }
 
 /**
+ * POST Answer Submissions
+ */
+async function createAnswerSubmissions(
+  experiment_id,
+  condition_id,
+  treatment_id,
+  assessment_id,
+  submission_id,
+  answerSubmissions
+) {
+  const requestOptions = {
+    method: "POST",
+    headers: authHeader(),
+    body: JSON.stringify(answerSubmissions),
+  };
+
+  return fetch(
+    `${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/submissions/${submission_id}/answer_submissions`,
+    requestOptions
+  ).then(handleResponse);
+}
+
+/**
  * Handle API response
  */
 function handleResponse(response) {
   return response
     .text()
     .then((text) => {
-      const data = text && JSON.parse(text);
+      const data = text && isJson(text) ? JSON.parse(text) : text;
 
       if (!response || !response.ok) {
         if (
@@ -167,14 +188,14 @@ function handleResponse(response) {
         } else if (response.status === 404) {
           console.log("handleResponse | 404", { response });
         }
-
-        return response;
       } else if (response.status === 204) {
-        console.log('handleResponse | 204', {text, data, response})
-        return []
+        console.log("handleResponse | 204", { text, data, response });
+        return { data: [], status: response.status };
       }
 
-      return data || response;
+      const dataResponse = data ? { data, status: response.status } : null;
+
+      return dataResponse || response;
     })
     .catch((text) => {
       console.log("handleResponse | catch", { text });

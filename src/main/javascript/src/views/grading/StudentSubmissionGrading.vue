@@ -288,10 +288,9 @@ export default {
   },
   methods: {
     ...mapActions({
-      updateSubmission: "submissions/updateSubmission",
       fetchAssessment: "assessment/fetchAssessment",
       fetchStudentResponse: "submissions/fetchStudentResponse",
-      updateQuestionSubmission: "submissions/updateQuestionSubmission",
+      updateQuestionSubmissions: "submissions/updateQuestionSubmissions",
       reportStep: "api/reportStep",
     }),
     participantName() {
@@ -337,13 +336,16 @@ export default {
         return {
           questionSubmissionId: response.questionSubmissionId,
           answerSubmissionDtoList: response.answerSubmissionDtoList,
-          alteredGrade: this.questionScoreMap[response.questionId] !== null ? +this.questionScoreMap[response.questionId] : null,
+          alteredGrade:
+            this.questionScoreMap[response.questionId] !== null
+              ? +this.questionScoreMap[response.questionId]
+              : null,
         };
       });
 
       try {
         // Update Question Submissions
-        await this.updateQuestionSubmission([
+        await this.updateQuestionSubmissions([
           this.experiment_id,
           this.condition_id,
           this.treatment_id,

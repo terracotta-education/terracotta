@@ -3,10 +3,7 @@ package edu.iu.terracotta.service.caliper.impl;
 import edu.iu.terracotta.model.LtiContextEntity;
 import edu.iu.terracotta.model.LtiMembershipEntity;
 import edu.iu.terracotta.model.PlatformDeployment;
-import edu.iu.terracotta.model.app.Assessment;
-import edu.iu.terracotta.model.app.Participant;
-import edu.iu.terracotta.model.app.Submission;
-import edu.iu.terracotta.model.app.SubmissionComment;
+import edu.iu.terracotta.model.app.*;
 import edu.iu.terracotta.model.app.dto.media.MediaEventDto;
 import edu.iu.terracotta.model.app.dto.media.MediaLocationDto;
 import edu.iu.terracotta.model.app.dto.media.MediaObjectDto;
@@ -117,6 +114,11 @@ public class CaliperServiceImpl implements CaliperService {
         org.imsglobal.caliper.entities.resource.Assessment assessment = prepareAssessment(submission, securedInfo);
         Attempt attempt = prepareAttempt(submission, actor, assessment);
         String uuid = "urn:uuid:" + UUID.randomUUID();
+
+        Map<String, Object> extenstions = getTerracottaInternalIDs(submission,participant);
+        assessment.getExtensions().putAll(extenstions);
+
+
         AssessmentEvent assessmentEvent = AssessmentEvent.builder()
                 .id(uuid)
                 .actor(actor)
@@ -179,6 +181,11 @@ public class CaliperServiceImpl implements CaliperService {
         org.imsglobal.caliper.entities.resource.Assessment assessment = prepareAssessment(submission, securedInfo);
         Attempt attempt = prepareAttempt(submission, actor, assessment);
         String uuid = "urn:uuid:" + UUID.randomUUID();
+
+        Map<String, Object> extenstions = getTerracottaInternalIDs(submission,participant);
+
+        assessment.getExtensions().putAll(extenstions);
+
         AssessmentEvent assessmentEvent = AssessmentEvent.builder()
                 .id(uuid)
                 .actor(actor)
@@ -241,6 +248,9 @@ public class CaliperServiceImpl implements CaliperService {
         org.imsglobal.caliper.entities.resource.Assessment assessment = prepareAssessment(submission, securedInfo);
         Attempt attempt = prepareAttempt(submission, actor, assessment);
         String uuid = "urn:uuid:" + UUID.randomUUID();
+        Map<String, Object> extenstions = getTerracottaInternalIDs(submission,participant);
+        assessment.getExtensions().putAll(extenstions);
+
         AssessmentEvent assessmentEvent = AssessmentEvent.builder()
                 .id(uuid)
                 .actor(actor)
@@ -303,6 +313,10 @@ public class CaliperServiceImpl implements CaliperService {
                 submission, securedInfo, questionId);
         MediaLocation mediaLocation = prepareMediaLocation(mediaEventDto.getTarget());
         String uuid = "urn:uuid:" + UUID.randomUUID();
+        Map<String, Object> extenstions = getTerracottaInternalIDs(submission,participant);
+
+        mediaObject.getExtensions().putAll(extenstions);
+
         Builder<?> builder = MediaEvent.builder()
                 .id(uuid)
                 .actor(actor)
@@ -387,6 +401,11 @@ public class CaliperServiceImpl implements CaliperService {
         Result result = prepareResult(submission, attempt, assessment);
 
         String uuid = "urn:uuid:" + UUID.randomUUID();
+
+        Map<String, Object> extenstions = getTerracottaInternalIDs(submission,participant);
+
+        result.getExtensions().putAll(extenstions);
+
         ViewEvent assessmentEvent = ViewEvent.builder()
                 .id(uuid)
                 .actor(actor)
@@ -399,6 +418,7 @@ public class CaliperServiceImpl implements CaliperService {
                 .referrer(prepareReferrer(membershipEntity.getUser().getPlatformDeployment()))
                 .federatedSession(ltiSession)
                 .group(group)
+                .extensions(extenstions)
                 .build();
         Envelope envelope = null;
         if (sendEnabled(membershipEntity.getUser().getPlatformDeployment())) {
@@ -847,5 +867,33 @@ public class CaliperServiceImpl implements CaliperService {
 
     public JsonldContext getContext() {
         return context;
+    }
+
+
+    private Map<String, Object> getTerracottaInternalIDs(Submission submission, Participant participant) {
+        Map<String, Object> extenstions = new HashMap<>();
+
+        Long assignmentId = submission.getAssessment().getTreatment().getAssignment().getAssignmentId();
+        Long assessmentId = submission.getAssessment().getAssessmentId();
+        Long treatmentId = submission.getAssessment().getTreatment().getTreatmentId();
+
+        if (participant.getGroup() != null) {
+            Long groupId = participant.getGroup().getGroupId();
+
+            Long conditionId = submission.getAssessment().getTreatment().getCondition().getConditionId();
+            extenstions.put("terracotta_condition_id", conditionId);
+
+            Optional<ExposureGroupCondition> groupCondition = allRepositories.exposureGroupConditionRepository
+                    .getByGroup_GroupIdAndCondition_ConditionId(groupId, conditionId);
+
+            if (groupCondition.isPresent()) {
+                extenstions.put("terracotta_exposure_id", groupCondition.get().getExposure().getExposureId());
+            }
+        }
+
+        extenstions.put("terracotta_assignment_id", assignmentId);
+        extenstions.put("terracotta_assessment_id", assessmentId);
+        extenstions.put("terracotta_treatment_id", treatmentId);
+        return extenstions;
     }
 }

@@ -51,16 +51,28 @@
         </v-row>
       </li>
     </ul>
+    <v-row align="center" class="flex-nowrap">
+      <v-col cols="auto"><div class="icon-button-spacer"></div></v-col>
+      <v-col cols="auto">
+        <v-btn
+          elevation="0"
+          color="primary"
+          class="px-0"
+          @click="handleAddAnswer(question)"
+          plain
+        >
+          Add Option
+        </v-btn>
+      </v-col>
+    </v-row>
     <template v-slot:actions>
-      <v-btn
-        elevation="0"
-        color="primary"
-        class="px-0"
-        @click="handleAddAnswer(question)"
-        plain
-      >
-        Add Option
-      </v-btn>
+      <div class="d-flex align-center">
+        <v-switch
+          v-model="randomizeAnswers"
+          class="randomize-answers-switch"
+          label="Randomize options"
+        />
+      </div>
     </template>
   </question-editor>
 </template>
@@ -90,15 +102,28 @@ export default {
     condition_id() {
       return parseInt(this.$route.params.condition_id);
     },
+    randomizeAnswers: {
+      // two-way computed property
+      get() {
+        return this.question.randomizeAnswers;
+      },
+      set(value) {
+        this.updateQuestions({ ...this.question, randomizeAnswers: value });
+      },
+    },
   },
   methods: {
     ...mapMutations({
       updateAnswers: "assessment/updateAnswers",
+      updateQuestions: "assessment/updateQuestions",
     }),
     ...mapActions({
       createAnswer: "assessment/createAnswer",
       deleteAnswer: "assessment/deleteAnswer",
     }),
+    async handleToggleRandomizeOptions() {
+      this.randomizeAnswers = !this.randomizeAnswers;
+    },
     async handleAddAnswer(question) {
       // POST ANSWER
       try {
@@ -143,10 +168,25 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+@import "~vuetify/src/components/VBtn/_variables.scss";
 .options-list {
   list-style: none;
 }
 .flex-basis-auto {
   flex-basis: auto;
+}
+.icon-button-spacer {
+  // In order to line up with checkbox icon column, size the same as a default button
+  width: #{map-get($map: $btn-sizes, $key: "default")}px;
+}
+.randomize-answers-switch {
+  margin-top: 0px;
+}
+.randomize-answers-switch::v-deep .v-input__slot {
+  // Put the label before the switch
+  flex-direction: row-reverse;
+}
+.randomize-answers-switch::v-deep .v-input--selection-controls__input {
+  margin-left: 10px;
 }
 </style>

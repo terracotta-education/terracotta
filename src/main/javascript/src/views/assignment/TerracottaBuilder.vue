@@ -249,6 +249,7 @@ export default {
               question.points,
               index,
               question.questionType,
+              question.randomizeAnswers,
             ]);
 
             return Promise.resolve(q);

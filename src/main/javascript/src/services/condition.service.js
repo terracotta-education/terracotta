@@ -7,6 +7,7 @@ import store from '@/store/index'
 export const conditionService = {
   create,
   update,
+  updateAll,
   delete: _delete
 }
 
@@ -35,6 +36,22 @@ function update(condition) {
 
   return fetch(`${store.getters['api/aud']}/api/experiments/${condition.experimentId}/conditions/${condition.conditionId}`, requestOptions).then(handleResponse)
 }
+
+/**
+ * Update Condtions
+ * @param condition
+ */
+function updateAll(conditions) {
+  const requestOptions = {
+    method: 'PUT',
+    headers: {...authHeader(), 'Content-Type': 'application/json'},
+    body: JSON.stringify(conditions)
+  }
+
+  return fetch(`${store.getters['api/aud']}/api/experiments/${conditions.experimentId}/conditions`, requestOptions).then(handleResponse)
+}
+
+
 
 /**
  * Delete Condition
