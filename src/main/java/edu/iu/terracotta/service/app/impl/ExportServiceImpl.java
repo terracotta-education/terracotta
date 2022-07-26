@@ -414,9 +414,9 @@ public class ExportServiceImpl implements ExportService {
         InputStream inputStream = null;
         Map<String, String> map = new HashMap<>();
         try {
-            String readmeBucketName = env.getProperty("aws.readmeBucket");
-            String readmeBucketKey = env.getProperty("aws.readmeBucketKey");
-            inputStream = awsService.readFileFromS3Bucket(readmeBucketName, readmeBucketKey);
+            String readmeBucketName = env.getProperty("aws.bucket-name");
+            String readmeObjectKey = env.getProperty("aws.object-key");
+            inputStream = awsService.readFileFromS3Bucket(readmeBucketName, readmeObjectKey);
             String text = new BufferedReader(
                     new InputStreamReader(inputStream, StandardCharsets.UTF_8))
                     .lines()
