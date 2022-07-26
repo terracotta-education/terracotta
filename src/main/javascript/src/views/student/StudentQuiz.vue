@@ -324,6 +324,13 @@ export default {
             response: null,
           };
         });
+      }else if(stepResponse?.status == 401) {
+         if (stepResponse?.data.toString().includes("Error 150:")) {
+           this.$swal({
+             text: "You have no more attempts available",
+             icon: "error",
+           });
+         }
       }
     } catch (e) {
       console.error({ e });
