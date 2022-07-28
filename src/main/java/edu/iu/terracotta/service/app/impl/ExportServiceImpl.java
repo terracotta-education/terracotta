@@ -422,7 +422,7 @@ public class ExportServiceImpl implements ExportService {
                     .lines()
                     .collect(Collectors.joining("\n"));
 
-            map.put("README.md", text);
+            map.put(readmeObjectKey, text);
             return map;
         } finally {
             if (inputStream != null) {
