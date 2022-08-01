@@ -57,15 +57,15 @@ public interface SubmissionService {
 
     boolean submissionBelongsToAssessment(Long assessmentId, Long SubmissionId);
 
-    void finalizeAndGrade(Long submissionId, SecuredInfo securedInfo) throws DataServiceException, CanvasApiException, IOException, AssignmentDatesException, ConnectionException;
+    void finalizeAndGrade(Long submissionId, SecuredInfo securedInfo, boolean student)
+            throws DataServiceException, CanvasApiException, IOException, AssignmentDatesException, ConnectionException;
 
     void grade(Long submissionId, SecuredInfo securedInfo) throws DataServiceException;
 
     Submission gradeSubmission(Submission submission) throws DataServiceException;
 
-    void sendSubmissionGradeToCanvas(Submission submission) throws ConnectionException, DataServiceException, CanvasApiException, IOException;
-
-    void sendSubmissionGradeToCanvasWithLTI(Submission submission) throws ConnectionException, DataServiceException, CanvasApiException, IOException;
+    void sendSubmissionGradeToCanvasWithLTI(Submission submission, boolean studentSubmission)
+            throws ConnectionException, DataServiceException, CanvasApiException, IOException;
 
     boolean datesAllowed(Long experimentId, Long treatmentId, SecuredInfo securedInfo);
 

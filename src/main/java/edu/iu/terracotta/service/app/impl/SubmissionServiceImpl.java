@@ -256,7 +256,9 @@ public class SubmissionServiceImpl implements SubmissionService {
 
     @Override
     @Transactional
-    public void finalizeAndGrade(Long submissionId, SecuredInfo securedInfo) throws DataServiceException, AssignmentDatesException, CanvasApiException, IOException, ConnectionException {
+    public void finalizeAndGrade(Long submissionId, SecuredInfo securedInfo, boolean student)
+            throws DataServiceException, AssignmentDatesException, CanvasApiException, IOException,
+            ConnectionException {
         Optional<Submission> submissionOptional = allRepositories.submissionRepository.findById(submissionId);
         if (submissionOptional.isPresent()) {
             //We are not changing the submission date once it is set.
@@ -270,7 +272,7 @@ public class SubmissionServiceImpl implements SubmissionService {
             if (securedInfo.getLockAt() == null || submissionOptional.get().getDateSubmitted().after(securedInfo.getLockAt())) {
                 saveAndFlush(gradeSubmission(submissionOptional.get()));
                 caliperService.sendAssignmentSubmitted(submissionOptional.get(), securedInfo);
-                sendSubmissionGradeToCanvasWithLTI(submissionOptional.get());
+                sendSubmissionGradeToCanvasWithLTI(submissionOptional.get(), student);
             } else {
                 throw new AssignmentDatesException("Error 128: Canvas Assignment is locked, we can not generate/grade a submission with a date later than the lock date");
             }
@@ -380,7 +382,8 @@ public class SubmissionServiceImpl implements SubmissionService {
     }
 
     @Override
-    public void sendSubmissionGradeToCanvasWithLTI(Submission submission) throws ConnectionException, DataServiceException {
+    public void sendSubmissionGradeToCanvasWithLTI(Submission submission, boolean studentSubmission)
+            throws ConnectionException, DataServiceException {
         //We need, the assignment, and the iss configuration...
         Assignment assignment = submission.getAssessment().getTreatment().getAssignment();
         Experiment experiment = assignment.getExposure().getExperiment();
@@ -388,13 +391,10 @@ public class SubmissionServiceImpl implements SubmissionService {
         LTIToken ltiTokenResults = advantageAGSService.getToken("results", experiment.getPlatformDeployment());
         //find the right id to pass based on the assignment
         String lineitemId = assignmentService.lineItemId(assignment);
-        LTIToken ltiLineItemToken = advantageAGSService.getToken("lineItem",experiment.getPlatformDeployment());
 
         if (lineitemId == null) {
             throw new DataServiceException("Error 136: The assignment is not linked to any Canvas assignment");
         }
-        String[] ids = lineitemId.split("/");
-        LineItem lineItem = advantageAGSService.getLineItem(ltiLineItemToken,experiment.getLtiContextEntity(),ids[ids.length-1]);
         Score score = new Score();
         score.setUserId(submission.getParticipant().getLtiUserEntity().getUserKey());
         boolean manualGradingNeeded = this.isManualGradingNeeded(submission);
@@ -420,7 +420,28 @@ public class SubmissionServiceImpl implements SubmissionService {
         SimpleDateFormat dt = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
         String strDate = dt.format(date);
         score.setTimestamp(strDate);
+
+        addCanvasExtensions(score, submission, studentSubmission);
         advantageAGSService.postScore(ltiTokenScore, ltiTokenResults, experiment.getLtiContextEntity(), lineitemId, score);
+    }
+
+    private void addCanvasExtensions(Score score, Submission submission, boolean studentSubmission) {
+        Map<String, Object> submissionData = new HashMap<>();
+        // See
+        // https://canvas.instructure.com/doc/api/score.html#method.lti/ims/scores.create
+        // for more information about these extension fields
+
+        // Only treat a score as a new submission when it comes from a student and NOT
+        // when graded by an instructor
+        submissionData.put("new_submission", studentSubmission);
+
+        // Include date originally submitted so that late grading doesn't result in late
+        // submissions
+        SimpleDateFormat dt = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"); // ISO8601 format
+        String dateSubmittedFormatted = dt.format(submission.getDateSubmitted());
+        submissionData.put("submitted_at", dateSubmittedFormatted);
+
+        score.setCanvasSubmissionExtension(submissionData);
     }
 
     private boolean isManualGradingNeeded(Submission submission) {
@@ -439,16 +460,6 @@ public class SubmissionServiceImpl implements SubmissionService {
 
         Float totalAlteredGrade = submission.getTotalAlteredGrade();
         return totalAlteredGrade != null && (!totalAlteredGrade.equals(submission.getAlteredCalculatedGrade()));
-    }
-
-    @Override
-    public void sendSubmissionGradeToCanvas(Submission submission) throws ConnectionException, DataServiceException, CanvasApiException, IOException {
-        //We need, the assignment, and the iss configuration...
-        Assignment assignment = submission.getAssessment().getTreatment().getAssignment();
-        Experiment experiment = assignment.getExposure().getExperiment();
-
-//        canvasAPIClient.postSubmission(submission, assessmentService.calculateMaxScore(submission.getAssessment()));
-        sendSubmissionGradeToCanvasWithLTI(submission);
     }
 
     private Timestamp getLastUpdatedTimeForSubmission(Submission submission) {

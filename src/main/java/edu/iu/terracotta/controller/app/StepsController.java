@@ -127,7 +127,7 @@ public class StepsController {
                         if (questionSubmissionService.canSubmit(securedInfo.getCanvasCourseId(), assignmentId, securedInfo.getCanvasUserId(),
                                 securedInfo.getPlatformDeploymentId())) {
                             submissionService.allowedSubmission(submissionId, securedInfo);
-                            submissionService.finalizeAndGrade(submissionId, securedInfo);
+                            submissionService.finalizeAndGrade(submissionId, securedInfo, student);
                         } else {
                             return new ResponseEntity<>(TextConstants.MAX_SUBMISSION_ATTEMPTS_REACHED, HttpStatus.UNAUTHORIZED);
                         }
@@ -142,7 +142,7 @@ public class StepsController {
                         if (questionSubmissionService.canSubmit(securedInfo.getCanvasCourseId(),
                                 assignmentId, securedInfo.getCanvasUserId(),
                                 securedInfo.getPlatformDeploymentId())) {
-                            submissionService.finalizeAndGrade(submissionId, securedInfo);
+                            submissionService.finalizeAndGrade(submissionId, securedInfo, student);
                         } else {
                             return new ResponseEntity<>(TextConstants.MAX_SUBMISSION_ATTEMPTS_REACHED, HttpStatus.UNAUTHORIZED);
                         }

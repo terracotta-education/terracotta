@@ -248,7 +248,7 @@ public class AssignmentServiceImpl implements AssignmentService {
     public void sendAssignmentGradeToCanvas(Assignment assignment) throws ConnectionException, DataServiceException, CanvasApiException, IOException {
         List<Submission> submissionList = allRepositories.submissionRepository.findByAssessment_Treatment_Assignment_AssignmentId(assignment.getAssignmentId());
         for (Submission submission:submissionList){
-            submissionService.sendSubmissionGradeToCanvasWithLTI(submission);
+            submissionService.sendSubmissionGradeToCanvasWithLTI(submission, false);
         }
     }
 
