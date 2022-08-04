@@ -420,7 +420,7 @@ public class ExportServiceImpl implements ExportService {
             String text = new BufferedReader(
                     new InputStreamReader(inputStream, StandardCharsets.UTF_8))
                     .lines()
-                    .collect(Collectors.joining("\n"));
+                    .collect(Collectors.joining(System.lineSeparator()));
 
             map.put(readmeObjectKey, text);
             return map;
