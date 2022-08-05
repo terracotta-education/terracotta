@@ -408,7 +408,14 @@ public class SubmissionServiceImpl implements SubmissionService {
             }
         }
         Float maxTerracottaScore = assessmentService.calculateMaxScore(submission.getAssessment());
-        score.setScoreMaximum(maxTerracottaScore.toString());
+        // Workaround for zero point assignments that should be given full credit for
+        // completion
+        if (maxTerracottaScore == 0) {
+            score.setScoreGiven(Float.valueOf(1).toString());
+            score.setScoreMaximum(Float.valueOf(1).toString());
+        } else {
+            score.setScoreMaximum(maxTerracottaScore.toString());
+        }
         score.setActivityProgress("Completed");
         if (manualGradingNeeded) {
             score.setGradingProgress("PendingManual");

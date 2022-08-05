@@ -211,7 +211,7 @@ export default {
           this.assessment_id,
           0,
           questionType,
-          0,
+          1, // points
           "",
         ]);
       } catch (error) {
