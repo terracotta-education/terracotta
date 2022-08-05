@@ -148,10 +148,6 @@ public class ConditionController {
                 apijwtService.conditionAllowed(securedInfo, experimentId,conditionDto.getConditionId());
                 Condition condition = conditionService.findByConditionId(conditionDto.getConditionId());
                 log.debug("Updating condition: " + condition.getConditionId());
-
-                if(conditionService.duplicateNameInPut(map, condition)) {
-                    return new ResponseEntity("Error 102: Condition names must be unique. Another condition you are trying to update already has this name.", HttpStatus.CONFLICT);
-                }
                 map.put(condition, conditionDto);
             }
             try{

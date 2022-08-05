@@ -14,7 +14,7 @@ import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.springframework.core.io.ByteArrayResource;
 
 public class ZipUtil {
-    public static ByteArrayResource generateZipFile(Map<String, List<String[]>> csvFiles, Map<String, String> jsonFiles) throws IOException {
+    public static ByteArrayResource generateZipFile(Map<String, List<String[]>> csvFiles, Map<String, String> jsonFiles,Map<String, String> readme) throws IOException {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         ZipOutputStream zos = new ZipOutputStream(bos);
 
@@ -31,6 +31,15 @@ public class ZipUtil {
 
         // .json files
         for(Map.Entry<String,String> mapEntry : jsonFiles.entrySet()) {
+            zos.putNextEntry(new ZipEntry(mapEntry.getKey()));
+            PrintWriter writer = new PrintWriter(new OutputStreamWriter(zos));
+            writer.write(mapEntry.getValue());
+            writer.flush();
+            zos.closeEntry();
+        }
+
+        // readme files
+        for(Map.Entry<String,String> mapEntry : readme.entrySet()) {
             zos.putNextEntry(new ZipEntry(mapEntry.getKey()));
             PrintWriter writer = new PrintWriter(new OutputStreamWriter(zos));
             writer.write(mapEntry.getValue());
