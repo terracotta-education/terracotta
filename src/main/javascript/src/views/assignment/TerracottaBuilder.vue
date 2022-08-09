@@ -92,6 +92,11 @@
               choice</v-list-item-title
             >
           </v-list-item>
+          <v-list-item @click="handleAddQuestion('FILE')">
+            <v-list-item-title
+            ><v-icon class="mr-1">mdi-radiobox-marked</v-icon> File
+              upload</v-list-item-title>
+          </v-list-item>
         </v-list>
       </v-menu>
       <br />
@@ -113,6 +118,7 @@ import { mapActions, mapGetters, mapMutations } from "vuex";
 import MultipleChoiceQuestionEditor from "./MultipleChoiceQuestionEditor.vue";
 import QuestionEditor from "./QuestionEditor.vue";
 import PageBreak from "./PageBreak.vue";
+import FileUploadQuestionEditor from "./FileUploadQuestionEditor.vue";
 
 export default {
   name: "TerracottaBuilder",
@@ -159,6 +165,7 @@ export default {
       return {
         MC: MultipleChoiceQuestionEditor,
         ESSAY: QuestionEditor,
+        FILE:FileUploadQuestionEditor,
       };
     },
     title: {
@@ -323,6 +330,7 @@ export default {
   components: {
     QuestionEditor,
     MultipleChoiceQuestionEditor,
+    FileUploadQuestionEditor,
     PageBreak,
   },
 };

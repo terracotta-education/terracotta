@@ -69,6 +69,15 @@
                       "
                     />
                   </template>
+                  <template v-else-if="question.questionType === 'FILE'">
+                    <file-upload-response-editor
+                        v-model="
+                        questionValues.find(
+                          ({ questionId }) => questionId === question.questionId
+                        ).response
+                      "
+                    />
+                  </template>
                 </v-card-text>
               </v-card>
             </div>
@@ -109,11 +118,13 @@ import { mapActions, mapGetters } from "vuex";
 import EssayResponseEditor from "./EssayResponseEditor.vue";
 import MultipleChoiceResponseEditor from "./MultipleChoiceResponseEditor.vue";
 import YoutubeEventCapture from "./YoutubeEventCapture.vue";
+import FileUploadResponseEditor from "@/views/student/FileUploadResponseEditor";
 
 export default {
   name: "StudentQuiz",
   props: ["experimentId", "assignmentId"],
   components: {
+    FileUploadResponseEditor,
     EssayResponseEditor,
     MultipleChoiceResponseEditor,
     YoutubeEventCapture,
@@ -276,7 +287,14 @@ export default {
           if (answer === null || answer.trim() === "") {
             return false;
           }
-        } else {
+        } else if (question.questionType === "FILE") {
+          const answer = this.questionValues.find(
+              ({ questionId }) => questionId === question.questionId
+          ).response;
+          if (answer === null || answer.trim() === "") {
+            return false;
+          }
+        }else {
           console.log(
             "Unexpected question type",
             question.questionType,
