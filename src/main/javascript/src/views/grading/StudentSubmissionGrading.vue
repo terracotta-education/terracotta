@@ -12,6 +12,7 @@
             name="maxPoints"
             outlined
             style="max-width: 70px;max-height: 50px;"
+            disabled
             v-model="maxPoints"
           ></v-text-field>
           <span class="totalPoints ml-2">
@@ -82,6 +83,7 @@
                       required
                       style="max-width: 70px;max-height: 50px;"
                       v-model="questionScoreMap[question.questionId]"
+                      :disabled="question.points === 0"
                       @input="
                         (value) => {
                           questionScoreMap[question.questionId] = value;
@@ -271,6 +273,7 @@ export default {
         for (const question of this.assessment.questions) {
           if (
             question.questionType === "ESSAY" &&
+            question.points > 0 &&
             this.questionScoreMap[question.questionId] === null
           ) {
             questions.push(question);

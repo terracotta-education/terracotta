@@ -54,6 +54,9 @@
                       :value="
                         submissions[submission.submissionId].totalAlteredGrade
                       "
+                      :disabled="
+                        selectedTreatment.assessmentDto.maxPoints === 0
+                      "
                       @input="
                         updateTotalAlteredGrade(submission.submissionId, $event)
                       "
