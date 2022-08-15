@@ -453,16 +453,15 @@ public class SubmissionServiceImpl implements SubmissionService {
 
     private boolean isManualGradingNeeded(Submission submission) {
 
-        Float maxTerracottaScore = assessmentService.calculateMaxScore(submission.getAssessment());
-        // If the max score achievable is 0 points, then no manually grading is needed
         // If the submission's grade has been altered, then the entire
         // submission has been manually graded.
-        // If any of the ESSAY questions have a null alteredGrade, then the
-        // assessment still needs to be manually graded.
-        return maxTerracottaScore > 0
-                && !this.isGradeAltered(submission)
+        // If any of the ESSAY questions with positive max points have a null
+        // alteredGrade, then the assessment still needs to be manually graded.
+        return !this.isGradeAltered(submission)
                 && submission.getQuestionSubmissions().stream().anyMatch(qs -> {
-                    return qs.getQuestion().getQuestionType() == QuestionTypes.ESSAY && qs.getAlteredGrade() == null;
+                    return qs.getQuestion().getQuestionType() == QuestionTypes.ESSAY
+                            && qs.getQuestion().getPoints() > 0
+                            && qs.getAlteredGrade() == null;
                 });
     }
 
