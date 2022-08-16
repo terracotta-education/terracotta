@@ -3,6 +3,7 @@ package edu.iu.terracotta.model.app.dto;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+import java.sql.Timestamp;
 import java.util.List;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -23,6 +24,12 @@ public class AssessmentDto {
     private Long submissionsExpected;
     private Long submissionsCompletedCount;
     private Long submissionsInProgressCount;
+    private boolean allowStudentViewResponses = false;
+    private Timestamp studentViewResponsesAfter;
+    private Timestamp studentViewResponsesBefore;
+    private boolean allowStudentViewCorrectAnswers = false;
+    private Timestamp studentViewCorrectAnswersAfter;
+    private Timestamp studentViewCorrectAnswersBefore;
 
 
     public Long getAssessmentId() { return assessmentId; }
@@ -91,5 +98,53 @@ public class AssessmentDto {
 
     public void setMaxPoints(Float maxPoints) {
         this.maxPoints = maxPoints;
+    }
+
+    public boolean isAllowStudentViewResponses() {
+        return allowStudentViewResponses;
+    }
+
+    public void setAllowStudentViewResponses(boolean allowStudentViewResponses) {
+        this.allowStudentViewResponses = allowStudentViewResponses;
+    }
+
+    public Timestamp getStudentViewResponsesAfter() {
+        return studentViewResponsesAfter;
+    }
+
+    public void setStudentViewResponsesAfter(Timestamp studentViewResponsesAfter) {
+        this.studentViewResponsesAfter = studentViewResponsesAfter;
+    }
+
+    public Timestamp getStudentViewResponsesBefore() {
+        return studentViewResponsesBefore;
+    }
+
+    public void setStudentViewResponsesBefore(Timestamp studentViewResponsesBefore) {
+        this.studentViewResponsesBefore = studentViewResponsesBefore;
+    }
+
+    public boolean isAllowStudentViewCorrectAnswers() {
+        return allowStudentViewCorrectAnswers;
+    }
+
+    public void setAllowStudentViewCorrectAnswers(boolean allowStudentViewCorrectAnswers) {
+        this.allowStudentViewCorrectAnswers = allowStudentViewCorrectAnswers;
+    }
+
+    public Timestamp getStudentViewCorrectAnswersAfter() {
+        return studentViewCorrectAnswersAfter;
+    }
+
+    public void setStudentViewCorrectAnswersAfter(Timestamp studentViewCorrectAnswersAfter) {
+        this.studentViewCorrectAnswersAfter = studentViewCorrectAnswersAfter;
+    }
+
+    public Timestamp getStudentViewCorrectAnswersBefore() {
+        return studentViewCorrectAnswersBefore;
+    }
+
+    public void setStudentViewCorrectAnswersBefore(Timestamp studentViewCorrectAnswersBefore) {
+        this.studentViewCorrectAnswersBefore = studentViewCorrectAnswersBefore;
     }
 }

@@ -11,6 +11,7 @@ import edu.iu.terracotta.exceptions.GroupNotMatchingException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
+import edu.iu.terracotta.exceptions.RevealResponsesSettingValidationException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.model.ags.LineItem;
@@ -124,11 +125,14 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     @Override
-    public AssignmentDto postAssignment(AssignmentDto assignmentDto, long experimentId, String CanvasCourseId, long exposureId) throws IdInPostException, DataServiceException, TitleValidationException, AssignmentNotCreatedException, AssessmentNotMatchingException {
+    public AssignmentDto postAssignment(AssignmentDto assignmentDto, long experimentId, String CanvasCourseId,
+            long exposureId) throws IdInPostException, DataServiceException, TitleValidationException,
+            AssignmentNotCreatedException, AssessmentNotMatchingException, RevealResponsesSettingValidationException {
         if (assignmentDto.getAssignmentId() != null) {
             throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
         }
         validateTitle(assignmentDto.getTitle());
+        validateRevealAssignmentResponsesSettings(assignmentDto);
         assignmentDto.setExposureId(exposureId);
         Assignment assignment;
         try {
@@ -153,6 +157,12 @@ public class AssignmentServiceImpl implements AssignmentService {
         assignmentDto.setExposureId(assignment.getExposure().getExposureId());
         assignmentDto.setResourceLinkId(assignment.getResourceLinkId());
         assignmentDto.setSoftDeleted(assignment.getSoftDeleted());
+        assignmentDto.setAllowStudentViewResponses(assignment.isAllowStudentViewResponses());
+        assignmentDto.setStudentViewResponsesAfter(assignment.getStudentViewResponsesAfter());
+        assignmentDto.setStudentViewResponsesBefore(assignment.getStudentViewResponsesBefore());
+        assignmentDto.setAllowStudentViewCorrectAnswers(assignment.isAllowStudentViewCorrectAnswers());
+        assignmentDto.setStudentViewCorrectAnswersAfter(assignment.getStudentViewCorrectAnswersAfter());
+        assignmentDto.setStudentViewCorrectAnswersBefore(assignment.getStudentViewCorrectAnswersBefore());
         long submissionsCount = allRepositories.submissionRepository.countByAssessment_Treatment_Assignment_AssignmentId(assignment.getAssignmentId());
         if(submissionsCount > 0){
             assignmentDto.setStarted(true);
@@ -176,6 +186,12 @@ public class AssignmentServiceImpl implements AssignmentService {
         assignment.setTitle(assignmentDto.getTitle());
         assignment.setAssignmentOrder(assignmentDto.getAssignmentOrder());
         assignment.setSoftDeleted(assignmentDto.getSoftDeleted());
+        assignment.setAllowStudentViewResponses(assignmentDto.isAllowStudentViewResponses());
+        assignment.setStudentViewResponsesAfter(assignmentDto.getStudentViewResponsesAfter());
+        assignment.setStudentViewResponsesBefore(assignmentDto.getStudentViewResponsesBefore());
+        assignment.setAllowStudentViewCorrectAnswers(assignmentDto.isAllowStudentViewCorrectAnswers());
+        assignment.setStudentViewCorrectAnswersAfter(assignmentDto.getStudentViewCorrectAnswersAfter());
+        assignment.setStudentViewCorrectAnswersBefore(assignmentDto.getStudentViewCorrectAnswersBefore());
         Optional<Exposure> exposure = allRepositories.exposureRepository.findById(assignmentDto.getExposureId());
         if(exposure.isPresent()) {
             assignment.setExposure(exposure.get());
@@ -195,7 +211,9 @@ public class AssignmentServiceImpl implements AssignmentService {
     public Assignment getAssignment(Long id){ return allRepositories.assignmentRepository.findByAssignmentId(id); }
 
     @Override
-    public void updateAssignment(Long id, AssignmentDto assignmentDto, String canvasCourseId ) throws TitleValidationException, CanvasApiException, AssignmentNotEditedException {
+    public void updateAssignment(Long id, AssignmentDto assignmentDto, String canvasCourseId)
+            throws TitleValidationException, CanvasApiException, AssignmentNotEditedException,
+            RevealResponsesSettingValidationException {
         Assignment assignment = allRepositories.assignmentRepository.findByAssignmentId(id);
         if(StringUtils.isAllBlank(assignmentDto.getTitle()) && StringUtils.isAllBlank(assignment.getTitle())){
             throw new TitleValidationException("Error 100: Please give the assignment a name.");
@@ -207,9 +225,27 @@ public class AssignmentServiceImpl implements AssignmentService {
             assignment.setTitle(assignmentDto.getTitle());
             editAssignmentNameInCanvas(assignment,canvasCourseId,assignmentDto.getTitle());
         }
+        validateRevealAssignmentResponsesSettings(assignmentDto);
         assignment.setAssignmentOrder(assignmentDto.getAssignmentOrder());
         assignment.setSoftDeleted(assignmentDto.getSoftDeleted());
+        assignment.setAllowStudentViewResponses(assignmentDto.isAllowStudentViewResponses());
+        assignment.setStudentViewResponsesAfter(assignmentDto.getStudentViewResponsesAfter());
+        assignment.setStudentViewResponsesBefore(assignmentDto.getStudentViewResponsesBefore());
+        assignment.setAllowStudentViewCorrectAnswers(assignmentDto.isAllowStudentViewCorrectAnswers());
+        assignment.setStudentViewCorrectAnswersAfter(assignmentDto.getStudentViewCorrectAnswersAfter());
+        assignment.setStudentViewCorrectAnswersBefore(assignmentDto.getStudentViewCorrectAnswersBefore());
         saveAndFlush(assignment);
+
+        // update the same settings on all of this assignment's assessments
+        List<Assessment> assessments = allRepositories.assessmentRepository.findByTreatment_Assignment_AssignmentId(id);
+        for (Assessment assessment : assessments) {
+            assessment.setAllowStudentViewResponses(assignmentDto.isAllowStudentViewResponses());
+            assessment.setStudentViewResponsesAfter(assignmentDto.getStudentViewResponsesAfter());
+            assessment.setStudentViewResponsesBefore(assignmentDto.getStudentViewResponsesBefore());
+            assessment.setAllowStudentViewCorrectAnswers(assignmentDto.isAllowStudentViewCorrectAnswers());
+            assessment.setStudentViewCorrectAnswersAfter(assignmentDto.getStudentViewCorrectAnswersAfter());
+            assessment.setStudentViewCorrectAnswersBefore(assignmentDto.getStudentViewCorrectAnswersBefore());
+        }
     }
 
     @Override
@@ -491,6 +527,56 @@ public class AssignmentServiceImpl implements AssignmentService {
     public void validateTitle(String title) throws TitleValidationException{
         if(!StringUtils.isAllBlank(title) && title.length() > 255){
             throw new TitleValidationException("Error 101: Assignment title must be 255 characters or less.");
+        }
+    }
+
+    private void validateRevealAssignmentResponsesSettings(AssignmentDto assignmentDto)
+            throws RevealResponsesSettingValidationException {
+
+        // validate that if allowStudentViewCorrectAnswers then also
+        // allowStudentViewResponses must be true
+        if (assignmentDto.isAllowStudentViewCorrectAnswers() && !assignmentDto.isAllowStudentViewResponses()) {
+            throw new RevealResponsesSettingValidationException(
+                    "Error 151: Cannot allow students to view correct answers if they are not allowed to view responses.");
+        }
+        // Validate that view responses 'after' date comes before the 'before' date
+        if (assignmentDto.getStudentViewResponsesAfter() != null
+                && assignmentDto.getStudentViewResponsesBefore() != null
+                && !assignmentDto.getStudentViewResponsesAfter()
+                        .before(assignmentDto.getStudentViewResponsesBefore())) {
+            throw new RevealResponsesSettingValidationException(
+                    "Error 152: Start date of revealing student responses must come before end date.");
+        }
+        // Validate that view correct answers 'after' date comes before the 'before'
+        // date
+        if (assignmentDto.getStudentViewCorrectAnswersAfter() != null
+                && assignmentDto.getStudentViewCorrectAnswersBefore() != null
+                && !assignmentDto.getStudentViewCorrectAnswersAfter()
+                        .before(assignmentDto.getStudentViewCorrectAnswersBefore())) {
+            throw new RevealResponsesSettingValidationException(
+                    "Error 153: Start date of revealing correct answers must come before end date.");
+        }
+        // Validate studentViewCorrectAnswersAfter is greater than or equal to
+        // studentViewResponsesAfter
+        if (assignmentDto.getStudentViewCorrectAnswersAfter() != null
+                && assignmentDto.getStudentViewResponsesAfter() != null && !(assignmentDto
+                        .getStudentViewCorrectAnswersAfter().equals(assignmentDto.getStudentViewResponsesAfter())
+                        || assignmentDto.getStudentViewCorrectAnswersAfter()
+                                .after(assignmentDto.getStudentViewResponsesAfter()))) {
+
+            throw new RevealResponsesSettingValidationException(
+                    "Error 154: Start date of revealing correct answers must equal or come after start date of revealing student responses.");
+        }
+        // Validate studentViewCorrectAnswersBefore is less than or equal to
+        // studentViewResponsesBefore
+        if (assignmentDto.getStudentViewCorrectAnswersBefore() != null
+                && assignmentDto.getStudentViewResponsesBefore() != null && !(assignmentDto
+                        .getStudentViewCorrectAnswersBefore().equals(assignmentDto.getStudentViewResponsesBefore())
+                        || assignmentDto.getStudentViewCorrectAnswersBefore()
+                                .before(assignmentDto.getStudentViewResponsesBefore()))) {
+
+            throw new RevealResponsesSettingValidationException(
+                    "Error 155: End date of revealing correct answers must equal or come before end date of revealing student responses.");
         }
     }
 
