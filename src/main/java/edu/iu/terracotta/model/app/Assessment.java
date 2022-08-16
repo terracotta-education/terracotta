@@ -1,6 +1,7 @@
 package edu.iu.terracotta.model.app;
 
-import edu.iu.terracotta.model.BaseEntity;
+import java.sql.Timestamp;
+import java.util.List;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -12,7 +13,8 @@ import javax.persistence.Lob;
 import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
 import javax.persistence.Table;
-import java.util.List;
+
+import edu.iu.terracotta.model.BaseEntity;
 
 @Table(name = "terr_assessment")
 @Entity
@@ -41,6 +43,24 @@ public class Assessment extends BaseEntity {
 
     @Column(name = "num_of_submissions")
     private Integer numOfSubmissions;
+
+    @Column(name = "allow_student_view_responses", nullable = false)
+    private boolean allowStudentViewResponses = false;
+
+    @Column(name = "student_view_responses_after", nullable = true)
+    private Timestamp studentViewResponsesAfter;
+
+    @Column(name = "student_view_responses_before", nullable = true)
+    private Timestamp studentViewResponsesBefore;
+
+    @Column(name = "allow_student_view_correct_answers", nullable = false)
+    private boolean allowStudentViewCorrectAnswers = false;
+
+    @Column(name = "student_view_correct_answers_after", nullable = true)
+    private Timestamp studentViewCorrectAnswersAfter;
+
+    @Column(name = "student_view_correct_answers_before", nullable = true)
+    private Timestamp studentViewCorrectAnswersBefore;
 
     @OneToMany(mappedBy = "assessment", orphanRemoval = true)
     private List<Submission> submissions;
@@ -76,4 +96,53 @@ public class Assessment extends BaseEntity {
     public List<Submission> getSubmissions() { return submissions; }
 
     public void setSubmissions(List<Submission> submissions) { this.submissions = submissions; }
+
+    public boolean isAllowStudentViewResponses() {
+        return allowStudentViewResponses;
+    }
+
+    public void setAllowStudentViewResponses(boolean allowStudentViewResponses) {
+        this.allowStudentViewResponses = allowStudentViewResponses;
+    }
+
+    public Timestamp getStudentViewResponsesAfter() {
+        return studentViewResponsesAfter;
+    }
+
+    public void setStudentViewResponsesAfter(Timestamp studentViewResponsesAfter) {
+        this.studentViewResponsesAfter = studentViewResponsesAfter;
+    }
+
+    public Timestamp getStudentViewResponsesBefore() {
+        return studentViewResponsesBefore;
+    }
+
+    public void setStudentViewResponsesBefore(Timestamp studentViewResponsesBefore) {
+        this.studentViewResponsesBefore = studentViewResponsesBefore;
+    }
+
+    public boolean isAllowStudentViewCorrectAnswers() {
+        return allowStudentViewCorrectAnswers;
+    }
+
+    public void setAllowStudentViewCorrectAnswers(boolean allowStudentViewCorrectAnswers) {
+        this.allowStudentViewCorrectAnswers = allowStudentViewCorrectAnswers;
+    }
+
+    public Timestamp getStudentViewCorrectAnswersAfter() {
+        return studentViewCorrectAnswersAfter;
+    }
+
+    public void setStudentViewCorrectAnswersAfter(Timestamp studentViewCorrectAnswersAfter) {
+        this.studentViewCorrectAnswersAfter = studentViewCorrectAnswersAfter;
+    }
+
+    public Timestamp getStudentViewCorrectAnswersBefore() {
+        return studentViewCorrectAnswersBefore;
+    }
+
+    public void setStudentViewCorrectAnswersBefore(Timestamp studentViewCorrectAnswersBefore) {
+        this.studentViewCorrectAnswersBefore = studentViewCorrectAnswersBefore;
+    }
+
 }
