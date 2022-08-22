@@ -83,6 +83,13 @@ Use the following steps to mostly automate creation of a liquibase database migr
 
    This will bring your Docker MySQL database up-to-date with your JPA mappings.
 
+   Once Terracotta has successfully started up, you'll see logged to the
+   console:
+
+   > `Started Terracotta in XX.XXX seconds`
+
+   You can go ahead and shut it down now.
+
 4. Create a liquibase configuration file that connects to your development environment database and uses your Docker MySQL database as the reference database.
 
     liquibase.properties:
