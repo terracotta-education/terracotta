@@ -57,7 +57,10 @@ const actions = {
     }
   },
   async updateAssessment({state}, payload) {
-    // payload = experiment_id, condition_id, treatment_id, assessment_id, title, body
+    // payload = experiment_id, condition_id, treatment_id, assessment_id,
+    //           title, body, allowStudentViewResponses, studentViewResponsesAfter,
+    //           studentViewResponsesBefore, allowStudentViewCorrectAnswers,
+    //           studentViewCorrectAnswersAfter, studentViewCorrectAnswersBefore
     // update the assessment, and return the status/data response
     try {
       const response = await assessmentService.updateAssessment(...payload)

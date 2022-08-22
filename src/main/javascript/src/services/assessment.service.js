@@ -74,14 +74,26 @@ async function updateAssessment(
   treatment_id,
   assessment_id,
   title,
-  body
+  body,
+  allowStudentViewResponses,
+  studentViewResponsesAfter,
+  studentViewResponsesBefore,
+  allowStudentViewCorrectAnswers,
+  studentViewCorrectAnswersAfter,
+  studentViewCorrectAnswersBefore,
 ) {
   const requestOptions = {
     method: 'PUT',
     headers: {...authHeader(), 'Content-Type': 'application/json'},
     body: JSON.stringify({
       title,
-      "html": body
+      "html": body,
+      allowStudentViewResponses,
+      studentViewResponsesAfter,
+      studentViewResponsesBefore,
+      allowStudentViewCorrectAnswers,
+      studentViewCorrectAnswersAfter,
+      studentViewCorrectAnswersBefore,
     })
   }
 

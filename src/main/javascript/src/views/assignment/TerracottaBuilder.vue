@@ -4,107 +4,121 @@
       Add your treatment for
       {{ assignment.title }}'s condition: <strong>{{ condition.name }}</strong>
     </h1>
-    <form @submit.prevent="saveAll('AssignmentYourAssignments')" class="my-5">
-      <v-text-field
-        v-model="title"
-        :rules="rules"
-        label="Treatment name"
-        placeholder="e.g. Lorem ipsum"
-        autofocus
-        outlined
-        required
-      ></v-text-field>
-      <v-textarea
-        v-model="html"
-        label="Instructions or description (optional)"
-        placeholder="e.g. Lorem ipsum"
-        outlined
-      ></v-textarea>
+    <v-tabs v-model="tab">
+      <v-tab>Treatment</v-tab>
+      <v-tab>Settings</v-tab>
+    </v-tabs>
+    <v-tabs-items v-model="tab">
+      <v-tab-item>
+        <form
+          @submit.prevent="saveAll('AssignmentYourAssignments')"
+          class="my-5"
+        >
+          <v-text-field
+            v-model="title"
+            :rules="rules"
+            label="Treatment name"
+            placeholder="e.g. Lorem ipsum"
+            autofocus
+            outlined
+            required
+          ></v-text-field>
+          <v-textarea
+            v-model="html"
+            label="Instructions or description (optional)"
+            placeholder="e.g. Lorem ipsum"
+            outlined
+          ></v-textarea>
 
-      <h4 class="mb-3"><strong>Questions</strong></h4>
+          <h4 class="mb-3"><strong>Questions</strong></h4>
 
-      <template v-if="questionPages && questionPages.length > 0">
-        <template v-for="questionPage in questionPages">
-          <div :key="questionPage.key">
-            <v-expansion-panels
-              class="v-expansion-panels--outlined"
-              flat
-              accordion
-              :key="questionPage.key"
-            >
-              <v-expansion-panel
-                v-for="(question, qIndex) in questionPage.questions"
-                :key="qIndex"
-                class="text-left"
+          <template v-if="questionPages && questionPages.length > 0">
+            <template v-for="questionPage in questionPages">
+              <div :key="questionPage.key">
+                <v-expansion-panels
+                  class="v-expansion-panels--outlined"
+                  flat
+                  accordion
+                  :key="questionPage.key"
+                >
+                  <v-expansion-panel
+                    v-for="(question, qIndex) in questionPage.questions"
+                    :key="qIndex"
+                    class="text-left"
+                  >
+                    <template v-if="question">
+                      <v-expansion-panel-header class="text-left">
+                        <h2 class="pa-0">
+                          {{ questionPage.questionStartIndex + qIndex + 1 }}
+                          <span
+                            class="pl-3 question-text"
+                            v-if="question.html"
+                            v-html="textOnly(question.html)"
+                          ></span>
+                        </h2>
+                      </v-expansion-panel-header>
+                      <v-expansion-panel-content>
+                        <component
+                          :is="questionTypeComponents[question.questionType]"
+                          :question="question"
+                        />
+                      </v-expansion-panel-content>
+                    </template>
+                  </v-expansion-panel>
+                </v-expansion-panels>
+                <page-break v-if="questionPage.pageBreakAfter" />
+              </div>
+            </template>
+          </template>
+          <template v-else>
+            <p class="grey--text">Add questions to continue</p>
+          </template>
+
+          <v-menu offset-y>
+            <template v-slot:activator="{ on, attrs }">
+              <v-btn
+                color="primary"
+                elevation="0"
+                plain
+                v-bind="attrs"
+                v-on="on"
+                class="mb-3 mt-3"
               >
-                <template v-if="question">
-                  <v-expansion-panel-header class="text-left">
-                    <h2 class="pa-0">
-                      {{ questionPage.questionStartIndex + qIndex + 1 }}
-                      <span
-                        class="pl-3 question-text"
-                        v-if="question.html"
-                        v-html="textOnly(question.html)"
-                      ></span>
-                    </h2>
-                  </v-expansion-panel-header>
-                  <v-expansion-panel-content>
-                    <component
-                      :is="questionTypeComponents[question.questionType]"
-                      :question="question"
-                    />
-                  </v-expansion-panel-content>
-                </template>
-              </v-expansion-panel>
-            </v-expansion-panels>
-            <page-break v-if="questionPage.pageBreakAfter" />
-          </div>
-        </template>
-      </template>
-      <template v-else>
-        <p class="grey--text">Add questions to continue</p>
-      </template>
-
-      <v-menu offset-y>
-        <template v-slot:activator="{ on, attrs }">
-          <v-btn
-            color="primary"
-            elevation="0"
-            plain
-            v-bind="attrs"
-            v-on="on"
-            class="mb-3 mt-3"
-          >
-            Add Question
-            <v-icon>mdi-chevron-down</v-icon>
-          </v-btn>
-        </template>
-        <v-list>
-          <v-list-item @click="handleAddQuestion('ESSAY')">
-            <v-list-item-title
-              ><v-icon class="mr-1">mdi-text</v-icon> Short
-              answer</v-list-item-title
-            >
-          </v-list-item>
-          <v-list-item @click="handleAddQuestion('MC')">
-            <v-list-item-title
-              ><v-icon class="mr-1">mdi-radiobox-marked</v-icon> Multiple
-              choice</v-list-item-title
-            >
-          </v-list-item>
-        </v-list>
-      </v-menu>
-      <br />
-      <v-btn
-        :disabled="contDisabled"
-        elevation="0"
-        color="primary"
-        class="mr-4"
-        type="submit"
-      >
-        Continue
-      </v-btn>
-    </form>
+                Add Question
+                <v-icon>mdi-chevron-down</v-icon>
+              </v-btn>
+            </template>
+            <v-list>
+              <v-list-item @click="handleAddQuestion('ESSAY')">
+                <v-list-item-title
+                  ><v-icon class="mr-1">mdi-text</v-icon> Short
+                  answer</v-list-item-title
+                >
+              </v-list-item>
+              <v-list-item @click="handleAddQuestion('MC')">
+                <v-list-item-title
+                  ><v-icon class="mr-1">mdi-radiobox-marked</v-icon> Multiple
+                  choice</v-list-item-title
+                >
+              </v-list-item>
+            </v-list>
+          </v-menu>
+          <br />
+        </form>
+      </v-tab-item>
+      <v-tab-item class="my-5">
+        <treatment-settings />
+      </v-tab-item>
+    </v-tabs-items>
+    <v-btn
+      :disabled="contDisabled"
+      elevation="0"
+      color="primary"
+      class="mr-4"
+      @click="saveAll('AssignmentYourAssignments')"
+    >
+      Continue
+    </v-btn>
   </div>
 </template>
 
@@ -113,6 +127,7 @@ import { mapActions, mapGetters, mapMutations } from "vuex";
 import MultipleChoiceQuestionEditor from "./MultipleChoiceQuestionEditor.vue";
 import QuestionEditor from "./QuestionEditor.vue";
 import PageBreak from "./PageBreak.vue";
+import TreatmentSettings from "./TreatmentSettings.vue";
 
 export default {
   name: "TerracottaBuilder",
@@ -187,6 +202,7 @@ export default {
         (v) =>
           (v || "").length <= 255 || "A maximum of 255 characters is allowed",
       ],
+      tab: null,
     };
   },
   methods: {
@@ -219,7 +235,7 @@ export default {
       }
     },
     async handleSaveAssessment() {
-      // PUT ASSESSMENT TITLE & HTML (description)
+      // PUT ASSESSMENT TITLE & HTML (description) & SETTINGS
       try {
         return await this.updateAssessment([
           this.experiment.experimentId,
@@ -228,6 +244,12 @@ export default {
           this.assessment_id,
           this.assessment.title,
           this.assessment.html,
+          this.assessment.allowStudentViewResponses,
+          this.assessment.studentViewResponsesAfter,
+          this.assessment.studentViewResponsesBefore,
+          this.assessment.allowStudentViewCorrectAnswers,
+          this.assessment.studentViewCorrectAnswersAfter,
+          this.assessment.studentViewCorrectAnswersBefore,
         ]);
       } catch (error) {
         console.error("handleCreateAssessment | catch", { error });
@@ -324,6 +346,7 @@ export default {
     QuestionEditor,
     MultipleChoiceQuestionEditor,
     PageBreak,
+    TreatmentSettings,
   },
 };
 </script>
