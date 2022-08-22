@@ -12,6 +12,7 @@
           class="mt-0"
           label="Allow students to see their treatment responses and points earned for each response"
           hide-details
+          @change="changeAllowStudentViewResponses"
         ></v-checkbox>
       </v-card-title>
       <v-card-text v-if="allowStudentViewResponses" class="text--primary">
@@ -322,6 +323,15 @@ export default {
       const updated = new Date(date);
       updated.setDate(updated.getDate() + days);
       return updated;
+    },
+    changeAllowStudentViewResponses(value) {
+      // It's important to emit an event that updates these in the parent component at once
+      this.$emit("input", {
+        ...this.value,
+        allowStudentViewResponses: value,
+        allowStudentViewCorrectAnswers:
+          this.allowStudentViewCorrectAnswers && value,
+      });
     },
   },
 };
