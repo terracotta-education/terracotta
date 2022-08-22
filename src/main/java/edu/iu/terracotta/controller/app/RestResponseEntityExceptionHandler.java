@@ -408,4 +408,13 @@ public class RestResponseEntityExceptionHandler
         log.warn(bodyOfResponse);
         return handleExceptionInternal(ex, bodyOfResponse, new HttpHeaders(), HttpStatus.BAD_REQUEST, request);
     }
+
+    @ExceptionHandler(value = { RevealResponsesSettingValidationException.class })
+    protected ResponseEntity<Object> handleRevealResponsesSettingValidationException(
+                    RevealResponsesSettingValidationException ex,
+                    WebRequest request) {
+            String bodyOfResponse = ex.getMessage();
+            log.warn(bodyOfResponse);
+            return handleExceptionInternal(ex, bodyOfResponse, new HttpHeaders(), HttpStatus.BAD_REQUEST, request);
+    }
 }

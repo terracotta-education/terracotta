@@ -56,15 +56,18 @@ const actions = {
       console.log('createAssessment catch', error)
     }
   },
-  async updateAssessment({state}, payload) {
-    // payload = experiment_id, condition_id, treatment_id, assessment_id, title, body
+  async updateAssessment(context, payload) {
+    // payload = experiment_id, condition_id, treatment_id, assessment_id,
+    //           title, body, allowStudentViewResponses, studentViewResponsesAfter,
+    //           studentViewResponsesBefore, allowStudentViewCorrectAnswers,
+    //           studentViewCorrectAnswersAfter, studentViewCorrectAnswersBefore
     // update the assessment, and return the status/data response
     try {
       const response = await assessmentService.updateAssessment(...payload)
       if (response) {
         return {
           status: response?.status,
-          data: state.assessment
+          data: response.data,
         }
       }
     } catch (error) {

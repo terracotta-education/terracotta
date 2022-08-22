@@ -3,6 +3,7 @@ package edu.iu.terracotta.service.app.impl;
 import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.IdInPostException;
+import edu.iu.terracotta.exceptions.RevealResponsesSettingValidationException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.model.app.*;
 import edu.iu.terracotta.model.app.dto.AssessmentDto;
@@ -55,12 +56,18 @@ public class AssessmentServiceImpl implements AssessmentService {
     }
 
     @Override
-    public AssessmentDto postAssessment(AssessmentDto assessmentDto, long treatmentId) throws IdInPostException, DataServiceException, TitleValidationException, AssessmentNotMatchingException {
+    public AssessmentDto postAssessment(AssessmentDto assessmentDto, long treatmentId)
+            throws IdInPostException, DataServiceException, TitleValidationException, AssessmentNotMatchingException,
+            RevealResponsesSettingValidationException {
         if (assessmentDto.getAssessmentId() != null) {
             throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
         }
 
         validateTitle(assessmentDto.getTitle());
+        // reveal treatment response settings are ignored in the DTO when
+        // creating an assessment and will be copied from the Treatment's
+        // Assignment. These settings can be updated for an assessment by
+        // calling updateAssessment.
         assessmentDto = defaultAssessment(assessmentDto, treatmentId);
         Assessment assessment;
         try {
@@ -92,6 +99,12 @@ public class AssessmentServiceImpl implements AssessmentService {
         assessmentDto.setTitle(assessment.getTitle());
         assessmentDto.setAutoSubmit(assessment.getAutoSubmit());
         assessmentDto.setNumOfSubmissions(assessment.getNumOfSubmissions());
+        assessmentDto.setAllowStudentViewResponses(assessment.isAllowStudentViewResponses());
+        assessmentDto.setStudentViewResponsesAfter(assessment.getStudentViewResponsesAfter());
+        assessmentDto.setStudentViewResponsesBefore(assessment.getStudentViewResponsesBefore());
+        assessmentDto.setAllowStudentViewCorrectAnswers(assessment.isAllowStudentViewCorrectAnswers());
+        assessmentDto.setStudentViewCorrectAnswersAfter(assessment.getStudentViewCorrectAnswersAfter());
+        assessmentDto.setStudentViewCorrectAnswersBefore(assessment.getStudentViewCorrectAnswersBefore());
         List<QuestionDto> questionDtoList = new ArrayList<>();
         if (questions) {
             List<Question> questionList = allRepositories.questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(assessment.getAssessmentId());
@@ -165,6 +178,12 @@ public class AssessmentServiceImpl implements AssessmentService {
         assessment.setTitle(assessmentDto.getTitle());
         assessment.setAutoSubmit(assessmentDto.getAutoSubmit());
         assessment.setNumOfSubmissions(assessmentDto.getNumOfSubmissions());
+        assessment.setAllowStudentViewResponses(assessmentDto.isAllowStudentViewResponses());
+        assessment.setStudentViewResponsesAfter(assessmentDto.getStudentViewResponsesAfter());
+        assessment.setStudentViewResponsesBefore(assessmentDto.getStudentViewResponsesBefore());
+        assessment.setAllowStudentViewCorrectAnswers(assessmentDto.isAllowStudentViewCorrectAnswers());
+        assessment.setStudentViewCorrectAnswersAfter(assessmentDto.getStudentViewCorrectAnswersAfter());
+        assessment.setStudentViewCorrectAnswersBefore(assessmentDto.getStudentViewCorrectAnswersBefore());
         Optional<Treatment> treatment = allRepositories.treatmentRepository.findById(assessmentDto.getTreatmentId());
         if (treatment.isPresent()) {
             assessment.setTreatment(treatment.get());
@@ -190,7 +209,8 @@ public class AssessmentServiceImpl implements AssessmentService {
     }
 
     @Override
-    public void updateAssessment(Long id, AssessmentDto assessmentDto) throws TitleValidationException {
+    public void updateAssessment(Long id, AssessmentDto assessmentDto)
+            throws TitleValidationException, RevealResponsesSettingValidationException {
         Assessment assessment = allRepositories.assessmentRepository.findByAssessmentId(id);
         if (StringUtils.isAllBlank(assessmentDto.getTitle()) && StringUtils.isAllBlank(assessment.getTitle())) {
             throw new TitleValidationException("Error 100: Please give the assessment a title.");
@@ -198,6 +218,13 @@ public class AssessmentServiceImpl implements AssessmentService {
         if (!StringUtils.isAllBlank(assessmentDto.getTitle()) && assessmentDto.getTitle().length() > 255) {
             throw new TitleValidationException("Error 101: Assessment title must be 255 characters or less.");
         }
+        validateRevealAssignmentResponsesSettings(assessmentDto);
+        assessment.setAllowStudentViewResponses(assessmentDto.isAllowStudentViewResponses());
+        assessment.setStudentViewResponsesAfter(assessmentDto.getStudentViewResponsesAfter());
+        assessment.setStudentViewResponsesBefore(assessmentDto.getStudentViewResponsesBefore());
+        assessment.setAllowStudentViewCorrectAnswers(assessmentDto.isAllowStudentViewCorrectAnswers());
+        assessment.setStudentViewCorrectAnswersAfter(assessmentDto.getStudentViewCorrectAnswersAfter());
+        assessment.setStudentViewCorrectAnswersBefore(assessmentDto.getStudentViewCorrectAnswersBefore());
         assessment.setHtml(assessmentDto.getHtml());
         assessment.setTitle(assessmentDto.getTitle());
         assessment.setAutoSubmit(assessmentDto.getAutoSubmit());
@@ -239,6 +266,56 @@ public class AssessmentServiceImpl implements AssessmentService {
         }
     }
 
+    private void validateRevealAssignmentResponsesSettings(AssessmentDto assessmentDto)
+            throws RevealResponsesSettingValidationException {
+
+        // validate that if allowStudentViewCorrectAnswers then also
+        // allowStudentViewResponses must be true
+        if (assessmentDto.isAllowStudentViewCorrectAnswers() && !assessmentDto.isAllowStudentViewResponses()) {
+            throw new RevealResponsesSettingValidationException(
+                    "Error 151: Cannot allow students to view correct answers if they are not allowed to view responses.");
+        }
+        // Validate that view responses 'after' date comes before the 'before' date
+        if (assessmentDto.getStudentViewResponsesAfter() != null
+                && assessmentDto.getStudentViewResponsesBefore() != null
+                && !assessmentDto.getStudentViewResponsesAfter()
+                        .before(assessmentDto.getStudentViewResponsesBefore())) {
+            throw new RevealResponsesSettingValidationException(
+                    "Error 152: Start date of revealing student responses must come before end date.");
+        }
+        // Validate that view correct answers 'after' date comes before the 'before'
+        // date
+        if (assessmentDto.getStudentViewCorrectAnswersAfter() != null
+                && assessmentDto.getStudentViewCorrectAnswersBefore() != null
+                && !assessmentDto.getStudentViewCorrectAnswersAfter()
+                        .before(assessmentDto.getStudentViewCorrectAnswersBefore())) {
+            throw new RevealResponsesSettingValidationException(
+                    "Error 153: Start date of revealing correct answers must come before end date.");
+        }
+        // Validate studentViewCorrectAnswersAfter is greater than or equal to
+        // studentViewResponsesAfter
+        if (assessmentDto.getStudentViewCorrectAnswersAfter() != null
+                && assessmentDto.getStudentViewResponsesAfter() != null && !(assessmentDto
+                        .getStudentViewCorrectAnswersAfter().equals(assessmentDto.getStudentViewResponsesAfter())
+                        || assessmentDto.getStudentViewCorrectAnswersAfter()
+                                .after(assessmentDto.getStudentViewResponsesAfter()))) {
+
+            throw new RevealResponsesSettingValidationException(
+                    "Error 154: Start date of revealing correct answers must equal or come after start date of revealing student responses.");
+        }
+        // Validate studentViewCorrectAnswersBefore is less than or equal to
+        // studentViewResponsesBefore
+        if (assessmentDto.getStudentViewCorrectAnswersBefore() != null
+                && assessmentDto.getStudentViewResponsesBefore() != null && !(assessmentDto
+                        .getStudentViewCorrectAnswersBefore().equals(assessmentDto.getStudentViewResponsesBefore())
+                        || assessmentDto.getStudentViewCorrectAnswersBefore()
+                                .before(assessmentDto.getStudentViewResponsesBefore()))) {
+
+            throw new RevealResponsesSettingValidationException(
+                    "Error 155: End date of revealing correct answers must equal or come before end date of revealing student responses.");
+        }
+    }
+
     @Override
     public AssessmentDto defaultAssessment(AssessmentDto assessmentDto, Long treatmentId) {
         assessmentDto.setTreatmentId(treatmentId);
@@ -246,6 +323,16 @@ public class AssessmentServiceImpl implements AssessmentService {
             assessmentDto.setNumOfSubmissions(1);
         }
         assessmentDto.setAutoSubmit(true);
+
+        // Default reveal treatment responses settings to assignment level settings.
+        Treatment treatment = allRepositories.treatmentRepository.findByTreatmentId(treatmentId);
+        Assignment assignment = treatment.getAssignment();
+        assessmentDto.setAllowStudentViewResponses(assignment.isAllowStudentViewResponses());
+        assessmentDto.setStudentViewResponsesAfter(assignment.getStudentViewResponsesAfter());
+        assessmentDto.setStudentViewResponsesBefore(assignment.getStudentViewResponsesBefore());
+        assessmentDto.setAllowStudentViewCorrectAnswers(assignment.isAllowStudentViewCorrectAnswers());
+        assessmentDto.setStudentViewCorrectAnswersAfter(assignment.getStudentViewCorrectAnswersAfter());
+        assessmentDto.setStudentViewCorrectAnswersBefore(assignment.getStudentViewCorrectAnswersBefore());
 
         return assessmentDto;
     }

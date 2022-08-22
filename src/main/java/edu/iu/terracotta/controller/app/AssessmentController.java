@@ -6,6 +6,7 @@ import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.NoSubmissionsException;
+import edu.iu.terracotta.exceptions.RevealResponsesSettingValidationException;
 import edu.iu.terracotta.exceptions.SubmissionNotMatchingException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
@@ -121,7 +122,9 @@ public class AssessmentController {
                                                         @RequestBody AssessmentDto assessmentDto,
                                                         UriComponentsBuilder ucBuilder,
                                                         HttpServletRequest req)
-            throws ExperimentNotMatchingException, TreatmentNotMatchingException, BadTokenException, TitleValidationException, AssessmentNotMatchingException, IdInPostException, DataServiceException {
+            throws ExperimentNotMatchingException, TreatmentNotMatchingException, BadTokenException,
+            TitleValidationException, AssessmentNotMatchingException, IdInPostException, DataServiceException,
+            RevealResponsesSettingValidationException {
 
         log.debug("Creating Assessment: {}", assessmentDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
@@ -144,7 +147,8 @@ public class AssessmentController {
                                                  @PathVariable("assessment_id") Long assessmentId,
                                                  @RequestBody AssessmentDto assessmentDto,
                                                  HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, BadTokenException, TitleValidationException {
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, BadTokenException,
+            TitleValidationException, RevealResponsesSettingValidationException {
 
         log.debug("Updating assessment with id: {}", assessmentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
