@@ -4,7 +4,7 @@
       Add your treatment for
       {{ assignment.title }}'s condition: <strong>{{ condition.name }}</strong>
     </h1>
-    <v-tabs v-model="tab">
+    <v-tabs v-model="tab" class="tabs">
       <v-tab>Treatment</v-tab>
       <v-tab>Settings</v-tab>
     </v-tabs>
@@ -374,6 +374,10 @@ export default {
         vertical-align: middle;
       }
     }
+  }
+  .tabs {
+    border-top: 1px solid map-get($grey, "lighten-2");
+    border-bottom: 1px solid map-get($grey, "lighten-2");
   }
 }
 </style>
