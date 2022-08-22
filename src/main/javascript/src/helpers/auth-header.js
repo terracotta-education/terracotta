@@ -20,3 +20,14 @@ export function authHeader() {
         return {};
     }
 }
+
+export function fileAuthHeader() {
+    if (store.state.api?.api_token) {
+        return {
+            'Authorization': 'Bearer ' + store.state.api.api_token,
+            // 'Content-Type': 'multipart/form-data'
+        };
+    } else {
+        return {};
+    }
+}

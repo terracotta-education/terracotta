@@ -23,6 +23,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 @Controller
@@ -218,14 +219,13 @@ public class AnswerSubmissionController {
     }
 
 
-    @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}/question_submissions/{question_submission_id}/answer_submissions/file",
+    @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}/answer_submissions/file",
             method = RequestMethod.POST, consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
-    public ResponseEntity<AnswerSubmissionDto> postFileAnswerSubmission(@PathVariable("experiment_id") Long experimentId,
+    public ResponseEntity<List<AnswerSubmissionDto>> postFileAnswerSubmission(@PathVariable("experiment_id") Long experimentId,
                                                                         @PathVariable("condition_id") Long conditionId,
                                                                         @PathVariable("treatment_id") Long treatmentId,
                                                                         @PathVariable("assessment_id") Long assessmentId,
                                                                         @PathVariable("submission_id") Long submissionId,
-                                                                        @PathVariable("question_submission_id") Long questionSubmissionId,
                                                                         @RequestParam("answer_dto") String answerSubmissionDtoStr,
                                                                         UriComponentsBuilder ucBuilder,
                                                                         @RequestPart("file") MultipartFile file,
@@ -248,18 +248,20 @@ public class AnswerSubmissionController {
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
-        apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, questionSubmissionId);
+        apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, answerSubmissionDto.getQuestionSubmissionId());
 
         if (apijwtService.isLearnerOrHigher(securedInfo)) {
             if (!apijwtService.isInstructorOrHigher(securedInfo)) {
                 submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
             }
             AnswerSubmissionDto returnedDto = answerSubmissionService.postAnswerSubmission(answerSubmissionDto,
-                    questionSubmissionId);
+                    answerSubmissionDto.getQuestionSubmissionId());
             HttpHeaders headers = answerSubmissionService.
                     buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, submissionId,
-                            questionSubmissionId, returnedDto.getAnswerSubmissionId());
-            return new ResponseEntity<>(returnedDto, headers, HttpStatus.OK);
+                            answerSubmissionDto.getQuestionSubmissionId(), returnedDto.getAnswerSubmissionId());
+            List<AnswerSubmissionDto> answerSubmissionDtoList = new ArrayList<>();
+            answerSubmissionDtoList.add(returnedDto);
+            return new ResponseEntity<>(answerSubmissionDtoList, headers, HttpStatus.OK);
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }

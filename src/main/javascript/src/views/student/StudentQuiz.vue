@@ -203,10 +203,12 @@ export default {
           const questionSubmission = {
             questionSubmissionId,
             questionId: q.questionId,
+            type:q.type,
             answerSubmissionDtoList: [
               {
                 answerId: q.answerId,
                 response: q.response,
+                type:q.type,
                 questionSubmissionId,
               },
             ],
@@ -291,9 +293,10 @@ export default {
           const answer = this.questionValues.find(
               ({ questionId }) => questionId === question.questionId
           ).response;
-          if (answer === null || answer.trim() === "") {
+          if (answer === null) {
             return false;
           }
+          return true;
         }else {
           console.log(
             "Unexpected question type",
@@ -340,6 +343,7 @@ export default {
             questionId: q.questionId,
             answerId: null,
             response: null,
+            type:q.questionType,
           };
         });
       }else if(stepResponse?.status == 401) {

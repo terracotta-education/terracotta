@@ -360,6 +360,7 @@ public class SubmissionServiceImpl implements SubmissionService {
                     }
                     break;
                 case ESSAY:
+                case FILE:
                     questionGraded = questionSubmission;
                     questionGraded.setCalculatedPoints(Float.valueOf("0"));
                     break;

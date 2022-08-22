@@ -13,7 +13,7 @@
               height="100%"
       >
         <v-card-actions>
-          <v-btn color="primary" dark class="upload-button" :loading="isSelecting" @click="handleFileImport">
+          <v-btn color="primary" dark class="upload-button" align="center" :loading="isSelecting" @click="handleFileImport">
             Upload File
           </v-btn>
           <input
@@ -53,7 +53,7 @@
           <v-col cols="8">
             <v-progress-linear v-if="!isIdle"
                                v-model="uploadBarProgress"
-                               height="10"
+                               height="5"
             >
             </v-progress-linear>
           </v-col>
@@ -124,14 +124,12 @@ export default {
         });
       } else
         e.dataTransfer.files.forEach(element => {
-              console.log(element)
               this.uploadedFiles.push(element)
-              this.loadFile(e.target.files[0])
+              this.loadFile(element)
             }
         );
     },
     onFileChanged(e) {
-      console.log(e.target.files[0]);
       this.uploadedFiles = [];
       this.uploading = true;
       this.uploadedFiles.push(e.target.files[0])
@@ -140,19 +138,24 @@ export default {
 
     loadFile(file) {
       this.uploadBarProgress=50;
-      if (file.size > 1024 * 1024) {
+      if (file.size > 10* 1024 * 1024) {
         alert('File too big (> 10MB)');
         return;
       }
       this.uploadBarProgress=100;
       this.uploading=false
       this.uploaded=true
+      this.response=file;
+      this.emitValueChanged();
+
     },
     deleteFile() {
       this.uploadedFiles = [];
       this.uploadBarProgress=0;
       this.uploading=false
       this.uploaded=false
+      this.response=null;
+      this.emitValueChanged();
     }
   },
   computed: {
@@ -169,9 +172,6 @@ export default {
   watch: {
     value() {
       this.response = this.value;
-      if (this.response) {
-        this.updateWordCount();
-      }
     },
   },
 };

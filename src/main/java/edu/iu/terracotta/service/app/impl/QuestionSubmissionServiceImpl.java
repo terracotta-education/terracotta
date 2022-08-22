@@ -246,7 +246,8 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
                 validateDtoPost(questionSubmissionDto, assessmentId, submissionId, student);
                 questionSubmissionDto.setSubmissionId(submissionId);
                 QuestionSubmission questionSubmission = fromDto(questionSubmissionDto);
-                if (questionSubmission.getQuestion().getQuestionType().equals(QuestionTypes.MC) || questionSubmission.getQuestion().getQuestionType().equals(QuestionTypes.ESSAY)) {
+                if (questionSubmission.getQuestion().getQuestionType().equals(QuestionTypes.MC) || questionSubmission.getQuestion().getQuestionType().equals(QuestionTypes.ESSAY)||
+                        questionSubmission.getQuestion().getQuestionType().equals(QuestionTypes.FILE)) {
                     if (questionSubmissionDto.getAnswerSubmissionDtoList() != null) {
                         if (questionSubmissionDto.getAnswerSubmissionDtoList().size() > 1) {
                             throw new ExceedingLimitException("Error 145: Multiple choice and essay questions can only have one answer submission.");
