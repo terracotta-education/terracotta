@@ -19,7 +19,7 @@
           <div>
             Show responses and points on
           </div>
-          <v-menu v-model="studentViewResponsesAfterMenu" min-width="auto">
+          <v-menu v-model="studentViewResponsesAfterMenu" min-width="290">
             <template v-slot:activator="{ on, attrs }">
               <v-text-field
                 v-model="studentViewResponsesAfterFormatted"
@@ -36,7 +36,7 @@
             <v-date-picker
               v-model="studentViewResponsesAfter"
               @input="studentViewResponsesAfterMenu = false"
-              :max="studentViewResponsesBefore"
+              :max="addDays(studentViewResponsesBefore, -1)"
             >
               <v-spacer></v-spacer>
               <v-btn
@@ -51,7 +51,7 @@
           <div>
             and hide on
           </div>
-          <v-menu v-model="studentViewResponsesBeforeMenu" min-width="auto">
+          <v-menu v-model="studentViewResponsesBeforeMenu" min-width="290">
             <template v-slot:activator="{ on, attrs }">
               <v-text-field
                 v-model="studentViewResponsesBeforeFormatted"
@@ -68,7 +68,7 @@
             <v-date-picker
               v-model="studentViewResponsesBefore"
               @input="studentViewResponsesBeforeMenu = false"
-              :min="studentViewResponsesAfter"
+              :min="addDays(studentViewResponsesAfter, 1)"
             >
               <v-spacer></v-spacer>
               <v-btn
@@ -99,7 +99,7 @@
           <div>
             Show correct answers and comments on
           </div>
-          <v-menu v-model="studentViewCorrectAnswersAfterMenu" min-width="auto">
+          <v-menu v-model="studentViewCorrectAnswersAfterMenu" min-width="290">
             <template v-slot:activator="{ on, attrs }">
               <v-text-field
                 v-model="studentViewCorrectAnswersAfterFormatted"
@@ -113,12 +113,17 @@
                 v-on="on"
               ></v-text-field>
             </template>
+            <!-- studentViewCorrectAnswersAfter must be within the range of the
+                 view responses dates (studentViewResponsesAfter ->
+                 studentViewResponsesBefore). It must also be before
+                 studentViewCorrectAnswersBefore. -->
             <v-date-picker
               v-model="studentViewCorrectAnswersAfter"
               @input="studentViewCorrectAnswersAfterMenu = false"
               :min="studentViewResponsesAfter"
               :max="
-                studentViewCorrectAnswersBefore || studentViewResponsesBefore
+                addDays(studentViewCorrectAnswersBefore, -1) ||
+                  studentViewResponsesBefore
               "
             >
               <v-spacer></v-spacer>
@@ -134,10 +139,7 @@
           <div>
             and hide on
           </div>
-          <v-menu
-            v-model="studentViewCorrectAnswersBeforeMenu"
-            min-width="auto"
-          >
+          <v-menu v-model="studentViewCorrectAnswersBeforeMenu" min-width="290">
             <template v-slot:activator="{ on, attrs }">
               <v-text-field
                 v-model="studentViewCorrectAnswersBeforeFormatted"
@@ -151,10 +153,17 @@
                 v-on="on"
               ></v-text-field>
             </template>
+            <!-- studentViewCorrectAnswersBefore must be within the range of the
+                 view responses dates (studentViewResponsesBefore ->
+                 studentViewResponsesAfter). It must also be after
+                 studentViewCorrectAnswersAfter. -->
             <v-date-picker
               v-model="studentViewCorrectAnswersBefore"
               @input="studentViewCorrectAnswersBeforeMenu = false"
-              :min="studentViewCorrectAnswersAfter || studentViewResponsesAfter"
+              :min="
+                addDays(studentViewCorrectAnswersAfter, 1) ||
+                  studentViewResponsesAfter
+              "
               :max="studentViewResponsesBefore"
             >
               <v-spacer></v-spacer>
@@ -294,9 +303,25 @@ export default {
     },
     convertUnixTimeToDateString(unixTime) {
       const date = new Date(unixTime);
+      return this.convertDateToDateString(date);
+    },
+    convertDateToDateString(date) {
       const month = String(date.getMonth() + 1).padStart(2, "0"); // getMonth returns zero-based month index
       const day = String(date.getDate()).padStart(2, "0");
       return `${date.getFullYear()}-${month}-${day}`; // ISO 8601 date format
+    },
+    addDays(dateString, days) {
+      if (!dateString) {
+        return dateString;
+      }
+      const date = this.convertDateStringToDate(dateString);
+      const updated = this.addDaysToDate(date, days);
+      return this.convertDateToDateString(updated);
+    },
+    addDaysToDate(date, days) {
+      const updated = new Date(date);
+      updated.setDate(updated.getDate() + days);
+      return updated;
     },
   },
 };
