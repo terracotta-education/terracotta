@@ -56,7 +56,7 @@ const actions = {
       console.log('createAssessment catch', error)
     }
   },
-  async updateAssessment({state}, payload) {
+  async updateAssessment(context, payload) {
     // payload = experiment_id, condition_id, treatment_id, assessment_id,
     //           title, body, allowStudentViewResponses, studentViewResponsesAfter,
     //           studentViewResponsesBefore, allowStudentViewCorrectAnswers,
@@ -67,7 +67,7 @@ const actions = {
       if (response) {
         return {
           status: response?.status,
-          data: state.assessment
+          data: response.data,
         }
       }
     } catch (error) {

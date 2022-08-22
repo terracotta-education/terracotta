@@ -236,24 +236,25 @@ export default {
     },
     async handleSaveAssessment() {
       // PUT ASSESSMENT TITLE & HTML (description) & SETTINGS
-      try {
-        return await this.updateAssessment([
-          this.experiment.experimentId,
-          this.condition.conditionId,
-          this.treatment_id,
-          this.assessment_id,
-          this.assessment.title,
-          this.assessment.html,
-          this.assessment.allowStudentViewResponses,
-          this.assessment.studentViewResponsesAfter,
-          this.assessment.studentViewResponsesBefore,
-          this.assessment.allowStudentViewCorrectAnswers,
-          this.assessment.studentViewCorrectAnswersAfter,
-          this.assessment.studentViewCorrectAnswersBefore,
-        ]);
-      } catch (error) {
-        console.error("handleCreateAssessment | catch", { error });
+      const response = await this.updateAssessment([
+        this.experiment.experimentId,
+        this.condition.conditionId,
+        this.treatment_id,
+        this.assessment_id,
+        this.assessment.title,
+        this.assessment.html,
+        this.assessment.allowStudentViewResponses,
+        this.assessment.studentViewResponsesAfter,
+        this.assessment.studentViewResponsesBefore,
+        this.assessment.allowStudentViewCorrectAnswers,
+        this.assessment.studentViewCorrectAnswersAfter,
+        this.assessment.studentViewCorrectAnswersBefore,
+      ]);
+      if (response.status === 400) {
+        this.$swal(response.data);
+        return false;
       }
+      return true;
     },
     async handleSaveQuestions() {
       // LOOP AND PUT QUESTIONS
