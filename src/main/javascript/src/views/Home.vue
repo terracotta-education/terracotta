@@ -1,8 +1,9 @@
 <template>
   <v-container v-if="!experiments || experiments.length<1">
+    <div class="terracotta-appbg"/>
     <v-row justify="center" class="text-center">
       <v-col md="6" class="mt-15 ">
-        <v-img src="@/assets/terracotta_logo.svg" alt="Terracotta Logo" class="mb-13 mx-auto" max-width="173"/>
+        <v-img src="@/assets/terracotta_logo.svg" alt="Terracotta Logo" class="mb-13 mx-auto" max-width="400"/>
         <h1>Experimental research in the LMS</h1>
 
         <p class="mb-10">
@@ -215,5 +216,19 @@ export default {
   .v-data-footer {
     border-top: none !important;
   }
+}
+
+.terracotta-appbg {
+	background: url('~@/assets/terracotta_appbg.jpg') no-repeat center center;
+	background-size: cover;
+	height: 100%;
+	width: 100%;
+	position: fixed;
+	top: 0;
+	left: 0;
+	opacity: 0.5;
+}
+.terracotta-appbg + * {
+	position: relative; /*place the content above the terracotta-appbg*/
 }
 </style>
