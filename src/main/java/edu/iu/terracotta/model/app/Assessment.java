@@ -5,6 +5,8 @@ import java.util.List;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
@@ -15,6 +17,7 @@ import javax.persistence.OneToOne;
 import javax.persistence.Table;
 
 import edu.iu.terracotta.model.BaseEntity;
+import edu.iu.terracotta.model.app.enumerator.MultipleSubmissionScoringScheme;
 
 @Table(name = "terr_assessment")
 @Entity
@@ -41,8 +44,20 @@ public class Assessment extends BaseEntity {
     @Column(name = "auto_submit", nullable = false)
     private boolean autoSubmit;
 
-    @Column(name = "num_of_submissions")
+    // if null then the number of submissions is unlimited
+    @Column(name = "num_of_submissions", nullable = true)
     private Integer numOfSubmissions;
+
+    // if null then no minimum time between submissions
+    @Column(name = "hours_between_submissions", nullable = true)
+    private Float hoursBetweenSubmissions;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "multiple_submission_scoring_scheme", nullable = false)
+    private MultipleSubmissionScoringScheme multipleSubmissionScoringScheme = MultipleSubmissionScoringScheme.MOST_RECENT;
+
+    @Column(name = "cumulative_scoring_initial_percentage", nullable = true)
+    private Float cumulativeScoringInitialPercentage;
 
     @Column(name = "allow_student_view_responses", nullable = false)
     private boolean allowStudentViewResponses = false;
@@ -143,6 +158,30 @@ public class Assessment extends BaseEntity {
 
     public void setStudentViewCorrectAnswersBefore(Timestamp studentViewCorrectAnswersBefore) {
         this.studentViewCorrectAnswersBefore = studentViewCorrectAnswersBefore;
+    }
+
+    public Float getHoursBetweenSubmissions() {
+        return hoursBetweenSubmissions;
+    }
+
+    public void setHoursBetweenSubmissions(Float hoursBetweenSubmissions) {
+        this.hoursBetweenSubmissions = hoursBetweenSubmissions;
+    }
+
+    public MultipleSubmissionScoringScheme getMultipleSubmissionScoringScheme() {
+        return multipleSubmissionScoringScheme;
+    }
+
+    public void setMultipleSubmissionScoringScheme(MultipleSubmissionScoringScheme multipleSubmissionScoringScheme) {
+        this.multipleSubmissionScoringScheme = multipleSubmissionScoringScheme;
+    }
+
+    public Float getCumulativeScoringInitialPercentage() {
+        return cumulativeScoringInitialPercentage;
+    }
+
+    public void setCumulativeScoringInitialPercentage(Float cumulativeScoringInitialPercentage) {
+        this.cumulativeScoringInitialPercentage = cumulativeScoringInitialPercentage;
     }
 
 }

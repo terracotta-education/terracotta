@@ -1,0 +1,42 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext" xmlns:pro="http://www.liquibase.org/xml/ns/pro" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd http://www.liquibase.org/xml/ns/pro http://www.liquibase.org/xml/ns/pro/liquibase-pro-4.1.xsd http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.1.xsd">
+    <changeSet author="machrist (generated)" id="1661367251468-1">
+        <addColumn tableName="terr_assessment">
+            <column name="cumulative_scoring_initial_percentage" type="FLOAT"/>
+        </addColumn>
+    </changeSet>
+    <changeSet author="machrist (generated)" id="1661367251468-2">
+        <addColumn tableName="terr_assignment">
+            <column name="cumulative_scoring_initial_percentage" type="FLOAT"/>
+        </addColumn>
+    </changeSet>
+    <changeSet author="machrist (generated)" id="1661367251468-3">
+        <addColumn tableName="terr_assessment">
+            <column name="hours_between_submissions" type="FLOAT"/>
+        </addColumn>
+    </changeSet>
+    <changeSet author="machrist (generated)" id="1661367251468-4">
+        <addColumn tableName="terr_assignment">
+            <column name="hours_between_submissions" type="FLOAT"/>
+        </addColumn>
+    </changeSet>
+    <changeSet author="machrist (generated)" id="1661367251468-5">
+        <addColumn tableName="terr_assessment">
+            <column name="multiple_submission_scoring_scheme" type="VARCHAR(255)" defaultValue="MOST_RECENT">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
+    <changeSet author="machrist (generated)" id="1661367251468-6">
+        <addColumn tableName="terr_assignment">
+            <column name="multiple_submission_scoring_scheme" type="VARCHAR(255)" defaultValue="MOST_RECENT">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
+    <changeSet author="machrist (generated)" id="1661367251468-7">
+        <addColumn tableName="terr_assignment">
+            <column name="num_of_submissions" type="INTEGER"/>
+        </addColumn>
+    </changeSet>
+</databaseChangeLog>

@@ -1,6 +1,8 @@
 package edu.iu.terracotta.model.app;
 
 import edu.iu.terracotta.model.BaseEntity;
+import edu.iu.terracotta.model.app.enumerator.MultipleSubmissionScoringScheme;
+
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
@@ -8,6 +10,8 @@ import java.sql.Timestamp;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
@@ -42,6 +46,21 @@ public class Assignment extends BaseEntity {
 
     @Column(name = "soft_deleted")
     private Boolean softDeleted = false;
+
+    // if null then the number of submissions is unlimited
+    @Column(name = "num_of_submissions", nullable = true)
+    private Integer numOfSubmissions;
+
+    // if null then no minimum time between submissions
+    @Column(name = "hours_between_submissions", nullable = true)
+    private Float hoursBetweenSubmissions;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "multiple_submission_scoring_scheme", nullable = false)
+    private MultipleSubmissionScoringScheme multipleSubmissionScoringScheme = MultipleSubmissionScoringScheme.MOST_RECENT;
+
+    @Column(name = "cumulative_scoring_initial_percentage", nullable = true)
+    private Float cumulativeScoringInitialPercentage;
 
     @Column(name = "allow_student_view_responses", nullable = false)
     private boolean allowStudentViewResponses = false;
@@ -145,4 +164,37 @@ public class Assignment extends BaseEntity {
     public void setStudentViewCorrectAnswersBefore(Timestamp studentViewCorrectAnswersBefore) {
         this.studentViewCorrectAnswersBefore = studentViewCorrectAnswersBefore;
     }
+
+    public Integer getNumOfSubmissions() {
+        return numOfSubmissions;
+    }
+
+    public void setNumOfSubmissions(Integer numOfSubmissions) {
+        this.numOfSubmissions = numOfSubmissions;
+    }
+
+    public Float getHoursBetweenSubmissions() {
+        return hoursBetweenSubmissions;
+    }
+
+    public void setHoursBetweenSubmissions(Float hoursBetweenSubmissions) {
+        this.hoursBetweenSubmissions = hoursBetweenSubmissions;
+    }
+
+    public MultipleSubmissionScoringScheme getMultipleSubmissionScoringScheme() {
+        return multipleSubmissionScoringScheme;
+    }
+
+    public void setMultipleSubmissionScoringScheme(MultipleSubmissionScoringScheme multipleSubmissionScoringScheme) {
+        this.multipleSubmissionScoringScheme = multipleSubmissionScoringScheme;
+    }
+
+    public Float getCumulativeScoringInitialPercentage() {
+        return cumulativeScoringInitialPercentage;
+    }
+
+    public void setCumulativeScoringInitialPercentage(Float cumulativeScoringInitialPercentage) {
+        this.cumulativeScoringInitialPercentage = cumulativeScoringInitialPercentage;
+    }
+
 }
