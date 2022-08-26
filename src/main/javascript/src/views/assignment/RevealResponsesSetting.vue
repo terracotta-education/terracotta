@@ -20,49 +20,17 @@
           <div>
             Show responses and points on
           </div>
-          <v-datetime-picker
+          <custom-datetime-picker
             v-model="studentViewResponsesAfter"
-            dateFormat="M/d/yy"
-            timeFormat="h:mm aaa"
             :datePickerProps="{ max: addDays(studentViewResponsesBefore, -1) }"
-            :textFieldProps="{
-              'append-icon': 'mdi-calendar',
-              outlined: true,
-              dense: true,
-              'hide-details': true,
-              class: { 'date-field': true },
-            }"
-          >
-            <template #dateIcon>
-              <v-icon>mdi-calendar</v-icon>
-            </template>
-            <template #timeIcon>
-              <v-icon>mdi-clock-outline</v-icon>
-            </template>
-          </v-datetime-picker>
+          />
           <div>
             and hide on
           </div>
-          <v-datetime-picker
+          <custom-datetime-picker
             v-model="studentViewResponsesBefore"
-            dateFormat="M/d/yy"
-            timeFormat="h:mm aaa"
             :datePickerProps="{ min: addDays(studentViewResponsesAfter, 1) }"
-            :textFieldProps="{
-              'append-icon': 'mdi-calendar',
-              outlined: true,
-              dense: true,
-              'hide-details': true,
-              class: { 'date-field': true },
-            }"
-          >
-            <template #dateIcon>
-              <v-icon>mdi-calendar</v-icon>
-            </template>
-            <template #timeIcon>
-              <v-icon>mdi-clock-outline</v-icon>
-            </template>
-          </v-datetime-picker>
+          />
         </div>
         <v-checkbox
           class="allow-students-view-correct-answers"
@@ -82,59 +50,27 @@
           <div>
             Show correct answers and comments on
           </div>
-          <v-datetime-picker
+          <custom-datetime-picker
             v-model="studentViewCorrectAnswersAfter"
-            dateFormat="M/d/yy"
-            timeFormat="h:mm aaa"
             :datePickerProps="{
               min: convertDateToDateString(studentViewResponsesAfter),
               max:
                 addDays(studentViewCorrectAnswersBefore, -1) ||
                 convertDateToDateString(studentViewResponsesBefore),
             }"
-            :textFieldProps="{
-              'append-icon': 'mdi-calendar',
-              outlined: true,
-              dense: true,
-              'hide-details': true,
-              class: { 'date-field': true },
-            }"
-          >
-            <template #dateIcon>
-              <v-icon>mdi-calendar</v-icon>
-            </template>
-            <template #timeIcon>
-              <v-icon>mdi-clock-outline</v-icon>
-            </template>
-          </v-datetime-picker>
+          />
           <div>
             and hide on
           </div>
-          <v-datetime-picker
+          <custom-datetime-picker
             v-model="studentViewCorrectAnswersBefore"
-            dateFormat="M/d/yy"
-            timeFormat="h:mm aaa"
             :datePickerProps="{
               min:
                 addDays(studentViewCorrectAnswersAfter, 1) ||
                 convertDateToDateString(studentViewResponsesAfter),
               max: convertDateToDateString(studentViewResponsesBefore),
             }"
-            :textFieldProps="{
-              'append-icon': 'mdi-calendar',
-              outlined: true,
-              dense: true,
-              'hide-details': true,
-              class: { 'date-field': true },
-            }"
-          >
-            <template #dateIcon>
-              <v-icon>mdi-calendar</v-icon>
-            </template>
-            <template #timeIcon>
-              <v-icon>mdi-clock-outline</v-icon>
-            </template>
-          </v-datetime-picker>
+          />
         </div>
       </v-card-text>
     </v-card>
@@ -142,6 +78,7 @@
 </template>
 
 <script>
+import CustomDatetimePicker from "./CustomDatetimePicker.vue";
 function createDateGetterSetter(prop) {
   return {
     // two-way computed property
@@ -158,6 +95,7 @@ function createDateGetterSetter(prop) {
   };
 }
 export default {
+  components: { CustomDatetimePicker },
   // supports v-model
   props: ["value"],
   data() {
@@ -241,11 +179,6 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.reveal-responses-card::v-deep .date-field {
-  flex: 0 1 190px;
-  margin-left: 0.5rem;
-  margin-right: 0.5rem;
-}
 .reveal-responses-card .v-card__text {
   font-size: 16px;
   margin-left: 32px;
