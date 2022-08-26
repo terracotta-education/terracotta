@@ -9,7 +9,6 @@
         outlined: true,
         dense: true,
         'hide-details': true,
-        class: { 'custom-datetime-picker-date-field': true },
       },
       ...$attrs,
     }"
@@ -39,8 +38,8 @@ export default {
 };
 </script>
 
-<style lang="scss">
-.custom-datetime-picker-date-field {
+<style lang="scss" scoped>
+.custom-datetime-picker::v-deep + .v-text-field {
   flex: 0 1 190px;
   margin-left: 0.5rem !important;
   margin-right: 0.5rem !important;
