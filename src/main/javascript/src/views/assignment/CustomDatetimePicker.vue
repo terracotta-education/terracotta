@@ -22,6 +22,14 @@
     <template #timeIcon>
       <v-icon>mdi-clock-outline</v-icon>
     </template>
+    <template #actions="{ parent }">
+      <v-btn color="grey lighten-1" text @click.native="parent.clearHandler">{{
+        parent.clearText
+      }}</v-btn>
+      <v-btn color="primary" text @click="parent.okHandler">{{
+        parent.okText
+      }}</v-btn>
+    </template>
   </v-datetime-picker>
 </template>
 
