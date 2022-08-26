@@ -20,67 +20,17 @@
           <div>
             Show responses and points on
           </div>
-          <v-menu v-model="studentViewResponsesAfterMenu" min-width="290">
-            <template v-slot:activator="{ on, attrs }">
-              <v-text-field
-                v-model="studentViewResponsesAfterFormatted"
-                class="date-field"
-                append-icon="mdi-calendar"
-                readonly
-                outlined
-                dense
-                hide-details
-                v-bind="attrs"
-                v-on="on"
-              ></v-text-field>
-            </template>
-            <v-date-picker
-              v-model="studentViewResponsesAfter"
-              @input="studentViewResponsesAfterMenu = false"
-              :max="addDays(studentViewResponsesBefore, -1)"
-            >
-              <v-spacer></v-spacer>
-              <v-btn
-                text
-                color="primary"
-                @click="studentViewResponsesAfter = null"
-              >
-                Clear
-              </v-btn>
-            </v-date-picker>
-          </v-menu>
+          <custom-datetime-picker
+            v-model="studentViewResponsesAfter"
+            :datePickerProps="{ max: addDays(studentViewResponsesBefore, -1) }"
+          />
           <div>
             and hide on
           </div>
-          <v-menu v-model="studentViewResponsesBeforeMenu" min-width="290">
-            <template v-slot:activator="{ on, attrs }">
-              <v-text-field
-                v-model="studentViewResponsesBeforeFormatted"
-                class="date-field"
-                append-icon="mdi-calendar"
-                readonly
-                dense
-                hide-details
-                outlined
-                v-bind="attrs"
-                v-on="on"
-              ></v-text-field>
-            </template>
-            <v-date-picker
-              v-model="studentViewResponsesBefore"
-              @input="studentViewResponsesBeforeMenu = false"
-              :min="addDays(studentViewResponsesAfter, 1)"
-            >
-              <v-spacer></v-spacer>
-              <v-btn
-                text
-                color="primary"
-                @click="studentViewResponsesBefore = null"
-              >
-                Clear
-              </v-btn>
-            </v-date-picker>
-          </v-menu>
+          <custom-datetime-picker
+            v-model="studentViewResponsesBefore"
+            :datePickerProps="{ min: addDays(studentViewResponsesAfter, 1) }"
+          />
         </div>
         <v-checkbox
           class="allow-students-view-correct-answers"
@@ -100,83 +50,27 @@
           <div>
             Show correct answers and comments on
           </div>
-          <v-menu v-model="studentViewCorrectAnswersAfterMenu" min-width="290">
-            <template v-slot:activator="{ on, attrs }">
-              <v-text-field
-                v-model="studentViewCorrectAnswersAfterFormatted"
-                class="date-field"
-                append-icon="mdi-calendar"
-                readonly
-                outlined
-                dense
-                hide-details
-                v-bind="attrs"
-                v-on="on"
-              ></v-text-field>
-            </template>
-            <!-- studentViewCorrectAnswersAfter must be within the range of the
-                 view responses dates (studentViewResponsesAfter ->
-                 studentViewResponsesBefore). It must also be before
-                 studentViewCorrectAnswersBefore. -->
-            <v-date-picker
-              v-model="studentViewCorrectAnswersAfter"
-              @input="studentViewCorrectAnswersAfterMenu = false"
-              :min="studentViewResponsesAfter"
-              :max="
+          <custom-datetime-picker
+            v-model="studentViewCorrectAnswersAfter"
+            :datePickerProps="{
+              min: convertDateToDateString(studentViewResponsesAfter),
+              max:
                 addDays(studentViewCorrectAnswersBefore, -1) ||
-                  studentViewResponsesBefore
-              "
-            >
-              <v-spacer></v-spacer>
-              <v-btn
-                text
-                color="primary"
-                @click="studentViewCorrectAnswersAfter = null"
-              >
-                Clear
-              </v-btn>
-            </v-date-picker>
-          </v-menu>
+                convertDateToDateString(studentViewResponsesBefore),
+            }"
+          />
           <div>
             and hide on
           </div>
-          <v-menu v-model="studentViewCorrectAnswersBeforeMenu" min-width="290">
-            <template v-slot:activator="{ on, attrs }">
-              <v-text-field
-                v-model="studentViewCorrectAnswersBeforeFormatted"
-                class="date-field"
-                append-icon="mdi-calendar"
-                readonly
-                dense
-                hide-details
-                outlined
-                v-bind="attrs"
-                v-on="on"
-              ></v-text-field>
-            </template>
-            <!-- studentViewCorrectAnswersBefore must be within the range of the
-                 view responses dates (studentViewResponsesBefore ->
-                 studentViewResponsesAfter). It must also be after
-                 studentViewCorrectAnswersAfter. -->
-            <v-date-picker
-              v-model="studentViewCorrectAnswersBefore"
-              @input="studentViewCorrectAnswersBeforeMenu = false"
-              :min="
+          <custom-datetime-picker
+            v-model="studentViewCorrectAnswersBefore"
+            :datePickerProps="{
+              min:
                 addDays(studentViewCorrectAnswersAfter, 1) ||
-                  studentViewResponsesAfter
-              "
-              :max="studentViewResponsesBefore"
-            >
-              <v-spacer></v-spacer>
-              <v-btn
-                text
-                color="primary"
-                @click="studentViewCorrectAnswersBefore = null"
-              >
-                Clear
-              </v-btn>
-            </v-date-picker>
-          </v-menu>
+                convertDateToDateString(studentViewResponsesAfter),
+              max: convertDateToDateString(studentViewResponsesBefore),
+            }"
+          />
         </div>
       </v-card-text>
     </v-card>
@@ -184,24 +78,24 @@
 </template>
 
 <script>
+import CustomDatetimePicker from "./CustomDatetimePicker.vue";
 function createDateGetterSetter(prop) {
   return {
     // two-way computed property
     get() {
-      // convert unix time number to date string
+      // convert unix time number to date
       const unixTime = this.value[prop];
-      return unixTime ? this.convertUnixTimeToDateString(unixTime) : unixTime;
+      return unixTime ? new Date(unixTime) : unixTime;
     },
-    set(dateString) {
-      // convert date string to unix time number
-      const unixTime = dateString
-        ? this.convertDateStringToUnixTime(dateString)
-        : dateString;
+    set(date) {
+      // convert date to unix time number
+      const unixTime = date ? date.getTime() : date;
       this.$emit("input", { ...this.value, [prop]: unixTime });
     },
   };
 }
 export default {
+  components: { CustomDatetimePicker },
   // supports v-model
   props: ["value"],
   data() {
@@ -228,27 +122,9 @@ export default {
     studentViewResponsesAfter: createDateGetterSetter(
       "studentViewResponsesAfter"
     ),
-    studentViewResponsesAfterFormatted() {
-      return this.studentViewResponsesAfter
-        ? this.convertDateStringToDate(
-            this.studentViewResponsesAfter
-          ).toLocaleDateString(undefined, {
-            dateStyle: "short",
-          })
-        : null;
-    },
     studentViewResponsesBefore: createDateGetterSetter(
       "studentViewResponsesBefore"
     ),
-    studentViewResponsesBeforeFormatted() {
-      return this.studentViewResponsesBefore
-        ? this.convertDateStringToDate(
-            this.studentViewResponsesBefore
-          ).toLocaleDateString(undefined, {
-            dateStyle: "short",
-          })
-        : null;
-    },
     allowStudentViewCorrectAnswers: {
       // two-way computed property
       get() {
@@ -264,58 +140,23 @@ export default {
     studentViewCorrectAnswersAfter: createDateGetterSetter(
       "studentViewCorrectAnswersAfter"
     ),
-    studentViewCorrectAnswersAfterFormatted() {
-      return this.studentViewCorrectAnswersAfter
-        ? this.convertDateStringToDate(
-            this.studentViewCorrectAnswersAfter
-          ).toLocaleDateString(undefined, {
-            dateStyle: "short",
-          })
-        : null;
-    },
     studentViewCorrectAnswersBefore: createDateGetterSetter(
       "studentViewCorrectAnswersBefore"
     ),
-    studentViewCorrectAnswersBeforeFormatted() {
-      return this.studentViewCorrectAnswersBefore
-        ? this.convertDateStringToDate(
-            this.studentViewCorrectAnswersBefore
-          ).toLocaleDateString(undefined, {
-            dateStyle: "short",
-          })
-        : null;
-    },
   },
   methods: {
-    convertDateStringToDate(dateString) {
-      // Assumption: dateString is in the format "YYYY-MM-DD"
-
-      // Deliberately not including time zone offset in string. When time zone
-      // offset is absent, but date and time are present in the string, the time
-      // zone is interpreted as local time.  See:
-      // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/parse#date_time_string_format
-      const date = new Date(dateString + "T00:00:00"); // midnight local time
-      return date;
-    },
-    convertDateStringToUnixTime(dateString) {
-      // Assumption: dateString is in the format "YYYY-MM-DD"
-      const date = this.convertDateStringToDate(dateString);
-      return date.getTime();
-    },
-    convertUnixTimeToDateString(unixTime) {
-      const date = new Date(unixTime);
-      return this.convertDateToDateString(date);
-    },
     convertDateToDateString(date) {
+      if (!date) {
+        return date;
+      }
       const month = String(date.getMonth() + 1).padStart(2, "0"); // getMonth returns zero-based month index
       const day = String(date.getDate()).padStart(2, "0");
       return `${date.getFullYear()}-${month}-${day}`; // ISO 8601 date format
     },
-    addDays(dateString, days) {
-      if (!dateString) {
-        return dateString;
+    addDays(date, days) {
+      if (!date) {
+        return date;
       }
-      const date = this.convertDateStringToDate(dateString);
       const updated = this.addDaysToDate(date, days);
       return this.convertDateToDateString(updated);
     },
@@ -338,11 +179,6 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.date-field {
-  flex: 0 1 120px;
-  margin-left: 0.5rem;
-  margin-right: 0.5rem;
-}
 .reveal-responses-card .v-card__text {
   font-size: 16px;
   margin-left: 32px;
