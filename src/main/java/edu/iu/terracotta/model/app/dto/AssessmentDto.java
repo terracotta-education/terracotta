@@ -3,6 +3,8 @@ package edu.iu.terracotta.model.app.dto;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+import edu.iu.terracotta.model.app.enumerator.MultipleSubmissionScoringScheme;
+
 import java.sql.Timestamp;
 import java.util.List;
 
@@ -16,7 +18,7 @@ public class AssessmentDto {
     private boolean autoSubmit;
     private Integer numOfSubmissions;
     private Float hoursBetweenSubmissions;
-    private String multipleSubmissionScoringScheme;
+    private String multipleSubmissionScoringScheme = MultipleSubmissionScoringScheme.MOST_RECENT.name();
     private Float cumulativeScoringInitialPercentage;
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<SubmissionDto> submissions;

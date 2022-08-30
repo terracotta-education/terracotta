@@ -385,7 +385,8 @@ public class SubmissionServiceImpl implements SubmissionService {
     public void sendSubmissionGradeToCanvasWithLTI(Submission submission, boolean studentSubmission)
             throws ConnectionException, DataServiceException {
         //We need, the assignment, and the iss configuration...
-        Assignment assignment = submission.getAssessment().getTreatment().getAssignment();
+        Assessment assessment = submission.getAssessment();
+        Assignment assignment = assessment.getTreatment().getAssignment();
         Experiment experiment = assignment.getExposure().getExperiment();
         LTIToken ltiTokenScore = advantageAGSService.getToken("scores", experiment.getPlatformDeployment());
         LTIToken ltiTokenResults = advantageAGSService.getToken("results", experiment.getPlatformDeployment());
@@ -396,24 +397,23 @@ public class SubmissionServiceImpl implements SubmissionService {
             throw new DataServiceException("Error 136: The assignment is not linked to any Canvas assignment");
         }
         Score score = new Score();
-        score.setUserId(submission.getParticipant().getLtiUserEntity().getUserKey());
-        boolean manualGradingNeeded = this.isManualGradingNeeded(submission);
-        // Only set the score if additional manual grading isn't needed, i.e.,
-        // if the grade is complete
-        if (!manualGradingNeeded) {
-            if (submission.getTotalAlteredGrade() != null) {
-                score.setScoreGiven(submission.getTotalAlteredGrade().toString());
-            } else {
-                score.setScoreGiven(submission.getAlteredCalculatedGrade().toString());
-            }
-        }
-        Float maxTerracottaScore = assessmentService.calculateMaxScore(submission.getAssessment());
+        Participant participant = submission.getParticipant();
+        score.setUserId(participant.getLtiUserEntity().getUserKey());
+        boolean manualGradingNeeded = this.isManualGradingNeeded(participant, assessment);
+
+        Float maxTerracottaScore = assessmentService.calculateMaxScore(assessment);
         // Workaround for zero point assignments that should be given full credit for
         // completion
         if (maxTerracottaScore == 0) {
             score.setScoreGiven(Float.valueOf(1).toString());
             score.setScoreMaximum(Float.valueOf(1).toString());
         } else {
+            // Only set the score if additional manual grading isn't needed, i.e., if the
+            // grade is complete
+            if (!manualGradingNeeded) {
+                Float scoreGiven = getScoreFromMultipleSubmissions(participant, assessment);
+                score.setScoreGiven(scoreGiven.toString());
+            }
             score.setScoreMaximum(maxTerracottaScore.toString());
         }
         score.setActivityProgress("Completed");
@@ -451,7 +451,7 @@ public class SubmissionServiceImpl implements SubmissionService {
         score.setCanvasSubmissionExtension(submissionData);
     }
 
-    private boolean isManualGradingNeeded(Submission submission) {
+    private boolean isManualGradingNeededForSubmission(Submission submission) {
 
         // If the submission's grade has been altered, then the entire
         // submission has been manually graded.
@@ -463,6 +463,80 @@ public class SubmissionServiceImpl implements SubmissionService {
                             && qs.getQuestion().getPoints() > 0
                             && qs.getAlteredGrade() == null;
                 });
+    }
+
+    private boolean isManualGradingNeeded(Participant participant, Assessment assessment) {
+        // return true if any of a participant's submissions need manual grading
+        List<Submission> submissionList = allRepositories.submissionRepository
+                .findByParticipant_ParticipantIdAndAssessment_AssessmentIdAndDateSubmittedNotNullOrderByDateSubmitted(
+                        participant.getParticipantId(), assessment.getAssessmentId());
+        for (Submission submission : submissionList) {
+            if (isManualGradingNeededForSubmission(submission)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private Float getScoreFromMultipleSubmissions(Participant participant, Assessment assessment) {
+        List<Submission> submissionList = allRepositories.submissionRepository
+                .findByParticipant_ParticipantIdAndAssessment_AssessmentIdAndDateSubmittedNotNullOrderByDateSubmitted(
+                        participant.getParticipantId(), assessment.getAssessmentId());
+
+        // Handle case where only one submission is allowed
+        if (assessment.getNumOfSubmissions() != null && assessment.getNumOfSubmissions() == 1) {
+            return getSubmissionScore(submissionList.get(0));
+        }
+        // Assumption: no manual grading is needed for any of the submissions, i.e., all
+        // submissions have been fully graded
+        Float score = 0f;
+        switch (assessment.getMultipleSubmissionScoringScheme()) {
+            case MOST_RECENT:
+                Submission mostRecentSubmission = submissionList.get(submissionList.size() - 1);
+                score = getSubmissionScore(mostRecentSubmission);
+                break;
+            case AVERAGE:
+                for (Submission submission : submissionList) {
+                    score += getSubmissionScore(submission);
+                }
+                score = score / submissionList.size();
+                break;
+            case HIGHEST:
+                for (Submission submission : submissionList) {
+                    Float submissionScore = getSubmissionScore(submission);
+                    if (submissionScore > score) {
+                        score = submissionScore;
+                    }
+                }
+                break;
+            case CUMULATIVE:
+                // The first submission's score contributes
+                // 'cumulativeScoringInitialPercentage' to the total score
+                if (submissionList.size() > 0) {
+                    score = score + getSubmissionScore(submissionList.get(0))
+                            * assessment.getCumulativeScoringInitialPercentage() / 100f;
+                }
+                // All subsequent submission scores contribute an evenly distributed amount of
+                // the remaining percentage
+                if (submissionList.size() > 1) {
+                    float subsequentPercentage = (100f - assessment.getCumulativeScoringInitialPercentage())
+                            / 100f / (assessment.getNumOfSubmissions() - 1);
+                    for (Submission submission : submissionList.subList(1, submissionList.size())) {
+                        score = score + getSubmissionScore(submission) * subsequentPercentage;
+                    }
+                }
+                break;
+        }
+        return score;
+    }
+
+    private Float getSubmissionScore(Submission submission) {
+
+        if (submission.getTotalAlteredGrade() != null) {
+            return submission.getTotalAlteredGrade();
+        } else {
+            return submission.getAlteredCalculatedGrade();
+        }
     }
 
     private boolean isGradeAltered(Submission submission) {

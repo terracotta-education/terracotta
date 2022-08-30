@@ -5,6 +5,8 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
+import edu.iu.terracotta.model.app.enumerator.MultipleSubmissionScoringScheme;
+
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class AssignmentDto {
 
@@ -18,7 +20,7 @@ public class AssignmentDto {
     private Boolean softDeleted;
     private Integer numOfSubmissions;
     private Float hoursBetweenSubmissions;
-    private String multipleSubmissionScoringScheme;
+    private String multipleSubmissionScoringScheme = MultipleSubmissionScoringScheme.MOST_RECENT.name();
     private Float cumulativeScoringInitialPercentage;
     private List<TreatmentDto> treatments;
     private boolean allowStudentViewResponses = false;
