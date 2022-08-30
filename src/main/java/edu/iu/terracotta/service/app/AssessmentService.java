@@ -3,6 +3,7 @@ package edu.iu.terracotta.service.app;
 import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.IdInPostException;
+import edu.iu.terracotta.exceptions.MultipleAttemptsSettingsValidationException;
 import edu.iu.terracotta.exceptions.RevealResponsesSettingValidationException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.model.app.Assessment;
@@ -21,8 +22,8 @@ public interface AssessmentService {
     List<AssessmentDto> getAllAssessmentsByTreatment(Long treatmentId, boolean submissions) throws AssessmentNotMatchingException;
 
     AssessmentDto postAssessment(AssessmentDto assessmentDto, long treatmentId)
-            throws IdInPostException, AssessmentNotMatchingException, DataServiceException, TitleValidationException,
-                    RevealResponsesSettingValidationException;
+                    throws IdInPostException, AssessmentNotMatchingException, DataServiceException,
+                    TitleValidationException;
 
     AssessmentDto toDto(Assessment assessment, boolean questions, boolean answers, boolean submissions, boolean student) throws AssessmentNotMatchingException;
 
@@ -38,7 +39,8 @@ public interface AssessmentService {
     Assessment getAssessment(Long id);
 
     void updateAssessment(Long id, AssessmentDto assessmentDto)
-                    throws TitleValidationException, RevealResponsesSettingValidationException;
+                    throws TitleValidationException, RevealResponsesSettingValidationException,
+                    MultipleAttemptsSettingsValidationException;
 
     void saveAndFlush(Assessment assessmentToChange);
 

@@ -9,6 +9,7 @@ import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.GroupNotMatchingException;
 import edu.iu.terracotta.exceptions.IdInPostException;
+import edu.iu.terracotta.exceptions.MultipleAttemptsSettingsValidationException;
 import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.exceptions.RevealResponsesSettingValidationException;
@@ -28,6 +29,7 @@ import edu.iu.terracotta.model.app.dto.AssignmentDto;
 import edu.iu.terracotta.model.app.dto.SubmissionDto;
 import edu.iu.terracotta.model.app.dto.TreatmentDto;
 import edu.iu.terracotta.model.app.enumerator.DistributionTypes;
+import edu.iu.terracotta.model.app.enumerator.MultipleSubmissionScoringScheme;
 import edu.iu.terracotta.model.app.enumerator.ParticipationTypes;
 import edu.iu.terracotta.model.canvas.AssignmentExtended;
 import edu.iu.terracotta.model.oauth2.LTIToken;
@@ -127,11 +129,13 @@ public class AssignmentServiceImpl implements AssignmentService {
     @Override
     public AssignmentDto postAssignment(AssignmentDto assignmentDto, long experimentId, String CanvasCourseId,
             long exposureId) throws IdInPostException, DataServiceException, TitleValidationException,
-            AssignmentNotCreatedException, AssessmentNotMatchingException, RevealResponsesSettingValidationException {
+            AssignmentNotCreatedException, AssessmentNotMatchingException, RevealResponsesSettingValidationException,
+            MultipleAttemptsSettingsValidationException {
         if (assignmentDto.getAssignmentId() != null) {
             throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
         }
         validateTitle(assignmentDto.getTitle());
+        validateMultipleAttemptsSettings(assignmentDto);
         validateRevealAssignmentResponsesSettings(assignmentDto);
         assignmentDto.setExposureId(exposureId);
         Assignment assignment;
@@ -157,6 +161,10 @@ public class AssignmentServiceImpl implements AssignmentService {
         assignmentDto.setExposureId(assignment.getExposure().getExposureId());
         assignmentDto.setResourceLinkId(assignment.getResourceLinkId());
         assignmentDto.setSoftDeleted(assignment.getSoftDeleted());
+        assignmentDto.setNumOfSubmissions(assignment.getNumOfSubmissions());
+        assignmentDto.setHoursBetweenSubmissions(assignment.getHoursBetweenSubmissions());
+        assignmentDto.setMultipleSubmissionScoringScheme(assignment.getMultipleSubmissionScoringScheme().name());
+        assignmentDto.setCumulativeScoringInitialPercentage(assignment.getCumulativeScoringInitialPercentage());
         assignmentDto.setAllowStudentViewResponses(assignment.isAllowStudentViewResponses());
         assignmentDto.setStudentViewResponsesAfter(assignment.getStudentViewResponsesAfter());
         assignmentDto.setStudentViewResponsesBefore(assignment.getStudentViewResponsesBefore());
@@ -186,6 +194,11 @@ public class AssignmentServiceImpl implements AssignmentService {
         assignment.setTitle(assignmentDto.getTitle());
         assignment.setAssignmentOrder(assignmentDto.getAssignmentOrder());
         assignment.setSoftDeleted(assignmentDto.getSoftDeleted());
+        assignment.setNumOfSubmissions(assignmentDto.getNumOfSubmissions());
+        assignment.setHoursBetweenSubmissions(assignmentDto.getHoursBetweenSubmissions());
+        assignment.setMultipleSubmissionScoringScheme(
+                MultipleSubmissionScoringScheme.valueOf(assignmentDto.getMultipleSubmissionScoringScheme()));
+        assignment.setCumulativeScoringInitialPercentage(assignmentDto.getCumulativeScoringInitialPercentage());
         assignment.setAllowStudentViewResponses(assignmentDto.isAllowStudentViewResponses());
         assignment.setStudentViewResponsesAfter(assignmentDto.getStudentViewResponsesAfter());
         assignment.setStudentViewResponsesBefore(assignmentDto.getStudentViewResponsesBefore());
@@ -213,7 +226,7 @@ public class AssignmentServiceImpl implements AssignmentService {
     @Override
     public void updateAssignment(Long id, AssignmentDto assignmentDto, String canvasCourseId)
             throws TitleValidationException, CanvasApiException, AssignmentNotEditedException,
-            RevealResponsesSettingValidationException {
+            RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException {
         Assignment assignment = allRepositories.assignmentRepository.findByAssignmentId(id);
         if(StringUtils.isAllBlank(assignmentDto.getTitle()) && StringUtils.isAllBlank(assignment.getTitle())){
             throw new TitleValidationException("Error 100: Please give the assignment a name.");
@@ -225,6 +238,7 @@ public class AssignmentServiceImpl implements AssignmentService {
             assignment.setTitle(assignmentDto.getTitle());
             editAssignmentNameInCanvas(assignment,canvasCourseId,assignmentDto.getTitle());
         }
+        validateMultipleAttemptsSettings(assignmentDto);
         validateRevealAssignmentResponsesSettings(assignmentDto);
         assignment.setAssignmentOrder(assignmentDto.getAssignmentOrder());
         assignment.setSoftDeleted(assignmentDto.getSoftDeleted());
@@ -234,6 +248,12 @@ public class AssignmentServiceImpl implements AssignmentService {
         assignment.setAllowStudentViewCorrectAnswers(assignmentDto.isAllowStudentViewCorrectAnswers());
         assignment.setStudentViewCorrectAnswersAfter(assignmentDto.getStudentViewCorrectAnswersAfter());
         assignment.setStudentViewCorrectAnswersBefore(assignmentDto.getStudentViewCorrectAnswersBefore());
+        assignment.setNumOfSubmissions(assignmentDto.getNumOfSubmissions());
+        assignment.setHoursBetweenSubmissions(assignmentDto.getHoursBetweenSubmissions());
+        MultipleSubmissionScoringScheme multipleSubmissionScoringScheme = MultipleSubmissionScoringScheme
+                .valueOf(assignmentDto.getMultipleSubmissionScoringScheme());
+        assignment.setMultipleSubmissionScoringScheme(multipleSubmissionScoringScheme);
+        assignment.setCumulativeScoringInitialPercentage(assignmentDto.getCumulativeScoringInitialPercentage());
         saveAndFlush(assignment);
 
         // update the same settings on all of this assignment's assessments
@@ -245,6 +265,10 @@ public class AssignmentServiceImpl implements AssignmentService {
             assessment.setAllowStudentViewCorrectAnswers(assignmentDto.isAllowStudentViewCorrectAnswers());
             assessment.setStudentViewCorrectAnswersAfter(assignmentDto.getStudentViewCorrectAnswersAfter());
             assessment.setStudentViewCorrectAnswersBefore(assignmentDto.getStudentViewCorrectAnswersBefore());
+            assessment.setNumOfSubmissions(assignmentDto.getNumOfSubmissions());
+            assessment.setHoursBetweenSubmissions(assignmentDto.getHoursBetweenSubmissions());
+            assessment.setMultipleSubmissionScoringScheme(multipleSubmissionScoringScheme);
+            assessment.setCumulativeScoringInitialPercentage(assignmentDto.getCumulativeScoringInitialPercentage());
         }
     }
 
@@ -527,6 +551,25 @@ public class AssignmentServiceImpl implements AssignmentService {
     public void validateTitle(String title) throws TitleValidationException{
         if(!StringUtils.isAllBlank(title) && title.length() > 255){
             throw new TitleValidationException("Error 101: Assignment title must be 255 characters or less.");
+        }
+    }
+
+    private void validateMultipleAttemptsSettings(AssignmentDto assignmentDto)
+            throws MultipleAttemptsSettingsValidationException {
+        MultipleSubmissionScoringScheme multipleSubmissionScoringScheme = MultipleSubmissionScoringScheme
+                .valueOf(assignmentDto.getMultipleSubmissionScoringScheme());
+        // validate that if multipleSubmissionScoringScheme is CUMULATIVE, then
+        // cumulativeScoringInitialPercentage is not null
+        if (multipleSubmissionScoringScheme == MultipleSubmissionScoringScheme.CUMULATIVE && assignmentDto.getCumulativeScoringInitialPercentage() == null){
+            throw new MultipleAttemptsSettingsValidationException(
+                    "Error 156: Must set cumulative scoring initial percentage when scoring scheme is CUMULATIVE");
+        }
+
+        // validate that if multipleSubmissionScoringScheme is CUMULATIVE, then
+        // numOfSubmissions is not null and greater than 1
+        if (multipleSubmissionScoringScheme == MultipleSubmissionScoringScheme.CUMULATIVE && (assignmentDto.getNumOfSubmissions() == null || assignmentDto.getNumOfSubmissions() <= 1)) {
+            throw new MultipleAttemptsSettingsValidationException(
+                    "Error 157: Number of submissions must be greater than 1, but not infinite, when scoring scheme is CUMULATIVE");
         }
     }
 

@@ -10,6 +10,7 @@ import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.ExposureNotMatchingException;
 import edu.iu.terracotta.exceptions.IdInPostException;
+import edu.iu.terracotta.exceptions.MultipleAttemptsSettingsValidationException;
 import edu.iu.terracotta.exceptions.RevealResponsesSettingValidationException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.model.app.dto.AssignmentDto;
@@ -106,7 +107,8 @@ public class AssignmentController {
                                                         HttpServletRequest req)
             throws ExperimentNotMatchingException, ExposureNotMatchingException, BadTokenException,
             AssessmentNotMatchingException, TitleValidationException, AssignmentNotCreatedException, IdInPostException,
-            DataServiceException, RevealResponsesSettingValidationException {
+            DataServiceException, RevealResponsesSettingValidationException,
+            MultipleAttemptsSettingsValidationException {
 
         log.debug("Creating Assignment: {}", assignmentDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
@@ -130,7 +132,7 @@ public class AssignmentController {
                                                  HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, AssignmentNotMatchingException,
             TitleValidationException, CanvasApiException, AssignmentNotEditedException,
-            RevealResponsesSettingValidationException {
+            RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException {
 
         log.debug("Updating assignment with id: {}", assignmentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);

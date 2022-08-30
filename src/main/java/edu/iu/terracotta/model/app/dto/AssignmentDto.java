@@ -16,6 +16,10 @@ public class AssignmentDto {
     private String resourceLinkId;
     private boolean started;
     private Boolean softDeleted;
+    private Integer numOfSubmissions;
+    private Float hoursBetweenSubmissions;
+    private String multipleSubmissionScoringScheme;
+    private Float cumulativeScoringInitialPercentage;
     private List<TreatmentDto> treatments;
     private boolean allowStudentViewResponses = false;
     private Timestamp studentViewResponsesAfter;
@@ -64,6 +68,38 @@ public class AssignmentDto {
 
     public void setSoftDeleted(Boolean softDeleted) {
         this.softDeleted = softDeleted;
+    }
+
+    public Integer getNumOfSubmissions() {
+        return numOfSubmissions;
+    }
+
+    public void setNumOfSubmissions(Integer numOfSubmissions) {
+        this.numOfSubmissions = numOfSubmissions;
+    }
+
+    public Float getHoursBetweenSubmissions() {
+        return hoursBetweenSubmissions;
+    }
+
+    public void setHoursBetweenSubmissions(Float hoursBetweenSubmissions) {
+        this.hoursBetweenSubmissions = hoursBetweenSubmissions;
+    }
+
+    public String getMultipleSubmissionScoringScheme() {
+        return multipleSubmissionScoringScheme;
+    }
+
+    public void setMultipleSubmissionScoringScheme(String multipleSubmissionScoringScheme) {
+        this.multipleSubmissionScoringScheme = multipleSubmissionScoringScheme;
+    }
+
+    public Float getCumulativeScoringInitialPercentage() {
+        return cumulativeScoringInitialPercentage;
+    }
+
+    public void setCumulativeScoringInitialPercentage(Float cumulativeScoringInitialPercentage) {
+        this.cumulativeScoringInitialPercentage = cumulativeScoringInitialPercentage;
     }
 
     public List<TreatmentDto> getTreatments() {
