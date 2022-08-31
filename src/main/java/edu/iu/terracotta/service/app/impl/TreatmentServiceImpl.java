@@ -4,8 +4,10 @@ import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExceedingLimitException;
 import edu.iu.terracotta.exceptions.IdInPostException;
+import edu.iu.terracotta.model.app.Assessment;
 import edu.iu.terracotta.model.app.Assignment;
 import edu.iu.terracotta.model.app.Treatment;
+import edu.iu.terracotta.model.app.dto.AssessmentDto;
 import edu.iu.terracotta.model.app.dto.TreatmentDto;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.AssessmentService;
@@ -17,6 +19,9 @@ import org.springframework.stereotype.Component;
 import edu.iu.terracotta.model.app.Condition;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -25,10 +30,13 @@ import java.util.Optional;
 public class TreatmentServiceImpl implements TreatmentService {
 
     @Autowired
-    AllRepositories allRepositories;
+    private AllRepositories allRepositories;
 
     @Autowired
-    AssessmentService assessmentService;
+    private AssessmentService assessmentService;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     @Override
     public List<Treatment> findAllByConditionId(Long conditionId) {
@@ -133,4 +141,32 @@ public class TreatmentServiceImpl implements TreatmentService {
                 .buildAndExpand(experimentId, conditionId, treatmentId).toUri());
         return headers;
     }
+
+    @Override
+    public TreatmentDto duplicateTreatment(long treatmentId) throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException {
+        Treatment from = getTreatment(treatmentId);
+
+        if (from == null) {
+            throw new DataServiceException("The treatment with the given ID does not exist");
+        }
+
+        entityManager.detach(from);
+
+        // reset ID
+        from.setTreatmentId(null);
+
+        Treatment newTreatment = save(from);
+        TreatmentDto treatmentDto = toDto(newTreatment, false);
+
+        // duplicate assessment
+        Assessment existingAssessment = from.getAssessment();
+
+        if (existingAssessment != null) {
+            AssessmentDto newAssessment = assessmentService.duplicateAssessment(existingAssessment.getAssessmentId(), newTreatment.getTreatmentId());
+            treatmentDto.setAssessmentDto(newAssessment);
+        }
+
+        return treatmentDto;
+    }
+
 }

@@ -24,6 +24,8 @@ public interface QuestionService {
 
     QuestionDto postQuestion(QuestionDto questionDto, long assessmentId, boolean answers) throws IdInPostException, DataServiceException;
 
+    List<QuestionDto> duplicateQuestionsForAssessment(Long oldAssessmentId, Long newAssessmentId) throws DataServiceException;
+
     void updateQuestion(Map<Question, QuestionDto> map) throws NegativePointsException;
 
     QuestionDto toDto(Question question, boolean answers, boolean student);

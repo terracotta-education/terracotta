@@ -14,6 +14,7 @@ import edu.iu.terracotta.model.app.enumerator.MultipleSubmissionScoringScheme;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.*;
 import edu.iu.terracotta.utils.TextConstants;
+
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -21,26 +22,35 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import java.util.*;
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 @Component
 public class AssessmentServiceImpl implements AssessmentService {
 
-    @Autowired
-    AllRepositories allRepositories;
+    public static final int TITLE_MAX_LENGTH = 255;
 
     @Autowired
-    TreatmentService treatmentService;
+    private AllRepositories allRepositories;
 
     @Autowired
-    QuestionService questionService;
+    private QuestionService questionService;
 
     @Autowired
-    SubmissionService submissionService;
+    private SubmissionService submissionService;
 
     @Autowired
-    FileStorageService fileStorageService;
+    private FileStorageService fileStorageService;
 
+    @PersistenceContext
+    private EntityManager entityManager;
 
     @Override
     public List<Assessment> findAllByTreatmentId(Long treatmentId) {
@@ -224,10 +234,8 @@ public class AssessmentServiceImpl implements AssessmentService {
         if (StringUtils.isAllBlank(assessmentDto.getTitle()) && StringUtils.isAllBlank(assessment.getTitle())) {
             throw new TitleValidationException("Error 100: Please give the assessment a title.");
         }
-        if (!StringUtils.isAllBlank(assessmentDto.getTitle()) && assessmentDto.getTitle().length() > 255) {
-            throw new TitleValidationException("Error 101: Assessment title must be 255 characters or less.");
-        }
         validateMultipleAttemptsSettings(assessmentDto);
+        validateTitle(assessmentDto.getTitle());
         validateRevealAssignmentResponsesSettings(assessmentDto);
         assessment.setAllowStudentViewResponses(assessmentDto.isAllowStudentViewResponses());
         assessment.setStudentViewResponsesAfter(assessmentDto.getStudentViewResponsesAfter());
@@ -276,8 +284,8 @@ public class AssessmentServiceImpl implements AssessmentService {
 
     @Override
     public void validateTitle(String title) throws TitleValidationException {
-        if (!StringUtils.isAllBlank(title) && title.length() > 255) {
-            throw new TitleValidationException("Error 101: Assessment title must be 255 characters or less.");
+        if (!StringUtils.isAllBlank(title) && title.length() > TITLE_MAX_LENGTH) {
+            throw new TitleValidationException(String.format("Error 101: Assessment title must be %s characters or less.", TITLE_MAX_LENGTH));
         }
     }
 
@@ -380,7 +388,7 @@ public class AssessmentServiceImpl implements AssessmentService {
     public void updateTreatment(Long treatmentId, Assessment assessment) {
         Treatment treatment = allRepositories.treatmentRepository.findByTreatmentId(treatmentId);
         treatment.setAssessment(assessment);
-        treatmentService.saveAndFlush(treatment);
+        allRepositories.treatmentRepository.saveAndFlush(treatment);
     }
 
     @Override
@@ -390,4 +398,36 @@ public class AssessmentServiceImpl implements AssessmentService {
                 .buildAndExpand(experimentId, conditionId, treatmentId, assessmentId).toUri());
         return headers;
     }
+
+    @Override
+    public AssessmentDto duplicateAssessment(long assessmentId, long treatmentId) throws DataServiceException, AssessmentNotMatchingException {
+        Assessment from = getAssessment(assessmentId);
+
+        if (from == null) {
+            throw new DataServiceException("The assessment with the given ID does not exist");
+        }
+
+        entityManager.detach(from);
+
+        from.setQuestions(Collections.emptyList());
+        from.setSubmissions(Collections.emptyList());
+
+        // reset ID
+        Long oldAssessmentId = from.getAssessmentId();
+        from.setAssessmentId(null);
+
+        Assessment newAssessment = save(from);
+
+        // update the treatment
+        updateTreatment(treatmentId, newAssessment);
+
+        // duplicate questions
+        List<QuestionDto> questionDtos = questionService.duplicateQuestionsForAssessment(oldAssessmentId, newAssessment.getAssessmentId());
+
+        AssessmentDto assessmentDto = toDto(newAssessment, false, false, false, false);
+        assessmentDto.setQuestions(questionDtos);
+
+        return assessmentDto;
+    }
+
 }

@@ -23,6 +23,8 @@ public interface TreatmentService {
 
     TreatmentDto postTreatment(TreatmentDto treatmentDto, long conditionId) throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException;
 
+    TreatmentDto duplicateTreatment(long treatmentId) throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException;
+
     TreatmentDto toDto(Treatment treatment, boolean submissions) throws AssessmentNotMatchingException;
 
     Treatment fromDto(TreatmentDto treatmentDto) throws DataServiceException;

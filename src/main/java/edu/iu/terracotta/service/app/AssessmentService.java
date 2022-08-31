@@ -25,6 +25,8 @@ public interface AssessmentService {
                     throws IdInPostException, AssessmentNotMatchingException, DataServiceException,
                     TitleValidationException;
 
+    AssessmentDto duplicateAssessment(long assessmentId, long treatmentId) throws DataServiceException, AssessmentNotMatchingException;
+
     AssessmentDto toDto(Assessment assessment, boolean questions, boolean answers, boolean submissions, boolean student) throws AssessmentNotMatchingException;
 
     AssessmentDto toDto(Assessment assessment, Long submissionId, boolean questions, boolean answers,

@@ -15,6 +15,8 @@ import edu.iu.terracotta.service.app.AnswerService;
 import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.service.app.QuestionService;
 import edu.iu.terracotta.utils.TextConstants;
+
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.EnumUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -24,10 +26,14 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Component
 public class QuestionServiceImpl implements QuestionService {
@@ -40,6 +46,9 @@ public class QuestionServiceImpl implements QuestionService {
 
     @Autowired
     FileStorageService fileStorageService;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     @Override
     public List<Question> findAllByAssessmentId(Long assessmentId) {
@@ -202,4 +211,35 @@ public class QuestionServiceImpl implements QuestionService {
             throw new InvalidQuestionTypeException("Error 103: Please use a supported question type.");
         }
     }
+
+    @Override
+    public List<QuestionDto> duplicateQuestionsForAssessment(Long oldAssessmentId, Long newAssessmentId) throws DataServiceException {
+        Assessment oldAssessment = allRepositories.assessmentRepository.findByAssessmentId(oldAssessmentId);
+
+        if (oldAssessment == null) {
+            throw new DataServiceException("The old assessment with the given ID does not exist");
+        }
+
+        Assessment newAssessment = allRepositories.assessmentRepository.findByAssessmentId(newAssessmentId);
+
+        if (newAssessment == null) {
+            throw new DataServiceException("The new assessment with the given ID does not exist");
+        }
+
+        List<QuestionDto> questionDtos = CollectionUtils.emptyIfNull(oldAssessment.getQuestions()).stream()
+            .map(
+                question -> {
+                    entityManager.detach(question);
+                    question.setQuestionId(null);
+                    question.setAssessment(newAssessment);
+                    Question newQuestion = save(question);
+
+                    return toDto(newQuestion, false, false);
+                }
+            )
+            .collect(Collectors.toList());
+
+        return questionDtos;
+    }
+
 }
