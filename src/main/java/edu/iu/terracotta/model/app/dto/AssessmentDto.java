@@ -3,6 +3,8 @@ package edu.iu.terracotta.model.app.dto;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+import edu.iu.terracotta.model.app.enumerator.MultipleSubmissionScoringScheme;
+
 import java.sql.Timestamp;
 import java.util.List;
 
@@ -15,6 +17,9 @@ public class AssessmentDto {
     private String title;
     private boolean autoSubmit;
     private Integer numOfSubmissions;
+    private Float hoursBetweenSubmissions;
+    private String multipleSubmissionScoringScheme = MultipleSubmissionScoringScheme.MOST_RECENT.name();
+    private Float cumulativeScoringInitialPercentage;
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<SubmissionDto> submissions;
     @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -59,6 +64,30 @@ public class AssessmentDto {
     public Integer getNumOfSubmissions() { return numOfSubmissions; }
 
     public void setNumOfSubmissions(Integer numOfSubmissions) { this.numOfSubmissions = numOfSubmissions; }
+
+    public Float getHoursBetweenSubmissions() {
+        return hoursBetweenSubmissions;
+    }
+
+    public void setHoursBetweenSubmissions(Float hoursBetweenSubmissions) {
+        this.hoursBetweenSubmissions = hoursBetweenSubmissions;
+    }
+
+    public String getMultipleSubmissionScoringScheme() {
+        return multipleSubmissionScoringScheme;
+    }
+
+    public void setMultipleSubmissionScoringScheme(String multipleSubmissionScoringScheme) {
+        this.multipleSubmissionScoringScheme = multipleSubmissionScoringScheme;
+    }
+
+    public Float getCumulativeScoringInitialPercentage() {
+        return cumulativeScoringInitialPercentage;
+    }
+
+    public void setCumulativeScoringInitialPercentage(Float cumulativeScoringInitialPercentage) {
+        this.cumulativeScoringInitialPercentage = cumulativeScoringInitialPercentage;
+    }
 
     public List<SubmissionDto> getSubmissions() { return submissions; }
 

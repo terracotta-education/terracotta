@@ -417,4 +417,13 @@ public class RestResponseEntityExceptionHandler
             log.warn(bodyOfResponse);
             return handleExceptionInternal(ex, bodyOfResponse, new HttpHeaders(), HttpStatus.BAD_REQUEST, request);
     }
+
+    @ExceptionHandler(value = { MultipleAttemptsSettingsValidationException.class })
+    protected ResponseEntity<Object> handleMultipleAttemptsSettingsValidationException(
+                    MultipleAttemptsSettingsValidationException ex,
+                    WebRequest request) {
+            String bodyOfResponse = ex.getMessage();
+            log.warn(bodyOfResponse);
+            return handleExceptionInternal(ex, bodyOfResponse, new HttpHeaders(), HttpStatus.BAD_REQUEST, request);
+    }
 }

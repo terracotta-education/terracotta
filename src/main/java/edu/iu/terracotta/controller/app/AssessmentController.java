@@ -5,6 +5,7 @@ import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.IdInPostException;
+import edu.iu.terracotta.exceptions.MultipleAttemptsSettingsValidationException;
 import edu.iu.terracotta.exceptions.NoSubmissionsException;
 import edu.iu.terracotta.exceptions.RevealResponsesSettingValidationException;
 import edu.iu.terracotta.exceptions.SubmissionNotMatchingException;
@@ -123,8 +124,7 @@ public class AssessmentController {
                                                         UriComponentsBuilder ucBuilder,
                                                         HttpServletRequest req)
             throws ExperimentNotMatchingException, TreatmentNotMatchingException, BadTokenException,
-            TitleValidationException, AssessmentNotMatchingException, IdInPostException, DataServiceException,
-            RevealResponsesSettingValidationException {
+            TitleValidationException, AssessmentNotMatchingException, IdInPostException, DataServiceException {
 
         log.debug("Creating Assessment: {}", assessmentDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
@@ -148,7 +148,8 @@ public class AssessmentController {
                                                  @RequestBody AssessmentDto assessmentDto,
                                                  HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, BadTokenException,
-            TitleValidationException, RevealResponsesSettingValidationException {
+            TitleValidationException, RevealResponsesSettingValidationException,
+            MultipleAttemptsSettingsValidationException {
 
         log.debug("Updating assessment with id: {}", assessmentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);

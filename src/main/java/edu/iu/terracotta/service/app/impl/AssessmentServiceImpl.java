@@ -3,12 +3,14 @@ package edu.iu.terracotta.service.app.impl;
 import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.IdInPostException;
+import edu.iu.terracotta.exceptions.MultipleAttemptsSettingsValidationException;
 import edu.iu.terracotta.exceptions.RevealResponsesSettingValidationException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.model.app.*;
 import edu.iu.terracotta.model.app.dto.AssessmentDto;
 import edu.iu.terracotta.model.app.dto.QuestionDto;
 import edu.iu.terracotta.model.app.dto.SubmissionDto;
+import edu.iu.terracotta.model.app.enumerator.MultipleSubmissionScoringScheme;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.*;
 import edu.iu.terracotta.utils.TextConstants;
@@ -57,17 +59,16 @@ public class AssessmentServiceImpl implements AssessmentService {
 
     @Override
     public AssessmentDto postAssessment(AssessmentDto assessmentDto, long treatmentId)
-            throws IdInPostException, DataServiceException, TitleValidationException, AssessmentNotMatchingException,
-            RevealResponsesSettingValidationException {
+            throws IdInPostException, DataServiceException, TitleValidationException, AssessmentNotMatchingException {
         if (assessmentDto.getAssessmentId() != null) {
             throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
         }
 
         validateTitle(assessmentDto.getTitle());
-        // reveal treatment response settings are ignored in the DTO when
-        // creating an assessment and will be copied from the Treatment's
-        // Assignment. These settings can be updated for an assessment by
-        // calling updateAssessment.
+        // treatment level settings are ignored in the DTO when creating an
+        // assessment and will be copied from the Treatment's Assignment. These
+        // settings can be updated for an assessment by calling
+        // updateAssessment.
         assessmentDto = defaultAssessment(assessmentDto, treatmentId);
         Assessment assessment;
         try {
@@ -99,6 +100,9 @@ public class AssessmentServiceImpl implements AssessmentService {
         assessmentDto.setTitle(assessment.getTitle());
         assessmentDto.setAutoSubmit(assessment.getAutoSubmit());
         assessmentDto.setNumOfSubmissions(assessment.getNumOfSubmissions());
+        assessmentDto.setHoursBetweenSubmissions(assessment.getHoursBetweenSubmissions());
+        assessmentDto.setMultipleSubmissionScoringScheme(assessment.getMultipleSubmissionScoringScheme().name());
+        assessmentDto.setCumulativeScoringInitialPercentage(assessment.getCumulativeScoringInitialPercentage());
         assessmentDto.setAllowStudentViewResponses(assessment.isAllowStudentViewResponses());
         assessmentDto.setStudentViewResponsesAfter(assessment.getStudentViewResponsesAfter());
         assessmentDto.setStudentViewResponsesBefore(assessment.getStudentViewResponsesBefore());
@@ -178,6 +182,10 @@ public class AssessmentServiceImpl implements AssessmentService {
         assessment.setTitle(assessmentDto.getTitle());
         assessment.setAutoSubmit(assessmentDto.getAutoSubmit());
         assessment.setNumOfSubmissions(assessmentDto.getNumOfSubmissions());
+        assessment.setHoursBetweenSubmissions(assessmentDto.getHoursBetweenSubmissions());
+        assessment.setMultipleSubmissionScoringScheme(
+                MultipleSubmissionScoringScheme.valueOf(assessmentDto.getMultipleSubmissionScoringScheme()));
+        assessment.setCumulativeScoringInitialPercentage(assessmentDto.getCumulativeScoringInitialPercentage());
         assessment.setAllowStudentViewResponses(assessmentDto.isAllowStudentViewResponses());
         assessment.setStudentViewResponsesAfter(assessmentDto.getStudentViewResponsesAfter());
         assessment.setStudentViewResponsesBefore(assessmentDto.getStudentViewResponsesBefore());
@@ -210,7 +218,8 @@ public class AssessmentServiceImpl implements AssessmentService {
 
     @Override
     public void updateAssessment(Long id, AssessmentDto assessmentDto)
-            throws TitleValidationException, RevealResponsesSettingValidationException {
+            throws TitleValidationException, RevealResponsesSettingValidationException,
+            MultipleAttemptsSettingsValidationException {
         Assessment assessment = allRepositories.assessmentRepository.findByAssessmentId(id);
         if (StringUtils.isAllBlank(assessmentDto.getTitle()) && StringUtils.isAllBlank(assessment.getTitle())) {
             throw new TitleValidationException("Error 100: Please give the assessment a title.");
@@ -218,6 +227,7 @@ public class AssessmentServiceImpl implements AssessmentService {
         if (!StringUtils.isAllBlank(assessmentDto.getTitle()) && assessmentDto.getTitle().length() > 255) {
             throw new TitleValidationException("Error 101: Assessment title must be 255 characters or less.");
         }
+        validateMultipleAttemptsSettings(assessmentDto);
         validateRevealAssignmentResponsesSettings(assessmentDto);
         assessment.setAllowStudentViewResponses(assessmentDto.isAllowStudentViewResponses());
         assessment.setStudentViewResponsesAfter(assessmentDto.getStudentViewResponsesAfter());
@@ -229,6 +239,11 @@ public class AssessmentServiceImpl implements AssessmentService {
         assessment.setTitle(assessmentDto.getTitle());
         assessment.setAutoSubmit(assessmentDto.getAutoSubmit());
         assessment.setNumOfSubmissions(assessmentDto.getNumOfSubmissions());
+        assessment.setHoursBetweenSubmissions(assessmentDto.getHoursBetweenSubmissions());
+        MultipleSubmissionScoringScheme multipleSubmissionScoringScheme = MultipleSubmissionScoringScheme
+                .valueOf(assessmentDto.getMultipleSubmissionScoringScheme());
+        assessment.setMultipleSubmissionScoringScheme(multipleSubmissionScoringScheme);
+        assessment.setCumulativeScoringInitialPercentage(assessmentDto.getCumulativeScoringInitialPercentage());
 
         saveAndFlush(assessment);
     }
@@ -263,6 +278,25 @@ public class AssessmentServiceImpl implements AssessmentService {
     public void validateTitle(String title) throws TitleValidationException {
         if (!StringUtils.isAllBlank(title) && title.length() > 255) {
             throw new TitleValidationException("Error 101: Assessment title must be 255 characters or less.");
+        }
+    }
+
+    private void validateMultipleAttemptsSettings(AssessmentDto assessmentDto)
+            throws MultipleAttemptsSettingsValidationException {
+        MultipleSubmissionScoringScheme multipleSubmissionScoringScheme = MultipleSubmissionScoringScheme
+                .valueOf(assessmentDto.getMultipleSubmissionScoringScheme());
+        // validate that if multipleSubmissionScoringScheme is CUMULATIVE, then
+        // cumulativeScoringInitialPercentage is not null
+        if (multipleSubmissionScoringScheme == MultipleSubmissionScoringScheme.CUMULATIVE && assessmentDto.getCumulativeScoringInitialPercentage() == null){
+            throw new MultipleAttemptsSettingsValidationException(
+                    "Error 156: Must set cumulative scoring initial percentage when scoring scheme is CUMULATIVE");
+        }
+
+        // validate that if multipleSubmissionScoringScheme is CUMULATIVE, then
+        // numOfSubmissions is not null and greater than 1
+        if (multipleSubmissionScoringScheme == MultipleSubmissionScoringScheme.CUMULATIVE && (assessmentDto.getNumOfSubmissions() == null || assessmentDto.getNumOfSubmissions() <= 1)) {
+            throw new MultipleAttemptsSettingsValidationException(
+                    "Error 157: Number of submissions must be greater than 1, but not infinite, when scoring scheme is CUMULATIVE");
         }
     }
 
@@ -319,14 +353,19 @@ public class AssessmentServiceImpl implements AssessmentService {
     @Override
     public AssessmentDto defaultAssessment(AssessmentDto assessmentDto, Long treatmentId) {
         assessmentDto.setTreatmentId(treatmentId);
-        if (assessmentDto.getNumOfSubmissions() == null) {
-            assessmentDto.setNumOfSubmissions(1);
-        }
+
+        Treatment treatment = allRepositories.treatmentRepository.findByTreatmentId(treatmentId);
+        Assignment assignment = treatment.getAssignment();
+
+        // Default multiple attempts settings to assignment level settings
+        assessmentDto.setNumOfSubmissions(assignment.getNumOfSubmissions());
+        assessmentDto.setHoursBetweenSubmissions(assignment.getHoursBetweenSubmissions());
+        assessmentDto.setMultipleSubmissionScoringScheme(assignment.getMultipleSubmissionScoringScheme().name());
+        assessmentDto.setCumulativeScoringInitialPercentage(assignment.getCumulativeScoringInitialPercentage());
+
         assessmentDto.setAutoSubmit(true);
 
         // Default reveal treatment responses settings to assignment level settings.
-        Treatment treatment = allRepositories.treatmentRepository.findByTreatmentId(treatmentId);
-        Assignment assignment = treatment.getAssignment();
         assessmentDto.setAllowStudentViewResponses(assignment.isAllowStudentViewResponses());
         assessmentDto.setStudentViewResponsesAfter(assignment.getStudentViewResponsesAfter());
         assessmentDto.setStudentViewResponsesBefore(assignment.getStudentViewResponsesBefore());
