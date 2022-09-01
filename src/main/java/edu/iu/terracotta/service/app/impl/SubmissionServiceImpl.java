@@ -499,16 +499,18 @@ public class SubmissionServiceImpl implements SubmissionService {
                 break;
             case AVERAGE:
                 // average all fully graded submissions
+                int count = 0;
                 for (Submission submission : submissionList) {
                     if (!isManualGradingNeeded(submission)) {
                         if (score == null) {
                             score = 0f;
                         }
                         score += getSubmissionScore(submission);
+                        count++;
                     }
                 }
                 if (score != null) {
-                    score = score / submissionList.size();
+                    score = score / count;
                 }
                 break;
             case HIGHEST:
