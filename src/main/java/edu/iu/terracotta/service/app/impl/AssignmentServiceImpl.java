@@ -112,13 +112,13 @@ public class AssignmentServiceImpl implements AssignmentService {
 
 
     @Override
-    public List<Assignment> findAllByExposureId(long exposureId) {
-        return allRepositories.assignmentRepository.findByExposure_ExposureId(exposureId);
+    public List<Assignment> findAllByExposureId(long exposureId, boolean includeDeleted) {
+        return allRepositories.assignmentRepository.findByExposure_ExposureIdAndSoftDeleted(exposureId, includeDeleted);
     }
 
     @Override
-    public List<AssignmentDto> getAssignments(Long exposureId, boolean submissions) throws AssessmentNotMatchingException{
-        List<Assignment> assignments = findAllByExposureId(exposureId);
+    public List<AssignmentDto> getAssignments(Long exposureId, boolean submissions, boolean includedDeleted) throws AssessmentNotMatchingException{
+        List<Assignment> assignments = findAllByExposureId(exposureId, includedDeleted);
         List<AssignmentDto> assignmentDtoList = new ArrayList<>();
         for(Assignment assignment : assignments){
             assignmentDtoList.add(toDto(assignment, submissions));
@@ -277,8 +277,20 @@ public class AssignmentServiceImpl implements AssignmentService {
 
     @Override
     public void deleteById(Long id, String canvasCourseId) throws EmptyResultDataAccessException, CanvasApiException, AssignmentNotEditedException {
-        deleteAssignmentInCanvas(allRepositories.assignmentRepository.getOne(id), canvasCourseId);
-        allRepositories.assignmentRepository.deleteByAssignmentId(id);
+        Assignment assignment = allRepositories.assignmentRepository.getOne(id);
+        deleteAssignmentInCanvas(assignment, canvasCourseId);
+
+        long submissionsCount = allRepositories.submissionRepository.countByAssessment_Treatment_Assignment_AssignmentId(id);
+
+        if (submissionsCount  == 0l) {
+            // no submissions; hard delete
+            allRepositories.assignmentRepository.deleteByAssignmentId(id);
+            return;
+        }
+
+        // has submissions; soft delete
+        assignment.setSoftDeleted(true);
+        saveAndFlush(assignment);
     }
 
     @Override
@@ -668,7 +680,7 @@ public class AssignmentServiceImpl implements AssignmentService {
         AssignmentExtended assignmentExtended = assignmentExtendedOptional.get();
         assignmentExtended.setName(newName);
         try {
-            Optional<AssignmentExtended> canvasAssignmentReturned = canvasAPIClient.editAssignment(assignmentExtended,
+            canvasAPIClient.editAssignment(assignmentExtended,
                     canvasCourseId,
                     assignment.getExposure().getExperiment().getPlatformDeployment());
         } catch (CanvasApiException e) {

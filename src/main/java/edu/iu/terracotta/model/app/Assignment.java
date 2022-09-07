@@ -44,8 +44,8 @@ public class Assignment extends BaseEntity {
     @Column(name = "assignment_order")
     private Integer assignmentOrder;
 
-    @Column(name = "soft_deleted")
-    private Boolean softDeleted = false;
+    @Column(name = "soft_deleted", columnDefinition = "boolean default false")
+    private boolean softDeleted = false;
 
     // if null then the number of submissions is unlimited
     @Column(name = "num_of_submissions", nullable = true)
@@ -196,5 +196,4 @@ public class Assignment extends BaseEntity {
     public void setCumulativeScoringInitialPercentage(Float cumulativeScoringInitialPercentage) {
         this.cumulativeScoringInitialPercentage = cumulativeScoringInitialPercentage;
     }
-
 }

@@ -13,7 +13,7 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
 
     Assignment findByAssignmentId(Long assignmentId);
 
-    List<Assignment> findByExposure_ExposureId(Long exposureId);
+    List<Assignment> findByExposure_ExposureIdAndSoftDeleted(Long exposureId, boolean softDeleted);
 
     List<Assignment> findByExposure_Experiment_ExperimentId(Long experimentId);
 
@@ -31,12 +31,5 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
 
     @Query("select a from Assignment a where a.exposure.experiment.ltiContextEntity.contextId = ?1 and a.exposure.experiment.closed is null and a.assignmentId NOT IN (Select a2.assignmentId from Assignment a2 where a2.softDeleted = true)")
     List<Assignment> findAssignmentsToCheckByContext(long contextId);
-
-
-
-
-
-
-
 
 }

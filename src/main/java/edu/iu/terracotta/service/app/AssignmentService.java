@@ -19,6 +19,7 @@ import edu.iu.terracotta.model.app.Assignment;
 import edu.iu.terracotta.model.app.Group;
 import edu.iu.terracotta.model.app.dto.AssignmentDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
+
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
@@ -30,9 +31,9 @@ import java.util.Optional;
 
 public interface AssignmentService {
 
-    List<Assignment> findAllByExposureId(long exposureId);
+    List<Assignment> findAllByExposureId(long exposureId, boolean includeDeleted);
 
-    List<AssignmentDto> getAssignments(Long exposureId, boolean submissions) throws AssessmentNotMatchingException;
+    List<AssignmentDto> getAssignments(Long exposureId, boolean submissions, boolean includedDeleted) throws AssessmentNotMatchingException;
 
     Assignment getAssignment(Long id);
 
