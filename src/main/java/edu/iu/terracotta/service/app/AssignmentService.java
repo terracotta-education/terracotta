@@ -41,6 +41,11 @@ public interface AssignmentService {
             AssignmentNotCreatedException, RevealResponsesSettingValidationException,
             MultipleAttemptsSettingsValidationException;
 
+    AssignmentDto duplicateAssignment(long assignmentId)
+            throws DataServiceException, IdInPostException, TitleValidationException, AssessmentNotMatchingException,
+                    AssignmentNotCreatedException, RevealResponsesSettingValidationException,
+                    MultipleAttemptsSettingsValidationException;
+
     AssignmentDto toDto(Assignment assignment, boolean submissions) throws AssessmentNotMatchingException;
 
     Assignment fromDto(AssignmentDto assignmentDto) throws DataServiceException;
