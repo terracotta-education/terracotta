@@ -1,6 +1,8 @@
 package edu.iu.terracotta.controller.app;
 
 import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
+import edu.iu.terracotta.exceptions.AssignmentLockedException;
+import edu.iu.terracotta.exceptions.AssignmentNotMatchingException;
 import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.ConditionNotMatchingException;
@@ -25,6 +27,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -148,28 +151,28 @@ public class TreatmentController {
     }
 
 
-    @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}", method = RequestMethod.DELETE)
-    public ResponseEntity<Void> deleteTreatment(@PathVariable("experiment_id") Long experimentId,
-                                                @PathVariable("condition_id") Long conditionId,
-                                                @PathVariable("treatment_id") Long treatmentId,
+    @DeleteMapping("/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}")
+    public ResponseEntity<Void> deleteTreatment(@PathVariable long experimentId,
+                                                @PathVariable long conditionId,
+                                                @PathVariable long treatmentId,
                                                 HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, TreatmentNotMatchingException, ExperimentLockedException {
+            throws ExperimentNotMatchingException, BadTokenException, TreatmentNotMatchingException, AssignmentLockedException, AssignmentNotMatchingException {
 
+        apijwtService.assignmentLocked(treatmentId, true);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
-        apijwtService.experimentLocked(experimentId,true);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.treatmentAllowed(securedInfo, experimentId, conditionId, treatmentId);
 
-        if(apijwtService.isInstructorOrHigher(securedInfo)) {
-            try{
-                treatmentService.deleteById(treatmentId);
-                return new ResponseEntity<>(HttpStatus.OK);
-            } catch (EmptyResultDataAccessException ex) {
-                log.warn(ex.getMessage());
-                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-            }
-        } else {
+        if(!apijwtService.isInstructorOrHigher(securedInfo)) {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
+        }
+
+        try{
+            treatmentService.deleteById(treatmentId);
+            return new ResponseEntity<>(HttpStatus.OK);
+        } catch (EmptyResultDataAccessException ex) {
+            log.warn(ex.getMessage());
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
 
@@ -188,7 +191,7 @@ public class TreatmentController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.conditionAllowed(securedInfo, experimentId, conditionId);
 
-        if(!apijwtService.isInstructorOrHigher(securedInfo)) {
+        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 

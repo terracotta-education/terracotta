@@ -78,6 +78,8 @@ public interface APIJWTService {
 
     void assignmentAllowed(SecuredInfo securedInfo, Long experimentId, Long exposureId, Long assignmentId) throws AssignmentNotMatchingException;
 
+    boolean assignmentLocked(Long treatmentId, boolean throwException) throws AssignmentLockedException, AssignmentNotMatchingException;
+
     void treatmentAllowed(SecuredInfo securedInfo, Long experimentId, Long conditionId, Long treatmentId) throws TreatmentNotMatchingException;
 
     void assessmentAllowed(SecuredInfo securedInfo, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId) throws AssessmentNotMatchingException;
