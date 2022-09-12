@@ -27,6 +27,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.slf4j.LoggerFactory;
@@ -170,4 +171,32 @@ public class AssignmentController {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
     }
+
+    @Transactional
+    @PostMapping(value = "/{experimentId}/exposures/{exposureId}/assignments/{assignmentId}/duplicate")
+    public ResponseEntity<AssignmentDto> duplicateAssignment(@PathVariable long experimentId,
+                                                        @PathVariable long exposureId,
+                                                        @PathVariable long assignmentId,
+                                                        UriComponentsBuilder ucBuilder,
+                                                        HttpServletRequest req)
+            throws ExperimentNotMatchingException, ExposureNotMatchingException, BadTokenException,
+                    AssessmentNotMatchingException, TitleValidationException, AssignmentNotCreatedException, IdInPostException,
+                    DataServiceException, RevealResponsesSettingValidationException,
+                    MultipleAttemptsSettingsValidationException {
+
+        log.debug("Duplicating Assignment: {}", assignmentId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
+
+        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
+            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
+        }
+
+        AssignmentDto returnedDto = assignmentService.duplicateAssignment(assignmentId);
+        HttpHeaders headers = assignmentService.buildHeaders(ucBuilder, experimentId, exposureId, returnedDto.getAssignmentId());
+
+        return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
+    }
+
 }
