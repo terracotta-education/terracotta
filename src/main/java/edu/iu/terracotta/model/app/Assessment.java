@@ -45,11 +45,11 @@ public class Assessment extends BaseEntity {
     private boolean autoSubmit;
 
     // if null then the number of submissions is unlimited
-    @Column(name = "num_of_submissions", nullable = true)
+    @Column
     private Integer numOfSubmissions;
 
     // if null then no minimum time between submissions
-    @Column(name = "hours_between_submissions", nullable = true)
+    @Column
     private Float hoursBetweenSubmissions;
 
     @Enumerated(EnumType.STRING)

@@ -308,36 +308,50 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
     }
 
     @Override
-    public boolean canSubmit(String canvasCourseId, String assignmentId, String canvasUserId, long deploymentId) throws CanvasApiException,
-            IOException {
-        //We find the right deployment:
+    public void canSubmit(String canvasCourseId, String assignmentId, String canvasUserId, long deploymentId) throws CanvasApiException, AssignmentAttemptException, IOException {
+        // We find the right deployment:
         Optional<ToolDeployment> toolDeployment = allRepositories.toolDeploymentRepository.findById(deploymentId);
-        if (toolDeployment.isPresent()) {
-            String litDeploymentId = toolDeployment.get().getLtiDeploymentId();
-            List<PlatformDeployment> platformDeploymentList = allRepositories.platformDeploymentRepository
-                    .findByToolDeployments_LtiDeploymentId(litDeploymentId);
-            if (!platformDeploymentList.isEmpty()) {
-                PlatformDeployment platformDeployment = platformDeploymentList.get(0);
 
-                Optional<AssignmentExtended> assignmentExtended = canvasAPIClient.listAssignment(canvasCourseId,
-                        Integer.parseInt(assignmentId), platformDeployment);
-                List<edu.ksu.canvas.model.assignment.Submission> submissionsList = canvasAPIClient.listSubmissions(Integer.parseInt(assignmentId),
-                        canvasCourseId, platformDeployment);
-
-                Optional<edu.ksu.canvas.model.assignment.Submission> submission = submissionsList.stream().filter(sub -> sub.getUser().getId() == Integer.parseInt(canvasUserId)).findFirst();
-                if (assignmentExtended.isPresent() && submission.isPresent()) {
-                    AssignmentExtended assignment = assignmentExtended.get();
-                    int allowedAttempts = assignment.getAllowedAttempts();
-                    int attempt = 0;
-                    if (submission.get().getAttempt() != null && allowedAttempts >0) {
-                        attempt = submission.get().getAttempt();
-                        if (attempt >= allowedAttempts) {
-                            return false;
-                        }
-                    }
-                }
-            }
+        if (!toolDeployment.isPresent()) {
+            return;
         }
-        return true;
+
+        String litDeploymentId = toolDeployment.get().getLtiDeploymentId();
+        List<PlatformDeployment> platformDeploymentList = allRepositories.platformDeploymentRepository.findByToolDeployments_LtiDeploymentId(litDeploymentId);
+
+        if (platformDeploymentList.isEmpty()) {
+            return;
+        }
+
+        PlatformDeployment platformDeployment = platformDeploymentList.get(0);
+
+        Optional<AssignmentExtended> assignmentExtended = canvasAPIClient.listAssignment(canvasCourseId, Integer.parseInt(assignmentId), platformDeployment);
+        List<edu.ksu.canvas.model.assignment.Submission> submissionsList = canvasAPIClient.listSubmissions(Integer.parseInt(assignmentId), canvasCourseId, platformDeployment);
+
+        Optional<edu.ksu.canvas.model.assignment.Submission> submission = submissionsList.stream()
+            .filter(sub -> { return sub.getUser().getId() == Integer.parseInt(canvasUserId); })
+            .findFirst();
+
+        if (!assignmentExtended.isPresent() || !submission.isPresent()) {
+            // no extends assignment and no submissions exist
+            return;
+        }
+
+        int allowedAttempts = assignmentExtended.get().getAllowedAttempts();
+
+        if (submission.get().getAttempt() == null || allowedAttempts <= 0) {
+            // allowed attempts is infinite
+            return;
+        }
+
+        int attempt = submission.get().getAttempt();
+
+        if (attempt < allowedAttempts) {
+            return;
+        }
+
+        // all allowable submission checks have failed, disallow submit attempt
+        throw new AssignmentAttemptException(TextConstants.MAX_SUBMISSION_ATTEMPTS_REACHED);
     }
+
 }

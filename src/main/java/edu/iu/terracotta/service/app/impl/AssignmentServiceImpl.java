@@ -1,6 +1,7 @@
 package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
+import edu.iu.terracotta.exceptions.AssignmentAttemptException;
 import edu.iu.terracotta.exceptions.AssignmentDatesException;
 import edu.iu.terracotta.exceptions.AssignmentNotCreatedException;
 import edu.iu.terracotta.exceptions.AssignmentNotEditedException;
@@ -69,7 +70,9 @@ import javax.persistence.PersistenceContext;
 
 import java.io.IOException;
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -425,7 +428,7 @@ public class AssignmentServiceImpl implements AssignmentService {
     public ResponseEntity<Object> launchAssignment(Long experimentId, SecuredInfo securedInfo) throws
             AssessmentNotMatchingException, ParticipantNotUpdatedException, AssignmentDatesException,
             DataServiceException, CanvasApiException, IOException, GroupNotMatchingException,
-            ParticipantNotMatchingException, ConnectionException {
+            ParticipantNotMatchingException, ConnectionException, AssignmentAttemptException {
         Optional<Experiment> experiment = experimentService.findById(experimentId);
         if (experiment.isPresent()) {
             List<Participant> participants = participantService.refreshParticipants(experimentId,securedInfo, experiment.get().getParticipants());
@@ -483,6 +486,7 @@ public class AssignmentServiceImpl implements AssignmentService {
             //4. Maybe create the submission and return it (it must include info about the assessment)
             // First, try to find the submissions for this assessment and participant.
             List<Submission> submissionList = submissionService.findByParticipantIdAndAssessmentId(participant.getParticipantId(), assessment.getAssessmentId());
+
             if (!submissionList.isEmpty()) {
                 for (Submission submission : submissionList) {
                     //   - if one of them is not submitted, (and we can use it, we need to return that one),
@@ -507,18 +511,55 @@ public class AssignmentServiceImpl implements AssignmentService {
                     }
                 }
             }
-            if (assessment.getNumOfSubmissions() == null || assessment.getNumOfSubmissions() == 0 || assessment.getNumOfSubmissions() > submissionList.size()) {
-                //If it is the first submission in the experiment we mark it as started.
+            try {
+                verifyAssignmentSubmissionLimit(assessment.getNumOfSubmissions(), submissionList.size());
+                verifySubmissionWaitTime(assessment.getHoursBetweenSubmissions(), submissionList);
+
+                // If it is the first submission in the experiment we mark it as started.
                 if (experiment.get().getStarted()==null){
                     experiment.get().setStarted(Timestamp.valueOf(LocalDateTime.now()));
                     experimentService.save(experiment.get());
                 }
+
                 return createSubmission(experimentId, assessment, participant, securedInfo);
-            } else {
-                return new ResponseEntity(TextConstants.LIMIT_OF_SUBMISSIONS_REACHED, HttpStatus.UNAUTHORIZED);
+            } catch (AssignmentAttemptException e) {
+                return new ResponseEntity(e.getMessage(), HttpStatus.UNAUTHORIZED);
             }
         } else { //Shouldn't happen
             return new ResponseEntity(TextConstants.EXPERIMENT_NOT_MATCHING, HttpStatus.UNAUTHORIZED);
+        }
+    }
+
+    private void verifyAssignmentSubmissionLimit(Integer limit, int existingSubmissionsCount) throws AssignmentAttemptException {
+        if (limit == null || limit == 0) {
+            return;
+        }
+
+        if (existingSubmissionsCount < limit) {
+            return;
+        }
+
+        throw new AssignmentAttemptException(TextConstants.LIMIT_OF_SUBMISSIONS_REACHED);
+    }
+
+    private void verifySubmissionWaitTime(Float waitTime, List<Submission> submissionList) throws AssignmentAttemptException {
+        if (waitTime == null || waitTime == 0F) {
+            return;
+        }
+
+        if (CollectionUtils.isEmpty(submissionList)) {
+            return;
+        }
+
+        // calculate the allowable submission time limit
+        Timestamp limit = Timestamp.from(Instant.now().minus(Math.round(waitTime * 60 * 60), ChronoUnit.SECONDS));
+
+        // check for any submissions after the allowable time
+        long afterLimitCount = submissionList.stream().filter(submission -> { return submission.getDateSubmitted().after(limit); }).count();
+
+        if (afterLimitCount != 0l) {
+            // there are existing submissions that are not passed the time limit
+            throw new AssignmentAttemptException(TextConstants.ASSIGNMENT_SUBMISSION_WAIT_TIME_NOT_REACHED);
         }
     }
 
