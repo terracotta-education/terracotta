@@ -32,21 +32,21 @@ public interface AssignmentService {
 
     List<Assignment> findAllByExposureId(long exposureId);
 
-    List<AssignmentDto> getAssignments(Long exposureId, boolean submissions) throws AssessmentNotMatchingException;
+    List<AssignmentDto> getAssignments(Long exposureId, String canvasCourseId, long platformDeploymentId, boolean submissions) throws AssessmentNotMatchingException, CanvasApiException;
 
     Assignment getAssignment(Long id);
 
-    AssignmentDto postAssignment(AssignmentDto assignmentDto, long experimentId, String CavnasCourseId, long exposureId)
+    AssignmentDto postAssignment(AssignmentDto assignmentDto, long experimentId, String canvasCourseId, long exposureId, long platformDeploymentId)
             throws DataServiceException, IdInPostException, TitleValidationException, AssessmentNotMatchingException,
             AssignmentNotCreatedException, RevealResponsesSettingValidationException,
-            MultipleAttemptsSettingsValidationException;
+            MultipleAttemptsSettingsValidationException, NumberFormatException, CanvasApiException;
 
-    AssignmentDto duplicateAssignment(long assignmentId)
+    AssignmentDto duplicateAssignment(long assignmentId, String canvasCourseId, long platformDeploymentId)
             throws DataServiceException, IdInPostException, TitleValidationException, AssessmentNotMatchingException,
                     AssignmentNotCreatedException, RevealResponsesSettingValidationException,
-                    MultipleAttemptsSettingsValidationException;
+                    MultipleAttemptsSettingsValidationException, NumberFormatException, CanvasApiException;
 
-    AssignmentDto toDto(Assignment assignment, boolean submissions) throws AssessmentNotMatchingException;
+    AssignmentDto toDto(Assignment assignment, boolean submissions, boolean addTreatmentDto) throws AssessmentNotMatchingException;
 
     Assignment fromDto(AssignmentDto assignmentDto) throws DataServiceException;
 
@@ -99,4 +99,7 @@ public interface AssignmentService {
     void deleteAssignmentInCanvas(Assignment assignment, String canvasCourseId) throws AssignmentNotEditedException, CanvasApiException;
 
     void deleteAllFromExperiment(Long id, SecuredInfo securedInfo);
+
+    void setAssignmentDtoAttrs(Assignment assignment, String canvasCourseId, long platformDeploymentId) throws NumberFormatException, CanvasApiException;
+
 }

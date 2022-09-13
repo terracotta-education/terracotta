@@ -2,6 +2,7 @@ package edu.iu.terracotta.controller.app;
 
 import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.exceptions.BadTokenException;
+import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.ConditionNotMatchingException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExceedingLimitException;
@@ -23,6 +24,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -51,27 +53,29 @@ public class TreatmentController {
 
 
 
-    @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments", method = RequestMethod.GET, produces = "application/json;")
+    @GetMapping(value = "/{experimentId}/conditions/{conditionId}/treatments", produces = "application/json;")
     @ResponseBody
-    public ResponseEntity<List<TreatmentDto>> allTreatmentsByCondition(@PathVariable("experiment_id") Long experimentId,
-                                                                       @PathVariable("condition_id") Long conditionId,
+    public ResponseEntity<List<TreatmentDto>> allTreatmentsByCondition(@PathVariable long experimentId,
+                                                                       @PathVariable long conditionId,
                                                                        @RequestParam(name = "submissions", defaultValue = "false") boolean submissions,
                                                                        HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, ConditionNotMatchingException, AssessmentNotMatchingException {
+            throws ExperimentNotMatchingException, BadTokenException, ConditionNotMatchingException, AssessmentNotMatchingException, NumberFormatException, CanvasApiException {
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.conditionAllowed(securedInfo, experimentId,conditionId);
 
-        if(apijwtService.isLearnerOrHigher(securedInfo)) {
-            List<TreatmentDto> treatmentList = treatmentService.getTreatments(conditionId, submissions);
-            if(treatmentList.isEmpty()) {
-                return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-            }
-            return new ResponseEntity<>(treatmentList, HttpStatus.OK);
-        } else {
+        if(!apijwtService.isLearnerOrHigher(securedInfo)) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
+
+        List<TreatmentDto> treatmentList = treatmentService.getTreatments(conditionId, securedInfo.getCanvasCourseId(), securedInfo.getPlatformDeploymentId(), submissions);
+
+        if(treatmentList.isEmpty()) {
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        }
+
+        return new ResponseEntity<>(treatmentList, HttpStatus.OK);
     }
 
 
@@ -88,7 +92,7 @@ public class TreatmentController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.treatmentAllowed(securedInfo, experimentId, conditionId, treatmentId);
         if(apijwtService.isLearnerOrHigher(securedInfo)) {
-            TreatmentDto treatmentDto = treatmentService.toDto(treatmentService.getTreatment(treatmentId), submissions);
+            TreatmentDto treatmentDto = treatmentService.toDto(treatmentService.getTreatment(treatmentId), submissions, true);
             return new ResponseEntity<>(treatmentDto, HttpStatus.OK);
         } else {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
@@ -176,7 +180,7 @@ public class TreatmentController {
                                                           UriComponentsBuilder ucBuilder,
                                                           HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ConditionNotMatchingException, ExperimentLockedException,
-                    AssessmentNotMatchingException, IdInPostException, ExceedingLimitException, DataServiceException {
+                    AssessmentNotMatchingException, IdInPostException, ExceedingLimitException, DataServiceException, NumberFormatException, CanvasApiException {
 
         log.debug("Duplicating Treatment ID: {}", treatmentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
@@ -188,7 +192,7 @@ public class TreatmentController {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
-        TreatmentDto returnedDto = treatmentService.duplicateTreatment(treatmentId);
+        TreatmentDto returnedDto = treatmentService.duplicateTreatment(treatmentId, securedInfo.getCanvasCourseId(), securedInfo.getPlatformDeploymentId());
         HttpHeaders headers = treatmentService.buildHeaders(ucBuilder, experimentId, conditionId, returnedDto.getTreatmentId());
 
         return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
