@@ -80,6 +80,9 @@ public class Assignment extends BaseEntity {
     @Column(name = "student_view_correct_answers_before", nullable = true)
     private Timestamp studentViewCorrectAnswersBefore;
 
+    @Column
+    private Timestamp started;
+
     //methods
     public Long getAssignmentId() { return assignmentId; }
 
@@ -197,4 +200,15 @@ public class Assignment extends BaseEntity {
         this.cumulativeScoringInitialPercentage = cumulativeScoringInitialPercentage;
     }
 
+    public Timestamp getStarted() {
+        return started;
+    }
+
+    public void setStarted(Timestamp started) {
+        this.started = started;
+    }
+
+    public boolean isStarted() {
+        return this.started != null;
+    }
 }

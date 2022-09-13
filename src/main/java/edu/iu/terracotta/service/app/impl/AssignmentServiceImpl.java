@@ -177,10 +177,8 @@ public class AssignmentServiceImpl implements AssignmentService {
         assignmentDto.setAllowStudentViewCorrectAnswers(assignment.isAllowStudentViewCorrectAnswers());
         assignmentDto.setStudentViewCorrectAnswersAfter(assignment.getStudentViewCorrectAnswersAfter());
         assignmentDto.setStudentViewCorrectAnswersBefore(assignment.getStudentViewCorrectAnswersBefore());
-        long submissionsCount = allRepositories.submissionRepository.countByAssessment_Treatment_Assignment_AssignmentId(assignment.getAssignmentId());
-        if(submissionsCount > 0){
-            assignmentDto.setStarted(true);
-        }
+        assignmentDto.setStarted(assignment.isStarted());
+
         List<Treatment> treatments = allRepositories.treatmentRepository.findByAssignment_AssignmentId(assignment.getAssignmentId());
         List<TreatmentDto> treatmentDtoList = new ArrayList<>();
         for (Treatment treatment:treatments){
