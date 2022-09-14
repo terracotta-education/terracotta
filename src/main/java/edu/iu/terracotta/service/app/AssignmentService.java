@@ -54,11 +54,15 @@ public interface AssignmentService {
 
     Optional<Assignment> findById(Long id);
 
-    void updateAssignment(Long id, AssignmentDto assignmentDto, String canvasCourseId) throws TitleValidationException,
+    AssignmentDto updateAssignment(Long id, AssignmentDto assignmentDto, String canvasCourseId) throws TitleValidationException,
             CanvasApiException, AssignmentNotEditedException, RevealResponsesSettingValidationException,
-            MultipleAttemptsSettingsValidationException;
+            MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException;
 
-    void saveAndFlush(Assignment assignmentToChange);
+    List<AssignmentDto> updateAssignments(List<AssignmentDto> assignmentDtos, String canvasCourseId) throws TitleValidationException,
+            CanvasApiException, AssignmentNotEditedException, RevealResponsesSettingValidationException,
+            MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException;
+
+    Assignment saveAndFlush(Assignment assignmentToChange);
 
     void deleteById(Long id, String canvasCourseId) throws EmptyResultDataAccessException, CanvasApiException, AssignmentNotEditedException;
 
