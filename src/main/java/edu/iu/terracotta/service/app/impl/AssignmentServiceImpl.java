@@ -228,9 +228,22 @@ public class AssignmentServiceImpl implements AssignmentService {
     public Assignment getAssignment(Long id){ return allRepositories.assignmentRepository.findByAssignmentId(id); }
 
     @Override
-    public void updateAssignment(Long id, AssignmentDto assignmentDto, String canvasCourseId)
+    public List<AssignmentDto> updateAssignments(List<AssignmentDto> assignmentDtos, String canvasCourseId)
             throws TitleValidationException, CanvasApiException, AssignmentNotEditedException,
-            RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException {
+                RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException {
+        List<AssignmentDto> updatedAssignmentDtos = new ArrayList<>();
+
+        for (AssignmentDto assignmentDto : assignmentDtos) {
+            updatedAssignmentDtos.add(updateAssignment(assignmentDto.getAssignmentId(), assignmentDto, canvasCourseId));
+        }
+
+        return updatedAssignmentDtos;
+    }
+
+    @Override
+    public AssignmentDto updateAssignment(Long id, AssignmentDto assignmentDto, String canvasCourseId)
+            throws TitleValidationException, CanvasApiException, AssignmentNotEditedException,
+                RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException {
         Assignment assignment = allRepositories.assignmentRepository.findByAssignmentId(id);
         if(StringUtils.isAllBlank(assignmentDto.getTitle()) && StringUtils.isAllBlank(assignment.getTitle())){
             throw new TitleValidationException("Error 100: Please give the assignment a name.");
@@ -258,7 +271,7 @@ public class AssignmentServiceImpl implements AssignmentService {
                 .valueOf(assignmentDto.getMultipleSubmissionScoringScheme());
         assignment.setMultipleSubmissionScoringScheme(multipleSubmissionScoringScheme);
         assignment.setCumulativeScoringInitialPercentage(assignmentDto.getCumulativeScoringInitialPercentage());
-        saveAndFlush(assignment);
+        Assignment updatedAssignment = saveAndFlush(assignment);
 
         // update the same settings on all of this assignment's assessments
         List<Assessment> assessments = allRepositories.assessmentRepository.findByTreatment_Assignment_AssignmentId(id);
@@ -274,10 +287,12 @@ public class AssignmentServiceImpl implements AssignmentService {
             assessment.setMultipleSubmissionScoringScheme(multipleSubmissionScoringScheme);
             assessment.setCumulativeScoringInitialPercentage(assignmentDto.getCumulativeScoringInitialPercentage());
         }
+
+        return toDto(updatedAssignment, false);
     }
 
     @Override
-    public void saveAndFlush(Assignment assignmentToChange) { allRepositories.assignmentRepository.saveAndFlush(assignmentToChange); }
+    public Assignment saveAndFlush(Assignment assignmentToChange) { return allRepositories.assignmentRepository.saveAndFlush(assignmentToChange); }
 
     @Override
     public void deleteById(Long id, String canvasCourseId) throws EmptyResultDataAccessException, CanvasApiException, AssignmentNotEditedException {
