@@ -1,6 +1,7 @@
 package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
+import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExceedingLimitException;
 import edu.iu.terracotta.exceptions.IdInPostException;
@@ -11,8 +12,11 @@ import edu.iu.terracotta.model.app.dto.AssessmentDto;
 import edu.iu.terracotta.model.app.dto.TreatmentDto;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.AssessmentService;
+import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.app.TreatmentService;
 import edu.iu.terracotta.utils.TextConstants;
+
+import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
@@ -23,6 +27,7 @@ import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -35,6 +40,9 @@ public class TreatmentServiceImpl implements TreatmentService {
     @Autowired
     private AssessmentService assessmentService;
 
+    @Autowired
+    private AssignmentService assignmentService;
+
     @PersistenceContext
     private EntityManager entityManager;
 
@@ -44,17 +52,26 @@ public class TreatmentServiceImpl implements TreatmentService {
     }
 
     @Override
-    public List<TreatmentDto> getTreatments(Long conditionId, boolean submissions) throws AssessmentNotMatchingException{
+    public List<TreatmentDto> getTreatments(Long conditionId, String canvasCourseId, long platformDeploymentId, boolean submissions)
+            throws AssessmentNotMatchingException, NumberFormatException, CanvasApiException {
         List<Treatment> treatments = findAllByConditionId(conditionId);
-        List<TreatmentDto> treatmentDtoList = new ArrayList<>();
-        for(Treatment treatment : treatments){
-            treatmentDtoList.add(toDto(treatment, submissions));
+
+        if (CollectionUtils.isEmpty(treatments)) {
+            return Collections.emptyList();
         }
+
+        List<TreatmentDto> treatmentDtoList = new ArrayList<>();
+
+        for(Treatment treatment : treatments){
+            assignmentService.setAssignmentDtoAttrs(treatment.getAssignment(), canvasCourseId, platformDeploymentId);
+            treatmentDtoList.add(toDto(treatment, submissions, true));
+        }
+
         return treatmentDtoList;
     }
 
     @Override
-    public Treatment getTreatment(Long id) { return allRepositories.treatmentRepository.findByTreatmentId(id); }
+    public Treatment getTreatment(Long id) {return allRepositories.treatmentRepository.findByTreatmentId(id); }
 
     @Override
     public TreatmentDto postTreatment(TreatmentDto treatmentDto, long conditionId) throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException {
@@ -74,17 +91,25 @@ public class TreatmentServiceImpl implements TreatmentService {
 
         limitToOne(treatment.getAssignment().getAssignmentId(), conditionId);
         Treatment treatmentSaved = save(treatment);
-        return toDto(treatmentSaved, false);
+        return toDto(treatmentSaved, false, true);
     }
 
     @Override
-    public TreatmentDto toDto(Treatment treatment, boolean submissions) throws AssessmentNotMatchingException {
+    public TreatmentDto toDto(Treatment treatment, boolean submissions, boolean addAssignmentDto) throws AssessmentNotMatchingException {
         TreatmentDto treatmentDto = new TreatmentDto();
+
         treatmentDto.setTreatmentId(treatment.getTreatmentId());
+
+        if (addAssignmentDto) {
+            treatmentDto.setAssignmentDto(assignmentService.toDto(treatment.getAssignment(), false, false));
+        }
+
         if(treatment.getAssessment() != null) {
             treatmentDto.setAssessmentDto(assessmentService.toDto(treatment.getAssessment(), false,false, submissions, false));
         }
+
         treatmentDto.setConditionId(treatment.getCondition().getConditionId());
+        // keeping assignmentId at the root, as removal will break the UI in many places...
         treatmentDto.setAssignmentId(treatment.getAssignment().getAssignmentId());
 
         return treatmentDto;
@@ -143,7 +168,7 @@ public class TreatmentServiceImpl implements TreatmentService {
     }
 
     @Override
-    public TreatmentDto duplicateTreatment(long treatmentId) throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException {
+    public TreatmentDto duplicateTreatment(long treatmentId, String canvasCourseId, long platformDeploymentId) throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, NumberFormatException, CanvasApiException {
         Treatment from = getTreatment(treatmentId);
 
         if (from == null) {
@@ -156,7 +181,8 @@ public class TreatmentServiceImpl implements TreatmentService {
         from.setTreatmentId(null);
 
         Treatment newTreatment = save(from);
-        TreatmentDto treatmentDto = toDto(newTreatment, false);
+        assignmentService.setAssignmentDtoAttrs(newTreatment.getAssignment(), canvasCourseId, platformDeploymentId);
+        TreatmentDto treatmentDto = toDto(newTreatment, false, true);
 
         // duplicate assessment
         Assessment existingAssessment = from.getAssessment();

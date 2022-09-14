@@ -26,6 +26,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -56,27 +57,29 @@ public class AssignmentController {
     APIJWTService apijwtService;
 
 
-    @RequestMapping(value = "/{experiment_id}/exposures/{exposure_id}/assignments", method = RequestMethod.GET, produces = "application/json;")
+    @GetMapping(value = "/{experimentId}/exposures/{exposureId}/assignments", produces = "application/json;")
     @ResponseBody
-    public ResponseEntity<List<AssignmentDto>> allAssignmentsByExposure(@PathVariable("experiment_id") long experimentId,
-                                                                        @PathVariable("exposure_id") Long exposureId,
+    public ResponseEntity<List<AssignmentDto>> allAssignmentsByExposure(@PathVariable long experimentId,
+                                                                        @PathVariable long exposureId,
                                                                         @RequestParam(name = "submissions", defaultValue = "false") boolean submissions,
                                                                         HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, ExposureNotMatchingException, AssessmentNotMatchingException {
+            throws ExperimentNotMatchingException, BadTokenException, ExposureNotMatchingException, AssessmentNotMatchingException, CanvasApiException {
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
 
-        if (apijwtService.isLearnerOrHigher(securedInfo)) {
-            List<AssignmentDto> assignments = assignmentService.getAssignments(exposureId, submissions);
-            if (assignments.isEmpty()) {
-                return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-            }
-            return new ResponseEntity<>(assignments, HttpStatus.OK);
-        } else {
+        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
+
+        List<AssignmentDto> assignments = assignmentService.getAssignments(exposureId, securedInfo.getCanvasCourseId(), securedInfo.getPlatformDeploymentId(), submissions);
+
+        if (assignments.isEmpty()) {
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        }
+
+        return new ResponseEntity<>(assignments, HttpStatus.OK);
     }
 
     @RequestMapping(value = "/{experiment_id}/exposures/{exposure_id}/assignments/{assignment_id}", method = RequestMethod.GET, produces = "application/json;")
@@ -92,7 +95,7 @@ public class AssignmentController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assignmentAllowed(securedInfo, experimentId, exposureId, assignmentId);
         if (apijwtService.isLearnerOrHigher(securedInfo)) {
-            AssignmentDto assignmentDto = assignmentService.toDto(assignmentService.getAssignment(assignmentId), submissions);
+            AssignmentDto assignmentDto = assignmentService.toDto(assignmentService.getAssignment(assignmentId), submissions, true);
             return new ResponseEntity<>(assignmentDto, HttpStatus.OK);
         } else {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
@@ -109,7 +112,7 @@ public class AssignmentController {
             throws ExperimentNotMatchingException, ExposureNotMatchingException, BadTokenException,
             AssessmentNotMatchingException, TitleValidationException, AssignmentNotCreatedException, IdInPostException,
             DataServiceException, RevealResponsesSettingValidationException,
-            MultipleAttemptsSettingsValidationException {
+            MultipleAttemptsSettingsValidationException, NumberFormatException, CanvasApiException {
 
         log.debug("Creating Assignment: {}", assignmentDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
@@ -117,7 +120,7 @@ public class AssignmentController {
         apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
 
         if (apijwtService.isInstructorOrHigher(securedInfo)) {
-            AssignmentDto returnedDto = assignmentService.postAssignment(assignmentDto, experimentId, securedInfo.getCanvasCourseId(), exposureId);
+            AssignmentDto returnedDto = assignmentService.postAssignment(assignmentDto, experimentId, securedInfo.getCanvasCourseId(), exposureId, securedInfo.getPlatformDeploymentId());
             HttpHeaders headers = assignmentService.buildHeaders(ucBuilder, experimentId, exposureId, returnedDto.getAssignmentId());
             return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
         } else {
@@ -182,7 +185,7 @@ public class AssignmentController {
             throws ExperimentNotMatchingException, ExposureNotMatchingException, BadTokenException,
                     AssessmentNotMatchingException, TitleValidationException, AssignmentNotCreatedException, IdInPostException,
                     DataServiceException, RevealResponsesSettingValidationException,
-                    MultipleAttemptsSettingsValidationException {
+                    MultipleAttemptsSettingsValidationException, NumberFormatException, CanvasApiException {
 
         log.debug("Duplicating Assignment: {}", assignmentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
@@ -193,7 +196,7 @@ public class AssignmentController {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
-        AssignmentDto returnedDto = assignmentService.duplicateAssignment(assignmentId);
+        AssignmentDto returnedDto = assignmentService.duplicateAssignment(assignmentId, securedInfo.getCanvasCourseId(), securedInfo.getPlatformDeploymentId());
         HttpHeaders headers = assignmentService.buildHeaders(ucBuilder, experimentId, exposureId, returnedDto.getAssignmentId());
 
         return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);

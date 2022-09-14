@@ -1,6 +1,7 @@
 package edu.iu.terracotta.model.app.dto;
 
 import java.sql.Timestamp;
+import java.util.Date;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -29,6 +30,8 @@ public class AssignmentDto {
     private boolean allowStudentViewCorrectAnswers = false;
     private Timestamp studentViewCorrectAnswersAfter;
     private Timestamp studentViewCorrectAnswersBefore;
+    private boolean published;
+    private Date dueDate;
 
     public AssignmentDto() {}
 
@@ -159,4 +162,21 @@ public class AssignmentDto {
     public void setStudentViewCorrectAnswersBefore(Timestamp studentViewCorrectAnswersBefore) {
         this.studentViewCorrectAnswersBefore = studentViewCorrectAnswersBefore;
     }
+
+    public boolean isPublished() {
+        return published;
+    }
+
+    public void setPublished(boolean published) {
+        this.published = published;
+    }
+
+    public Date getDueDate() {
+        return dueDate;
+    }
+
+    public void setDueDate(Date dueDate) {
+        this.dueDate = dueDate;
+    }
+
 }

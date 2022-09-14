@@ -1,6 +1,7 @@
 package edu.iu.terracotta.service.app;
 
 import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
+import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExceedingLimitException;
 import edu.iu.terracotta.exceptions.IdInPostException;
@@ -17,15 +18,15 @@ public interface TreatmentService {
 
     List<Treatment> findAllByConditionId(Long conditionId);
 
-    List<TreatmentDto> getTreatments(Long conditionId, boolean submissions) throws AssessmentNotMatchingException;
+    List<TreatmentDto> getTreatments(Long conditionId, String canvasCourseId, long platformDeploymentId, boolean submissions) throws AssessmentNotMatchingException, NumberFormatException, CanvasApiException;
 
     Treatment getTreatment(Long id);
 
     TreatmentDto postTreatment(TreatmentDto treatmentDto, long conditionId) throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException;
 
-    TreatmentDto duplicateTreatment(long treatmentId) throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException;
+    TreatmentDto duplicateTreatment(long treatmentId, String canvasCourseId, long platformDeploymentId) throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, NumberFormatException, CanvasApiException;
 
-    TreatmentDto toDto(Treatment treatment, boolean submissions) throws AssessmentNotMatchingException;
+    TreatmentDto toDto(Treatment treatment, boolean submissions, boolean addAssignmentDto) throws AssessmentNotMatchingException;
 
     Treatment fromDto(TreatmentDto treatmentDto) throws DataServiceException;
 
