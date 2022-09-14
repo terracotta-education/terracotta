@@ -77,6 +77,9 @@ public class SubmissionServiceImpl implements SubmissionService {
     @Autowired
     CanvasAPIClient canvasAPIClient;
 
+    @Autowired
+    private APIJWTService apijwtService;
+
     @Override
     public List<Submission> findAllByAssessmentId(Long assessmentId) {
         return allRepositories.submissionRepository.findByAssessment_AssessmentId(assessmentId);
@@ -122,14 +125,14 @@ public class SubmissionServiceImpl implements SubmissionService {
     }
 
     @Override
-    public SubmissionDto postSubmission(SubmissionDto submissionDto, long experimentId, String userId, long assessmentId, boolean student)
+    public SubmissionDto postSubmission(SubmissionDto submissionDto, long experimentId, SecuredInfo securedInfo, long assessmentId, boolean student)
             throws IdInPostException, ParticipantNotMatchingException, InvalidUserException, DataServiceException {
         if (submissionDto.getSubmissionId() != null) {
             throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
         }
 
         submissionDto.setAssessmentId(assessmentId);
-        validateDto(experimentId, userId, submissionDto);
+        validateDto(experimentId, securedInfo.getUserId(), submissionDto);
         Submission submission;
 
         try {
@@ -138,7 +141,7 @@ public class SubmissionServiceImpl implements SubmissionService {
             throw new DataServiceException(String.format("Error 105: Unable to create Submission: %s", ex.getMessage()));
         }
 
-        setAssignmentStart(submission.getAssessment().getTreatment().getAssignment());
+        setAssignmentStart(submission.getAssessment().getTreatment().getAssignment(), securedInfo);
 
         return toDto(save(submission), false, false);
     }
@@ -318,8 +321,7 @@ public class SubmissionServiceImpl implements SubmissionService {
         submission.setParticipant(participant);
         final Submission newSubmission = save(submission);
 
-        // for each randomized MC question, create a QuestionSubmission and
-        // randomized list of AnswerMcSubmissionOptions
+        // for each randomized MC question, create a QuestionSubmission and randomized list of AnswerMcSubmissionOptions
         assessment.getQuestions().stream()
             .filter(
                 question -> {
@@ -349,7 +351,7 @@ public class SubmissionServiceImpl implements SubmissionService {
                         });
                 });
 
-        setAssignmentStart(assessment.getTreatment().getAssignment());
+        setAssignmentStart(assessment.getTreatment().getAssignment(), securedInfo);
 
         return submission;
     }
@@ -688,9 +690,16 @@ public class SubmissionServiceImpl implements SubmissionService {
      * If this is the first submission mark the assignment as started.
      *
      * @param assignment the {@link Assignment}
+     * @param securedInfo the {@link SecuredInfo}
      */
-    private void setAssignmentStart(Assignment assignment) {
+    private void setAssignmentStart(Assignment assignment, SecuredInfo securedInfo) {
         if (assignment.isStarted()) {
+            // already started
+            return;
+        }
+
+        if (apijwtService.isTestStudent(securedInfo)) {
+            // is a test student
             return;
         }
 

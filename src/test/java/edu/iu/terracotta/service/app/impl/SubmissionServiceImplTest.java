@@ -43,6 +43,7 @@ import edu.iu.terracotta.repository.AssignmentRepository;
 import edu.iu.terracotta.repository.ParticipantRepository;
 import edu.iu.terracotta.repository.QuestionSubmissionRepository;
 import edu.iu.terracotta.repository.SubmissionRepository;
+import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.AssignmentService;
 
 public class SubmissionServiceImplTest {
@@ -78,6 +79,9 @@ public class SubmissionServiceImplTest {
     private AssignmentService assignmentService;
 
     @Mock
+    private APIJWTService apijwtService;
+
+    @Mock
     private Assignment assignment;
 
     @Mock
@@ -103,6 +107,9 @@ public class SubmissionServiceImplTest {
 
     @Mock
     private AnswerMc answerMc;
+
+    @Mock
+    private SecuredInfo securedInfo;
 
     private Submission submission;
 
@@ -138,11 +145,13 @@ public class SubmissionServiceImplTest {
         when(condition.getExperiment()).thenReturn(experiment);
         when(question.getQuestionType()).thenReturn(QuestionTypes.MC);
         when((question).isRandomizeAnswers()).thenReturn(true);
+        when(apijwtService.isTestStudent(any(SecuredInfo.class))).thenReturn(false);
+        when(securedInfo.getUserId()).thenReturn("canvasUserId");
     }
 
     @Test
     public void testPostSubmissionNotStarted() throws IdInPostException, ParticipantNotMatchingException, InvalidUserException, DataServiceException {
-        submissionService.postSubmission(new SubmissionDto(), 0l, "testUserId", 0l, false);
+        submissionService.postSubmission(new SubmissionDto(), 0l, securedInfo, 0l, false);
 
         verify(assignmentService).save(assignment);
     }
@@ -150,14 +159,14 @@ public class SubmissionServiceImplTest {
     @Test
     public void testPostSubmissionAlreadyStarted() throws IdInPostException, ParticipantNotMatchingException, InvalidUserException, DataServiceException {
         when(assignment.isStarted()).thenReturn(true);
-        submissionService.postSubmission(new SubmissionDto(), 0l, "testUserId", 0l, false);
+        submissionService.postSubmission(new SubmissionDto(), 0l, securedInfo, 0l, false);
 
         verify(assignmentService, never()).save(assignment);
     }
 
     @Test
     public void testCreateNewSubmissionNotStarted() throws IdInPostException, ParticipantNotMatchingException, InvalidUserException, DataServiceException {
-        submissionService.createNewSubmission(assessment, participant, new SecuredInfo());
+        submissionService.createNewSubmission(assessment, participant, securedInfo);
 
         verify(assignmentService).save(assignment);
     }
@@ -165,7 +174,15 @@ public class SubmissionServiceImplTest {
     @Test
     public void testCreateNewSubmissionAlreadyStarted() throws IdInPostException, ParticipantNotMatchingException, InvalidUserException, DataServiceException {
         when(assignment.isStarted()).thenReturn(true);
-        submissionService.createNewSubmission(assessment, participant, new SecuredInfo());
+        submissionService.createNewSubmission(assessment, participant, securedInfo);
+
+        verify(assignmentService, never()).save(assignment);
+    }
+
+    @Test
+    public void testCreateNewSubmissionTestStudent() throws IdInPostException, ParticipantNotMatchingException, InvalidUserException, DataServiceException {
+        when(apijwtService.isTestStudent(any(SecuredInfo.class))).thenReturn(true);
+        submissionService.createNewSubmission(assessment, participant, securedInfo);
 
         verify(assignmentService, never()).save(assignment);
     }
