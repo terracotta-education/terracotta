@@ -4,6 +4,7 @@ public class TreatmentDto {
 
     private Long treatmentId;
     private AssessmentDto assessmentDto;
+    private AssignmentDto assignmentDto;
     private Long conditionId;
     private Long assignmentId;
 
@@ -27,4 +28,13 @@ public class TreatmentDto {
     public void setAssignmentId(Long assignmentId) {
         this.assignmentId = assignmentId;
     }
+
+    public AssignmentDto getAssignmentDto() {
+        return assignmentDto;
+    }
+
+    public void setAssignmentDto(AssignmentDto assignmentDto) {
+        this.assignmentDto = assignmentDto;
+    }
+
 }

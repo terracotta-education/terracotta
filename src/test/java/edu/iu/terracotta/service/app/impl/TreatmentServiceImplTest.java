@@ -1,5 +1,7 @@
 package edu.iu.terracotta.service.app.impl;
 
+import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -10,14 +12,18 @@ import org.mockito.MockitoAnnotations;
 
 import javax.persistence.EntityManager;
 
+import java.util.Collections;
+import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 
 import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
+import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExceedingLimitException;
 import edu.iu.terracotta.exceptions.IdInPostException;
@@ -28,8 +34,10 @@ import edu.iu.terracotta.model.app.Treatment;
 import edu.iu.terracotta.model.app.dto.AssessmentDto;
 import edu.iu.terracotta.model.app.dto.TreatmentDto;
 import edu.iu.terracotta.repository.AllRepositories;
+import edu.iu.terracotta.repository.PlatformDeploymentRepository;
 import edu.iu.terracotta.repository.TreatmentRepository;
 import edu.iu.terracotta.service.app.AssessmentService;
+import edu.iu.terracotta.service.app.AssignmentService;
 
 public class TreatmentServiceImplTest {
 
@@ -40,7 +48,13 @@ public class TreatmentServiceImplTest {
     private AssessmentService assessmentService;
 
     @Mock
+    private AssignmentService assignmentService;
+
+    @Mock
     private AllRepositories allRepositories;
+
+    @Mock
+    private PlatformDeploymentRepository platformDeploymentRepository;
 
     @Mock
     private TreatmentRepository treatmentRepository;
@@ -61,8 +75,10 @@ public class TreatmentServiceImplTest {
     private Treatment newTreatment;
 
     @BeforeEach
-    public void beforeEach() throws DataServiceException, AssessmentNotMatchingException {
+    public void beforeEach() throws DataServiceException, AssessmentNotMatchingException, CanvasApiException {
         MockitoAnnotations.openMocks(this);
+
+        clearInvocations(assignmentService);
 
         allRepositories.treatmentRepository = treatmentRepository;
 
@@ -76,6 +92,7 @@ public class TreatmentServiceImplTest {
         newTreatment.setAssignment(assignment);
 
         when(allRepositories.treatmentRepository.findByTreatmentId(anyLong())).thenReturn(treatment);
+        when(allRepositories.treatmentRepository.findByCondition_ConditionId(anyLong())).thenReturn(Collections.singletonList(newTreatment));
         when(allRepositories.treatmentRepository.save(any(Treatment.class))).thenReturn(newTreatment);
         when(assessmentService.duplicateAssessment(anyLong(), anyLong())).thenReturn(new AssessmentDto());
         when(condition.getConditionId()).thenReturn(1L);
@@ -84,8 +101,8 @@ public class TreatmentServiceImplTest {
     }
 
     @Test
-    public void testDuplicateTreatment() throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException {
-        TreatmentDto treatmentDto = treatmentService.duplicateTreatment(1L);
+    public void testDuplicateTreatment() throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, NumberFormatException, CanvasApiException {
+        TreatmentDto treatmentDto = treatmentService.duplicateTreatment(1L, "0", 0L);
 
         assertNotNull(treatmentDto);
         assertEquals(2L, treatmentDto.getTreatmentId());
@@ -93,9 +110,9 @@ public class TreatmentServiceImplTest {
     }
 
     @Test
-    public void testDuplicateTreatmentNoAssessmentFound() throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException {
+    public void testDuplicateTreatmentNoAssessmentFound() throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, NumberFormatException, CanvasApiException {
         treatment.setAssessment(null);
-        TreatmentDto treatmentDto = treatmentService.duplicateTreatment(1L);
+        TreatmentDto treatmentDto = treatmentService.duplicateTreatment(1L, "0", 0L);
 
         assertNotNull(treatmentDto);
         assertEquals(2L, treatmentDto.getTreatmentId());
@@ -107,9 +124,18 @@ public class TreatmentServiceImplTest {
     public void testDuplicateTreatmentNotFound() throws IdInPostException, ExceedingLimitException, AssessmentNotMatchingException {
         when(allRepositories.treatmentRepository.findByTreatmentId(anyLong())).thenReturn(null);
 
-        Exception exception = assertThrows(DataServiceException.class, () -> { treatmentService.duplicateTreatment(1L); });
+        Exception exception = assertThrows(DataServiceException.class, () -> { treatmentService.duplicateTreatment(1L, "0", 0L); });
 
         assertEquals("The treatment with the given ID does not exist", exception.getMessage());
+    }
+
+    @Test
+    public void testGetTreatments() throws NumberFormatException, AssessmentNotMatchingException, CanvasApiException {
+        List<TreatmentDto> treatmentDtos = treatmentService.getTreatments(0L, "0", 0l, false);
+
+        assertNotNull(treatmentDtos);
+        assertEquals(1, treatmentDtos.size());
+        verify(assignmentService).setAssignmentDtoAttrs(any(Assignment.class), anyString(), anyLong());
     }
 
 }

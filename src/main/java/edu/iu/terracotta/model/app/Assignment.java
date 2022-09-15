@@ -7,6 +7,7 @@ import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
 import java.sql.Timestamp;
+import java.util.Date;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -18,6 +19,7 @@ import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
+import javax.persistence.Transient;
 
 @Table(name = "terr_assignment")
 @Entity
@@ -79,6 +81,15 @@ public class Assignment extends BaseEntity {
 
     @Column(name = "student_view_correct_answers_before", nullable = true)
     private Timestamp studentViewCorrectAnswersBefore;
+
+    @Column
+    private Timestamp started;
+
+    @Transient
+    private boolean published = false;
+
+    @Transient
+    private Date dueDate;
 
     //methods
     public Long getAssignmentId() { return assignmentId; }
@@ -196,4 +207,33 @@ public class Assignment extends BaseEntity {
     public void setCumulativeScoringInitialPercentage(Float cumulativeScoringInitialPercentage) {
         this.cumulativeScoringInitialPercentage = cumulativeScoringInitialPercentage;
     }
+
+    public Timestamp getStarted() {
+        return started;
+    }
+
+    public void setStarted(Timestamp started) {
+        this.started = started;
+    }
+
+    public boolean isStarted() {
+        return this.started != null;
+    }
+
+    public boolean isPublished() {
+        return published;
+    }
+
+    public void setPublished(boolean published) {
+        this.published = published;
+    }
+
+    public Date getDueDate() {
+        return dueDate;
+    }
+
+    public void setDueDate(Date dueDate) {
+        this.dueDate = dueDate;
+    }
+
 }

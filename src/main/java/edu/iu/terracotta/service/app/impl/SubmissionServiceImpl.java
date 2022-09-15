@@ -1,7 +1,14 @@
 package edu.iu.terracotta.service.app.impl;
 
-import edu.iu.terracotta.exceptions.*;
-import edu.iu.terracotta.model.ags.LineItem;
+import edu.iu.terracotta.exceptions.AssignmentDatesException;
+import edu.iu.terracotta.exceptions.CanvasApiException;
+import edu.iu.terracotta.exceptions.ConnectionException;
+import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.IdInPostException;
+import edu.iu.terracotta.exceptions.InvalidUserException;
+import edu.iu.terracotta.exceptions.NoSubmissionsException;
+import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
+import edu.iu.terracotta.exceptions.SubmissionNotMatchingException;
 import edu.iu.terracotta.model.ags.Score;
 import edu.iu.terracotta.model.app.*;
 import edu.iu.terracotta.model.app.dto.QuestionSubmissionDto;
@@ -27,7 +34,15 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.io.IOException;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Component
 public class SubmissionServiceImpl implements SubmissionService {
@@ -61,6 +76,9 @@ public class SubmissionServiceImpl implements SubmissionService {
 
     @Autowired
     CanvasAPIClient canvasAPIClient;
+
+    @Autowired
+    private APIJWTService apijwtService;
 
     @Override
     public List<Submission> findAllByAssessmentId(Long assessmentId) {
@@ -107,18 +125,24 @@ public class SubmissionServiceImpl implements SubmissionService {
     }
 
     @Override
-    public SubmissionDto postSubmission(SubmissionDto submissionDto, long experimentId, String userId, long assessmentId, boolean student) throws IdInPostException, ParticipantNotMatchingException, InvalidUserException, DataServiceException {
+    public SubmissionDto postSubmission(SubmissionDto submissionDto, long experimentId, SecuredInfo securedInfo, long assessmentId, boolean student)
+            throws IdInPostException, ParticipantNotMatchingException, InvalidUserException, DataServiceException {
         if (submissionDto.getSubmissionId() != null) {
             throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
         }
+
         submissionDto.setAssessmentId(assessmentId);
-        validateDto(experimentId, userId, submissionDto);
+        validateDto(experimentId, securedInfo.getUserId(), submissionDto);
         Submission submission;
+
         try {
             submission = fromDto(submissionDto, student);
         } catch (DataServiceException ex) {
-            throw new DataServiceException("Error 105: Unable to create Submission: " + ex.getMessage());
+            throw new DataServiceException(String.format("Error 105: Unable to create Submission: %s", ex.getMessage()));
         }
+
+        setAssignmentStart(submission.getAssessment().getTreatment().getAssignment(), securedInfo);
+
         return toDto(save(submission), false, false);
     }
 
@@ -139,7 +163,6 @@ public class SubmissionServiceImpl implements SubmissionService {
 
     @Override
     public SubmissionDto toDto(Submission submission, boolean questionSubmissions, boolean submissionComments) {
-
         SubmissionDto submissionDto = new SubmissionDto();
         submissionDto.setSubmissionId(submission.getSubmissionId());
         submissionDto.setParticipantId(submission.getParticipant().getParticipantId());
@@ -296,32 +319,39 @@ public class SubmissionServiceImpl implements SubmissionService {
         Submission submission = new Submission();
         submission.setAssessment(assessment);
         submission.setParticipant(participant);
-        submission = save(submission);
+        final Submission newSubmission = save(submission);
 
-        // for each randomized MC question, create a QuestionSubmission and
-        // randomized list of AnswerMcSubmissionOptions
-        for (Question question : assessment.getQuestions()) {
-            if (question.getQuestionType() == QuestionTypes.MC) {
-                QuestionMc questionMc = (QuestionMc) question;
-                if (questionMc.isRandomizeAnswers()) {
+        // for each randomized MC question, create a QuestionSubmission and randomized list of AnswerMcSubmissionOptions
+        assessment.getQuestions().stream()
+            .filter(
+                question -> {
+                    if (question.getQuestionType() != QuestionTypes.MC) {
+                        return false;
+                    }
+
+                    return ((QuestionMc) question).isRandomizeAnswers();
+                })
+            .forEach(
+                question -> {
                     QuestionSubmission questionSubmission = new QuestionSubmission();
                     questionSubmission.setQuestion(question);
-                    questionSubmission.setSubmission(submission);
-                    questionSubmission = allRepositories.questionSubmissionRepository.save(questionSubmission);
-                    List<AnswerMc> answers = allRepositories.answerMcRepository
-                            .findByQuestion_QuestionId(question.getQuestionId());
+                    questionSubmission.setSubmission(newSubmission);
+                    final QuestionSubmission newQuestionSubmission = allRepositories.questionSubmissionRepository.save(questionSubmission);
+                    List<AnswerMc> answers = allRepositories.answerMcRepository.findByQuestion_QuestionId(question.getQuestionId());
                     Collections.shuffle(answers);
-                    int order = 0;
-                    for (AnswerMc answerMc : answers) {
-                        AnswerMcSubmissionOption answerMcSubmissionOption = new AnswerMcSubmissionOption();
-                        answerMcSubmissionOption.setAnswerMc(answerMc);
-                        answerMcSubmissionOption.setAnswerOrder(order++);
-                        answerMcSubmissionOption.setQuestionSubmission(questionSubmission);
-                        allRepositories.answerMcSubmissionOptionRepository.save(answerMcSubmissionOption);
-                    }
-                }
-            }
-        }
+                    AtomicInteger order = new AtomicInteger(0);
+
+                    answers.forEach(
+                        answerMc -> {
+                            AnswerMcSubmissionOption answerMcSubmissionOption = new AnswerMcSubmissionOption();
+                            answerMcSubmissionOption.setAnswerMc(answerMc);
+                            answerMcSubmissionOption.setAnswerOrder(order.getAndIncrement());
+                            answerMcSubmissionOption.setQuestionSubmission(newQuestionSubmission);
+                            allRepositories.answerMcSubmissionOptionRepository.save(answerMcSubmissionOption);
+                        });
+                });
+
+        setAssignmentStart(assessment.getTreatment().getAssignment(), securedInfo);
 
         return submission;
     }
@@ -362,6 +392,8 @@ public class SubmissionServiceImpl implements SubmissionService {
                 case ESSAY:
                     questionGraded = questionSubmission;
                     questionGraded.setCalculatedPoints(Float.valueOf("0"));
+                    break;
+                default:
                     break;
 
             }
@@ -652,6 +684,27 @@ public class SubmissionServiceImpl implements SubmissionService {
             throw new SubmissionNotMatchingException("Error 147: Not allowed to submit this submission: " + ex.getMessage());
         }
         throw new SubmissionNotMatchingException("Error 147: Not allowed to submit this submission");
+    }
+
+    /**
+     * If this is the first submission mark the assignment as started.
+     *
+     * @param assignment the {@link Assignment}
+     * @param securedInfo the {@link SecuredInfo}
+     */
+    private void setAssignmentStart(Assignment assignment, SecuredInfo securedInfo) {
+        if (assignment.isStarted()) {
+            // already started
+            return;
+        }
+
+        if (apijwtService.isTestStudent(securedInfo)) {
+            // is a test student
+            return;
+        }
+
+        assignment.setStarted(Timestamp.valueOf(LocalDateTime.now()));
+        assignment = assignmentService.save(assignment);
     }
 
 }

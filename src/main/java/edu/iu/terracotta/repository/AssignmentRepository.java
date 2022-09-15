@@ -1,6 +1,9 @@
 package edu.iu.terracotta.repository;
 
 import edu.iu.terracotta.model.app.Assignment;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -20,6 +23,8 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
     boolean existsByExposure_Experiment_ExperimentIdAndExposure_ExposureIdAndAssignmentId(Long experimentId, Long exposureId, Long assignmentId);
 
     boolean existsByExposure_Experiment_ExperimentIdAndAssignmentId(Long experimentId, Long assignmentId);
+
+    Page<Assignment> findAll(Pageable pageable);
 
     @Transactional
     @Modifying
