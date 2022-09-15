@@ -5,7 +5,6 @@ import edu.iu.terracotta.model.app.Assignment;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,8 +26,6 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
     Page<Assignment> findAll(Pageable pageable);
 
     @Transactional
-    @Modifying
-    @Query("delete from Assignment s where s.assignmentId = ?1")
     void deleteByAssignmentId(Long submissionId);
 
     @Query("select a from Assignment a where a.exposure.experiment.platformDeployment.keyId = ?1 and a.exposure.experiment.closed is null and a.assignmentId NOT IN (Select a2.assignmentId from Assignment a2 where a2.softDeleted = true)")
