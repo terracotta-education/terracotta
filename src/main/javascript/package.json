@@ -14,6 +14,7 @@
     "file-saver": "^2.0.5",
     "jwt-decode": "^3.1.2",
     "moment": "^2.29.1",
+    "sortablejs": "^1.15.0",
     "tiptap-vuetify": "^2.24.0",
     "vue": "^2.6.11",
     "vue-router": "^3.2.0",

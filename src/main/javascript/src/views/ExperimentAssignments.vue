@@ -3,11 +3,12 @@
     <v-container class="px-0" v-if="experiment">
       <v-row>
         <v-col cols="12">
+          <v-divider class=""></v-divider>
           <v-tabs v-model="tab" elevation="0" show-arrows>
             <v-tab v-for="(exposure, index) in exposures" :key="index">
-              <div class="d-flex flex-column align-start ">
-               <div class="">Set {{ index + 1 }}</div>
-                <div class="d-block red--text mt-2">
+              <div class="d-flex flex-column align-start py-1">
+                <div class="">Set {{ index + 1 }}</div>
+                <div class="d-block red--text mt-4">
                   {{ getAssignmentsForExposure(exposure).length }} assignments
                 </div>
               </div>
@@ -20,15 +21,32 @@
               v-for="(exposure, index) in exposures"
               :key="index"
             >
-              <h3>Assignments</h3>
-              <!--<pre>{{ assignments }}</pre>-->
+              <div class="d-flex justify-space-between">
+                <h3>Assignments</h3>
+                <v-btn
+                  color="primary"
+                  elevation="0"
+                  @click="handleEdit('AssignmentExposureSets')"
+                  >Add Assignment</v-btn
+                >
+              </div>
               <template>
                 <v-data-table
                   :headers="assignmentHeaders"
                   :items="getAssignmentsForExposure(exposure)"
                   :single-expand="singleExpand"
                   :expanded.sync="expanded"
+                  :sort-by="['assignmentOrder']"
                   hide-default-footer
+                  v-sortable-data-table
+                  @sorted="
+                    (event) =>
+                      saveOrder(
+                        event,
+                        getAssignmentsForExposure(exposure),
+                        exposure
+                      )
+                  "
                   item-key="title"
                   show-expand
                   class="mx-3 mb-5 mt-3"
@@ -46,9 +64,28 @@
                         item-key="title"
                         class="grey lighten-5"
                       >
+                        <!-- eslint-disable-next-line -->
                         <template v-slot:item.title="{ item }">
                           {{ item.assessmentDto.title }}
+                          <v-chip
+                            label
+                            :color="
+                              conditionColorMapping[
+                                conditionForTreatment(
+                                  exposure.groupConditionList,
+                                  item.conditionId
+                                ).conditionName
+                              ]
+                            "
+                            >{{
+                              conditionForTreatment(
+                                exposure.groupConditionList,
+                                item.conditionId
+                              ).conditionName
+                            }}</v-chip
+                          >
                         </template>
+                        <!-- eslint-disable-next-line -->
                         <template v-slot:item.actions="{ item }">
                           <template
                             v-if="
@@ -74,11 +111,27 @@
                   <template v-slot:item.treatments="{ item }">
                     {{ item.treatments.length }} / {{ conditions.length }}
                   </template>
+                  <!-- eslint-disable-next-line -->
+                  <template v-slot:item.drag="{ item }">
+                    <span class="dragger"><v-icon>mdi-drag</v-icon></span>
+                  </template>
+                  <!-- eslint-disable-next-line -->
+                  <template v-slot:item.published="{ item }">
+                    <span :class="item.published ? '' : 'red--text'">{{
+                      item.published ? "Published" : "Unpublished"
+                    }}</span>
+                  </template>
+                  <!-- eslint-disable-next-line -->
+                  <template v-slot:item.dueDate="{ item }">
+                    {{ item.dueDate }}
+                  </template>
+                  <!-- eslint-disable-next-line -->
                   <template v-slot:item.actions>
                     <v-btn
                       text
                       tile
                       @click="handleEdit('AssignmentExposureSets')"
+                      class="text--lighten-5 text--grey"
                     >
                       <v-icon>mdi-pencil</v-icon>
                       Edit
@@ -107,87 +160,6 @@
                   </template>
                 </v-data-table>
               </template>
-              <!--
-              <template>
-                <div
-                  :key="exposure.exposureId"
-                  class="assignmentExpansion mx-3"
-                >
-                  <v-expansion-panels class="v-expansion-panels--outlined" flat>
-                    <v-expansion-panel
-                      class="assignmentExpansionPanel"
-                      v-for="assignment in assignments.filter(
-                        (a) => a.exposureId === exposure.exposureId
-                      )"
-                      :key="assignment.assignmentId"
-                    >
-                      <v-expansion-panel-header
-                        style="display:flex;flex-direction: row"
-                      >
-                        {{ assignment.title }} ({{
-                          (assignment.treatments &&
-                            assignment.treatments.length) ||
-                            0
-                        }}/{{ conditions.length || 0 }})
-                      </v-expansion-panel-header>
-                      <v-expansion-panel-content>
-                        <v-list class="pa-0">
-                          <v-list-item
-                            class="justify-center px-0"
-                            v-for="condition in conditions"
-                            :key="condition.conditionId"
-                          >
-                            <v-list-item-content>
-                              <p class="ma-0 pa-0 assignmentConditionName">
-                                {{ condition.name }}
-                              </p>
-                            </v-list-item-content>
-
-                            <v-list-item-action>
-                              <template
-                                v-if="
-                                  hasTreatment(
-                                    condition.conditionId,
-                                    assignment.assignmentId
-                                  )
-                                "
-                              >
-                                <v-btn
-                                  icon
-                                  outlined
-                                  text
-                                  tile
-                                  @click="
-                                    goToBuilder(
-                                      condition.conditionId,
-                                      assignment.assignmentId
-                                    )
-                                  "
-                                >
-                                  <v-icon>mdi-pencil</v-icon>
-                                </v-btn>
-                              </template>
-                              <template v-else>
-                                <v-btn
-                                  color="primary"
-                                  outlined
-                                  @click="
-                                    goToBuilder(
-                                      condition.conditionId,
-                                      assignment.assignmentId
-                                    )
-                                  "
-                                  >Create
-                                </v-btn>
-                              </template>
-                            </v-list-item-action>
-                          </v-list-item>
-                        </v-list>
-                      </v-expansion-panel-content>
-                    </v-expansion-panel>
-                  </v-expansion-panels>
-                </div>
-              </template>-->
               <h3 class="my-4">Design</h3>
               <v-card
                 class="px-5 py-5 rounded-lg mx-3 mb-5 d-inline-block"
@@ -233,10 +205,25 @@
 import store from "@/store";
 import { mapGetters, mapActions } from "vuex";
 import { saveAs } from "file-saver";
+import Sortable from "sortablejs";
 
 export default {
   name: "ExperimentAssignments",
   props: ["experiment"],
+  directives: {
+    sortableDataTable: {
+      bind(el, binding, vnode) {
+        const options = {
+          animation: 150,
+          onUpdate: function(event) {
+            vnode.child.$emit("sorted", event);
+          },
+          handle: ".dragger",
+        };
+        Sortable.create(el.getElementsByTagName("tbody")[0], options);
+      },
+    },
+  },
   computed: {
     ...mapGetters({
       conditions: "experiment/conditions",
@@ -279,6 +266,12 @@ export default {
     singleExpand: true,
     assignmentHeaders: [
       {
+        text: "",
+        align: "start",
+        sortable: false,
+        value: "drag",
+      },
+      {
         text: "Assignment Name",
         align: "start",
         sortable: false,
@@ -294,11 +287,12 @@ export default {
       },
       {
         text: "Status",
-        value: "status",
+        value: "published",
       },
       {
         text: "Actions",
         value: "actions",
+        align: "end"
       },
       { text: "", value: "data-table-expand" },
     ],
@@ -320,17 +314,33 @@ export default {
     ...mapActions({
       fetchExposures: "exposures/fetchExposures",
       fetchAssignmentsByExposure: "assignment/fetchAssignmentsByExposure",
+      saveAssignmentOrder: "assignment/saveAssignmentOrder",
       checkTreatment: "treatment/checkTreatment",
       createTreatment: "treatment/createTreatment",
       createAssessment: "assessment/createAssessment",
       getConsentFile: "consent/getConsentFile",
       getZip: "exportdata/fetchExportData",
     }),
+    saveOrder(event, assignments, exposure) {
+      const movedItem = assignments.splice(event.oldIndex, 1)[0];
+      assignments.splice(event.newIndex, 0, movedItem);
+      const updated = assignments.map((a, idx) => ({
+        ...a,
+        assignmentOrder: idx + 1,
+      }));
+      this.saveAssignmentOrder([
+        this.experiment.experimentId,
+        exposure.exposureId,
+        updated,
+      ]);
+    },
     saveExit() {
       this.$router.push({ name: "Home" });
     },
     getAssignmentsForExposure(exp) {
-      return this.assignments.filter((a) => a.exposureId === exp.exposureId);
+      return this.assignments
+        .filter((a) => a.exposureId === exp.exposureId)
+        .sort((a, b) => a.assignmentOrder - b.assignmentOrder);
     },
     async exportData() {
       await this.getZip(this.experiment.experimentId);
@@ -440,6 +450,10 @@ export default {
       );
       return groupConditionMap;
     },
+
+    conditionForTreatment(groupConditionList, conditionId) {
+      return groupConditionList.find((c) => c.conditionId === conditionId);
+    },
     // For Sorting Group Names
     sortedGroups(groupConditionList) {
       const newGroups = groupConditionList?.map((group) => group.groupName);
@@ -493,6 +507,12 @@ export default {
   }
 }
 
+.v-tabs-bar {
+  height: auto;
+  .v-tab {
+    padding: 16px 16px;
+  }
+}
 .v-data-table
   > .v-data-table__wrapper
   tbody

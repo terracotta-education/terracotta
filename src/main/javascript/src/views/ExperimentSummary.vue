@@ -95,7 +95,8 @@
                       ({{ exposureType[experiment.exposureType] }}) (<a
                         @click="handleEdit('ExperimentDesignConditions')"
                         >edit</a
-                      >), we set you up with {{ exposures.length }} exposure sets.
+                      >), we set you up with {{ exposures.length }} exposure
+                      sets.
                       <v-tooltip top>
                         <template v-slot:activator="{ on, attrs }">
                           <a v-bind="attrs" v-on="on">
@@ -329,11 +330,13 @@ export default {
     exposureType() {
       return {
         WITHIN: "within-subject",
+        BETWEEN: "between"
       };
     },
     exposureText() {
       return {
-        WITHIN: "exposed to every conditions",
+        WITHIN: "exposed to every condition",
+        BETWEEN: "exposed to only one condition",
       };
     },
     balanced() {
@@ -374,7 +377,6 @@ export default {
       ];
     },
     conditionCount() {
-      console.log(this.experiment);
       return `${this.experiment.conditions.length} condition${
         this.experiment.conditions.length > 1 ? "s" : ""
       }`;
