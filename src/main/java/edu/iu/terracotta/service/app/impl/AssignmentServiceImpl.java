@@ -62,6 +62,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
+
 import java.io.IOException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
@@ -103,6 +106,9 @@ public class AssignmentServiceImpl implements AssignmentService {
 
     @Autowired
     APIJWTService apijwtService;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     @Value("${application.url}")
     private String localUrl;
@@ -171,10 +177,8 @@ public class AssignmentServiceImpl implements AssignmentService {
         assignmentDto.setAllowStudentViewCorrectAnswers(assignment.isAllowStudentViewCorrectAnswers());
         assignmentDto.setStudentViewCorrectAnswersAfter(assignment.getStudentViewCorrectAnswersAfter());
         assignmentDto.setStudentViewCorrectAnswersBefore(assignment.getStudentViewCorrectAnswersBefore());
-        long submissionsCount = allRepositories.submissionRepository.countByAssessment_Treatment_Assignment_AssignmentId(assignment.getAssignmentId());
-        if(submissionsCount > 0){
-            assignmentDto.setStarted(true);
-        }
+        assignmentDto.setStarted(assignment.isStarted());
+
         List<Treatment> treatments = allRepositories.treatmentRepository.findByAssignment_AssignmentId(assignment.getAssignmentId());
         List<TreatmentDto> treatmentDtoList = new ArrayList<>();
         for (Treatment treatment:treatments){
@@ -668,7 +672,7 @@ public class AssignmentServiceImpl implements AssignmentService {
         AssignmentExtended assignmentExtended = assignmentExtendedOptional.get();
         assignmentExtended.setName(newName);
         try {
-            Optional<AssignmentExtended> canvasAssignmentReturned = canvasAPIClient.editAssignment(assignmentExtended,
+            canvasAPIClient.editAssignment(assignmentExtended,
                     canvasCourseId,
                     assignment.getExposure().getExperiment().getPlatformDeployment());
         } catch (CanvasApiException e) {
@@ -710,4 +714,26 @@ public class AssignmentServiceImpl implements AssignmentService {
             }
         }
     }
+
+    @Override
+    public AssignmentDto duplicateAssignment(long assignmentId) throws DataServiceException, IdInPostException, TitleValidationException, AssessmentNotMatchingException,
+                                                                        AssignmentNotCreatedException, RevealResponsesSettingValidationException,
+                                                                        MultipleAttemptsSettingsValidationException {
+        Assignment from = getAssignment(assignmentId);
+
+        if (from == null) {
+            throw new DataServiceException("The assignment with the given ID does not exist");
+        }
+
+        entityManager.detach(from);
+
+        // reset ID
+        from.setAssignmentId(null);
+
+        Assignment newAssignment = save(from);
+        AssignmentDto assignmentDto = toDto(newAssignment, false);
+
+        return assignmentDto;
+    }
+
 }
