@@ -118,55 +118,49 @@ public class QuestionSubmissionController {
     }
 
 
-    @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}/question_submissions",
-            method = RequestMethod.POST)
-    public ResponseEntity<List<QuestionSubmissionDto>> postQuestionSubmission(@PathVariable("experiment_id") Long experimentId,
-                                                                              @PathVariable("condition_id") Long conditionId,
-                                                                              @PathVariable("treatment_id") Long treatmentId,
-                                                                              @PathVariable("assessment_id") Long assessmentId,
-                                                                              @PathVariable("submission_id") Long submissionId,
+    @PostMapping("/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}/submissions/{submissionId}/question_submissions")
+    public ResponseEntity<List<QuestionSubmissionDto>> postQuestionSubmission(@PathVariable long experimentId,
+                                                                              @PathVariable long conditionId,
+                                                                              @PathVariable long treatmentId,
+                                                                              @PathVariable long assessmentId,
+                                                                              @PathVariable long submissionId,
                                                                               @RequestBody List<QuestionSubmissionDto> questionSubmissionDtoList,
                                                                               UriComponentsBuilder ucBuilder,
                                                                               HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, SubmissionNotMatchingException, BadTokenException,
-            InvalidUserException, DataServiceException, DuplicateQuestionException, IdMissingException, IdInPostException,
-            TypeNotSupportedException, ExceedingLimitException, AnswerSubmissionNotMatchingException, AnswerNotMatchingException, CanvasApiException,
-            IOException, NoSubmissionsException {
+                    InvalidUserException, DataServiceException, DuplicateQuestionException, IdMissingException, IdInPostException,
+                    TypeNotSupportedException, ExceedingLimitException, AnswerSubmissionNotMatchingException, AnswerNotMatchingException, CanvasApiException,
+                    IOException, NoSubmissionsException {
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
         apijwtService.submissionAllowed(securedInfo, assessmentId, submissionId);
 
-        if (apijwtService.isLearnerOrHigher(securedInfo)) {
-            boolean student = false;
-            if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-                submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
-                student = true;
-            }
-
-            Submission submission = submissionService.
-                    getSubmission(experimentId, securedInfo.getUserId(), submissionId, student);
-            String assignmentId = submission.getAssessment().getTreatment().getAssignment()
-                    .getLmsAssignmentId();
-
-            if (questionSubmissionService.canSubmit(securedInfo.getCanvasCourseId(), assignmentId,securedInfo.getCanvasUserId(),
-                    securedInfo.getPlatformDeploymentId())) {
-
-                questionSubmissionService.
-                        validateAndPrepareQuestionSubmissionList(questionSubmissionDtoList, assessmentId, submissionId, student);
-
-                List<QuestionSubmissionDto> returnedDtoList = questionSubmissionService.
-                        postQuestionSubmissions(questionSubmissionDtoList, assessmentId, submissionId, student);
-                HttpHeaders headers = questionSubmissionService.
-                        buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, submissionId);
-                return new ResponseEntity<>(returnedDtoList, headers, HttpStatus.CREATED);
-
-            } else {
-                return new ResponseEntity(TextConstants.MAX_SUBMISSION_ATTEMPTS_REACHED, HttpStatus.UNAUTHORIZED);
-            }
+        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
-        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+
+        boolean student = false;
+
+        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
+            submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
+            student = true;
+        }
+
+        Submission submission = submissionService.getSubmission(experimentId, securedInfo.getUserId(), submissionId, student);
+        String assignmentId = submission.getAssessment().getTreatment().getAssignment().getLmsAssignmentId();
+
+        try {
+            questionSubmissionService.canSubmit(securedInfo.getCanvasCourseId(), assignmentId,securedInfo.getCanvasUserId(), securedInfo.getPlatformDeploymentId());
+            questionSubmissionService.validateAndPrepareQuestionSubmissionList(questionSubmissionDtoList, assessmentId, submissionId, student);
+            List<QuestionSubmissionDto> returnedDtoList = questionSubmissionService. postQuestionSubmissions(questionSubmissionDtoList, assessmentId, submissionId, student);
+            HttpHeaders headers = questionSubmissionService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, submissionId);
+
+            return new ResponseEntity<>(returnedDtoList, headers, HttpStatus.CREATED);
+        } catch (AssignmentAttemptException e) {
+            return new ResponseEntity(e.getMessage(), HttpStatus.UNAUTHORIZED);
+        }
     }
 
 

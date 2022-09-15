@@ -1,6 +1,7 @@
 package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
+import edu.iu.terracotta.exceptions.AssignmentAttemptException;
 import edu.iu.terracotta.exceptions.AssignmentDatesException;
 import edu.iu.terracotta.exceptions.AssignmentNotCreatedException;
 import edu.iu.terracotta.exceptions.AssignmentNotEditedException;
@@ -46,6 +47,8 @@ import edu.iu.terracotta.service.caliper.CaliperService;
 import edu.iu.terracotta.service.canvas.CanvasAPIClient;
 import edu.iu.terracotta.service.lti.AdvantageAGSService;
 import edu.iu.terracotta.utils.TextConstants;
+
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,7 +70,9 @@ import javax.persistence.PersistenceContext;
 
 import java.io.IOException;
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -115,28 +120,36 @@ public class AssignmentServiceImpl implements AssignmentService {
 
     static final Logger log = LoggerFactory.getLogger(AssignmentServiceImpl.class);
 
-
-
     @Override
-    public List<Assignment> findAllByExposureId(long exposureId) {
-        return allRepositories.assignmentRepository.findByExposure_ExposureId(exposureId);
+    public List<Assignment> findAllByExposureId(long exposureId, boolean includeDeleted) {
+        return allRepositories.assignmentRepository.findByExposure_ExposureIdAndSoftDeleted(exposureId, includeDeleted);
     }
 
     @Override
-    public List<AssignmentDto> getAssignments(Long exposureId, boolean submissions) throws AssessmentNotMatchingException{
-        List<Assignment> assignments = findAllByExposureId(exposureId);
-        List<AssignmentDto> assignmentDtoList = new ArrayList<>();
-        for(Assignment assignment : assignments){
-            assignmentDtoList.add(toDto(assignment, submissions));
+    public List<AssignmentDto> getAssignments(Long exposureId, String canvasCourseId, long platformDeploymentId, boolean submissions, boolean includeDeleted)
+            throws AssessmentNotMatchingException, CanvasApiException{
+        List<Assignment> assignments = findAllByExposureId(exposureId, includeDeleted);
+
+        if (CollectionUtils.isEmpty(assignments)) {
+            return Collections.emptyList();
         }
+
+        List<AssignmentDto> assignmentDtoList = new ArrayList<>();
+
+        for(Assignment assignment : assignments){
+            setAssignmentDtoAttrs(assignment, canvasCourseId, platformDeploymentId);
+
+            assignmentDtoList.add(toDto(assignment, submissions, true));
+        }
+
         return assignmentDtoList;
     }
 
     @Override
-    public AssignmentDto postAssignment(AssignmentDto assignmentDto, long experimentId, String CanvasCourseId,
-            long exposureId) throws IdInPostException, DataServiceException, TitleValidationException,
+    public AssignmentDto postAssignment(AssignmentDto assignmentDto, long experimentId, String canvasCourseId,
+            long exposureId, long platformDeploymentId) throws IdInPostException, DataServiceException, TitleValidationException,
             AssignmentNotCreatedException, AssessmentNotMatchingException, RevealResponsesSettingValidationException,
-            MultipleAttemptsSettingsValidationException {
+            MultipleAttemptsSettingsValidationException, NumberFormatException, CanvasApiException {
         if (assignmentDto.getAssignmentId() != null) {
             throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
         }
@@ -151,14 +164,16 @@ public class AssignmentServiceImpl implements AssignmentService {
             throw new DataServiceException("Error 105: Unable to create Assignment: " + e.getMessage());
         }
         Assignment assignmentSaved = save(assignment);
-        createAssignmentInCanvas(assignmentSaved, experimentId, CanvasCourseId);
+        createAssignmentInCanvas(assignmentSaved, experimentId, canvasCourseId);
         saveAndFlush(assignmentSaved);
-        return toDto(assignmentSaved, false);
+
+        setAssignmentDtoAttrs(assignmentSaved, canvasCourseId, platformDeploymentId);
+
+        return toDto(assignmentSaved, false, true);
     }
 
     @Override
-    public AssignmentDto toDto(Assignment assignment, boolean submissions) throws AssessmentNotMatchingException {
-
+    public AssignmentDto toDto(Assignment assignment, boolean submissions, boolean addTreatmentDto) throws AssessmentNotMatchingException {
         AssignmentDto assignmentDto = new AssignmentDto();
         assignmentDto.setAssignmentId(assignment.getAssignmentId());
         assignmentDto.setLmsAssignmentId(assignment.getLmsAssignmentId());
@@ -177,15 +192,28 @@ public class AssignmentServiceImpl implements AssignmentService {
         assignmentDto.setAllowStudentViewCorrectAnswers(assignment.isAllowStudentViewCorrectAnswers());
         assignmentDto.setStudentViewCorrectAnswersAfter(assignment.getStudentViewCorrectAnswersAfter());
         assignmentDto.setStudentViewCorrectAnswersBefore(assignment.getStudentViewCorrectAnswersBefore());
-        assignmentDto.setStarted(assignment.isStarted());
 
-        List<Treatment> treatments = allRepositories.treatmentRepository.findByAssignment_AssignmentId(assignment.getAssignmentId());
-        List<TreatmentDto> treatmentDtoList = new ArrayList<>();
-        for (Treatment treatment:treatments){
-            TreatmentDto treatmentDto = treatmentService.toDto(treatment, submissions);
-            treatmentDtoList.add(treatmentDto);
+        long submissionsCount = allRepositories.submissionRepository.countByAssessment_Treatment_Assignment_AssignmentId(assignment.getAssignmentId());
+
+        if(submissionsCount > 0){
+            assignmentDto.setStarted(true);
         }
-        assignmentDto.setTreatments(treatmentDtoList);
+
+        if (addTreatmentDto) {
+            List<Treatment> treatments = allRepositories.treatmentRepository.findByAssignment_AssignmentId(assignment.getAssignmentId());
+            List<TreatmentDto> treatmentDtoList = new ArrayList<>();
+
+            for (Treatment treatment : treatments){
+                TreatmentDto treatmentDto = treatmentService.toDto(treatment, submissions, false);
+                treatmentDtoList.add(treatmentDto);
+            }
+
+            assignmentDto.setTreatments(treatmentDtoList);
+        }
+
+        assignmentDto.setPublished(assignment.isPublished());
+        assignmentDto.setDueDate(assignment.getDueDate());
+
         return assignmentDto;
     }
 
@@ -228,9 +256,22 @@ public class AssignmentServiceImpl implements AssignmentService {
     public Assignment getAssignment(Long id){ return allRepositories.assignmentRepository.findByAssignmentId(id); }
 
     @Override
-    public void updateAssignment(Long id, AssignmentDto assignmentDto, String canvasCourseId)
+    public List<AssignmentDto> updateAssignments(List<AssignmentDto> assignmentDtos, String canvasCourseId)
             throws TitleValidationException, CanvasApiException, AssignmentNotEditedException,
-            RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException {
+                RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException {
+        List<AssignmentDto> updatedAssignmentDtos = new ArrayList<>();
+
+        for (AssignmentDto assignmentDto : assignmentDtos) {
+            updatedAssignmentDtos.add(updateAssignment(assignmentDto.getAssignmentId(), assignmentDto, canvasCourseId));
+        }
+
+        return updatedAssignmentDtos;
+    }
+
+    @Override
+    public AssignmentDto updateAssignment(Long id, AssignmentDto assignmentDto, String canvasCourseId)
+            throws TitleValidationException, CanvasApiException, AssignmentNotEditedException,
+                RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException {
         Assignment assignment = allRepositories.assignmentRepository.findByAssignmentId(id);
         if(StringUtils.isAllBlank(assignmentDto.getTitle()) && StringUtils.isAllBlank(assignment.getTitle())){
             throw new TitleValidationException("Error 100: Please give the assignment a name.");
@@ -258,7 +299,7 @@ public class AssignmentServiceImpl implements AssignmentService {
                 .valueOf(assignmentDto.getMultipleSubmissionScoringScheme());
         assignment.setMultipleSubmissionScoringScheme(multipleSubmissionScoringScheme);
         assignment.setCumulativeScoringInitialPercentage(assignmentDto.getCumulativeScoringInitialPercentage());
-        saveAndFlush(assignment);
+        Assignment updatedAssignment = saveAndFlush(assignment);
 
         // update the same settings on all of this assignment's assessments
         List<Assessment> assessments = allRepositories.assessmentRepository.findByTreatment_Assignment_AssignmentId(id);
@@ -274,15 +315,29 @@ public class AssignmentServiceImpl implements AssignmentService {
             assessment.setMultipleSubmissionScoringScheme(multipleSubmissionScoringScheme);
             assessment.setCumulativeScoringInitialPercentage(assignmentDto.getCumulativeScoringInitialPercentage());
         }
+
+        return toDto(updatedAssignment, false, true);
     }
 
     @Override
-    public void saveAndFlush(Assignment assignmentToChange) { allRepositories.assignmentRepository.saveAndFlush(assignmentToChange); }
+    public Assignment saveAndFlush(Assignment assignmentToChange) { return allRepositories.assignmentRepository.saveAndFlush(assignmentToChange); }
 
     @Override
     public void deleteById(Long id, String canvasCourseId) throws EmptyResultDataAccessException, CanvasApiException, AssignmentNotEditedException {
-        deleteAssignmentInCanvas(allRepositories.assignmentRepository.getOne(id), canvasCourseId);
-        allRepositories.assignmentRepository.deleteByAssignmentId(id);
+        Assignment assignment = allRepositories.assignmentRepository.getOne(id);
+        deleteAssignmentInCanvas(assignment, canvasCourseId);
+
+        long submissionsCount = allRepositories.submissionRepository.countByAssessment_Treatment_Assignment_AssignmentId(id);
+
+        if (submissionsCount  == 0l) {
+            // no submissions; hard delete
+            allRepositories.assignmentRepository.deleteByAssignmentId(id);
+            return;
+        }
+
+        // has submissions; soft delete
+        assignment.setSoftDeleted(true);
+        saveAndFlush(assignment);
     }
 
     @Override
@@ -373,7 +428,7 @@ public class AssignmentServiceImpl implements AssignmentService {
     public ResponseEntity<Object> launchAssignment(Long experimentId, SecuredInfo securedInfo) throws
             AssessmentNotMatchingException, ParticipantNotUpdatedException, AssignmentDatesException,
             DataServiceException, CanvasApiException, IOException, GroupNotMatchingException,
-            ParticipantNotMatchingException, ConnectionException {
+            ParticipantNotMatchingException, ConnectionException, AssignmentAttemptException {
         Optional<Experiment> experiment = experimentService.findById(experimentId);
         if (experiment.isPresent()) {
             List<Participant> participants = participantService.refreshParticipants(experimentId,securedInfo, experiment.get().getParticipants());
@@ -431,6 +486,7 @@ public class AssignmentServiceImpl implements AssignmentService {
             //4. Maybe create the submission and return it (it must include info about the assessment)
             // First, try to find the submissions for this assessment and participant.
             List<Submission> submissionList = submissionService.findByParticipantIdAndAssessmentId(participant.getParticipantId(), assessment.getAssessmentId());
+
             if (!submissionList.isEmpty()) {
                 for (Submission submission : submissionList) {
                     //   - if one of them is not submitted, (and we can use it, we need to return that one),
@@ -455,18 +511,55 @@ public class AssignmentServiceImpl implements AssignmentService {
                     }
                 }
             }
-            if (assessment.getNumOfSubmissions() == null || assessment.getNumOfSubmissions() == 0 || assessment.getNumOfSubmissions() > submissionList.size()) {
-                //If it is the first submission in the experiment we mark it as started.
+            try {
+                verifyAssignmentSubmissionLimit(assessment.getNumOfSubmissions(), submissionList.size());
+                verifySubmissionWaitTime(assessment.getHoursBetweenSubmissions(), submissionList);
+
+                // If it is the first submission in the experiment we mark it as started.
                 if (experiment.get().getStarted()==null){
                     experiment.get().setStarted(Timestamp.valueOf(LocalDateTime.now()));
                     experimentService.save(experiment.get());
                 }
+
                 return createSubmission(experimentId, assessment, participant, securedInfo);
-            } else {
-                return new ResponseEntity(TextConstants.LIMIT_OF_SUBMISSIONS_REACHED, HttpStatus.UNAUTHORIZED);
+            } catch (AssignmentAttemptException e) {
+                return new ResponseEntity(e.getMessage(), HttpStatus.UNAUTHORIZED);
             }
         } else { //Shouldn't happen
             return new ResponseEntity(TextConstants.EXPERIMENT_NOT_MATCHING, HttpStatus.UNAUTHORIZED);
+        }
+    }
+
+    private void verifyAssignmentSubmissionLimit(Integer limit, int existingSubmissionsCount) throws AssignmentAttemptException {
+        if (limit == null || limit == 0) {
+            return;
+        }
+
+        if (existingSubmissionsCount < limit) {
+            return;
+        }
+
+        throw new AssignmentAttemptException(TextConstants.LIMIT_OF_SUBMISSIONS_REACHED);
+    }
+
+    private void verifySubmissionWaitTime(Float waitTime, List<Submission> submissionList) throws AssignmentAttemptException {
+        if (waitTime == null || waitTime == 0F) {
+            return;
+        }
+
+        if (CollectionUtils.isEmpty(submissionList)) {
+            return;
+        }
+
+        // calculate the allowable submission time limit
+        Timestamp limit = Timestamp.from(Instant.now().minus(Math.round(waitTime * 60 * 60), ChronoUnit.SECONDS));
+
+        // check for any submissions after the allowable time
+        long afterLimitCount = submissionList.stream().filter(submission -> { return submission.getDateSubmitted().after(limit); }).count();
+
+        if (afterLimitCount != 0l) {
+            // there are existing submissions that are not passed the time limit
+            throw new AssignmentAttemptException(TextConstants.ASSIGNMENT_SUBMISSION_WAIT_TIME_NOT_REACHED);
         }
     }
 
@@ -537,18 +630,15 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     private ResponseEntity<Object> createSubmission(Long experimentId, Assessment assessment, Participant participant, SecuredInfo securedInfo) {
-        if (submissionService.datesAllowed(experimentId,assessment.getTreatment().getTreatmentId(),securedInfo)){
-
-
-
-
-            Submission submission = submissionService.createNewSubmission(assessment, participant, securedInfo);
-            caliperService.sendAssignmentStarted(submission, securedInfo);
-            SubmissionDto submissionDto = submissionService.toDto(submission,true, false);
-            return new ResponseEntity<>(submissionDto,HttpStatus.OK);
-        } else {
+        if (!submissionService.datesAllowed(experimentId,assessment.getTreatment().getTreatmentId(),securedInfo)){
             return new ResponseEntity<>(TextConstants.ASSIGNMENT_LOCKED, HttpStatus.UNAUTHORIZED);
         }
+
+        Submission submission = submissionService.createNewSubmission(assessment, participant, securedInfo);
+        caliperService.sendAssignmentStarted(submission, securedInfo);
+        SubmissionDto submissionDto = submissionService.toDto(submission, true, false);
+
+        return new ResponseEntity<>(submissionDto,HttpStatus.OK);
     }
 
     @Override
@@ -716,9 +806,9 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     @Override
-    public AssignmentDto duplicateAssignment(long assignmentId) throws DataServiceException, IdInPostException, TitleValidationException, AssessmentNotMatchingException,
+    public AssignmentDto duplicateAssignment(long assignmentId, String canvasCourseId, long platformDeploymentId) throws DataServiceException, IdInPostException, TitleValidationException, AssessmentNotMatchingException,
                                                                         AssignmentNotCreatedException, RevealResponsesSettingValidationException,
-                                                                        MultipleAttemptsSettingsValidationException {
+                                                                        MultipleAttemptsSettingsValidationException, NumberFormatException, CanvasApiException {
         Assignment from = getAssignment(assignmentId);
 
         if (from == null) {
@@ -731,9 +821,21 @@ public class AssignmentServiceImpl implements AssignmentService {
         from.setAssignmentId(null);
 
         Assignment newAssignment = save(from);
-        AssignmentDto assignmentDto = toDto(newAssignment, false);
+        setAssignmentDtoAttrs(newAssignment, canvasCourseId, platformDeploymentId);
+        AssignmentDto assignmentDto = toDto(newAssignment, false, true);
 
         return assignmentDto;
+    }
+
+    @Override
+    public void setAssignmentDtoAttrs(Assignment assignment, String canvasCourseId, long platformDeploymentId) throws NumberFormatException, CanvasApiException {
+        PlatformDeployment platformDeployment = allRepositories.platformDeploymentRepository.getOne(platformDeploymentId);
+        Optional<AssignmentExtended> canvasAssignment = canvasAPIClient.listAssignment(canvasCourseId, Integer.parseInt(assignment.getLmsAssignmentId()), platformDeployment);
+
+        if (canvasAssignment.isPresent()) {
+            assignment.setPublished(canvasAssignment.get().isPublished());
+            assignment.setDueDate(canvasAssignment.get().getDueAt());
+        }
     }
 
 }

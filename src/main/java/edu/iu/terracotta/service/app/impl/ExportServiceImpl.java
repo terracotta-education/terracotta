@@ -148,7 +148,7 @@ public class ExportServiceImpl implements ExportService {
                         if (!StringUtils.isAllBlank(egc.getCondition().getName())) {
                             conditionName = egc.getCondition().getName();
                         }
-                        List<Assignment> assignments = allRepositories.assignmentRepository.findByExposure_ExposureId(egc.getExposure().getExposureId());
+                        List<Assignment> assignments = allRepositories.assignmentRepository.findByExposure_ExposureIdAndSoftDeleted(egc.getExposure().getExposureId(), false);
                         for (Assignment assignment : assignments) {
                             String assignmentId = assignment.getAssignmentId().toString();
                             String assignmentName = assignment.getTitle();

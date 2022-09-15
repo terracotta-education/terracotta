@@ -94,34 +94,35 @@ public class SubmissionController {
     }
 
 
-    @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions",
-            method = RequestMethod.POST)
-    public ResponseEntity<SubmissionDto> postSubmission(@PathVariable("experiment_id") Long experimentId,
-                                                        @PathVariable("condition_id") Long conditionId,
-                                                        @PathVariable("treatment_id") Long treatmentId,
-                                                        @PathVariable("assessment_id") Long assessmentId,
+    @PostMapping("/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}/submissions")
+    public ResponseEntity<SubmissionDto> postSubmission(@PathVariable long experimentId,
+                                                        @PathVariable long conditionId,
+                                                        @PathVariable long treatmentId,
+                                                        @PathVariable long assessmentId,
                                                         @RequestBody SubmissionDto submissionDto,
                                                         UriComponentsBuilder ucBuilder,
                                                         HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, BadTokenException, InvalidUserException, ParticipantNotMatchingException, IdInPostException, DataServiceException {
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, BadTokenException, InvalidUserException,
+                    ParticipantNotMatchingException, IdInPostException, DataServiceException {
 
         log.debug("Creating Submission: {}", submissionDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
 
-        if (submissionService.datesAllowed(experimentId, treatmentId, securedInfo)) {
-            if (apijwtService.isLearnerOrHigher(securedInfo)) {
-                boolean student = !apijwtService.isInstructorOrHigher(securedInfo);
-                SubmissionDto returnedDto = submissionService.postSubmission(submissionDto, experimentId, securedInfo.getUserId(), assessmentId, student);
-                HttpHeaders headers = submissionService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, returnedDto.getSubmissionId());
-                return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
-            } else {
-                return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-            }
-        } else {
+        if (!submissionService.datesAllowed(experimentId, treatmentId, securedInfo)) {
             return new ResponseEntity("Error 128: Assignment locked", HttpStatus.UNAUTHORIZED);
         }
+
+        if (apijwtService.isLearnerOrHigher(securedInfo)) {
+            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
+        }
+
+        boolean student = !apijwtService.isInstructorOrHigher(securedInfo);
+        SubmissionDto returnedDto = submissionService.postSubmission(submissionDto, experimentId, securedInfo, assessmentId, student);
+        HttpHeaders headers = submissionService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, returnedDto.getSubmissionId());
+
+        return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
     }
 
 

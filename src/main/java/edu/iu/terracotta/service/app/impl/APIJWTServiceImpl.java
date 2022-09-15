@@ -420,6 +420,11 @@ public class APIJWTServiceImpl implements APIJWTService {
     }
 
     @Override
+    public boolean isTestStudent(SecuredInfo securedInfo){
+        return securedInfo.getRoles().contains(Roles.TEST_STUDENT);
+    }
+
+    @Override
     public boolean isInstructorOrHigher(SecuredInfo securedInfo){
         return (isInstructor(securedInfo) || isAdmin(securedInfo));
     }

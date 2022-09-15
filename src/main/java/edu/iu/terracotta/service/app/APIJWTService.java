@@ -58,6 +58,8 @@ public interface APIJWTService {
 
     boolean isGeneral(SecuredInfo securedInfo);
 
+    boolean isTestStudent(SecuredInfo securedInfo);
+
     void experimentAllowed(SecuredInfo securedInfo, Long experimentId) throws BadTokenException, ExperimentNotMatchingException;
 
     boolean experimentLocked(Long experimentId, boolean throwException) throws ExperimentLockedException, ExperimentNotMatchingException;
