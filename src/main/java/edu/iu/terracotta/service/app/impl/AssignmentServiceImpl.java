@@ -118,13 +118,14 @@ public class AssignmentServiceImpl implements AssignmentService {
     static final Logger log = LoggerFactory.getLogger(AssignmentServiceImpl.class);
 
     @Override
-    public List<Assignment> findAllByExposureId(long exposureId) {
-        return allRepositories.assignmentRepository.findByExposure_ExposureId(exposureId);
+    public List<Assignment> findAllByExposureId(long exposureId, boolean includeDeleted) {
+        return allRepositories.assignmentRepository.findByExposure_ExposureIdAndSoftDeleted(exposureId, includeDeleted);
     }
 
     @Override
-    public List<AssignmentDto> getAssignments(Long exposureId, String canvasCourseId, long platformDeploymentId, boolean submissions) throws AssessmentNotMatchingException, CanvasApiException{
-        List<Assignment> assignments = findAllByExposureId(exposureId);
+    public List<AssignmentDto> getAssignments(Long exposureId, String canvasCourseId, long platformDeploymentId, boolean submissions, boolean includeDeleted)
+            throws AssessmentNotMatchingException, CanvasApiException{
+        List<Assignment> assignments = findAllByExposureId(exposureId, includeDeleted);
 
         if (CollectionUtils.isEmpty(assignments)) {
             return Collections.emptyList();
@@ -320,8 +321,20 @@ public class AssignmentServiceImpl implements AssignmentService {
 
     @Override
     public void deleteById(Long id, String canvasCourseId) throws EmptyResultDataAccessException, CanvasApiException, AssignmentNotEditedException {
-        deleteAssignmentInCanvas(allRepositories.assignmentRepository.getOne(id), canvasCourseId);
-        allRepositories.assignmentRepository.deleteByAssignmentId(id);
+        Assignment assignment = allRepositories.assignmentRepository.getOne(id);
+        deleteAssignmentInCanvas(assignment, canvasCourseId);
+
+        long submissionsCount = allRepositories.submissionRepository.countByAssessment_Treatment_Assignment_AssignmentId(id);
+
+        if (submissionsCount  == 0l) {
+            // no submissions; hard delete
+            allRepositories.assignmentRepository.deleteByAssignmentId(id);
+            return;
+        }
+
+        // has submissions; soft delete
+        assignment.setSoftDeleted(true);
+        saveAndFlush(assignment);
     }
 
     @Override

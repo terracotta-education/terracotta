@@ -26,6 +26,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -63,6 +64,7 @@ public class AssignmentController {
     public ResponseEntity<List<AssignmentDto>> allAssignmentsByExposure(@PathVariable long experimentId,
                                                                         @PathVariable long exposureId,
                                                                         @RequestParam(name = "submissions", defaultValue = "false") boolean submissions,
+                                                                        @RequestParam(name = "includeDeleted", defaultValue = "false") boolean includeDeleted,
                                                                         HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ExposureNotMatchingException, AssessmentNotMatchingException, CanvasApiException {
 
@@ -74,7 +76,7 @@ public class AssignmentController {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
 
-        List<AssignmentDto> assignments = assignmentService.getAssignments(exposureId, securedInfo.getCanvasCourseId(), securedInfo.getPlatformDeploymentId(), submissions);
+        List<AssignmentDto> assignments = assignmentService.getAssignments(exposureId, securedInfo.getCanvasCourseId(), securedInfo.getPlatformDeploymentId(), submissions, includeDeleted);
 
         if (assignments.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
@@ -180,10 +182,10 @@ public class AssignmentController {
         return new ResponseEntity<>(updatedAssignmentDtos, HttpStatus.OK);
     }
 
-    @RequestMapping(value = "/{experiment_id}/exposures/{exposure_id}/assignments/{assignment_id}", method = RequestMethod.DELETE)
-    public ResponseEntity<Void> deleteAssignment(@PathVariable("experiment_id") Long experimentId,
-                                                 @PathVariable("exposure_id") Long exposureId,
-                                                 @PathVariable("assignment_id") Long assignmentId,
+    @DeleteMapping("/{experimentId}/exposures/{exposureId}/assignments/{assignmentId}")
+    public ResponseEntity<Void> deleteAssignment(@PathVariable long experimentId,
+                                                 @PathVariable long exposureId,
+                                                 @PathVariable long assignmentId,
                                                  HttpServletRequest req)
             throws ExperimentNotMatchingException, AssignmentNotMatchingException, BadTokenException, CanvasApiException, AssignmentNotEditedException {
 
@@ -191,16 +193,16 @@ public class AssignmentController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assignmentAllowed(securedInfo, experimentId, exposureId, assignmentId);
 
-        if(apijwtService.isInstructorOrHigher(securedInfo)) {
-            try{
-                assignmentService.deleteById(assignmentId, securedInfo.getCanvasCourseId());
-                return new ResponseEntity<>(HttpStatus.OK);
-            } catch (EmptyResultDataAccessException e) {
-                log.warn(e.getMessage());
-                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-            }
-        } else {
+        if(!apijwtService.isInstructorOrHigher(securedInfo)) {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
+        }
+
+        try{
+            assignmentService.deleteById(assignmentId, securedInfo.getCanvasCourseId());
+            return new ResponseEntity<>(HttpStatus.OK);
+        } catch (EmptyResultDataAccessException e) {
+            log.warn(e.getMessage());
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
 
