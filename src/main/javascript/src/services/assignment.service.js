@@ -9,7 +9,8 @@ export const assignmentService = {
   fetchAssignmentsByExposure,
   create,
   deleteAssignment,
-  updateAssignments
+  updateAssignments,
+  duplicateAssignment
 }
 
 /**
@@ -52,6 +53,21 @@ function create(experiment_id, exposure_id, title, order) {
   }
 
   return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/exposures/${exposure_id}/assignments`, requestOptions).then(handleResponse)
+}
+
+/**
+ * Duplicate Assignment
+ */
+function duplicateAssignment(experiment_id, exposure_id, assignment_id) {
+  const requestOptions = {
+    method: 'POST',
+    headers: { ...authHeader(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({})
+  };
+
+  console.log(experiment_id, exposure_id, assignment_id);
+
+  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/exposures/${exposure_id}/assignments/${assignment_id}/duplicate`, requestOptions).then(handleResponse)
 }
 
 /**

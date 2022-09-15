@@ -84,7 +84,7 @@
                 <template v-if="item.tab === 'assignment'">
                   <div class="px-5">
                     <!--<pre>{{ experiment }}</pre>-->
-                    <p class="pb-0">
+                    <p class="pb-0" v-if="exposures">
                       Because you have <strong>{{ conditionCount }}</strong> (<a
                         @click="handleEdit('ExperimentDesignConditions')"
                         >edit</a
