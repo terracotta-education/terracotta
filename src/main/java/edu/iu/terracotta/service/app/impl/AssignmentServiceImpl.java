@@ -312,7 +312,7 @@ public class AssignmentServiceImpl implements AssignmentService {
             assessment.setCumulativeScoringInitialPercentage(assignmentDto.getCumulativeScoringInitialPercentage());
         }
 
-        return toDto(updatedAssignment, false, true);
+        return toDto(updatedAssignment, false);
     }
 
     @Override

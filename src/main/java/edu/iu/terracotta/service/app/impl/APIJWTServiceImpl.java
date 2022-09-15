@@ -13,7 +13,6 @@
 package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.exceptions.*;
-import edu.iu.terracotta.model.app.Assignment;
 import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.enumerator.ExposureTypes;
 import edu.iu.terracotta.model.oauth2.Roles;
@@ -529,25 +528,6 @@ public class APIJWTServiceImpl implements APIJWTService {
         if(!assignmentService.assignmentBelongsToExperimentAndExposure(experimentId, exposureId, assignmentId)) {
             throw new AssignmentNotMatchingException(TextConstants.ASSIGNMENT_NOT_MATCHING);
         }
-    }
-
-    @Override
-    public boolean assignmentLocked(Long assignmentId, boolean throwException) throws AssignmentLockedException, AssignmentNotMatchingException {
-        Optional<Assignment> assignment = assignmentService.findById(assignmentId);
-
-        if (!assignment.isPresent()){
-            throw new AssignmentNotMatchingException(String.format("The assignment with id %s does not exist", assignment));
-        }
-
-        if (!assignment.get().isStarted()) {
-            return false;
-        }
-
-        if (throwException) {
-            throw new AssignmentLockedException("Error 110: The assignment has started and can't be modified");
-        }
-
-        return true;
     }
 
     @Override
