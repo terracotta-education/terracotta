@@ -76,7 +76,7 @@ public class AssignmentController {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
 
-        List<AssignmentDto> assignments = assignmentService.getAssignments(exposureId, securedInfo.getCanvasCourseId(), securedInfo.getPlatformDeploymentId(), submissions);
+        List<AssignmentDto> assignments = assignmentService.getAssignments(exposureId, securedInfo.getCanvasCourseId(), securedInfo.getPlatformDeploymentId(), submissions, includeDeleted);
 
         if (assignments.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);

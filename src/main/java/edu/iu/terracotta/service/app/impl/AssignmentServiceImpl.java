@@ -123,8 +123,9 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     @Override
-    public List<AssignmentDto> getAssignments(Long exposureId, String canvasCourseId, long platformDeploymentId, boolean submissions) throws AssessmentNotMatchingException, CanvasApiException{
-        List<Assignment> assignments = findAllByExposureId(exposureId);
+    public List<AssignmentDto> getAssignments(Long exposureId, String canvasCourseId, long platformDeploymentId, boolean submissions, boolean includeDeleted)
+            throws AssessmentNotMatchingException, CanvasApiException{
+        List<Assignment> assignments = findAllByExposureId(exposureId, includeDeleted);
 
         if (CollectionUtils.isEmpty(assignments)) {
             return Collections.emptyList();
@@ -312,7 +313,7 @@ public class AssignmentServiceImpl implements AssignmentService {
             assessment.setCumulativeScoringInitialPercentage(assignmentDto.getCumulativeScoringInitialPercentage());
         }
 
-        return toDto(updatedAssignment, false);
+        return toDto(updatedAssignment, false, true);
     }
 
     @Override

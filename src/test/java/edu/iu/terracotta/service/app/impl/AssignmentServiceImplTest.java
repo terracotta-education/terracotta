@@ -1,10 +1,5 @@
 package edu.iu.terracotta.service.app.impl;
 
-import static org.mockito.Mockito.clearInvocations;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -13,11 +8,6 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.dao.EmptyResultDataAccessException;
 
 import java.util.Optional;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
 
 import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.exceptions.AssignmentNotEditedException;
@@ -37,39 +27,31 @@ import javax.persistence.EntityManager;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
-import java.util.Optional;
-
-import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.exceptions.AssignmentNotCreatedException;
-import edu.iu.terracotta.exceptions.CanvasApiException;
-import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.MultipleAttemptsSettingsValidationException;
 import edu.iu.terracotta.exceptions.RevealResponsesSettingValidationException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
-import edu.iu.terracotta.model.PlatformDeployment;
-import edu.iu.terracotta.model.app.Assignment;
-import edu.iu.terracotta.model.app.Exposure;
 import edu.iu.terracotta.model.app.dto.AssignmentDto;
 import edu.iu.terracotta.model.canvas.AssignmentExtended;
-import edu.iu.terracotta.repository.AllRepositories;
-import edu.iu.terracotta.repository.AssignmentRepository;
 import edu.iu.terracotta.repository.PlatformDeploymentRepository;
-import edu.iu.terracotta.repository.SubmissionRepository;
 import edu.iu.terracotta.repository.TreatmentRepository;
-import edu.iu.terracotta.service.canvas.CanvasAPIClient;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.when;
 
 public class AssignmentServiceImplTest {
 
@@ -110,6 +92,7 @@ public class AssignmentServiceImplTest {
     private Experiment experiment;
 
     private Assignment assignment;
+    private Assignment newAssignment;
     private Date dueDate = new Date();
 
     @BeforeEach
@@ -127,13 +110,18 @@ public class AssignmentServiceImplTest {
         assignment.setLmsAssignmentId("1");
         assignment.setExposure(exposure);
 
+        newAssignment = new Assignment();
+        newAssignment.setAssignmentId(2L);
+        newAssignment.setLmsAssignmentId("1");
+        newAssignment.setExposure(exposure);
+
         when(allRepositories.assignmentRepository.getOne(anyLong())).thenReturn(assignment);
         when(allRepositories.submissionRepository.countByAssessment_Treatment_Assignment_AssignmentId(anyLong())).thenReturn(0L);
         when(canvasAPIClient.listAssignment(anyString(), anyInt(), any(PlatformDeployment.class))).thenReturn(Optional.empty());
         when(exposure.getExperiment()).thenReturn(experiment);
         when(experiment.getPlatformDeployment()).thenReturn(new PlatformDeployment());
         when(allRepositories.assignmentRepository.findByAssignmentId(anyLong())).thenReturn(assignment);
-        when(allRepositories.assignmentRepository.findByExposure_ExposureId(anyLong())).thenReturn(Collections.singletonList(newAssignment));
+        when(allRepositories.assignmentRepository.findByExposure_ExposureIdAndSoftDeleted(anyLong(), anyBoolean())).thenReturn(Collections.singletonList(assignment));
         when(allRepositories.assignmentRepository.save(any(Assignment.class))).thenReturn(newAssignment);
         when(allRepositories.platformDeploymentRepository.getOne(anyLong())).thenReturn(platformDeployment);
         when(allRepositories.treatmentRepository.findByAssignment_AssignmentId(anyLong())).thenReturn(Collections.emptyList());
@@ -164,7 +152,7 @@ public class AssignmentServiceImplTest {
 
     @Test
     public void testGetAssignments() throws AssessmentNotMatchingException, CanvasApiException {
-        List<AssignmentDto> assignmentDtos = assignmentService.getAssignments(0L, "0", 0l, false);
+        List<AssignmentDto> assignmentDtos = assignmentService.getAssignments(0L, "0", 0l, false, false);
 
         assertNotNull(assignmentDtos);
         assertEquals(1, assignmentDtos.size());
@@ -175,7 +163,7 @@ public class AssignmentServiceImplTest {
     @Test
     public void testGetAssignmentsNoCanvasAssignmentFound() throws AssessmentNotMatchingException, CanvasApiException {
         when(canvasAPIClient.listAssignment(anyString(), anyInt(), any(PlatformDeployment.class))).thenReturn(Optional.empty());
-        List<AssignmentDto> assignmentDtos = assignmentService.getAssignments(0L, "0", 0l, false);
+        List<AssignmentDto> assignmentDtos = assignmentService.getAssignments(0L, "0", 0l, false, false);
 
         assertNotNull(assignmentDtos);
         assertEquals(1, assignmentDtos.size());
@@ -185,8 +173,8 @@ public class AssignmentServiceImplTest {
 
     @Test
     public void testGetAssignmentsNoAssignmentsFound() throws AssessmentNotMatchingException, CanvasApiException {
-        when(allRepositories.assignmentRepository.findByExposure_ExposureId(anyLong())).thenReturn(Collections.emptyList());
-        List<AssignmentDto> assignmentDtos = assignmentService.getAssignments(0L, "0", 0l, false);
+        when(allRepositories.assignmentRepository.findByExposure_ExposureIdAndSoftDeleted(anyLong(), anyBoolean())).thenReturn(Collections.emptyList());
+        List<AssignmentDto> assignmentDtos = assignmentService.getAssignments(0L, "0", 0l, false, false);
 
         assertNotNull(assignmentDtos);
         assertEquals(0, assignmentDtos.size());

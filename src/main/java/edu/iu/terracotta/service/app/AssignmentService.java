@@ -33,7 +33,7 @@ public interface AssignmentService {
 
     List<Assignment> findAllByExposureId(long exposureId, boolean includeDeleted);
 
-    List<AssignmentDto> getAssignments(Long exposureId, String canvasCourseId, long platformDeploymentId, boolean submissions) throws AssessmentNotMatchingException, CanvasApiException;
+    List<AssignmentDto> getAssignments(Long exposureId, String canvasCourseId, long platformDeploymentId, boolean submissions, boolean includeDeleted) throws AssessmentNotMatchingException, CanvasApiException;
 
     Assignment getAssignment(Long id);
 
