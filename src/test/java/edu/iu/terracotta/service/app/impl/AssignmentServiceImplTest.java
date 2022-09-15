@@ -16,12 +16,15 @@ import edu.iu.terracotta.exceptions.AssignmentNotEditedException;
 import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.model.PlatformDeployment;
+import edu.iu.terracotta.model.app.Assessment;
 import edu.iu.terracotta.model.app.Assignment;
 import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.Exposure;
+import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.repository.AssignmentRepository;
 import edu.iu.terracotta.repository.SubmissionRepository;
+import edu.iu.terracotta.service.app.AssessmentService;
 import edu.iu.terracotta.service.canvas.CanvasAPIClient;
 
 import javax.persistence.EntityManager;
@@ -43,6 +46,7 @@ import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.dto.AssignmentDto;
 import edu.iu.terracotta.model.canvas.AssignmentExtended;
+import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.PlatformDeploymentRepository;
 import edu.iu.terracotta.repository.TreatmentRepository;
 import edu.iu.terracotta.utils.TextConstants;
@@ -68,6 +72,9 @@ public class AssignmentServiceImplTest {
 
     @InjectMocks
     private AssignmentServiceImpl assignmentService;
+
+    @Mock
+    private AssessmentService assessmentService;
 
     @Mock
     private AllRepositories allRepositories;
@@ -101,6 +108,9 @@ public class AssignmentServiceImplTest {
 
     @Mock
     private Experiment experiment;
+
+    @Mock
+    private Assessment assessment;
 
     private Assignment assignment;
     private Assignment newAssignment;
@@ -147,6 +157,7 @@ public class AssignmentServiceImplTest {
         when(exposure.getExposureId()).thenReturn(1L);
         when(assignmentExtended.isPublished()).thenReturn(true);
         when(assignmentExtended.getDueAt()).thenReturn(dueDate);
+        when(assessmentService.getAssessmentForParticipant(any(Participant.class), any(SecuredInfo.class))).thenReturn(assessment);
     }
 
     @Test

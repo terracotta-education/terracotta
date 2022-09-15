@@ -1,20 +1,41 @@
 package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
+import edu.iu.terracotta.exceptions.AssignmentNotMatchingException;
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.exceptions.GroupNotMatchingException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.MultipleAttemptsSettingsValidationException;
+import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
+import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.exceptions.RevealResponsesSettingValidationException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
-import edu.iu.terracotta.model.app.*;
+import edu.iu.terracotta.model.app.Assessment;
+import edu.iu.terracotta.model.app.Assignment;
+import edu.iu.terracotta.model.app.Condition;
+import edu.iu.terracotta.model.app.Experiment;
+import edu.iu.terracotta.model.app.ExposureGroupCondition;
+import edu.iu.terracotta.model.app.Participant;
+import edu.iu.terracotta.model.app.Question;
+import edu.iu.terracotta.model.app.RetakeDetails;
+import edu.iu.terracotta.model.app.Submission;
+import edu.iu.terracotta.model.app.Treatment;
 import edu.iu.terracotta.model.app.dto.AssessmentDto;
 import edu.iu.terracotta.model.app.dto.QuestionDto;
 import edu.iu.terracotta.model.app.dto.SubmissionDto;
 import edu.iu.terracotta.model.app.enumerator.MultipleSubmissionScoringScheme;
+import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.AllRepositories;
-import edu.iu.terracotta.service.app.*;
+import edu.iu.terracotta.service.app.AssessmentService;
+import edu.iu.terracotta.service.app.FileStorageService;
+import edu.iu.terracotta.service.app.ParticipantService;
+import edu.iu.terracotta.service.app.QuestionService;
+import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.utils.TextConstants;
 
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -31,6 +52,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Component
 public class AssessmentServiceImpl implements AssessmentService {
@@ -48,6 +70,9 @@ public class AssessmentServiceImpl implements AssessmentService {
 
     @Autowired
     private FileStorageService fileStorageService;
+
+    @Autowired
+    private ParticipantService participantService;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -91,6 +116,28 @@ public class AssessmentServiceImpl implements AssessmentService {
         Assessment assessmentSaved = save(assessment);
         updateTreatment(treatmentId, assessmentSaved);
         return toDto(assessmentSaved, false, false, false, false);
+    }
+
+    private AssessmentDto toDto(Assessment assessment, Participant participant, boolean canViewSubmissions) throws AssessmentNotMatchingException {
+        AssessmentDto assessmentDto = toDto(assessment, null, false, false, false, false);
+
+        List<Submission> participantSubmissions = submissionService.findByParticipantId(participant.getParticipantId());
+
+        List<SubmissionDto> submissionDtosSubmitted = CollectionUtils.emptyIfNull(participantSubmissions).stream()
+            .filter(submission -> submission.getDateSubmitted() != null)
+            .map(submission -> submissionService.toDto(submission, false, false))
+            .collect(Collectors.toList());
+
+        if (canViewSubmissions) {
+            assessmentDto.setSubmissions(submissionDtosSubmitted);
+        }
+
+        RetakeDetails retakeDetails = new RetakeDetails();
+        retakeDetails.setKeptScore(submissionService.getScoreFromMultipleSubmissions(participant, assessment));
+        retakeDetails.setSubmissionAttemptsCount(submissionDtosSubmitted.size());
+        assessmentDto.setRetakeDetails(retakeDetails);
+
+        return assessmentDto;
     }
 
     @Override
@@ -428,6 +475,114 @@ public class AssessmentServiceImpl implements AssessmentService {
         assessmentDto.setQuestions(questionDtos);
 
         return assessmentDto;
+    }
+
+    @Override
+    public Assessment getAssessmentForParticipant(Participant participant, SecuredInfo securedInfo) throws AssessmentNotMatchingException {
+        Assessment assessment = null;
+
+        if (!participant.getConsent()) {
+            //We need the default condition assessment
+            for (Condition condition : participant.getExperiment().getConditions()) {
+                if (condition.getDefaultCondition()){
+                    assessment = getAssessmentByConditionId(participant.getExperiment().getExperimentId(), securedInfo.getCanvasAssignmentId(), condition.getConditionId());
+                    break;
+                }
+            }
+        } else {
+            if (participant.getGroup() != null) {
+                assessment = getAssessmentByGroupId(participant.getExperiment().getExperimentId(), securedInfo.getCanvasAssignmentId(), participant.getGroup().getGroupId());
+            }
+        }
+
+        if (assessment == null) {
+            throw new AssessmentNotMatchingException("There is no assessment available for this user");
+        }
+
+        return assessment;
+    }
+
+    @Override
+    public Assessment getAssessmentByGroupId(Long experimentId, String canvasAssignmentId, Long groupId) throws AssessmentNotMatchingException {
+        Assignment assignment = allRepositories.assignmentRepository.findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(experimentId, canvasAssignmentId);
+
+        if (assignment == null){
+            throw new AssessmentNotMatchingException("Error 127: This assignment does not exist in Terracotta for this experiment");
+        }
+
+        Optional<ExposureGroupCondition> exposureGroupCondition = allRepositories.exposureGroupConditionRepository.getByGroup_GroupIdAndExposure_ExposureId(groupId, assignment.getExposure().getExposureId());
+
+        if (!exposureGroupCondition.isPresent()){
+            throw new AssessmentNotMatchingException("Error 130: This assignment does not have a condition assigned for the participant group.");
+        }
+
+        return retrieveTreatmentAssessment(exposureGroupCondition.get().getCondition().getConditionId(), assignment.getAssignmentId());
+    }
+
+    @Override
+    public Assessment getAssessmentByConditionId(Long experimentId, String canvasAssignmentId, Long conditionId) throws AssessmentNotMatchingException {
+        Assignment assignment = allRepositories.assignmentRepository.findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(experimentId, canvasAssignmentId);
+
+        if (assignment == null) {
+            throw new AssessmentNotMatchingException("Error 127: This assignment does not exist in Terracotta for this experiment");
+        }
+
+        return retrieveTreatmentAssessment(conditionId, assignment.getAssignmentId());
+    }
+
+    private Assessment retrieveTreatmentAssessment(long conditionId, long assignmentId) throws AssessmentNotMatchingException {
+        List<Treatment> treatments = allRepositories.treatmentRepository.findByCondition_ConditionIdAndAssignment_AssignmentId(conditionId, assignmentId);
+
+        if (treatments.isEmpty()) {
+            throw new AssessmentNotMatchingException("Error 131: This assignment does not have a treatment assigned.");
+        }
+
+        if (treatments.size() > 1) {
+            throw new AssessmentNotMatchingException("Error 132: This assignment has ambiguous treatments. Please contact a Terracotta administrator");
+        }
+
+        if (treatments.get(0).getAssessment() == null) {
+            throw new AssessmentNotMatchingException("Error 133: The treatment for this assignment does not have an assessment created");
+        }
+
+        return treatments.get(0).getAssessment();
+    }
+
+    @Override
+    public AssessmentDto viewAssessment(long experimentId, SecuredInfo securedInfo)
+            throws ExperimentNotMatchingException, ParticipantNotMatchingException, AssessmentNotMatchingException,
+                GroupNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException {
+        Optional<Experiment> experiment = allRepositories.experimentRepository.findById(experimentId);
+
+        if (!experiment.isPresent()) {
+            throw new ExperimentNotMatchingException(TextConstants.EXPERIMENT_NOT_MATCHING);
+        }
+
+        Participant participant = participantService.handleExperimentParticipant(experiment.get(), securedInfo);
+
+        Assessment assessment = null;
+
+        if (BooleanUtils.isNotTrue(participant.getConsent())) {
+            // need the default condition assessment
+            Optional<Long> conditionId = experiment.get().getConditions().stream()
+                .filter(Condition::getDefaultCondition)
+                .map(Condition::getConditionId)
+                .findFirst();
+
+            if (conditionId.isPresent()) {
+                assessment = getAssessmentByConditionId(experimentId, securedInfo.getCanvasAssignmentId(), conditionId.get());
+            }
+        } else {
+            if (participant.getGroup() != null) {
+                assessment = getAssessmentByGroupId(experimentId, securedInfo.getCanvasAssignmentId(), participant.getGroup().getGroupId());
+            }
+        }
+
+        if (assessment == null) {
+            throw new AssessmentNotMatchingException("There is no assessment available for this user");
+        }
+
+        return toDto(assessment, participant, assessment.isAllowStudentViewResponses());
     }
 
 }

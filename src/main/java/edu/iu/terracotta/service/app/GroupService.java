@@ -1,6 +1,8 @@
 package edu.iu.terracotta.service.app;
 
+import edu.iu.terracotta.exceptions.AssignmentNotMatchingException;
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.GroupNotMatchingException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.model.app.Experiment;
@@ -51,4 +53,7 @@ public interface GroupService {
     void validateTitle(String title) throws TitleValidationException;
 
     HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long groupId);
+
+    Group getUniqueGroupByConditionId(Long experimentId, String canvasAssignmentId, Long conditionId) throws GroupNotMatchingException, AssignmentNotMatchingException;
+
 }

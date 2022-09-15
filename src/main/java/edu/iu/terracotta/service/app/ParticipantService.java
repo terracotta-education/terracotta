@@ -1,10 +1,10 @@
 package edu.iu.terracotta.service.app;
 
 import edu.iu.terracotta.exceptions.*;
+import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.dto.ParticipantDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
-import edu.ksu.canvas.model.Progress;
 import org.springframework.http.HttpHeaders;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -56,4 +56,8 @@ public interface ParticipantService {
     boolean changeConsent(ParticipantDto participantDto, SecuredInfo securedInfo, Long experimentId) throws ParticipantAlreadyStartedException;
 
     void postConsentSubmission(Participant participant, SecuredInfo securedInfo) throws ConnectionException, DataServiceException;
+
+    Participant handleExperimentParticipant(Experiment experiment, SecuredInfo securedInfo)
+        throws GroupNotMatchingException, ParticipantNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException;
+
 }

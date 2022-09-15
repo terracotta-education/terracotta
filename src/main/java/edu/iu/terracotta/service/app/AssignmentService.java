@@ -5,6 +5,7 @@ import edu.iu.terracotta.exceptions.AssignmentAttemptException;
 import edu.iu.terracotta.exceptions.AssignmentDatesException;
 import edu.iu.terracotta.exceptions.AssignmentNotCreatedException;
 import edu.iu.terracotta.exceptions.AssignmentNotEditedException;
+import edu.iu.terracotta.exceptions.AssignmentNotMatchingException;
 import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
@@ -15,9 +16,9 @@ import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.exceptions.RevealResponsesSettingValidationException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
-import edu.iu.terracotta.model.app.Assessment;
 import edu.iu.terracotta.model.app.Assignment;
 import edu.iu.terracotta.model.app.Group;
+import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.dto.AssignmentDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 
@@ -76,15 +77,9 @@ public interface AssignmentService {
 
     void sendAssignmentGradeToCanvas(Assignment assignment) throws ConnectionException, DataServiceException, CanvasApiException, IOException;
 
-    Assessment getAssessmentByGroupId(Long experimentId, String canvasAssignmentId, Long groupId) throws AssessmentNotMatchingException;
-
-    Assessment getAssessmentByConditionId(Long experimentId, String canvasAssignmentId, Long conditionId) throws AssessmentNotMatchingException;
-
-    Group getUniqueGroupByConditionId(Long experimentId, String canvasAssignmentId, Long conditionId) throws GroupNotMatchingException;
-
     ResponseEntity<Object> launchAssignment(Long experimentId, SecuredInfo securedInfo)
             throws AssessmentNotMatchingException, ParticipantNotUpdatedException, AssignmentDatesException, DataServiceException, CanvasApiException,
-                    IOException, GroupNotMatchingException, ParticipantNotMatchingException, ConnectionException, AssignmentAttemptException;
+                    IOException, GroupNotMatchingException, ParticipantNotMatchingException, ConnectionException, AssignmentAttemptException, AssignmentNotMatchingException;
 
     void checkAndRestoreAllAssignmentsInCanvas() throws CanvasApiException, DataServiceException, ConnectionException, IOException;
 

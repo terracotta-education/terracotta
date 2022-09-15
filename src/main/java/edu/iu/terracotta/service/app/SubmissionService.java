@@ -78,4 +78,6 @@ public interface SubmissionService {
     HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, long experimentId, long conditionId, long treatmentId, long assessmentId, long submissionId);
 
     void allowedSubmission(Long submissionId, SecuredInfo securedInfo) throws SubmissionNotMatchingException;
+
+    Float getScoreFromMultipleSubmissions(Participant participant, Assessment assessment);
 }
