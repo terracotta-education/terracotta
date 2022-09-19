@@ -202,7 +202,6 @@
 </template>
 
 <script>
-import store from "@/store";
 import { mapGetters, mapActions } from "vuex";
 import Sortable from "sortablejs";
 
@@ -414,43 +413,6 @@ export default {
       const newGroups = groupConditionList?.map((group) => group.groupName);
       return newGroups?.sort();
     },
-  },
-
-  async created() {
-    await this.fetchExposures(this.experiment.experimentId);
-    for (const e of this.exposures) {
-      // add submissions to assignments request
-      const submissions = true;
-      await this.fetchAssignmentsByExposure([
-        this.experiment.experimentId,
-        e.exposureId,
-        submissions,
-      ]);
-    }
-    for (let c of this.conditions) {
-      const t = await this.checkTreatment([
-        this.experiment.experimentId,
-        c.conditionId,
-        this.assignments[0].assignmentId,
-      ]);
-      this.conditionTreatments[c.conditionId] = t?.data;
-    }
-    this.getAssignmentDetails();
-    await this.getZip(this.experiment.experimentId);
-    if (this.experiment.participationType === "CONSENT") {
-      await this.getConsentFile(this.experiment.experimentId);
-    }
-    // }
-  },
-  beforeRouteEnter(to, from, next) {
-    return store
-      .dispatch("experiment/fetchExperimentById", to.params.experiment_id)
-      .then(next, next);
-  },
-  beforeRouteUpdate(to, from, next) {
-    return store
-      .dispatch("experiment/fetchExperimentById", to.params.experiment_id)
-      .then(next, next);
   },
 };
 </script>
