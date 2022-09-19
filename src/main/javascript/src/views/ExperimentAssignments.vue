@@ -8,7 +8,7 @@
             <v-tab v-for="(exposure, index) in exposures" :key="index">
               <div class="d-flex flex-column align-start py-1">
                 <div class="">Set {{ index + 1 }}</div>
-                <div class="d-block red--text mt-4">
+                <div class="d-block mt-4" :class="balanced ? '' : 'red--text'">
                   {{ getAssignmentsForExposure(exposure).length }} assignments
                 </div>
               </div>
@@ -66,7 +66,7 @@
                       >
                         <!-- eslint-disable-next-line -->
                         <template v-slot:item.title="{ item }">
-                          {{ item.assessmentDto.title }}
+                          Treatment
                           <v-chip
                             label
                             :color="
@@ -204,12 +204,11 @@
 <script>
 import store from "@/store";
 import { mapGetters, mapActions } from "vuex";
-import { saveAs } from "file-saver";
 import Sortable from "sortablejs";
 
 export default {
   name: "ExperimentAssignments",
-  props: ["experiment"],
+  props: ["experiment", "balanced"],
   directives: {
     sortableDataTable: {
       bind(el, binding, vnode) {
@@ -233,28 +232,6 @@ export default {
       exportdata: "exportdata/exportData",
       conditionColorMapping: "condition/conditionColorMapping",
     }),
-    // Higher Level Section Values
-    sectionValuesMap() {
-      return {
-        Assignments: this.assignmentDetails,
-      };
-    },
-    // Assignment Expansion View Values
-    assignmentDetails() {
-      return [
-        {
-          title: "Your Assignments",
-          description: this.getAssignmentDetails(),
-          editSection: "AssignmentExposureSets",
-          type: "assignments",
-        },
-      ];
-    },
-    conditionCount() {
-      return `${this.experiment.conditions.length} condition${
-        this.experiment.conditions.length > 1 ? "s" : ""
-      }`;
-    },
   },
 
   data: () => ({
@@ -292,7 +269,7 @@ export default {
       {
         text: "Actions",
         value: "actions",
-        align: "end"
+        align: "end",
       },
       { text: "", value: "data-table-expand" },
     ],
@@ -334,36 +311,14 @@ export default {
         updated,
       ]);
     },
-    saveExit() {
-      this.$router.push({ name: "Home" });
-    },
     getAssignmentsForExposure(exp) {
       return this.assignments
         .filter((a) => a.exposureId === exp.exposureId)
         .sort((a, b) => a.assignmentOrder - b.assignmentOrder);
     },
-    async exportData() {
-      await this.getZip(this.experiment.experimentId);
-      saveAs(
-        this.exportdata,
-        `Terracotta Experiment ${this.experiment.title} Export.zip`
-      );
-    },
     // Navigate to EDIT section
     handleEdit(componentName) {
       this.$router.push({ name: componentName });
-    },
-    openPDF() {
-      // Second Parameter intentionally left blank
-      let pdfWindow = window.open("", "", "_blank");
-      pdfWindow.opener = null;
-      pdfWindow.document.write(
-        "<iframe width='100%' height='100%' src='data:application/pdf;base64, " +
-          encodeURI(this.consent.file) +
-          "'></iframe>"
-      );
-
-      return false;
     },
     async getAssignmentDetails() {
       await this.fetchExposures(this.experiment.experimentId);
@@ -501,12 +456,6 @@ export default {
 </script>
 
 <style lang="scss">
-.v-data-table__wrapper {
-  // border-radius: 0;
-  table tbody {
-  }
-}
-
 .v-tabs-bar {
   height: auto;
   .v-tab {
