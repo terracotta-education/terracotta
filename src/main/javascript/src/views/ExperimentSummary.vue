@@ -641,6 +641,7 @@ table {
     text-align: left;
     vertical-align: top;
     padding: 0 25px;
+    width: auto;
     .detail {
       display: inline-flex;
       flex-direction: column;
