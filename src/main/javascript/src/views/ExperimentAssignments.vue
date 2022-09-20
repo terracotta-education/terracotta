@@ -321,7 +321,7 @@ export default {
     },
     hasTreatment(conditionId, assignmentId) {
       const assignmentBasedOnConditions = this.conditionTreatments[
-        conditionId
+        +conditionId
       ];
 
       return (
