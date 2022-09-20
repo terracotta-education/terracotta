@@ -47,7 +47,7 @@
                         exposure
                       )
                   "
-                  item-key="title"
+                  item-key="assignmentId"
                   show-expand
                   class="mx-3 mb-5 mt-3"
                 >
@@ -61,7 +61,7 @@
                         :items="item.treatments"
                         hide-default-header
                         hide-default-footer
-                        item-key="title"
+                        item-key="treatmentId"
                         class="grey lighten-5"
                       >
                         <!-- eslint-disable-next-line -->
@@ -87,11 +87,7 @@
                         </template>
                         <!-- eslint-disable-next-line -->
                         <template v-slot:item.actions="{ item }">
-                          <template
-                            v-if="
-                              hasTreatment(item.conditionId, item.assignmentId)
-                            "
-                          >
+                          <template>
                             <v-btn
                               text
                               tile
@@ -325,7 +321,7 @@ export default {
     },
     hasTreatment(conditionId, assignmentId) {
       const assignmentBasedOnConditions = this.conditionTreatments[
-        +conditionId
+        conditionId
       ];
 
       return (
