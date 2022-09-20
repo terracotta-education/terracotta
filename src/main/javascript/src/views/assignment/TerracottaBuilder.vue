@@ -103,7 +103,70 @@
               </v-list-item>
             </v-list>
           </v-menu>
+          <v-menu offset-y>
+            <template v-slot:activator="{ on, attrs }">
+              <v-btn
+                color="primary"
+                elevation="0"
+                plain
+                v-bind="attrs"
+                v-on="on"
+                class="mb-3 mt-3"
+              >
+                Copy Treatment From
+                <v-icon>mdi-chevron-down</v-icon>
+              </v-btn>
+            </template>
+            <v-list>
+              <template v-for="exposure in exposures">
+                <template 
+                  v-for="(assignment, index) in getAssignmentsForExposure(
+                    exposure
+                  )"
+                >
+                  <v-menu offset-x :key="assignment.assignmentId" v-if="assignment.treatments.length > 1">
+                    <template v-slot:activator="{ on, attrs }">
+                      <v-list-item :key="index" v-bind="attrs" v-on="on">
+                        <v-list-item-title>{{
+                          assignment.title
+                        }}</v-list-item-title>
+                      </v-list-item>
+                    </template>
+                    <v-list>
+                      <template
+                        v-for="treatment in assignment.treatments"
+                      >
+                        <v-list-item :key="treatment.treatmentId">
+                          <v-list-item-title
+                            >Treatment
+                            <v-chip
+                              label
+                              :color="
+                                conditionColorMapping[
+                                  conditionForTreatment(
+                                    exposure.groupConditionList,
+                                    treatment.conditionId
+                                  ).conditionName
+                                ]
+                              "
+                              >{{
+                                conditionForTreatment(
+                                  exposure.groupConditionList,
+                                  treatment.conditionId
+                                ).conditionName
+                              }}</v-chip
+                            ></v-list-item-title
+                          >
+                        </v-list-item>
+                      </template>
+                    </v-list>
+                  </v-menu>
+                </template>
+              </template>
+            </v-list>
+          </v-menu>
           <br />
+          <pre>{{ assignments }}</pre>
         </form>
       </v-tab-item>
       <v-tab-item class="my-5">
@@ -155,10 +218,13 @@ export default {
     },
     ...mapGetters({
       assignment: "assignment/assignment",
+      exposures: "exposures/exposures",
+      assignments: "assignment/assignments",
       assessment: "assessment/assessment",
       questions: "assessment/questions",
       answerableQuestions: "assessment/answerableQuestions",
       questionPages: "assessment/questionPages",
+      conditionColorMapping: "condition/conditionColorMapping",
     }),
     contDisabled() {
       return (
@@ -212,11 +278,24 @@ export default {
     ...mapActions({
       fetchAssessment: "assessment/fetchAssessment",
       updateAssessment: "assessment/updateAssessment",
+      fetchExposures: "exposures/fetchExposures",
       createQuestion: "assessment/createQuestion",
       updateQuestion: "assessment/updateQuestion",
       deleteQuestion: "assessment/deleteQuestion",
       updateAnswer: "assessment/updateAnswer",
     }),
+    getAssignmentsForExposure(exp) {
+      return this.assignments
+        .filter((a) => a.exposureId === exp.exposureId)
+        .sort((a, b) => a.assignmentOrder - b.assignmentOrder);
+    },
+    conditionForTreatment(groupConditionList, conditionId) {
+      return groupConditionList.find((c) => c.conditionId === conditionId);
+    },
+    async getAssignmentDetails() {
+      await this.fetchExposures(this.experiment.experimentId);
+      return this.exposures;
+    },
     async handleAddQuestion(questionType) {
       // POST QUESTION
       try {
@@ -342,6 +421,7 @@ export default {
       this.treatment_id,
       this.assessment_id,
     ]);
+    this.getAssignmentDetails();
   },
   components: {
     QuestionEditor,
