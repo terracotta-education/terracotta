@@ -6,6 +6,15 @@ const state = {
 }
 
 const actions = {
+  async saveAssignmentOrder({ commit }, payload) {
+    try {
+      const response = await assignmentService.updateAssignments(...payload);
+      console.log(response);
+      commit('updateAssignments', response);
+    } catch (e) {
+      console.error(e)
+    }
+  },
   async fetchAssignment({commit}, payload) {
     // payload = experiment_id, exposure_id, assignment_id
     // get assignment by it's assignmentId
