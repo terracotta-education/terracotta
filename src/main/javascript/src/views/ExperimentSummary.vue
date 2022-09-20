@@ -111,11 +111,14 @@
                           condition during a specific time period. Students will
                           change conditions between exposure sets, and the order
                           of conditions across exposure sets will be randomly
-                          assigned to different students (edit). An exposure set
-                          contains one or more sssignments, and there must be an
-                          equal number of assignments in each exposure set in
-                          order to balance the experiment. For more details
-                          about exposure sets, see our blog post here.</span
+                          assigned to different students (<a
+                            @click="handleEdit('ExperimentDesignConditions')"
+                            >edit</a
+                          >). An exposure set contains one or more assignments,
+                          and there must be an equal number of assignments in
+                          each exposure set in order to balance the experiment.
+                          For more details about exposure sets, see our blog
+                          post here.</span
                         >
                       </v-tooltip>
                     </p>
@@ -156,7 +159,7 @@
                         </v-tooltip>
                       </span>
                     </div>
-                    <experiment-assignments :experiment="experiment" />
+                    <experiment-assignments :experiment="experiment" :balanced="balanced" />
                   </div>
                 </template>
                 <template
@@ -330,7 +333,7 @@ export default {
     exposureType() {
       return {
         WITHIN: "within-subject",
-        BETWEEN: "between"
+        BETWEEN: "between",
       };
     },
     exposureText() {
@@ -635,6 +638,10 @@ export default {
 
 .v-tooltip__content {
   max-width: 400px;
+  opacity: 1 !important;
+  a {
+    color: #afdcff;
+  }
 }
 
 table {
@@ -647,6 +654,7 @@ table {
     text-align: left;
     vertical-align: top;
     padding: 0 25px;
+    width: auto;
     .detail {
       display: inline-flex;
       flex-direction: column;

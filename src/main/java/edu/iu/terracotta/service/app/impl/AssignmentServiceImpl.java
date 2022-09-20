@@ -225,7 +225,6 @@ public class AssignmentServiceImpl implements AssignmentService {
         assignment.setAssignmentId(assignmentDto.getAssignmentId());
         assignment.setTitle(assignmentDto.getTitle());
         assignment.setAssignmentOrder(assignmentDto.getAssignmentOrder());
-        assignment.setSoftDeleted(assignmentDto.getSoftDeleted());
         assignment.setNumOfSubmissions(assignmentDto.getNumOfSubmissions());
         assignment.setHoursBetweenSubmissions(assignmentDto.getHoursBetweenSubmissions());
         assignment.setMultipleSubmissionScoringScheme(
