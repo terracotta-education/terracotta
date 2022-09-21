@@ -87,11 +87,7 @@
                         </template>
                         <!-- eslint-disable-next-line -->
                         <template v-slot:item.actions="{ item }">
-                          <template
-                            v-if="
-                              hasTreatment(item.conditionId, item.assignmentId)
-                            "
-                          >
+                          <template>
                             <v-btn
                               text
                               tile
