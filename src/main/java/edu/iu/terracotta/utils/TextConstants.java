@@ -63,5 +63,9 @@ public class TextConstants {
     public static final String LIMIT_OF_SUBMISSIONS_REACHED ="Error 117: You can't answer this assignment again";
     public static final String MAX_SUBMISSION_ATTEMPTS_REACHED = "Error 150: Max submission attempts already reached";
     public static final String ASSIGNMENT_SUBMISSION_WAIT_TIME_NOT_REACHED = "Error 158: You must wait to answer this assignment again";
+    public static final String ID_MISMATCH_PUT = "Error 159: IDs do not match in PUT request";
+    public static final String NO_ASSIGNMENT_IN_TREATMENTDTO = "Error 129: Unable to update Treatment: The assignmentId is mandatory";
+    public static final String NO_CONDITION_FOR_TREATMENT = "The condition for the treatment does not exist";
+    public static final String UNABLE_TO_CREATE_TREATMENT = "Error 105: Unable to create Treatment: %s";
 
 }

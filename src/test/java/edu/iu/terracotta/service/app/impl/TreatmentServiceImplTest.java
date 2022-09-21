@@ -14,6 +14,8 @@ import javax.persistence.EntityManager;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -27,6 +29,8 @@ import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExceedingLimitException;
 import edu.iu.terracotta.exceptions.IdInPostException;
+import edu.iu.terracotta.exceptions.IdMismatchException;
+import edu.iu.terracotta.exceptions.IdMissingException;
 import edu.iu.terracotta.model.app.Assessment;
 import edu.iu.terracotta.model.app.Assignment;
 import edu.iu.terracotta.model.app.Condition;
@@ -34,10 +38,12 @@ import edu.iu.terracotta.model.app.Treatment;
 import edu.iu.terracotta.model.app.dto.AssessmentDto;
 import edu.iu.terracotta.model.app.dto.TreatmentDto;
 import edu.iu.terracotta.repository.AllRepositories;
-import edu.iu.terracotta.repository.PlatformDeploymentRepository;
+import edu.iu.terracotta.repository.AssignmentRepository;
+import edu.iu.terracotta.repository.ConditionRepository;
 import edu.iu.terracotta.repository.TreatmentRepository;
 import edu.iu.terracotta.service.app.AssessmentService;
 import edu.iu.terracotta.service.app.AssignmentService;
+import edu.iu.terracotta.utils.TextConstants;
 
 public class TreatmentServiceImplTest {
 
@@ -54,7 +60,10 @@ public class TreatmentServiceImplTest {
     private AllRepositories allRepositories;
 
     @Mock
-    private PlatformDeploymentRepository platformDeploymentRepository;
+    private AssignmentRepository assignmentRepository;
+
+    @Mock
+    private ConditionRepository conditionRepository;
 
     @Mock
     private TreatmentRepository treatmentRepository;
@@ -71,6 +80,9 @@ public class TreatmentServiceImplTest {
     @Mock
     private EntityManager entityManager;
 
+    @Mock
+    private TreatmentDto treatmentDtoToUpdate;
+
     private Treatment treatment;
     private Treatment newTreatment;
 
@@ -80,6 +92,8 @@ public class TreatmentServiceImplTest {
 
         clearInvocations(assignmentService);
 
+        allRepositories.assignmentRepository = assignmentRepository;
+        allRepositories.conditionRepository = conditionRepository;
         allRepositories.treatmentRepository = treatmentRepository;
 
         treatment = new Treatment();
@@ -91,13 +105,16 @@ public class TreatmentServiceImplTest {
         newTreatment.setCondition(condition);
         newTreatment.setAssignment(assignment);
 
-        when(allRepositories.treatmentRepository.findByTreatmentId(anyLong())).thenReturn(treatment);
-        when(allRepositories.treatmentRepository.findByCondition_ConditionId(anyLong())).thenReturn(Collections.singletonList(newTreatment));
-        when(allRepositories.treatmentRepository.save(any(Treatment.class))).thenReturn(newTreatment);
+        when(treatmentRepository.findByTreatmentId(anyLong())).thenReturn(treatment);
+        when(treatmentRepository.findByCondition_ConditionId(anyLong())).thenReturn(Collections.singletonList(newTreatment));
+        when(treatmentRepository.save(any(Treatment.class))).thenReturn(newTreatment);
+        when(assignmentRepository.findById(anyLong())).thenReturn(Optional.of(assignment));
         when(assessmentService.duplicateAssessment(anyLong(), anyLong())).thenReturn(new AssessmentDto());
+        when(conditionRepository.findById(anyLong())).thenReturn(Optional.of(condition));
         when(condition.getConditionId()).thenReturn(1L);
         when(assignment.getAssignmentId()).thenReturn(1L);
         when(assessment.getAssessmentId()).thenReturn(1L);
+        when(treatmentDtoToUpdate.getTreatmentId()).thenReturn(1L);
     }
 
     @Test
@@ -136,6 +153,50 @@ public class TreatmentServiceImplTest {
         assertNotNull(treatmentDtos);
         assertEquals(1, treatmentDtos.size());
         verify(assignmentService).setAssignmentDtoAttrs(any(Assignment.class), anyString(), anyLong());
+    }
+
+    @Test
+    public void testPutTreatment() throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, IdMissingException, IdMismatchException {
+        TreatmentDto treatmentDto = treatmentService.putTreatment(treatmentDtoToUpdate, 1L);
+
+        assertNotNull(treatmentDto);
+        verify(treatmentRepository).save(any(Treatment.class));
+    }
+
+    @Test
+    public void testPutTreatmentNoIdInPut() throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException {
+        when(treatmentDtoToUpdate.getTreatmentId()).thenReturn(null);
+
+        Exception exception = assertThrows(IdMissingException.class, () -> { treatmentService.putTreatment(treatmentDtoToUpdate, 1L); });
+
+        assertEquals(TextConstants.ID_MISSING, exception.getMessage());
+    }
+
+    @Test
+    public void testPutTreatmentIdMismatch() throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException {
+        when(treatmentDtoToUpdate.getTreatmentId()).thenReturn(2L);
+
+        Exception exception = assertThrows(IdMismatchException.class, () -> { treatmentService.putTreatment(treatmentDtoToUpdate, 1L); });
+
+        assertEquals(TextConstants.ID_MISMATCH_PUT, exception.getMessage());
+    }
+
+    @Test
+    public void testPutTreatmentNoAssignment() throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException {
+        when(treatmentDtoToUpdate.getAssignmentId()).thenReturn(null);
+
+        Exception exception = assertThrows(DataServiceException.class, () -> { treatmentService.putTreatment(treatmentDtoToUpdate, 1L); });
+
+        assertEquals(TextConstants.NO_ASSIGNMENT_IN_TREATMENTDTO, exception.getMessage());
+    }
+
+    @Test
+    public void testPutTreatmentInvalidAssignment() throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException {
+        when(assignmentRepository.findById(anyLong())).thenReturn(Optional.empty());
+
+        Exception exception = assertThrows(DataServiceException.class, () -> { treatmentService.putTreatment(treatmentDtoToUpdate, 1L); });
+
+        assertEquals(String.format(TextConstants.UNABLE_TO_CREATE_TREATMENT, TextConstants.NO_ASSIGNMENT_IN_TREATMENTDTO), exception.getMessage());
     }
 
 }
