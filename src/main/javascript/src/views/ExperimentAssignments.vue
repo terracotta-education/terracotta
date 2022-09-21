@@ -47,7 +47,7 @@
                         exposure
                       )
                   "
-                  item-key="title"
+                  item-key="assignmentId"
                   show-expand
                   class="mx-3 mb-5 mt-3"
                 >
@@ -61,7 +61,7 @@
                         :items="item.treatments"
                         hide-default-header
                         hide-default-footer
-                        item-key="title"
+                        item-key="treatmentId"
                         class="grey lighten-5"
                       >
                         <!-- eslint-disable-next-line -->
@@ -126,7 +126,7 @@
                     {{ item.dueDate }}
                   </template>
                   <!-- eslint-disable-next-line -->
-                  <template v-slot:item.actions>
+                  <template v-slot:item.actions="{ item }">
                     <v-btn
                       text
                       tile
@@ -143,13 +143,21 @@
                         </v-btn>
                       </template>
                       <v-list>
-                        <v-list-item link>
+                        <v-list-item
+                          @click="
+                            handleDuplicateAssignment(exposure.exposureId, item)
+                          "
+                        >
                           <v-list-item-title
                             ><v-icon>mdi-content-duplicate</v-icon
                             >Duplicate</v-list-item-title
                           >
                         </v-list-item>
-                        <v-list-item link>
+                        <v-list-item
+                          @click="
+                            handleDeleteAssignment(exposure.exposureId, item)
+                          "
+                        >
                           <v-list-item-title
                             ><v-icon>mdi-delete</v-icon
                             >Delete</v-list-item-title
@@ -231,6 +239,9 @@ export default {
       exportdata: "exportdata/exportData",
       conditionColorMapping: "condition/conditionColorMapping",
     }),
+    experiment_id() {
+      return parseInt(this.experiment.experimentId);
+    },
   },
 
   data: () => ({
@@ -291,6 +302,8 @@ export default {
       fetchExposures: "exposures/fetchExposures",
       fetchAssignmentsByExposure: "assignment/fetchAssignmentsByExposure",
       saveAssignmentOrder: "assignment/saveAssignmentOrder",
+      deleteAssignment: "assignment/deleteAssignment",
+      duplicateAssignment: "assignment/duplicateAssignment",
       checkTreatment: "treatment/checkTreatment",
       createTreatment: "treatment/createTreatment",
       createAssessment: "assessment/createAssessment",
@@ -356,6 +369,48 @@ export default {
         ]);
       } catch (error) {
         console.error("handleCreateAssessment | catch", { error });
+      }
+    },
+    async handleDeleteAssignment(eid, a) {
+      // DELETE ASSIGNMENT
+      const reallyDelete = await this.$swal({
+        icon: "question",
+        text: `Are you sure you want to delete the assignment "${a.title}"?`,
+        showCancelButton: true,
+        confirmButtonText: "Yes, delete it",
+        cancelButtonText: "No, cancel",
+      });
+      if (reallyDelete?.isConfirmed) {
+        try {
+          return await this.deleteAssignment([
+            this.experiment_id,
+            eid,
+            a.assignmentId,
+          ]);
+        } catch (error) {
+          console.error("handleDeleteQuestion | catch", { error });
+        }
+      }
+    },
+    async handleDuplicateAssignment(eid, a) {
+      // DUPLICATE ASSIGNMENT experiment_id, exposure_id, assignment_id
+
+      try {
+        const response = await this.duplicateAssignment([
+          this.experiment_id,
+          eid,
+          a.assignmentId,
+        ]);
+
+        if (response.status === 201) {
+          return await this.fetchAssignmentsByExposure([
+            this.experiment_id,
+            eid,
+            true,
+          ]);
+        }
+      } catch (error) {
+        console.error("handleDuplicateQuestion | catch", { error });
       }
     },
     async goToBuilder(conditionId, assignmentId) {
