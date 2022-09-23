@@ -7,6 +7,7 @@ import edu.iu.terracotta.exceptions.ExceedingLimitException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.IdMismatchException;
 import edu.iu.terracotta.exceptions.IdMissingException;
+import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
 import edu.iu.terracotta.model.app.Assessment;
 import edu.iu.terracotta.model.app.Assignment;
 import edu.iu.terracotta.model.app.Treatment;
@@ -201,7 +202,16 @@ public class TreatmentServiceImpl implements TreatmentService {
     }
 
     @Override
-    public TreatmentDto duplicateTreatment(long treatmentId, String canvasCourseId, long platformDeploymentId) throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, NumberFormatException, CanvasApiException {
+    public TreatmentDto duplicateTreatment(long treatmentId, String canvasCourseId, long platformDeploymentId)
+        throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, NumberFormatException,
+            CanvasApiException, TreatmentNotMatchingException {
+        return duplicateTreatment(treatmentId, null, canvasCourseId, platformDeploymentId);
+    }
+
+    @Override
+    public TreatmentDto duplicateTreatment(long treatmentId, Assignment assignment, String canvasCourseId, long platformDeploymentId)
+        throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, NumberFormatException,
+            CanvasApiException, TreatmentNotMatchingException {
         Treatment from = getTreatment(treatmentId);
 
         if (from == null) {
@@ -212,6 +222,11 @@ public class TreatmentServiceImpl implements TreatmentService {
 
         // reset ID
         from.setTreatmentId(null);
+
+        // set new assignment; if exists
+        if (assignment != null) {
+            from.setAssignment(assignment);
+        }
 
         Treatment newTreatment = save(from);
         assignmentService.setAssignmentDtoAttrs(newTreatment.getAssignment(), canvasCourseId, platformDeploymentId);
