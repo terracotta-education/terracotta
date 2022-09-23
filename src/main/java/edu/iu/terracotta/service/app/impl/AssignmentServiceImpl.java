@@ -328,8 +328,21 @@ public class AssignmentServiceImpl implements AssignmentService {
 
         long submissionsCount = allRepositories.submissionRepository.countByAssessment_Treatment_Assignment_AssignmentId(id);
 
-        if (submissionsCount  == 0l) {
+        if (submissionsCount == 0l) {
             // no submissions; hard delete
+
+            // first, delete questions
+            List<Assessment> assessments = allRepositories.assessmentRepository.findByTreatment_Assignment_AssignmentId(id);
+
+            CollectionUtils.emptyIfNull(assessments).stream()
+                .filter(assessment -> CollectionUtils.isNotEmpty(assessment.getQuestions()))
+                .forEach(assessment ->
+                    assessment.getQuestions().forEach(question ->
+                        allRepositories.questionRepository.deleteByQuestionId(question.getQuestionId()
+                    )
+                )
+            );
+
             allRepositories.assignmentRepository.deleteByAssignmentId(id);
             return;
         }
