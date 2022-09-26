@@ -198,6 +198,8 @@ import MultipleChoiceQuestionEditor from "./MultipleChoiceQuestionEditor.vue";
 import QuestionEditor from "./QuestionEditor.vue";
 import PageBreak from "./PageBreak.vue";
 import TreatmentSettings from "./TreatmentSettings.vue";
+import { assessmentService } from '@/services';
+import omitDeep from '../../helpers/deep-omit';
 
 export default {
   name: "TerracottaBuilder",
@@ -413,17 +415,34 @@ export default {
       }
     },
     async duplicate(treatment) {
-      const { assessmentDto } = treatment;
+      const { assessmentDto, conditionId } = treatment;
       /* eslint-disable-next-line */
-      const { treatmentId, assessmentId, ...copy } = assessmentDto;
+      const { treatmentId, assessmentId } = assessmentDto;
+      let assessment
+      try {
+        assessment = await assessmentService.fetchAssessment(this.experiment.experimentId, conditionId, treatmentId, assessmentId)
+      } catch (error) {
+        console.error("handleCreateTreatment | catch", { error });
+        return;
+      }
+
+      const copy = omitDeep({
+        ...assessment.data
+      }, ['answerId', 'questionId', 'assessmentId']);
+
       try {
         return await this.duplicateTreatment([
           this.experiment.experimentId,
           this.condition_id,
-          this.assignment_id,
+          this.treatment_id,
           {
+            treatmentId: this.treatment_id,
+            conditionid: this.condition_id,
+            assignmentId: this.assignment_id,
             assessmentDto: {
               ...copy,
+              treatmentId: this.treatment_id,
+              assessmentId: this.assessment_id
             },
           },
         ]);

@@ -39,7 +39,7 @@ const actions = {
     }
   },
   async duplicateTreatment ({commit}, payload) {
-    // payload = experiment_id, condition_id, assignment_id
+    // payload = experiment_id, condition_id, treatment_id
     // create the treatment, commit an update mutation, and return the status/data response
     try {
 

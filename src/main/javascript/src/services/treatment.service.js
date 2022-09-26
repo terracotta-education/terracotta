@@ -6,6 +6,7 @@ import store from '@/store/index.js'
  */
 export const treatmentService = {
   create,
+  update,
   fetchTreatment,
 }
 
@@ -25,7 +26,6 @@ async function fetchTreatment(experiment_id, condition_id) {
  * Create Treatment
  */
 async function create(experiment_id, condition_id, assignment_id) {
-  console.log(experiment_id, condition_id, assignment_id, body);
   const requestOptions = {
     method: 'POST',
     headers: { ...authHeader(), 'Content-Type': 'application/json' },
@@ -41,7 +41,7 @@ async function create(experiment_id, condition_id, assignment_id) {
  */
 async function update(experiment_id, condition_id, treatment_id, body = {}) {
   const requestOptions = {
-    method: 'POST',
+    method: 'PUT',
     headers: { ...authHeader(), 'Content-Type': 'application/json' },
     body: JSON.stringify({
       ...body
