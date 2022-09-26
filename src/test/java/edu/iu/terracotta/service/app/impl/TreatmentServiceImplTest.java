@@ -31,6 +31,7 @@ import edu.iu.terracotta.exceptions.ExceedingLimitException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.IdMismatchException;
 import edu.iu.terracotta.exceptions.IdMissingException;
+import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
 import edu.iu.terracotta.model.app.Assessment;
 import edu.iu.terracotta.model.app.Assignment;
 import edu.iu.terracotta.model.app.Condition;
@@ -87,7 +88,7 @@ public class TreatmentServiceImplTest {
     private Treatment newTreatment;
 
     @BeforeEach
-    public void beforeEach() throws DataServiceException, AssessmentNotMatchingException, CanvasApiException {
+    public void beforeEach() throws DataServiceException, AssessmentNotMatchingException, CanvasApiException, TreatmentNotMatchingException {
         MockitoAnnotations.openMocks(this);
 
         clearInvocations(assignmentService);
@@ -118,7 +119,7 @@ public class TreatmentServiceImplTest {
     }
 
     @Test
-    public void testDuplicateTreatment() throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, NumberFormatException, CanvasApiException {
+    public void testDuplicateTreatment() throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, NumberFormatException, CanvasApiException, TreatmentNotMatchingException {
         TreatmentDto treatmentDto = treatmentService.duplicateTreatment(1L, "0", 0L);
 
         assertNotNull(treatmentDto);
@@ -127,7 +128,7 @@ public class TreatmentServiceImplTest {
     }
 
     @Test
-    public void testDuplicateTreatmentNoAssessmentFound() throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, NumberFormatException, CanvasApiException {
+    public void testDuplicateTreatmentNoAssessmentFound() throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, NumberFormatException, CanvasApiException, TreatmentNotMatchingException {
         treatment.setAssessment(null);
         TreatmentDto treatmentDto = treatmentService.duplicateTreatment(1L, "0", 0L);
 

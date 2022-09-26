@@ -15,6 +15,7 @@ import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.exceptions.AssignmentNotEditedException;
 import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.ExceedingLimitException;
 import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.model.app.Assessment;
 import edu.iu.terracotta.model.app.Assignment;
@@ -22,9 +23,11 @@ import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.Exposure;
 import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.repository.AllRepositories;
+import edu.iu.terracotta.repository.AssessmentRepository;
 import edu.iu.terracotta.repository.AssignmentRepository;
 import edu.iu.terracotta.repository.SubmissionRepository;
 import edu.iu.terracotta.service.app.AssessmentService;
+import edu.iu.terracotta.service.app.TreatmentService;
 import edu.iu.terracotta.service.canvas.CanvasAPIClient;
 
 import javax.persistence.EntityManager;
@@ -43,8 +46,11 @@ import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.MultipleAttemptsSettingsValidationException;
 import edu.iu.terracotta.exceptions.RevealResponsesSettingValidationException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
+import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
 import edu.iu.terracotta.model.app.Submission;
+import edu.iu.terracotta.model.app.Treatment;
 import edu.iu.terracotta.model.app.dto.AssignmentDto;
+import edu.iu.terracotta.model.app.dto.TreatmentDto;
 import edu.iu.terracotta.model.canvas.AssignmentExtended;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.PlatformDeploymentRepository;
@@ -73,53 +79,33 @@ public class AssignmentServiceImplTest {
     @InjectMocks
     private AssignmentServiceImpl assignmentService;
 
-    @Mock
-    private AssessmentService assessmentService;
+    @Mock private AllRepositories allRepositories;
+    @Mock private AssessmentRepository assessmentRepository;
+    @Mock private AssignmentRepository assignmentRepository;
+    @Mock private PlatformDeploymentRepository platformDeploymentRepository;
+    @Mock private SubmissionRepository submissionRepository;
+    @Mock private TreatmentRepository treatmentRepository;
 
-    @Mock
-    private AllRepositories allRepositories;
+    @Mock private AssessmentService assessmentService;
+    @Mock private CanvasAPIClient canvasAPIClient;
+    @Mock private TreatmentService treatmentService;
 
-    @Mock
-    private AssignmentRepository assignmentRepository;
+    @Mock private Assessment assessment;
+    @Mock private Assignment assignment;
+    @Mock private AssignmentExtended assignmentExtended;
+    @Mock private EntityManager entityManager;
+    @Mock private Experiment experiment;
+    @Mock private Exposure exposure;
+    @Mock private PlatformDeployment platformDeployment;
+    @Mock private Treatment treatment;
+    @Mock private TreatmentDto treatmentDto;
 
-    @Mock
-    private PlatformDeploymentRepository platformDeploymentRepository;
-
-    @Mock
-    private TreatmentRepository treatmentRepository;
-
-    @Mock
-    private EntityManager entityManager;
-
-    @Mock
-    private PlatformDeployment platformDeployment;
-
-    @Mock
-    private AssignmentExtended assignmentExtended;
-
-    @Mock
-    private SubmissionRepository submissionRepository;
-
-    @Mock
-    private CanvasAPIClient canvasAPIClient;
-
-    @Mock
-    private Exposure exposure;
-
-    @Mock
-    private Experiment experiment;
-
-    @Mock
-    private Assessment assessment;
-
-    private Assignment assignment;
-    private Assignment newAssignment;
     private Date dueDate = new Date();
     private Method verifyAssignmentSubmissionLimit;
     private Method verifySubmissionWaitTime;
 
     @BeforeEach
-    public void beforeEach() throws NoSuchMethodException, SecurityException, DataServiceException, AssessmentNotMatchingException, CanvasApiException {
+    public void beforeEach() throws NoSuchMethodException, SecurityException, DataServiceException, AssessmentNotMatchingException, CanvasApiException, NumberFormatException, IdInPostException, ExceedingLimitException, TreatmentNotMatchingException {
         MockitoAnnotations.openMocks(this);
 
         clearInvocations(assignmentRepository);
@@ -128,41 +114,38 @@ public class AssignmentServiceImplTest {
         verifySubmissionWaitTime = AssignmentServiceImpl.class.getDeclaredMethod("verifySubmissionWaitTime", Float.class, List.class);
         verifySubmissionWaitTime.setAccessible(true);
 
+        allRepositories.assessmentRepository = assessmentRepository;
         allRepositories.assignmentRepository = assignmentRepository;
         allRepositories.platformDeploymentRepository = platformDeploymentRepository;
         allRepositories.submissionRepository = submissionRepository;
         allRepositories.treatmentRepository = treatmentRepository;
 
-        assignment = new Assignment();
-        assignment.setAssignmentId(1L);
-        assignment.setLmsAssignmentId("1");
-        assignment.setExposure(exposure);
-
-        newAssignment = new Assignment();
-        newAssignment.setAssignmentId(2L);
-        newAssignment.setLmsAssignmentId("1");
-        newAssignment.setExposure(exposure);
-
+        when(assessmentRepository.findByTreatment_Assignment_AssignmentId(anyLong())).thenReturn(Collections.singletonList(assessment));
         when(assignmentRepository.findByAssignmentId(anyLong())).thenReturn(assignment);
         when(assignmentRepository.findByExposure_ExposureIdAndSoftDeleted(anyLong(), anyBoolean())).thenReturn(Collections.singletonList(assignment));
-        when(assignmentRepository.save(any(Assignment.class))).thenReturn(newAssignment);
+        when(assignmentRepository.save(any(Assignment.class))).thenReturn(assignment);
         when(assignmentRepository.getOne(anyLong())).thenReturn(assignment);
         when(platformDeploymentRepository.getOne(anyLong())).thenReturn(platformDeployment);
         when(submissionRepository.countByAssessment_Treatment_Assignment_AssignmentId(anyLong())).thenReturn(0L);
         when(treatmentRepository.findByAssignment_AssignmentId(anyLong())).thenReturn(Collections.emptyList());
+
+        when(assessmentService.getAssessmentForParticipant(any(Participant.class), any(SecuredInfo.class))).thenReturn(assessment);
         when(canvasAPIClient.listAssignment(anyString(), anyInt(), any(PlatformDeployment.class))).thenReturn(Optional.empty());
-        when(exposure.getExperiment()).thenReturn(experiment);
-        when(experiment.getPlatformDeployment()).thenReturn(new PlatformDeployment());
-        when(canvasAPIClient.listAssignment(anyString(), anyInt(), any(PlatformDeployment.class))).thenReturn(Optional.of(assignmentExtended));
-        when(exposure.getExposureId()).thenReturn(1L);
+        when(treatmentService.duplicateTreatment(anyLong(), any(Assignment.class), anyString(), anyLong())).thenReturn(treatmentDto);
+
+        when(assignment.getAssignmentId()).thenReturn(1l);
+        when(assignment.getLmsAssignmentId()).thenReturn("1");
+        when(assignment.getExposure()).thenReturn(exposure);
         when(assignmentExtended.isPublished()).thenReturn(true);
         when(assignmentExtended.getDueAt()).thenReturn(dueDate);
-        when(assessmentService.getAssessmentForParticipant(any(Participant.class), any(SecuredInfo.class))).thenReturn(assessment);
+        when(experiment.getPlatformDeployment()).thenReturn(new PlatformDeployment());
+        when(exposure.getExperiment()).thenReturn(experiment);
+        when(exposure.getExposureId()).thenReturn(1L);
     }
 
     @Test
     public void duplicateAssignmentTest() throws DataServiceException, IdInPostException, TitleValidationException, AssessmentNotMatchingException,
-                                                AssignmentNotCreatedException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, NumberFormatException, CanvasApiException {
+                                                AssignmentNotCreatedException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, NumberFormatException, CanvasApiException, ExceedingLimitException, TreatmentNotMatchingException {
         AssignmentDto assignmentDto = assignmentService.duplicateAssignment(0L, "0", 0l);
 
         assertNotNull(assignmentDto);
@@ -172,8 +155,19 @@ public class AssignmentServiceImplTest {
     }
 
     @Test
+    public void duplicateAssignmentTestWithTreatments() throws DataServiceException, IdInPostException, TitleValidationException, AssessmentNotMatchingException,
+                                                AssignmentNotCreatedException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, NumberFormatException, CanvasApiException, ExceedingLimitException, TreatmentNotMatchingException {
+        when(treatmentRepository.findByAssignment_AssignmentId(anyLong())).thenReturn(Collections.singletonList(treatment));
+        AssignmentDto assignmentDto = assignmentService.duplicateAssignment(0L, "0", 0l);
+
+        assertNotNull(assignmentDto);
+        assertEquals(1l, assignmentDto.getAssignmentId());
+        assertEquals(1, assignmentDto.getTreatments().size());
+    }
+
+    @Test
     public void testDuplicateAssessmentNotFound() throws IdInPostException, AssessmentNotMatchingException {
-        when(allRepositories.assignmentRepository.findByAssignmentId(anyLong())).thenReturn(null);
+        when(assignmentRepository.findByAssignmentId(anyLong())).thenReturn(null);
 
         Exception exception = assertThrows(DataServiceException.class, () -> { assignmentService.duplicateAssignment(1L, "0", 0l); });
 
@@ -182,7 +176,7 @@ public class AssignmentServiceImplTest {
 
     @Test
     public void duplicateAssignmentTestTitleTooLong() throws DataServiceException, IdInPostException, TitleValidationException, AssessmentNotMatchingException,
-                                                AssignmentNotCreatedException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, NumberFormatException, CanvasApiException {
+                                                AssignmentNotCreatedException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, NumberFormatException, CanvasApiException, ExceedingLimitException, TreatmentNotMatchingException {
         assignment.setTitle(RandomStringUtils.randomAlphanumeric(256));
         assignmentService.duplicateAssignment(0L, "0", 0l);
 
@@ -212,7 +206,7 @@ public class AssignmentServiceImplTest {
 
     @Test
     public void testGetAssignmentsNoAssignmentsFound() throws AssessmentNotMatchingException, CanvasApiException {
-        when(allRepositories.assignmentRepository.findByExposure_ExposureIdAndSoftDeleted(anyLong(), anyBoolean())).thenReturn(Collections.emptyList());
+        when(assignmentRepository.findByExposure_ExposureIdAndSoftDeleted(anyLong(), anyBoolean())).thenReturn(Collections.emptyList());
         List<AssignmentDto> assignmentDtos = assignmentService.getAssignments(0L, "0", 0l, false, false);
 
         assertNotNull(assignmentDtos);
@@ -272,18 +266,18 @@ public class AssignmentServiceImplTest {
     public void testDeleteAssignmentHard() throws EmptyResultDataAccessException, CanvasApiException, AssignmentNotEditedException {
         assignmentService.deleteById(1L, "canvasId");
 
-        verify(allRepositories.assignmentRepository).deleteByAssignmentId(anyLong());
-        verify(allRepositories.assignmentRepository, never()).saveAndFlush(any(Assignment.class));
+        verify(assignmentRepository).deleteByAssignmentId(anyLong());
+        verify(assignmentRepository, never()).saveAndFlush(any(Assignment.class));
     }
 
     @Test
     public void testDeleteAssignmentSoft() throws EmptyResultDataAccessException, CanvasApiException, AssignmentNotEditedException {
-        when(allRepositories.submissionRepository.countByAssessment_Treatment_Assignment_AssignmentId(anyLong())).thenReturn(1L);
+        when(submissionRepository.countByAssessment_Treatment_Assignment_AssignmentId(anyLong())).thenReturn(1L);
 
         assignmentService.deleteById(1L, "canvasId");
 
-        verify(allRepositories.assignmentRepository, never()).deleteByAssignmentId(anyLong());
-        verify(allRepositories.assignmentRepository).saveAndFlush(any(Assignment.class));
+        verify(assignmentRepository, never()).deleteByAssignmentId(anyLong());
+        verify(assignmentRepository).saveAndFlush(any(Assignment.class));
     }
 
 }

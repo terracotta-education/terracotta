@@ -226,7 +226,7 @@ public class QuestionServiceImpl implements QuestionService {
             throw new DataServiceException("The new assessment with the given ID does not exist");
         }
 
-        List<QuestionDto> questionDtos = CollectionUtils.emptyIfNull(oldAssessment.getQuestions()).stream()
+        return CollectionUtils.emptyIfNull(oldAssessment.getQuestions()).stream()
             .map(
                 question -> {
                     entityManager.detach(question);
@@ -238,8 +238,6 @@ public class QuestionServiceImpl implements QuestionService {
                 }
             )
             .collect(Collectors.toList());
-
-        return questionDtos;
     }
 
 }

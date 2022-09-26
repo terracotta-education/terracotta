@@ -21,6 +21,7 @@ import edu.iu.terracotta.model.app.Question;
 import edu.iu.terracotta.model.app.RetakeDetails;
 import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.Treatment;
+import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
 import edu.iu.terracotta.model.app.dto.AssessmentDto;
 import edu.iu.terracotta.model.app.dto.QuestionDto;
 import edu.iu.terracotta.model.app.dto.SubmissionDto;
@@ -447,7 +448,18 @@ public class AssessmentServiceImpl implements AssessmentService {
     }
 
     @Override
-    public AssessmentDto duplicateAssessment(long assessmentId, long treatmentId) throws DataServiceException, AssessmentNotMatchingException {
+    public AssessmentDto duplicateAssessment(long assessmentId, long treatmentId) throws DataServiceException, AssessmentNotMatchingException, TreatmentNotMatchingException {
+        Treatment treatment = allRepositories.treatmentRepository.findByTreatmentId(treatmentId);
+
+        if (treatment == null) {
+            throw new TreatmentNotMatchingException(TextConstants.TREATMENT_NOT_MATCHING);
+        }
+
+        return duplicateAssessment(assessmentId, treatment, null);
+    }
+
+    @Override
+    public AssessmentDto duplicateAssessment(long assessmentId, Treatment treatment, Assignment assignment) throws DataServiceException, AssessmentNotMatchingException {
         Assessment from = getAssessment(assessmentId);
 
         if (from == null) {
@@ -463,10 +475,12 @@ public class AssessmentServiceImpl implements AssessmentService {
         Long oldAssessmentId = from.getAssessmentId();
         from.setAssessmentId(null);
 
+        from.setTreatment(treatment);
+
         Assessment newAssessment = save(from);
 
         // update the treatment
-        updateTreatment(treatmentId, newAssessment);
+        updateTreatment(treatment.getTreatmentId(), newAssessment);
 
         // duplicate questions
         List<QuestionDto> questionDtos = questionService.duplicateQuestionsForAssessment(oldAssessmentId, newAssessment.getAssessmentId());
