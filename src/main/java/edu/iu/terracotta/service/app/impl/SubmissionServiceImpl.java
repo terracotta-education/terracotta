@@ -501,7 +501,7 @@ public class SubmissionServiceImpl implements SubmissionService {
      * @param assessment
      * @return null if all submissions require manual grading
      */
-    private Float getScoreFromMultipleSubmissions(Participant participant, Assessment assessment) {
+    public Float getScoreFromMultipleSubmissions(Participant participant, Assessment assessment) {
         List<Submission> submissionList = allRepositories.submissionRepository
                 .findByParticipant_ParticipantIdAndAssessment_AssessmentIdAndDateSubmittedNotNullOrderByDateSubmitted(
                         participant.getParticipantId(), assessment.getAssessmentId());

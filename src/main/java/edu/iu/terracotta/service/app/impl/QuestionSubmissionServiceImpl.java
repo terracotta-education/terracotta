@@ -4,12 +4,14 @@ import edu.iu.terracotta.exceptions.*;
 import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.model.ToolDeployment;
 import edu.iu.terracotta.model.app.*;
+import edu.iu.terracotta.model.app.dto.AnswerDto;
 import edu.iu.terracotta.model.app.dto.AnswerSubmissionDto;
 import edu.iu.terracotta.model.app.dto.QuestionSubmissionCommentDto;
 import edu.iu.terracotta.model.app.dto.QuestionSubmissionDto;
 import edu.iu.terracotta.model.app.enumerator.QuestionTypes;
 import edu.iu.terracotta.model.canvas.AssignmentExtended;
 import edu.iu.terracotta.repository.AllRepositories;
+import edu.iu.terracotta.service.app.AnswerService;
 import edu.iu.terracotta.service.app.AnswerSubmissionService;
 import edu.iu.terracotta.service.app.QuestionSubmissionCommentService;
 import edu.iu.terracotta.service.app.QuestionSubmissionService;
@@ -38,6 +40,9 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
     AllRepositories allRepositories;
 
     @Autowired
+    private AnswerService answerService;
+
+    @Autowired
     AnswerSubmissionService answerSubmissionService;
 
     @Autowired
@@ -52,12 +57,28 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
     }
 
     @Override
-    public List<QuestionSubmissionDto> getQuestionSubmissions(Long submissionId, boolean answerSubmissions, boolean questionSubmissionComments) {
+    public List<QuestionSubmissionDto> getQuestionSubmissions(long submissionId, boolean answerSubmissions, boolean questionSubmissionComments, long assessmentId, boolean isStudent) throws AssessmentNotMatchingException {
+        boolean showCorrectAnswers = true;
+
+        if (isStudent) {
+            Optional<Assessment> assessment = allRepositories.assessmentRepository.findById(assessmentId);
+
+            if (!assessment.isPresent()) {
+                throw new AssessmentNotMatchingException(TextConstants.ASSESSMENT_NOT_MATCHING);
+            }
+
+            answerSubmissions = assessment.get().canViewResponses();
+            questionSubmissionComments = answerSubmissions;
+            showCorrectAnswers = assessment.get().canViewCorrectAnswers();
+        }
+
         List<QuestionSubmission> questionSubmissions = findAllBySubmissionId(submissionId);
         List<QuestionSubmissionDto> questionSubmissionDtoList = new ArrayList<>();
+
         for (QuestionSubmission questionSubmission : questionSubmissions) {
-            questionSubmissionDtoList.add(toDto(questionSubmission, answerSubmissions, questionSubmissionComments));
+            questionSubmissionDtoList.add(toDto(questionSubmission, answerSubmissions, questionSubmissionComments, showCorrectAnswers));
         }
+
         return questionSubmissionDtoList;
     }
 
@@ -114,10 +135,17 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
         return returnedDtoList;
     }
 
+    private QuestionSubmissionDto toDto(QuestionSubmission questionSubmission, boolean answerSubmissions, boolean questionSubmissionComments, boolean showCorrectAnswers) {
+        QuestionSubmissionDto questionSubmissionDto = toDto(questionSubmission, answerSubmissions, questionSubmissionComments);
+
+        List<AnswerDto> answerDtos = answerService.findAllByQuestionIdMC(questionSubmission.getQuestion().getQuestionId(), showCorrectAnswers);
+        questionSubmissionDto.setAnswerDtoList(answerDtos);
+
+        return questionSubmissionDto;
+    }
 
     @Override
     public QuestionSubmissionDto toDto(QuestionSubmission questionSubmission, boolean answerSubmissions, boolean questionSubmissionComments) {
-
         QuestionSubmissionDto questionSubmissionDto = new QuestionSubmissionDto();
         questionSubmissionDto.setQuestionSubmissionId(questionSubmission.getQuestionSubmissionId());
         questionSubmissionDto.setSubmissionId(questionSubmission.getSubmission().getSubmissionId());
