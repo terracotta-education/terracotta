@@ -1,5 +1,7 @@
 package edu.iu.terracotta.service.app.impl;
 
+import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -131,16 +133,16 @@ public class AssignmentServiceImplTest {
         newAssignment.setLmsAssignmentId("1");
         newAssignment.setExposure(exposure);
 
-        when(allRepositories.assignmentRepository.getOne(anyLong())).thenReturn(assignment);
-        when(allRepositories.submissionRepository.countByAssessment_Treatment_Assignment_AssignmentId(anyLong())).thenReturn(0L);
+        when(assignmentRepository.findByAssignmentId(anyLong())).thenReturn(assignment);
+        when(assignmentRepository.findByExposure_ExposureIdAndSoftDeleted(anyLong(), anyBoolean())).thenReturn(Collections.singletonList(assignment));
+        when(assignmentRepository.save(any(Assignment.class))).thenReturn(newAssignment);
+        when(assignmentRepository.getOne(anyLong())).thenReturn(assignment);
+        when(platformDeploymentRepository.getOne(anyLong())).thenReturn(platformDeployment);
+        when(submissionRepository.countByAssessment_Treatment_Assignment_AssignmentId(anyLong())).thenReturn(0L);
+        when(treatmentRepository.findByAssignment_AssignmentId(anyLong())).thenReturn(Collections.emptyList());
         when(canvasAPIClient.listAssignment(anyString(), anyInt(), any(PlatformDeployment.class))).thenReturn(Optional.empty());
         when(exposure.getExperiment()).thenReturn(experiment);
         when(experiment.getPlatformDeployment()).thenReturn(new PlatformDeployment());
-        when(allRepositories.assignmentRepository.findByAssignmentId(anyLong())).thenReturn(assignment);
-        when(allRepositories.assignmentRepository.findByExposure_ExposureIdAndSoftDeleted(anyLong(), anyBoolean())).thenReturn(Collections.singletonList(assignment));
-        when(allRepositories.assignmentRepository.save(any(Assignment.class))).thenReturn(newAssignment);
-        when(allRepositories.platformDeploymentRepository.getOne(anyLong())).thenReturn(platformDeployment);
-        when(allRepositories.treatmentRepository.findByAssignment_AssignmentId(anyLong())).thenReturn(Collections.emptyList());
         when(canvasAPIClient.listAssignment(anyString(), anyInt(), any(PlatformDeployment.class))).thenReturn(Optional.of(assignmentExtended));
         when(exposure.getExposureId()).thenReturn(1L);
         when(assignmentExtended.isPublished()).thenReturn(true);
@@ -154,6 +156,7 @@ public class AssignmentServiceImplTest {
 
         assertNotNull(assignmentDto);
         assertEquals(2L, assignmentDto.getAssignmentId());
+        assertTrue(StringUtils.startsWith(assignment.getTitle(), TextConstants.DUPLICATE_PREFIX));
         assertNull(assignment.getAssignmentId());
     }
 
@@ -164,6 +167,15 @@ public class AssignmentServiceImplTest {
         Exception exception = assertThrows(DataServiceException.class, () -> { assignmentService.duplicateAssignment(1L, "0", 0l); });
 
         assertEquals("The assignment with the given ID does not exist", exception.getMessage());
+    }
+
+    @Test
+    public void duplicateAssignmentTestTitleTooLong() throws DataServiceException, IdInPostException, TitleValidationException, AssessmentNotMatchingException,
+                                                AssignmentNotCreatedException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, NumberFormatException, CanvasApiException {
+        assignment.setTitle(RandomStringUtils.randomAlphanumeric(256));
+        assignmentService.duplicateAssignment(0L, "0", 0l);
+
+        assertEquals(255, assignment.getTitle().length());
     }
 
     @Test

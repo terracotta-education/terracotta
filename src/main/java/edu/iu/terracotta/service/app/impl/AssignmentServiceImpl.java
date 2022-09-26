@@ -83,34 +83,34 @@ import java.util.Optional;
 public class AssignmentServiceImpl implements AssignmentService {
 
     @Autowired
-    AllRepositories allRepositories;
+    private AllRepositories allRepositories;
 
     @Autowired
-    AdvantageAGSService advantageAGSService;
+    private AdvantageAGSService advantageAGSService;
 
     @Autowired
-    SubmissionService submissionService;
+    private SubmissionService submissionService;
 
     @Autowired
-    ExperimentService experimentService;
+    private ExperimentService experimentService;
 
     @Autowired
-    ParticipantService participantService;
+    private ParticipantService participantService;
 
     @Autowired
-    TreatmentService treatmentService;
+    private TreatmentService treatmentService;
 
     @Autowired
-    CaliperService caliperService;
+    private CaliperService caliperService;
 
     @Autowired
-    CanvasAPIClient canvasAPIClient;
+    private CanvasAPIClient canvasAPIClient;
 
     @Autowired
-    GroupService groupService;
+    private GroupService groupService;
 
     @Autowired
-    APIJWTService apijwtService;
+    private APIJWTService apijwtService;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -118,7 +118,8 @@ public class AssignmentServiceImpl implements AssignmentService {
     @Value("${application.url}")
     private String localUrl;
 
-    static final Logger log = LoggerFactory.getLogger(AssignmentServiceImpl.class);
+    private static final Logger log = LoggerFactory.getLogger(AssignmentServiceImpl.class);
+    private static final int MAX_TITLE_LENGTH = 255;
 
     @Override
     public List<Assignment> findAllByExposureId(long exposureId, boolean includeDeleted) {
@@ -641,9 +642,9 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     @Override
-    public void validateTitle(String title) throws TitleValidationException{
-        if(!StringUtils.isAllBlank(title) && title.length() > 255){
-            throw new TitleValidationException("Error 101: Assignment title must be 255 characters or less.");
+    public void validateTitle(String title) throws TitleValidationException {
+        if (StringUtils.isNotBlank(title) && title.length() > MAX_TITLE_LENGTH) {
+            throw new TitleValidationException(String.format("Error 101: Assignment title must not be empty and %s characters or less.", MAX_TITLE_LENGTH));
         }
     }
 
@@ -818,6 +819,9 @@ public class AssignmentServiceImpl implements AssignmentService {
 
         // reset ID
         from.setAssignmentId(null);
+
+        // add the "Copy of" prefix; truncate to max title length if needed
+        from.setTitle(StringUtils.truncate(String.format("%s %s", TextConstants.DUPLICATE_PREFIX, from.getTitle()), MAX_TITLE_LENGTH));
 
         Assignment newAssignment = save(from);
         setAssignmentDtoAttrs(newAssignment, canvasCourseId, platformDeploymentId);
