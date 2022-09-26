@@ -122,7 +122,7 @@
                     {{ item.dueDate }}
                   </template>
                   <!-- eslint-disable-next-line -->
-                  <template v-slot:item.actions>
+                  <template v-slot:item.actions="{ item }">
                     <v-btn
                       text
                       tile
@@ -139,13 +139,21 @@
                         </v-btn>
                       </template>
                       <v-list>
-                        <v-list-item link>
+                        <v-list-item
+                          @click="
+                            handleDuplicateAssignment(exposure.exposureId, item)
+                          "
+                        >
                           <v-list-item-title
                             ><v-icon>mdi-content-duplicate</v-icon
                             >Duplicate</v-list-item-title
                           >
                         </v-list-item>
-                        <v-list-item link>
+                        <v-list-item
+                          @click="
+                            handleDeleteAssignment(exposure.exposureId, item)
+                          "
+                        >
                           <v-list-item-title
                             ><v-icon>mdi-delete</v-icon
                             >Delete</v-list-item-title
@@ -164,7 +172,7 @@
                 <div
                   class="groupNames"
                   :key="group"
-                  v-for="group in sortedGroups(exposure.groupConditionList)"
+                  v-for="group in sortedGroups(exposure.groupConditionList, designExpanded ? maxDesignGroups : null)"
                 >
                   {{ group }} will receive
                   <v-chip
@@ -187,7 +195,12 @@
                     }}</v-chip
                   >
                 </div>
-                <a href="" class="text-decoration-none">+ MORE</a>
+                <a @click="designExpanded = !designExpanded" class="text--blue" v-if="sortedGroups(exposure.groupConditionList).length > maxDesignGroups">
+                  <v-icon v-if="!designExpanded" color="blue">mdi-plus</v-icon>
+                  <v-icon v-if="designExpanded" color="blue">mdi-minus</v-icon>
+                  <span v-if="!designExpanded">More</span>
+                  <span v-if="designExpanded">Less</span>
+                </a>
               </v-card>
             </v-tab-item>
           </v-tabs-items>
@@ -227,15 +240,20 @@ export default {
       exportdata: "exportdata/exportData",
       conditionColorMapping: "condition/conditionColorMapping",
     }),
+    experiment_id() {
+      return parseInt(this.experiment.experimentId);
+    },
   },
 
   data: () => ({
     tab: 0,
     minTreatments: 2,
+    maxDesignGroups: 2,
     conditionTreatments: {},
     conditionColors: [""],
     expanded: [],
     singleExpand: true,
+    designExpanded: false,
     assignmentHeaders: [
       {
         text: "",
@@ -287,6 +305,8 @@ export default {
       fetchExposures: "exposures/fetchExposures",
       fetchAssignmentsByExposure: "assignment/fetchAssignmentsByExposure",
       saveAssignmentOrder: "assignment/saveAssignmentOrder",
+      deleteAssignment: "assignment/deleteAssignment",
+      duplicateAssignment: "assignment/duplicateAssignment",
       checkTreatment: "treatment/checkTreatment",
       createTreatment: "treatment/createTreatment",
       createAssessment: "assessment/createAssessment",
@@ -354,6 +374,48 @@ export default {
         console.error("handleCreateAssessment | catch", { error });
       }
     },
+    async handleDeleteAssignment(eid, a) {
+      // DELETE ASSIGNMENT
+      const reallyDelete = await this.$swal({
+        icon: "question",
+        text: `Are you sure you want to delete the assignment "${a.title}"?`,
+        showCancelButton: true,
+        confirmButtonText: "Yes, delete it",
+        cancelButtonText: "No, cancel",
+      });
+      if (reallyDelete?.isConfirmed) {
+        try {
+          return await this.deleteAssignment([
+            this.experiment_id,
+            eid,
+            a.assignmentId,
+          ]);
+        } catch (error) {
+          console.error("handleDeleteQuestion | catch", { error });
+        }
+      }
+    },
+    async handleDuplicateAssignment(eid, a) {
+      // DUPLICATE ASSIGNMENT experiment_id, exposure_id, assignment_id
+
+      try {
+        const response = await this.duplicateAssignment([
+          this.experiment_id,
+          eid,
+          a.assignmentId,
+        ]);
+
+        if (response.status === 201) {
+          return await this.fetchAssignmentsByExposure([
+            this.experiment_id,
+            eid,
+            true,
+          ]);
+        }
+      } catch (error) {
+        console.error("handleDuplicateQuestion | catch", { error });
+      }
+    },
     async goToBuilder(conditionId, assignmentId) {
       // create the treatment
       const treatment = await this.handleCreateTreatment(
@@ -405,9 +467,9 @@ export default {
       return groupConditionList.find((c) => c.conditionId === conditionId);
     },
     // For Sorting Group Names
-    sortedGroups(groupConditionList) {
+    sortedGroups(groupConditionList, limit) {
       const newGroups = groupConditionList?.map((group) => group.groupName);
-      return newGroups?.sort();
+      return newGroups?.sort().filter((g, i) => limit ? i < limit : true);
     },
   },
 };

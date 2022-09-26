@@ -55,6 +55,23 @@ const actions = {
       console.error('deleteAssignment catch', {error})
     }
   },
+  async duplicateAssignment({commit}, payload) {
+    // payload = experiment_id, exposure_id, assignment_id
+    // duplicate assignment, commit mutation, and return the status/data response
+    try {
+      const response = await assignmentService.duplicateAssignment(...payload);
+
+      if (response?.assignmentId) {
+        commit('setAssignment', response)
+        return {
+          status: 201,
+          data: response
+        }
+      }
+    } catch (error) {
+      console.error('duplicateAssignment catch', {error})
+    }
+  },
   async createAssignment({commit}, payload) {
     // payload = experiment_id, exposure_id, title, order
     // create the assignment, commit an update mutation, and return the status/data response

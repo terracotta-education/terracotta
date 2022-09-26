@@ -8,6 +8,7 @@ import edu.iu.terracotta.model.app.AnswerMcSubmissionOption;
 import edu.iu.terracotta.model.app.Question;
 import edu.iu.terracotta.model.app.QuestionSubmission;
 import edu.iu.terracotta.model.app.dto.AnswerDto;
+import edu.iu.terracotta.model.app.enumerator.QuestionTypes;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.AnswerService;
 import edu.iu.terracotta.service.app.FileStorageService;
@@ -38,12 +39,12 @@ public class AnswerServiceImpl implements AnswerService {
     MULTIPLE CHOICE
      */
     @Override
-    public List<AnswerDto> findAllByQuestionIdMC(Long questionId, boolean student) {
+    public List<AnswerDto> findAllByQuestionIdMC(Long questionId, boolean showCorrectAnswer) {
         List<AnswerMc> answerList = allRepositories.answerMcRepository.findByQuestion_QuestionId(questionId);
         List<AnswerDto> answerDtoList = new ArrayList<>();
         if (!answerList.isEmpty()) {
             for (AnswerMc answerMc : answerList) {
-                answerDtoList.add(toDtoMC(answerMc, answerMc.getAnswerOrder(), student));
+                answerDtoList.add(toDtoMC(answerMc, answerMc.getAnswerOrder(), showCorrectAnswer));
             }
         }
         return answerDtoList;
@@ -67,13 +68,13 @@ public class AnswerServiceImpl implements AnswerService {
         List<AnswerDto> answerDtoList = new ArrayList<>();
         int answerOrder = 0;
         for (AnswerMcSubmissionOption answerMcSubmissionOption : answerMcSubmissionOptions) {
-            answerDtoList.add(toDtoMC(answerMcSubmissionOption.getAnswerMc(), answerOrder++, true));
+            answerDtoList.add(toDtoMC(answerMcSubmissionOption.getAnswerMc(), answerOrder++, false));
         }
 
         // check for any missing answers and add them to the list as well
         for (AnswerMc answerMc : answerList) {
             if (answerDtoList.stream().noneMatch(a -> a.getAnswerId().equals(answerMc.getAnswerMcId()))) {
-                answerDtoList.add(toDtoMC(answerMc, answerOrder++, true));
+                answerDtoList.add(toDtoMC(answerMc, answerOrder++, false));
             }
         }
 
@@ -81,9 +82,9 @@ public class AnswerServiceImpl implements AnswerService {
     }
 
     @Override
-    public AnswerDto getAnswerMC(Long answerId, boolean student){
+    public AnswerDto getAnswerMC(Long answerId){
         AnswerMc answerMc = allRepositories.answerMcRepository.findByAnswerMcId(answerId);
-        return toDtoMC(answerMc, answerMc.getAnswerOrder(), student);
+        return toDtoMC(answerMc, answerMc.getAnswerOrder(), false);
     }
 
     @Override
@@ -94,7 +95,7 @@ public class AnswerServiceImpl implements AnswerService {
 
         answerDto.setQuestionId(questionId);
         answerDto.setAnswerType(getQuestionType(questionId));
-        if ("MC".equals(answerDto.getAnswerType())) {
+        if (QuestionTypes.MC.toString().equals(answerDto.getAnswerType())) {
             limitReached(questionId);
             AnswerMc answerMc;
             try {
@@ -102,21 +103,22 @@ public class AnswerServiceImpl implements AnswerService {
             } catch (DataServiceException ex) {
                 throw new DataServiceException("Error 105: Unable to create Answer: " + ex.getMessage());
             }
-            return toDtoMC(saveMC(answerMc), answerMc.getAnswerOrder(),false);
+            return toDtoMC(saveMC(answerMc), answerMc.getAnswerOrder(), false);
         } else {
             throw new DataServiceException("Error 103: Answer type not supported.");
         }
     }
 
     @Override
-    public AnswerDto toDtoMC(AnswerMc answer, int answerOrder, boolean student) {
+    public AnswerDto toDtoMC(AnswerMc answer, int answerOrder, boolean showCorrectAnswer) {
         AnswerDto answerDto = new AnswerDto();
         answerDto.setAnswerId(answer.getAnswerMcId());
         answerDto.setHtml(fileStorageService.parseHTMLFiles(answer.getHtml()));
         answerDto.setAnswerOrder(answerOrder);
         answerDto.setQuestionId(answer.getQuestion().getQuestionId());
-        answerDto.setAnswerType("MC");
-        if(student){
+        answerDto.setAnswerType(QuestionTypes.MC.toString());
+
+        if (!showCorrectAnswer) {
             answerDto.setCorrect(null);
         } else {
             answerDto.setCorrect(answer.getCorrect());

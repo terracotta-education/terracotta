@@ -1,6 +1,7 @@
 package edu.iu.terracotta.model.app;
 
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.List;
 
 import javax.persistence.Column;
@@ -182,6 +183,34 @@ public class Assessment extends BaseEntity {
 
     public void setCumulativeScoringInitialPercentage(Float cumulativeScoringInitialPercentage) {
         this.cumulativeScoringInitialPercentage = cumulativeScoringInitialPercentage;
+    }
+
+    public boolean canViewResponses() {
+        if (!isAllowStudentViewResponses()) {
+            return false;
+        }
+
+        Timestamp now = Timestamp.from(Instant.now());
+
+        if (getStudentViewResponsesAfter() != null && !now.after(getStudentViewResponsesAfter())) {
+            return false;
+        }
+
+        return getStudentViewResponsesBefore() != null && now.before(getStudentViewResponsesBefore());
+    }
+
+    public boolean canViewCorrectAnswers() {
+        if (!isAllowStudentViewCorrectAnswers()) {
+            return false;
+        }
+
+        Timestamp now = Timestamp.from(Instant.now());
+
+        if (getStudentViewCorrectAnswersAfter() != null && !now.after(getStudentViewCorrectAnswersAfter())) {
+            return false;
+        }
+
+        return getStudentViewCorrectAnswersBefore() != null && now.before(getStudentViewCorrectAnswersBefore());
     }
 
 }

@@ -34,6 +34,7 @@ public class TextConstants {
     public static final String ERROR_DEEP_RESPONSE = "Error creating the DeepLinking Response";
     public static final String NOT_FOUND_SUFFIX = " not found";
     public static final String LTI3ERROR = "lti3Error";
+    public static final String DUPLICATE_PREFIX = "Copy of";
     public static final String NOT_ENOUGH_PERMISSIONS = "Error 104: Not enough permissions to access to this endpoint.";
     public static final String BAD_TOKEN = "The token does not contain the expected information";
     public static final String ID_IN_POST_ERROR = "Error 107: Unable to create. The POST endpoint does not accept objects with id";
@@ -63,5 +64,9 @@ public class TextConstants {
     public static final String LIMIT_OF_SUBMISSIONS_REACHED ="Error 117: You can't answer this assignment again";
     public static final String MAX_SUBMISSION_ATTEMPTS_REACHED = "Error 150: Max submission attempts already reached";
     public static final String ASSIGNMENT_SUBMISSION_WAIT_TIME_NOT_REACHED = "Error 158: You must wait to answer this assignment again";
+    public static final String ID_MISMATCH_PUT = "Error 159: IDs do not match in PUT request";
+    public static final String NO_ASSIGNMENT_IN_TREATMENTDTO = "Error 129: Unable to update Treatment: The assignmentId is mandatory";
+    public static final String NO_CONDITION_FOR_TREATMENT = "The condition for the treatment does not exist";
+    public static final String UNABLE_TO_CREATE_TREATMENT = "Error 105: Unable to create Treatment: %s";
 
 }

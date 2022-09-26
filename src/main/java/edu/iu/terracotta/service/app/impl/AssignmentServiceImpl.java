@@ -5,6 +5,7 @@ import edu.iu.terracotta.exceptions.AssignmentAttemptException;
 import edu.iu.terracotta.exceptions.AssignmentDatesException;
 import edu.iu.terracotta.exceptions.AssignmentNotCreatedException;
 import edu.iu.terracotta.exceptions.AssignmentNotEditedException;
+import edu.iu.terracotta.exceptions.AssignmentNotMatchingException;
 import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
@@ -19,24 +20,20 @@ import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.model.ags.LineItem;
 import edu.iu.terracotta.model.ags.LineItems;
 import edu.iu.terracotta.model.app.Assessment;
-import edu.iu.terracotta.model.app.Condition;
 import edu.iu.terracotta.model.app.Experiment;
-import edu.iu.terracotta.model.app.ExposureGroupCondition;
-import edu.iu.terracotta.model.app.Group;
 import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.Treatment;
 import edu.iu.terracotta.model.app.dto.AssignmentDto;
 import edu.iu.terracotta.model.app.dto.SubmissionDto;
 import edu.iu.terracotta.model.app.dto.TreatmentDto;
-import edu.iu.terracotta.model.app.enumerator.DistributionTypes;
 import edu.iu.terracotta.model.app.enumerator.MultipleSubmissionScoringScheme;
-import edu.iu.terracotta.model.app.enumerator.ParticipationTypes;
 import edu.iu.terracotta.model.canvas.AssignmentExtended;
 import edu.iu.terracotta.model.oauth2.LTIToken;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.APIJWTService;
+import edu.iu.terracotta.service.app.AssessmentService;
 import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.GroupService;
@@ -83,34 +80,34 @@ import java.util.Optional;
 public class AssignmentServiceImpl implements AssignmentService {
 
     @Autowired
-    AllRepositories allRepositories;
+    private AllRepositories allRepositories;
 
     @Autowired
-    AdvantageAGSService advantageAGSService;
+    private AssessmentService assessmentService;
 
     @Autowired
-    SubmissionService submissionService;
+    private AdvantageAGSService advantageAGSService;
 
     @Autowired
-    ExperimentService experimentService;
+    private SubmissionService submissionService;
 
     @Autowired
-    ParticipantService participantService;
+    private ExperimentService experimentService;
 
     @Autowired
-    TreatmentService treatmentService;
+    private ParticipantService participantService;
 
     @Autowired
-    CaliperService caliperService;
+    private TreatmentService treatmentService;
 
     @Autowired
-    CanvasAPIClient canvasAPIClient;
+    private CaliperService caliperService;
 
     @Autowired
-    GroupService groupService;
+    private CanvasAPIClient canvasAPIClient;
 
     @Autowired
-    APIJWTService apijwtService;
+    private APIJWTService apijwtService;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -118,7 +115,8 @@ public class AssignmentServiceImpl implements AssignmentService {
     @Value("${application.url}")
     private String localUrl;
 
-    static final Logger log = LoggerFactory.getLogger(AssignmentServiceImpl.class);
+    private static final Logger log = LoggerFactory.getLogger(AssignmentServiceImpl.class);
+    private static final int MAX_TITLE_LENGTH = 255;
 
     @Override
     public List<Assignment> findAllByExposureId(long exposureId, boolean includeDeleted) {
@@ -328,8 +326,21 @@ public class AssignmentServiceImpl implements AssignmentService {
 
         long submissionsCount = allRepositories.submissionRepository.countByAssessment_Treatment_Assignment_AssignmentId(id);
 
-        if (submissionsCount  == 0l) {
+        if (submissionsCount == 0l) {
             // no submissions; hard delete
+
+            // first, delete questions
+            List<Assessment> assessments = allRepositories.assessmentRepository.findByTreatment_Assignment_AssignmentId(id);
+
+            CollectionUtils.emptyIfNull(assessments).stream()
+                .filter(assessment -> CollectionUtils.isNotEmpty(assessment.getQuestions()))
+                .forEach(assessment ->
+                    assessment.getQuestions().forEach(question ->
+                        allRepositories.questionRepository.deleteByQuestionId(question.getQuestionId()
+                    )
+                )
+            );
+
             allRepositories.assignmentRepository.deleteByAssignmentId(id);
             return;
         }
@@ -371,117 +382,18 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     @Override
-    public Assessment getAssessmentByGroupId(Long experimentId, String canvasAssignmentId, Long groupId) throws AssessmentNotMatchingException {
-        Assignment assignment = allRepositories.assignmentRepository.findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(experimentId, canvasAssignmentId);
-        if (assignment==null){
-            throw new AssessmentNotMatchingException("Error 127: This assignment does not exist in Terracotta for this experiment");
-        }
-        Optional<ExposureGroupCondition> exposureGroupCondition = allRepositories.exposureGroupConditionRepository.getByGroup_GroupIdAndExposure_ExposureId(groupId, assignment.getExposure().getExposureId());
-        if (!exposureGroupCondition.isPresent()){
-            throw new AssessmentNotMatchingException("Error 130: This assignment does not have a condition assigned for the participant group.");
-        }
-        List<Treatment> treatments = allRepositories.treatmentRepository.findByCondition_ConditionIdAndAssignment_AssignmentId(exposureGroupCondition.get().getCondition().getConditionId(), assignment.getAssignmentId());
-        if (treatments.isEmpty()){
-            throw new AssessmentNotMatchingException("Error 131: This assignment does not have a treatment assigned.");
-        }
-        if (treatments.size()>1){  //Should never happen
-            throw new AssessmentNotMatchingException("Error 132: This assignment has ambiguous treatments. Please contact a Terracotta administrator");
-        }
-        if (treatments.get(0).getAssessment()==null){
-            throw new AssessmentNotMatchingException("Error 133: The treatment for this assignment does not have an assessment created");
-        }
-        return treatments.get(0).getAssessment();
-    }
-
-    @Override
-    public Assessment getAssessmentByConditionId(Long experimentId, String canvasAssignmentId, Long conditionId) throws AssessmentNotMatchingException {
-        Assignment assignment = allRepositories.assignmentRepository.findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(experimentId, canvasAssignmentId);
-        if (assignment==null){
-            throw new AssessmentNotMatchingException("Error 127: This assignment does not exist in Terracotta for this experiment");
-        }
-        List<Treatment> treatments = allRepositories.treatmentRepository.findByCondition_ConditionIdAndAssignment_AssignmentId(conditionId, assignment.getAssignmentId());
-        if (treatments.isEmpty()){
-            throw new AssessmentNotMatchingException("Error 131: This assignment does not have a treatment assigned.");
-        }
-        if (treatments.size()>1){  //Should never happen
-            throw new AssessmentNotMatchingException("Error 132: This assignment has ambiguous treatments. Please contact a Terracotta administrator");
-        }
-        if (treatments.get(0).getAssessment()==null){
-            throw new AssessmentNotMatchingException("Error 133: The treatment for this assignment has not any assessment created");
-        }
-        return treatments.get(0).getAssessment();
-    }
-
-    @Override
-    public Group getUniqueGroupByConditionId(Long experimentId, String canvasAssignmentId, Long conditionId) throws GroupNotMatchingException {
-        Assignment assignment = allRepositories.assignmentRepository.findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(experimentId, canvasAssignmentId);
-        Optional<ExposureGroupCondition> exposureGroupCondition = allRepositories.exposureGroupConditionRepository.getByCondition_ConditionIdAndExposure_ExposureId(conditionId, assignment.getExposure().getExposureId());
-        if (!exposureGroupCondition.isPresent()){
-            throw new GroupNotMatchingException("Error 130: This assignment does not have a condition assigned for the participant group.");
-        }
-        return exposureGroupCondition.get().getGroup();
-    }
-
-    @Override
     @Transactional
     public ResponseEntity<Object> launchAssignment(Long experimentId, SecuredInfo securedInfo) throws
             AssessmentNotMatchingException, ParticipantNotUpdatedException, AssignmentDatesException,
             DataServiceException, CanvasApiException, IOException, GroupNotMatchingException,
-            ParticipantNotMatchingException, ConnectionException, AssignmentAttemptException {
+            ParticipantNotMatchingException, ConnectionException, AssignmentAttemptException, AssignmentNotMatchingException {
         Optional<Experiment> experiment = experimentService.findById(experimentId);
         if (experiment.isPresent()) {
-            List<Participant> participants = participantService.refreshParticipants(experimentId,securedInfo, experiment.get().getParticipants());
-            Participant participant = participantService.findParticipant(participants, securedInfo.getUserId());
-            //1. Check if the student has the consent signed.
-            //    If not, set it as no participant
-            if (participant==null){
-                throw new ParticipantNotMatchingException(TextConstants.PARTICIPANT_NOT_MATCHING);
-            }
-            if (participant.getConsent() ==null || (!participant.getConsent() && participant.getDateRevoked()==null)) {
-                if (experiment.get().getParticipationType().equals(ParticipationTypes.AUTO)){
-                    participant.setConsent(true);
-                    participant.setDateGiven(new Timestamp(System.currentTimeMillis()));
-                } else {
-                    participant.setConsent(false);
-                    participant.setDateRevoked(new Timestamp(System.currentTimeMillis()));
+            Participant participant = participantService.handleExperimentParticipant(experiment.get(), securedInfo);
 
-                }
-            }
-            //2. Check if the student is in a group (and if not assign it to the right one if consent == true)
-            if (participant.getConsent()) {
-                if (participant.getGroup() == null) {
-                    if (experiment.get().getDistributionType().equals(DistributionTypes.CUSTOM)) {
-                        for (Condition condition : experiment.get().getConditions()) {
-                            if (condition.getDefaultCondition()) {
-                                participant.setGroup(getUniqueGroupByConditionId(experimentId, securedInfo.getCanvasAssignmentId(), condition.getConditionId()));
-                                break;
-                            }
-                        }
-                    } else { // We assign it to the more unbalanced group (if consent is true)
-                        participant.setGroup(groupService.nextGroup(experiment.get()));
-                    }
-                }
-            }
-            participant = participantService.save(participant);
             //3. Check the assessment that belongs to this student
-            Assessment assessment = null;
-            if (!participant.getConsent()){
-                //We need the default condition assessment
-                for (Condition condition:experiment.get().getConditions()){
-                    if (condition.getDefaultCondition()){
-                        assessment = getAssessmentByConditionId(experimentId, securedInfo.getCanvasAssignmentId(), condition.getConditionId());
-                        break;
-                    }
-                }
-            } else {
-                if (participant.getGroup() != null) {
-                    assessment = getAssessmentByGroupId(experimentId, securedInfo.getCanvasAssignmentId(), participant.getGroup().getGroupId());
-                }   // There is no possible else... but if we arrive to here, then assessment will be null
-            }
-            if (assessment == null) {
-                throw new AssessmentNotMatchingException("There is no assessment available for this user");
+            Assessment assessment = assessmentService.getAssessmentForParticipant(participant, securedInfo);
 
-            }
             //4. Maybe create the submission and return it (it must include info about the assessment)
             // First, try to find the submissions for this assessment and participant.
             List<Submission> submissionList = submissionService.findByParticipantIdAndAssessmentId(participant.getParticipantId(), assessment.getAssessmentId());
@@ -554,12 +466,16 @@ public class AssignmentServiceImpl implements AssignmentService {
         Timestamp limit = Timestamp.from(Instant.now().minus(Math.round(waitTime * 60 * 60), ChronoUnit.SECONDS));
 
         // check for any submissions after the allowable time
-        long afterLimitCount = submissionList.stream().filter(submission -> { return submission.getDateSubmitted().after(limit); }).count();
+        Optional<Submission> invalidSubmission = submissionList.stream()
+            .filter(submission -> submission.getDateSubmitted().after(limit))
+            .findAny();
 
-        if (afterLimitCount != 0l) {
-            // there are existing submissions that are not passed the time limit
-            throw new AssignmentAttemptException(TextConstants.ASSIGNMENT_SUBMISSION_WAIT_TIME_NOT_REACHED);
+        if (!invalidSubmission.isPresent()) {
+            return;
         }
+
+        // there are existing submissions that are not passed the time limit
+        throw new AssignmentAttemptException(TextConstants.ASSIGNMENT_SUBMISSION_WAIT_TIME_NOT_REACHED);
     }
 
     @Override
@@ -641,9 +557,9 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     @Override
-    public void validateTitle(String title) throws TitleValidationException{
-        if(!StringUtils.isAllBlank(title) && title.length() > 255){
-            throw new TitleValidationException("Error 101: Assignment title must be 255 characters or less.");
+    public void validateTitle(String title) throws TitleValidationException {
+        if (StringUtils.isNotBlank(title) && title.length() > MAX_TITLE_LENGTH) {
+            throw new TitleValidationException(String.format("Error 101: Assignment title must not be empty and %s characters or less.", MAX_TITLE_LENGTH));
         }
     }
 
@@ -819,11 +735,13 @@ public class AssignmentServiceImpl implements AssignmentService {
         // reset ID
         from.setAssignmentId(null);
 
+        // add the "Copy of" prefix; truncate to max title length if needed
+        from.setTitle(StringUtils.truncate(String.format("%s %s", TextConstants.DUPLICATE_PREFIX, from.getTitle()), MAX_TITLE_LENGTH));
+
         Assignment newAssignment = save(from);
         setAssignmentDtoAttrs(newAssignment, canvasCourseId, platformDeploymentId);
-        AssignmentDto assignmentDto = toDto(newAssignment, false, true);
 
-        return assignmentDto;
+        return toDto(newAssignment, false, true);
     }
 
     @Override

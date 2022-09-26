@@ -111,7 +111,7 @@ public class QuestionServiceImpl implements QuestionService {
                     // Apply submission specific order to answers
                     questionDto.setAnswers(answerService.findAllByQuestionIdMC(questionSubmission.get()));
                 } else {
-                    questionDto.setAnswers(answerService.findAllByQuestionIdMC(question.getQuestionId(), student));
+                    questionDto.setAnswers(answerService.findAllByQuestionIdMC(question.getQuestionId(), false));
                 }
             }
             questionDto.setRandomizeAnswers(((QuestionMc) question).isRandomizeAnswers());

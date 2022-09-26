@@ -16,15 +16,15 @@ import java.util.Map;
 public interface AnswerService {
 
     //METHODS FOR MC ANSWERS
-    List<AnswerDto> findAllByQuestionIdMC(Long questionId, boolean student);
+    List<AnswerDto> findAllByQuestionIdMC(Long questionId, boolean showCorrectAnswer);
 
     List<AnswerDto> findAllByQuestionIdMC(QuestionSubmission questionSubmission);
 
-    AnswerDto getAnswerMC(Long answerId, boolean student);
+    AnswerDto getAnswerMC(Long answerId);
 
     AnswerDto postAnswerMC(AnswerDto answerDto, long questionId) throws IdInPostException, DataServiceException, MultipleChoiceLimitReachedException;
 
-    AnswerDto toDtoMC(AnswerMc answer, int answerOrder, boolean student);
+    AnswerDto toDtoMC(AnswerMc answer, int answerOrder, boolean showCorrectAnswer);
 
     AnswerMc fromDtoMC(AnswerDto answerDto) throws DataServiceException;
 

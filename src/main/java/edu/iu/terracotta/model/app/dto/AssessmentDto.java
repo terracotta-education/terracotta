@@ -3,6 +3,7 @@ package edu.iu.terracotta.model.app.dto;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+import edu.iu.terracotta.model.app.RetakeDetails;
 import edu.iu.terracotta.model.app.enumerator.MultipleSubmissionScoringScheme;
 
 import java.sql.Timestamp;
@@ -35,7 +36,7 @@ public class AssessmentDto {
     private boolean allowStudentViewCorrectAnswers = false;
     private Timestamp studentViewCorrectAnswersAfter;
     private Timestamp studentViewCorrectAnswersBefore;
-
+    private RetakeDetails retakeDetails;
 
     public Long getAssessmentId() { return assessmentId; }
 
@@ -176,4 +177,13 @@ public class AssessmentDto {
     public void setStudentViewCorrectAnswersBefore(Timestamp studentViewCorrectAnswersBefore) {
         this.studentViewCorrectAnswersBefore = studentViewCorrectAnswersBefore;
     }
+
+    public RetakeDetails getRetakeDetails() {
+        return retakeDetails;
+    }
+
+    public void setRetakeDetails(RetakeDetails retakeDetails) {
+        this.retakeDetails = retakeDetails;
+    }
+
 }
