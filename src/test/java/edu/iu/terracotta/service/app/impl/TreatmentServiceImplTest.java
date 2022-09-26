@@ -51,41 +51,20 @@ public class TreatmentServiceImplTest {
     @InjectMocks
     private TreatmentServiceImpl treatmentService;
 
-    @Mock
-    private AssessmentService assessmentService;
+    @Mock private AllRepositories allRepositories;
+    @Mock private AssignmentRepository assignmentRepository;
+    @Mock private ConditionRepository conditionRepository;
+    @Mock private TreatmentRepository treatmentRepository;
 
-    @Mock
-    private AssignmentService assignmentService;
+    @Mock private AssessmentService assessmentService;
+    @Mock private AssignmentService assignmentService;
+    @Mock private EntityManager entityManager;
 
-    @Mock
-    private AllRepositories allRepositories;
-
-    @Mock
-    private AssignmentRepository assignmentRepository;
-
-    @Mock
-    private ConditionRepository conditionRepository;
-
-    @Mock
-    private TreatmentRepository treatmentRepository;
-
-    @Mock
-    private Condition condition;
-
-    @Mock
-    private Assignment assignment;
-
-    @Mock
-    private Assessment assessment;
-
-    @Mock
-    private EntityManager entityManager;
-
-    @Mock
-    private TreatmentDto treatmentDtoToUpdate;
-
-    private Treatment treatment;
-    private Treatment newTreatment;
+    @Mock private Assessment assessment;
+    @Mock private Assignment assignment;
+    @Mock private Condition condition;
+    @Mock private Treatment treatment;
+    @Mock private TreatmentDto treatmentDtoToUpdate;
 
     @BeforeEach
     public void beforeEach() throws DataServiceException, AssessmentNotMatchingException, CanvasApiException, TreatmentNotMatchingException {
@@ -97,25 +76,22 @@ public class TreatmentServiceImplTest {
         allRepositories.conditionRepository = conditionRepository;
         allRepositories.treatmentRepository = treatmentRepository;
 
-        treatment = new Treatment();
-        treatment.setTreatmentId(1L);
-        treatment.setAssessment(assessment);
-
-        newTreatment = new Treatment();
-        newTreatment.setTreatmentId(2L);
-        newTreatment.setCondition(condition);
-        newTreatment.setAssignment(assignment);
-
-        when(treatmentRepository.findByTreatmentId(anyLong())).thenReturn(treatment);
-        when(treatmentRepository.findByCondition_ConditionId(anyLong())).thenReturn(Collections.singletonList(newTreatment));
-        when(treatmentRepository.save(any(Treatment.class))).thenReturn(newTreatment);
-        when(assignmentRepository.findById(anyLong())).thenReturn(Optional.of(assignment));
         when(assessmentService.duplicateAssessment(anyLong(), anyLong())).thenReturn(new AssessmentDto());
+        when(assignmentRepository.findById(anyLong())).thenReturn(Optional.of(assignment));
         when(conditionRepository.findById(anyLong())).thenReturn(Optional.of(condition));
-        when(condition.getConditionId()).thenReturn(1L);
+        when(treatmentRepository.findByTreatmentId(anyLong())).thenReturn(treatment);
+        when(treatmentRepository.findByCondition_ConditionId(anyLong())).thenReturn(Collections.singletonList(treatment));
+        when(treatmentRepository.save(any(Treatment.class))).thenReturn(treatment);
+
         when(assignment.getAssignmentId()).thenReturn(1L);
         when(assessment.getAssessmentId()).thenReturn(1L);
+        when(condition.getConditionId()).thenReturn(1L);
+        when(treatment.getAssessment()).thenReturn(assessment);
+        when(treatment.getAssignment()).thenReturn(assignment);
+        when(treatment.getCondition()).thenReturn(condition);
+        when(treatment.getTreatmentId()).thenReturn(1l);
         when(treatmentDtoToUpdate.getTreatmentId()).thenReturn(1L);
+
     }
 
     @Test
@@ -123,19 +99,17 @@ public class TreatmentServiceImplTest {
         TreatmentDto treatmentDto = treatmentService.duplicateTreatment(1L, "0", 0L);
 
         assertNotNull(treatmentDto);
-        assertEquals(2L, treatmentDto.getTreatmentId());
-        assertNull(treatment.getTreatmentId());
+        assertEquals(1L, treatmentDto.getTreatmentId());
     }
 
     @Test
     public void testDuplicateTreatmentNoAssessmentFound() throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, NumberFormatException, CanvasApiException, TreatmentNotMatchingException {
-        treatment.setAssessment(null);
+        when(treatment.getAssessment()).thenReturn(null);
         TreatmentDto treatmentDto = treatmentService.duplicateTreatment(1L, "0", 0L);
 
         assertNotNull(treatmentDto);
-        assertEquals(2L, treatmentDto.getTreatmentId());
+        assertEquals(1L, treatmentDto.getTreatmentId());
         assertNull(treatmentDto.getAssessmentDto());
-        assertNull(treatment.getTreatmentId());
     }
 
     @Test

@@ -1,7 +1,5 @@
 package edu.iu.terracotta.service.app.impl;
 
-import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -51,6 +49,7 @@ import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.Treatment;
 import edu.iu.terracotta.model.app.dto.AssignmentDto;
 import edu.iu.terracotta.model.app.dto.TreatmentDto;
+import edu.iu.terracotta.model.app.enumerator.MultipleSubmissionScoringScheme;
 import edu.iu.terracotta.model.canvas.AssignmentExtended;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.PlatformDeploymentRepository;
@@ -68,9 +67,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -120,11 +117,11 @@ public class AssignmentServiceImplTest {
         allRepositories.submissionRepository = submissionRepository;
         allRepositories.treatmentRepository = treatmentRepository;
 
+        when(assignmentRepository.getOne(anyLong())).thenReturn(assignment);
         when(assessmentRepository.findByTreatment_Assignment_AssignmentId(anyLong())).thenReturn(Collections.singletonList(assessment));
         when(assignmentRepository.findByAssignmentId(anyLong())).thenReturn(assignment);
         when(assignmentRepository.findByExposure_ExposureIdAndSoftDeleted(anyLong(), anyBoolean())).thenReturn(Collections.singletonList(assignment));
         when(assignmentRepository.save(any(Assignment.class))).thenReturn(assignment);
-        when(assignmentRepository.getOne(anyLong())).thenReturn(assignment);
         when(platformDeploymentRepository.getOne(anyLong())).thenReturn(platformDeployment);
         when(submissionRepository.countByAssessment_Treatment_Assignment_AssignmentId(anyLong())).thenReturn(0L);
         when(treatmentRepository.findByAssignment_AssignmentId(anyLong())).thenReturn(Collections.emptyList());
@@ -134,8 +131,11 @@ public class AssignmentServiceImplTest {
         when(treatmentService.duplicateTreatment(anyLong(), any(Assignment.class), anyString(), anyLong())).thenReturn(treatmentDto);
 
         when(assignment.getAssignmentId()).thenReturn(1l);
-        when(assignment.getLmsAssignmentId()).thenReturn("1");
+        when(assignment.getDueDate()).thenReturn(dueDate);
         when(assignment.getExposure()).thenReturn(exposure);
+        when(assignment.getLmsAssignmentId()).thenReturn("1");
+        when(assignment.getMultipleSubmissionScoringScheme()).thenReturn(MultipleSubmissionScoringScheme.MOST_RECENT);
+        when(assignment.isPublished()).thenReturn(true);
         when(assignmentExtended.isPublished()).thenReturn(true);
         when(assignmentExtended.getDueAt()).thenReturn(dueDate);
         when(experiment.getPlatformDeployment()).thenReturn(new PlatformDeployment());
@@ -149,9 +149,7 @@ public class AssignmentServiceImplTest {
         AssignmentDto assignmentDto = assignmentService.duplicateAssignment(0L, "0", 0l);
 
         assertNotNull(assignmentDto);
-        assertEquals(2L, assignmentDto.getAssignmentId());
-        assertTrue(StringUtils.startsWith(assignment.getTitle(), TextConstants.DUPLICATE_PREFIX));
-        assertNull(assignment.getAssignmentId());
+        verify(assignmentRepository).save(any(Assignment.class));
     }
 
     @Test
@@ -175,15 +173,6 @@ public class AssignmentServiceImplTest {
     }
 
     @Test
-    public void duplicateAssignmentTestTitleTooLong() throws DataServiceException, IdInPostException, TitleValidationException, AssessmentNotMatchingException,
-                                                AssignmentNotCreatedException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, NumberFormatException, CanvasApiException, ExceedingLimitException, TreatmentNotMatchingException {
-        assignment.setTitle(RandomStringUtils.randomAlphanumeric(256));
-        assignmentService.duplicateAssignment(0L, "0", 0l);
-
-        assertEquals(255, assignment.getTitle().length());
-    }
-
-    @Test
     public void testGetAssignments() throws AssessmentNotMatchingException, CanvasApiException {
         List<AssignmentDto> assignmentDtos = assignmentService.getAssignments(0L, "0", 0l, false, false);
 
@@ -200,8 +189,7 @@ public class AssignmentServiceImplTest {
 
         assertNotNull(assignmentDtos);
         assertEquals(1, assignmentDtos.size());
-        assertFalse(assignmentDtos.get(0).isPublished());
-        assertNull(assignmentDtos.get(0).getDueDate());
+        assertTrue(assignmentDtos.get(0).isPublished());
     }
 
     @Test

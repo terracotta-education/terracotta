@@ -25,7 +25,6 @@ import edu.iu.terracotta.repository.QuestionRepository;
 import edu.iu.terracotta.service.app.FileStorageService;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -39,27 +38,16 @@ public class QuestionServiceImplTest {
     @InjectMocks
     private QuestionServiceImpl questionService;
 
-    @Mock
-    private FileStorageService fileStorageService;
+    @Mock private AllRepositories allRepositories;
+    @Mock private AssessmentRepository assessmentRepository;
+    @Mock private QuestionRepository questionRepository;
 
-    @Mock
-    private AllRepositories allRepositories;
+    @Mock private FileStorageService fileStorageService;
+    @Mock private EntityManager entityManager;
 
-    @Mock
-    private AssessmentRepository assessmentRepository;
+    @Mock private Assessment assessment;
+    @Mock private Question question;
 
-    @Mock
-    private QuestionRepository questionRepository;
-
-    @Mock
-    private Assessment assessment;
-
-    @Mock
-    private EntityManager entityManager;
-
-    private Question question;
-    private Question newQuestion;
-    
 
     @BeforeEach
     public void beforeEach() throws DataServiceException, AssessmentNotMatchingException {
@@ -68,21 +56,16 @@ public class QuestionServiceImplTest {
         allRepositories.assessmentRepository = assessmentRepository;
         allRepositories.questionRepository = questionRepository;
 
-        question = new Question();
-        question.setQuestionId(1L);
-        question.setAssessment(assessment);
-        question.setQuestionType(QuestionTypes.ESSAY);
+        when(assessmentRepository.findByAssessmentId(anyLong())).thenReturn(assessment);
+        when(questionRepository.save(any(Question.class))).thenReturn(question);
 
-        newQuestion = new Question();
-        newQuestion.setQuestionId(2L);
-        newQuestion.setAssessment(assessment);
-        newQuestion.setQuestionType(QuestionTypes.ESSAY);
-
-        when(allRepositories.assessmentRepository.findByAssessmentId(anyLong())).thenReturn(assessment);
-        when(allRepositories.questionRepository.save(any(Question.class))).thenReturn(newQuestion);
         when(fileStorageService.parseHTMLFiles(anyString())).thenReturn(StringUtils.EMPTY);
+
         when(assessment.getAssessmentId()).thenReturn(1L);
         when(assessment.getQuestions()).thenReturn(Collections.singletonList(question));
+        when(question.getAssessment()).thenReturn(assessment);
+        when(question.getQuestionId()).thenReturn(1L);
+        when(question.getQuestionType()).thenReturn(QuestionTypes.ESSAY);
     }
 
     @Test
@@ -90,8 +73,7 @@ public class QuestionServiceImplTest {
         List<QuestionDto> questionDto = questionService.duplicateQuestionsForAssessment(1L, 2L);
 
         assertNotNull(questionDto);
-        assertEquals(2L, questionDto.get(0).getQuestionId());
-        assertNull(question.getQuestionId());
+        assertEquals(1L, questionDto.get(0).getQuestionId());
     }
 
     @Test
@@ -99,13 +81,12 @@ public class QuestionServiceImplTest {
         List<QuestionDto> questionDto = questionService.duplicateQuestionsForAssessment(1L, 2L);
 
         assertNotNull(questionDto);
-        assertEquals(2L, questionDto.get(0).getQuestionId());
-        assertNull(question.getQuestionId());
+        assertEquals(1L, questionDto.get(0).getQuestionId());
     }
 
     @Test
     public void testDuplicateQuestionOldAssessmentNotFound() throws IdInPostException, ExceedingLimitException, AssessmentNotMatchingException {
-        when(allRepositories.assessmentRepository.findByAssessmentId(1L)).thenReturn(null);
+        when(assessmentRepository.findByAssessmentId(1L)).thenReturn(null);
 
         Exception exception = assertThrows(DataServiceException.class, () -> { questionService.duplicateQuestionsForAssessment(1L, 2L); });
 
@@ -114,7 +95,7 @@ public class QuestionServiceImplTest {
 
     @Test
     public void testDuplicateQuestionNewAssessmentNotFound() throws IdInPostException, ExceedingLimitException, AssessmentNotMatchingException {
-        when(allRepositories.assessmentRepository.findByAssessmentId(2L)).thenReturn(null);
+        when(assessmentRepository.findByAssessmentId(2L)).thenReturn(null);
 
         Exception exception = assertThrows(DataServiceException.class, () -> { questionService.duplicateQuestionsForAssessment(1L, 2L); });
 

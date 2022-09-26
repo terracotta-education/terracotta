@@ -3,10 +3,8 @@ package edu.iu.terracotta.service.app.impl;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
 
@@ -48,6 +46,7 @@ import edu.iu.terracotta.model.app.Treatment;
 import edu.iu.terracotta.model.app.enumerator.DistributionTypes;
 import edu.iu.terracotta.model.app.enumerator.ExposureTypes;
 import edu.iu.terracotta.model.app.enumerator.LmsType;
+import edu.iu.terracotta.model.app.enumerator.MultipleSubmissionScoringScheme;
 import edu.iu.terracotta.model.app.enumerator.ParticipationTypes;
 import edu.iu.terracotta.model.app.enumerator.QuestionTypes;
 import edu.iu.terracotta.model.app.enumerator.export.ExperimentCsv;
@@ -156,6 +155,7 @@ public class ExportServiceImplTest {
         when(answerMc.getCorrect()).thenReturn(true);
         when(answerMc.getQuestion()).thenReturn(questionMc);
         when(assessment.getTreatment()).thenReturn(treatment);
+        when(assessment.getMultipleSubmissionScoringScheme()).thenReturn(MultipleSubmissionScoringScheme.MOST_RECENT);
         when(assignment.getAssignmentId()).thenReturn(1L);
         when(assignment.getTitle()).thenReturn("assignment1");
         when(condition.getConditionId()).thenReturn(1L);
@@ -196,6 +196,7 @@ public class ExportServiceImplTest {
         when(submission.getParticipant()).thenReturn(participant);
         when(submission.getSubmissionId()).thenReturn(1L);
         when(submission.getTotalAlteredGrade()).thenReturn(1F);
+        when(treatment.getAssessment()).thenReturn(assessment);
         when(treatment.getAssignment()).thenReturn(assignment);
         when(treatment.getCondition()).thenReturn(condition);
         when(treatment.getTreatmentId()).thenReturn(1L);

@@ -3,7 +3,6 @@ package edu.iu.terracotta.service.app.impl;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -13,6 +12,8 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
 
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.Collections;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -42,28 +43,17 @@ public class ParticipantServiceImplTest {
     @InjectMocks
     private ParticipantServiceImpl participantService;
 
-    @Mock
-    private GroupService groupService;
+    @Mock private GroupService groupService;
 
-    @Mock
-    private Group group;
-
-    @Mock
-    private Experiment experiment;
-
-    @Mock
-    private SecuredInfo securedInfo;
-
-    @Mock
-    private Condition condition;
-
-    private Participant participant;
+    @Mock private Condition condition;
+    @Mock private Experiment experiment;
+    @Mock private Group group;
+    @Mock private Participant participant;
+    @Mock private SecuredInfo securedInfo;
 
     @BeforeEach
     public void beforeEach() throws ParticipantNotUpdatedException, GroupNotMatchingException, AssignmentNotMatchingException {
         MockitoAnnotations.openMocks(this);
-
-        participant = new Participant();
 
         when(condition.getConditionId()).thenReturn(1L);
         when(condition.getDefaultCondition()).thenReturn(true);
@@ -73,6 +63,10 @@ public class ParticipantServiceImplTest {
         when(experiment.getParticipationType()).thenReturn(ParticipationTypes.AUTO);
         when(groupService.getUniqueGroupByConditionId(anyLong(), anyString(), anyLong())).thenReturn(group);
         when(groupService.nextGroup(any(Experiment.class))).thenReturn(group);
+        when(participant.getConsent()).thenReturn(false);
+        when(participant.getDateGiven()).thenReturn(Timestamp.from(Instant.now()));
+        when(participant.getDateRevoked()).thenReturn(Timestamp.from(Instant.now()));
+        when(participant.getGroup()).thenReturn(group);
         when(securedInfo.getCanvasAssignmentId()).thenReturn("1");
         when(securedInfo.getUserId()).thenReturn("userId");
 
@@ -86,9 +80,9 @@ public class ParticipantServiceImplTest {
         Participant participant = participantService.handleExperimentParticipant(experiment, securedInfo);
 
         assertNotNull(participant);
-        assertTrue(participant.getConsent());
+        assertFalse(participant.getConsent());
         assertNotNull(participant.getDateGiven());
-        assertNull(participant.getDateRevoked());
+        assertNotNull(participant.getDateRevoked());
         assertNotNull(participant.getGroup());
     }
 
@@ -99,20 +93,20 @@ public class ParticipantServiceImplTest {
 
         assertNotNull(participant);
         assertFalse(participant.getConsent());
-        assertNull(participant.getDateGiven());
+        assertNotNull(participant.getDateGiven());
         assertNotNull(participant.getDateRevoked());
         assertNotNull(participant.getGroup());
     }
 
     @Test
     public void testhandleExperimentParticipantInGroup() throws GroupNotMatchingException, ParticipantNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException {
-        this.participant.setConsent(true);
+        when(this.participant.getConsent()).thenReturn(true);
         Participant participant = participantService.handleExperimentParticipant(experiment, securedInfo);
 
         assertNotNull(participant);
         assertTrue(participant.getConsent());
-        assertNull(participant.getDateGiven());
-        assertNull(participant.getDateRevoked());
+        assertNotNull(participant.getDateGiven());
+        assertNotNull(participant.getDateRevoked());
         assertNotNull(participant.getGroup());
     }
 
