@@ -172,7 +172,7 @@
                 <div
                   class="groupNames"
                   :key="group"
-                  v-for="group in sortedGroups(exposure.groupConditionList)"
+                  v-for="group in sortedGroups(exposure.groupConditionList, designExpanded ? maxDesignGroups : null)"
                 >
                   {{ group }} will receive
                   <v-chip
@@ -195,7 +195,12 @@
                     }}</v-chip
                   >
                 </div>
-                <a href="" class="text-decoration-none">+ MORE</a>
+                <a @click="designExpanded = !designExpanded" class="text--blue" v-if="sortedGroups(exposure.groupConditionList).length > maxDesignGroups">
+                  <v-icon v-if="!designExpanded" color="blue">mdi-plus</v-icon>
+                  <v-icon v-if="designExpanded" color="blue">mdi-minus</v-icon>
+                  <span v-if="!designExpanded">More</span>
+                  <span v-if="designExpanded">Less</span>
+                </a>
               </v-card>
             </v-tab-item>
           </v-tabs-items>
@@ -243,10 +248,12 @@ export default {
   data: () => ({
     tab: 0,
     minTreatments: 2,
+    maxDesignGroups: 2,
     conditionTreatments: {},
     conditionColors: [""],
     expanded: [],
     singleExpand: true,
+    designExpanded: false,
     assignmentHeaders: [
       {
         text: "",
@@ -460,9 +467,9 @@ export default {
       return groupConditionList.find((c) => c.conditionId === conditionId);
     },
     // For Sorting Group Names
-    sortedGroups(groupConditionList) {
+    sortedGroups(groupConditionList, limit) {
       const newGroups = groupConditionList?.map((group) => group.groupName);
-      return newGroups?.sort();
+      return newGroups?.sort().filter((g, i) => limit ? i < limit : true);
     },
   },
 };
