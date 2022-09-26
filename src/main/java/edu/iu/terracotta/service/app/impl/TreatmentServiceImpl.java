@@ -5,6 +5,8 @@ import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExceedingLimitException;
 import edu.iu.terracotta.exceptions.IdInPostException;
+import edu.iu.terracotta.exceptions.IdMismatchException;
+import edu.iu.terracotta.exceptions.IdMissingException;
 import edu.iu.terracotta.model.app.Assessment;
 import edu.iu.terracotta.model.app.Assignment;
 import edu.iu.terracotta.model.app.Treatment;
@@ -95,6 +97,34 @@ public class TreatmentServiceImpl implements TreatmentService {
     }
 
     @Override
+    public TreatmentDto putTreatment(TreatmentDto treatmentDto, long treatmentId)
+            throws DataServiceException, IdMissingException, AssessmentNotMatchingException, IdMismatchException {
+        if(treatmentDto.getTreatmentId() == null) {
+            throw new IdMissingException(TextConstants.ID_MISSING);
+        }
+
+        if (!treatmentDto.getTreatmentId().equals(treatmentId)) {
+            throw new IdMismatchException(TextConstants.ID_MISMATCH_PUT);
+        }
+
+        if (treatmentDto.getAssignmentId() == null){
+            throw new DataServiceException(TextConstants.NO_ASSIGNMENT_IN_TREATMENTDTO);
+        }
+
+        Treatment treatment;
+
+        try{
+            treatment = fromDto(treatmentDto);
+        } catch (DataServiceException ex) {
+            throw new DataServiceException(String.format(TextConstants.UNABLE_TO_CREATE_TREATMENT, ex.getMessage()));
+        }
+
+        Treatment treatmentSaved = save(treatment);
+
+        return toDto(treatmentSaved, false, true);
+    }
+
+    @Override
     public TreatmentDto toDto(Treatment treatment, boolean submissions, boolean addAssignmentDto) throws AssessmentNotMatchingException {
         TreatmentDto treatmentDto = new TreatmentDto();
 
@@ -119,18 +149,21 @@ public class TreatmentServiceImpl implements TreatmentService {
     public Treatment fromDto(TreatmentDto treatmentDto) throws DataServiceException{
         Treatment treatment = new Treatment();
         treatment.setTreatmentId(treatmentDto.getTreatmentId());
-        Optional<Assignment> assignment= allRepositories.assignmentRepository.findById(treatmentDto.getAssignmentId());
-        if (assignment.isPresent()) {
-            treatment.setAssignment(assignment.get());
-        } else {
-            throw new DataServiceException("The assignment for the treatment does not exist");
+        Optional<Assignment> assignment = allRepositories.assignmentRepository.findById(treatmentDto.getAssignmentId());
+
+        if (!assignment.isPresent()) {
+            throw new DataServiceException(TextConstants.NO_ASSIGNMENT_IN_TREATMENTDTO);
         }
+
+        treatment.setAssignment(assignment.get());
         Optional<Condition> condition = allRepositories.conditionRepository.findById(treatmentDto.getConditionId());
-        if(condition.isPresent()) {
-            treatment.setCondition(condition.get());
-        }else {
-            throw new DataServiceException("The condition for the treatment does not exist");
+
+        if(!condition.isPresent()) {
+            throw new DataServiceException(TextConstants.NO_CONDITION_FOR_TREATMENT);
         }
+
+        treatment.setCondition(condition.get());
+
         return treatment;
     }
 
