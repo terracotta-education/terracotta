@@ -103,7 +103,7 @@
               </v-list-item>
             </v-list>
           </v-menu>
-          <v-menu offset-y>
+          <v-menu offset-y close-on-click transition="slide-y-transition">
             <template v-slot:activator="{ on, attrs }">
               <v-btn
                 color="primary"
@@ -119,12 +119,18 @@
             </template>
             <v-list>
               <template v-for="exposure in exposures">
-                <template 
+                <template
                   v-for="(assignment, index) in getAssignmentsForExposure(
                     exposure
                   )"
                 >
-                  <v-menu offset-x :key="assignment.assignmentId" v-if="assignment.treatments.length > 1">
+                  <v-menu
+                    offset-x
+                    :key="assignment.assignmentId"
+                    v-if="assignment.treatments.length > 1"
+                    open-on-hover
+                    transition="slide-x-transition"
+                  >
                     <template v-slot:activator="{ on, attrs }">
                       <v-list-item :key="index" v-bind="attrs" v-on="on">
                         <v-list-item-title>{{
@@ -133,10 +139,11 @@
                       </v-list-item>
                     </template>
                     <v-list>
-                      <template
-                        v-for="treatment in assignment.treatments"
-                      >
-                        <v-list-item :key="treatment.treatmentId">
+                      <template v-for="treatment in assignment.treatments">
+                        <v-list-item
+                          :key="treatment.treatmentId"
+                          @click="duplicate(treatment)"
+                        >
                           <v-list-item-title
                             >Treatment
                             <v-chip
@@ -283,6 +290,7 @@ export default {
       updateQuestion: "assessment/updateQuestion",
       deleteQuestion: "assessment/deleteQuestion",
       updateAnswer: "assessment/updateAnswer",
+      duplicateTreatment: "treatment/duplicateTreatment",
     }),
     getAssignmentsForExposure(exp) {
       return this.assignments
@@ -402,6 +410,25 @@ export default {
           name: routeName,
           params: { exposure_id: this.exposure_id },
         });
+      }
+    },
+    async duplicate(treatment) {
+      const { assessmentDto } = treatment;
+      /* eslint-disable-next-line */
+      const { treatmentId, assessmentId, ...copy } = assessmentDto;
+      try {
+        return await this.duplicateTreatment([
+          this.experiment.experimentId,
+          this.condition_id,
+          this.assignment_id,
+          {
+            assessmentDto: {
+              ...copy,
+            },
+          },
+        ]);
+      } catch (error) {
+        console.error("handleCreateTreatment | catch", { error });
       }
     },
     saveExit() {
