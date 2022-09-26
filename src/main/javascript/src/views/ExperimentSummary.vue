@@ -144,7 +144,13 @@
                               What does this mean?
                             </a>
                           </template>
-                          <span>
+                          <span v-if="balanced">
+                            <strong class="d-block"
+                              >Balanced Exposure Sets</strong
+                            >
+                            Your exposure sets contain all the same number assignments, and assignments contain the same number of treatments. Great work!</span
+                          >
+                          <span v-if="!balanced">
                             <strong class="d-block"
                               >Unbalanced Exposure Sets</strong
                             >
