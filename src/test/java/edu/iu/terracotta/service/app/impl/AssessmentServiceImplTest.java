@@ -36,6 +36,7 @@ import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.Treatment;
 import edu.iu.terracotta.model.app.dto.AssessmentDto;
 import edu.iu.terracotta.model.app.dto.QuestionDto;
+import edu.iu.terracotta.model.app.enumerator.MultipleSubmissionScoringScheme;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.repository.AssessmentRepository;
@@ -44,7 +45,6 @@ import edu.iu.terracotta.repository.ExperimentRepository;
 import edu.iu.terracotta.repository.ExposureGroupConditionRepository;
 import edu.iu.terracotta.repository.ParticipantRepository;
 import edu.iu.terracotta.repository.TreatmentRepository;
-import edu.iu.terracotta.service.app.AssessmentService;
 import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.service.app.ParticipantService;
 import edu.iu.terracotta.service.app.QuestionService;
@@ -55,13 +55,10 @@ import org.apache.commons.lang3.StringUtils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 public class AssessmentServiceImplTest {
@@ -118,7 +115,6 @@ public class AssessmentServiceImplTest {
         when(treatmentRepository.findByTreatmentId(anyLong())).thenReturn(treatment);
         when(treatmentRepository.saveAndFlush(any(Treatment.class))).thenReturn(treatment);
 
-
         when(fileStorageService.parseHTMLFiles(anyString())).thenReturn(StringUtils.EMPTY);
         when(participantService.handleExperimentParticipant(any(Experiment.class), any(SecuredInfo.class))).thenReturn(participant);
         when(questionService.duplicateQuestionsForAssessment(anyLong(), anyLong())).thenReturn(Collections.singletonList(new QuestionDto()));
@@ -126,8 +122,9 @@ public class AssessmentServiceImplTest {
         when(submissionService.getScoreFromMultipleSubmissions(any(Participant.class), any(Assessment.class))).thenReturn(1F);
 
         when(assessment.getAssessmentId()).thenReturn(1l);
-        when(assessment.getTreatment()).thenReturn(treatment);
+        when(assessment.getMultipleSubmissionScoringScheme()).thenReturn(MultipleSubmissionScoringScheme.MOST_RECENT);
         when(assessment.getQuestions()).thenReturn(Collections.emptyList());
+        when(assessment.getTreatment()).thenReturn(treatment);
         when(assignment.getAssignmentId()).thenReturn(1L);
         when(assignment.getExposure()).thenReturn(exposure);
         when(condition.getConditionId()).thenReturn(1L);
@@ -146,8 +143,6 @@ public class AssessmentServiceImplTest {
         when(securedInfo.getCanvasAssignmentId()).thenReturn("canvasAssignmentId");
         when(securedInfo.getUserId()).thenReturn("canvasUserId");
         when(submission.getDateSubmitted()).thenReturn(Timestamp.from(Instant.now()));
-
-        doReturn(assessment).when(assessmentService).getAssessmentByGroupId(anyLong(), anyString(), anyLong());
     }
 
     @Test
@@ -155,8 +150,7 @@ public class AssessmentServiceImplTest {
         AssessmentDto assessmentDto = assessmentService.duplicateAssessment(1L, 2L);
 
         assertNotNull(assessmentDto);
-        assertEquals(3L, assessmentDto.getAssessmentId());
-        assertNull(assessment.getAssessmentId());
+        assertEquals(1L, assessmentDto.getAssessmentId());
     }
 
     @Test
@@ -188,15 +182,6 @@ public class AssessmentServiceImplTest {
     }
 
     @Test
-    public void testViewAssessmentNoParticipant() throws IdInPostException, ExceedingLimitException, AssessmentNotMatchingException {
-        when(participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(anyLong(), anyString())).thenReturn(null);
-
-        Exception exception = assertThrows(ParticipantNotMatchingException.class, () -> { assessmentService.viewAssessment(1l, securedInfo); });
-
-        assertEquals(TextConstants.PARTICIPANT_NOT_MATCHING, exception.getMessage());
-    }
-
-    @Test
     public void testGetAssessmentByGroupId() throws AssessmentNotMatchingException {
         Assessment assessment = assessmentService.getAssessmentByGroupId(1L, "1", 1l);
 
@@ -206,7 +191,7 @@ public class AssessmentServiceImplTest {
     @Test
     public void testGetAssessmentByGroupIdNoAssignment() throws AssessmentNotMatchingException {
         when(assignmentRepository.findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(anyLong(), anyString())).thenReturn(null);
-        Exception exception = assertThrows(AssessmentNotMatchingException.class, () -> { assessmentService.getAssessmentByGroupId(1L, "1", 1l); });
+        Exception exception = assertThrows(AssessmentNotMatchingException.class, () -> { assessmentService.getAssessmentByGroupId(1L, "1", 1L); });
 
         assertEquals("Error 127: This assignment does not exist in Terracotta for this experiment", exception.getMessage());
     }
@@ -214,7 +199,7 @@ public class AssessmentServiceImplTest {
     @Test
     public void testGetAssessmentByGroupIdNoExposureGroupCondition() throws AssessmentNotMatchingException {
         when(exposureGroupConditionRepository.getByGroup_GroupIdAndExposure_ExposureId(anyLong(), anyLong())).thenReturn(Optional.empty());
-        Exception exception = assertThrows(AssessmentNotMatchingException.class, () -> { assessmentService.getAssessmentByGroupId(1L, "1", 1l); });
+        Exception exception = assertThrows(AssessmentNotMatchingException.class, () -> { assessmentService.getAssessmentByGroupId(1L, "1", 1L); });
 
         assertEquals("Error 130: This assignment does not have a condition assigned for the participant group.", exception.getMessage());
     }

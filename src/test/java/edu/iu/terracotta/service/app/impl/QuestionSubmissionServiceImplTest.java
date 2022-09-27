@@ -47,62 +47,27 @@ public class QuestionSubmissionServiceImplTest {
     @InjectMocks
     private QuestionSubmissionServiceImpl questionSubmissionService;
 
-    @Mock
-    private AnswerService answerService;
+    @Mock private AllRepositories allRepositories;
+    @Mock private AnswerEssaySubmissionRepository answerEssaySubmissionRepository;
+    @Mock private AnswerMcSubmissionRepository answerMcSubmissionRepository;
+    @Mock private AssessmentRepository assessmentRepository;
+    @Mock private QuestionSubmissionCommentRepository questionSubmissionCommentRepository;
+    @Mock private QuestionSubmissionRepository questionSubmissionRepository;
 
-    @Mock
-    private AnswerSubmissionService answerSubmissionService;
+    @Mock private AnswerService answerService;
+    @Mock private AnswerSubmissionService answerSubmissionService;
+    @Mock private QuestionSubmissionCommentService questionSubmissionCommentService;
 
-    @Mock
-    private QuestionSubmissionCommentService questionSubmissionCommentService;
-
-    @Mock
-    private AllRepositories allRepositories;
-
-    @Mock
-    private AssessmentRepository assessmentRepository;
-
-    @Mock
-    private QuestionSubmissionCommentRepository questionSubmissionCommentRepository;
-
-    @Mock
-    private QuestionSubmissionRepository questionSubmissionRepository;
-
-    @Mock
-    private AnswerEssaySubmissionRepository answerEssaySubmissionRepository;
-
-    @Mock
-    private AnswerMcSubmissionRepository answerMcSubmissionRepository;
-
-    @Mock
-    private Assessment assessment;
-
-    @Mock
-    private QuestionSubmission questionSubmission;
-
-    @Mock
-    private QuestionSubmissionComment questionSubmissionComment;
-
-    @Mock
-    private QuestionSubmissionCommentDto questionSubmissionCommentDto;
-
-    @Mock
-    private AnswerEssaySubmission answerEssaySubmission;
-
-    @Mock
-    private AnswerMcSubmission answerMcSubmission;
-
-    @Mock
-    private AnswerSubmissionDto answerSubmissionDto;
-
-    @Mock
-    private AnswerDto answerDto;
-
-    @Mock
-    private Question question;
-
-    @Mock
-    private Submission submission;
+    @Mock private AnswerDto answerDto;
+    @Mock private AnswerEssaySubmission answerEssaySubmission;
+    @Mock private AnswerMcSubmission answerMcSubmission;
+    @Mock private AnswerSubmissionDto answerSubmissionDto;
+    @Mock private Assessment assessment;
+    @Mock private Question question;
+    @Mock private QuestionSubmission questionSubmission;
+    @Mock private QuestionSubmissionComment questionSubmissionComment;
+    @Mock private QuestionSubmissionCommentDto questionSubmissionCommentDto;
+    @Mock private Submission submission;
 
     @BeforeEach
     public void beforeEach() throws DataServiceException, AssessmentNotMatchingException {
@@ -119,16 +84,18 @@ public class QuestionSubmissionServiceImplTest {
         when(answerMcSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(anyLong())).thenReturn(Collections.singletonList(answerMcSubmission));
         when(questionSubmissionCommentRepository.findByQuestionSubmission_QuestionSubmissionId(anyLong())).thenReturn(Collections.singletonList(questionSubmissionComment));
         when(questionSubmissionRepository.findBySubmission_SubmissionId(anyLong())).thenReturn(Collections.singletonList(questionSubmission));
+
         when(answerService.findAllByQuestionIdMC(anyLong(), anyBoolean())).thenReturn(Collections.singletonList(answerDto));
         when(answerSubmissionService.toDtoEssay(any(AnswerEssaySubmission.class))).thenReturn(answerSubmissionDto);
         when(answerSubmissionService.toDtoMC(any(AnswerMcSubmission.class))).thenReturn(answerSubmissionDto);
         when(questionSubmissionCommentService.toDto(any(QuestionSubmissionComment.class))).thenReturn(questionSubmissionCommentDto);
-        when(assessment.canViewResponses()).thenReturn(true);
+
         when(assessment.canViewCorrectAnswers()).thenReturn(true);
-        when(questionSubmission.getQuestionSubmissionId()).thenReturn(1l);
-        when(questionSubmission.getQuestion()).thenReturn(question);
-        when(questionSubmission.getSubmission()).thenReturn(submission);
+        when(assessment.canViewResponses()).thenReturn(true);
         when(question.getQuestionId()).thenReturn(1l);
+        when(questionSubmission.getQuestion()).thenReturn(question);
+        when(questionSubmission.getQuestionSubmissionId()).thenReturn(1l);
+        when(questionSubmission.getSubmission()).thenReturn(submission);
         when(submission.getSubmissionId()).thenReturn(1L);
     }
 

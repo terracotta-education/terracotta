@@ -520,13 +520,13 @@ public class AssessmentServiceImpl implements AssessmentService {
     public Assessment getAssessmentByGroupId(Long experimentId, String canvasAssignmentId, Long groupId) throws AssessmentNotMatchingException {
         Assignment assignment = allRepositories.assignmentRepository.findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(experimentId, canvasAssignmentId);
 
-        if (assignment == null){
+        if (assignment == null) {
             throw new AssessmentNotMatchingException("Error 127: This assignment does not exist in Terracotta for this experiment");
         }
 
         Optional<ExposureGroupCondition> exposureGroupCondition = allRepositories.exposureGroupConditionRepository.getByGroup_GroupIdAndExposure_ExposureId(groupId, assignment.getExposure().getExposureId());
 
-        if (!exposureGroupCondition.isPresent()){
+        if (!exposureGroupCondition.isPresent()) {
             throw new AssessmentNotMatchingException("Error 130: This assignment does not have a condition assigned for the participant group.");
         }
 
