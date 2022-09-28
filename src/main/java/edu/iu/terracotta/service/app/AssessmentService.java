@@ -55,7 +55,7 @@ public interface AssessmentService {
 
     void updateAssessment(Long id, AssessmentDto assessmentDto)
                     throws TitleValidationException, RevealResponsesSettingValidationException,
-                    MultipleAttemptsSettingsValidationException;
+                    MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException;
 
     void saveAndFlush(Assessment assessmentToChange);
 

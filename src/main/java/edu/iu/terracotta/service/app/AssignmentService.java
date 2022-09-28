@@ -59,11 +59,11 @@ public interface AssignmentService {
 
     AssignmentDto updateAssignment(Long id, AssignmentDto assignmentDto, String canvasCourseId) throws TitleValidationException,
             CanvasApiException, AssignmentNotEditedException, RevealResponsesSettingValidationException,
-            MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException;
+            MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException, AssignmentNotMatchingException;
 
     List<AssignmentDto> updateAssignments(List<AssignmentDto> assignmentDtos, String canvasCourseId) throws TitleValidationException,
             CanvasApiException, AssignmentNotEditedException, RevealResponsesSettingValidationException,
-            MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException;
+            MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException, AssignmentNotMatchingException;
 
     Assignment saveAndFlush(Assignment assignmentToChange);
 

@@ -256,7 +256,7 @@ public class AssignmentServiceImpl implements AssignmentService {
     @Override
     public List<AssignmentDto> updateAssignments(List<AssignmentDto> assignmentDtos, String canvasCourseId)
             throws TitleValidationException, CanvasApiException, AssignmentNotEditedException,
-                RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException {
+                RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException, AssignmentNotMatchingException {
         List<AssignmentDto> updatedAssignmentDtos = new ArrayList<>();
 
         for (AssignmentDto assignmentDto : assignmentDtos) {
@@ -269,8 +269,13 @@ public class AssignmentServiceImpl implements AssignmentService {
     @Override
     public AssignmentDto updateAssignment(Long id, AssignmentDto assignmentDto, String canvasCourseId)
             throws TitleValidationException, CanvasApiException, AssignmentNotEditedException,
-                RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException {
+                RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException, AssignmentNotMatchingException {
         Assignment assignment = allRepositories.assignmentRepository.findByAssignmentId(id);
+
+        if (assignment == null) {
+            throw new AssignmentNotMatchingException(TextConstants.ASSIGNMENT_NOT_MATCHING);
+        }
+
         if(StringUtils.isAllBlank(assignmentDto.getTitle()) && StringUtils.isAllBlank(assignment.getTitle())){
             throw new TitleValidationException("Error 100: Please give the assignment a name.");
         }

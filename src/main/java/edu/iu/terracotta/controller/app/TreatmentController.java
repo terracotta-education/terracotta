@@ -1,6 +1,7 @@
 package edu.iu.terracotta.controller.app;
 
 import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
+import edu.iu.terracotta.exceptions.AssignmentNotEditedException;
 import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.ConditionNotMatchingException;
@@ -11,6 +12,9 @@ import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.IdMismatchException;
 import edu.iu.terracotta.exceptions.IdMissingException;
+import edu.iu.terracotta.exceptions.MultipleAttemptsSettingsValidationException;
+import edu.iu.terracotta.exceptions.RevealResponsesSettingValidationException;
+import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
 import edu.iu.terracotta.model.app.dto.TreatmentDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
@@ -109,7 +113,7 @@ public class TreatmentController {
                                                       @RequestBody TreatmentDto treatmentDto,
                                                       UriComponentsBuilder ucBuilder,
                                                       HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, ConditionNotMatchingException, ExperimentLockedException, AssessmentNotMatchingException, IdInPostException, ExceedingLimitException, DataServiceException {
+            throws ExperimentNotMatchingException, BadTokenException, ConditionNotMatchingException, ExperimentLockedException, AssessmentNotMatchingException, IdInPostException, ExceedingLimitException, DataServiceException, TreatmentNotMatchingException {
 
         log.debug("Creating Treatment: {}", treatmentDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
@@ -132,7 +136,10 @@ public class TreatmentController {
                                                 @PathVariable long treatmentId,
                                                 @RequestBody TreatmentDto treatmentDto,
                                                 HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, TreatmentNotMatchingException, IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, IdMissingException, IdMismatchException {
+            throws ExperimentNotMatchingException, BadTokenException, TreatmentNotMatchingException, IdInPostException, DataServiceException,
+                ExceedingLimitException, AssessmentNotMatchingException, IdMissingException, IdMismatchException,
+                TitleValidationException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException,
+                CanvasApiException, AssignmentNotEditedException {
 
         log.debug("Updating treatment with id: {}", treatmentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
@@ -143,7 +150,7 @@ public class TreatmentController {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
-        return new ResponseEntity(treatmentService.putTreatment(treatmentDto, treatmentId), HttpStatus.OK);
+        return new ResponseEntity(treatmentService.putTreatment(treatmentDto, treatmentId, securedInfo), HttpStatus.OK);
     }
 
     @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}", method = RequestMethod.DELETE)
