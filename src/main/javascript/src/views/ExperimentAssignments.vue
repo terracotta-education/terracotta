@@ -66,6 +66,7 @@
                       >
                         <!-- eslint-disable-next-line -->
                         <template v-slot:item.title="{ item }">
+                          <span :class="item.balanced ? '' : 'red--text'">
                           Treatment
                           <v-chip
                             label
@@ -84,6 +85,7 @@
                               ).conditionName
                             }}</v-chip
                           >
+                          </span>
                         </template>
                         <!-- eslint-disable-next-line -->
                         <template v-slot:item.actions="{ item }">
@@ -105,7 +107,10 @@
                   </template>
                   <!-- eslint-disable-next-line -->
                   <template v-slot:item.treatments="{ item }">
+                    <span :class="item.treatments.length !== conditions.length ? 'red--text' : ''">
                     {{ item.treatments.length }} / {{ conditions.length }}
+                    <v-icon v-if="item.treatments.length !== conditions.length" class="red--text">mdi-alert-circle-outline</v-icon>
+                    </span>
                   </template>
                   <!-- eslint-disable-next-line -->
                   <template v-slot:item.drag="{ item }">
@@ -329,7 +334,13 @@ export default {
     getAssignmentsForExposure(exp) {
       return this.assignments
         .filter((a) => a.exposureId === exp.exposureId)
-        .sort((a, b) => a.assignmentOrder - b.assignmentOrder);
+        .sort((a, b) => a.assignmentOrder - b.assignmentOrder)
+        .map(a => ({
+          ...a,
+          treatments: [
+            ...a.treatments.map(t => ({ ...t, balanced: a.treatments.length === this.conditions.length }))
+          ]
+        }));
     },
     // Navigate to EDIT section
     handleEdit(componentName) {
