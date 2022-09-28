@@ -172,7 +172,7 @@
                 <div
                   class="groupNames"
                   :key="group"
-                  v-for="group in sortedGroups(exposure.groupConditionList, designExpanded ? maxDesignGroups : null)"
+                  v-for="group in sortedGroups(exposure.groupConditionList, designExpanded ? null : maxDesignGroups)"
                 >
                   {{ group }} will receive
                   <v-chip
