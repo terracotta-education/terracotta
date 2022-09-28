@@ -66,7 +66,6 @@
                       >
                         <!-- eslint-disable-next-line -->
                         <template v-slot:item.title="{ item }">
-                          <span :class="item.balanced ? '' : 'red--text'">
                           Treatment
                           <v-chip
                             label
@@ -85,7 +84,6 @@
                               ).conditionName
                             }}</v-chip
                           >
-                          </span>
                         </template>
                         <!-- eslint-disable-next-line -->
                         <template v-slot:item.actions="{ item }">
@@ -334,13 +332,7 @@ export default {
     getAssignmentsForExposure(exp) {
       return this.assignments
         .filter((a) => a.exposureId === exp.exposureId)
-        .sort((a, b) => a.assignmentOrder - b.assignmentOrder)
-        .map(a => ({
-          ...a,
-          treatments: [
-            ...a.treatments.map(t => ({ ...t, balanced: a.treatments.length === this.conditions.length }))
-          ]
-        }));
+        .sort((a, b) => a.assignmentOrder - b.assignmentOrder);
     },
     // Navigate to EDIT section
     handleEdit(componentName) {
