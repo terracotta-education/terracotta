@@ -418,7 +418,8 @@ export default {
       const { assessmentDto, conditionId } = treatment;
       /* eslint-disable-next-line */
       const { treatmentId, assessmentId } = assessmentDto;
-      let assessment
+      let assessment;
+
       try {
         assessment = await assessmentService.fetchAssessment(this.experiment.experimentId, conditionId, treatmentId, assessmentId)
       } catch (error) {
@@ -430,6 +431,8 @@ export default {
         ...assessment.data
       }, ['answerId', 'questionId', 'assessmentId']);
 
+      console.log(assessment, copy);
+
       try {
         return await this.duplicateTreatment([
           this.experiment.experimentId,
@@ -437,13 +440,16 @@ export default {
           this.treatment_id,
           {
             treatmentId: this.treatment_id,
-            conditionid: this.condition_id,
+            conditionId: this.condition_id,
             assignmentId: this.assignment_id,
             assessmentDto: {
               ...copy,
               treatmentId: this.treatment_id,
               assessmentId: this.assessment_id
             },
+            assignmentDto: {
+              ...this.assignment
+            }
           },
         ]);
       } catch (error) {
