@@ -81,6 +81,10 @@ async function updateAssessment(
   allowStudentViewCorrectAnswers,
   studentViewCorrectAnswersAfter,
   studentViewCorrectAnswersBefore,
+  numOfSubmissions,
+  multipleSubmissionScoringScheme,
+  hoursBetweenSubmissions,
+  cumulativeScoringInitialPercentage
 ) {
   const requestOptions = {
     method: 'PUT',
@@ -94,6 +98,10 @@ async function updateAssessment(
       allowStudentViewCorrectAnswers,
       studentViewCorrectAnswersAfter,
       studentViewCorrectAnswersBefore,
+      numOfSubmissions,
+      multipleSubmissionScoringScheme,
+      hoursBetweenSubmissions,
+      cumulativeScoringInitialPercentage,
     })
   }
 
