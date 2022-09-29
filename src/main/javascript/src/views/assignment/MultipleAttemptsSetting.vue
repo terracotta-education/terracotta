@@ -112,7 +112,7 @@ export default {
   },
   watch: {
     allowInfiniteSubmissions (newValue) {
-      if (newValue === true) {
+      if (newValue === true && this.multipleSubmissionScoringScheme === 'CUMULATIVE') {
         this.cumulativeScoringInitialPercentage = null;
         this.multipleSubmissionScoringScheme = 'MOST_RECENT';
       }
