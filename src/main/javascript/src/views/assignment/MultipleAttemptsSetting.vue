@@ -63,7 +63,7 @@
                 ></v-text-field> hours
             </div>
             <div class="mb-5">Keep the <v-select
-                :items="cumulativeOptions"
+                :items="scoringOptions"
                 outlined
                 single-line
                 hide-details
@@ -74,7 +74,9 @@
                 item-value="value"
                 ></v-select> treatment score
             </div>
-            <div class="mb-5" v-if="multipleSubmissionScoringScheme === 'CUMULATIVE'">Proportion earned on first attempt: <v-text-field
+            <div class="mb-0" v-if="multipleSubmissionScoringScheme === 'CUMULATIVE'">
+              <div class="mb-4">
+                Proportion earned on first attempt: <v-text-field
                     outlined
                     dense
                     single-line
@@ -84,6 +86,8 @@
                     v-model="cumulativeScoringInitialPercentage"
                     style="width:100px"
                 ></v-text-field> %
+              </div>
+              <p class="text-caption text--secondary">Choose the % the first attempt should be worth. The remaining {{ remainingPercentage }}% will be distributed evenly among the other {{ numOfSubmissions - 1 }} attempts ({{ distributionPercentage }}% per attempt).</p>
             </div>
         </div>
       </v-card-text>
@@ -101,12 +105,31 @@ export default {
       cumulativeOptions: [
         {value: 'MOST_RECENT', label: 'Most Recent'},
         {value: 'HIGHEST', label: 'Highest'},
-        {value: 'AVERAGE', label: 'Acerage'},
+        {value: 'AVERAGE', label: 'Average'},
         {value: 'CUMULATIVE', label: 'Cumulative'},
       ]
     };
   },
+  watch: {
+    allowInfiniteSubmissions (newValue) {
+      if (newValue === true) {
+        this.cumulativeScoringInitialPercentage = null;
+        this.multipleSubmissionScoringScheme = 'MOST_RECENT';
+      }
+    }
+  },
   computed: {
+    remainingPercentage () {
+      return 100 - this.cumulativeScoringInitialPercentage;
+    },
+    distributionPercentage () {
+      return (100 - this.cumulativeScoringInitialPercentage) / (this.numOfSubmissions - 1);
+    },
+    scoringOptions: {
+      get() {
+        return this.cumulativeOptions.filter(o => o.value === 'CUMULATIVE' && this.numOfSubmissions === 0 ? false : true );
+      }
+    },
     allowMultipleAttempts: {
       // two-way computed property
       get() {
