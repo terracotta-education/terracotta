@@ -17,7 +17,6 @@ import org.mockito.MockitoAnnotations;
 
 import edu.iu.terracotta.exceptions.AssignmentNotMatchingException;
 import edu.iu.terracotta.exceptions.GroupNotMatchingException;
-import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
 import edu.iu.terracotta.model.app.Assignment;
 import edu.iu.terracotta.model.app.Exposure;
 import edu.iu.terracotta.model.app.ExposureGroupCondition;
@@ -32,26 +31,14 @@ public class GroupServiceImplTest {
     @InjectMocks
     private GroupServiceImpl groupService;
 
-    @Mock
-    private AllRepositories allRepositories;
+    @Mock private AllRepositories allRepositories;
+    @Mock private AssignmentRepository assignmentRepository;
+    @Mock private ExposureGroupConditionRepository exposureGroupConditionRepository;
 
-    @Mock
-    private AssignmentRepository assignmentRepository;
-
-    @Mock
-    private ExposureGroupConditionRepository exposureGroupConditionRepository;
-
-    @Mock
-    private Assignment assignment;
-
-    @Mock
-    private Exposure exposure;
-
-    @Mock
-    private ExposureGroupCondition exposureGroupCondition;
-
-    @Mock
-    private Group group;
+    @Mock private Assignment assignment;
+    @Mock private Exposure exposure;
+    @Mock private ExposureGroupCondition exposureGroupCondition;
+    @Mock private Group group;
 
     @BeforeEach
     public void beforeEach() {

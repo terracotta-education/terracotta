@@ -21,20 +21,17 @@ public class AnswerServiceImplTest {
     @InjectMocks
     private AnswerServiceImpl answerService;
 
-    @Mock
-    private FileStorageService fileStorageService;
+    @Mock private FileStorageService fileStorageService;
 
-    @Mock
-    private AnswerMc answerMc;
-
-    @Mock
-    private Question question;
+    @Mock private AnswerMc answerMc;
+    @Mock private Question question;
 
     @BeforeEach
     public void beforeEach() {
         MockitoAnnotations.openMocks(this);
 
         when(fileStorageService.parseHTMLFiles(anyString())).thenReturn("html");
+
         when(answerMc.getQuestion()).thenReturn(question);
         when(question.getQuestionId()).thenReturn(1L);
     }

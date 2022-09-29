@@ -21,6 +21,7 @@ import edu.iu.terracotta.model.app.Question;
 import edu.iu.terracotta.model.app.RetakeDetails;
 import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.Treatment;
+import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
 import edu.iu.terracotta.model.app.dto.AssessmentDto;
 import edu.iu.terracotta.model.app.dto.QuestionDto;
 import edu.iu.terracotta.model.app.dto.SubmissionDto;
@@ -276,8 +277,12 @@ public class AssessmentServiceImpl implements AssessmentService {
     @Override
     public void updateAssessment(Long id, AssessmentDto assessmentDto)
             throws TitleValidationException, RevealResponsesSettingValidationException,
-            MultipleAttemptsSettingsValidationException {
+            MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException {
         Assessment assessment = allRepositories.assessmentRepository.findByAssessmentId(id);
+
+        if (assessment == null) {
+            throw new AssessmentNotMatchingException(TextConstants.ASSESSMENT_NOT_MATCHING);
+        }
         if (StringUtils.isAllBlank(assessmentDto.getTitle()) && StringUtils.isAllBlank(assessment.getTitle())) {
             throw new TitleValidationException("Error 100: Please give the assessment a title.");
         }
@@ -447,7 +452,18 @@ public class AssessmentServiceImpl implements AssessmentService {
     }
 
     @Override
-    public AssessmentDto duplicateAssessment(long assessmentId, long treatmentId) throws DataServiceException, AssessmentNotMatchingException {
+    public AssessmentDto duplicateAssessment(long assessmentId, long treatmentId) throws DataServiceException, AssessmentNotMatchingException, TreatmentNotMatchingException {
+        Treatment treatment = allRepositories.treatmentRepository.findByTreatmentId(treatmentId);
+
+        if (treatment == null) {
+            throw new TreatmentNotMatchingException(TextConstants.TREATMENT_NOT_MATCHING);
+        }
+
+        return duplicateAssessment(assessmentId, treatment, null);
+    }
+
+    @Override
+    public AssessmentDto duplicateAssessment(long assessmentId, Treatment treatment, Assignment assignment) throws DataServiceException, AssessmentNotMatchingException {
         Assessment from = getAssessment(assessmentId);
 
         if (from == null) {
@@ -463,10 +479,12 @@ public class AssessmentServiceImpl implements AssessmentService {
         Long oldAssessmentId = from.getAssessmentId();
         from.setAssessmentId(null);
 
+        from.setTreatment(treatment);
+
         Assessment newAssessment = save(from);
 
         // update the treatment
-        updateTreatment(treatmentId, newAssessment);
+        updateTreatment(treatment.getTreatmentId(), newAssessment);
 
         // duplicate questions
         List<QuestionDto> questionDtos = questionService.duplicateQuestionsForAssessment(oldAssessmentId, newAssessment.getAssessmentId());
@@ -506,13 +524,13 @@ public class AssessmentServiceImpl implements AssessmentService {
     public Assessment getAssessmentByGroupId(Long experimentId, String canvasAssignmentId, Long groupId) throws AssessmentNotMatchingException {
         Assignment assignment = allRepositories.assignmentRepository.findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(experimentId, canvasAssignmentId);
 
-        if (assignment == null){
+        if (assignment == null) {
             throw new AssessmentNotMatchingException("Error 127: This assignment does not exist in Terracotta for this experiment");
         }
 
         Optional<ExposureGroupCondition> exposureGroupCondition = allRepositories.exposureGroupConditionRepository.getByGroup_GroupIdAndExposure_ExposureId(groupId, assignment.getExposure().getExposureId());
 
-        if (!exposureGroupCondition.isPresent()){
+        if (!exposureGroupCondition.isPresent()) {
             throw new AssessmentNotMatchingException("Error 130: This assignment does not have a condition assigned for the participant group.");
         }
 

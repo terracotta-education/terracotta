@@ -1,17 +1,24 @@
 package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
+import edu.iu.terracotta.exceptions.AssignmentNotEditedException;
+import edu.iu.terracotta.exceptions.AssignmentNotMatchingException;
 import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExceedingLimitException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.IdMismatchException;
 import edu.iu.terracotta.exceptions.IdMissingException;
+import edu.iu.terracotta.exceptions.MultipleAttemptsSettingsValidationException;
+import edu.iu.terracotta.exceptions.RevealResponsesSettingValidationException;
+import edu.iu.terracotta.exceptions.TitleValidationException;
+import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
 import edu.iu.terracotta.model.app.Assessment;
 import edu.iu.terracotta.model.app.Assignment;
 import edu.iu.terracotta.model.app.Treatment;
 import edu.iu.terracotta.model.app.dto.AssessmentDto;
 import edu.iu.terracotta.model.app.dto.TreatmentDto;
+import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.AssessmentService;
 import edu.iu.terracotta.service.app.AssignmentService;
@@ -76,29 +83,35 @@ public class TreatmentServiceImpl implements TreatmentService {
     public Treatment getTreatment(Long id) {return allRepositories.treatmentRepository.findByTreatmentId(id); }
 
     @Override
-    public TreatmentDto postTreatment(TreatmentDto treatmentDto, long conditionId) throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException {
-        if(treatmentDto.getTreatmentId() != null) {
+    public TreatmentDto postTreatment(TreatmentDto treatmentDto, long conditionId) throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, TreatmentNotMatchingException {
+        if (treatmentDto.getTreatmentId() != null) {
             throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
         }
+
         treatmentDto.setConditionId(conditionId);
-        if (treatmentDto.getAssignmentId()==null){
+
+        if (treatmentDto.getAssignmentId() == null) {
             throw new DataServiceException("Error 129: Unable to create Treatment: The assignmentId is mandatory");
         }
-        Treatment treatment;
+
+        Treatment treatment = null;
+
         try{
             treatment = fromDto(treatmentDto);
         } catch (DataServiceException ex) {
-            throw new DataServiceException("Error 105: Unable to create Treatment: " + ex.getMessage());
+            throw new DataServiceException(String.format(TextConstants.UNABLE_TO_CREATE_TREATMENT, ex.getMessage()));
         }
 
         limitToOne(treatment.getAssignment().getAssignmentId(), conditionId);
         Treatment treatmentSaved = save(treatment);
+
         return toDto(treatmentSaved, false, true);
     }
 
     @Override
-    public TreatmentDto putTreatment(TreatmentDto treatmentDto, long treatmentId)
-            throws DataServiceException, IdMissingException, AssessmentNotMatchingException, IdMismatchException {
+    public TreatmentDto putTreatment(TreatmentDto treatmentDto, long treatmentId, SecuredInfo securedInfo)
+            throws DataServiceException, IdMissingException, AssessmentNotMatchingException, IdMismatchException,
+            TreatmentNotMatchingException, TitleValidationException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, CanvasApiException, AssignmentNotEditedException {
         if(treatmentDto.getTreatmentId() == null) {
             throw new IdMissingException(TextConstants.ID_MISSING);
         }
@@ -111,17 +124,28 @@ public class TreatmentServiceImpl implements TreatmentService {
             throw new DataServiceException(TextConstants.NO_ASSIGNMENT_IN_TREATMENTDTO);
         }
 
-        Treatment treatment;
+        Treatment treatment = getTreatment(treatmentDto.getTreatmentId());
 
-        try{
-            treatment = fromDto(treatmentDto);
-        } catch (DataServiceException ex) {
-            throw new DataServiceException(String.format(TextConstants.UNABLE_TO_CREATE_TREATMENT, ex.getMessage()));
+        if (treatment == null) {
+            throw new TreatmentNotMatchingException(TextConstants.TREATMENT_NOT_MATCHING);
         }
 
-        Treatment treatmentSaved = save(treatment);
+        Optional<Condition> condition = allRepositories.conditionRepository.findById(treatmentDto.getConditionId());
 
-        return toDto(treatmentSaved, false, true);
+        if(!condition.isPresent()) {
+            throw new DataServiceException(TextConstants.NO_CONDITION_FOR_TREATMENT);
+        }
+
+        treatment.setCondition(condition.get());
+
+        try {
+            assessmentService.updateAssessment(treatmentDto.getAssessmentDto().getAssessmentId(), treatmentDto.getAssessmentDto());
+            assignmentService.updateAssignment(treatmentDto.getAssignmentId(), treatmentDto.getAssignmentDto(), securedInfo.getCanvasCourseId());
+        } catch (AssessmentNotMatchingException | AssignmentNotMatchingException e) {
+            throw new DataServiceException(String.format(TextConstants.UNABLE_TO_UPDATE_TREATMENT, e.getMessage()));
+        }
+
+        return toDto(save(treatment), false, true);
     }
 
     @Override
@@ -201,7 +225,16 @@ public class TreatmentServiceImpl implements TreatmentService {
     }
 
     @Override
-    public TreatmentDto duplicateTreatment(long treatmentId, String canvasCourseId, long platformDeploymentId) throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, NumberFormatException, CanvasApiException {
+    public TreatmentDto duplicateTreatment(long treatmentId, String canvasCourseId, long platformDeploymentId)
+        throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, NumberFormatException,
+            CanvasApiException, TreatmentNotMatchingException {
+        return duplicateTreatment(treatmentId, null, canvasCourseId, platformDeploymentId);
+    }
+
+    @Override
+    public TreatmentDto duplicateTreatment(long treatmentId, Assignment assignment, String canvasCourseId, long platformDeploymentId)
+        throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, NumberFormatException,
+            CanvasApiException, TreatmentNotMatchingException {
         Treatment from = getTreatment(treatmentId);
 
         if (from == null) {
@@ -212,6 +245,11 @@ public class TreatmentServiceImpl implements TreatmentService {
 
         // reset ID
         from.setTreatmentId(null);
+
+        // set new assignment; if exists
+        if (assignment != null) {
+            from.setAssignment(assignment);
+        }
 
         Treatment newTreatment = save(from);
         assignmentService.setAssignmentDtoAttrs(newTreatment.getAssignment(), canvasCourseId, platformDeploymentId);

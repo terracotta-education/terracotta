@@ -51,67 +51,29 @@ public class SubmissionServiceImplTest {
     @InjectMocks
     private SubmissionServiceImpl submissionService;
 
-    @Mock
-    private AllRepositories allRepositories;
+    @Mock private AllRepositories allRepositories;
+    @Mock private AnswerMcRepository answerMcRepository;
+    @Mock private AnswerMcSubmissionOptionRepository answerMcSubmissionOptionRepository;
+    @Mock private AssessmentRepository assessmentRepository;
+    @Mock private AssignmentRepository assignmentRepository;
+    @Mock private ParticipantRepository participantRepository;
+    @Mock private QuestionSubmissionRepository questionSubmissionRepository;
+    @Mock private SubmissionRepository submissionRepository;
 
-    @Mock
-    private AssessmentRepository assessmentRepository;
+    @Mock private APIJWTService apijwtService;
+    @Mock private AssignmentService assignmentService;
 
-    @Mock
-    private AssignmentRepository assignmentRepository;
-
-    @Mock
-    private ParticipantRepository participantRepository;
-
-    @Mock
-    private QuestionSubmissionRepository questionSubmissionRepository;
-
-    @Mock
-    private SubmissionRepository submissionRepository;
-
-    @Mock
-    private AnswerMcRepository answerMcRepository;
-
-    @Mock
-    private AnswerMcSubmissionOptionRepository answerMcSubmissionOptionRepository;
-
-    @Mock
-    private AssignmentService assignmentService;
-
-    @Mock
-    private APIJWTService apijwtService;
-
-    @Mock
-    private Assignment assignment;
-
-    @Mock
-    private Assessment assessment;
-
-    @Mock
-    private Treatment treatment;
-
-    @Mock
-    private Participant participant;
-
-    @Mock
-    private Condition condition;
-
-    @Mock
-    private Experiment experiment;
-
-    @Mock
-    private QuestionMc question;
-
-    @Mock
-    private QuestionSubmission questionSubmission;
-
-    @Mock
-    private AnswerMc answerMc;
-
-    @Mock
-    private SecuredInfo securedInfo;
-
-    private Submission submission;
+    @Mock private AnswerMc answerMc;
+    @Mock private Assessment assessment;
+    @Mock private Assignment assignment;
+    @Mock private Condition condition;
+    @Mock private Experiment experiment;
+    @Mock private Participant participant;
+    @Mock private QuestionMc question;
+    @Mock private QuestionSubmission questionSubmission;
+    @Mock private SecuredInfo securedInfo;
+    @Mock private Submission submission;
+    @Mock private Treatment treatment;
 
     @BeforeEach
     public void beforeEach() {
@@ -126,27 +88,27 @@ public class SubmissionServiceImplTest {
         allRepositories.questionSubmissionRepository = questionSubmissionRepository;
         allRepositories.submissionRepository = submissionRepository;
 
-        submission = new Submission();
-        submission.setParticipant(participant);
-        submission.setAssessment(assessment);
-
-        when(allRepositories.submissionRepository.save(any(Submission.class))).thenReturn(submission);
-        when(allRepositories.participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(anyLong(), anyString())).thenReturn(participant);
-        when(allRepositories.participantRepository.findById(anyLong())).thenReturn(Optional.of(participant));
-        when(allRepositories.assessmentRepository.findById(anyLong())).thenReturn(Optional.of(assessment));
+        when(answerMcRepository.findByQuestion_QuestionId(anyLong())).thenReturn(Collections.singletonList(answerMc));
+        when(answerMcSubmissionOptionRepository.save(any(AnswerMcSubmissionOption.class))).thenReturn(null);
+        when(assessmentRepository.findById(anyLong())).thenReturn(Optional.of(assessment));
         when(assignmentService.save(any(Assignment.class))).thenReturn(assignment);
-        when(allRepositories.questionSubmissionRepository.save(any(QuestionSubmission.class))).thenReturn(questionSubmission);
-        when(allRepositories.answerMcRepository.findByQuestion_QuestionId(anyLong())).thenReturn(Collections.singletonList(answerMc));
-        when(allRepositories.answerMcSubmissionOptionRepository.save(any(AnswerMcSubmissionOption.class))).thenReturn(null);
+        when(participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(anyLong(), anyString())).thenReturn(participant);
+        when(participantRepository.findById(anyLong())).thenReturn(Optional.of(participant));
+        when(questionSubmissionRepository.save(any(QuestionSubmission.class))).thenReturn(questionSubmission);
+        when(submissionRepository.save(any(Submission.class))).thenReturn(submission);
+
+        when(apijwtService.isTestStudent(any(SecuredInfo.class))).thenReturn(false);
+
         when(assessment.getQuestions()).thenReturn(Collections.singletonList(question));
         when(assessment.getTreatment()).thenReturn(treatment);
-        when(treatment.getAssignment()).thenReturn(assignment);
-        when(treatment.getCondition()).thenReturn(condition);
         when(condition.getExperiment()).thenReturn(experiment);
         when(question.getQuestionType()).thenReturn(QuestionTypes.MC);
-        when((question).isRandomizeAnswers()).thenReturn(true);
-        when(apijwtService.isTestStudent(any(SecuredInfo.class))).thenReturn(false);
+        when(question.isRandomizeAnswers()).thenReturn(true);
         when(securedInfo.getUserId()).thenReturn("canvasUserId");
+        when(submission.getParticipant()).thenReturn(participant);
+        when(submission.getAssessment()).thenReturn(assessment);
+        when(treatment.getAssignment()).thenReturn(assignment);
+        when(treatment.getCondition()).thenReturn(condition);
     }
 
     @Test

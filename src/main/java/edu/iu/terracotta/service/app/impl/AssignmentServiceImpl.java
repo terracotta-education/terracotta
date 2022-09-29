@@ -9,6 +9,7 @@ import edu.iu.terracotta.exceptions.AssignmentNotMatchingException;
 import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.ExceedingLimitException;
 import edu.iu.terracotta.exceptions.GroupNotMatchingException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.MultipleAttemptsSettingsValidationException;
@@ -16,6 +17,7 @@ import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.exceptions.RevealResponsesSettingValidationException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
+import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
 import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.model.ags.LineItem;
 import edu.iu.terracotta.model.ags.LineItems;
@@ -36,7 +38,6 @@ import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.AssessmentService;
 import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.app.ExperimentService;
-import edu.iu.terracotta.service.app.GroupService;
 import edu.iu.terracotta.service.app.ParticipantService;
 import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.service.app.TreatmentService;
@@ -255,7 +256,7 @@ public class AssignmentServiceImpl implements AssignmentService {
     @Override
     public List<AssignmentDto> updateAssignments(List<AssignmentDto> assignmentDtos, String canvasCourseId)
             throws TitleValidationException, CanvasApiException, AssignmentNotEditedException,
-                RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException {
+                RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException, AssignmentNotMatchingException {
         List<AssignmentDto> updatedAssignmentDtos = new ArrayList<>();
 
         for (AssignmentDto assignmentDto : assignmentDtos) {
@@ -268,8 +269,13 @@ public class AssignmentServiceImpl implements AssignmentService {
     @Override
     public AssignmentDto updateAssignment(Long id, AssignmentDto assignmentDto, String canvasCourseId)
             throws TitleValidationException, CanvasApiException, AssignmentNotEditedException,
-                RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException {
+                RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException, AssignmentNotMatchingException {
         Assignment assignment = allRepositories.assignmentRepository.findByAssignmentId(id);
+
+        if (assignment == null) {
+            throw new AssignmentNotMatchingException(TextConstants.ASSIGNMENT_NOT_MATCHING);
+        }
+
         if(StringUtils.isAllBlank(assignmentDto.getTitle()) && StringUtils.isAllBlank(assignment.getTitle())){
             throw new TitleValidationException("Error 100: Please give the assignment a name.");
         }
@@ -723,7 +729,7 @@ public class AssignmentServiceImpl implements AssignmentService {
     @Override
     public AssignmentDto duplicateAssignment(long assignmentId, String canvasCourseId, long platformDeploymentId) throws DataServiceException, IdInPostException, TitleValidationException, AssessmentNotMatchingException,
                                                                         AssignmentNotCreatedException, RevealResponsesSettingValidationException,
-                                                                        MultipleAttemptsSettingsValidationException, NumberFormatException, CanvasApiException {
+                                                                        MultipleAttemptsSettingsValidationException, NumberFormatException, CanvasApiException, ExceedingLimitException, TreatmentNotMatchingException {
         Assignment from = getAssignment(assignmentId);
 
         if (from == null) {
@@ -739,6 +745,14 @@ public class AssignmentServiceImpl implements AssignmentService {
         from.setTitle(StringUtils.truncate(String.format("%s %s", TextConstants.DUPLICATE_PREFIX, from.getTitle()), MAX_TITLE_LENGTH));
 
         Assignment newAssignment = save(from);
+
+        // duplicate treatments
+        List<Treatment> fromTreatments = allRepositories.treatmentRepository.findByAssignment_AssignmentId(assignmentId);
+
+        for (Treatment treatment : fromTreatments) {
+            treatmentService.duplicateTreatment(treatment.getTreatmentId(), newAssignment, canvasCourseId, platformDeploymentId);
+        }
+
         setAssignmentDtoAttrs(newAssignment, canvasCourseId, platformDeploymentId);
 
         return toDto(newAssignment, false, true);

@@ -105,7 +105,10 @@
                   </template>
                   <!-- eslint-disable-next-line -->
                   <template v-slot:item.treatments="{ item }">
+                    <span :class="item.treatments.length !== conditions.length ? 'red--text' : ''">
                     {{ item.treatments.length }} / {{ conditions.length }}
+                    <v-icon v-if="item.treatments.length !== conditions.length" class="red--text">mdi-alert-circle-outline</v-icon>
+                    </span>
                   </template>
                   <!-- eslint-disable-next-line -->
                   <template v-slot:item.drag="{ item }">
@@ -172,7 +175,7 @@
                 <div
                   class="groupNames"
                   :key="group"
-                  v-for="group in sortedGroups(exposure.groupConditionList, designExpanded ? maxDesignGroups : null)"
+                  v-for="group in sortedGroups(exposure.groupConditionList, designExpanded ? null : maxDesignGroups)"
                 >
                   {{ group }} will receive
                   <v-chip
