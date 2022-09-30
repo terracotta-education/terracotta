@@ -89,6 +89,24 @@ const actions = {
       console.error('createAssignment catch', {error})
     }
   },
+  async updateAssignment(context, payload) {
+    try {
+      console.log(payload, context);
+
+      const response = await assignmentService.updateAssignment(...payload);
+      console.log(response);
+
+      if (response?.assignmentId) {
+        // commit('setAssignment', response)
+        return {
+          status: 201,
+          data: response
+        }
+      }
+    } catch (error) {
+      console.error('updateAssignment catch', {error})
+    }
+  }
 }
 const mutations = {
   updateAssignments(state, assignments) {

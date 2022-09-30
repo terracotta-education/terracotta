@@ -10,6 +10,7 @@ export const assignmentService = {
   create,
   deleteAssignment,
   updateAssignments,
+  updateAssignment,
   duplicateAssignment
 }
 
@@ -83,7 +84,7 @@ async function deleteAssignment(experiment_id, exposure_id, assignment_id) {
 }
 
 /**
- * Delete Assignment
+ * Update Assignments
  */
 async function updateAssignments(experiment_id, exposure_id, payload) {
   const requestOptions = {
@@ -95,6 +96,20 @@ async function updateAssignments(experiment_id, exposure_id, payload) {
   }
 
   return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/exposures/${exposure_id}/assignments`, requestOptions).then(handleResponse)
+}
+
+/**
+ * Update Assignments
+ */
+async function updateAssignment(experiment_id, exposure_id, assignment_id, update) {
+  const requestOptions = {
+    method: 'PUT',
+    headers: {...authHeader()},
+    body: JSON.stringify({
+      ...update
+    })
+  }
+  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/exposures/${exposure_id}/assignments/${assignment_id}`, requestOptions).then(handleResponse)
 }
 
 
