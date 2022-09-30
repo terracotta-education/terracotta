@@ -36,6 +36,7 @@
                             class="d-inline-block"
                             :disabled="allowInfiniteSubmissions"
                             v-model="numOfSubmissions"
+                            min="2"
                             style="width:100px"
                         ></v-text-field> attempts
                     </div>
@@ -87,7 +88,10 @@
                     style="width:100px"
                 ></v-text-field> %
               </div>
-              <p class="text-caption text--secondary">Choose the % the first attempt should be worth. The remaining {{ remainingPercentage }}% will be distributed evenly among the other {{ numOfSubmissions - 1 }} attempts ({{ distributionPercentage }}% per attempt).</p>
+              <p class="text-caption text--secondary">Choose the % the first attempt should be worth.
+                The remaining {{ remainingPercentage }}% will be distributed <span v-if="numOfSubmissions > 2">evenly among the other {{ numOfSubmissions - 1 }} attempts ({{ distributionPercentage }}% per attempt).</span>
+                <span v-if="numOfSubmissions === 2">to the other attempt.</span>
+              </p>
             </div>
         </div>
       </v-card-text>
@@ -151,7 +155,7 @@ export default {
         if (value === true) {
             this.numOfSubmissions = 0;
         } else {
-            this.numOfSubmissions = 1;
+            this.numOfSubmissions = 2;
         }
       },
     },
