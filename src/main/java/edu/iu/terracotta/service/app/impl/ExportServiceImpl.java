@@ -10,6 +10,7 @@ import edu.iu.terracotta.model.app.AnswerEssaySubmission;
 import edu.iu.terracotta.model.app.AnswerMc;
 import edu.iu.terracotta.model.app.AnswerMcSubmission;
 import edu.iu.terracotta.model.app.AnswerMcSubmissionOption;
+import edu.iu.terracotta.model.app.Assessment;
 import edu.iu.terracotta.model.app.Assignment;
 import edu.iu.terracotta.model.app.Condition;
 import edu.iu.terracotta.model.app.Experiment;
@@ -36,6 +37,7 @@ import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.ExportService;
 import edu.iu.terracotta.service.app.OutcomeService;
+import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.service.aws.AWSService;
 
 import org.apache.commons.collections4.CollectionUtils;
@@ -72,6 +74,9 @@ public class ExportServiceImpl implements ExportService {
 
     @Autowired
     private Environment env;
+
+    @Autowired
+    private SubmissionService submissionService;
 
     @Override
     public Map<String, List<String[]>> getCsvFiles(long experimentId, SecuredInfo securedInfo) throws CanvasApiException, ParticipantNotUpdatedException, IOException {
@@ -216,13 +221,43 @@ public class ExportServiceImpl implements ExportService {
                                 .forEach(treatment ->
                                     participantTreatments.add(
                                         new String[] {participantId, exposureId, conditionId, conditionName, assignmentId, assignmentName,
-                                            treatment.getTreatmentId().toString(), treatment.getAssessment().getMultipleSubmissionScoringScheme().toString()})
+                                            treatment.getTreatmentId().toString(), treatment.getAssessment().getMultipleSubmissionScoringScheme().toString(),
+                                            calculateAttemptsAllowed(treatment.getAssessment().getNumOfSubmissions()),
+                                            calculateTimeRequiredBetweenAttempts(treatment.getAssignment().getHoursBetweenSubmissions()),
+                                            calculateFinalScore(participant, treatment.getAssessment())
+                                        })
                                 );
                         });
                     });
             });
 
         csvFiles.put(ParticipantTreatmentCsv.FILENAME, participantTreatments);
+    }
+
+    private String calculateAttemptsAllowed(Integer numOfSubmissions) {
+        if (numOfSubmissions == null || numOfSubmissions == 0) {
+            return "unlimited";
+        }
+
+        return Integer.toString(numOfSubmissions);
+    }
+
+    private String calculateTimeRequiredBetweenAttempts(Float hoursBetweenSubmissions) {
+        if (hoursBetweenSubmissions == null || hoursBetweenSubmissions == 0F) {
+            return "N/A";
+        }
+
+        return String.format("%s hours", hoursBetweenSubmissions);
+    }
+
+    private String calculateFinalScore(Participant participant, Assessment assessment) {
+        Float finalScore = submissionService.getScoreFromMultipleSubmissions(participant, assessment);
+
+        if (finalScore == null) {
+            return "N/A";
+        }
+
+        return Float.toString(finalScore);
     }
 
     private void handleParticpantsCsv(List<Participant> participants, Map<String, List<String[]>> csvFiles) {
@@ -450,9 +485,11 @@ public class ExportServiceImpl implements ExportService {
         List<AnswerMc> answerList = null;
         // Randomized option order is stored in AnswerMcSubmissionOptions, sort
         // AnswerMc's by its order
-        if (answerMcSubmissionOptions.stream().anyMatch(o -> o.getAnswerMc().getAnswerMcId() == answerId)) {
+        if (answerMcSubmissionOptions.stream().anyMatch(o -> o.getAnswerMc().getAnswerMcId().equals(answerId))) {
             answerMcSubmissionOptions.sort(Comparator.comparingInt(AnswerMcSubmissionOption::getAnswerOrder));
-            answerList = answerMcSubmissionOptions.stream().map(o -> o.getAnswerMc()).collect(Collectors.toList());
+            answerList = answerMcSubmissionOptions.stream()
+                .map(AnswerMcSubmissionOption::getAnswerMc)
+                .collect(Collectors.toList());
         } else {
             answerList = allRepositories.answerMcRepository.findByQuestion_QuestionId(questionId);
             answerList.sort(Comparator.comparingLong(AnswerMc::getAnswerOrder));
