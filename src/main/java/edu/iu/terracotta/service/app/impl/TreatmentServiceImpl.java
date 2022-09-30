@@ -10,6 +10,8 @@ import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.IdMismatchException;
 import edu.iu.terracotta.exceptions.IdMissingException;
 import edu.iu.terracotta.exceptions.MultipleAttemptsSettingsValidationException;
+import edu.iu.terracotta.exceptions.NegativePointsException;
+import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
 import edu.iu.terracotta.exceptions.RevealResponsesSettingValidationException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
@@ -109,9 +111,9 @@ public class TreatmentServiceImpl implements TreatmentService {
     }
 
     @Override
-    public TreatmentDto putTreatment(TreatmentDto treatmentDto, long treatmentId, SecuredInfo securedInfo)
+    public TreatmentDto putTreatment(TreatmentDto treatmentDto, long treatmentId, SecuredInfo securedInfo, boolean questions)
             throws DataServiceException, IdMissingException, AssessmentNotMatchingException, IdMismatchException,
-            TreatmentNotMatchingException, TitleValidationException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, CanvasApiException, AssignmentNotEditedException {
+            TreatmentNotMatchingException, TitleValidationException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, CanvasApiException, AssignmentNotEditedException, IdInPostException, NegativePointsException, QuestionNotMatchingException {
         if(treatmentDto.getTreatmentId() == null) {
             throw new IdMissingException(TextConstants.ID_MISSING);
         }
@@ -139,8 +141,11 @@ public class TreatmentServiceImpl implements TreatmentService {
         treatment.setCondition(condition.get());
 
         try {
-            assessmentService.updateAssessment(treatmentDto.getAssessmentDto().getAssessmentId(), treatmentDto.getAssessmentDto());
-            assignmentService.updateAssignment(treatmentDto.getAssignmentId(), treatmentDto.getAssignmentDto(), securedInfo.getCanvasCourseId());
+            assessmentService.updateAssessment(treatmentDto.getAssessmentDto().getAssessmentId(), treatmentDto.getAssessmentDto(), questions);
+
+            if (treatmentDto.getAssignmentDto() != null) {
+                assignmentService.updateAssignment(treatmentDto.getAssignmentId(), treatmentDto.getAssignmentDto(), securedInfo.getCanvasCourseId());
+            }
         } catch (AssessmentNotMatchingException | AssignmentNotMatchingException e) {
             throw new DataServiceException(String.format(TextConstants.UNABLE_TO_UPDATE_TREATMENT, e.getMessage()));
         }
@@ -159,7 +164,7 @@ public class TreatmentServiceImpl implements TreatmentService {
         }
 
         if(treatment.getAssessment() != null) {
-            treatmentDto.setAssessmentDto(assessmentService.toDto(treatment.getAssessment(), false,false, submissions, false));
+            treatmentDto.setAssessmentDto(assessmentService.toDto(treatment.getAssessment(), true,false, submissions, false));
         }
 
         treatmentDto.setConditionId(treatment.getCondition().getConditionId());
