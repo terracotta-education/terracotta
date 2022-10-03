@@ -222,7 +222,6 @@ export default {
       updateQuestion: "assessment/updateQuestion",
       deleteQuestion: "assessment/deleteQuestion",
       updateAnswer: "assessment/updateAnswer",
-      removeAssessmentQuestions: "assessment/removeAssessmentQuestions",
     }),
     async handleAddQuestion(questionType) {
       // POST QUESTION
