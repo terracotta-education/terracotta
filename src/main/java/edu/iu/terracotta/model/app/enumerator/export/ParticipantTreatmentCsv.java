@@ -12,7 +12,10 @@ public enum ParticipantTreatmentCsv {
     ASSIGNMENT_ID("assignment_id"),
     ASSIGNMENT_NAME("assignment_name"),
     TREATMENT_ID("treatment_id"),
-    GRADE_TYPE("grade_type");
+    GRADE_TYPE("grade_type"),
+    ATTEMPTS_ALLOWED("attempts_allowed"),
+    TIME_REQUIRED_BETWEEN_ATTEMPTS("time_required_between_attempts"),
+    FINAL_SCORE("final_score");
 
     public static final String FILENAME = "participant_treatment.csv";
 
