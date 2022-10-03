@@ -30,7 +30,10 @@
             outlined
           ></v-textarea>
 
-          <h4 class="mb-3"><strong>Questions</strong></h4>
+          <div class="d-flex align-center mb-3 justify-space-between">
+            <h4 class="pa-0"><strong>Questions</strong></h4>
+            <v-btn color="primary" text elevation="0" class="saveButton" @click="handleClearQuestions()" :disabled="!canClearAll">Clear All</v-btn>
+          </div>
 
           <template v-if="questionPages && questionPages.length > 0">
             <template v-for="questionPage in questionPages">
@@ -225,6 +228,9 @@ export default {
         (c) => parseInt(c.conditionId) === parseInt(this.condition_id)
       );
     },
+    canClearAll() {
+      return this.assessment.questions.length > 0 || (this.assessment.submissions.length === 0);
+    },
     ...mapGetters({
       assignment: "assignment/assignment",
       exposures: "exposures/exposures",
@@ -322,6 +328,26 @@ export default {
       } catch (error) {
         console.error(error);
       }
+    },
+    async handleClearQuestions() {
+      this.assessment.questions.forEach((q) => {
+        this.deleteQuestion([
+          this.experiment.experimentId,
+          this.condition.conditionId,
+          this.treatment_id,
+          this.assessment_id,
+          q.questionId
+        ]).then(response => {
+          if (response.status === 400) {
+            this.$swal(response.data);
+            return false;
+          }
+        });
+
+        
+      });
+      
+      return true;
     },
     async handleSaveAssessment() {
       // PUT ASSESSMENT TITLE & HTML (description) & SETTINGS
