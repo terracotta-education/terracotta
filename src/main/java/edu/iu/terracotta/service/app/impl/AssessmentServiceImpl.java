@@ -7,8 +7,10 @@ import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.GroupNotMatchingException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.MultipleAttemptsSettingsValidationException;
+import edu.iu.terracotta.exceptions.NegativePointsException;
 import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
+import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
 import edu.iu.terracotta.exceptions.RevealResponsesSettingValidationException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.model.app.Assessment;
@@ -36,6 +38,7 @@ import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.utils.TextConstants;
 
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -275,9 +278,9 @@ public class AssessmentServiceImpl implements AssessmentService {
     }
 
     @Override
-    public void updateAssessment(Long id, AssessmentDto assessmentDto)
+    public AssessmentDto updateAssessment(Long id, AssessmentDto assessmentDto, boolean processQuestions)
             throws TitleValidationException, RevealResponsesSettingValidationException,
-            MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException {
+            MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException, IdInPostException, DataServiceException, NegativePointsException, QuestionNotMatchingException {
         Assessment assessment = allRepositories.assessmentRepository.findByAssessmentId(id);
 
         if (assessment == null) {
@@ -305,7 +308,55 @@ public class AssessmentServiceImpl implements AssessmentService {
         assessment.setMultipleSubmissionScoringScheme(multipleSubmissionScoringScheme);
         assessment.setCumulativeScoringInitialPercentage(assessmentDto.getCumulativeScoringInitialPercentage());
 
-        saveAndFlush(assessment);
+        if (processQuestions) {
+            processAssessmentQuestions(assessmentDto);
+        }
+
+        return toDto(save(assessment), true, false, false, false);
+    }
+
+    private void processAssessmentQuestions(AssessmentDto assessmentDto) throws IdInPostException, DataServiceException, QuestionNotMatchingException, NegativePointsException {
+        if (CollectionUtils.isNotEmpty(assessmentDto.getQuestions())) {
+            List<Question> questions = questionService.findAllByAssessmentId(assessmentDto.getAssessmentId());
+
+            List<Long> existingQuestionIds = CollectionUtils.emptyIfNull(questions).stream()
+                .map(Question::getQuestionId).collect(Collectors.toList());
+
+            Map<Question, QuestionDto> questionMap = new HashMap<>();
+
+            for (QuestionDto questionDto : assessmentDto.getQuestions()) {
+                if (questionDto.getQuestionId() == null) {
+                    // create new question
+                    questionService.postQuestion(questionDto, assessmentDto.getAssessmentId(), false);
+                    continue;
+                }
+
+                // update question
+                Question question = questionService.getQuestion(questionDto.getQuestionId());
+
+                if (question == null) {
+                    throw new QuestionNotMatchingException(TextConstants.QUESTION_NOT_MATCHING);
+                }
+
+                // remove question ID from list, as it exists in the question DTO list
+                existingQuestionIds.remove(question.getQuestionId());
+                questionMap.put(question, questionDto);
+            }
+
+            if (MapUtils.isNotEmpty(questionMap)) {
+                questionService.updateQuestion(questionMap);
+            }
+
+            // remove questions not passed in
+            CollectionUtils.emptyIfNull(existingQuestionIds).stream()
+                .forEach(existingQuestionId -> questionService.deleteById(existingQuestionId));
+        } else {
+            // delete all questions from the assessment; none were passed in
+            List<Question> questions = questionService.findAllByAssessmentId(assessmentDto.getAssessmentId());
+
+            CollectionUtils.emptyIfNull(questions).stream()
+                .forEach(question -> questionService.deleteById(question.getQuestionId()));
+        }
     }
 
     @Override
