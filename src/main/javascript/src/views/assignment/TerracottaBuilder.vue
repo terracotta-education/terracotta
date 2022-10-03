@@ -106,7 +106,7 @@
               </v-list-item>
             </v-list>
           </v-menu>
-          <v-menu offset-y close-on-click transition="slide-y-transition">
+          <v-menu offset-y close-on-click close-on-content-click transition="slide-y-transition" v-model="copyMenuShown">
             <template v-slot:activator="{ on, attrs }">
               <v-btn
                 color="primary"
@@ -115,6 +115,8 @@
                 v-bind="attrs"
                 v-on="on"
                 class="mb-3 mt-3"
+                
+                :disabled="questions.length > 0"
               >
                 Copy Treatment From
                 <v-icon>mdi-chevron-down</v-icon>
@@ -139,6 +141,9 @@
                         <v-list-item-title>{{
                           assignment.title
                         }}</v-list-item-title>
+                        <v-list-item-action class="justify-end">
+                          <v-icon>mdi-menu-right</v-icon>
+                        </v-list-item-action>
                       </v-list-item>
                     </template>
                     <v-list>
@@ -176,7 +181,6 @@
             </v-list>
           </v-menu>
           <br />
-          <pre>{{ assignments }}</pre>
         </form>
       </v-tab-item>
       <v-tab-item class="my-5">
@@ -278,6 +282,7 @@ export default {
   },
   data() {
     return {
+      copyMenuShown: false,
       rules: [
         (v) => (v && !!v.trim()) || "required",
         (v) =>
@@ -450,6 +455,8 @@ export default {
       const { treatmentId, assessmentId } = assessmentDto;
       let assessment;
 
+      this.copyMenuShown = false;
+
       try {
         assessment = await assessmentService.fetchAssessment(this.experiment.experimentId, conditionId, treatmentId, assessmentId)
       } catch (error) {
@@ -461,10 +468,8 @@ export default {
         ...assessment.data
       }, ['answerId', 'questionId', 'assessmentId']);
 
-      console.log(assessment, copy);
-
       try {
-        return await this.duplicateTreatment([
+        await this.duplicateTreatment([
           this.experiment.experimentId,
           this.condition_id,
           this.treatment_id,
@@ -481,6 +486,12 @@ export default {
               ...this.assignment
             }
           },
+        ]);
+        return await this.fetchAssessment([
+          this.experiment.experimentId,
+          this.condition_id,
+          this.treatment_id,
+          this.assessment_id,
         ]);
       } catch (error) {
         console.error("handleCreateTreatment | catch", { error });
