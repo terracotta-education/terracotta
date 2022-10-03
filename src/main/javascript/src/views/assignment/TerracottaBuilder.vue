@@ -157,7 +157,7 @@ export default {
       );
     },
     canClearAll() {
-      return this.assessment.questions.length > 0 || (this.assessment.submissions.length === 0);
+      return this.assessment.questions.length > 0 && this.assessment.submissions.length < 1;
     },
     ...mapGetters({
       assignment: "assignment/assignment",
