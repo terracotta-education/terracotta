@@ -13,6 +13,8 @@ import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.IdMismatchException;
 import edu.iu.terracotta.exceptions.IdMissingException;
 import edu.iu.terracotta.exceptions.MultipleAttemptsSettingsValidationException;
+import edu.iu.terracotta.exceptions.NegativePointsException;
+import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
 import edu.iu.terracotta.exceptions.RevealResponsesSettingValidationException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
@@ -135,11 +137,12 @@ public class TreatmentController {
                                                 @PathVariable long conditionId,
                                                 @PathVariable long treatmentId,
                                                 @RequestBody TreatmentDto treatmentDto,
+                                                @RequestParam(name = "questions", defaultValue = "true") boolean questions,
                                                 HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, TreatmentNotMatchingException, IdInPostException, DataServiceException,
                 ExceedingLimitException, AssessmentNotMatchingException, IdMissingException, IdMismatchException,
                 TitleValidationException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException,
-                CanvasApiException, AssignmentNotEditedException {
+                CanvasApiException, AssignmentNotEditedException, NegativePointsException, QuestionNotMatchingException {
 
         log.debug("Updating treatment with id: {}", treatmentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
@@ -150,7 +153,7 @@ public class TreatmentController {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
-        return new ResponseEntity(treatmentService.putTreatment(treatmentDto, treatmentId, securedInfo), HttpStatus.OK);
+        return new ResponseEntity(treatmentService.putTreatment(treatmentDto, treatmentId, securedInfo, questions), HttpStatus.OK);
     }
 
     @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}", method = RequestMethod.DELETE)

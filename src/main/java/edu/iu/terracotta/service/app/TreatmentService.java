@@ -9,6 +9,8 @@ import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.IdMismatchException;
 import edu.iu.terracotta.exceptions.IdMissingException;
 import edu.iu.terracotta.exceptions.MultipleAttemptsSettingsValidationException;
+import edu.iu.terracotta.exceptions.NegativePointsException;
+import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
 import edu.iu.terracotta.exceptions.RevealResponsesSettingValidationException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
@@ -34,7 +36,7 @@ public interface TreatmentService {
 
     TreatmentDto postTreatment(TreatmentDto treatmentDto, long conditionId) throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, TreatmentNotMatchingException;
 
-    TreatmentDto putTreatment(TreatmentDto treatmentDto, long treatmentId, SecuredInfo securedInfo) throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, IdMissingException, IdMismatchException, TreatmentNotMatchingException, TitleValidationException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, CanvasApiException, AssignmentNotEditedException;
+    TreatmentDto putTreatment(TreatmentDto treatmentDto, long treatmentId, SecuredInfo securedInfo, boolean questions) throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, IdMissingException, IdMismatchException, TreatmentNotMatchingException, TitleValidationException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, CanvasApiException, AssignmentNotEditedException, NegativePointsException, QuestionNotMatchingException;
 
     TreatmentDto duplicateTreatment(long treatmentId, Assignment assignment, String canvasCourseId, long platformDeploymentId) throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, NumberFormatException, CanvasApiException, TreatmentNotMatchingException;
 

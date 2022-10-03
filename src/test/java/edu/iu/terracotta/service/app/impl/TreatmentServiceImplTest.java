@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 
@@ -35,6 +36,8 @@ import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.IdMismatchException;
 import edu.iu.terracotta.exceptions.IdMissingException;
 import edu.iu.terracotta.exceptions.MultipleAttemptsSettingsValidationException;
+import edu.iu.terracotta.exceptions.NegativePointsException;
+import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
 import edu.iu.terracotta.exceptions.RevealResponsesSettingValidationException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
@@ -148,8 +151,8 @@ public class TreatmentServiceImplTest {
     }
 
     @Test
-    public void testPutTreatment() throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, IdMissingException, IdMismatchException, TreatmentNotMatchingException, TitleValidationException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, CanvasApiException, AssignmentNotEditedException {
-        TreatmentDto treatmentDto = treatmentService.putTreatment(treatmentDtoToUpdate, 1L, securedInfo);
+    public void testPutTreatment() throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, IdMissingException, IdMismatchException, TreatmentNotMatchingException, TitleValidationException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, CanvasApiException, AssignmentNotEditedException, NegativePointsException, QuestionNotMatchingException {
+        TreatmentDto treatmentDto = treatmentService.putTreatment(treatmentDtoToUpdate, 1L, securedInfo, false);
 
         assertNotNull(treatmentDto);
         verify(treatmentRepository).save(any(Treatment.class));
@@ -159,7 +162,7 @@ public class TreatmentServiceImplTest {
     public void testPutTreatmentNoIdInPut() throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException {
         when(treatmentDtoToUpdate.getTreatmentId()).thenReturn(null);
 
-        Exception exception = assertThrows(IdMissingException.class, () -> { treatmentService.putTreatment(treatmentDtoToUpdate, 1L, securedInfo); });
+        Exception exception = assertThrows(IdMissingException.class, () -> { treatmentService.putTreatment(treatmentDtoToUpdate, 1L, securedInfo, false); });
 
         assertEquals(TextConstants.ID_MISSING, exception.getMessage());
     }
@@ -168,7 +171,7 @@ public class TreatmentServiceImplTest {
     public void testPutTreatmentIdMismatch() throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException {
         when(treatmentDtoToUpdate.getTreatmentId()).thenReturn(2L);
 
-        Exception exception = assertThrows(IdMismatchException.class, () -> { treatmentService.putTreatment(treatmentDtoToUpdate, 1L, securedInfo); });
+        Exception exception = assertThrows(IdMismatchException.class, () -> { treatmentService.putTreatment(treatmentDtoToUpdate, 1L, securedInfo, false); });
 
         assertEquals(TextConstants.ID_MISMATCH_PUT, exception.getMessage());
     }
@@ -177,7 +180,7 @@ public class TreatmentServiceImplTest {
     public void testPutTreatmentNoAssignment() throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException {
         when(treatmentDtoToUpdate.getAssignmentId()).thenReturn(null);
 
-        Exception exception = assertThrows(DataServiceException.class, () -> { treatmentService.putTreatment(treatmentDtoToUpdate, 1L, securedInfo); });
+        Exception exception = assertThrows(DataServiceException.class, () -> { treatmentService.putTreatment(treatmentDtoToUpdate, 1L, securedInfo, false); });
 
         assertEquals(TextConstants.NO_ASSIGNMENT_IN_TREATMENTDTO, exception.getMessage());
     }
@@ -185,10 +188,10 @@ public class TreatmentServiceImplTest {
     @Test
     public void testPutTreatmentInvalidAssessment() throws IdInPostException, DataServiceException, ExceedingLimitException,
             AssessmentNotMatchingException, TitleValidationException, CanvasApiException, AssignmentNotEditedException,
-            RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, AssignmentNotMatchingException {
-        doThrow(new AssessmentNotMatchingException(TextConstants.ASSESSMENT_NOT_MATCHING)).when(assessmentService).updateAssessment(anyLong(), any(AssessmentDto.class));
+            RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, AssignmentNotMatchingException, NegativePointsException, QuestionNotMatchingException {
+        doThrow(new AssessmentNotMatchingException(TextConstants.ASSESSMENT_NOT_MATCHING)).when(assessmentService).updateAssessment(anyLong(), any(AssessmentDto.class), anyBoolean());
 
-        Exception exception = assertThrows(DataServiceException.class, () -> { treatmentService.putTreatment(treatmentDtoToUpdate, 1L, securedInfo); });
+        Exception exception = assertThrows(DataServiceException.class, () -> { treatmentService.putTreatment(treatmentDtoToUpdate, 1L, securedInfo, false); });
 
         assertEquals(String.format(TextConstants.UNABLE_TO_UPDATE_TREATMENT, TextConstants.ASSESSMENT_NOT_MATCHING), exception.getMessage());
     }
@@ -199,7 +202,7 @@ public class TreatmentServiceImplTest {
             RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, AssignmentNotMatchingException {
         when(assignmentService.updateAssignment(anyLong(), any(AssignmentDto.class), anyString())).thenThrow(new AssignmentNotMatchingException(TextConstants.ASSIGNMENT_NOT_MATCHING));
 
-        Exception exception = assertThrows(DataServiceException.class, () -> { treatmentService.putTreatment(treatmentDtoToUpdate, 1L, securedInfo); });
+        Exception exception = assertThrows(DataServiceException.class, () -> { treatmentService.putTreatment(treatmentDtoToUpdate, 1L, securedInfo, false); });
 
         assertEquals(String.format(TextConstants.UNABLE_TO_UPDATE_TREATMENT, TextConstants.ASSIGNMENT_NOT_MATCHING), exception.getMessage());
     }
