@@ -45,7 +45,7 @@
                   class="v-expansion-panels--outlined"
                   :key="questionPage.key"
                 >
-                <draggable v-model="questionPage.questions" handle=".dragger"
+                <draggable :list="questionPage.questions" group="questions" handle=".dragger"
                   @change="(ev) => handleQuestionOrderChange(ev, questionPage)"
                   class="" style="width:100%">
                   <v-expansion-panel
@@ -232,6 +232,7 @@ export default {
       updateQuestion: "assessment/updateQuestion",
       deleteQuestion: "assessment/deleteQuestion",
       updateAnswer: "assessment/updateAnswer",
+      orderQuestions: "assessment/orderQuestions"
     }),
     async handleAddQuestion(questionType) {
       // POST QUESTION
@@ -241,7 +242,7 @@ export default {
           this.condition_id,
           this.treatment_id,
           this.assessment_id,
-          0,
+          this.questions.length,
           questionType,
           1, // points
           "",
@@ -250,16 +251,18 @@ export default {
         console.error(error);
       }
     },
-    async handleQuestionOrderChange(event, page) {
-      const { questions } = page;
-      let list = [...questions.map(q => ({...q}))];
-      const movedItem = list.splice(event.oldIndex, 1)[0];
-      list.splice(event.newIndex, 0, movedItem);
-      list.forEach((q, idx) => {
-        q.questionOrder = idx;
-      })
-      page.questions = list;
-      this.handleSaveQuestions(list);
+    async handleQuestionOrderChange(event) {
+      if (event.added) {
+        const list = [...this.questions.map(q => ({...q}))];
+        const oldIndex = list.findIndex((v) => v.questionId === event.added.element.questionId);
+        const movedItem = list.splice(oldIndex, 1)[0];
+        list.splice(event.added.newIndex, 0, movedItem);
+        list.forEach((q, idx) => {
+          q.questionOrder = idx;
+        });
+
+        this.handleSaveQuestions(list);
+      }
     },
     async handleClearQuestions() {
       this.assessment.questions.forEach((q) => {
