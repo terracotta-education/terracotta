@@ -1,6 +1,7 @@
 package edu.iu.terracotta.controller.app;
 
 import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
+import edu.iu.terracotta.exceptions.AssignmentMoveException;
 import edu.iu.terracotta.exceptions.AssignmentNotCreatedException;
 import edu.iu.terracotta.exceptions.AssignmentNotEditedException;
 import edu.iu.terracotta.exceptions.AssignmentNotMatchingException;
@@ -141,7 +142,7 @@ public class AssignmentController {
                                                  HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, AssignmentNotMatchingException,
                     TitleValidationException, CanvasApiException, AssignmentNotEditedException,
-                    RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException {
+                    RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException, ExposureNotMatchingException {
 
         log.debug("Updating assignment with id: {}", assignmentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
@@ -230,6 +231,34 @@ public class AssignmentController {
         }
 
         AssignmentDto returnedDto = assignmentService.duplicateAssignment(assignmentId, securedInfo.getCanvasCourseId(), securedInfo.getPlatformDeploymentId());
+        HttpHeaders headers = assignmentService.buildHeaders(ucBuilder, experimentId, exposureId, returnedDto.getAssignmentId());
+
+        return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
+    }
+
+    @Transactional
+    @PostMapping(value = "/{experimentId}/exposures/{exposureId}/assignments/{assignmentId}/move")
+    public ResponseEntity<AssignmentDto> moveAssignment(@PathVariable long experimentId,
+                                                        @PathVariable long exposureId,
+                                                        @PathVariable long assignmentId,
+                                                        @RequestBody AssignmentDto assignmentDto,
+                                                        UriComponentsBuilder ucBuilder,
+                                                        HttpServletRequest req)
+            throws ExperimentNotMatchingException, ExposureNotMatchingException, BadTokenException,
+                    AssessmentNotMatchingException, TitleValidationException, AssignmentNotCreatedException, IdInPostException,
+                    DataServiceException, RevealResponsesSettingValidationException,
+                    MultipleAttemptsSettingsValidationException, NumberFormatException, CanvasApiException, ExceedingLimitException, TreatmentNotMatchingException, AssignmentMoveException, AssignmentNotEditedException {
+
+        log.debug("Duplicating Assignment: {}", assignmentId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
+
+        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
+            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
+        }
+
+        AssignmentDto returnedDto = assignmentService.moveAssignment(assignmentId, assignmentDto, experimentId, exposureId, securedInfo.getCanvasCourseId(), securedInfo.getPlatformDeploymentId());
         HttpHeaders headers = assignmentService.buildHeaders(ucBuilder, experimentId, exposureId, returnedDto.getAssignmentId());
 
         return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
