@@ -6,7 +6,9 @@ import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.MultipleAttemptsSettingsValidationException;
+import edu.iu.terracotta.exceptions.NegativePointsException;
 import edu.iu.terracotta.exceptions.NoSubmissionsException;
+import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
 import edu.iu.terracotta.exceptions.RevealResponsesSettingValidationException;
 import edu.iu.terracotta.exceptions.SubmissionNotMatchingException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
@@ -28,6 +30,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -140,28 +143,29 @@ public class AssessmentController {
         }
     }
 
-    @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}", method = RequestMethod.PUT)
-    public ResponseEntity<Void> updateAssessment(@PathVariable("experiment_id") Long experimentId,
-                                                 @PathVariable("condition_id") Long conditionId,
-                                                 @PathVariable("treatment_id") Long treatmentId,
-                                                 @PathVariable("assessment_id") Long assessmentId,
+    @PutMapping("/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}")
+    public ResponseEntity<AssessmentDto> updateAssessment(@PathVariable long experimentId,
+                                                 @PathVariable long conditionId,
+                                                 @PathVariable long treatmentId,
+                                                 @PathVariable long assessmentId,
                                                  @RequestBody AssessmentDto assessmentDto,
                                                  HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, BadTokenException,
             TitleValidationException, RevealResponsesSettingValidationException,
-            MultipleAttemptsSettingsValidationException {
+            MultipleAttemptsSettingsValidationException, IdInPostException, DataServiceException, NegativePointsException, QuestionNotMatchingException {
 
         log.debug("Updating assessment with id: {}", assessmentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
 
-        if(apijwtService.isInstructorOrHigher(securedInfo)){
-            assessmentService.updateAssessment(assessmentId, assessmentDto);
-            return new ResponseEntity<>(HttpStatus.OK);
-        } else {
+        if(!apijwtService.isInstructorOrHigher(securedInfo)){
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
+
+        AssessmentDto updatedAssessmentDto = assessmentService.updateAssessment(assessmentId, assessmentDto, true);
+
+        return new ResponseEntity<>(updatedAssessmentDto, HttpStatus.OK);
     }
 
 

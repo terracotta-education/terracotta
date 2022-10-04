@@ -270,6 +270,10 @@ export default {
         this.assessment.allowStudentViewCorrectAnswers,
         this.assessment.studentViewCorrectAnswersAfter,
         this.assessment.studentViewCorrectAnswersBefore,
+        this.assessment.numOfSubmissions,
+        this.assessment.multipleSubmissionScoringScheme,
+        this.assessment.hoursBetweenSubmissions,
+        this.assessment.cumulativeScoringInitialPercentage
       ]);
       if (response.status === 400) {
         this.$swal(response.data);
@@ -330,6 +334,7 @@ export default {
       );
     },
     async saveAll(routeName) {
+
       if (this.answerableQuestions.some((q) => !q.html)) {
         this.$swal("Please fill or delete empty questions.");
         return false;
@@ -339,10 +344,9 @@ export default {
       if (savedAssessment) {
         await this.handleSaveQuestions(this.questions);
         await this.handleSaveAnswers();
-
         this.$router.push({
           name: routeName,
-          params: { exposure_id: this.exposure_id },
+          params: { exposure_id: isNaN(this.exposure_id) ? this.$route.params.exposure_id : this.exposure_id },
         });
       }
     },

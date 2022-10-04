@@ -3,6 +3,7 @@ package edu.iu.terracotta.service.app.impl;
 import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.exceptions.AssignmentAttemptException;
 import edu.iu.terracotta.exceptions.AssignmentDatesException;
+import edu.iu.terracotta.exceptions.AssignmentMoveException;
 import edu.iu.terracotta.exceptions.AssignmentNotCreatedException;
 import edu.iu.terracotta.exceptions.AssignmentNotEditedException;
 import edu.iu.terracotta.exceptions.AssignmentNotMatchingException;
@@ -10,6 +11,7 @@ import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExceedingLimitException;
+import edu.iu.terracotta.exceptions.ExposureNotMatchingException;
 import edu.iu.terracotta.exceptions.GroupNotMatchingException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.MultipleAttemptsSettingsValidationException;
@@ -38,6 +40,7 @@ import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.AssessmentService;
 import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.app.ExperimentService;
+import edu.iu.terracotta.service.app.ExposureService;
 import edu.iu.terracotta.service.app.ParticipantService;
 import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.service.app.TreatmentService;
@@ -94,6 +97,9 @@ public class AssignmentServiceImpl implements AssignmentService {
 
     @Autowired
     private ExperimentService experimentService;
+
+    @Autowired
+    private ExposureService exposureService;
 
     @Autowired
     private ParticipantService participantService;
@@ -767,6 +773,35 @@ public class AssignmentServiceImpl implements AssignmentService {
             assignment.setPublished(canvasAssignment.get().isPublished());
             assignment.setDueDate(canvasAssignment.get().getDueAt());
         }
+    }
+
+    @Override
+    public AssignmentDto moveAssignment(long assignmentId, AssignmentDto assignmentDto, long experimentId, long exposureId, String canvasCourseId, long platformDeploymentId)
+            throws DataServiceException, IdInPostException, TitleValidationException, AssessmentNotMatchingException,
+            AssignmentNotCreatedException, RevealResponsesSettingValidationException,
+            MultipleAttemptsSettingsValidationException, NumberFormatException, CanvasApiException,
+            ExceedingLimitException, TreatmentNotMatchingException, ExposureNotMatchingException, AssignmentMoveException, AssignmentNotEditedException {
+        if (exposureId == assignmentDto.getExposureId()) {
+            // cannot move assignment; original and target exposures are the same
+            throw new AssignmentMoveException(TextConstants.UNABLE_TO_MOVE_ASSIGNMENT_EXPOSURE_SAME);
+        }
+
+        Exposure exposure = exposureService.getExposure(assignmentDto.getExposureId());
+
+        if (exposure == null) {
+            throw new ExposureNotMatchingException(TextConstants.EXPOSURE_NOT_MATCHING);
+        }
+
+        // reset ID
+        assignmentDto.setAssignmentId(null);
+
+        // create new assignment
+        AssignmentDto newAssignmentDto = postAssignment(assignmentDto, experimentId, canvasCourseId, assignmentDto.getExposureId(), platformDeploymentId);
+
+        // delete original assignment
+        deleteById(assignmentId, canvasCourseId);
+
+        return newAssignmentDto;
     }
 
 }
