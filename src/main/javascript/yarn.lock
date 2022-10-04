@@ -2738,7 +2738,7 @@ cosmiconfig@^5.0.0:
 
 countable@^3.0.1:
   version "3.0.1"
-  resolved "https://registry.yarnpkg.com/countable/-/countable-3.0.1.tgz#1d0c1c426e8db08890534151ac7448c3642496ce"
+  resolved "https://registry.npmjs.org/countable/-/countable-3.0.1.tgz"
   integrity sha512-dz/sdi+RFpHJKMen5RAB9EKpCKd/q5WMfxG3SbdbQ3Pak4+SEPmDhVWZF0GTTHwjqjR+7DmiZHzZiFJ4qeAzmg==
 
 create-ecdh@^4.0.0:
@@ -2980,7 +2980,7 @@ dashdash@^1.12.0:
 
 date-fns@^2.1.0:
   version "2.29.2"
-  resolved "https://registry.yarnpkg.com/date-fns/-/date-fns-2.29.2.tgz#0d4b3d0f3dff0f920820a070920f0d9662c51931"
+  resolved "https://registry.npmjs.org/date-fns/-/date-fns-2.29.2.tgz"
   integrity sha512-0VNbwmWJDS/G3ySwFSJA3ayhbURMTJLtwM2DTxf9CWondCnh6DTNlO9JgRSq6ibf4eD0lfMJNBxUdEAHHix+bA==
 
 de-indent@^1.0.2:
@@ -3815,7 +3815,7 @@ file-loader@^6.2.0:
 
 file-saver@^2.0.5:
   version "2.0.5"
-  resolved "https://registry.yarnpkg.com/file-saver/-/file-saver-2.0.5.tgz#d61cfe2ce059f414d899e9dd6d4107ee25670c38"
+  resolved "https://registry.npmjs.org/file-saver/-/file-saver-2.0.5.tgz"
   integrity sha512-P9bmyZ3h/PRG+Nzga+rbdI4OEpNDzAVyy74uVO9ATgzLK6VtAsYybF/+TOCvrc0MO793d6+42lLyZTw7/ArVzA==
 
 file-uri-to-path@1.0.0:
@@ -7518,12 +7518,12 @@ sort-keys@^1.0.0:
 
 sortablejs@1.10.2:
   version "1.10.2"
-  resolved "https://registry.yarnpkg.com/sortablejs/-/sortablejs-1.10.2.tgz#6e40364d913f98b85a14f6678f92b5c1221f5290"
+  resolved "https://registry.npmjs.org/sortablejs/-/sortablejs-1.10.2.tgz"
   integrity sha512-YkPGufevysvfwn5rfdlGyrGjt7/CRHwvRPogD/lC+TnvcN29jDpCifKP+rBqf+LRldfXSTh+0CGLcSg0VIxq3A==
 
 sortablejs@^1.15.0:
   version "1.15.0"
-  resolved "https://registry.yarnpkg.com/sortablejs/-/sortablejs-1.15.0.tgz#53230b8aa3502bb77a29e2005808ffdb4a5f7e2a"
+  resolved "https://registry.npmjs.org/sortablejs/-/sortablejs-1.15.0.tgz"
   integrity sha512-bv9qgVMjUMf89wAvM6AxVvS/4MX3sPeN0+agqShejLU5z5GX4C75ow1O2e5k4L6XItUyAK3gH6AxSbXrOM5e8w==
 
 source-list-map@^2.0.0:
@@ -8516,14 +8516,14 @@ vue@^2.3.3, vue@^2.6.10, vue@^2.6.11:
 
 vuedraggable@^2.24.3:
   version "2.24.3"
-  resolved "https://registry.yarnpkg.com/vuedraggable/-/vuedraggable-2.24.3.tgz#43c93849b746a24ce503e123d5b259c701ba0d19"
+  resolved "https://registry.npmjs.org/vuedraggable/-/vuedraggable-2.24.3.tgz"
   integrity sha512-6/HDXi92GzB+Hcs9fC6PAAozK1RLt1ewPTLjK0anTYguXLAeySDmcnqE8IC0xa7shvSzRjQXq3/+dsZ7ETGF3g==
   dependencies:
     sortablejs "1.10.2"
 
 vuetify-datetime-picker@^2.1.1:
   version "2.1.1"
-  resolved "https://registry.yarnpkg.com/vuetify-datetime-picker/-/vuetify-datetime-picker-2.1.1.tgz#582341b65fa6e8036cb10d7e56a90d9989335ad9"
+  resolved "https://registry.npmjs.org/vuetify-datetime-picker/-/vuetify-datetime-picker-2.1.1.tgz"
   integrity sha512-xY3YCVNxoe/5Chbm7G2BXrkg12CWLWwnDJZdhNPVKe1p8S72H8NomYOB6SSBzMMEHisRGIRzAQTDwDfDU06x/Q==
   dependencies:
     date-fns "^2.1.0"
