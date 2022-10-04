@@ -6,10 +6,17 @@ const state = {
 }
 
 const actions = {
+  async updateAssignment({ commit }, payload) {
+    try {
+      const response = await assignmentService.updateAssignment(...payload);
+      commit('updateAssignments', response);
+    } catch (e) {
+      console.error(e)
+    }
+  },
   async saveAssignmentOrder({ commit }, payload) {
     try {
       const response = await assignmentService.updateAssignments(...payload);
-      console.log(response);
       commit('updateAssignments', response);
     } catch (e) {
       console.error(e)

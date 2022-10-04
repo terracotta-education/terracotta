@@ -10,6 +10,7 @@ export const assignmentService = {
   create,
   deleteAssignment,
   updateAssignments,
+  updateAssignment,
   duplicateAssignment
 }
 
@@ -95,6 +96,18 @@ async function updateAssignments(experiment_id, exposure_id, payload) {
   }
 
   return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/exposures/${exposure_id}/assignments`, requestOptions).then(handleResponse)
+}
+
+async function updateAssignment(experiment_id, exposure_id, assignment_id, payload) {
+  const requestOptions = {
+    method: 'PUT',
+    headers: {...authHeader()},
+    body: JSON.stringify([
+      ...payload
+    ])
+  }
+
+  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/exposures/${exposure_id}/assignments/${assignment_id}`, requestOptions).then(handleResponse)
 }
 
 

@@ -26,7 +26,7 @@
                 <v-btn
                   color="primary"
                   elevation="0"
-                  @click="handleEdit('AssignmentExposureSets')"
+                  @click="handleEdit('AssignmentCreateAssignment')"
                   >Add Assignment</v-btn
                 >
               </div>
