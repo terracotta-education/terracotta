@@ -303,7 +303,7 @@ export default {
       updateQuestion: "assessment/updateQuestion",
       deleteQuestion: "assessment/deleteQuestion",
       updateAnswer: "assessment/updateAnswer",
-      duplicateTreatment: "treatment/duplicateTreatment",
+      updateTreatment: "treatment/updateTreatment",
     }),
     getAssignmentsForExposure(exp) {
       return this.assignments
@@ -469,7 +469,7 @@ export default {
       }, ['answerId', 'questionId', 'assessmentId']);
 
       try {
-        await this.duplicateTreatment([
+        await this.updateTreatment([
           this.experiment.experimentId,
           this.condition_id,
           this.treatment_id,

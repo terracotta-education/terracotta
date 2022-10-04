@@ -38,7 +38,7 @@ const actions = {
       console.log('createTreatment catch', error)
     }
   },
-  async duplicateTreatment ({commit}, payload) {
+  async updateTreatment ({commit}, payload) {
     // payload = experiment_id, condition_id, treatment_id
     // create the treatment, commit an update mutation, and return the status/data response
     try {
@@ -59,7 +59,7 @@ const actions = {
         data: treatment
       }
     } catch (error) {
-      console.log('createTreatment catch', error)
+      console.log('updateTreatment catch', error)
     }
   },
   async checkTreatment({state}, payload) {
