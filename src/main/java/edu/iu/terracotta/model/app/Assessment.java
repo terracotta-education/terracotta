@@ -45,7 +45,7 @@ public class Assessment extends BaseEntity {
     @Column(name = "auto_submit", nullable = false)
     private boolean autoSubmit;
 
-    // if null then the number of submissions is unlimited
+    // if null or zero then the number of submissions is unlimited
     @Column
     private Integer numOfSubmissions;
 
