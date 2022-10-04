@@ -57,7 +57,6 @@ import edu.iu.terracotta.service.app.ParticipantService;
 import edu.iu.terracotta.service.app.QuestionService;
 import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.utils.TextConstants;
-import liquibase.pro.packaged.q;
 
 import org.apache.commons.lang3.StringUtils;
 

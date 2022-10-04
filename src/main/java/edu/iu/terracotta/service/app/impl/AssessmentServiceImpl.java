@@ -280,15 +280,18 @@ public class AssessmentServiceImpl implements AssessmentService {
     @Override
     public AssessmentDto updateAssessment(Long id, AssessmentDto assessmentDto, boolean processQuestions)
             throws TitleValidationException, RevealResponsesSettingValidationException,
-            MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException, IdInPostException, DataServiceException, NegativePointsException, QuestionNotMatchingException {
+                MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException, IdInPostException, DataServiceException,
+                NegativePointsException, QuestionNotMatchingException {
         Assessment assessment = allRepositories.assessmentRepository.findByAssessmentId(id);
 
         if (assessment == null) {
             throw new AssessmentNotMatchingException(TextConstants.ASSESSMENT_NOT_MATCHING);
         }
-        if (StringUtils.isAllBlank(assessmentDto.getTitle()) && StringUtils.isAllBlank(assessment.getTitle())) {
+
+        if (StringUtils.isAllBlank(assessmentDto.getTitle(), assessment.getTitle())) {
             throw new TitleValidationException("Error 100: Please give the assessment a title.");
         }
+
         validateMultipleAttemptsSettings(assessmentDto);
         validateTitle(assessmentDto.getTitle());
         validateRevealAssignmentResponsesSettings(assessmentDto);
