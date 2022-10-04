@@ -30,7 +30,7 @@ const actions = {
     // * = optional
     // get assignments by their exposureId
     try {
-      const assignments = await assignmentService.fetchAssignmentsByExposure(...payload)
+      const assignments = await assignmentService.fetchAssignmentsByExposure(...payload);
       commit('updateAssignments', assignments)
     } catch (e) {
       console.error(e)
@@ -89,15 +89,13 @@ const actions = {
       console.error('createAssignment catch', {error})
     }
   },
-  async updateAssignment(context, payload) {
+  async moveAssignment({commit}, payload) {
+    const aId = payload[2];
     try {
-      console.log(payload, context);
-
-      const response = await assignmentService.updateAssignment(...payload);
-      console.log(response);
-
+      const response = await assignmentService.moveAssignment(...payload);
       if (response?.assignmentId) {
-        // commit('setAssignment', response)
+        commit('deleteAssignment', aId)
+        commit('setAssignment', response)
         return {
           status: 201,
           data: response

@@ -347,7 +347,7 @@ export default {
       createAssessment: "assessment/createAssessment",
       getConsentFile: "consent/getConsentFile",
       getZip: "exportdata/fetchExportData",
-      updateAssignment: "assignment/updateAssignment",
+      moveAssignment: "assignment/moveAssignment",
     }),
     saveOrder(event, assignments, exposure) {
       const movedItem = assignments.splice(event.oldIndex, 1)[0];
@@ -364,20 +364,30 @@ export default {
     },
     async handleMoveAssignment(targetExposureId, assignment) {
       try {
-        return await this.updateAssignment([
+        const response = await this.moveAssignment([
           this.experiment.experimentId,
           assignment.exposureId,
           assignment.assignmentId,
           {
             ...assignment,
+            assignmentId: null,
             exposureId: targetExposureId
           }
         ]);
+
+        if (response.status === 201) {
+          return await this.fetchAssignmentsByExposure([
+            this.experiment_id,
+            targetExposureId,
+            true,
+          ]);
+        }
       } catch (error) {
         console.error("handleMoveAssignment | catch", { error });
       }
     },
     getAssignmentsForExposure(exp) {
+      // console.log(this.assignments);
       return this.assignments
         .filter((a) => a.exposureId === exp.exposureId)
         .sort((a, b) => a.assignmentOrder - b.assignmentOrder);
