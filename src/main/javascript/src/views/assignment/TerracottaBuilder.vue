@@ -106,6 +106,80 @@
               </v-list-item>
             </v-list>
           </v-menu>
+          <v-menu offset-y close-on-click close-on-content-click transition="slide-y-transition" v-model="copyMenuShown">
+            <template v-slot:activator="{ on, attrs }">
+              <v-btn
+                color="primary"
+                elevation="0"
+                plain
+                v-bind="attrs"
+                v-on="on"
+                class="mb-3 mt-3"
+                
+                :disabled="questions.length > 0"
+              >
+                Copy Treatment From
+                <v-icon>mdi-chevron-down</v-icon>
+              </v-btn>
+            </template>
+            <v-list>
+              <template v-for="exposure in exposures">
+                <template
+                  v-for="(assignment, index) in getAssignmentsForExposure(
+                    exposure
+                  )"
+                >
+                  <v-menu
+                    offset-x
+                    :key="assignment.assignmentId"
+                    v-if="assignment.treatments.length > 1"
+                    open-on-hover
+                    transition="slide-x-transition"
+                  >
+                    <template v-slot:activator="{ on, attrs }">
+                      <v-list-item :key="index" v-bind="attrs" v-on="on">
+                        <v-list-item-title>{{
+                          assignment.title
+                        }}</v-list-item-title>
+                        <v-list-item-action class="justify-end">
+                          <v-icon>mdi-menu-right</v-icon>
+                        </v-list-item-action>
+                      </v-list-item>
+                    </template>
+                    <v-list>
+                      <template v-for="treatment in assignment.treatments">
+                        <v-list-item
+                          :key="treatment.treatmentId"
+                          @click="duplicate(treatment)"
+                        >
+                          <v-list-item-title
+                            >Treatment
+                            <v-chip
+                              label
+                              :color="
+                                conditionColorMapping[
+                                  conditionForTreatment(
+                                    exposure.groupConditionList,
+                                    treatment.conditionId
+                                  ).conditionName
+                                ]
+                              "
+                              >{{
+                                conditionForTreatment(
+                                  exposure.groupConditionList,
+                                  treatment.conditionId
+                                ).conditionName
+                              }}</v-chip
+                            ></v-list-item-title
+                          >
+                        </v-list-item>
+                      </template>
+                    </v-list>
+                  </v-menu>
+                </template>
+              </template>
+            </v-list>
+          </v-menu>
           <br />
         </form>
       </v-tab-item>
@@ -131,6 +205,8 @@ import MultipleChoiceQuestionEditor from "./MultipleChoiceQuestionEditor.vue";
 import QuestionEditor from "./QuestionEditor.vue";
 import PageBreak from "./PageBreak.vue";
 import TreatmentSettings from "./TreatmentSettings.vue";
+import { assessmentService } from '@/services';
+import omitDeep from '../../helpers/deep-omit';
 
 export default {
   name: "TerracottaBuilder",
@@ -161,10 +237,13 @@ export default {
     },
     ...mapGetters({
       assignment: "assignment/assignment",
+      exposures: "exposures/exposures",
+      assignments: "assignment/assignments",
       assessment: "assessment/assessment",
       questions: "assessment/questions",
       answerableQuestions: "assessment/answerableQuestions",
       questionPages: "assessment/questionPages",
+      conditionColorMapping: "condition/conditionColorMapping",
     }),
     contDisabled() {
       return (
@@ -203,6 +282,7 @@ export default {
   },
   data() {
     return {
+      copyMenuShown: false,
       rules: [
         (v) => (v && !!v.trim()) || "required",
         (v) =>
@@ -218,11 +298,25 @@ export default {
     ...mapActions({
       fetchAssessment: "assessment/fetchAssessment",
       updateAssessment: "assessment/updateAssessment",
+      fetchExposures: "exposures/fetchExposures",
       createQuestion: "assessment/createQuestion",
       updateQuestion: "assessment/updateQuestion",
       deleteQuestion: "assessment/deleteQuestion",
       updateAnswer: "assessment/updateAnswer",
+      updateTreatment: "treatment/updateTreatment",
     }),
+    getAssignmentsForExposure(exp) {
+      return this.assignments
+        .filter((a) => a.exposureId === exp.exposureId)
+        .sort((a, b) => a.assignmentOrder - b.assignmentOrder);
+    },
+    conditionForTreatment(groupConditionList, conditionId) {
+      return groupConditionList.find((c) => c.conditionId === conditionId);
+    },
+    async getAssignmentDetails() {
+      await this.fetchExposures(this.experiment.experimentId);
+      return this.exposures;
+    },
     async handleAddQuestion(questionType) {
       // POST QUESTION
       try {
@@ -355,6 +449,54 @@ export default {
         });
       }
     },
+    async duplicate(treatment) {
+      const { assessmentDto, conditionId } = treatment;
+      /* eslint-disable-next-line */
+      const { treatmentId, assessmentId } = assessmentDto;
+      let assessment;
+
+      this.copyMenuShown = false;
+
+      try {
+        assessment = await assessmentService.fetchAssessment(this.experiment.experimentId, conditionId, treatmentId, assessmentId)
+      } catch (error) {
+        console.error("handleCreateTreatment | catch", { error });
+        return;
+      }
+
+      const copy = omitDeep({
+        ...assessment.data
+      }, ['answerId', 'questionId', 'assessmentId']);
+
+      try {
+        await this.updateTreatment([
+          this.experiment.experimentId,
+          this.condition_id,
+          this.treatment_id,
+          {
+            treatmentId: this.treatment_id,
+            conditionId: this.condition_id,
+            assignmentId: this.assignment_id,
+            assessmentDto: {
+              ...copy,
+              treatmentId: this.treatment_id,
+              assessmentId: this.assessment_id
+            },
+            assignmentDto: {
+              ...this.assignment
+            }
+          },
+        ]);
+        return await this.fetchAssessment([
+          this.experiment.experimentId,
+          this.condition_id,
+          this.treatment_id,
+          this.assessment_id,
+        ]);
+      } catch (error) {
+        console.error("handleCreateTreatment | catch", { error });
+      }
+    },
     saveExit() {
       this.saveAll("home");
     },
@@ -372,6 +514,7 @@ export default {
       this.treatment_id,
       this.assessment_id,
     ]);
+    this.getAssignmentDetails();
   },
   components: {
     QuestionEditor,
