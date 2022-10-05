@@ -113,13 +113,15 @@ const actions = {
         points,
         questionOrder,
         questionType,
-        randomizeAnswers) => ({
+        randomizeAnswers,
+        answers) => ({
       questionId: question_id,
       html,
       points,
       questionOrder,
       questionType,
       randomizeAnswers,
+      answers
     });
 
     try {
