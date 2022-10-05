@@ -14,6 +14,9 @@ import java.security.GeneralSecurityException;
 import java.util.List;
 
 public interface APIJWTService {
+
+    public static final String ISSUER_TERRACOTTA_API = "TERRACOTTA";
+
     //Here we could add other checks like expiration of the state (not implemented)
     Jws<Claims> validateToken(String token);
 
@@ -39,6 +42,22 @@ public interface APIJWTService {
                     String nonce) throws GeneralSecurityException, IOException;
 
     String buildJwt(boolean oneUse, LTI3Request lti3Request) throws GeneralSecurityException, IOException;
+
+    /**
+     * Create a JWT that can be used as the state for a request for an API token
+     * to access the API of an LMS (for example, the Canvas API). After the API
+     * token is successfully obtained, the values in this JWT will be used to
+     * construct the one time token that is handed off to the Terracotta
+     * frontend app.
+     * 
+     * @param lti3Request
+     * @return
+     * @throws GeneralSecurityException
+     * @throws IOException
+     */
+    String generateStateForAPITokenRequest(LTI3Request lti3Request) throws GeneralSecurityException, IOException;
+
+    Jws<Claims> validateStateForAPITokenRequest(String state);
 
     String refreshToken(String token) throws GeneralSecurityException, IOException, BadTokenException;
 

@@ -53,7 +53,8 @@ export default {
       assignmentId: 'api/assignmentId',
 			consent: 'api/consent',
 			userId: 'api/userId',
-			api_token: 'api/api_token'
+			api_token: 'api/api_token',
+			lmsApiOAuthURL: 'api/lmsApiOAuthURL',
 		}),
 	},
 	methods: {
@@ -66,6 +67,11 @@ export default {
     setInterval(function () {
       this.refreshToken(this.api_token)
     }.bind(this), 1000 * 60 * 59)
+
+	if (this.lmsApiOAuthURL) {
+		await this.$swal("We need to redirect you back to Canvas so that you can authorize Terracotta to do things on your behalf");
+		window.location.replace(this.lmsApiOAuthURL);
+	}
 	},
 };
 </script>

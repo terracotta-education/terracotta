@@ -12,6 +12,7 @@
  */
 package edu.iu.terracotta.controller.lti;
 
+import edu.iu.terracotta.controller.app.LMSOAuthController;
 import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
@@ -19,10 +20,14 @@ import edu.iu.terracotta.repository.LtiContextRepository;
 import edu.iu.terracotta.repository.LtiLinkRepository;
 import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.caliper.CaliperService;
+import edu.iu.terracotta.service.common.LMSOAuthService;
+import edu.iu.terracotta.service.common.LMSOAuthServiceManager;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.SignatureException;
 import edu.iu.terracotta.model.LtiLinkEntity;
+import edu.iu.terracotta.model.LtiUserEntity;
+import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.lti.LTIDataService;
 import edu.iu.terracotta.service.lti.LTIJWTService;
@@ -41,6 +46,8 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
+
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.security.GeneralSecurityException;
@@ -79,6 +86,9 @@ public class LTI3Controller {
 
     @Autowired
     LtiContextRepository ltiContextRepository;
+
+    @Autowired
+    LMSOAuthServiceManager lmsoAuthServiceManager;
 
     @RequestMapping({"", "/"})
     public String home(HttpServletRequest req, Principal principal, Model model) throws DataServiceException, CanvasApiException, ConnectionException {
@@ -168,6 +178,15 @@ public class LTI3Controller {
                     return TextConstants.LTI3ERROR;
                 }
 
+                // Check if we need to get API token from instructor to use LMS API
+                if (lti3Request.isRoleInstructor()) {
+                    String oauth2APITokenRedirectURL = getOAuth2APITokenRedirectURL(req, lti3Request.getKey(),
+                            lti3Request.getUser(), lti3Request);
+                    if (oauth2APITokenRedirectURL != null) {
+                        model.addAttribute("lms_api_oauth_url", oauth2APITokenRedirectURL);
+                    }
+                }
+
                 return "redirect:/app/app.html?token=" + oneTimeToken;
             }
         } catch (SignatureException ex) {
@@ -182,5 +201,26 @@ public class LTI3Controller {
         }
     }
 
+    private String getOAuth2APITokenRedirectURL(HttpServletRequest req, PlatformDeployment platformDeployment,
+            LtiUserEntity user,
+            LTI3Request lti3Request) throws GeneralSecurityException, IOException {
+
+        // check if API Token settings exist for this PlatformDeployment
+        LMSOAuthService lmsOAuthService = lmsoAuthServiceManager.getLMSOAuthService(platformDeployment);
+        if (lmsOAuthService == null) {
+            return null;
+        }
+        if (lmsOAuthService.isAccessTokenAvailable(user)) {
+            return null;
+        }
+
+        // if LMS OAuth settings are configured but user doesn't have an access token,
+        // we'll need to get one. Create and return authorization url.
+        String state = lmsOAuthService.createOAuthState(lti3Request);
+        HttpSession session = req.getSession();
+        session.setAttribute(LMSOAuthController.SESSION_LMS_OAUTH2_STATE, state);
+
+        return lmsOAuthService.getAuthorizationRequestURI(platformDeployment, state);
+    }
 
 }

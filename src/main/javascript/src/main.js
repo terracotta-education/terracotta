@@ -16,12 +16,15 @@ Vue.use(VueSweetalert2);
 const url = new URL(window.location.href);
 const params = new URLSearchParams(url.search);
 const tokenParam = params.get('token');
+const lmsApiOAuthURL = params.get("lms_api_oauth_url");
+
+const operations = [];
 
 if (tokenParam) {
-  store.dispatch('api/setLtiToken',tokenParam).then(startVue)
-} else {
-  startVue()
+  operations.push(store.dispatch('api/setLtiToken',tokenParam));
 }
+operations.push(store.dispatch('api/setLmsApiOAuthURL', lmsApiOAuthURL));
+Promise.all(operations).then(startVue);
 
 function startVue() {
   // always start with clean experiment/s list
@@ -42,6 +45,7 @@ function startVue() {
 function cleanURL() {
   // delete the token from the url
   params.delete('token')
+  params.delete('lms_api_oauth_url');
   // update the url without the token param
   window.history.replaceState(
       {},
