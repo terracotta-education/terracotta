@@ -100,12 +100,32 @@ const actions = {
       console.log('createQuestion catch', error)
     }
   },
-  async updateQuestion({state}, payload) {
+  async updateQuestion({commit}, payload) {
     // payload = experiment_id, condition_id, treatment_id, assessment_id, question_id, html, points, questionOrder, questionType, randomizeAnswers
     // update question and return the status/data response
+
+    const getQuestion = (experiment_id,
+        condition_id,
+        treatment_id,
+        assessment_id,
+        question_id,
+        html,
+        points,
+        questionOrder,
+        questionType,
+        randomizeAnswers) => ({
+      questionId: question_id,
+      html,
+      points,
+      questionOrder,
+      questionType,
+      randomizeAnswers,
+    });
+
     try {
       const response = await assessmentService.updateQuestion(...payload)
       if (response) {
+        commit("updateQuestions", getQuestion(...payload));
         return {
           status: response?.status,
           data: null
@@ -278,12 +298,14 @@ const getters = {
         questions: [],
         questionStartIndex: 0,
       });
-      for (const question of getters.questions) {
+      const sorted = [...getters.questions].sort((a, b) => a.questionOrder - b.questionOrder);
+
+      for (const question of sorted) {
         const currentPage = pages[pages.length - 1];
         if (question.questionType === "PAGE_BREAK") {
           currentPage.pageBreakAfter = true;
           // Add another page if this isn't the last question
-          if (question !== getters.questions[getters.questions.length - 1]) {
+          if (question !== sorted[sorted.length - 1]) {
             pages.push({
               key: pages.length,
               pageBreakAfter: false,

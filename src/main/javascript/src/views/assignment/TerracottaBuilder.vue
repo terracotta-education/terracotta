@@ -39,26 +39,33 @@
             <template v-for="questionPage in questionPages">
               <div :key="questionPage.key">
                 <v-expansion-panels
-                  class="v-expansion-panels--outlined"
                   flat
                   accordion
+                  outlined
+                  class="v-expansion-panels--outlined"
                   :key="questionPage.key"
                 >
+                <draggable :list="questionPage.questions" group="questions" handle=".dragger"
+                  @change="(ev) => handleQuestionOrderChange(ev, questionPage)"
+                  class="" style="width:100%">
                   <v-expansion-panel
                     v-for="(question, qIndex) in questionPage.questions"
                     :key="qIndex"
-                    class="text-left"
+                    :class="qIndex === 0 ? 'rounded-lg rounded-b-0' : qIndex === questionPage.questions.length - 1 ? 'rounded-lg rounded-t-0' : ''"
                   >
                     <template v-if="question">
                       <v-expansion-panel-header class="text-left">
-                        <h2 class="pa-0">
-                          {{ questionPage.questionStartIndex + qIndex + 1 }}
-                          <span
-                            class="pl-3 question-text"
-                            v-if="question.html"
-                            v-html="textOnly(question.html)"
-                          ></span>
-                        </h2>
+                        <div class="d-flex align-start">
+                          <span class="dragger me-2"><v-icon>mdi-drag</v-icon></span>
+                          <h2 class="pa-0">
+                            {{ questionPage.questionStartIndex + qIndex + 1 }}
+                            <span
+                              class="pl-3 question-text"
+                              v-if="question.html"
+                              v-html="textOnly(question.html)"
+                            ></span>
+                          </h2>
+                        </div>
                       </v-expansion-panel-header>
                       <v-expansion-panel-content>
                         <component
@@ -68,6 +75,7 @@
                       </v-expansion-panel-content>
                     </template>
                   </v-expansion-panel>
+                </draggable>
                 </v-expansion-panels>
                 <page-break v-if="questionPage.pageBreakAfter" />
               </div>
@@ -205,6 +213,7 @@ import MultipleChoiceQuestionEditor from "./MultipleChoiceQuestionEditor.vue";
 import QuestionEditor from "./QuestionEditor.vue";
 import PageBreak from "./PageBreak.vue";
 import TreatmentSettings from "./TreatmentSettings.vue";
+import draggable from 'vuedraggable';
 import { assessmentService } from '@/services';
 import omitDeep from '../../helpers/deep-omit';
 
@@ -294,6 +303,7 @@ export default {
   methods: {
     ...mapMutations({
       setAssessment: "assessment/setAssessment",
+      updateQuestions: "assessment/updateQuestions",
     }),
     ...mapActions({
       fetchAssessment: "assessment/fetchAssessment",
@@ -325,13 +335,26 @@ export default {
           this.condition_id,
           this.treatment_id,
           this.assessment_id,
-          0,
+          this.questions.length,
           questionType,
           1, // points
           "",
         ]);
       } catch (error) {
         console.error(error);
+      }
+    },
+    async handleQuestionOrderChange(event) {
+      if (event.added) {
+        const list = [...this.questions.map(q => ({...q}))];
+        const oldIndex = list.findIndex((v) => v.questionId === event.added.element.questionId);
+        const movedItem = list.splice(oldIndex, 1)[0];
+        list.splice(event.added.newIndex, 0, movedItem);
+        list.forEach((q, idx) => {
+          q.questionOrder = idx;
+        });
+
+        this.handleSaveQuestions(list);
       }
     },
     async handleClearQuestions() {
@@ -348,10 +371,7 @@ export default {
             return false;
           }
         });
-
-        
       });
-      
       return true;
     },
     async handleSaveAssessment() {
@@ -380,12 +400,13 @@ export default {
       }
       return true;
     },
-    async handleSaveQuestions() {
+    async handleSaveQuestions(questions) {
       // LOOP AND PUT QUESTIONS
       return Promise.all(
-        this.questions.map(async (question, index) => {
+        questions.map(async (question, index) => {
           // save question
           try {
+            this.updateQuestions(question);
             const q = await this.updateQuestion([
               this.experiment.experimentId,
               this.condition_id,
@@ -398,7 +419,6 @@ export default {
               question.questionType,
               question.randomizeAnswers,
             ]);
-
             return Promise.resolve(q);
           } catch (error) {
             return Promise.reject(error);
@@ -441,7 +461,7 @@ export default {
 
       const savedAssessment = await this.handleSaveAssessment();
       if (savedAssessment) {
-        await this.handleSaveQuestions();
+        await this.handleSaveQuestions(this.questions);
         await this.handleSaveAnswers();
         this.$router.push({
           name: routeName,
@@ -521,11 +541,18 @@ export default {
     MultipleChoiceQuestionEditor,
     PageBreak,
     TreatmentSettings,
+    draggable
   },
 };
 </script>
 
 <style lang="scss">
+v-expansion-panels {
+  &, & > div {
+    width: 100%;
+  }
+  
+}
 .terracotta-builder {
   .v-expansion-panel-header {
     &--active {
