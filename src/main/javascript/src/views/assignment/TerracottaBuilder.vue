@@ -233,7 +233,7 @@ export default {
       );
     },
     canClearAll() {
-      return this.assessment.questions.length > 0 && this.assessment.submissions.length < 1;
+      return this.assessment.questions.length > 0 && !this.assessment.started;
     },
     ...mapGetters({
       assignment: "assignment/assignment",
