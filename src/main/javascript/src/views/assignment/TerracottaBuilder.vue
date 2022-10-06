@@ -346,11 +346,13 @@ export default {
       }
     },
     async handleQuestionOrderChange(event) {
-      if (event.added) {
+      if (!event.removed) {
         const list = [...this.questions.map(q => ({...q}))];
-        const oldIndex = list.findIndex((v) => v.questionId === event.added.element.questionId);
+        const evt = event.added ? event.added : event.moved;
+        const { element, newIndex } = evt;
+        const oldIndex = list.findIndex((v) => v.questionId === element.questionId);
         const movedItem = list.splice(oldIndex, 1)[0];
-        list.splice(event.added.newIndex, 0, movedItem);
+        list.splice(newIndex, 0, movedItem);
         list.forEach((q, idx) => {
           q.questionOrder = idx;
         });

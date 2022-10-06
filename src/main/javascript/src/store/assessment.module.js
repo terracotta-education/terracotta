@@ -84,7 +84,7 @@ const actions = {
     // create the assessment question, commit an update mutation, and return the status/data response
     try {
       const response = await assessmentService.createQuestion(...payload)
-      const question = response?.data
+      const question = response?.data;
       if (question?.questionId) {
         if (questionIndex >= 0) {
           commit("updateQuestionsAtIndex", { question, questionIndex });
@@ -278,7 +278,7 @@ const getters = {
     return state.assessment
   },
   questions: (state) => {
-    return state.assessment.questions
+    return [...state.assessment.questions].sort((a, b) => a.questionOrder - b.questionOrder);
   },
   assessments: (state) => {
     return state.assessments
