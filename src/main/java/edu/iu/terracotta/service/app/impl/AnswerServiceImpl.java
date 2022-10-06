@@ -152,18 +152,29 @@ public class AnswerServiceImpl implements AnswerService {
 
     @Override
     @Transactional
-    public void updateAnswerMC(Map<AnswerMc, AnswerDto> map){
+    public List<AnswerDto> updateAnswerMC(Map<AnswerMc, AnswerDto> map){
+        List<AnswerDto> answerDtos = new ArrayList<>();
+
         for(Map.Entry<AnswerMc, AnswerDto> entry : map.entrySet()){
             AnswerMc answerMc = entry.getKey();
             AnswerDto answerDto = entry.getValue();
-            if(answerDto.getHtml() != null)
+
+            if(answerDto.getHtml() != null) {
                 answerMc.setHtml(answerDto.getHtml());
-            if(answerDto.getAnswerOrder() != null)
+            }
+
+            if(answerDto.getAnswerOrder() != null) {
                 answerMc.setAnswerOrder(answerDto.getAnswerOrder());
-            if(answerDto.getCorrect() != null)
+            }
+
+            if(answerDto.getCorrect() != null) {
                 answerMc.setCorrect(answerDto.getCorrect());
-            saveMC(answerMc);
+            }
+
+            answerDtos.add(toDtoMC(saveMC(answerMc), answerMc.getAnswerOrder(), true));
         }
+
+        return answerDtos;
     }
 
 

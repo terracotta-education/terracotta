@@ -3,6 +3,7 @@ package edu.iu.terracotta.service.app.impl;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doReturn;
@@ -72,6 +73,7 @@ import edu.iu.terracotta.repository.QuestionSubmissionRepository;
 import edu.iu.terracotta.repository.SubmissionRepository;
 import edu.iu.terracotta.repository.TreatmentRepository;
 import edu.iu.terracotta.service.app.OutcomeService;
+import edu.iu.terracotta.service.app.SubmissionService;
 
 public class ExportServiceImplTest {
 
@@ -94,6 +96,7 @@ public class ExportServiceImplTest {
     @Mock private TreatmentRepository treatmentRepository;
 
     @Mock private OutcomeService outcomeService;
+    @Mock private SubmissionService submissionService;
 
     @Mock private AnswerEssaySubmission answerEssaySubmission;
     @Mock private AnswerMc answerMc;
@@ -149,6 +152,7 @@ public class ExportServiceImplTest {
         when(treatmentRepository.findByCondition_ConditionIdAndAssignment_AssignmentId(anyLong(), anyLong())).thenReturn(Collections.singletonList(treatment));
 
         when(outcomeService.findAllByExperiment(anyLong())).thenReturn(Collections.singletonList(outcome));
+        when(submissionService.getScoreFromMultipleSubmissions(any(Participant.class), any(Assessment.class))).thenReturn(null);
 
         when(answerEssaySubmission.getQuestionSubmission()).thenReturn(questionSubmission);
         when(answerMc.getAnswerMcId()).thenReturn(1L);
