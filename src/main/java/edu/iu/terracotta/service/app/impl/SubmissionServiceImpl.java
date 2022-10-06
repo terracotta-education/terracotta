@@ -43,6 +43,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 @Component
 public class SubmissionServiceImpl implements SubmissionService {
@@ -175,32 +176,38 @@ public class SubmissionServiceImpl implements SubmissionService {
         submissionDto.setTotalAlteredGrade(submission.getTotalAlteredGrade());
         submissionDto.setDateSubmitted(submission.getDateSubmitted());
         submissionDto.setLateSubmission(submission.getLateSubmission());
-        List<QuestionSubmissionDto> questionSubmissionDtoList = new ArrayList<>();
+        submissionDto.setDateCreated(submission.getCreatedAt());
+        submissionDto.setQuestionSubmissionDtoList(Collections.emptyList());
+        submissionDto.setSubmissionCommentDtoList(Collections.emptyList());
+
         if (questionSubmissions) {
             List<QuestionSubmission> questionSubmissionList = allRepositories.questionSubmissionRepository.findBySubmission_SubmissionId(submission.getSubmissionId());
-            for (QuestionSubmission questionSubmission : questionSubmissionList) {
-                questionSubmissionDtoList.add(questionSubmissionService.toDto(questionSubmission, false, false));
-            }
+            List<QuestionSubmissionDto> questionSubmissionDtoList = questionSubmissionList.stream()
+                .map(questionSubmission ->
+                    questionSubmissionService.toDto(questionSubmission, false, false))
+                .collect(Collectors.toList());
+            submissionDto.setQuestionSubmissionDtoList(questionSubmissionDtoList);
         }
-        submissionDto.setQuestionSubmissionDtoList(questionSubmissionDtoList);
-        List<SubmissionCommentDto> submissionCommentDtoList = new ArrayList<>();
+
         if (submissionComments) {
             List<SubmissionComment> submissionCommentList = allRepositories.submissionCommentRepository.findBySubmission_SubmissionId(submission.getSubmissionId());
-            for (SubmissionComment submissionComment : submissionCommentList) {
-                submissionCommentDtoList.add(submissionCommentService.toDto(submissionComment));
-            }
+            List<SubmissionCommentDto> submissionCommentDtoList = submissionCommentList.stream()
+                .map(submissionComment -> submissionCommentService.toDto(submissionComment))
+                .collect(Collectors.toList());
+            submissionDto.setSubmissionCommentDtoList(submissionCommentDtoList);
         }
-        submissionDto.setSubmissionCommentDtoList(submissionCommentDtoList);
-        String path = localUrl +
-                "/api/experiments/" +
-                submission.getAssessment().getTreatment().getCondition().getExperiment().getExperimentId() +
-                "/conditions/" +
-                submission.getAssessment().getTreatment().getCondition().getConditionId() +
-                "/treatments/" +
-                submission.getAssessment().getTreatment().getTreatmentId() +
-                "/assessments/" +
-                submission.getAssessment().getAssessmentId();
-        submissionDto.setAssessmentLink(path);
+
+        StringBuilder path = new StringBuilder(localUrl)
+                .append("/api/experiments/")
+                .append(submission.getAssessment().getTreatment().getCondition().getExperiment().getExperimentId())
+                .append("/conditions/")
+                .append(submission.getAssessment().getTreatment().getCondition().getConditionId())
+                .append("/treatments/")
+                .append(submission.getAssessment().getTreatment().getTreatmentId())
+                .append("/assessments/")
+                .append(submission.getAssessment().getAssessmentId());
+        submissionDto.setAssessmentLink(path.toString());
+
         return submissionDto;
     }
 
@@ -496,7 +503,7 @@ public class SubmissionServiceImpl implements SubmissionService {
 
     /**
      * Calculate a score, possibly considering multiple submissions.
-     * 
+     *
      * @param participant
      * @param assessment
      * @return null if all submissions require manual grading

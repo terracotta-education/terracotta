@@ -46,12 +46,13 @@
                   :key="questionPage.key"
                 >
                 <draggable :list="questionPage.questions" group="questions" handle=".dragger"
-                  @change="(ev) => handleQuestionOrderChange(ev, questionPage)"
+                  @change="(ev) => handleQuestionOrderChange(ev)"
                   class="" style="width:100%">
                   <v-expansion-panel
                     v-for="(question, qIndex) in questionPage.questions"
                     :key="qIndex"
-                    :class="qIndex === 0 ? 'rounded-lg rounded-b-0' : qIndex === questionPage.questions.length - 1 ? 'rounded-lg rounded-t-0' : ''"
+                    :class="[qIndex === 0 ? 'rounded-lg' : qIndex === questionPage.questions.length - 1 ? 'rounded-lg rounded-t-0' : '',
+                      qIndex === questionPage.questions.length - 1 ? '' : 'rounded-b-0']"
                   >
                     <template v-if="question">
                       <v-expansion-panel-header class="text-left">
@@ -418,6 +419,7 @@ export default {
               index,
               question.questionType,
               question.randomizeAnswers,
+              question.answers
             ]);
             return Promise.resolve(q);
           } catch (error) {
