@@ -71,9 +71,7 @@ import javax.persistence.PersistenceContext;
 
 import java.io.IOException;
 import java.sql.Timestamp;
-import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -435,11 +433,11 @@ public class AssignmentServiceImpl implements AssignmentService {
                 }
             }
             try {
-                verifyAssignmentSubmissionLimit(assessment.getNumOfSubmissions(), submissionList.size());
-                verifySubmissionWaitTime(assessment.getHoursBetweenSubmissions(), submissionList);
+                assessmentService.verifySubmissionLimit(assessment.getNumOfSubmissions(), submissionList.size());
+                assessmentService.verifySubmissionWaitTime(assessment.getHoursBetweenSubmissions(), submissionList);
 
-                // If it is the first submission in the experiment we mark it as started.
-                if (experiment.get().getStarted()==null){
+                // If it is the first submission in the experiment mark it as started.
+                if (experiment.get().getStarted() == null) {
                     experiment.get().setStarted(Timestamp.valueOf(LocalDateTime.now()));
                     experimentService.save(experiment.get());
                 }
@@ -451,43 +449,6 @@ public class AssignmentServiceImpl implements AssignmentService {
         } else { //Shouldn't happen
             return new ResponseEntity(TextConstants.EXPERIMENT_NOT_MATCHING, HttpStatus.UNAUTHORIZED);
         }
-    }
-
-    private void verifyAssignmentSubmissionLimit(Integer limit, int existingSubmissionsCount) throws AssignmentAttemptException {
-        if (limit == null || limit == 0) {
-            return;
-        }
-
-        if (existingSubmissionsCount < limit) {
-            return;
-        }
-
-        throw new AssignmentAttemptException(TextConstants.LIMIT_OF_SUBMISSIONS_REACHED);
-    }
-
-    private void verifySubmissionWaitTime(Float waitTime, List<Submission> submissionList) throws AssignmentAttemptException {
-        if (waitTime == null || waitTime == 0F) {
-            return;
-        }
-
-        if (CollectionUtils.isEmpty(submissionList)) {
-            return;
-        }
-
-        // calculate the allowable submission time limit
-        Timestamp limit = Timestamp.from(Instant.now().minus(Math.round(waitTime * 60 * 60), ChronoUnit.SECONDS));
-
-        // check for any submissions after the allowable time
-        Optional<Submission> invalidSubmission = submissionList.stream()
-            .filter(submission -> submission.getDateSubmitted().after(limit))
-            .findAny();
-
-        if (!invalidSubmission.isPresent()) {
-            return;
-        }
-
-        // there are existing submissions that are not passed the time limit
-        throw new AssignmentAttemptException(TextConstants.ASSIGNMENT_SUBMISSION_WAIT_TIME_NOT_REACHED);
     }
 
     @Override
