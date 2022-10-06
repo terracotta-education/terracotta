@@ -91,7 +91,6 @@ public class QuestionServiceImpl implements QuestionService {
 
     @Override
     public QuestionDto toDto(Question question, Long submissionId, boolean answers, boolean student) {
-
         QuestionDto questionDto = new QuestionDto();
         questionDto.setQuestionId(question.getQuestionId());
         questionDto.setHtml(fileStorageService.parseHTMLFiles(question.getHtml()));
@@ -99,23 +98,27 @@ public class QuestionServiceImpl implements QuestionService {
         questionDto.setPoints(question.getPoints());
         questionDto.setAssessmentId(question.getAssessment().getAssessmentId());
         questionDto.setQuestionType(question.getQuestionType().name());
-        if (question.getQuestionType() == QuestionTypes.MC) {
+
+        if (QuestionTypes.MC == question.getQuestionType()) {
             if (answers) {
                 Optional<QuestionSubmission> questionSubmission = Optional.empty();
+
                 if (submissionId != null) {
                     questionSubmission = this.allRepositories.questionSubmissionRepository
-                            .findByQuestion_QuestionIdAndSubmission_SubmissionId(question.getQuestionId(),
-                                    submissionId);
+                            .findByQuestion_QuestionIdAndSubmission_SubmissionId(question.getQuestionId(), submissionId);
                 }
+
                 if (questionSubmission.isPresent()) {
                     // Apply submission specific order to answers
                     questionDto.setAnswers(answerService.findAllByQuestionIdMC(questionSubmission.get()));
                 } else {
-                    questionDto.setAnswers(answerService.findAllByQuestionIdMC(question.getQuestionId(), false));
+                    questionDto.setAnswers(answerService.findAllByQuestionIdMC(question.getQuestionId(), answers));
                 }
             }
+
             questionDto.setRandomizeAnswers(((QuestionMc) question).isRandomizeAnswers());
         }
+
         return questionDto;
     }
 

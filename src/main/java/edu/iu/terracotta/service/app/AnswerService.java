@@ -32,7 +32,7 @@ public interface AnswerService {
 
     AnswerMc findByAnswerId(Long answerId);
 
-    void updateAnswerMC(Map<AnswerMc, AnswerDto> map);
+    List<AnswerDto> updateAnswerMC(Map<AnswerMc, AnswerDto> map);
 
     void deleteByIdMC(Long id) throws EmptyResultDataAccessException;
 
