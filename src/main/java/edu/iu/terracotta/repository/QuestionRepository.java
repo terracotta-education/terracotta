@@ -2,11 +2,10 @@ package edu.iu.terracotta.repository;
 
 import edu.iu.terracotta.model.app.Question;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
-
-import javax.transaction.Transactional;
 
 public interface QuestionRepository extends JpaRepository<Question, Long> {
 
