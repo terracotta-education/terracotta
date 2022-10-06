@@ -9,12 +9,17 @@ import org.mockito.Spy;
 
 import javax.persistence.EntityManager;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
+import edu.iu.terracotta.exceptions.AssignmentAttemptException;
 import edu.iu.terracotta.exceptions.AssignmentNotMatchingException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExceedingLimitException;
@@ -60,9 +65,11 @@ import edu.iu.terracotta.utils.TextConstants;
 
 import org.apache.commons.lang3.StringUtils;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -109,8 +116,12 @@ public class AssessmentServiceImplTest {
     @Mock private Submission submission;
     @Mock private Treatment treatment;
 
+    private Method verifySubmissionLimit;
+    private Method verifySubmissionWaitTime;
+
     @BeforeEach
-    public void beforeEach() throws DataServiceException, AssessmentNotMatchingException, GroupNotMatchingException, ParticipantNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, IdInPostException {
+    public void beforeEach() throws DataServiceException, AssessmentNotMatchingException, GroupNotMatchingException, ParticipantNotMatchingException,
+            ParticipantNotUpdatedException, AssignmentNotMatchingException, IdInPostException, NoSuchMethodException, SecurityException {
         MockitoAnnotations.openMocks(this);
 
         clearInvocations(questionService);
@@ -122,6 +133,11 @@ public class AssessmentServiceImplTest {
         allRepositories.participantRepository = participantRepository;
         allRepositories.questionRepository = questionRepository;
         allRepositories.treatmentRepository = treatmentRepository;
+
+        verifySubmissionLimit = AssessmentServiceImpl.class.getDeclaredMethod("verifySubmissionLimit", Integer.class, int.class);
+        verifySubmissionLimit.setAccessible(true);
+        verifySubmissionWaitTime = AssessmentServiceImpl.class.getDeclaredMethod("verifySubmissionWaitTime", Float.class, List.class);
+        verifySubmissionWaitTime.setAccessible(true);
 
         when(assessmentRepository.findByAssessmentId(anyLong())).thenReturn(assessment);
         when(assessmentRepository.save(any(Assessment.class))).thenReturn(assessment);
@@ -306,6 +322,55 @@ public class AssessmentServiceImplTest {
         verify(questionService, never()).getQuestion(anyLong());
         verify(questionService, never()).updateQuestion(anyMap());
         verify(questionService, never()).deleteById(anyLong());
+    }
+
+    public void testVerifyNumSubmissionsLimitNull() {
+        assertDoesNotThrow(() -> verifySubmissionLimit.invoke(assessmentService, null, 1));
+    }
+
+    @Test
+    public void testVerifyNumSubmissionsLimitZero() {
+        assertDoesNotThrow(() -> verifySubmissionLimit.invoke(assessmentService, 0, 1));
+    }
+
+    @Test
+    public void testVerifyNumSubmissionsLessThanLimit() {
+        assertDoesNotThrow(() -> verifySubmissionLimit.invoke(assessmentService, 2, 1));
+    }
+
+    @Test
+    public void testVerifyNumSubmissionsGreaterThanLimit() {
+        InvocationTargetException e = assertThrows(InvocationTargetException.class, () -> verifySubmissionLimit.invoke(assessmentService, 1, 2));
+        assertTrue(e.getCause() instanceof AssignmentAttemptException);
+        assertEquals(TextConstants.LIMIT_OF_SUBMISSIONS_REACHED, e.getCause().getMessage());
+    }
+
+    @Test
+    public void testVerifySubmissionWaitTimeNull() {
+        assertDoesNotThrow(() -> verifySubmissionWaitTime.invoke(assessmentService, null, Collections.emptyList()));
+    }
+
+    @Test
+    public void testVerifySubmissionWaitTimeZero() {
+        assertDoesNotThrow(() -> verifySubmissionWaitTime.invoke(assessmentService, 0F, Collections.emptyList()));
+    }
+
+    @Test
+    public void testVerifySubmissionWaitTimeAllowed() {
+        Submission submission = new Submission();
+        submission.setDateSubmitted(Timestamp.from(Instant.now().minus(30, ChronoUnit.MINUTES)));
+
+        assertDoesNotThrow(() -> verifySubmissionWaitTime.invoke(assessmentService, .1F, Collections.singletonList(submission)));
+    }
+
+    @Test
+    public void testVerifySubmissionWaitTimeNotAllowed() {
+        Submission submission = new Submission();
+        submission.setDateSubmitted(Timestamp.from(Instant.now().minus(30, ChronoUnit.MINUTES)));
+
+        InvocationTargetException e = assertThrows(InvocationTargetException.class, () -> verifySubmissionWaitTime.invoke(assessmentService, 1F, Collections.singletonList(submission)));
+        assertTrue(e.getCause() instanceof AssignmentAttemptException);
+        assertEquals(TextConstants.ASSIGNMENT_SUBMISSION_WAIT_TIME_NOT_REACHED, e.getCause().getMessage());
     }
 
 }

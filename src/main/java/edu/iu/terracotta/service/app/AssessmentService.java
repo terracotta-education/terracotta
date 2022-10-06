@@ -1,6 +1,7 @@
 package edu.iu.terracotta.service.app;
 
 import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
+import edu.iu.terracotta.exceptions.AssignmentAttemptException;
 import edu.iu.terracotta.exceptions.AssignmentNotMatchingException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
@@ -16,6 +17,7 @@ import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
 import edu.iu.terracotta.model.app.Assessment;
 import edu.iu.terracotta.model.app.Participant;
+import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.Assignment;
 import edu.iu.terracotta.model.app.Treatment;
 import edu.iu.terracotta.model.app.dto.AssessmentDto;
@@ -82,5 +84,9 @@ public interface AssessmentService {
     Assessment getAssessmentByConditionId(Long experimentId, String canvasAssignmentId, Long conditionId) throws AssessmentNotMatchingException;
 
     AssessmentDto viewAssessment(long expermientId, SecuredInfo securedInfo) throws ExperimentNotMatchingException, ParticipantNotMatchingException, AssessmentNotMatchingException, GroupNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException;
+
+    void verifySubmissionLimit(Integer limit, int existingSubmissionsCount) throws AssignmentAttemptException;
+
+    void verifySubmissionWaitTime(Float waitTime, List<Submission> submissionList) throws AssignmentAttemptException;
 
 }
