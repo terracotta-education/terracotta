@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
+
     Assignment findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(Long experimentId, String lmsAssignmentId);
 
     Assignment findByAssignmentId(Long assignmentId);

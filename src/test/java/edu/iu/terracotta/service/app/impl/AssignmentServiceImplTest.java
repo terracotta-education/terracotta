@@ -122,6 +122,7 @@ public class AssignmentServiceImplTest {
         when(assignmentRepository.findByAssignmentId(anyLong())).thenReturn(assignment);
         when(assignmentRepository.findByExposure_ExposureIdAndSoftDeleted(anyLong(), anyBoolean())).thenReturn(Collections.singletonList(assignment));
         when(assignmentRepository.save(any(Assignment.class))).thenReturn(assignment);
+        when(assignmentRepository.saveAndFlush(any(Assignment.class))).thenReturn(assignment);
         when(exposureRepository.findById(anyLong())).thenReturn(Optional.of(exposure));
         when(platformDeploymentRepository.getOne(anyLong())).thenReturn(platformDeployment);
         when(submissionRepository.countByAssessment_Treatment_Assignment_AssignmentId(anyLong())).thenReturn(0L);
