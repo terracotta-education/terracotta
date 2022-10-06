@@ -221,7 +221,7 @@ export default {
             this.condition_id,
             this.treatment_id,
             this.assessment_id,
-            0,
+            questionIndex + 1,
             "PAGE_BREAK",
             0,
             "",
