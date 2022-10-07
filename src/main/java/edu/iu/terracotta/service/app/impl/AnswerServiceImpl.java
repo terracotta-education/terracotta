@@ -3,9 +3,11 @@ package edu.iu.terracotta.service.app.impl;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.MultipleChoiceLimitReachedException;
+import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
 import edu.iu.terracotta.model.app.AnswerMc;
 import edu.iu.terracotta.model.app.AnswerMcSubmissionOption;
 import edu.iu.terracotta.model.app.Question;
+import edu.iu.terracotta.model.app.QuestionMc;
 import edu.iu.terracotta.model.app.QuestionSubmission;
 import edu.iu.terracotta.model.app.dto.AnswerDto;
 import edu.iu.terracotta.model.app.enumerator.QuestionTypes;
@@ -13,6 +15,8 @@ import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.AnswerService;
 import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.utils.TextConstants;
+
+import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
@@ -21,10 +25,15 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
+
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
 
 @Component
 public class AnswerServiceImpl implements AnswerService {
@@ -34,6 +43,9 @@ public class AnswerServiceImpl implements AnswerService {
 
     @Autowired
     FileStorageService fileStorageService;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     /*
     MULTIPLE CHOICE
@@ -207,4 +219,30 @@ public class AnswerServiceImpl implements AnswerService {
                 .buildAndExpand(experimentId, conditionId, treatmentId, assessmentId, questionId, answerId).toUri());
         return headers;
     }
+
+    @Override
+    public List<AnswerMc> duplicateAnswersForQuestion(Long originalQuestionId, Question newQuestion) throws QuestionNotMatchingException {
+        if (originalQuestionId == null || newQuestion == null) {
+            throw new QuestionNotMatchingException(TextConstants.QUESTION_NOT_MATCHING);
+        }
+
+        if (!(newQuestion instanceof QuestionMc)) {
+            // not MC; nothing to duplicate
+            return Collections.emptyList();
+        }
+
+        // copy MC options
+        List<AnswerMc> answerMcs = allRepositories.answerMcRepository.findByQuestion_QuestionId(originalQuestionId);
+
+        return CollectionUtils.emptyIfNull(answerMcs).stream()
+            .map(answerMc -> {
+                entityManager.detach(answerMc);
+                answerMc.setAnswerMcId(null);
+                answerMc.setQuestion(newQuestion);
+
+                return saveMC(answerMc);
+            })
+            .collect(Collectors.toList());
+    }
+
 }

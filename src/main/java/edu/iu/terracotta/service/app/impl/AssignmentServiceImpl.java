@@ -17,6 +17,7 @@ import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.MultipleAttemptsSettingsValidationException;
 import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
+import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
 import edu.iu.terracotta.exceptions.RevealResponsesSettingValidationException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
@@ -182,8 +183,10 @@ public class AssignmentServiceImpl implements AssignmentService {
         } catch (DataServiceException e) {
             throw new DataServiceException("Error 105: Unable to create Assignment: " + e.getMessage());
         }
+
         Assignment assignmentSaved = save(assignment);
         createAssignmentInCanvas(assignmentSaved, experimentId, canvasCourseId);
+
         return saveAndFlush(assignmentSaved);
     }
 
@@ -706,9 +709,10 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     @Override
-    public AssignmentDto duplicateAssignment(long assignmentId, String canvasCourseId, long platformDeploymentId) throws DataServiceException, IdInPostException, TitleValidationException, AssessmentNotMatchingException,
-                                                                        AssignmentNotCreatedException, RevealResponsesSettingValidationException,
-                                                                        MultipleAttemptsSettingsValidationException, NumberFormatException, CanvasApiException, ExceedingLimitException, TreatmentNotMatchingException {
+    public AssignmentDto duplicateAssignment(long assignmentId, String canvasCourseId, long platformDeploymentId)
+            throws DataServiceException, IdInPostException, TitleValidationException, AssessmentNotMatchingException,
+                    AssignmentNotCreatedException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException,
+                    NumberFormatException, CanvasApiException, ExceedingLimitException, TreatmentNotMatchingException, QuestionNotMatchingException {
         Assignment from = getAssignment(assignmentId);
 
         if (from == null) {
@@ -753,8 +757,8 @@ public class AssignmentServiceImpl implements AssignmentService {
             throws DataServiceException, IdInPostException, TitleValidationException, AssessmentNotMatchingException,
                 AssignmentNotCreatedException, RevealResponsesSettingValidationException,
                 MultipleAttemptsSettingsValidationException, NumberFormatException, CanvasApiException,
-                ExceedingLimitException, TreatmentNotMatchingException, ExposureNotMatchingException, AssignmentMoveException, AssignmentNotEditedException {
-        if (originalExposureId == targetAssignmentDto.getExposureId()) {
+                ExceedingLimitException, TreatmentNotMatchingException, ExposureNotMatchingException, AssignmentMoveException, AssignmentNotEditedException, QuestionNotMatchingException {
+        if (originalExposureId == targetAssignmentDto.getExposureId().longValue()) {
             // cannot move assignment; original and target exposures are the same
             throw new AssignmentMoveException(TextConstants.UNABLE_TO_MOVE_ASSIGNMENT_EXPOSURE_SAME);
         }
@@ -769,20 +773,20 @@ public class AssignmentServiceImpl implements AssignmentService {
         targetAssignmentDto.setAssignmentId(null);
 
         // create new assignment
-        Assignment assignment = createAssignment(targetAssignmentDto, experimentId, canvasCourseId, targetAssignmentDto.getExposureId());
-        setAssignmentDtoAttrs(assignment, canvasCourseId, platformDeploymentId);
+        Assignment newAssignment = createAssignment(targetAssignmentDto, experimentId, canvasCourseId, targetAssignmentDto.getExposureId());
+        setAssignmentDtoAttrs(newAssignment, canvasCourseId, platformDeploymentId);
 
         // duplicate treatments from original assignment
         List<Treatment> fromTreatments = allRepositories.treatmentRepository.findByAssignment_AssignmentId(originalAssignmentId);
 
         for (Treatment treatment : fromTreatments) {
-            treatmentService.duplicateTreatment(treatment.getTreatmentId(), assignment, canvasCourseId, platformDeploymentId);
+            treatmentService.duplicateTreatment(treatment.getTreatmentId(), newAssignment, canvasCourseId, platformDeploymentId);
         }
 
         // delete original assignment
         deleteById(originalAssignmentId, canvasCourseId);
 
-        return toDto(assignment, false, true);
+        return toDto(newAssignment, false, true);
     }
 
 }

@@ -380,8 +380,8 @@ public class AssessmentServiceImpl implements AssessmentService {
     }
 
     @Override
-    public void saveAndFlush(Assessment assessmentToChange) {
-        allRepositories.assessmentRepository.saveAndFlush(assessmentToChange);
+    public Assessment saveAndFlush(Assessment assessmentToChange) {
+        return allRepositories.assessmentRepository.saveAndFlush(assessmentToChange);
     }
 
     @Override
@@ -523,7 +523,8 @@ public class AssessmentServiceImpl implements AssessmentService {
     }
 
     @Override
-    public AssessmentDto duplicateAssessment(long assessmentId, long treatmentId) throws DataServiceException, AssessmentNotMatchingException, TreatmentNotMatchingException {
+    public Assessment duplicateAssessment(long assessmentId, long treatmentId)
+            throws DataServiceException, AssessmentNotMatchingException, TreatmentNotMatchingException, QuestionNotMatchingException {
         Treatment treatment = allRepositories.treatmentRepository.findByTreatmentId(treatmentId);
 
         if (treatment == null) {
@@ -534,7 +535,8 @@ public class AssessmentServiceImpl implements AssessmentService {
     }
 
     @Override
-    public AssessmentDto duplicateAssessment(long assessmentId, Treatment treatment, Assignment assignment) throws DataServiceException, AssessmentNotMatchingException {
+    public Assessment duplicateAssessment(long assessmentId, Treatment treatment, Assignment assignment)
+            throws DataServiceException, AssessmentNotMatchingException, QuestionNotMatchingException {
         Assessment from = getAssessment(assessmentId);
 
         if (from == null) {
@@ -554,16 +556,10 @@ public class AssessmentServiceImpl implements AssessmentService {
 
         Assessment newAssessment = save(from);
 
-        // update the treatment
-        updateTreatment(treatment.getTreatmentId(), newAssessment);
-
         // duplicate questions
-        List<QuestionDto> questionDtos = questionService.duplicateQuestionsForAssessment(oldAssessmentId, newAssessment.getAssessmentId());
+        questionService.duplicateQuestionsForAssessment(oldAssessmentId, newAssessment);
 
-        AssessmentDto assessmentDto = toDto(newAssessment, false, false, false, false);
-        assessmentDto.setQuestions(questionDtos);
-
-        return assessmentDto;
+        return newAssessment;
     }
 
     @Override

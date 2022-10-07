@@ -40,9 +40,9 @@ public interface AssessmentService {
                     throws IdInPostException, AssessmentNotMatchingException, DataServiceException,
                     TitleValidationException;
 
-    AssessmentDto duplicateAssessment(long assessmentId, long treatmentId) throws DataServiceException, AssessmentNotMatchingException, TreatmentNotMatchingException;
+    Assessment duplicateAssessment(long assessmentId, long treatmentId) throws DataServiceException, AssessmentNotMatchingException, TreatmentNotMatchingException, QuestionNotMatchingException;
 
-    AssessmentDto duplicateAssessment(long assessmentId, Treatment treatment, Assignment assignment) throws DataServiceException, AssessmentNotMatchingException;
+    Assessment duplicateAssessment(long assessmentId, Treatment treatment, Assignment assignment) throws DataServiceException, AssessmentNotMatchingException, QuestionNotMatchingException;
 
     AssessmentDto toDto(Assessment assessment, boolean questions, boolean answers, boolean submissions, boolean student) throws AssessmentNotMatchingException;
 
@@ -61,7 +61,7 @@ public interface AssessmentService {
                     throws TitleValidationException, RevealResponsesSettingValidationException,
                     MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException, IdInPostException, DataServiceException, NegativePointsException, QuestionNotMatchingException;
 
-    void saveAndFlush(Assessment assessmentToChange);
+    Assessment saveAndFlush(Assessment assessmentToChange);
 
     void deleteById(Long id) throws EmptyResultDataAccessException;
 

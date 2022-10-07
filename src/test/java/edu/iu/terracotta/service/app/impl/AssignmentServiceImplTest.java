@@ -42,6 +42,7 @@ import edu.iu.terracotta.exceptions.AssignmentMoveException;
 import edu.iu.terracotta.exceptions.AssignmentNotCreatedException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.MultipleAttemptsSettingsValidationException;
+import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
 import edu.iu.terracotta.exceptions.RevealResponsesSettingValidationException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
@@ -105,7 +106,7 @@ public class AssignmentServiceImplTest {
     private Date dueDate = new Date();
 
     @BeforeEach
-    public void beforeEach() throws NoSuchMethodException, SecurityException, DataServiceException, AssessmentNotMatchingException, CanvasApiException, NumberFormatException, IdInPostException, ExceedingLimitException, TreatmentNotMatchingException, AssignmentNotCreatedException, AssignmentAttemptException {
+    public void beforeEach() throws NoSuchMethodException, SecurityException, DataServiceException, AssessmentNotMatchingException, CanvasApiException, NumberFormatException, IdInPostException, ExceedingLimitException, TreatmentNotMatchingException, AssignmentNotCreatedException, AssignmentAttemptException, QuestionNotMatchingException {
         MockitoAnnotations.openMocks(this);
 
         clearInvocations(assignmentRepository, canvasAPIClient);
@@ -154,7 +155,7 @@ public class AssignmentServiceImplTest {
 
     @Test
     public void duplicateAssignmentTest() throws DataServiceException, IdInPostException, TitleValidationException, AssessmentNotMatchingException,
-                                                AssignmentNotCreatedException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, NumberFormatException, CanvasApiException, ExceedingLimitException, TreatmentNotMatchingException {
+                                                AssignmentNotCreatedException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, NumberFormatException, CanvasApiException, ExceedingLimitException, TreatmentNotMatchingException, QuestionNotMatchingException {
         AssignmentDto assignmentDto = assignmentService.duplicateAssignment(0L, "0", 0l);
 
         assertNotNull(assignmentDto);
@@ -163,7 +164,7 @@ public class AssignmentServiceImplTest {
 
     @Test
     public void duplicateAssignmentTestWithTreatments() throws DataServiceException, IdInPostException, TitleValidationException, AssessmentNotMatchingException,
-                                                AssignmentNotCreatedException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, NumberFormatException, CanvasApiException, ExceedingLimitException, TreatmentNotMatchingException {
+                                                AssignmentNotCreatedException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, NumberFormatException, CanvasApiException, ExceedingLimitException, TreatmentNotMatchingException, QuestionNotMatchingException {
         when(treatmentRepository.findByAssignment_AssignmentId(anyLong())).thenReturn(Collections.singletonList(treatment));
         AssignmentDto assignmentDto = assignmentService.duplicateAssignment(0L, "0", 0l);
 
@@ -231,7 +232,7 @@ public class AssignmentServiceImplTest {
     @Test
     public void testMoveAssignment() throws NumberFormatException, DataServiceException, IdInPostException, TitleValidationException, AssessmentNotMatchingException,
             AssignmentNotCreatedException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, CanvasApiException,
-            ExceedingLimitException, TreatmentNotMatchingException, ExposureNotMatchingException, AssignmentMoveException, AssignmentNotEditedException {
+            ExceedingLimitException, TreatmentNotMatchingException, ExposureNotMatchingException, AssignmentMoveException, AssignmentNotEditedException, QuestionNotMatchingException {
         when(assignmentDto.getAssignmentId()).thenReturn(null);
 
         AssignmentDto newAssignmentDto = assignmentService.moveAssignment(2l, assignmentDto, 1L, 2l, "1", 1L);
