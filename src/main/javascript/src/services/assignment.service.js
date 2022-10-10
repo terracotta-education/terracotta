@@ -106,7 +106,8 @@ async function updateAssignment(experiment_id, exposure_id, assignment_id, body)
     })
   }
 
-  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/exposures/${exposure_id}/assignments/${assignment_id}`, requestOptions).then(handleResponse)
+  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/exposures/${exposure_id}/assignments/${assignment_id}`, requestOptions).then(handleResponse);
+}
 /**
  * Update Assignments
  */
@@ -148,4 +149,4 @@ function handleResponse(response) {
   }).catch(text => {
     console.error('handleResponse | catch',{text})
   })
-};
+}
