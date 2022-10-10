@@ -275,7 +275,11 @@ export default {
       return isNaN(time) ? '' : moment.duration(time, "milliseconds").humanize();
     },
     currentScore() {
-      return `${this.selectedSubmission?.totalAlteredGrade} / ${this.assignmentData?.maxPoints}`;
+      let grade;
+      if (!this.selectedSubmission) { grade = '-' }
+      const { totalAlteredGrade, alteredCalculatedGrade } = this.selectedSubmission;
+      const grade = totalAlteredGrade ? totalAlteredGrade : alteredCalculatedGrade;
+      return `${grade} / ${this.assignmentData?.maxPoints}`;
     },
     keptScore() {
       const kept = this.assignmentData?.retakeDetails.keptScore;
@@ -287,8 +291,14 @@ export default {
       const { allowStudentViewResponses, studentViewResponsesAfter, studentViewResponsesBefore } = this.assignmentData;
       if (allowStudentViewResponses) {
         const now = Date.now();
-        const isAfter = moment(now).isAfter(studentViewResponsesAfter);
-        const isBefore = moment(now).isBefore(studentViewResponsesBefore);
+        let isAfter = true;
+        let isBefore = true;
+        if (studentViewResponsesAfter) {
+          isAfter = moment(now).isAfter(studentViewResponsesAfter);
+        }
+        if (studentViewResponsesBefore) {
+          isBefore = moment(now).isBefore(studentViewResponsesBefore);
+        }
         if (isAfter && isBefore) {
           return false;
         }
