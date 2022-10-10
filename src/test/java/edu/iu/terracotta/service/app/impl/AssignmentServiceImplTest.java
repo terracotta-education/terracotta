@@ -34,11 +34,6 @@ import edu.iu.terracotta.service.canvas.CanvasAPIClient;
 
 import javax.persistence.EntityManager;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.sql.Timestamp;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -47,10 +42,10 @@ import edu.iu.terracotta.exceptions.AssignmentMoveException;
 import edu.iu.terracotta.exceptions.AssignmentNotCreatedException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.MultipleAttemptsSettingsValidationException;
+import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
 import edu.iu.terracotta.exceptions.RevealResponsesSettingValidationException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
-import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.Treatment;
 import edu.iu.terracotta.model.app.dto.AssignmentDto;
 import edu.iu.terracotta.model.app.dto.TreatmentDto;
@@ -61,10 +56,11 @@ import edu.iu.terracotta.repository.PlatformDeploymentRepository;
 import edu.iu.terracotta.repository.TreatmentRepository;
 import edu.iu.terracotta.utils.TextConstants;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyFloat;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.clearInvocations;
@@ -108,19 +104,12 @@ public class AssignmentServiceImplTest {
     @Mock private TreatmentDto treatmentDto;
 
     private Date dueDate = new Date();
-    private Method verifyAssignmentSubmissionLimit;
-    private Method verifySubmissionWaitTime;
 
     @BeforeEach
-    public void beforeEach() throws NoSuchMethodException, SecurityException, DataServiceException, AssessmentNotMatchingException, CanvasApiException, NumberFormatException, IdInPostException, ExceedingLimitException, TreatmentNotMatchingException, AssignmentNotCreatedException {
+    public void beforeEach() throws NoSuchMethodException, SecurityException, DataServiceException, AssessmentNotMatchingException, CanvasApiException, NumberFormatException, IdInPostException, ExceedingLimitException, TreatmentNotMatchingException, AssignmentNotCreatedException, AssignmentAttemptException, QuestionNotMatchingException {
         MockitoAnnotations.openMocks(this);
 
         clearInvocations(assignmentRepository, canvasAPIClient);
-
-        verifyAssignmentSubmissionLimit = AssignmentServiceImpl.class.getDeclaredMethod("verifyAssignmentSubmissionLimit", Integer.class, int.class);
-        verifyAssignmentSubmissionLimit.setAccessible(true);
-        verifySubmissionWaitTime = AssignmentServiceImpl.class.getDeclaredMethod("verifySubmissionWaitTime", Float.class, List.class);
-        verifySubmissionWaitTime.setAccessible(true);
 
         allRepositories.assessmentRepository = assessmentRepository;
         allRepositories.assignmentRepository = assignmentRepository;
@@ -134,12 +123,15 @@ public class AssignmentServiceImplTest {
         when(assignmentRepository.findByAssignmentId(anyLong())).thenReturn(assignment);
         when(assignmentRepository.findByExposure_ExposureIdAndSoftDeleted(anyLong(), anyBoolean())).thenReturn(Collections.singletonList(assignment));
         when(assignmentRepository.save(any(Assignment.class))).thenReturn(assignment);
+        when(assignmentRepository.saveAndFlush(any(Assignment.class))).thenReturn(assignment);
         when(exposureRepository.findById(anyLong())).thenReturn(Optional.of(exposure));
         when(platformDeploymentRepository.getOne(anyLong())).thenReturn(platformDeployment);
         when(submissionRepository.countByAssessment_Treatment_Assignment_AssignmentId(anyLong())).thenReturn(0L);
         when(treatmentRepository.findByAssignment_AssignmentId(anyLong())).thenReturn(Collections.emptyList());
 
         when(assessmentService.getAssessmentForParticipant(any(Participant.class), any(SecuredInfo.class))).thenReturn(assessment);
+        doNothing().when(assessmentService).verifySubmissionLimit(anyInt(), anyInt());
+        doNothing().when(assessmentService).verifySubmissionWaitTime(anyFloat(), anyList());
         when(canvasAPIClient.listAssignment(anyString(), anyInt(), any(PlatformDeployment.class))).thenReturn(Optional.empty());
         when(exposureService.getExposure(anyLong())).thenReturn(exposure);
         when(treatmentService.duplicateTreatment(anyLong(), any(Assignment.class), anyString(), anyLong())).thenReturn(treatmentDto);
@@ -163,7 +155,7 @@ public class AssignmentServiceImplTest {
 
     @Test
     public void duplicateAssignmentTest() throws DataServiceException, IdInPostException, TitleValidationException, AssessmentNotMatchingException,
-                                                AssignmentNotCreatedException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, NumberFormatException, CanvasApiException, ExceedingLimitException, TreatmentNotMatchingException {
+                                                AssignmentNotCreatedException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, NumberFormatException, CanvasApiException, ExceedingLimitException, TreatmentNotMatchingException, QuestionNotMatchingException {
         AssignmentDto assignmentDto = assignmentService.duplicateAssignment(0L, "0", 0l);
 
         assertNotNull(assignmentDto);
@@ -172,7 +164,7 @@ public class AssignmentServiceImplTest {
 
     @Test
     public void duplicateAssignmentTestWithTreatments() throws DataServiceException, IdInPostException, TitleValidationException, AssessmentNotMatchingException,
-                                                AssignmentNotCreatedException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, NumberFormatException, CanvasApiException, ExceedingLimitException, TreatmentNotMatchingException {
+                                                AssignmentNotCreatedException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, NumberFormatException, CanvasApiException, ExceedingLimitException, TreatmentNotMatchingException, QuestionNotMatchingException {
         when(treatmentRepository.findByAssignment_AssignmentId(anyLong())).thenReturn(Collections.singletonList(treatment));
         AssignmentDto assignmentDto = assignmentService.duplicateAssignment(0L, "0", 0l);
 
@@ -219,55 +211,6 @@ public class AssignmentServiceImplTest {
         assertEquals(0, assignmentDtos.size());
     }
 
-    public void testVerifyNumSubmissionsLimitNull() {
-        assertDoesNotThrow(() -> verifyAssignmentSubmissionLimit.invoke(assignmentService, null, 1));
-    }
-
-    @Test
-    public void testVerifyNumSubmissionsLimitZero() {
-        assertDoesNotThrow(() -> verifyAssignmentSubmissionLimit.invoke(assignmentService, 0, 1));
-    }
-
-    @Test
-    public void testVerifyNumSubmissionsLessThanLimit() {
-        assertDoesNotThrow(() -> verifyAssignmentSubmissionLimit.invoke(assignmentService, 2, 1));
-    }
-
-    @Test
-    public void testVerifyNumSubmissionsGreaterThanLimit() {
-        InvocationTargetException e = assertThrows(InvocationTargetException.class, () -> verifyAssignmentSubmissionLimit.invoke(assignmentService, 1, 2));
-        assertTrue(e.getCause() instanceof AssignmentAttemptException);
-        assertEquals(TextConstants.LIMIT_OF_SUBMISSIONS_REACHED, e.getCause().getMessage());
-    }
-
-    @Test
-    public void testVerifySubmissionWaitTimeNull() {
-        assertDoesNotThrow(() -> verifySubmissionWaitTime.invoke(assignmentService, null, Collections.emptyList()));
-    }
-
-    @Test
-    public void testVerifySubmissionWaitTimeZero() {
-        assertDoesNotThrow(() -> verifySubmissionWaitTime.invoke(assignmentService, 0F, Collections.emptyList()));
-    }
-
-    @Test
-    public void testVerifySubmissionWaitTimeAllowed() {
-        Submission submission = new Submission();
-        submission.setDateSubmitted(Timestamp.from(Instant.now().minus(30, ChronoUnit.MINUTES)));
-
-        assertDoesNotThrow(() -> verifySubmissionWaitTime.invoke(assignmentService, .1F, Collections.singletonList(submission)));
-    }
-
-    @Test
-    public void testVerifySubmissionWaitTimeNotAllowed() {
-        Submission submission = new Submission();
-        submission.setDateSubmitted(Timestamp.from(Instant.now().minus(30, ChronoUnit.MINUTES)));
-
-        InvocationTargetException e = assertThrows(InvocationTargetException.class, () -> verifySubmissionWaitTime.invoke(assignmentService, 1F, Collections.singletonList(submission)));
-        assertTrue(e.getCause() instanceof AssignmentAttemptException);
-        assertEquals(TextConstants.ASSIGNMENT_SUBMISSION_WAIT_TIME_NOT_REACHED, e.getCause().getMessage());
-    }
-
     @Test
     public void testDeleteAssignmentHard() throws EmptyResultDataAccessException, CanvasApiException, AssignmentNotEditedException {
         assignmentService.deleteById(1L, "canvasId");
@@ -289,7 +232,7 @@ public class AssignmentServiceImplTest {
     @Test
     public void testMoveAssignment() throws NumberFormatException, DataServiceException, IdInPostException, TitleValidationException, AssessmentNotMatchingException,
             AssignmentNotCreatedException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, CanvasApiException,
-            ExceedingLimitException, TreatmentNotMatchingException, ExposureNotMatchingException, AssignmentMoveException, AssignmentNotEditedException {
+            ExceedingLimitException, TreatmentNotMatchingException, ExposureNotMatchingException, AssignmentMoveException, AssignmentNotEditedException, QuestionNotMatchingException {
         when(assignmentDto.getAssignmentId()).thenReturn(null);
 
         AssignmentDto newAssignmentDto = assignmentService.moveAssignment(2l, assignmentDto, 1L, 2l, "1", 1L);

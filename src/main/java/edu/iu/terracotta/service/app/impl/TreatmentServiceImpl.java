@@ -203,7 +203,7 @@ public class TreatmentServiceImpl implements TreatmentService {
     public Optional<Treatment> findById(Long id) { return allRepositories.treatmentRepository.findById(id); }
 
     @Override
-    public void saveAndFlush(Treatment treatmentToChange) { allRepositories.treatmentRepository.saveAndFlush(treatmentToChange); }
+    public Treatment saveAndFlush(Treatment treatmentToChange) { return allRepositories.treatmentRepository.saveAndFlush(treatmentToChange); }
 
     @Override
     public void deleteById(Long id) { allRepositories.treatmentRepository.deleteByTreatmentId(id); }
@@ -232,14 +232,14 @@ public class TreatmentServiceImpl implements TreatmentService {
     @Override
     public TreatmentDto duplicateTreatment(long treatmentId, String canvasCourseId, long platformDeploymentId)
         throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, NumberFormatException,
-            CanvasApiException, TreatmentNotMatchingException {
+            CanvasApiException, TreatmentNotMatchingException, QuestionNotMatchingException {
         return duplicateTreatment(treatmentId, null, canvasCourseId, platformDeploymentId);
     }
 
     @Override
     public TreatmentDto duplicateTreatment(long treatmentId, Assignment assignment, String canvasCourseId, long platformDeploymentId)
         throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, NumberFormatException,
-            CanvasApiException, TreatmentNotMatchingException {
+            CanvasApiException, TreatmentNotMatchingException, QuestionNotMatchingException {
         Treatment from = getTreatment(treatmentId);
 
         if (from == null) {
@@ -256,16 +256,21 @@ public class TreatmentServiceImpl implements TreatmentService {
             from.setAssignment(assignment);
         }
 
+        // unset the assessment
+        from.setAssessment(null);
+
         Treatment newTreatment = save(from);
         assignmentService.setAssignmentDtoAttrs(newTreatment.getAssignment(), canvasCourseId, platformDeploymentId);
         TreatmentDto treatmentDto = toDto(newTreatment, false, true);
 
         // duplicate assessment
-        Assessment existingAssessment = from.getAssessment();
+        List<Assessment> existingAssessments = assessmentService.findAllByTreatmentId(treatmentId);
 
-        if (existingAssessment != null) {
-            AssessmentDto newAssessment = assessmentService.duplicateAssessment(existingAssessment.getAssessmentId(), newTreatment.getTreatmentId());
-            treatmentDto.setAssessmentDto(newAssessment);
+        if (CollectionUtils.isNotEmpty(existingAssessments)) {
+            Assessment newAssessment = assessmentService.duplicateAssessment(existingAssessments.get(0).getAssessmentId(), newTreatment, assignment);
+            newTreatment.setAssessment(newAssessment);
+            saveAndFlush(newTreatment);
+            treatmentDto.setAssessmentDto(assessmentService.toDto(newAssessment, true, true, true, false));
         }
 
         return treatmentDto;

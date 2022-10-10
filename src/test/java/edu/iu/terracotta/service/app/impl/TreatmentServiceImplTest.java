@@ -82,7 +82,7 @@ public class TreatmentServiceImplTest {
 
 
     @BeforeEach
-    public void beforeEach() throws DataServiceException, AssessmentNotMatchingException, CanvasApiException, TreatmentNotMatchingException {
+    public void beforeEach() throws DataServiceException, AssessmentNotMatchingException, CanvasApiException, TreatmentNotMatchingException, QuestionNotMatchingException {
         MockitoAnnotations.openMocks(this);
 
         clearInvocations(assignmentService);
@@ -91,7 +91,7 @@ public class TreatmentServiceImplTest {
         allRepositories.conditionRepository = conditionRepository;
         allRepositories.treatmentRepository = treatmentRepository;
 
-        when(assessmentService.duplicateAssessment(anyLong(), anyLong())).thenReturn(new AssessmentDto());
+        when(assessmentService.duplicateAssessment(anyLong(), anyLong())).thenReturn(assessment);
         when(assignmentRepository.findById(anyLong())).thenReturn(Optional.of(assignment));
         when(conditionRepository.findById(anyLong())).thenReturn(Optional.of(condition));
         when(treatmentRepository.findByTreatmentId(anyLong())).thenReturn(treatment);
@@ -115,7 +115,7 @@ public class TreatmentServiceImplTest {
     }
 
     @Test
-    public void testDuplicateTreatment() throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, NumberFormatException, CanvasApiException, TreatmentNotMatchingException {
+    public void testDuplicateTreatment() throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, NumberFormatException, CanvasApiException, TreatmentNotMatchingException, QuestionNotMatchingException {
         TreatmentDto treatmentDto = treatmentService.duplicateTreatment(1L, "0", 0L);
 
         assertNotNull(treatmentDto);
@@ -123,7 +123,7 @@ public class TreatmentServiceImplTest {
     }
 
     @Test
-    public void testDuplicateTreatmentNoAssessmentFound() throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, NumberFormatException, CanvasApiException, TreatmentNotMatchingException {
+    public void testDuplicateTreatmentNoAssessmentFound() throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, NumberFormatException, CanvasApiException, TreatmentNotMatchingException, QuestionNotMatchingException {
         when(treatment.getAssessment()).thenReturn(null);
         TreatmentDto treatmentDto = treatmentService.duplicateTreatment(1L, "0", 0L);
 

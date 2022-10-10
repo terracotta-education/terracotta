@@ -4,6 +4,8 @@ import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.InvalidQuestionTypeException;
 import edu.iu.terracotta.exceptions.NegativePointsException;
+import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
+import edu.iu.terracotta.model.app.Assessment;
 import edu.iu.terracotta.model.app.Question;
 import edu.iu.terracotta.model.app.dto.QuestionDto;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -24,7 +26,7 @@ public interface QuestionService {
 
     QuestionDto postQuestion(QuestionDto questionDto, long assessmentId, boolean answers) throws IdInPostException, DataServiceException;
 
-    List<QuestionDto> duplicateQuestionsForAssessment(Long oldAssessmentId, Long newAssessmentId) throws DataServiceException;
+    List<Question> duplicateQuestionsForAssessment(Long oldAssessmentId, Assessment newAssessment) throws DataServiceException, QuestionNotMatchingException;
 
     void updateQuestion(Map<Question, QuestionDto> map) throws NegativePointsException;
 
@@ -40,7 +42,7 @@ public interface QuestionService {
 
     Question findByQuestionId(Long id);
 
-    void saveAndFlush(Question questionToChange);
+    Question saveAndFlush(Question questionToChange);
 
     void deleteById(Long id) throws EmptyResultDataAccessException;
 

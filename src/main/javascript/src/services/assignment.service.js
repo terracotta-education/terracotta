@@ -10,6 +10,7 @@ export const assignmentService = {
   create,
   deleteAssignment,
   updateAssignments,
+  moveAssignment,
   duplicateAssignment
 }
 
@@ -65,8 +66,6 @@ function duplicateAssignment(experiment_id, exposure_id, assignment_id) {
     body: JSON.stringify({})
   };
 
-  console.log(experiment_id, exposure_id, assignment_id);
-
   return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/exposures/${exposure_id}/assignments/${assignment_id}/duplicate`, requestOptions).then(handleResponse)
 }
 
@@ -83,7 +82,7 @@ async function deleteAssignment(experiment_id, exposure_id, assignment_id) {
 }
 
 /**
- * Delete Assignment
+ * Update Assignments
  */
 async function updateAssignments(experiment_id, exposure_id, payload) {
   const requestOptions = {
@@ -95,6 +94,20 @@ async function updateAssignments(experiment_id, exposure_id, payload) {
   }
 
   return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/exposures/${exposure_id}/assignments`, requestOptions).then(handleResponse)
+}
+
+/**
+ * Update Assignments
+ */
+async function moveAssignment(experiment_id, exposure_id, assignment_id, update) {
+  const requestOptions = {
+    method: 'POST',
+    headers: {...authHeader()},
+    body: JSON.stringify({
+      ...update
+    })
+  }
+  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/exposures/${exposure_id}/assignments/${assignment_id}/move`, requestOptions).then(handleResponse)
 }
 
 

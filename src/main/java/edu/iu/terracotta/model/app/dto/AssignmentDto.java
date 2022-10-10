@@ -33,8 +33,6 @@ public class AssignmentDto {
     private boolean published;
     private Date dueDate;
 
-    public AssignmentDto() {}
-
     public Long getAssignmentId() { return assignmentId; }
 
     public void setAssignmentId(Long assignmentId) { this.assignmentId = assignmentId; }

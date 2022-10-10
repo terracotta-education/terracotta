@@ -147,9 +147,7 @@ export default {
       return parseInt(this.$route.params.condition_id);
     },
     isPageBreakAfter() {
-      const questionIndex = this.questions.findIndex(
-        (que) => que.questionId === this.question.questionId
-      );
+      const questionIndex = this.question.questionOrder;
       if (questionIndex + 1 < this.questions.length) {
         return this.questions[questionIndex + 1].questionType === "PAGE_BREAK";
       } else {
@@ -185,6 +183,7 @@ export default {
     ...mapActions({
       createQuestionAtIndex: "assessment/createQuestionAtIndex",
       deleteQuestion: "assessment/deleteQuestion",
+      updateQuestion: "assessment/updateQuestion",
     }),
     async handleDeleteQuestion(question) {
       // DELETE QUESTION
@@ -221,7 +220,7 @@ export default {
             this.condition_id,
             this.treatment_id,
             this.assessment_id,
-            0,
+            questionIndex + 1,
             "PAGE_BREAK",
             0,
             "",
@@ -229,6 +228,14 @@ export default {
           // Put the PAGE_BREAK just after this question
           questionIndex: questionIndex + 1,
         });
+
+        const list = [...this.questions.map(q => ({...q}))];
+        list.forEach((q, idx) => {
+          q.questionOrder = idx;
+        });
+
+        this.handleSaveQuestions(list);
+
       } catch (error) {
         console.error("addPageBreakAfter | catch", { error });
         this.$swal("there was a problem adding a page break");
@@ -248,10 +255,45 @@ export default {
           this.assessment_id,
           pageBreakQuestion.questionId,
         ]);
+
+        const list = [...this.questions.map(q => ({...q}))];
+        list.forEach((q, idx) => {
+          q.questionOrder = idx;
+        });
+
+        this.handleSaveQuestions(list);
+
       } catch (error) {
         console.error("removePageBreakAfter | catch", { error });
         this.$swal("there was a problem removing a page break");
       }
+    },
+    async handleSaveQuestions(questions) {
+      // LOOP AND PUT QUESTIONS
+      return Promise.all(
+        questions.map(async (question, index) => {
+          // save question
+          try {
+            this.updateQuestions(question);
+            const q = await this.updateQuestion([
+              this.experiment_id,
+              this.condition_id,
+              this.treatment_id,
+              this.assessment_id,
+              question.questionId,
+              question.html,
+              question.points,
+              index,
+              question.questionType,
+              question.randomizeAnswers,
+              question.answers
+            ]);
+            return Promise.resolve(q);
+          } catch (error) {
+            return Promise.reject(error);
+          }
+        })
+      );
     },
   },
 };

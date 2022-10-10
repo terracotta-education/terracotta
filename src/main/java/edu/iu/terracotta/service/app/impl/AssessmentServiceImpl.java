@@ -1,6 +1,7 @@
 package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
+import edu.iu.terracotta.exceptions.AssignmentAttemptException;
 import edu.iu.terracotta.exceptions.AssignmentNotMatchingException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
@@ -50,6 +51,9 @@ import org.springframework.web.util.UriComponentsBuilder;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -127,8 +131,11 @@ public class AssessmentServiceImpl implements AssessmentService {
 
         List<Submission> participantSubmissions = submissionService.findByParticipantId(participant.getParticipantId());
 
-        List<SubmissionDto> submissionDtosSubmitted = CollectionUtils.emptyIfNull(participantSubmissions).stream()
+        List<Submission> participantSubmissionsSubmitted = CollectionUtils.emptyIfNull(participantSubmissions).stream()
             .filter(submission -> submission.getDateSubmitted() != null)
+            .collect(Collectors.toList());
+
+        List<SubmissionDto> submissionDtosSubmitted = CollectionUtils.emptyIfNull(participantSubmissionsSubmitted).stream()
             .map(submission -> submissionService.toDto(submission, false, false))
             .collect(Collectors.toList());
 
@@ -137,6 +144,16 @@ public class AssessmentServiceImpl implements AssessmentService {
         }
 
         RetakeDetails retakeDetails = new RetakeDetails();
+
+        try {
+            verifySubmissionLimit(assessment.getNumOfSubmissions(), submissionDtosSubmitted.size());
+            verifySubmissionWaitTime(assessment.getHoursBetweenSubmissions(), participantSubmissionsSubmitted);
+
+            retakeDetails.setRetakeAllowed(true);
+        } catch (AssignmentAttemptException e) {
+            retakeDetails.setRetakeAllowed(false);
+        }
+
         retakeDetails.setKeptScore(submissionService.getScoreFromMultipleSubmissions(participant, assessment));
         retakeDetails.setSubmissionAttemptsCount(submissionDtosSubmitted.size());
         assessmentDto.setRetakeDetails(retakeDetails);
@@ -363,8 +380,8 @@ public class AssessmentServiceImpl implements AssessmentService {
     }
 
     @Override
-    public void saveAndFlush(Assessment assessmentToChange) {
-        allRepositories.assessmentRepository.saveAndFlush(assessmentToChange);
+    public Assessment saveAndFlush(Assessment assessmentToChange) {
+        return allRepositories.assessmentRepository.saveAndFlush(assessmentToChange);
     }
 
     @Override
@@ -506,7 +523,8 @@ public class AssessmentServiceImpl implements AssessmentService {
     }
 
     @Override
-    public AssessmentDto duplicateAssessment(long assessmentId, long treatmentId) throws DataServiceException, AssessmentNotMatchingException, TreatmentNotMatchingException {
+    public Assessment duplicateAssessment(long assessmentId, long treatmentId)
+            throws DataServiceException, AssessmentNotMatchingException, TreatmentNotMatchingException, QuestionNotMatchingException {
         Treatment treatment = allRepositories.treatmentRepository.findByTreatmentId(treatmentId);
 
         if (treatment == null) {
@@ -517,7 +535,8 @@ public class AssessmentServiceImpl implements AssessmentService {
     }
 
     @Override
-    public AssessmentDto duplicateAssessment(long assessmentId, Treatment treatment, Assignment assignment) throws DataServiceException, AssessmentNotMatchingException {
+    public Assessment duplicateAssessment(long assessmentId, Treatment treatment, Assignment assignment)
+            throws DataServiceException, AssessmentNotMatchingException, QuestionNotMatchingException {
         Assessment from = getAssessment(assessmentId);
 
         if (from == null) {
@@ -537,16 +556,10 @@ public class AssessmentServiceImpl implements AssessmentService {
 
         Assessment newAssessment = save(from);
 
-        // update the treatment
-        updateTreatment(treatment.getTreatmentId(), newAssessment);
-
         // duplicate questions
-        List<QuestionDto> questionDtos = questionService.duplicateQuestionsForAssessment(oldAssessmentId, newAssessment.getAssessmentId());
+        questionService.duplicateQuestionsForAssessment(oldAssessmentId, newAssessment);
 
-        AssessmentDto assessmentDto = toDto(newAssessment, false, false, false, false);
-        assessmentDto.setQuestions(questionDtos);
-
-        return assessmentDto;
+        return newAssessment;
     }
 
     @Override
@@ -655,6 +668,45 @@ public class AssessmentServiceImpl implements AssessmentService {
         }
 
         return toDto(assessment, participant, assessment.isAllowStudentViewResponses());
+    }
+
+    @Override
+    public void verifySubmissionLimit(Integer limit, int existingSubmissionsCount) throws AssignmentAttemptException {
+        if (limit == null || limit == 0) {
+            return;
+        }
+
+        if (existingSubmissionsCount < limit) {
+            return;
+        }
+
+        throw new AssignmentAttemptException(TextConstants.LIMIT_OF_SUBMISSIONS_REACHED);
+    }
+
+    @Override
+    public void verifySubmissionWaitTime(Float waitTime, List<Submission> submissionList) throws AssignmentAttemptException {
+        if (waitTime == null || waitTime == 0F) {
+            return;
+        }
+
+        if (CollectionUtils.isEmpty(submissionList)) {
+            return;
+        }
+
+        // calculate the allowable submission time limit
+        Timestamp limit = Timestamp.from(Instant.now().minus(Math.round(waitTime * 60 * 60), ChronoUnit.SECONDS));
+
+        // check for any submissions after the allowable time
+        Optional<Submission> invalidSubmission = submissionList.stream()
+            .filter(submission -> submission.getDateSubmitted().after(limit))
+            .findAny();
+
+        if (!invalidSubmission.isPresent()) {
+            return;
+        }
+
+        // there are existing submissions that are not passed the time limit
+        throw new AssignmentAttemptException(TextConstants.ASSIGNMENT_SUBMISSION_WAIT_TIME_NOT_REACHED);
     }
 
 }

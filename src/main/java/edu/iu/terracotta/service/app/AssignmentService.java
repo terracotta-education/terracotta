@@ -17,6 +17,7 @@ import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.MultipleAttemptsSettingsValidationException;
 import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
+import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
 import edu.iu.terracotta.exceptions.RevealResponsesSettingValidationException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
@@ -49,7 +50,8 @@ public interface AssignmentService {
     AssignmentDto duplicateAssignment(long assignmentId, String canvasCourseId, long platformDeploymentId)
             throws DataServiceException, IdInPostException, TitleValidationException, AssessmentNotMatchingException,
                     AssignmentNotCreatedException, RevealResponsesSettingValidationException,
-                    MultipleAttemptsSettingsValidationException, NumberFormatException, CanvasApiException, ExceedingLimitException, TreatmentNotMatchingException;
+                    MultipleAttemptsSettingsValidationException, NumberFormatException, CanvasApiException, ExceedingLimitException,
+                    TreatmentNotMatchingException, QuestionNotMatchingException;
 
     AssignmentDto toDto(Assignment assignment, boolean submissions, boolean addTreatmentDto) throws AssessmentNotMatchingException;
 
@@ -111,6 +113,6 @@ public interface AssignmentService {
             throws DataServiceException, IdInPostException, TitleValidationException, AssessmentNotMatchingException,
                     AssignmentNotCreatedException, RevealResponsesSettingValidationException,
                     MultipleAttemptsSettingsValidationException, NumberFormatException, CanvasApiException, ExceedingLimitException,
-                    TreatmentNotMatchingException, ExposureNotMatchingException, AssignmentMoveException, AssignmentNotEditedException;
+                    TreatmentNotMatchingException, ExposureNotMatchingException, AssignmentMoveException, AssignmentNotEditedException, QuestionNotMatchingException;
 
 }

@@ -3,7 +3,9 @@ package edu.iu.terracotta.service.app;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.MultipleChoiceLimitReachedException;
+import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
 import edu.iu.terracotta.model.app.AnswerMc;
+import edu.iu.terracotta.model.app.Question;
 import edu.iu.terracotta.model.app.QuestionSubmission;
 import edu.iu.terracotta.model.app.dto.AnswerDto;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -32,7 +34,7 @@ public interface AnswerService {
 
     AnswerMc findByAnswerId(Long answerId);
 
-    void updateAnswerMC(Map<AnswerMc, AnswerDto> map);
+    List<AnswerDto> updateAnswerMC(Map<AnswerMc, AnswerDto> map);
 
     void deleteByIdMC(Long id) throws EmptyResultDataAccessException;
 
@@ -42,6 +44,7 @@ public interface AnswerService {
 
     void limitReached(Long questionId) throws MultipleChoiceLimitReachedException;
 
+    List<AnswerMc> duplicateAnswersForQuestion(Long originalQuestionId, Question newQuestion) throws QuestionNotMatchingException;
 
     //METHODS FOR ALL ANSWER TYPES
     String getQuestionType(Long questionId);

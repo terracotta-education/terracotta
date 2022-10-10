@@ -2,7 +2,7 @@
   <div>
     <h4>Multiple attempts</h4>
     <p class="grey--text text--darken-2 pb-0">
-      Decide if students should be able to submit the assignment more than once. 
+      Decide if students should be able to submit the assignment more than once.
     </p>
     <v-card outlined class="multiple-attempts-card">
       <v-card-title :class="{ 'blue lighten-5': allowMultipleAttempts }">
@@ -50,7 +50,7 @@
           </v-radio-group>
         </div>
         <div class="mb-4"><v-divider class="mx-0 px-0"></v-divider></div>
-        
+
         <div class="d-flex flex-column flex-wrap align-baseline">
             <div class="mb-5">Minimum time between submissions: <v-text-field
                     outlined
@@ -127,7 +127,7 @@ export default {
       return 100 - this.cumulativeScoringInitialPercentage;
     },
     distributionPercentage () {
-      return (100 - this.cumulativeScoringInitialPercentage) / (this.numOfSubmissions - 1);
+      return ((100 - this.cumulativeScoringInitialPercentage) / (this.numOfSubmissions - 1)).toFixed(2);
     },
     scoringOptions: {
       get() {

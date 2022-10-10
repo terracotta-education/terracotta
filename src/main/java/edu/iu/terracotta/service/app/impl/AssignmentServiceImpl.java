@@ -17,6 +17,7 @@ import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.MultipleAttemptsSettingsValidationException;
 import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
+import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
 import edu.iu.terracotta.exceptions.RevealResponsesSettingValidationException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
@@ -71,9 +72,7 @@ import javax.persistence.PersistenceContext;
 
 import java.io.IOException;
 import java.sql.Timestamp;
-import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -158,23 +157,37 @@ public class AssignmentServiceImpl implements AssignmentService {
         if (assignmentDto.getAssignmentId() != null) {
             throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
         }
+        Assignment assignment = createAssignment(assignmentDto, experimentId, canvasCourseId, exposureId);
+
+        setAssignmentDtoAttrs(assignment, canvasCourseId, platformDeploymentId);
+
+        return toDto(assignment, false, true);
+    }
+
+    private Assignment createAssignment(AssignmentDto assignmentDto, long experimentId, String canvasCourseId, long exposureId)
+            throws IdInPostException, DataServiceException, TitleValidationException, AssignmentNotCreatedException, RevealResponsesSettingValidationException,
+                MultipleAttemptsSettingsValidationException, NumberFormatException {
+
+        if (assignmentDto.getAssignmentId() != null) {
+            throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
+        }
+
         validateTitle(assignmentDto.getTitle());
         validateMultipleAttemptsSettings(assignmentDto);
         validateRevealAssignmentResponsesSettings(assignmentDto);
         assignmentDto.setExposureId(exposureId);
         Assignment assignment;
+
         try {
             assignment = fromDto(assignmentDto);
         } catch (DataServiceException e) {
             throw new DataServiceException("Error 105: Unable to create Assignment: " + e.getMessage());
         }
+
         Assignment assignmentSaved = save(assignment);
         createAssignmentInCanvas(assignmentSaved, experimentId, canvasCourseId);
-        saveAndFlush(assignmentSaved);
 
-        setAssignmentDtoAttrs(assignmentSaved, canvasCourseId, platformDeploymentId);
-
-        return toDto(assignmentSaved, false, true);
+        return saveAndFlush(assignmentSaved);
     }
 
     @Override
@@ -347,9 +360,9 @@ public class AssignmentServiceImpl implements AssignmentService {
             CollectionUtils.emptyIfNull(assessments).stream()
                 .filter(assessment -> CollectionUtils.isNotEmpty(assessment.getQuestions()))
                 .forEach(assessment ->
-                    assessment.getQuestions().forEach(question ->
-                        allRepositories.questionRepository.deleteByQuestionId(question.getQuestionId()
-                    )
+                    assessment.getQuestions().forEach(question -> {
+                        allRepositories.questionRepository.deleteByQuestionId(question.getQuestionId());
+                    }
                 )
             );
 
@@ -435,11 +448,11 @@ public class AssignmentServiceImpl implements AssignmentService {
                 }
             }
             try {
-                verifyAssignmentSubmissionLimit(assessment.getNumOfSubmissions(), submissionList.size());
-                verifySubmissionWaitTime(assessment.getHoursBetweenSubmissions(), submissionList);
+                assessmentService.verifySubmissionLimit(assessment.getNumOfSubmissions(), submissionList.size());
+                assessmentService.verifySubmissionWaitTime(assessment.getHoursBetweenSubmissions(), submissionList);
 
-                // If it is the first submission in the experiment we mark it as started.
-                if (experiment.get().getStarted()==null){
+                // If it is the first submission in the experiment mark it as started.
+                if (experiment.get().getStarted() == null) {
                     experiment.get().setStarted(Timestamp.valueOf(LocalDateTime.now()));
                     experimentService.save(experiment.get());
                 }
@@ -451,43 +464,6 @@ public class AssignmentServiceImpl implements AssignmentService {
         } else { //Shouldn't happen
             return new ResponseEntity(TextConstants.EXPERIMENT_NOT_MATCHING, HttpStatus.UNAUTHORIZED);
         }
-    }
-
-    private void verifyAssignmentSubmissionLimit(Integer limit, int existingSubmissionsCount) throws AssignmentAttemptException {
-        if (limit == null || limit == 0) {
-            return;
-        }
-
-        if (existingSubmissionsCount < limit) {
-            return;
-        }
-
-        throw new AssignmentAttemptException(TextConstants.LIMIT_OF_SUBMISSIONS_REACHED);
-    }
-
-    private void verifySubmissionWaitTime(Float waitTime, List<Submission> submissionList) throws AssignmentAttemptException {
-        if (waitTime == null || waitTime == 0F) {
-            return;
-        }
-
-        if (CollectionUtils.isEmpty(submissionList)) {
-            return;
-        }
-
-        // calculate the allowable submission time limit
-        Timestamp limit = Timestamp.from(Instant.now().minus(Math.round(waitTime * 60 * 60), ChronoUnit.SECONDS));
-
-        // check for any submissions after the allowable time
-        Optional<Submission> invalidSubmission = submissionList.stream()
-            .filter(submission -> submission.getDateSubmitted().after(limit))
-            .findAny();
-
-        if (!invalidSubmission.isPresent()) {
-            return;
-        }
-
-        // there are existing submissions that are not passed the time limit
-        throw new AssignmentAttemptException(TextConstants.ASSIGNMENT_SUBMISSION_WAIT_TIME_NOT_REACHED);
     }
 
     @Override
@@ -733,9 +709,10 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     @Override
-    public AssignmentDto duplicateAssignment(long assignmentId, String canvasCourseId, long platformDeploymentId) throws DataServiceException, IdInPostException, TitleValidationException, AssessmentNotMatchingException,
-                                                                        AssignmentNotCreatedException, RevealResponsesSettingValidationException,
-                                                                        MultipleAttemptsSettingsValidationException, NumberFormatException, CanvasApiException, ExceedingLimitException, TreatmentNotMatchingException {
+    public AssignmentDto duplicateAssignment(long assignmentId, String canvasCourseId, long platformDeploymentId)
+            throws DataServiceException, IdInPostException, TitleValidationException, AssessmentNotMatchingException,
+                    AssignmentNotCreatedException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException,
+                    NumberFormatException, CanvasApiException, ExceedingLimitException, TreatmentNotMatchingException, QuestionNotMatchingException {
         Assignment from = getAssignment(assignmentId);
 
         if (from == null) {
@@ -776,32 +753,40 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     @Override
-    public AssignmentDto moveAssignment(long assignmentId, AssignmentDto assignmentDto, long experimentId, long exposureId, String canvasCourseId, long platformDeploymentId)
+    public AssignmentDto moveAssignment(long originalAssignmentId, AssignmentDto targetAssignmentDto, long experimentId, long originalExposureId, String canvasCourseId, long platformDeploymentId)
             throws DataServiceException, IdInPostException, TitleValidationException, AssessmentNotMatchingException,
-            AssignmentNotCreatedException, RevealResponsesSettingValidationException,
-            MultipleAttemptsSettingsValidationException, NumberFormatException, CanvasApiException,
-            ExceedingLimitException, TreatmentNotMatchingException, ExposureNotMatchingException, AssignmentMoveException, AssignmentNotEditedException {
-        if (exposureId == assignmentDto.getExposureId()) {
+                AssignmentNotCreatedException, RevealResponsesSettingValidationException,
+                MultipleAttemptsSettingsValidationException, NumberFormatException, CanvasApiException,
+                ExceedingLimitException, TreatmentNotMatchingException, ExposureNotMatchingException, AssignmentMoveException, AssignmentNotEditedException, QuestionNotMatchingException {
+        if (originalExposureId == targetAssignmentDto.getExposureId().longValue()) {
             // cannot move assignment; original and target exposures are the same
             throw new AssignmentMoveException(TextConstants.UNABLE_TO_MOVE_ASSIGNMENT_EXPOSURE_SAME);
         }
 
-        Exposure exposure = exposureService.getExposure(assignmentDto.getExposureId());
+        Exposure exposure = exposureService.getExposure(targetAssignmentDto.getExposureId());
 
         if (exposure == null) {
             throw new ExposureNotMatchingException(TextConstants.EXPOSURE_NOT_MATCHING);
         }
 
         // reset ID
-        assignmentDto.setAssignmentId(null);
+        targetAssignmentDto.setAssignmentId(null);
 
         // create new assignment
-        AssignmentDto newAssignmentDto = postAssignment(assignmentDto, experimentId, canvasCourseId, assignmentDto.getExposureId(), platformDeploymentId);
+        Assignment newAssignment = createAssignment(targetAssignmentDto, experimentId, canvasCourseId, targetAssignmentDto.getExposureId());
+        setAssignmentDtoAttrs(newAssignment, canvasCourseId, platformDeploymentId);
+
+        // duplicate treatments from original assignment
+        List<Treatment> fromTreatments = allRepositories.treatmentRepository.findByAssignment_AssignmentId(originalAssignmentId);
+
+        for (Treatment treatment : fromTreatments) {
+            treatmentService.duplicateTreatment(treatment.getTreatmentId(), newAssignment, canvasCourseId, platformDeploymentId);
+        }
 
         // delete original assignment
-        deleteById(assignmentId, canvasCourseId);
+        deleteById(originalAssignmentId, canvasCourseId);
 
-        return newAssignmentDto;
+        return toDto(newAssignment, false, true);
     }
 
 }
