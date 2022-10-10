@@ -367,6 +367,17 @@ const routes = [
               previousStep: 'AssignmentTreatmentSelect'
             }
           },
+          {
+            path: 'exposure-sets/:exposure_id/assignment/:assignment_id/edit',
+            alias: 'editor',
+            name: 'AssignmentEditor',
+            component: () => import('../views/assignment/AssignmentEditor.vue'),
+            meta: {
+              currentSection: 'assignments',
+              currentStep: 'assignment_editor',
+              previousStep: 'ExperimentSummary',
+            }
+          },
         ]
       },
     ]
