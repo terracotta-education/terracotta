@@ -29,7 +29,6 @@
     >
       Continue
     </v-btn>
-    <pre>{{ this.assignment }}</pre>
   </div>
 </template>
 
@@ -49,6 +48,9 @@ export default {
     ...mapGetters({
       assignment: "assignment/assignment",
     }),
+    experiment_id() {
+      return parseInt(this.$route.params.experiment_id);
+    },
     assignment_id() {
       return parseInt(this.$route.params.assignment_id);
     },
@@ -69,8 +71,8 @@ export default {
       this.$router.push({name:'Home'})
     },
     ...mapActions({
-      createAssignment: 'assignment/createAssignment',
-      upateAssignment: 'assignment/upateAssignment'
+      updateAssignment: 'assignment/updateAssignment',
+      fetchAssignment: 'assignment/fetchAssignment',
     }),
     async saveNext(routeName) {
       const savedAssignment = await this.handleSaveAssignment();
@@ -83,28 +85,34 @@ export default {
     },
     async handleSaveAssignment() {
       // PUT ASSESSMENT TITLE & HTML (description) & SETTINGS
+
       const response = await this.updateAssignment([
-        this.experiment.experimentId,
-        this.condition.conditionId,
-        this.treatment_id,
+        this.experiment_id,
+        this.exposure_id,
         this.assignment_id,
         {
             ...this.assignment
         }
       ]);
+
+      console.log(response);
+
       if (response.status === 400) {
         this.$swal(response.data);
         return false;
       }
-      return true;
+      return response;
     },
-    async created() {
-        await this.fetchAssignment([
-            this.experiment.experimentId,
-            this.condition_id,
-            this.assignment_id,
-        ]);
-    },
+  },
+  async created() {
+    console.log(this.experiment.experimentId,
+          this.exposure_id,
+          this.assignment_id,)
+      await this.fetchAssignment([
+          this.experiment.experimentId,
+          this.exposure_id,
+          this.assignment_id,
+      ]);
   },
   components: {
     AssignmentSettings,

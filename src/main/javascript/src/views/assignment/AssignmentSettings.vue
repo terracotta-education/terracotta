@@ -43,7 +43,7 @@ export default {
           : null;
       },
       set(value) {
-        this.setAssessment({ ...this.assignment, ...value });
+        this.setAssignment({ ...this.assignment, ...value });
       },
     },
     multipleAttemptsSettings: {

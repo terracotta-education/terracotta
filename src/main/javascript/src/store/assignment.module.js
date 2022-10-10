@@ -9,7 +9,12 @@ const actions = {
   async updateAssignment({ commit }, payload) {
     try {
       const response = await assignmentService.updateAssignment(...payload);
-      commit('updateAssignments', response);
+
+      commit('setAssignment', response)
+      return {
+        status: 200,
+        data: response
+      };
     } catch (e) {
       console.error(e)
     }

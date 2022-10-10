@@ -26,7 +26,7 @@
                 <v-btn
                   color="primary"
                   elevation="0"
-                  @click="handleEdit('AssignmentCreateAssignment')"
+                  :to="{name: 'AssignmentCreateAssignment', params: {exposure_id: exposure.exposureId }}"
                   >Add Assignment</v-btn
                 >
               </div>
@@ -129,7 +129,7 @@
                     <v-btn
                       text
                       tile
-                      @click="handleEdit('AssignmentExposureSets')"
+                      @click="handleEdit('AssignmentEditor', item.assignmentId, exposure.exposureId)"
                       class="text--lighten-5 text--grey"
                     >
                       <v-icon>mdi-pencil</v-icon>
@@ -335,8 +335,14 @@ export default {
         .sort((a, b) => a.assignmentOrder - b.assignmentOrder);
     },
     // Navigate to EDIT section
-    handleEdit(componentName) {
-      this.$router.push({ name: componentName });
+    handleEdit(componentName, assignment_id, exposure_id) {
+      this.$router.push({
+        name: componentName,
+        params: {
+          assignment_id,
+          exposure_id
+        }
+      });
     },
     async getAssignmentDetails() {
       await this.fetchExposures(this.experiment.experimentId);
