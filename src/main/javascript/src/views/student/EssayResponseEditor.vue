@@ -7,7 +7,7 @@
         </div>
       </template>
     </v-textarea>
-    <v-textarea v-model="answer.response" @input="onInput" :rows="10" :counter="true" v-if="readonly"></v-textarea>
+    <v-textarea v-model="studentResponse" @input="onInput" :rows="10" :counter="true" v-if="readonly" readonly></v-textarea>
   </response-row>
 </template>
 
@@ -18,6 +18,11 @@ import Countable from "countable";
 export default {
   props: ["value", "readonly", "answer"],
   components: { ResponseRow },
+  computed: {
+    studentResponse() {
+      return this.answer?.response;
+    }
+  },
   data() {
     return {
       response: this.value,

@@ -276,9 +276,12 @@ export default {
     },
     currentScore() {
       let grade;
-      if (!this.selectedSubmission) { grade = '-' }
-      const { totalAlteredGrade, alteredCalculatedGrade } = this.selectedSubmission;
-      grade = totalAlteredGrade ? totalAlteredGrade : alteredCalculatedGrade;
+      if (!this.selectedSubmission) {
+        grade = '-';
+      } else {
+        const { totalAlteredGrade, alteredCalculatedGrade } = this.selectedSubmission;
+        grade = totalAlteredGrade ? totalAlteredGrade : alteredCalculatedGrade;
+      }
       return `${grade} / ${this.assignmentData?.maxPoints}`;
     },
     keptScore() {
@@ -463,11 +466,13 @@ export default {
       ]);
     },
     getQuestionSubmissionValue(question) {
-      return this.questionSubmissions.find(({ questionId }) => questionId === question.questionId).calculatedPoints;
+      const value = this.questionSubmissions?.find(({ questionId }) => questionId === question.questionId);
+      return value?.calculatedPoints;
     },
     getQuestionAnswers(question) {
       if (!this.readonly) { return question.answers; }
-      const questionSubmissionDto = this.questionSubmissions.find(s => s.questionId === question.questionId);
+      const questionSubmissionDto = this.questionSubmissions?.find(s => s.questionId === question.questionId);
+      if (!questionSubmissionDto) { return []; }
 
       const answers = questionSubmissionDto.answerDtoList;
       const responses = questionSubmissionDto.answerSubmissionDtoList;
@@ -481,7 +486,8 @@ export default {
     },
     getEssayResponse(question) {
       if (!this.readonly) { return null; }
-      const questionSubmissionDto = this.questionSubmissions.find(s => s.questionId === question.questionId);
+      const questionSubmissionDto = this.questionSubmissions?.find(s => s.questionId === question.questionId);
+      if (!questionSubmissionDto) { return null; }
       return questionSubmissionDto.answerSubmissionDtoList.find(a => a.questionSubmissionId === questionSubmissionDto.questionSubmissionId);
     },
     areAllQuestionsAnswered(answerableQuestions) {
