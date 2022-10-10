@@ -6,7 +6,8 @@ import store from '@/store/index.js'
  */
 export const treatmentService = {
   create,
-  fetchTreatment
+  update,
+  fetchTreatment,
 }
 
 /**
@@ -33,6 +34,20 @@ async function create(experiment_id, condition_id, assignment_id) {
     })
   }
   return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments`, requestOptions).then(handleResponse)
+}
+
+/**
+ * Update Treatment
+ */
+async function update(experiment_id, condition_id, treatment_id, body = {}) {
+  const requestOptions = {
+    method: 'PUT',
+    headers: { ...authHeader(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      ...body
+    })
+  }
+  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}`, requestOptions).then(handleResponse)
 }
 
 /**

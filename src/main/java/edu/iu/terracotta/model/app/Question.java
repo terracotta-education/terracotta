@@ -44,7 +44,6 @@ public class Question extends BaseEntity {
     @Column(name = "question_type")
     private QuestionTypes questionType;
 
-
     public Long getQuestionId() { return questionId; }
 
     public void setQuestionId(Long questionId) { this.questionId = questionId; }

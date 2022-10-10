@@ -188,7 +188,7 @@ public class TreatmentController {
                                                           UriComponentsBuilder ucBuilder,
                                                           HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ConditionNotMatchingException, ExperimentLockedException,
-                    AssessmentNotMatchingException, IdInPostException, ExceedingLimitException, DataServiceException, NumberFormatException, CanvasApiException, TreatmentNotMatchingException {
+                    AssessmentNotMatchingException, IdInPostException, ExceedingLimitException, DataServiceException, NumberFormatException, CanvasApiException, TreatmentNotMatchingException, QuestionNotMatchingException {
 
         log.debug("Duplicating Treatment ID: {}", treatmentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);

@@ -142,6 +142,38 @@
                         </v-btn>
                       </template>
                       <v-list>
+                        <v-menu
+                          offset-x
+                          :key="exposure.exposureId"
+                          open-on-hover
+                          transition="slide-x-transition"
+                        >
+                          <template v-slot:activator="{ on, attrs }">
+                            <v-list-item v-bind="attrs" v-on="on">
+                              <v-list-item-title
+                                ><v-icon>mdi-arrow-right-top</v-icon
+                                >Move 
+                                </v-list-item-title
+                              >
+                              <v-list-item-action class="justify-end">
+                                  <v-icon>mdi-menu-right</v-icon>
+                                </v-list-item-action>
+                            </v-list-item>
+                          </template>
+                          <v-list>
+                            <template v-for="(exposure, idx) in exposures">
+                              <v-list-item v-if="exposure.exposureId !== item.exposureId" :key="exposure.exposureId"
+                                @click="
+                                  handleMoveAssignment(exposure.exposureId, item)
+                                "
+                              >
+                                <v-list-item-title
+                                  >Exposure set {{ idx + 1 }}</v-list-item-title
+                                >
+                              </v-list-item>
+                            </template>
+                          </v-list>
+                        </v-menu>
                         <v-list-item
                           @click="
                             handleDuplicateAssignment(exposure.exposureId, item)
@@ -315,6 +347,7 @@ export default {
       createAssessment: "assessment/createAssessment",
       getConsentFile: "consent/getConsentFile",
       getZip: "exportdata/fetchExportData",
+      moveAssignment: "assignment/moveAssignment",
     }),
     saveOrder(event, assignments, exposure) {
       const movedItem = assignments.splice(event.oldIndex, 1)[0];
@@ -329,7 +362,32 @@ export default {
         updated,
       ]);
     },
+    async handleMoveAssignment(targetExposureId, assignment) {
+      try {
+        const response = await this.moveAssignment([
+          this.experiment.experimentId,
+          assignment.exposureId,
+          assignment.assignmentId,
+          {
+            ...assignment,
+            assignmentId: null,
+            exposureId: targetExposureId
+          }
+        ]);
+
+        if (response.status === 201) {
+          return await this.fetchAssignmentsByExposure([
+            this.experiment_id,
+            targetExposureId,
+            true,
+          ]);
+        }
+      } catch (error) {
+        console.error("handleMoveAssignment | catch", { error });
+      }
+    },
     getAssignmentsForExposure(exp) {
+      // console.log(this.assignments);
       return this.assignments
         .filter((a) => a.exposureId === exp.exposureId)
         .sort((a, b) => a.assignmentOrder - b.assignmentOrder);

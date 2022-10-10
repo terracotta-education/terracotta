@@ -16,6 +16,7 @@ public class SubmissionDto {
     private Float calculatedGrade;
     private Float alteredCalculatedGrade;
     private Float totalAlteredGrade;
+    private Timestamp dateCreated;
     private Timestamp dateSubmitted;
     private boolean lateSubmission;
 
@@ -96,4 +97,13 @@ public class SubmissionDto {
     public List<SubmissionCommentDto> getSubmissionCommentDtoList() { return submissionCommentDtoList; }
 
     public void setSubmissionCommentDtoList(List<SubmissionCommentDto> submissionCommentDtoList) { this.submissionCommentDtoList = submissionCommentDtoList; }
+
+    public Timestamp getDateCreated() {
+        return dateCreated;
+    }
+
+    public void setDateCreated(Timestamp dateCreated) {
+        this.dateCreated = dateCreated;
+    }
+
 }
