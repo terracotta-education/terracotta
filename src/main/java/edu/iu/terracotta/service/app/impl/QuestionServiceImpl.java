@@ -4,6 +4,7 @@ import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.InvalidQuestionTypeException;
 import edu.iu.terracotta.exceptions.NegativePointsException;
+import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
 import edu.iu.terracotta.model.app.Assessment;
 import edu.iu.terracotta.model.app.Question;
 import edu.iu.terracotta.model.app.QuestionMc;
@@ -30,10 +31,10 @@ import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Component
 public class QuestionServiceImpl implements QuestionService {
@@ -179,8 +180,7 @@ public class QuestionServiceImpl implements QuestionService {
     }
 
     @Override
-    public void saveAndFlush(Question questionToChange) { allRepositories.questionRepository.saveAndFlush(questionToChange); }
-
+    public Question saveAndFlush(Question questionToChange) { return allRepositories.questionRepository.saveAndFlush(questionToChange); }
 
     @Override
     public void deleteById(Long id) throws EmptyResultDataAccessException {
@@ -216,31 +216,32 @@ public class QuestionServiceImpl implements QuestionService {
     }
 
     @Override
-    public List<QuestionDto> duplicateQuestionsForAssessment(Long oldAssessmentId, Long newAssessmentId) throws DataServiceException {
-        Assessment oldAssessment = allRepositories.assessmentRepository.findByAssessmentId(oldAssessmentId);
-
-        if (oldAssessment == null) {
-            throw new DataServiceException("The old assessment with the given ID does not exist");
-        }
-
-        Assessment newAssessment = allRepositories.assessmentRepository.findByAssessmentId(newAssessmentId);
-
+    public List<Question> duplicateQuestionsForAssessment(Long oldAssessmentId, Assessment newAssessment) throws DataServiceException, QuestionNotMatchingException {
         if (newAssessment == null) {
             throw new DataServiceException("The new assessment with the given ID does not exist");
         }
 
-        return CollectionUtils.emptyIfNull(oldAssessment.getQuestions()).stream()
-            .map(
-                question -> {
-                    entityManager.detach(question);
-                    question.setQuestionId(null);
-                    question.setAssessment(newAssessment);
-                    Question newQuestion = save(question);
+        List<Question> originalQuestions = findAllByAssessmentId(oldAssessmentId);
 
-                    return toDto(newQuestion, false, false);
-                }
-            )
-            .collect(Collectors.toList());
+        if (CollectionUtils.isEmpty(originalQuestions)) {
+            return Collections.emptyList();
+        }
+
+        List<Question> questions = new ArrayList<>();
+
+        for (Question originalQuestion : originalQuestions) {
+            entityManager.detach(originalQuestion);
+            Long originalQuestionId = originalQuestion.getQuestionId();
+            originalQuestion.setQuestionId(null);
+            originalQuestion.setAssessment(newAssessment);
+            Question newQuestion = save(originalQuestion);
+
+            answerService.duplicateAnswersForQuestion(originalQuestionId, newQuestion);
+
+            questions.add(newQuestion);
+        }
+
+        return questions;
     }
 
 }

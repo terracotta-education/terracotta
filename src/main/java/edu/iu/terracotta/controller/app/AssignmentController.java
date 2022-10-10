@@ -13,6 +13,7 @@ import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.ExposureNotMatchingException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.MultipleAttemptsSettingsValidationException;
+import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
 import edu.iu.terracotta.exceptions.RevealResponsesSettingValidationException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
@@ -219,7 +220,7 @@ public class AssignmentController {
             throws ExperimentNotMatchingException, ExposureNotMatchingException, BadTokenException,
                     AssessmentNotMatchingException, TitleValidationException, AssignmentNotCreatedException, IdInPostException,
                     DataServiceException, RevealResponsesSettingValidationException,
-                    MultipleAttemptsSettingsValidationException, NumberFormatException, CanvasApiException, ExceedingLimitException, TreatmentNotMatchingException {
+                    MultipleAttemptsSettingsValidationException, NumberFormatException, CanvasApiException, ExceedingLimitException, TreatmentNotMatchingException, QuestionNotMatchingException {
 
         log.debug("Duplicating Assignment: {}", assignmentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
@@ -247,7 +248,7 @@ public class AssignmentController {
             throws ExperimentNotMatchingException, ExposureNotMatchingException, BadTokenException,
                     AssessmentNotMatchingException, TitleValidationException, AssignmentNotCreatedException, IdInPostException,
                     DataServiceException, RevealResponsesSettingValidationException,
-                    MultipleAttemptsSettingsValidationException, NumberFormatException, CanvasApiException, ExceedingLimitException, TreatmentNotMatchingException, AssignmentMoveException, AssignmentNotEditedException {
+                    MultipleAttemptsSettingsValidationException, NumberFormatException, CanvasApiException, ExceedingLimitException, TreatmentNotMatchingException, AssignmentMoveException, AssignmentNotEditedException, QuestionNotMatchingException {
 
         log.debug("Duplicating Assignment: {}", assignmentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);

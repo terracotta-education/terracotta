@@ -121,7 +121,7 @@ public class AssessmentServiceImplTest {
 
     @BeforeEach
     public void beforeEach() throws DataServiceException, AssessmentNotMatchingException, GroupNotMatchingException, ParticipantNotMatchingException,
-            ParticipantNotUpdatedException, AssignmentNotMatchingException, IdInPostException, NoSuchMethodException, SecurityException {
+            ParticipantNotUpdatedException, AssignmentNotMatchingException, IdInPostException, NoSuchMethodException, SecurityException, QuestionNotMatchingException {
         MockitoAnnotations.openMocks(this);
 
         clearInvocations(questionService);
@@ -153,7 +153,7 @@ public class AssessmentServiceImplTest {
 
         when(fileStorageService.parseHTMLFiles(anyString())).thenReturn(StringUtils.EMPTY);
         when(participantService.handleExperimentParticipant(any(Experiment.class), any(SecuredInfo.class))).thenReturn(participant);
-        when(questionService.duplicateQuestionsForAssessment(anyLong(), anyLong())).thenReturn(Collections.singletonList(new QuestionDto()));
+        when(questionService.duplicateQuestionsForAssessment(anyLong(), any(Assessment.class))).thenReturn(Collections.singletonList(question));
         when(questionService.findAllByAssessmentId(anyLong())).thenReturn(Collections.singletonList(question));
         when(questionService.getQuestion(anyLong())).thenReturn(question);
         when(questionService.postQuestion(any(QuestionDto.class), anyLong(), anyBoolean())).thenReturn(questionDto);
@@ -189,11 +189,11 @@ public class AssessmentServiceImplTest {
     }
 
     @Test
-    public void testDuplicateAssessment() throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, TreatmentNotMatchingException {
-        AssessmentDto assessmentDto = assessmentService.duplicateAssessment(1L, 2L);
+    public void testDuplicateAssessment() throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, TreatmentNotMatchingException, QuestionNotMatchingException {
+        Assessment assessment = assessmentService.duplicateAssessment(1L, 2L);
 
-        assertNotNull(assessmentDto);
-        assertEquals(1L, assessmentDto.getAssessmentId());
+        assertNotNull(assessment);
+        assertEquals(1L, assessment.getAssessmentId());
     }
 
     @Test
