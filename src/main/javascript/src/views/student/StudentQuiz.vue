@@ -278,7 +278,7 @@ export default {
       let grade;
       if (!this.selectedSubmission) { grade = '-' }
       const { totalAlteredGrade, alteredCalculatedGrade } = this.selectedSubmission;
-      const grade = totalAlteredGrade ? totalAlteredGrade : alteredCalculatedGrade;
+      grade = totalAlteredGrade ? totalAlteredGrade : alteredCalculatedGrade;
       return `${grade} / ${this.assignmentData?.maxPoints}`;
     },
     keptScore() {
