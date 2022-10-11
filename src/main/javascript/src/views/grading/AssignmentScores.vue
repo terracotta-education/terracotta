@@ -2,7 +2,7 @@
   <div v-if="experiment && assignment && submissions">
     <h1 class="mb-6">{{ assignment.title }}</h1>
     <template
-      v-for="(selectedTreatment, index) in selectedAssignmentTreatments"
+      v-for="(selectedTreatment, index) in treatments"
     >
       <div :key="selectedTreatment.treatmentId" class="mt-6">
         <h3>
@@ -21,11 +21,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr
-                  v-for="submission in selectedTreatment.assessmentDto
-                    .submissions"
-                  :key="submission.submissionId"
-                >
+                <tr>
                   <td>
                     <router-link
                       :to="{
@@ -33,34 +29,19 @@
                         params: {
                           exposure_id: exposure_id,
                           assignment_id: assignment_id,
-                          assessment_id: submission.assessmentId,
-                          condition_id: submission.conditionId,
-                          treatment_id: submission.treatmentId,
-                          participant_id: submission.participantId,
-                          submission_id: submission.submissionId,
+                          assessment_id: selectedTreatment.assessmentDto.latestSubmission.assessmentId,
+                          condition_id: selectedTreatment.assessmentDto.latestSubmission.conditionId,
+                          treatment_id: selectedTreatment.assessmentDto.latestSubmission.treatmentId,
+                          participant_id: selectedTreatment.assessmentDto.latestSubmission.participantId,
                         },
                       }"
                     >
-                      {{ getParticipantName(submission.participantId) }}
+                      {{ getParticipantName(selectedTreatment.assessmentDto.latestSubmission.participantId) }}
                     </router-link>
                   </td>
                   <td>
-                    <v-text-field
-                      type="number"
-                      class="ml-10"
-                      placeholder="---"
-                      style="max-width: 50px;"
-                      required
-                      :value="
-                        submissions[submission.submissionId].totalAlteredGrade
-                      "
-                      :disabled="
-                        selectedTreatment.assessmentDto.maxPoints === 0
-                      "
-                      @input="
-                        updateTotalAlteredGrade(submission.submissionId, $event)
-                      "
-                    ></v-text-field>
+                    <span v-if="selectedTreatment.assessmentDto.latestSubmission.totalAlteredGrade">{{ selectedTreatment.assessmentDto.latestSubmission.totalAlteredGrade }}</span>
+                    <span v-else>{{ selectedTreatment.assessmentDto.latestSubmission.alteredCalculatedGrade }}</span>
                   </td>
                 </tr>
               </tbody>
@@ -99,6 +80,23 @@ export default {
     selectedAssignmentTreatments() {
       return this.assignment.treatments;
     },
+    treatments() {
+      const mapped = this.selectedAssignmentTreatments.map(treatment => {
+        const { assessmentDto } = treatment;
+        let { submissions } = assessmentDto;
+        if (submissions.length > 1) {
+          submissions = [...submissions].sort((a, b) => a.dateSubmitted - b.dateSubmitted).reverse();
+        }
+        return {
+          ...treatment,
+          assessmentDto: {
+            ...treatment.assessmentDto,
+            latestSubmission: submissions.length > 0 ? submissions[0] : null,
+          }
+        };
+      });
+      return mapped;
+    }
   },
   data() {
     return {
@@ -113,6 +111,11 @@ export default {
       updateSubmission: "submissions/updateSubmission",
       reportStep: "api/reportStep",
     }),
+    getSubmissionsForParticipant(submissions) {
+      console.log(submissions);
+
+      return submissions;
+    },
     getParticipantName(participantId) {
       return this.participants?.filter(
         (participant) => participant.participantId === participantId
