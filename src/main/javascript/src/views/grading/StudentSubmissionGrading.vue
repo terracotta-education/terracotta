@@ -6,14 +6,19 @@
         <h1>{{ participantName() }}'s response</h1>
       </v-col>
       <v-col>
-        <v-row class="studentGrade">
+        <v-row class="studentGrade" v-if="selectedSubmission">
           <v-text-field
             type="number"
             name="maxPoints"
             outlined
             style="max-width: 70px;max-height: 50px;"
-            disabled
-            v-model="maxPoints"
+            v-model="selectedSubmission.totalAlteredGrade"
+            @input="
+              (value) => {
+                selectedSubmission.totalAlteredGrade = parseInt(value);
+                touched = true;
+              }
+            "
           ></v-text-field>
           <span class="totalPoints ml-2">
             / {{ assessment.maxPoints }} Total Score</span
@@ -25,8 +30,8 @@
       <v-col :cols="6">
         <div class="d-flex align-center">
           <submission-selector
-          :submissions="assessment.submissions"
-          @select="(id) => selectedSubmissionId = id" />
+            :submissions="assessment.submissions"
+            @select="(id) => selectedSubmissionId = id" />
           <span :style="{visibility: `${ touched ? 'visible' : 'hidden' }`}"  class="red--text">
             <v-icon class="red--text">mdi-alert-circle-outline</v-icon>
             Unsaved Changes
@@ -299,15 +304,22 @@ export default {
       }
       return questions;
     },
+    selectedSubmission() {
+      return this.assessment.submissions.find(s => s.submissionId === this.selectedSubmissionId);
+    }
   },
   watch: {
     selectedSubmissionId(newValue) {
       this.loadSubmissionResponses(newValue);
     },
+    maxPoints(newValue) {
+      console.log(newValue);
+    }
   },
   data() {
     return {
       questionScoreMap: {},
+      updatedSubmissions: {},
       maxPoints: 0,
       selectedSubmissionId: null,
       touched: false
@@ -318,6 +330,7 @@ export default {
       fetchAssessment: "assessment/fetchAssessment",
       fetchStudentResponse: "submissions/fetchStudentResponse",
       updateQuestionSubmissions: "submissions/updateQuestionSubmissions",
+      updateSubmission: "submissions/updateSubmission",
       reportStep: "api/reportStep",
     }),
     participantName() {
@@ -357,7 +370,6 @@ export default {
         return answerSubmissionDtoList[0].response;
       }
     },
-
     async saveExit() {
       const updateSubmissions = this.studentResponse.map((response) => {
         return {
@@ -370,7 +382,18 @@ export default {
         };
       });
 
+      const submission = this.selectedSubmission;
+
       try {
+        await this.updateSubmission([
+          submission.experimentId,
+          submission.conditionId,
+          submission.treatmentId,
+          submission.assessmentId,
+          submission.submissionId,
+          submission.alteredCalculatedGrade,
+          submission.totalAlteredGrade,
+        ]);
         // Update Question Submissions
         await this.updateQuestionSubmissions([
           this.experiment_id,
@@ -393,6 +416,7 @@ export default {
       } catch (error) {
         return Promise.reject(error);
       }
+      
     },
     getQuestionIndex(question) {
       for (const questionPage of this.questionPages) {

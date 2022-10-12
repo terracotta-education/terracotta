@@ -88,7 +88,6 @@ export default {
   data() {
     return {
       submissions: null,
-      updatedSubmissions: {},
     };
   },
   methods: {
@@ -125,36 +124,12 @@ export default {
     },
     async saveExit() {
       try {
-        for (const submission of Object.values(this.updatedSubmissions)) {
-          await this.updateSubmission([
-            submission.experimentId,
-            submission.conditionId,
-            submission.treatmentId,
-            submission.assessmentId,
-            submission.submissionId,
-            submission.alteredCalculatedGrade,
-            submission.totalAlteredGrade,
-          ]);
-
-          await this.reportStep({
-            experimentId: submission.experimentId,
-            step: "student_submission",
-            parameters: { submissionIds: "" + submission.submissionId },
-          });
-        }
-
         this.$router.push({
           name: this.$router.currentRoute.meta.previousStep,
         });
       } catch (error) {
         this.$swal("There was a problem saving assignment scores.");
       }
-    },
-    updateTotalAlteredGrade(submissionId, value) {
-      const submission = this.submissions[submissionId];
-      submission.totalAlteredGrade = value;
-      // Record that this submission was updated
-      this.updatedSubmissions[submissionId] = submission;
     },
   },
   async created() {
