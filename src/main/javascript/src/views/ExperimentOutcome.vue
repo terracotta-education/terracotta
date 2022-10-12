@@ -6,7 +6,10 @@
         :to="{ name: this.$router.currentRoute.meta.previousStep }">
         <v-icon>mdi-chevron-left</v-icon> Back
       </router-link>
-      <v-btn color="primary" elevation="0" class="saveButton" @click="$refs.childComponent.saveExit()">SAVE & EXIT</v-btn>
+      <v-btn color="primary" elevation="0" class="saveButton" @click="$refs.childComponent.saveExit()">
+        <span v-if="this.$router.currentRoute.meta.stepActionText">{{ this.$router.currentRoute.meta.stepActionText }}</span>
+        <span v-else>SAVE & EXIT</span>
+      </v-btn>
     </nav>
     <article class="experiment-outcome__body">
       <v-row>

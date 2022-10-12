@@ -21,48 +21,33 @@
                 </tr>
               </thead>
               <tbody>
-                <tr
-                  v-for="submission in selectedTreatment.assessmentDto
-                    .submissions"
-                  :key="submission.submissionId"
-                >
-                  <td>
-                    <router-link
-                      :to="{
-                        name: 'StudentSubmissionGrading',
-                        params: {
-                          exposure_id: exposure_id,
-                          assignment_id: assignment_id,
-                          assessment_id: submission.assessmentId,
-                          condition_id: submission.conditionId,
-                          treatment_id: submission.treatmentId,
-                          participant_id: submission.participantId,
-                          submission_id: submission.submissionId,
-                        },
-                      }"
-                    >
-                      {{ getParticipantName(submission.participantId) }}
-                    </router-link>
-                  </td>
-                  <td>
-                    <v-text-field
-                      type="number"
-                      class="ml-10"
-                      placeholder="---"
-                      style="max-width: 50px;"
-                      required
-                      :value="
-                        submissions[submission.submissionId].totalAlteredGrade
-                      "
-                      :disabled="
-                        selectedTreatment.assessmentDto.maxPoints === 0
-                      "
-                      @input="
-                        updateTotalAlteredGrade(submission.submissionId, $event)
-                      "
-                    ></v-text-field>
-                  </td>
-                </tr>
+                <template v-for="(participant, pidx) in getParticipantWithSubmission(participants, selectedTreatment)">
+                  <template v-if="participant.submission">
+                    <tr :key="pidx">
+                      <td>
+                        <router-link
+                          :to="{
+                            name: 'StudentSubmissionGrading',
+                            params: {
+                              exposure_id: exposure_id,
+                              assignment_id: assignment_id,
+                              assessment_id: participant.submission.assessmentId,
+                              condition_id: participant.submission.conditionId,
+                              treatment_id: participant.submission.treatmentId,
+                              participant_id: participant.participantId,
+                            },
+                          }"
+                        >
+                          {{ participant.user.displayName }}
+                        </router-link>
+                      </td>
+                      <td>
+                        <span v-if="participant.submission.totalAlteredGrade !== null">{{ participant.submission.totalAlteredGrade }}</span>
+                        <span v-else>{{ participant.submission.alteredCalculatedGrade }}</span>
+                      </td>
+                    </tr>
+                  </template>
+                </template>
               </tbody>
             </template>
           </v-simple-table>
@@ -103,7 +88,6 @@ export default {
   data() {
     return {
       submissions: null,
-      updatedSubmissions: {},
     };
   },
   methods: {
@@ -113,6 +97,26 @@ export default {
       updateSubmission: "submissions/updateSubmission",
       reportStep: "api/reportStep",
     }),
+    getParticipantWithSubmission(participants, treatment) {
+      return participants.map(p => {
+        const subs = treatment.assessmentDto.submissions;
+        const psubs = subs.filter(s => s.participantId === p.participantId);
+        const latest = this.getLatestSubmissionFromSet(psubs);
+        return {
+          ...p,
+          submission: latest
+        }
+      });
+    },
+    getLatestSubmissionFromSet(subs) {
+      if (!subs.length) {
+        return null;
+      }
+      if (subs.length < 2) {
+        return subs[0];
+      }
+      return [...subs].sort((a, b) => a.dateSubmitted - b.dateSubmitted).reverse()[0];
+    },
     getParticipantName(participantId) {
       return this.participants?.filter(
         (participant) => participant.participantId === participantId
@@ -120,36 +124,12 @@ export default {
     },
     async saveExit() {
       try {
-        for (const submission of Object.values(this.updatedSubmissions)) {
-          await this.updateSubmission([
-            submission.experimentId,
-            submission.conditionId,
-            submission.treatmentId,
-            submission.assessmentId,
-            submission.submissionId,
-            submission.alteredCalculatedGrade,
-            submission.totalAlteredGrade,
-          ]);
-
-          await this.reportStep({
-            experimentId: submission.experimentId,
-            step: "student_submission",
-            parameters: { submissionIds: "" + submission.submissionId },
-          });
-        }
-
         this.$router.push({
           name: this.$router.currentRoute.meta.previousStep,
         });
       } catch (error) {
         this.$swal("There was a problem saving assignment scores.");
       }
-    },
-    updateTotalAlteredGrade(submissionId, value) {
-      const submission = this.submissions[submissionId];
-      submission.totalAlteredGrade = value;
-      // Record that this submission was updated
-      this.updatedSubmissions[submissionId] = submission;
     },
   },
   async created() {

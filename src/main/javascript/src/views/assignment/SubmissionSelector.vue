@@ -1,25 +1,20 @@
 <template>
-    <v-container fluid>
-        <v-select
-          :items="selectableSubmissions"
-          label="Submissions"
-          v-model="activeSubmissionId"
-          item-text="label"
-          item-value="value"
-          outlined
-        ></v-select>
-    </v-container>
+    <v-select
+      :items="selectableSubmissions"
+      label="Submissions"
+      v-model="activeSubmissionId"
+      item-text="label"
+      item-value="value"
+      outlined
+      hide-details
+    ></v-select>
 </template>
 <script>
 import { mapGetters } from "vuex";
-
 export default {
   name: "SubmissionSelector",
-  props: ["submissions", "questions", "answers", "showAnswers", "readonly"],
+  props: ["submissions"],
   emits: ['select'],
-  components: {
-    
-  },
   data() {
     return {
       activeSubmissionId: null
