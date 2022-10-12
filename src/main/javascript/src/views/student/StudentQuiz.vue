@@ -280,7 +280,7 @@ export default {
         grade = '-';
       } else {
         const { totalAlteredGrade, alteredCalculatedGrade } = this.selectedSubmission;
-        grade = totalAlteredGrade ? totalAlteredGrade : alteredCalculatedGrade;
+        grade = totalAlteredGrade !== null ? totalAlteredGrade : alteredCalculatedGrade;
       }
       return `${grade} / ${this.assignmentData?.maxPoints}`;
     },
