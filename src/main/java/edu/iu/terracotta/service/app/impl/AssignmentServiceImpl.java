@@ -279,14 +279,21 @@ public class AssignmentServiceImpl implements AssignmentService {
         List<AssignmentDto> updatedAssignmentDtos = new ArrayList<>();
 
         for (AssignmentDto assignmentDto : assignmentDtos) {
-            updatedAssignmentDtos.add(updateAssignment(assignmentDto.getAssignmentId(), assignmentDto, canvasCourseId));
+            updatedAssignmentDtos.add(putAssignment(assignmentDto.getAssignmentId(), assignmentDto, canvasCourseId));
         }
 
         return updatedAssignmentDtos;
     }
 
     @Override
-    public AssignmentDto updateAssignment(Long id, AssignmentDto assignmentDto, String canvasCourseId)
+    public AssignmentDto putAssignment(Long id, AssignmentDto assignmentDto, String canvasCourseId)
+            throws TitleValidationException, CanvasApiException, AssignmentNotEditedException,
+                RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException, AssignmentNotMatchingException {
+        return toDto(updateAssignment(id, assignmentDto, canvasCourseId), false, true);
+    }
+
+    @Override
+    public Assignment updateAssignment(Long id, AssignmentDto assignmentDto, String canvasCourseId)
             throws TitleValidationException, CanvasApiException, AssignmentNotEditedException,
                 RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException, AssignmentNotMatchingException {
         Assignment assignment = allRepositories.assignmentRepository.findByAssignmentId(id);
@@ -338,7 +345,7 @@ public class AssignmentServiceImpl implements AssignmentService {
             assessment.setCumulativeScoringInitialPercentage(assignmentDto.getCumulativeScoringInitialPercentage());
         }
 
-        return toDto(updatedAssignment, false, true);
+        return updatedAssignment;
     }
 
     @Override

@@ -13,6 +13,7 @@ import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.IdMismatchException;
 import edu.iu.terracotta.exceptions.IdMissingException;
 import edu.iu.terracotta.exceptions.MultipleAttemptsSettingsValidationException;
+import edu.iu.terracotta.exceptions.MultipleChoiceLimitReachedException;
 import edu.iu.terracotta.exceptions.NegativePointsException;
 import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
 import edu.iu.terracotta.exceptions.RevealResponsesSettingValidationException;
@@ -142,7 +143,7 @@ public class TreatmentController {
             throws ExperimentNotMatchingException, BadTokenException, TreatmentNotMatchingException, IdInPostException, DataServiceException,
                 ExceedingLimitException, AssessmentNotMatchingException, IdMissingException, IdMismatchException,
                 TitleValidationException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException,
-                CanvasApiException, AssignmentNotEditedException, NegativePointsException, QuestionNotMatchingException {
+                CanvasApiException, AssignmentNotEditedException, NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException {
 
         log.debug("Updating treatment with id: {}", treatmentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);

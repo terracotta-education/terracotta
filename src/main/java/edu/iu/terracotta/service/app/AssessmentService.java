@@ -8,6 +8,7 @@ import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.GroupNotMatchingException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.MultipleAttemptsSettingsValidationException;
+import edu.iu.terracotta.exceptions.MultipleChoiceLimitReachedException;
 import edu.iu.terracotta.exceptions.NegativePointsException;
 import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
@@ -57,9 +58,13 @@ public interface AssessmentService {
 
     Assessment getAssessment(Long id);
 
-    AssessmentDto updateAssessment(Long id, AssessmentDto assessmentDto, boolean processQuestions)
+    AssessmentDto putAssessment(Long id, AssessmentDto assessmentDto, boolean processQuestions)
                     throws TitleValidationException, RevealResponsesSettingValidationException,
-                    MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException, IdInPostException, DataServiceException, NegativePointsException, QuestionNotMatchingException;
+                    MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException, IdInPostException, DataServiceException, NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException;
+
+    Assessment updateAssessment(Long id, AssessmentDto assessmentDto, boolean processQuestions)
+                    throws TitleValidationException, RevealResponsesSettingValidationException,
+                    MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException, IdInPostException, DataServiceException, NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException;
 
     Assessment saveAndFlush(Assessment assessmentToChange);
 

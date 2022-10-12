@@ -6,6 +6,7 @@ import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.MultipleAttemptsSettingsValidationException;
+import edu.iu.terracotta.exceptions.MultipleChoiceLimitReachedException;
 import edu.iu.terracotta.exceptions.NegativePointsException;
 import edu.iu.terracotta.exceptions.NoSubmissionsException;
 import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
@@ -152,7 +153,7 @@ public class AssessmentController {
                                                  HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, BadTokenException,
             TitleValidationException, RevealResponsesSettingValidationException,
-            MultipleAttemptsSettingsValidationException, IdInPostException, DataServiceException, NegativePointsException, QuestionNotMatchingException {
+            MultipleAttemptsSettingsValidationException, IdInPostException, DataServiceException, NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException {
 
         log.debug("Updating assessment with id: {}", assessmentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
@@ -163,7 +164,7 @@ public class AssessmentController {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
-        AssessmentDto updatedAssessmentDto = assessmentService.updateAssessment(assessmentId, assessmentDto, true);
+        AssessmentDto updatedAssessmentDto = assessmentService.putAssessment(assessmentId, assessmentDto, true);
 
         return new ResponseEntity<>(updatedAssessmentDto, HttpStatus.OK);
     }

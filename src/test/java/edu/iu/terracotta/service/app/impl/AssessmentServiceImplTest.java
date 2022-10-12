@@ -27,6 +27,7 @@ import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.GroupNotMatchingException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.MultipleAttemptsSettingsValidationException;
+import edu.iu.terracotta.exceptions.MultipleChoiceLimitReachedException;
 import edu.iu.terracotta.exceptions.NegativePointsException;
 import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
@@ -86,11 +87,6 @@ public class AssessmentServiceImplTest {
     @InjectMocks
     private AssessmentServiceImpl assessmentService;
 
-    @Mock private FileStorageService fileStorageService;
-    @Mock private ParticipantService participantService;
-    @Mock private QuestionService questionService;
-    @Mock private SubmissionService submissionService;
-
     @Mock private AllRepositories allRepositories;
     @Mock private AssessmentRepository assessmentRepository;
     @Mock private AssignmentRepository assignmentRepository;
@@ -99,6 +95,11 @@ public class AssessmentServiceImplTest {
     @Mock private ParticipantRepository participantRepository;
     @Mock private QuestionRepository questionRepository;
     @Mock private TreatmentRepository treatmentRepository;
+
+    @Mock private FileStorageService fileStorageService;
+    @Mock private ParticipantService participantService;
+    @Mock private QuestionService questionService;
+    @Mock private SubmissionService submissionService;
 
     @Mock private Assessment assessment;
     @Mock private AssessmentDto assessmentDto;
@@ -121,7 +122,7 @@ public class AssessmentServiceImplTest {
 
     @BeforeEach
     public void beforeEach() throws DataServiceException, AssessmentNotMatchingException, GroupNotMatchingException, ParticipantNotMatchingException,
-            ParticipantNotUpdatedException, AssignmentNotMatchingException, IdInPostException, NoSuchMethodException, SecurityException, QuestionNotMatchingException {
+            ParticipantNotUpdatedException, AssignmentNotMatchingException, IdInPostException, NoSuchMethodException, SecurityException, QuestionNotMatchingException, MultipleChoiceLimitReachedException {
         MockitoAnnotations.openMocks(this);
 
         clearInvocations(questionService);
@@ -265,7 +266,7 @@ public class AssessmentServiceImplTest {
     @Test
     public void testUpdateAssessmentWithNewQuestion()
         throws TitleValidationException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException,
-        AssessmentNotMatchingException, IdInPostException, DataServiceException, NegativePointsException, QuestionNotMatchingException {
+        AssessmentNotMatchingException, IdInPostException, DataServiceException, NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException {
             when(questionService.findAllByAssessmentId(anyLong())).thenReturn(Collections.emptyList());
         when(questionDto.getQuestionId()).thenReturn(null);
         assessmentService.updateAssessment(1L, assessmentDto, true);
@@ -279,7 +280,7 @@ public class AssessmentServiceImplTest {
     @Test
     public void testUpdateAssessmentWithExistingQuestion()
         throws TitleValidationException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException,
-        AssessmentNotMatchingException, IdInPostException, DataServiceException, NegativePointsException, QuestionNotMatchingException {
+        AssessmentNotMatchingException, IdInPostException, DataServiceException, NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException {
         when(questionDto.getQuestionId()).thenReturn(1L);
         assessmentService.updateAssessment(1L, assessmentDto, true);
 
@@ -300,7 +301,7 @@ public class AssessmentServiceImplTest {
     @Test
     public void testUpdateAssessmentWithDeletedQuestion()
         throws TitleValidationException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException,
-        AssessmentNotMatchingException, IdInPostException, DataServiceException, NegativePointsException, QuestionNotMatchingException {
+        AssessmentNotMatchingException, IdInPostException, DataServiceException, NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException {
         when(assessmentDto.getQuestions()).thenReturn(Collections.emptyList());
         assessmentService.updateAssessment(1L, assessmentDto, true);
 
@@ -313,7 +314,7 @@ public class AssessmentServiceImplTest {
     @Test
     public void testUpdateAssessmentWithDeletedQuestionNoExistingFound()
         throws TitleValidationException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException,
-        AssessmentNotMatchingException, IdInPostException, DataServiceException, NegativePointsException, QuestionNotMatchingException {
+        AssessmentNotMatchingException, IdInPostException, DataServiceException, NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException {
         when(assessmentDto.getQuestions()).thenReturn(Collections.emptyList());
         when(questionService.findAllByAssessmentId(anyLong())).thenReturn(Collections.emptyList());
         assessmentService.updateAssessment(1L, assessmentDto, true);

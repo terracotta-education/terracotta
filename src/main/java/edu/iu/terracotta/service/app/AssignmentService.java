@@ -61,7 +61,11 @@ public interface AssignmentService {
 
     Optional<Assignment> findById(Long id);
 
-    AssignmentDto updateAssignment(Long id, AssignmentDto assignmentDto, String canvasCourseId) throws TitleValidationException,
+    AssignmentDto putAssignment(Long id, AssignmentDto assignmentDto, String canvasCourseId) throws TitleValidationException,
+            CanvasApiException, AssignmentNotEditedException, RevealResponsesSettingValidationException,
+            MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException, AssignmentNotMatchingException;
+
+    Assignment updateAssignment(Long id, AssignmentDto assignmentDto, String canvasCourseId) throws TitleValidationException,
             CanvasApiException, AssignmentNotEditedException, RevealResponsesSettingValidationException,
             MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException, AssignmentNotMatchingException;
 

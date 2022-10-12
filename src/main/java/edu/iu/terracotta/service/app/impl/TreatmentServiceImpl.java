@@ -2,7 +2,6 @@ package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.exceptions.AssignmentNotEditedException;
-import edu.iu.terracotta.exceptions.AssignmentNotMatchingException;
 import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExceedingLimitException;
@@ -10,6 +9,7 @@ import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.IdMismatchException;
 import edu.iu.terracotta.exceptions.IdMissingException;
 import edu.iu.terracotta.exceptions.MultipleAttemptsSettingsValidationException;
+import edu.iu.terracotta.exceptions.MultipleChoiceLimitReachedException;
 import edu.iu.terracotta.exceptions.NegativePointsException;
 import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
 import edu.iu.terracotta.exceptions.RevealResponsesSettingValidationException;
@@ -18,7 +18,6 @@ import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
 import edu.iu.terracotta.model.app.Assessment;
 import edu.iu.terracotta.model.app.Assignment;
 import edu.iu.terracotta.model.app.Treatment;
-import edu.iu.terracotta.model.app.dto.AssessmentDto;
 import edu.iu.terracotta.model.app.dto.TreatmentDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.AllRepositories;
@@ -113,7 +112,7 @@ public class TreatmentServiceImpl implements TreatmentService {
     @Override
     public TreatmentDto putTreatment(TreatmentDto treatmentDto, long treatmentId, SecuredInfo securedInfo, boolean questions)
             throws DataServiceException, IdMissingException, AssessmentNotMatchingException, IdMismatchException,
-            TreatmentNotMatchingException, TitleValidationException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, CanvasApiException, AssignmentNotEditedException, IdInPostException, NegativePointsException, QuestionNotMatchingException {
+            TreatmentNotMatchingException, TitleValidationException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, CanvasApiException, AssignmentNotEditedException, IdInPostException, NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException {
         if(treatmentDto.getTreatmentId() == null) {
             throw new IdMissingException(TextConstants.ID_MISSING);
         }
@@ -141,12 +140,9 @@ public class TreatmentServiceImpl implements TreatmentService {
         treatment.setCondition(condition.get());
 
         try {
-            assessmentService.updateAssessment(treatmentDto.getAssessmentDto().getAssessmentId(), treatmentDto.getAssessmentDto(), questions);
-
-            if (treatmentDto.getAssignmentDto() != null) {
-                assignmentService.updateAssignment(treatmentDto.getAssignmentId(), treatmentDto.getAssignmentDto(), securedInfo.getCanvasCourseId());
-            }
-        } catch (AssessmentNotMatchingException | AssignmentNotMatchingException e) {
+            Assessment assessment = assessmentService.updateAssessment(treatmentDto.getAssessmentDto().getAssessmentId(), treatmentDto.getAssessmentDto(), questions);
+            treatment.setAssessment(assessment);
+        } catch (AssessmentNotMatchingException e) {
             throw new DataServiceException(String.format(TextConstants.UNABLE_TO_UPDATE_TREATMENT, e.getMessage()));
         }
 
