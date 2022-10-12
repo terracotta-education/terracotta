@@ -278,7 +278,8 @@ const getters = {
     return state.assessment
   },
   questions: (state) => {
-    return [...state.assessment.questions].sort((a, b) => a.questionOrder - b.questionOrder);
+    const list = [...state?.assessment?.questions || []].sort((a, b) => (a ? a.questionOrder : 0) - (b ? b.questionOrder : 0));
+    return list;
   },
   assessments: (state) => {
     return state.assessments
