@@ -588,15 +588,17 @@ public class ParticipantServiceImpl implements ParticipantService {
         handleConsent(experiment, participant);
 
         // 2. Check if the student is in a group (and if not assign it to the right one if consent is true)
-        if (BooleanUtils.isTrue(participant.getConsent()) && participant.getGroup() == null && DistributionTypes.CUSTOM.equals(experiment.getDistributionType())) {
-            for (Condition condition : experiment.getConditions()) {
-                if (BooleanUtils.isTrue(condition.getDefaultCondition())) {
-                    participant.setGroup(groupService.getUniqueGroupByConditionId(experiment.getExperimentId(), securedInfo.getCanvasAssignmentId(), condition.getConditionId()));
-                    break;
+        if (BooleanUtils.isTrue(participant.getConsent()) && participant.getGroup() == null) {
+            if (DistributionTypes.CUSTOM.equals(experiment.getDistributionType())) {
+                for (Condition condition : experiment.getConditions()) {
+                    if (BooleanUtils.isTrue(condition.getDefaultCondition())) {
+                        participant.setGroup(groupService.getUniqueGroupByConditionId(experiment.getExperimentId(), securedInfo.getCanvasAssignmentId(), condition.getConditionId()));
+                        break;
+                    }
                 }
+            } else { // We assign it to the more unbalanced group (if consent is true)
+                participant.setGroup(groupService.nextGroup(experiment));
             }
-        } else { // We assign it to the more unbalanced group (if consent is true)
-            participant.setGroup(groupService.nextGroup(experiment));
         }
 
         return save(participant);
