@@ -9,7 +9,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.sql.Timestamp;
@@ -55,6 +58,8 @@ public class ParticipantServiceImplTest {
     public void beforeEach() throws ParticipantNotUpdatedException, GroupNotMatchingException, AssignmentNotMatchingException {
         MockitoAnnotations.openMocks(this);
 
+        clearInvocations(participant);
+
         when(condition.getConditionId()).thenReturn(1L);
         when(condition.getDefaultCondition()).thenReturn(true);
         when(experiment.getConditions()).thenReturn(Collections.singletonList(condition));
@@ -80,10 +85,7 @@ public class ParticipantServiceImplTest {
         Participant participant = participantService.handleExperimentParticipant(experiment, securedInfo);
 
         assertNotNull(participant);
-        assertFalse(participant.getConsent());
-        assertNotNull(participant.getDateGiven());
-        assertNotNull(participant.getDateRevoked());
-        assertNotNull(participant.getGroup());
+        verify(participant).setGroup(any(Group.class));
     }
 
     @Test
@@ -92,22 +94,28 @@ public class ParticipantServiceImplTest {
         Participant participant = participantService.handleExperimentParticipant(experiment, securedInfo);
 
         assertNotNull(participant);
-        assertFalse(participant.getConsent());
-        assertNotNull(participant.getDateGiven());
-        assertNotNull(participant.getDateRevoked());
-        assertNotNull(participant.getGroup());
+        verify(participant, never()).setGroup(any(Group.class));
     }
 
     @Test
     public void testhandleExperimentParticipantInGroup() throws GroupNotMatchingException, ParticipantNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException {
         when(this.participant.getConsent()).thenReturn(true);
+
         Participant participant = participantService.handleExperimentParticipant(experiment, securedInfo);
 
         assertNotNull(participant);
-        assertTrue(participant.getConsent());
-        assertNotNull(participant.getDateGiven());
-        assertNotNull(participant.getDateRevoked());
-        assertNotNull(participant.getGroup());
+        verify(participant, never()).setGroup(any(Group.class));
+    }
+
+    @Test
+    public void testhandleExperimentParticipantNotInAGroup() throws GroupNotMatchingException, ParticipantNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException {
+        when(this.participant.getConsent()).thenReturn(true);
+        when(participant.getGroup()).thenReturn(null);
+
+        Participant participant = participantService.handleExperimentParticipant(experiment, securedInfo);
+
+        assertNotNull(participant);
+        verify(participant).setGroup(any(Group.class));
     }
 
     @Test

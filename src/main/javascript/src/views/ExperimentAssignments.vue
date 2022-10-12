@@ -5,9 +5,9 @@
         <v-col cols="12">
           <v-divider class=""></v-divider>
           <v-tabs v-model="tab" elevation="0" show-arrows>
-            <v-tab v-for="(exposure, index) in exposures" :key="index">
+            <v-tab v-for="(exposure, eidx) in exposures" :key="eidx">
               <div class="d-flex flex-column align-start py-1">
-                <div class="">Set {{ index + 1 }}</div>
+                <div class="">Set {{ eidx + 1 }}</div>
                 <div class="d-block mt-4" :class="balanced ? '' : 'red--text'">
                   {{ getAssignmentsForExposure(exposure).length }} assignments
                 </div>
@@ -18,8 +18,8 @@
           <v-tabs-items v-model="tab">
             <v-tab-item
               class="py-3 px-3"
-              v-for="(exposure, index) in exposures"
-              :key="index"
+              v-for="(exposure, eidx) in exposures"
+              :key="eidx"
             >
               <div class="d-flex justify-space-between">
                 <h3>Assignments</h3>
@@ -35,7 +35,6 @@
                   :headers="assignmentHeaders"
                   :items="getAssignmentsForExposure(exposure)"
                   :single-expand="singleExpand"
-                  :expanded.sync="expanded"
                   :sort-by="['assignmentOrder']"
                   hide-default-footer
                   v-sortable-data-table
@@ -286,7 +285,6 @@ export default {
     maxDesignGroups: 2,
     conditionTreatments: {},
     conditionColors: [""],
-    expanded: [],
     singleExpand: true,
     designExpanded: false,
     assignmentHeaders: [
