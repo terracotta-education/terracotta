@@ -11,7 +11,13 @@
         >
           Try Again
         </v-btn>
-        <p>The highest score will be kept</p>
+        <p>
+          <span v-if="assignmentData.multipleSubmissionScoringScheme === 'HIGHEST'">The highest</span>
+          <span v-else-if="assignmentData.multipleSubmissionScoringScheme === 'MOST_RECENT'">The most recent</span>
+          <span v-else-if="assignmentData.multipleSubmissionScoringScheme === 'AVERAGE'">The average</span>
+          <span v-else-if="assignmentData.multipleSubmissionScoringScheme === 'CUMULATIVE'">A cumulative</span>
+           score will be kept
+        </p>
       </v-col>
       <v-spacer />
       <v-col v-if="!muted">
