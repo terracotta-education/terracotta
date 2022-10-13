@@ -360,7 +360,7 @@ public class SubmissionServiceImpl implements SubmissionService {
 
         setAssignmentStart(assessment.getTreatment().getAssignment(), securedInfo);
 
-        return submission;
+        return newSubmission;
     }
 
     @Override
