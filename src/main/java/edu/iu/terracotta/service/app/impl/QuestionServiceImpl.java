@@ -84,7 +84,7 @@ public class QuestionServiceImpl implements QuestionService {
             validateQuestionType(questionDto);
             question = save(fromDto(questionDto));
 
-            if (QuestionTypes.MC == question.getQuestionType()) {
+            if (QuestionTypes.MC == question.getQuestionType() && CollectionUtils.isNotEmpty(questionDto.getAnswers())) {
                 for (AnswerDto answerDto : questionDto.getAnswers()) {
                     answerService.postAnswerMC(answerDto, question.getQuestionId());
                 }
