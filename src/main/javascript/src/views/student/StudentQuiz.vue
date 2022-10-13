@@ -309,19 +309,23 @@ export default {
       return true;
     },
     showAnswers() {
-      return false;
-      /*
       if (!this.assignmentData) { return false; }
       const { allowStudentViewCorrectAnswers, studentViewCorrectAnswersAfter, studentViewCorrectAnswersBefore } = this.assignmentData;
       if (allowStudentViewCorrectAnswers) {
         const now = Date.now();
-        const isAfter = moment(now).isAfter(studentViewCorrectAnswersAfter);
-        const isBefore = moment(now).isBefore(studentViewCorrectAnswersBefore);
+        let isAfter = true;
+        let isBefore = true;
+        if (studentViewCorrectAnswersAfter) {
+          isAfter = moment(now).isAfter(studentViewCorrectAnswersAfter);
+        }
+        if (studentViewCorrectAnswersBefore) {
+          isBefore = moment(now).isBefore(studentViewCorrectAnswersBefore);
+        }
         if (isAfter && isBefore) {
           return false;
         }
       }
-      return false;*/
+      return true;
     },
     showResponses() {
       return this.assignmentData?.allowStudentViewCorrectAnswers;
@@ -369,7 +373,7 @@ export default {
         const step = "student_submission";
         const parameters = { submissionIds: this.submissionId };
         const allQuestionSubmissions = this.questionValues.map((q) => {
-          const existingQuestionSubmission = this.questionSubmissions.find(
+          const existingQuestionSubmission = this.questionSubmissions?.find(
             (qs) => qs.questionId === q.questionId
           );
           const questionSubmissionId =
@@ -539,9 +543,6 @@ export default {
 
           const { experimentId, conditionId, assessmentId, treatmentId, submissionId } = data;
           this.getQuestions(experimentId, conditionId, assessmentId, treatmentId, submissionId);
-
-          
-
         }else if(stepResponse?.status == 401) {
           if (stepResponse?.data.toString().includes("Error 150:")) {
             this.$swal({
