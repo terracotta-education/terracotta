@@ -154,7 +154,7 @@ public class AssignmentController {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
-        AssignmentDto updatedAssignmentDto = assignmentService.updateAssignment(assignmentId, assignmentDto, securedInfo.getCanvasCourseId());
+        AssignmentDto updatedAssignmentDto = assignmentService.putAssignment(assignmentId, assignmentDto, securedInfo.getCanvasCourseId());
 
         return new ResponseEntity<>(updatedAssignmentDto, HttpStatus.OK);
     }

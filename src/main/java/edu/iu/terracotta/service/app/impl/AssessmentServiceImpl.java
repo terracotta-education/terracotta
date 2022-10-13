@@ -8,6 +8,7 @@ import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.GroupNotMatchingException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.MultipleAttemptsSettingsValidationException;
+import edu.iu.terracotta.exceptions.MultipleChoiceLimitReachedException;
 import edu.iu.terracotta.exceptions.NegativePointsException;
 import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
@@ -295,10 +296,18 @@ public class AssessmentServiceImpl implements AssessmentService {
     }
 
     @Override
-    public AssessmentDto updateAssessment(Long id, AssessmentDto assessmentDto, boolean processQuestions)
+    public AssessmentDto putAssessment(Long id, AssessmentDto assessmentDto, boolean processQuestions)
             throws TitleValidationException, RevealResponsesSettingValidationException,
                 MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException, IdInPostException, DataServiceException,
-                NegativePointsException, QuestionNotMatchingException {
+                NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException {
+        return toDto(updateAssessment(id, assessmentDto, processQuestions), true, true, false, false);
+    }
+
+    @Override
+    public Assessment updateAssessment(Long id, AssessmentDto assessmentDto, boolean processQuestions)
+            throws TitleValidationException, RevealResponsesSettingValidationException,
+                MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException, IdInPostException, DataServiceException,
+                NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException {
         Assessment assessment = allRepositories.assessmentRepository.findByAssessmentId(id);
 
         if (assessment == null) {
@@ -332,10 +341,10 @@ public class AssessmentServiceImpl implements AssessmentService {
             processAssessmentQuestions(assessmentDto);
         }
 
-        return toDto(save(assessment), true, false, false, false);
+        return save(assessment);
     }
 
-    private void processAssessmentQuestions(AssessmentDto assessmentDto) throws IdInPostException, DataServiceException, QuestionNotMatchingException, NegativePointsException {
+    private void processAssessmentQuestions(AssessmentDto assessmentDto) throws IdInPostException, DataServiceException, QuestionNotMatchingException, NegativePointsException, MultipleChoiceLimitReachedException {
         if (CollectionUtils.isNotEmpty(assessmentDto.getQuestions())) {
             List<Question> questions = questionService.findAllByAssessmentId(assessmentDto.getAssessmentId());
 

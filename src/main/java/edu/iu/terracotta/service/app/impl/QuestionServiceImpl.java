@@ -3,12 +3,14 @@ package edu.iu.terracotta.service.app.impl;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.InvalidQuestionTypeException;
+import edu.iu.terracotta.exceptions.MultipleChoiceLimitReachedException;
 import edu.iu.terracotta.exceptions.NegativePointsException;
 import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
 import edu.iu.terracotta.model.app.Assessment;
 import edu.iu.terracotta.model.app.Question;
 import edu.iu.terracotta.model.app.QuestionMc;
 import edu.iu.terracotta.model.app.QuestionSubmission;
+import edu.iu.terracotta.model.app.dto.AnswerDto;
 import edu.iu.terracotta.model.app.dto.QuestionDto;
 import edu.iu.terracotta.model.app.enumerator.QuestionTypes;
 import edu.iu.terracotta.repository.AllRepositories;
@@ -70,19 +72,28 @@ public class QuestionServiceImpl implements QuestionService {
     public Question getQuestion(Long id){ return allRepositories.questionRepository.findByQuestionId(id); }
 
     @Override
-    public QuestionDto postQuestion(QuestionDto questionDto, long assessmentId, boolean answers) throws IdInPostException, DataServiceException {
+    public QuestionDto postQuestion(QuestionDto questionDto, long assessmentId, boolean answers) throws IdInPostException, DataServiceException, MultipleChoiceLimitReachedException {
         if(questionDto.getQuestionId() != null) {
             throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
         }
+
         questionDto.setAssessmentId(assessmentId);
         Question question;
+
         try {
             validateQuestionType(questionDto);
-            question = fromDto(questionDto);
+            question = save(fromDto(questionDto));
+
+            if (QuestionTypes.MC == question.getQuestionType()) {
+                for (AnswerDto answerDto : questionDto.getAnswers()) {
+                    answerService.postAnswerMC(answerDto, question.getQuestionId());
+                }
+            }
         } catch (DataServiceException | InvalidQuestionTypeException | NegativePointsException ex) {
             throw new DataServiceException("Error 105: Unable to create Question: " + ex.getMessage());
         }
-        return toDto(save(question), answers, true);
+
+        return toDto(question, answers, true);
     }
 
     @Override

@@ -36,6 +36,7 @@ import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.IdMismatchException;
 import edu.iu.terracotta.exceptions.IdMissingException;
 import edu.iu.terracotta.exceptions.MultipleAttemptsSettingsValidationException;
+import edu.iu.terracotta.exceptions.MultipleChoiceLimitReachedException;
 import edu.iu.terracotta.exceptions.NegativePointsException;
 import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
 import edu.iu.terracotta.exceptions.RevealResponsesSettingValidationException;
@@ -151,7 +152,7 @@ public class TreatmentServiceImplTest {
     }
 
     @Test
-    public void testPutTreatment() throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, IdMissingException, IdMismatchException, TreatmentNotMatchingException, TitleValidationException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, CanvasApiException, AssignmentNotEditedException, NegativePointsException, QuestionNotMatchingException {
+    public void testPutTreatment() throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, IdMissingException, IdMismatchException, TreatmentNotMatchingException, TitleValidationException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, CanvasApiException, AssignmentNotEditedException, NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException {
         TreatmentDto treatmentDto = treatmentService.putTreatment(treatmentDtoToUpdate, 1L, securedInfo, false);
 
         assertNotNull(treatmentDto);
@@ -188,23 +189,12 @@ public class TreatmentServiceImplTest {
     @Test
     public void testPutTreatmentInvalidAssessment() throws IdInPostException, DataServiceException, ExceedingLimitException,
             AssessmentNotMatchingException, TitleValidationException, CanvasApiException, AssignmentNotEditedException,
-            RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, AssignmentNotMatchingException, NegativePointsException, QuestionNotMatchingException {
+            RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, AssignmentNotMatchingException, NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException {
         doThrow(new AssessmentNotMatchingException(TextConstants.ASSESSMENT_NOT_MATCHING)).when(assessmentService).updateAssessment(anyLong(), any(AssessmentDto.class), anyBoolean());
 
         Exception exception = assertThrows(DataServiceException.class, () -> { treatmentService.putTreatment(treatmentDtoToUpdate, 1L, securedInfo, false); });
 
         assertEquals(String.format(TextConstants.UNABLE_TO_UPDATE_TREATMENT, TextConstants.ASSESSMENT_NOT_MATCHING), exception.getMessage());
-    }
-
-    @Test
-    public void testPutTreatmentInvalidAssignment() throws IdInPostException, DataServiceException, ExceedingLimitException,
-            AssessmentNotMatchingException, TitleValidationException, CanvasApiException, AssignmentNotEditedException,
-            RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, AssignmentNotMatchingException {
-        when(assignmentService.updateAssignment(anyLong(), any(AssignmentDto.class), anyString())).thenThrow(new AssignmentNotMatchingException(TextConstants.ASSIGNMENT_NOT_MATCHING));
-
-        Exception exception = assertThrows(DataServiceException.class, () -> { treatmentService.putTreatment(treatmentDtoToUpdate, 1L, securedInfo, false); });
-
-        assertEquals(String.format(TextConstants.UNABLE_TO_UPDATE_TREATMENT, TextConstants.ASSIGNMENT_NOT_MATCHING), exception.getMessage());
     }
 
 }
