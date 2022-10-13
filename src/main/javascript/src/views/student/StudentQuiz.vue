@@ -350,6 +350,7 @@ export default {
       fetchQuestionSubmissions: "submissions/fetchQuestionSubmissions",
       createQuestionSubmissions: "submissions/createQuestionSubmissions",
       createAnswerSubmissions: "submissions/createAnswerSubmissions",
+      clearQuestionSubmissions: "submissions/clearQuestionSubmissions",
     }),
     async handleTryAgain() {
       this.attempt();
@@ -539,6 +540,8 @@ export default {
       this.loading = true;
       try {
         const stepResponse = await this.reportStep({ experimentId, step });
+
+        await this.clearQuestionSubmissions();
 
         if (stepResponse?.status === 200) {
           const data = stepResponse?.data;
