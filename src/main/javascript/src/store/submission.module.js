@@ -79,6 +79,14 @@ const actions = {
       console.error("createAnswerSubmissions catch", { error, state });
     }
   },
+
+  async clearQuestionSubmissions({ commit }) {
+    // payload = experiment_id, condition_id, treatment_id, assessment_id, submission_id, answerSubmissions
+
+    commit('setQuestionSubmissions', []);
+
+    return Promise.resolve([]);
+  },
 };
 
 const mutations = {
