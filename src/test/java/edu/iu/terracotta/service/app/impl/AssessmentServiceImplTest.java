@@ -165,7 +165,9 @@ public class AssessmentServiceImplTest {
         when(questionService.postQuestion(any(QuestionDto.class), anyLong(), anyBoolean())).thenReturn(questionDto);
         when(questionService.save(any(Question.class))).thenReturn(question);
         when(submissionService.findByParticipantId(anyLong())).thenReturn(Collections.singletonList(submission));
+        when(submissionService.findByParticipantIdAndAssessmentId(anyLong(), anyLong())).thenReturn(Collections.singletonList(submission));
         when(submissionService.getScoreFromMultipleSubmissions(any(Participant.class), any(Assessment.class))).thenReturn(1F);
+        when(submissionService.getSubmissionScore(any(Submission.class))).thenReturn(1F);
 
         when(assessment.getAssessmentId()).thenReturn(1l);
         when(assessment.getMultipleSubmissionScoringScheme()).thenReturn(MultipleSubmissionScoringScheme.MOST_RECENT);
@@ -221,6 +223,7 @@ public class AssessmentServiceImplTest {
         assertEquals(1, assessmentDto.getRetakeDetails().getSubmissionAttemptsCount());
         assertTrue(assessmentDto.getRetakeDetails().isRetakeAllowed());
         assertNull(assessmentDto.getRetakeDetails().getRetakeNotAllowedReason());
+        assertEquals(1F, assessmentDto.getRetakeDetails().getLastAttemptScore());
     }
 
     @Test
@@ -235,6 +238,7 @@ public class AssessmentServiceImplTest {
         assertEquals(1, assessmentDto.getRetakeDetails().getSubmissionAttemptsCount());
         assertFalse(assessmentDto.getRetakeDetails().isRetakeAllowed());
         assertEquals(RetakeDetails.RetakeNotAllowedReason.MAX_NUMBER_ATTEMPTS_REACHED.toString(), assessmentDto.getRetakeDetails().getRetakeNotAllowedReason());
+        assertEquals(1F, assessmentDto.getRetakeDetails().getLastAttemptScore());
     }
 
     @Test
@@ -249,6 +253,7 @@ public class AssessmentServiceImplTest {
         assertEquals(1, assessmentDto.getRetakeDetails().getSubmissionAttemptsCount());
         assertFalse(assessmentDto.getRetakeDetails().isRetakeAllowed());
         assertEquals(RetakeDetails.RetakeNotAllowedReason.WAIT_TIME_NOT_REACHED.toString(), assessmentDto.getRetakeDetails().getRetakeNotAllowedReason());
+        assertEquals(1F, assessmentDto.getRetakeDetails().getLastAttemptScore());
     }
 
     @Test
@@ -263,6 +268,22 @@ public class AssessmentServiceImplTest {
         assertEquals(1, assessmentDto.getRetakeDetails().getSubmissionAttemptsCount());
         assertFalse(assessmentDto.getRetakeDetails().isRetakeAllowed());
         assertEquals(RetakeDetails.RetakeNotAllowedReason.OTHER.toString(), assessmentDto.getRetakeDetails().getRetakeNotAllowedReason());
+        assertEquals(1F, assessmentDto.getRetakeDetails().getLastAttemptScore());
+    }
+
+    @Test
+    public void testViewAssessmentNoSubmittedScores() throws ExperimentNotMatchingException, ParticipantNotMatchingException, AssessmentNotMatchingException, GroupNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException {
+        when(submissionService.getScoreFromMultipleSubmissions(any(Participant.class), any(Assessment.class))).thenReturn(0F);
+        when(submissionService.findByParticipantIdAndAssessmentId(anyLong(), anyLong())).thenReturn(Collections.emptyList());
+        AssessmentDto assessmentDto = assessmentService.viewAssessment(1l, securedInfo);
+
+        assertNotNull(assessmentDto);
+        assertNotNull(assessmentDto.getRetakeDetails());
+        assertEquals(0F, assessmentDto.getRetakeDetails().getKeptScore());
+        assertEquals(0, assessmentDto.getRetakeDetails().getSubmissionAttemptsCount());
+        assertTrue(assessmentDto.getRetakeDetails().isRetakeAllowed());
+        assertNull(assessmentDto.getRetakeDetails().getRetakeNotAllowedReason());
+        assertNull(assessmentDto.getRetakeDetails().getLastAttemptScore());
     }
 
     @Test
@@ -374,18 +395,26 @@ public class AssessmentServiceImplTest {
         verify(questionService, never()).deleteById(anyLong());
     }
 
-    public void testVerifyNumSubmissionsLimitNull() {
-        assertDoesNotThrow(() -> verifySubmissionLimit.invoke(assessmentService, null, 1));
+    @Test
+    public void testVerifyNumSubmissionsLimitNullExistingAttemptNotExists() {
+        assertDoesNotThrow(() -> verifySubmissionLimit.invoke(assessmentService, null, 0));
     }
 
     @Test
-    public void testVerifyNumSubmissionsLimitZero() {
+    public void testVerifyNumSubmissionsLimitZeroIsUnlimited() {
         assertDoesNotThrow(() -> verifySubmissionLimit.invoke(assessmentService, 0, 1));
     }
 
     @Test
     public void testVerifyNumSubmissionsLessThanLimit() {
         assertDoesNotThrow(() -> verifySubmissionLimit.invoke(assessmentService, 2, 1));
+    }
+
+    @Test
+    public void testVerifyNumSubmissionsLimitNullExistingAttemptExists() {
+        InvocationTargetException e = assertThrows(InvocationTargetException.class, () -> verifySubmissionLimit.invoke(assessmentService, null, 2));
+        assertTrue(e.getCause() instanceof AssignmentAttemptException);
+        assertEquals(TextConstants.LIMIT_OF_SUBMISSIONS_REACHED, e.getCause().getMessage());
     }
 
     @Test
