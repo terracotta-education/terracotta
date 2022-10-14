@@ -44,6 +44,7 @@ import edu.iu.terracotta.model.app.ExposureGroupCondition;
 import edu.iu.terracotta.model.app.Group;
 import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.Question;
+import edu.iu.terracotta.model.app.RetakeDetails;
 import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.Treatment;
 import edu.iu.terracotta.model.app.dto.AssessmentDto;
@@ -68,15 +69,19 @@ import org.apache.commons.lang3.StringUtils;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -214,6 +219,50 @@ public class AssessmentServiceImplTest {
         assertNotNull(assessmentDto.getRetakeDetails());
         assertEquals(1F, assessmentDto.getRetakeDetails().getKeptScore());
         assertEquals(1, assessmentDto.getRetakeDetails().getSubmissionAttemptsCount());
+        assertTrue(assessmentDto.getRetakeDetails().isRetakeAllowed());
+        assertNull(assessmentDto.getRetakeDetails().getRetakeNotAllowedReason());
+    }
+
+    @Test
+    public void testViewAssessmentOverMaxSubmissionsAttempts() throws ExperimentNotMatchingException, ParticipantNotMatchingException, AssessmentNotMatchingException, GroupNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, AssignmentAttemptException {
+        doThrow(new AssignmentAttemptException(TextConstants.LIMIT_OF_SUBMISSIONS_REACHED)).when(assessmentService).verifySubmissionLimit(anyInt(), anyInt());
+
+        AssessmentDto assessmentDto = assessmentService.viewAssessment(1l, securedInfo);
+
+        assertNotNull(assessmentDto);
+        assertNotNull(assessmentDto.getRetakeDetails());
+        assertEquals(1F, assessmentDto.getRetakeDetails().getKeptScore());
+        assertEquals(1, assessmentDto.getRetakeDetails().getSubmissionAttemptsCount());
+        assertFalse(assessmentDto.getRetakeDetails().isRetakeAllowed());
+        assertEquals(RetakeDetails.RetakeNotAllowedReason.MAX_NUMBER_ATTEMPTS_REACHED.toString(), assessmentDto.getRetakeDetails().getRetakeNotAllowedReason());
+    }
+
+    @Test
+    public void testViewAssessmentWaitTimeNotReached() throws ExperimentNotMatchingException, ParticipantNotMatchingException, AssessmentNotMatchingException, GroupNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, AssignmentAttemptException {
+        doThrow(new AssignmentAttemptException(TextConstants.ASSIGNMENT_SUBMISSION_WAIT_TIME_NOT_REACHED)).when(assessmentService).verifySubmissionLimit(anyInt(), anyInt());
+
+        AssessmentDto assessmentDto = assessmentService.viewAssessment(1l, securedInfo);
+
+        assertNotNull(assessmentDto);
+        assertNotNull(assessmentDto.getRetakeDetails());
+        assertEquals(1F, assessmentDto.getRetakeDetails().getKeptScore());
+        assertEquals(1, assessmentDto.getRetakeDetails().getSubmissionAttemptsCount());
+        assertFalse(assessmentDto.getRetakeDetails().isRetakeAllowed());
+        assertEquals(RetakeDetails.RetakeNotAllowedReason.WAIT_TIME_NOT_REACHED.toString(), assessmentDto.getRetakeDetails().getRetakeNotAllowedReason());
+    }
+
+    @Test
+    public void testViewAssessmentNotAllowedOther() throws ExperimentNotMatchingException, ParticipantNotMatchingException, AssessmentNotMatchingException, GroupNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, AssignmentAttemptException {
+        doThrow(new AssignmentAttemptException(TextConstants.ASSIGNMENT_LOCKED)).when(assessmentService).verifySubmissionLimit(anyInt(), anyInt());
+
+        AssessmentDto assessmentDto = assessmentService.viewAssessment(1l, securedInfo);
+
+        assertNotNull(assessmentDto);
+        assertNotNull(assessmentDto.getRetakeDetails());
+        assertEquals(1F, assessmentDto.getRetakeDetails().getKeptScore());
+        assertEquals(1, assessmentDto.getRetakeDetails().getSubmissionAttemptsCount());
+        assertFalse(assessmentDto.getRetakeDetails().isRetakeAllowed());
+        assertEquals(RetakeDetails.RetakeNotAllowedReason.OTHER.toString(), assessmentDto.getRetakeDetails().getRetakeNotAllowedReason());
     }
 
     @Test

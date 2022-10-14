@@ -153,6 +153,7 @@ public class AssessmentServiceImpl implements AssessmentService {
             retakeDetails.setRetakeAllowed(true);
         } catch (AssignmentAttemptException e) {
             retakeDetails.setRetakeAllowed(false);
+            retakeDetails.setRetakeNotAllowedReason(RetakeDetails.calculateRetakeNotAllowedReason(e.getMessage()));
         }
 
         retakeDetails.setKeptScore(submissionService.getScoreFromMultipleSubmissions(participant, assessment));
