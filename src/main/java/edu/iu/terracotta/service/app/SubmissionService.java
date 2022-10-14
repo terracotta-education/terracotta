@@ -31,7 +31,7 @@ public interface SubmissionService {
 
     Submission getSubmission(Long experimentId, String userId, Long submissionId, boolean student) throws NoSubmissionsException;
 
-    SubmissionDto postSubmission(SubmissionDto submissionDto, long experimentId, String userId, long assessmentId, boolean student) throws IdInPostException, ParticipantNotMatchingException, InvalidUserException, DataServiceException;
+    SubmissionDto postSubmission(SubmissionDto submissionDto, long experimentId, SecuredInfo securedInfo, long assessmentId, boolean student) throws IdInPostException, ParticipantNotMatchingException, InvalidUserException, DataServiceException;
 
     void updateSubmissions(Map<Submission, SubmissionDto> map, boolean student) throws ConnectionException, DataServiceException;
 
@@ -57,15 +57,15 @@ public interface SubmissionService {
 
     boolean submissionBelongsToAssessment(Long assessmentId, Long SubmissionId);
 
-    void finalizeAndGrade(Long submissionId, SecuredInfo securedInfo) throws DataServiceException, CanvasApiException, IOException, AssignmentDatesException, ConnectionException;
+    void finalizeAndGrade(Long submissionId, SecuredInfo securedInfo, boolean student)
+            throws DataServiceException, CanvasApiException, IOException, AssignmentDatesException, ConnectionException;
 
     void grade(Long submissionId, SecuredInfo securedInfo) throws DataServiceException;
 
     Submission gradeSubmission(Submission submission) throws DataServiceException;
 
-    void sendSubmissionGradeToCanvas(Submission submission) throws ConnectionException, DataServiceException, CanvasApiException, IOException;
-
-    void sendSubmissionGradeToCanvasWithLTI(Submission submission) throws ConnectionException, DataServiceException, CanvasApiException, IOException;
+    void sendSubmissionGradeToCanvasWithLTI(Submission submission, boolean studentSubmission)
+            throws ConnectionException, DataServiceException, CanvasApiException, IOException;
 
     boolean datesAllowed(Long experimentId, Long treatmentId, SecuredInfo securedInfo);
 
@@ -78,4 +78,6 @@ public interface SubmissionService {
     HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, long experimentId, long conditionId, long treatmentId, long assessmentId, long submissionId);
 
     void allowedSubmission(Long submissionId, SecuredInfo securedInfo) throws SubmissionNotMatchingException;
+
+    Float getScoreFromMultipleSubmissions(Participant participant, Assessment assessment);
 }

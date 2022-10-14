@@ -56,15 +56,18 @@ const actions = {
       console.log('createAssessment catch', error)
     }
   },
-  async updateAssessment({state}, payload) {
-    // payload = experiment_id, condition_id, treatment_id, assessment_id, title, body
+  async updateAssessment(context, payload) {
+    // payload = experiment_id, condition_id, treatment_id, assessment_id,
+    //           title, body, allowStudentViewResponses, studentViewResponsesAfter,
+    //           studentViewResponsesBefore, allowStudentViewCorrectAnswers,
+    //           studentViewCorrectAnswersAfter, studentViewCorrectAnswersBefore
     // update the assessment, and return the status/data response
     try {
       const response = await assessmentService.updateAssessment(...payload)
       if (response) {
         return {
           status: response?.status,
-          data: state.assessment
+          data: response.data,
         }
       }
     } catch (error) {
@@ -81,7 +84,7 @@ const actions = {
     // create the assessment question, commit an update mutation, and return the status/data response
     try {
       const response = await assessmentService.createQuestion(...payload)
-      const question = response?.data
+      const question = response?.data;
       if (question?.questionId) {
         if (questionIndex >= 0) {
           commit("updateQuestionsAtIndex", { question, questionIndex });
@@ -97,12 +100,34 @@ const actions = {
       console.log('createQuestion catch', error)
     }
   },
-  async updateQuestion({state}, payload) {
+  async updateQuestion({commit}, payload) {
     // payload = experiment_id, condition_id, treatment_id, assessment_id, question_id, html, points, questionOrder, questionType, randomizeAnswers
     // update question and return the status/data response
+
+    const getQuestion = (experiment_id,
+        condition_id,
+        treatment_id,
+        assessment_id,
+        question_id,
+        html,
+        points,
+        questionOrder,
+        questionType,
+        randomizeAnswers,
+        answers) => ({
+      questionId: question_id,
+      html,
+      points,
+      questionOrder,
+      questionType,
+      randomizeAnswers,
+      answers
+    });
+
     try {
       const response = await assessmentService.updateQuestion(...payload)
       if (response) {
+        commit("updateQuestions", getQuestion(...payload));
         return {
           status: response?.status,
           data: null
@@ -253,7 +278,8 @@ const getters = {
     return state.assessment
   },
   questions: (state) => {
-    return state.assessment.questions
+    const list = [...state?.assessment?.questions || []].sort((a, b) => (a ? a.questionOrder : 0) - (b ? b.questionOrder : 0));
+    return list;
   },
   assessments: (state) => {
     return state.assessments
@@ -275,12 +301,14 @@ const getters = {
         questions: [],
         questionStartIndex: 0,
       });
-      for (const question of getters.questions) {
+      const sorted = [...getters.questions].sort((a, b) => a.questionOrder - b.questionOrder);
+
+      for (const question of sorted) {
         const currentPage = pages[pages.length - 1];
         if (question.questionType === "PAGE_BREAK") {
           currentPage.pageBreakAfter = true;
           // Add another page if this isn't the last question
-          if (question !== getters.questions[getters.questions.length - 1]) {
+          if (question !== sorted[sorted.length - 1]) {
             pages.push({
               key: pages.length,
               pageBreakAfter: false,

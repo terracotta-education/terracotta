@@ -1,8 +1,6 @@
 <template>
   <div class="experiment-summary-status" >
     <template v-if="experiment">
-      <h1>Experiment Status</h1>
-      <p>Once your experiment is running, you will see status updates below</p>
 
       <v-expansion-panels v-if="experiment.consent" class="v-expansion-panels--outlined mb-7" flat>
         <v-expansion-panel class="py-3">

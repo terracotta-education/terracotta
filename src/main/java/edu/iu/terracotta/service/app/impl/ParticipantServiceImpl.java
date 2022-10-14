@@ -7,10 +7,12 @@ import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.model.ags.LineItem;
 import edu.iu.terracotta.model.ags.LineItems;
 import edu.iu.terracotta.model.ags.Score;
+import edu.iu.terracotta.model.app.Condition;
 import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.dto.ParticipantDto;
 import edu.iu.terracotta.model.app.dto.UserDto;
+import edu.iu.terracotta.model.app.enumerator.DistributionTypes;
 import edu.iu.terracotta.model.app.enumerator.ParticipationTypes;
 import edu.iu.terracotta.model.canvas.AssignmentExtended;
 import edu.iu.terracotta.model.membership.CourseUser;
@@ -28,6 +30,8 @@ import edu.iu.terracotta.service.lti.AdvantageAGSService;
 import edu.iu.terracotta.service.lti.AdvantageMembershipService;
 import edu.iu.terracotta.service.lti.LTIDataService;
 import edu.iu.terracotta.utils.TextConstants;
+
+import org.apache.commons.lang3.BooleanUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,31 +49,30 @@ import java.util.*;
 public class ParticipantServiceImpl implements ParticipantService {
 
     @Autowired
-    AllRepositories allRepositories;
+    private AllRepositories allRepositories;
 
     @Autowired
-    AdvantageMembershipService advantageMembershipService;
+    private AdvantageMembershipService advantageMembershipService;
 
     @Autowired
-    LTIDataService ltiDataService;
+    private LTIDataService ltiDataService;
 
     @Autowired
-    GroupService groupService;
+    private GroupService groupService;
 
     @Autowired
-    ExperimentService experimentService;
-
-
-    @Autowired
-    AdvantageAGSService advantageAGSService;
+    private ExperimentService experimentService;
 
     @Autowired
-    CanvasAPIClient canvasAPIClient;
+    private AdvantageAGSService advantageAGSService;
 
     @Autowired
-    APIJWTService apijwtService;
+    private CanvasAPIClient canvasAPIClient;
 
-    static final Logger log = LoggerFactory.getLogger(ParticipantServiceImpl.class);
+    @Autowired
+    private APIJWTService apijwtService;
+
+    private static final Logger log = LoggerFactory.getLogger(ParticipantServiceImpl.class);
 
     @Override
     public List<Participant> findAllByExperimentId(long experimentId) {
@@ -570,4 +573,48 @@ public class ParticipantServiceImpl implements ParticipantService {
             throw new DataServiceException("Error 136: The assignment is not linked to any Canvas assignment");
         }
     }
+
+    @Override
+    @Transactional
+    public Participant handleExperimentParticipant(Experiment experiment, SecuredInfo securedInfo) throws GroupNotMatchingException, ParticipantNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException {
+        List<Participant> participants = refreshParticipants(experiment.getExperimentId(), securedInfo, experiment.getParticipants());
+        Participant participant = findParticipant(participants, securedInfo.getUserId());
+
+        if (participant == null) {
+            throw new ParticipantNotMatchingException(TextConstants.PARTICIPANT_NOT_MATCHING);
+        }
+
+        // 1. Check if the student has the consent signed. If not, set it as no participant
+        handleConsent(experiment, participant);
+
+        // 2. Check if the student is in a group (and if not assign it to the right one if consent is true)
+        if (BooleanUtils.isTrue(participant.getConsent()) && participant.getGroup() == null) {
+            if (DistributionTypes.CUSTOM.equals(experiment.getDistributionType())) {
+                for (Condition condition : experiment.getConditions()) {
+                    if (BooleanUtils.isTrue(condition.getDefaultCondition())) {
+                        participant.setGroup(groupService.getUniqueGroupByConditionId(experiment.getExperimentId(), securedInfo.getCanvasAssignmentId(), condition.getConditionId()));
+                        break;
+                    }
+                }
+            } else { // We assign it to the more unbalanced group (if consent is true)
+                participant.setGroup(groupService.nextGroup(experiment));
+            }
+        }
+
+        return save(participant);
+    }
+
+    private void handleConsent(Experiment experiment, Participant participant) {
+        if (participant.getConsent() == null || (!participant.getConsent() && participant.getDateRevoked() == null)) {
+            if (experiment.getParticipationType().equals(ParticipationTypes.AUTO)) {
+                participant.setConsent(true);
+                participant.setDateGiven(new Timestamp(System.currentTimeMillis()));
+            } else {
+                participant.setConsent(false);
+                participant.setDateRevoked(new Timestamp(System.currentTimeMillis()));
+
+            }
+        }
+    }
+
 }

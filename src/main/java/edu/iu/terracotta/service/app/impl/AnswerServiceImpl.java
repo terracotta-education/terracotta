@@ -3,15 +3,20 @@ package edu.iu.terracotta.service.app.impl;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.MultipleChoiceLimitReachedException;
+import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
 import edu.iu.terracotta.model.app.AnswerMc;
 import edu.iu.terracotta.model.app.AnswerMcSubmissionOption;
 import edu.iu.terracotta.model.app.Question;
+import edu.iu.terracotta.model.app.QuestionMc;
 import edu.iu.terracotta.model.app.QuestionSubmission;
 import edu.iu.terracotta.model.app.dto.AnswerDto;
+import edu.iu.terracotta.model.app.enumerator.QuestionTypes;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.AnswerService;
 import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.utils.TextConstants;
+
+import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
@@ -20,10 +25,15 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
+
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
 
 @Component
 public class AnswerServiceImpl implements AnswerService {
@@ -34,16 +44,19 @@ public class AnswerServiceImpl implements AnswerService {
     @Autowired
     FileStorageService fileStorageService;
 
+    @PersistenceContext
+    private EntityManager entityManager;
+
     /*
     MULTIPLE CHOICE
      */
     @Override
-    public List<AnswerDto> findAllByQuestionIdMC(Long questionId, boolean student) {
+    public List<AnswerDto> findAllByQuestionIdMC(Long questionId, boolean showCorrectAnswer) {
         List<AnswerMc> answerList = allRepositories.answerMcRepository.findByQuestion_QuestionId(questionId);
         List<AnswerDto> answerDtoList = new ArrayList<>();
         if (!answerList.isEmpty()) {
             for (AnswerMc answerMc : answerList) {
-                answerDtoList.add(toDtoMC(answerMc, answerMc.getAnswerOrder(), student));
+                answerDtoList.add(toDtoMC(answerMc, answerMc.getAnswerOrder(), showCorrectAnswer));
             }
         }
         return answerDtoList;
@@ -67,13 +80,13 @@ public class AnswerServiceImpl implements AnswerService {
         List<AnswerDto> answerDtoList = new ArrayList<>();
         int answerOrder = 0;
         for (AnswerMcSubmissionOption answerMcSubmissionOption : answerMcSubmissionOptions) {
-            answerDtoList.add(toDtoMC(answerMcSubmissionOption.getAnswerMc(), answerOrder++, true));
+            answerDtoList.add(toDtoMC(answerMcSubmissionOption.getAnswerMc(), answerOrder++, false));
         }
 
         // check for any missing answers and add them to the list as well
         for (AnswerMc answerMc : answerList) {
             if (answerDtoList.stream().noneMatch(a -> a.getAnswerId().equals(answerMc.getAnswerMcId()))) {
-                answerDtoList.add(toDtoMC(answerMc, answerOrder++, true));
+                answerDtoList.add(toDtoMC(answerMc, answerOrder++, false));
             }
         }
 
@@ -81,9 +94,9 @@ public class AnswerServiceImpl implements AnswerService {
     }
 
     @Override
-    public AnswerDto getAnswerMC(Long answerId, boolean student){
+    public AnswerDto getAnswerMC(Long answerId){
         AnswerMc answerMc = allRepositories.answerMcRepository.findByAnswerMcId(answerId);
-        return toDtoMC(answerMc, answerMc.getAnswerOrder(), student);
+        return toDtoMC(answerMc, answerMc.getAnswerOrder(), false);
     }
 
     @Override
@@ -94,7 +107,7 @@ public class AnswerServiceImpl implements AnswerService {
 
         answerDto.setQuestionId(questionId);
         answerDto.setAnswerType(getQuestionType(questionId));
-        if ("MC".equals(answerDto.getAnswerType())) {
+        if (QuestionTypes.MC.toString().equals(answerDto.getAnswerType())) {
             limitReached(questionId);
             AnswerMc answerMc;
             try {
@@ -102,21 +115,22 @@ public class AnswerServiceImpl implements AnswerService {
             } catch (DataServiceException ex) {
                 throw new DataServiceException("Error 105: Unable to create Answer: " + ex.getMessage());
             }
-            return toDtoMC(saveMC(answerMc), answerMc.getAnswerOrder(),false);
+            return toDtoMC(saveMC(answerMc), answerMc.getAnswerOrder(), false);
         } else {
             throw new DataServiceException("Error 103: Answer type not supported.");
         }
     }
 
     @Override
-    public AnswerDto toDtoMC(AnswerMc answer, int answerOrder, boolean student) {
+    public AnswerDto toDtoMC(AnswerMc answer, int answerOrder, boolean showCorrectAnswer) {
         AnswerDto answerDto = new AnswerDto();
         answerDto.setAnswerId(answer.getAnswerMcId());
         answerDto.setHtml(fileStorageService.parseHTMLFiles(answer.getHtml()));
         answerDto.setAnswerOrder(answerOrder);
         answerDto.setQuestionId(answer.getQuestion().getQuestionId());
-        answerDto.setAnswerType("MC");
-        if(student){
+        answerDto.setAnswerType(QuestionTypes.MC.toString());
+
+        if (!showCorrectAnswer) {
             answerDto.setCorrect(null);
         } else {
             answerDto.setCorrect(answer.getCorrect());
@@ -150,18 +164,29 @@ public class AnswerServiceImpl implements AnswerService {
 
     @Override
     @Transactional
-    public void updateAnswerMC(Map<AnswerMc, AnswerDto> map){
+    public List<AnswerDto> updateAnswerMC(Map<AnswerMc, AnswerDto> map){
+        List<AnswerDto> answerDtos = new ArrayList<>();
+
         for(Map.Entry<AnswerMc, AnswerDto> entry : map.entrySet()){
             AnswerMc answerMc = entry.getKey();
             AnswerDto answerDto = entry.getValue();
-            if(answerDto.getHtml() != null)
+
+            if(answerDto.getHtml() != null) {
                 answerMc.setHtml(answerDto.getHtml());
-            if(answerDto.getAnswerOrder() != null)
+            }
+
+            if(answerDto.getAnswerOrder() != null) {
                 answerMc.setAnswerOrder(answerDto.getAnswerOrder());
-            if(answerDto.getCorrect() != null)
+            }
+
+            if(answerDto.getCorrect() != null) {
                 answerMc.setCorrect(answerDto.getCorrect());
-            saveMC(answerMc);
+            }
+
+            answerDtos.add(toDtoMC(saveMC(answerMc), answerMc.getAnswerOrder(), true));
         }
+
+        return answerDtos;
     }
 
 
@@ -194,4 +219,30 @@ public class AnswerServiceImpl implements AnswerService {
                 .buildAndExpand(experimentId, conditionId, treatmentId, assessmentId, questionId, answerId).toUri());
         return headers;
     }
+
+    @Override
+    public List<AnswerMc> duplicateAnswersForQuestion(Long originalQuestionId, Question newQuestion) throws QuestionNotMatchingException {
+        if (originalQuestionId == null || newQuestion == null) {
+            throw new QuestionNotMatchingException(TextConstants.QUESTION_NOT_MATCHING);
+        }
+
+        if (!(newQuestion instanceof QuestionMc)) {
+            // not MC; nothing to duplicate
+            return Collections.emptyList();
+        }
+
+        // copy MC options
+        List<AnswerMc> answerMcs = allRepositories.answerMcRepository.findByQuestion_QuestionId(originalQuestionId);
+
+        return CollectionUtils.emptyIfNull(answerMcs).stream()
+            .map(answerMc -> {
+                entityManager.detach(answerMc);
+                answerMc.setAnswerMcId(null);
+                answerMc.setQuestion(newQuestion);
+
+                return saveMC(answerMc);
+            })
+            .collect(Collectors.toList());
+    }
+
 }

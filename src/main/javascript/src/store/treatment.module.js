@@ -38,6 +38,30 @@ const actions = {
       console.log('createTreatment catch', error)
     }
   },
+  async updateTreatment ({commit}, payload) {
+    // payload = experiment_id, condition_id, treatment_id
+    // create the treatment, commit an update mutation, and return the status/data response
+    try {
+
+      // return first treatment that matches, only one treatment per condition
+      const response = await treatmentService.update(...payload);
+      if (response.status !== 201) {
+        return response;
+      }
+      const treatment = response?.data
+
+      // commit changes to state
+      commit('setTreatment', treatment)
+      commit('updateTreatments', treatment)
+
+      return {
+        status: response?.status,
+        data: treatment
+      }
+    } catch (error) {
+      console.log('updateTreatment catch', error)
+    }
+  },
   async checkTreatment({state}, payload) {
     // payload = experiment_id, condition_id, assignment_id
     try {

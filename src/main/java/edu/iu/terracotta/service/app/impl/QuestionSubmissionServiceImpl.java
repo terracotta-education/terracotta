@@ -4,12 +4,14 @@ import edu.iu.terracotta.exceptions.*;
 import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.model.ToolDeployment;
 import edu.iu.terracotta.model.app.*;
+import edu.iu.terracotta.model.app.dto.AnswerDto;
 import edu.iu.terracotta.model.app.dto.AnswerSubmissionDto;
 import edu.iu.terracotta.model.app.dto.QuestionSubmissionCommentDto;
 import edu.iu.terracotta.model.app.dto.QuestionSubmissionDto;
 import edu.iu.terracotta.model.app.enumerator.QuestionTypes;
 import edu.iu.terracotta.model.canvas.AssignmentExtended;
 import edu.iu.terracotta.repository.AllRepositories;
+import edu.iu.terracotta.service.app.AnswerService;
 import edu.iu.terracotta.service.app.AnswerSubmissionService;
 import edu.iu.terracotta.service.app.QuestionSubmissionCommentService;
 import edu.iu.terracotta.service.app.QuestionSubmissionService;
@@ -38,6 +40,9 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
     AllRepositories allRepositories;
 
     @Autowired
+    private AnswerService answerService;
+
+    @Autowired
     AnswerSubmissionService answerSubmissionService;
 
     @Autowired
@@ -52,12 +57,28 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
     }
 
     @Override
-    public List<QuestionSubmissionDto> getQuestionSubmissions(Long submissionId, boolean answerSubmissions, boolean questionSubmissionComments) {
+    public List<QuestionSubmissionDto> getQuestionSubmissions(long submissionId, boolean answerSubmissions, boolean questionSubmissionComments, long assessmentId, boolean isStudent) throws AssessmentNotMatchingException {
+        boolean showCorrectAnswers = true;
+
+        if (isStudent) {
+            Optional<Assessment> assessment = allRepositories.assessmentRepository.findById(assessmentId);
+
+            if (!assessment.isPresent()) {
+                throw new AssessmentNotMatchingException(TextConstants.ASSESSMENT_NOT_MATCHING);
+            }
+
+            answerSubmissions = assessment.get().canViewResponses();
+            questionSubmissionComments = answerSubmissions;
+            showCorrectAnswers = assessment.get().canViewCorrectAnswers();
+        }
+
         List<QuestionSubmission> questionSubmissions = findAllBySubmissionId(submissionId);
         List<QuestionSubmissionDto> questionSubmissionDtoList = new ArrayList<>();
+
         for (QuestionSubmission questionSubmission : questionSubmissions) {
-            questionSubmissionDtoList.add(toDto(questionSubmission, answerSubmissions, questionSubmissionComments));
+            questionSubmissionDtoList.add(toDto(questionSubmission, answerSubmissions, questionSubmissionComments, showCorrectAnswers));
         }
+
         return questionSubmissionDtoList;
     }
 
@@ -114,10 +135,17 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
         return returnedDtoList;
     }
 
+    private QuestionSubmissionDto toDto(QuestionSubmission questionSubmission, boolean answerSubmissions, boolean questionSubmissionComments, boolean showCorrectAnswers) {
+        QuestionSubmissionDto questionSubmissionDto = toDto(questionSubmission, answerSubmissions, questionSubmissionComments);
+
+        List<AnswerDto> answerDtos = answerService.findAllByQuestionIdMC(questionSubmission.getQuestion().getQuestionId(), showCorrectAnswers);
+        questionSubmissionDto.setAnswerDtoList(answerDtos);
+
+        return questionSubmissionDto;
+    }
 
     @Override
     public QuestionSubmissionDto toDto(QuestionSubmission questionSubmission, boolean answerSubmissions, boolean questionSubmissionComments) {
-
         QuestionSubmissionDto questionSubmissionDto = new QuestionSubmissionDto();
         questionSubmissionDto.setQuestionSubmissionId(questionSubmission.getQuestionSubmissionId());
         questionSubmissionDto.setSubmissionId(questionSubmission.getSubmission().getSubmissionId());
@@ -308,36 +336,50 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
     }
 
     @Override
-    public boolean canSubmit(String canvasCourseId, String assignmentId, String canvasUserId, long deploymentId) throws CanvasApiException,
-            IOException {
-        //We find the right deployment:
+    public void canSubmit(String canvasCourseId, String assignmentId, String canvasUserId, long deploymentId) throws CanvasApiException, AssignmentAttemptException, IOException {
+        // We find the right deployment:
         Optional<ToolDeployment> toolDeployment = allRepositories.toolDeploymentRepository.findById(deploymentId);
-        if (toolDeployment.isPresent()) {
-            String litDeploymentId = toolDeployment.get().getLtiDeploymentId();
-            List<PlatformDeployment> platformDeploymentList = allRepositories.platformDeploymentRepository
-                    .findByToolDeployments_LtiDeploymentId(litDeploymentId);
-            if (!platformDeploymentList.isEmpty()) {
-                PlatformDeployment platformDeployment = platformDeploymentList.get(0);
 
-                Optional<AssignmentExtended> assignmentExtended = canvasAPIClient.listAssignment(canvasCourseId,
-                        Integer.parseInt(assignmentId), platformDeployment);
-                List<edu.ksu.canvas.model.assignment.Submission> submissionsList = canvasAPIClient.listSubmissions(Integer.parseInt(assignmentId),
-                        canvasCourseId, platformDeployment);
-
-                Optional<edu.ksu.canvas.model.assignment.Submission> submission = submissionsList.stream().filter(sub -> sub.getUser().getId() == Integer.parseInt(canvasUserId)).findFirst();
-                if (assignmentExtended.isPresent() && submission.isPresent()) {
-                    AssignmentExtended assignment = assignmentExtended.get();
-                    int allowedAttempts = assignment.getAllowedAttempts();
-                    int attempt = 0;
-                    if (submission.get().getAttempt() != null && allowedAttempts >0) {
-                        attempt = submission.get().getAttempt();
-                        if (attempt >= allowedAttempts) {
-                            return false;
-                        }
-                    }
-                }
-            }
+        if (!toolDeployment.isPresent()) {
+            return;
         }
-        return true;
+
+        String litDeploymentId = toolDeployment.get().getLtiDeploymentId();
+        List<PlatformDeployment> platformDeploymentList = allRepositories.platformDeploymentRepository.findByToolDeployments_LtiDeploymentId(litDeploymentId);
+
+        if (platformDeploymentList.isEmpty()) {
+            return;
+        }
+
+        PlatformDeployment platformDeployment = platformDeploymentList.get(0);
+
+        Optional<AssignmentExtended> assignmentExtended = canvasAPIClient.listAssignment(canvasCourseId, Integer.parseInt(assignmentId), platformDeployment);
+        List<edu.ksu.canvas.model.assignment.Submission> submissionsList = canvasAPIClient.listSubmissions(Integer.parseInt(assignmentId), canvasCourseId, platformDeployment);
+
+        Optional<edu.ksu.canvas.model.assignment.Submission> submission = submissionsList.stream()
+            .filter(sub -> { return sub.getUser().getId() == Integer.parseInt(canvasUserId); })
+            .findFirst();
+
+        if (!assignmentExtended.isPresent() || !submission.isPresent()) {
+            // no extends assignment and no submissions exist
+            return;
+        }
+
+        int allowedAttempts = assignmentExtended.get().getAllowedAttempts();
+
+        if (submission.get().getAttempt() == null || allowedAttempts <= 0) {
+            // allowed attempts is infinite
+            return;
+        }
+
+        int attempt = submission.get().getAttempt();
+
+        if (attempt < allowedAttempts) {
+            return;
+        }
+
+        // all allowable submission checks have failed, disallow submit attempt
+        throw new AssignmentAttemptException(TextConstants.MAX_SUBMISSION_ATTEMPTS_REACHED);
     }
+
 }

@@ -1,8 +1,12 @@
 package edu.iu.terracotta.model.app.dto;
 
+import java.sql.Timestamp;
+import java.util.Date;
+import java.util.List;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
-import java.util.List;
+import edu.iu.terracotta.model.app.enumerator.MultipleSubmissionScoringScheme;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class AssignmentDto {
@@ -15,10 +19,19 @@ public class AssignmentDto {
     private String resourceLinkId;
     private boolean started;
     private Boolean softDeleted;
+    private Integer numOfSubmissions;
+    private Float hoursBetweenSubmissions;
+    private String multipleSubmissionScoringScheme = MultipleSubmissionScoringScheme.MOST_RECENT.name();
+    private Float cumulativeScoringInitialPercentage;
     private List<TreatmentDto> treatments;
-
-
-    public AssignmentDto() {}
+    private boolean allowStudentViewResponses = false;
+    private Timestamp studentViewResponsesAfter;
+    private Timestamp studentViewResponsesBefore;
+    private boolean allowStudentViewCorrectAnswers = false;
+    private Timestamp studentViewCorrectAnswersAfter;
+    private Timestamp studentViewCorrectAnswersBefore;
+    private boolean published;
+    private Date dueDate;
 
     public Long getAssignmentId() { return assignmentId; }
 
@@ -60,6 +73,38 @@ public class AssignmentDto {
         this.softDeleted = softDeleted;
     }
 
+    public Integer getNumOfSubmissions() {
+        return numOfSubmissions;
+    }
+
+    public void setNumOfSubmissions(Integer numOfSubmissions) {
+        this.numOfSubmissions = numOfSubmissions;
+    }
+
+    public Float getHoursBetweenSubmissions() {
+        return hoursBetweenSubmissions;
+    }
+
+    public void setHoursBetweenSubmissions(Float hoursBetweenSubmissions) {
+        this.hoursBetweenSubmissions = hoursBetweenSubmissions;
+    }
+
+    public String getMultipleSubmissionScoringScheme() {
+        return multipleSubmissionScoringScheme;
+    }
+
+    public void setMultipleSubmissionScoringScheme(String multipleSubmissionScoringScheme) {
+        this.multipleSubmissionScoringScheme = multipleSubmissionScoringScheme;
+    }
+
+    public Float getCumulativeScoringInitialPercentage() {
+        return cumulativeScoringInitialPercentage;
+    }
+
+    public void setCumulativeScoringInitialPercentage(Float cumulativeScoringInitialPercentage) {
+        this.cumulativeScoringInitialPercentage = cumulativeScoringInitialPercentage;
+    }
+
     public List<TreatmentDto> getTreatments() {
         return treatments;
     }
@@ -67,4 +112,69 @@ public class AssignmentDto {
     public void setTreatments(List<TreatmentDto> treatments) {
         this.treatments = treatments;
     }
+
+    public boolean isAllowStudentViewResponses() {
+        return allowStudentViewResponses;
+    }
+
+    public void setAllowStudentViewResponses(boolean allowStudentViewResponses) {
+        this.allowStudentViewResponses = allowStudentViewResponses;
+    }
+
+    public Timestamp getStudentViewResponsesAfter() {
+        return studentViewResponsesAfter;
+    }
+
+    public void setStudentViewResponsesAfter(Timestamp studentViewResponsesAfter) {
+        this.studentViewResponsesAfter = studentViewResponsesAfter;
+    }
+
+    public Timestamp getStudentViewResponsesBefore() {
+        return studentViewResponsesBefore;
+    }
+
+    public void setStudentViewResponsesBefore(Timestamp studentViewResponsesBefore) {
+        this.studentViewResponsesBefore = studentViewResponsesBefore;
+    }
+
+    public boolean isAllowStudentViewCorrectAnswers() {
+        return allowStudentViewCorrectAnswers;
+    }
+
+    public void setAllowStudentViewCorrectAnswers(boolean allowStudentViewCorrectAnswers) {
+        this.allowStudentViewCorrectAnswers = allowStudentViewCorrectAnswers;
+    }
+
+    public Timestamp getStudentViewCorrectAnswersAfter() {
+        return studentViewCorrectAnswersAfter;
+    }
+
+    public void setStudentViewCorrectAnswersAfter(Timestamp studentViewCorrectAnswersAfter) {
+        this.studentViewCorrectAnswersAfter = studentViewCorrectAnswersAfter;
+    }
+
+    public Timestamp getStudentViewCorrectAnswersBefore() {
+        return studentViewCorrectAnswersBefore;
+    }
+
+    public void setStudentViewCorrectAnswersBefore(Timestamp studentViewCorrectAnswersBefore) {
+        this.studentViewCorrectAnswersBefore = studentViewCorrectAnswersBefore;
+    }
+
+    public boolean isPublished() {
+        return published;
+    }
+
+    public void setPublished(boolean published) {
+        this.published = published;
+    }
+
+    public Date getDueDate() {
+        return dueDate;
+    }
+
+    public void setDueDate(Date dueDate) {
+        this.dueDate = dueDate;
+    }
+
 }

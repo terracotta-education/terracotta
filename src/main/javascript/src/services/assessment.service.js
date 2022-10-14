@@ -26,7 +26,7 @@ async function fetchAssessment(experiment_id, condition_id, treatment_id, assess
     method: 'GET',
     headers: {...authHeader()}
   }
-  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}?questions=true&answers=true`, requestOptions).then(handleResponse)
+  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}?questions=true&answers=true&submissions=true`, requestOptions).then(handleResponse)
 }
 
 async function fetchAssessmentForSubmission(experiment_id, condition_id, treatment_id, assessment_id, submission_id) {
@@ -74,14 +74,34 @@ async function updateAssessment(
   treatment_id,
   assessment_id,
   title,
-  body
+  body,
+  allowStudentViewResponses,
+  studentViewResponsesAfter,
+  studentViewResponsesBefore,
+  allowStudentViewCorrectAnswers,
+  studentViewCorrectAnswersAfter,
+  studentViewCorrectAnswersBefore,
+  numOfSubmissions,
+  multipleSubmissionScoringScheme,
+  hoursBetweenSubmissions,
+  cumulativeScoringInitialPercentage
 ) {
   const requestOptions = {
     method: 'PUT',
     headers: {...authHeader(), 'Content-Type': 'application/json'},
     body: JSON.stringify({
       title,
-      "html": body
+      "html": body,
+      allowStudentViewResponses,
+      studentViewResponsesAfter,
+      studentViewResponsesBefore,
+      allowStudentViewCorrectAnswers,
+      studentViewCorrectAnswersAfter,
+      studentViewCorrectAnswersBefore,
+      numOfSubmissions,
+      multipleSubmissionScoringScheme,
+      hoursBetweenSubmissions,
+      cumulativeScoringInitialPercentage,
     })
   }
 

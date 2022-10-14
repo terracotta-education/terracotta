@@ -1,7 +1,18 @@
 package edu.iu.terracotta.service.app;
 
-import edu.iu.terracotta.exceptions.*;
-import edu.iu.terracotta.model.PlatformDeployment;
+import edu.iu.terracotta.exceptions.AnswerNotMatchingException;
+import edu.iu.terracotta.exceptions.AnswerSubmissionNotMatchingException;
+import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
+import edu.iu.terracotta.exceptions.AssignmentAttemptException;
+import edu.iu.terracotta.exceptions.CanvasApiException;
+import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.DuplicateQuestionException;
+import edu.iu.terracotta.exceptions.ExceedingLimitException;
+import edu.iu.terracotta.exceptions.IdInPostException;
+import edu.iu.terracotta.exceptions.IdMissingException;
+import edu.iu.terracotta.exceptions.InvalidUserException;
+import edu.iu.terracotta.exceptions.QuestionSubmissionNotMatchingException;
+import edu.iu.terracotta.exceptions.TypeNotSupportedException;
 import edu.iu.terracotta.model.app.AnswerMcSubmission;
 import edu.iu.terracotta.model.app.QuestionSubmission;
 import edu.iu.terracotta.model.app.dto.QuestionSubmissionDto;
@@ -18,7 +29,7 @@ public interface QuestionSubmissionService {
 
     List<QuestionSubmission> findAllBySubmissionId(Long submissionId);
 
-    List<QuestionSubmissionDto> getQuestionSubmissions(Long submissionId, boolean answerSubmissions, boolean questionSubmissionComments);
+    List<QuestionSubmissionDto> getQuestionSubmissions(long submissionId, boolean answerSubmissions, boolean questionSubmissionComments, long assessmentId, boolean isStudent) throws AssessmentNotMatchingException;
 
     QuestionSubmission getQuestionSubmission(Long id);
 
@@ -52,6 +63,6 @@ public interface QuestionSubmissionService {
 
     void validateQuestionSubmission(QuestionSubmissionDto questionSubmissionDto) throws DataServiceException;
 
+    void canSubmit(String canvasCourseId, String assignmentId, String canvasUserIs, long deploymentId) throws CanvasApiException, IOException, AssignmentAttemptException;
 
-    boolean canSubmit(String canvasCourseId, String assignmentId, String canvasUserIs, long deploymentId) throws CanvasApiException, IOException;
 }

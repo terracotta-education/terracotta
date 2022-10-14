@@ -12,6 +12,9 @@
  */
 package edu.iu.terracotta.model.ags;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -31,6 +34,8 @@ public class Score {
     private String gradingProgress;
     @JsonProperty("timestamp")
     private String timestamp;
+    @JsonProperty("https://canvas.instructure.com/lti/submission")
+    private Map<String, Object> canvasSubmissionExtension = new HashMap<>();
 
     public Score() { //Empty on purpose
     }
@@ -89,5 +94,13 @@ public class Score {
 
     public void setTimestamp(String timestamp) {
         this.timestamp = timestamp;
+    }
+
+    public Map<String, Object> getCanvasSubmissionExtension() {
+        return canvasSubmissionExtension;
+    }
+
+    public void setCanvasSubmissionExtension(Map<String, Object> canvasSubmissionExtension) {
+        this.canvasSubmissionExtension = canvasSubmissionExtension;
     }
 }

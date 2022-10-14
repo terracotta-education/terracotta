@@ -3,11 +3,14 @@ package edu.iu.terracotta.service.app.impl;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.InvalidQuestionTypeException;
+import edu.iu.terracotta.exceptions.MultipleChoiceLimitReachedException;
 import edu.iu.terracotta.exceptions.NegativePointsException;
+import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
 import edu.iu.terracotta.model.app.Assessment;
 import edu.iu.terracotta.model.app.Question;
 import edu.iu.terracotta.model.app.QuestionMc;
 import edu.iu.terracotta.model.app.QuestionSubmission;
+import edu.iu.terracotta.model.app.dto.AnswerDto;
 import edu.iu.terracotta.model.app.dto.QuestionDto;
 import edu.iu.terracotta.model.app.enumerator.QuestionTypes;
 import edu.iu.terracotta.repository.AllRepositories;
@@ -15,6 +18,8 @@ import edu.iu.terracotta.service.app.AnswerService;
 import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.service.app.QuestionService;
 import edu.iu.terracotta.utils.TextConstants;
+
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.EnumUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -24,7 +29,11 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
+
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -40,6 +49,9 @@ public class QuestionServiceImpl implements QuestionService {
 
     @Autowired
     FileStorageService fileStorageService;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     @Override
     public List<Question> findAllByAssessmentId(Long assessmentId) {
@@ -60,19 +72,28 @@ public class QuestionServiceImpl implements QuestionService {
     public Question getQuestion(Long id){ return allRepositories.questionRepository.findByQuestionId(id); }
 
     @Override
-    public QuestionDto postQuestion(QuestionDto questionDto, long assessmentId, boolean answers) throws IdInPostException, DataServiceException {
+    public QuestionDto postQuestion(QuestionDto questionDto, long assessmentId, boolean answers) throws IdInPostException, DataServiceException, MultipleChoiceLimitReachedException {
         if(questionDto.getQuestionId() != null) {
             throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
         }
+
         questionDto.setAssessmentId(assessmentId);
         Question question;
+
         try {
             validateQuestionType(questionDto);
-            question = fromDto(questionDto);
+            question = save(fromDto(questionDto));
+
+            if (QuestionTypes.MC == question.getQuestionType() && CollectionUtils.isNotEmpty(questionDto.getAnswers())) {
+                for (AnswerDto answerDto : questionDto.getAnswers()) {
+                    answerService.postAnswerMC(answerDto, question.getQuestionId());
+                }
+            }
         } catch (DataServiceException | InvalidQuestionTypeException | NegativePointsException ex) {
             throw new DataServiceException("Error 105: Unable to create Question: " + ex.getMessage());
         }
-        return toDto(save(question), answers, true);
+
+        return toDto(question, answers, true);
     }
 
     @Override
@@ -82,7 +103,6 @@ public class QuestionServiceImpl implements QuestionService {
 
     @Override
     public QuestionDto toDto(Question question, Long submissionId, boolean answers, boolean student) {
-
         QuestionDto questionDto = new QuestionDto();
         questionDto.setQuestionId(question.getQuestionId());
         questionDto.setHtml(fileStorageService.parseHTMLFiles(question.getHtml()));
@@ -90,23 +110,27 @@ public class QuestionServiceImpl implements QuestionService {
         questionDto.setPoints(question.getPoints());
         questionDto.setAssessmentId(question.getAssessment().getAssessmentId());
         questionDto.setQuestionType(question.getQuestionType().name());
-        if (question.getQuestionType() == QuestionTypes.MC) {
+
+        if (QuestionTypes.MC == question.getQuestionType()) {
             if (answers) {
                 Optional<QuestionSubmission> questionSubmission = Optional.empty();
+
                 if (submissionId != null) {
                     questionSubmission = this.allRepositories.questionSubmissionRepository
-                            .findByQuestion_QuestionIdAndSubmission_SubmissionId(question.getQuestionId(),
-                                    submissionId);
+                            .findByQuestion_QuestionIdAndSubmission_SubmissionId(question.getQuestionId(), submissionId);
                 }
+
                 if (questionSubmission.isPresent()) {
                     // Apply submission specific order to answers
                     questionDto.setAnswers(answerService.findAllByQuestionIdMC(questionSubmission.get()));
                 } else {
-                    questionDto.setAnswers(answerService.findAllByQuestionIdMC(question.getQuestionId(), student));
+                    questionDto.setAnswers(answerService.findAllByQuestionIdMC(question.getQuestionId(), answers));
                 }
             }
+
             questionDto.setRandomizeAnswers(((QuestionMc) question).isRandomizeAnswers());
         }
+
         return questionDto;
     }
 
@@ -167,8 +191,7 @@ public class QuestionServiceImpl implements QuestionService {
     }
 
     @Override
-    public void saveAndFlush(Question questionToChange) { allRepositories.questionRepository.saveAndFlush(questionToChange); }
-
+    public Question saveAndFlush(Question questionToChange) { return allRepositories.questionRepository.saveAndFlush(questionToChange); }
 
     @Override
     public void deleteById(Long id) throws EmptyResultDataAccessException {
@@ -202,4 +225,34 @@ public class QuestionServiceImpl implements QuestionService {
             throw new InvalidQuestionTypeException("Error 103: Please use a supported question type.");
         }
     }
+
+    @Override
+    public List<Question> duplicateQuestionsForAssessment(Long oldAssessmentId, Assessment newAssessment) throws DataServiceException, QuestionNotMatchingException {
+        if (newAssessment == null) {
+            throw new DataServiceException("The new assessment with the given ID does not exist");
+        }
+
+        List<Question> originalQuestions = findAllByAssessmentId(oldAssessmentId);
+
+        if (CollectionUtils.isEmpty(originalQuestions)) {
+            return Collections.emptyList();
+        }
+
+        List<Question> questions = new ArrayList<>();
+
+        for (Question originalQuestion : originalQuestions) {
+            entityManager.detach(originalQuestion);
+            Long originalQuestionId = originalQuestion.getQuestionId();
+            originalQuestion.setQuestionId(null);
+            originalQuestion.setAssessment(newAssessment);
+            Question newQuestion = save(originalQuestion);
+
+            answerService.duplicateAnswersForQuestion(originalQuestionId, newQuestion);
+
+            questions.add(newQuestion);
+        }
+
+        return questions;
+    }
+
 }
