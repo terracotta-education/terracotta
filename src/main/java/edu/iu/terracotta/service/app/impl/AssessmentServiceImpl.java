@@ -130,13 +130,13 @@ public class AssessmentServiceImpl implements AssessmentService {
     private AssessmentDto toDto(Assessment assessment, Participant participant, boolean canViewSubmissions) throws AssessmentNotMatchingException {
         AssessmentDto assessmentDto = toDto(assessment, null, false, false, false, false);
 
-        List<Submission> participantSubmissions = submissionService.findByParticipantId(participant.getParticipantId());
+        List<Submission> participantSubmissions = submissionService.findByParticipantIdAndAssessmentId(participant.getParticipantId(), assessment.getAssessmentId());
 
-        List<Submission> participantSubmissionsSubmitted = CollectionUtils.emptyIfNull(participantSubmissions).stream()
+        List<Submission> participantAssessmentSubmissionsSubmitted = CollectionUtils.emptyIfNull(participantSubmissions).stream()
             .filter(submission -> submission.getDateSubmitted() != null)
             .collect(Collectors.toList());
 
-        List<SubmissionDto> submissionDtosSubmitted = CollectionUtils.emptyIfNull(participantSubmissionsSubmitted).stream()
+        List<SubmissionDto> submissionDtosSubmitted = CollectionUtils.emptyIfNull(participantAssessmentSubmissionsSubmitted).stream()
             .map(submission -> submissionService.toDto(submission, false, false))
             .collect(Collectors.toList());
 
@@ -148,7 +148,7 @@ public class AssessmentServiceImpl implements AssessmentService {
 
         try {
             verifySubmissionLimit(assessment.getNumOfSubmissions(), submissionDtosSubmitted.size());
-            verifySubmissionWaitTime(assessment.getHoursBetweenSubmissions(), participantSubmissionsSubmitted);
+            verifySubmissionWaitTime(assessment.getHoursBetweenSubmissions(), participantAssessmentSubmissionsSubmitted);
 
             retakeDetails.setRetakeAllowed(true);
         } catch (AssignmentAttemptException e) {
