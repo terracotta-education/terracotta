@@ -18,6 +18,7 @@ import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.exceptions.RevealResponsesSettingValidationException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
+import edu.iu.terracotta.model.LtiUserEntity;
 import edu.iu.terracotta.model.app.Assignment;
 import edu.iu.terracotta.model.app.dto.AssignmentDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
@@ -35,16 +36,35 @@ public interface AssignmentService {
 
     List<Assignment> findAllByExposureId(long exposureId, boolean includeDeleted);
 
-    List<AssignmentDto> getAssignments(Long exposureId, String canvasCourseId, long platformDeploymentId, boolean submissions, boolean includeDeleted) throws AssessmentNotMatchingException, CanvasApiException;
+    /**
+     * Get all assignments for the given exposure set id.
+     *
+     * @param exposureId
+     * @param canvasCourseId
+     * @param platformDeploymentId
+     * @param submissions
+     * @param includeDeleted
+     * @param instructorUserId     optional user id of instructor. This would be
+     *                             null if authenticating user is a student for
+     *                             example.
+     * @return
+     * @throws AssessmentNotMatchingException
+     * @throws CanvasApiException
+     */
+    List<AssignmentDto> getAssignments(Long exposureId, String canvasCourseId, long platformDeploymentId,
+                    boolean submissions, boolean includeDeleted, String instructorUserId)
+                    throws AssessmentNotMatchingException, CanvasApiException;
 
     Assignment getAssignment(Long id);
 
-    AssignmentDto postAssignment(AssignmentDto assignmentDto, long experimentId, String canvasCourseId, long exposureId, long platformDeploymentId)
+    AssignmentDto postAssignment(AssignmentDto assignmentDto, long experimentId, String canvasCourseId, long exposureId,
+                    String instructorUserId)
             throws DataServiceException, IdInPostException, TitleValidationException, AssessmentNotMatchingException,
             AssignmentNotCreatedException, RevealResponsesSettingValidationException,
             MultipleAttemptsSettingsValidationException, NumberFormatException, CanvasApiException;
 
-    AssignmentDto duplicateAssignment(long assignmentId, String canvasCourseId, long platformDeploymentId)
+    AssignmentDto duplicateAssignment(long assignmentId, String canvasCourseId, long platformDeploymentId,
+                    String instructorUserId)
             throws DataServiceException, IdInPostException, TitleValidationException, AssessmentNotMatchingException,
                     AssignmentNotCreatedException, RevealResponsesSettingValidationException,
                     MultipleAttemptsSettingsValidationException, NumberFormatException, CanvasApiException, ExceedingLimitException, TreatmentNotMatchingException;
@@ -57,17 +77,20 @@ public interface AssignmentService {
 
     Optional<Assignment> findById(Long id);
 
-    AssignmentDto updateAssignment(Long id, AssignmentDto assignmentDto, String canvasCourseId) throws TitleValidationException,
+    AssignmentDto updateAssignment(Long id, AssignmentDto assignmentDto, String canvasCourseId, String instructorUserId)
+                    throws TitleValidationException,
             CanvasApiException, AssignmentNotEditedException, RevealResponsesSettingValidationException,
             MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException;
 
-    List<AssignmentDto> updateAssignments(List<AssignmentDto> assignmentDtos, String canvasCourseId) throws TitleValidationException,
+    List<AssignmentDto> updateAssignments(List<AssignmentDto> assignmentDtos, String canvasCourseId,
+                    String instructorUserId) throws TitleValidationException,
             CanvasApiException, AssignmentNotEditedException, RevealResponsesSettingValidationException,
             MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException;
 
     Assignment saveAndFlush(Assignment assignmentToChange);
 
-    void deleteById(Long id, String canvasCourseId) throws EmptyResultDataAccessException, CanvasApiException, AssignmentNotEditedException;
+    void deleteById(Long id, String canvasCourseId, String instructorUserId)
+                    throws EmptyResultDataAccessException, CanvasApiException, AssignmentNotEditedException;
 
     boolean assignmentBelongsToExperimentAndExposure(Long experimentId, Long exposureId, Long assignmentId);
 
@@ -85,9 +108,10 @@ public interface AssignmentService {
 
     void checkAndRestoreAssignmentsInCanvas(Long platformDeploymentLeyId) throws CanvasApiException, DataServiceException, ConnectionException, IOException;
 
-    void checkAndRestoreAssignmentsInCanvasByContext(Long contextId) throws CanvasApiException, DataServiceException, ConnectionException, IOException;
+    void checkAndRestoreAssignmentsInCanvasByContext(Long contextId, String instructorUserId)
+                    throws CanvasApiException, DataServiceException, ConnectionException, IOException;
 
-    boolean checkCanvasAssignmentExists(Assignment assignment) throws CanvasApiException;
+    boolean checkCanvasAssignmentExists(Assignment assignment, String instructorUserId) throws CanvasApiException;
 
     Assignment restoreAssignmentInCanvas(Assignment assignment) throws CanvasApiException, DataServiceException, ConnectionException, IOException;
 
@@ -95,14 +119,18 @@ public interface AssignmentService {
 
     HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, long experimentId, long exposureId, long assignmentId);
 
-    void createAssignmentInCanvas(Assignment assignment, long experimentId, String canvasCourseId) throws AssignmentNotCreatedException;
+    void createAssignmentInCanvas(LtiUserEntity instructorUser, Assignment assignment, long experimentId,
+                    String canvasCourseId) throws AssignmentNotCreatedException;
 
-    void editAssignmentNameInCanvas(Assignment assignment, String canvasCourseId, String newName) throws AssignmentNotEditedException, CanvasApiException;
+    void editAssignmentNameInCanvas(Assignment assignment, String canvasCourseId, String newName,
+                    String instructorUserId) throws AssignmentNotEditedException, CanvasApiException;
 
-    void deleteAssignmentInCanvas(Assignment assignment, String canvasCourseId) throws AssignmentNotEditedException, CanvasApiException;
+    void deleteAssignmentInCanvas(Assignment assignment, String canvasCourseId, String instructorUserId)
+                    throws AssignmentNotEditedException, CanvasApiException;
 
     void deleteAllFromExperiment(Long id, SecuredInfo securedInfo);
 
-    void setAssignmentDtoAttrs(Assignment assignment, String canvasCourseId, long platformDeploymentId) throws NumberFormatException, CanvasApiException;
+    void setAssignmentDtoAttrs(Assignment assignment, String canvasCourseId, long platformDeploymentId,
+                    String instructorUserId) throws NumberFormatException, CanvasApiException;
 
 }

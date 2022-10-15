@@ -1,13 +1,14 @@
 package edu.iu.terracotta.service.canvas.impl;
 
 import edu.iu.terracotta.exceptions.CanvasApiException;
+import edu.iu.terracotta.model.LtiUserEntity;
 import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.canvas.AssignmentExtended;
+import edu.iu.terracotta.model.canvas.CanvasAPIToken;
 import edu.iu.terracotta.service.canvas.AssignmentReaderExtended;
 import edu.iu.terracotta.service.canvas.AssignmentWriterExtended;
 import edu.iu.terracotta.service.canvas.CanvasAPIClient;
-import edu.iu.terracotta.service.canvas.SubmissionReaderExtended;
 import edu.ksu.canvas.exception.ObjectNotFoundException;
 import edu.ksu.canvas.impl.SubmissionImpl;
 import edu.ksu.canvas.interfaces.SubmissionReader;
@@ -21,23 +22,34 @@ import edu.ksu.canvas.requestOptions.GetSubmissionsOptions;
 import edu.ksu.canvas.requestOptions.ListCourseAssignmentsOptions;
 import edu.ksu.canvas.requestOptions.MultipleSubmissionsOptions;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.text.MessageFormat;
 import java.util.*;
 
 
 @Service
 public class CanvasAPIClientImpl implements CanvasAPIClient {
 
+    private static final Logger logger = LoggerFactory.getLogger(CanvasAPIClientImpl.class);
+
+    @Autowired
+    CanvasOAuthServiceImpl canvasOAuthService;
 
     @Override
-    public Optional<AssignmentExtended> createCanvasAssignment(AssignmentExtended canvasAssignment, String canvasCourseId, PlatformDeployment platformDeployment) throws CanvasApiException {
+    public Optional<AssignmentExtended> createCanvasAssignment(LtiUserEntity apiUser,
+            AssignmentExtended canvasAssignment, String canvasCourseId) throws CanvasApiException {
         //https://github.com/kstateome/canvas-api/tree/master
 
         try {
+            PlatformDeployment platformDeployment = apiUser.getPlatformDeployment();
             String canvasBaseUrl = platformDeployment.getBaseUrl();
-            OauthToken oauthToken = new NonRefreshableOauthToken(platformDeployment.getApiToken());
+            String accessToken = getAccessToken(apiUser);
+            OauthToken oauthToken = new NonRefreshableOauthToken(accessToken);
             CanvasApiFactoryExtended apiFactory = new CanvasApiFactoryExtended(canvasBaseUrl);
             AssignmentWriterExtended assignmentWriter = apiFactory.getWriter(AssignmentWriterExtended.class, oauthToken);
             return assignmentWriter.createAssignment(canvasCourseId, canvasAssignment);
@@ -48,10 +60,13 @@ public class CanvasAPIClientImpl implements CanvasAPIClient {
     }
 
     @Override
-    public List<AssignmentExtended> listAssignments(String canvasCourseId, PlatformDeployment platformDeployment) throws CanvasApiException {
+    public List<AssignmentExtended> listAssignments(LtiUserEntity apiUser, String canvasCourseId)
+            throws CanvasApiException {
         try {
+            PlatformDeployment platformDeployment = apiUser.getPlatformDeployment();
             String canvasBaseUrl = platformDeployment.getBaseUrl();
-            OauthToken oauthToken = new NonRefreshableOauthToken(platformDeployment.getApiToken());
+            String accessToken = getAccessToken(apiUser);
+            OauthToken oauthToken = new NonRefreshableOauthToken(accessToken);
             CanvasApiFactoryExtended apiFactory = new CanvasApiFactoryExtended(canvasBaseUrl);
             AssignmentReaderExtended assignmentReader = apiFactory.getReader(AssignmentReaderExtended.class, oauthToken);
             ListCourseAssignmentsOptions listCourseAssignmentsOptions = new ListCourseAssignmentsOptions(canvasCourseId);
@@ -63,10 +78,13 @@ public class CanvasAPIClientImpl implements CanvasAPIClient {
     }
 
     @Override
-    public Optional<AssignmentExtended> listAssignment(String canvasCourseId, int assignmentId, PlatformDeployment platformDeployment) throws CanvasApiException {
+    public Optional<AssignmentExtended> listAssignment(LtiUserEntity apiUser, String canvasCourseId, int assignmentId)
+            throws CanvasApiException {
         try {
+            PlatformDeployment platformDeployment = apiUser.getPlatformDeployment();
+            String accessToken = getAccessToken(apiUser);
             String canvasBaseUrl = platformDeployment.getBaseUrl();
-            OauthToken oauthToken = new NonRefreshableOauthToken(platformDeployment.getApiToken());
+            OauthToken oauthToken = new NonRefreshableOauthToken(accessToken);
             CanvasApiFactoryExtended apiFactory = new CanvasApiFactoryExtended(canvasBaseUrl);
             AssignmentReaderExtended assignmentReader = apiFactory.getReader(AssignmentReaderExtended.class, oauthToken);
             GetSingleAssignmentOptions assignmentsOptions = new GetSingleAssignmentOptions(canvasCourseId, assignmentId);
@@ -80,10 +98,13 @@ public class CanvasAPIClientImpl implements CanvasAPIClient {
     }
 
     @Override
-    public Optional<AssignmentExtended> editAssignment(AssignmentExtended assignmentExtended, String canvasCourseId, PlatformDeployment platformDeployment) throws CanvasApiException {
+    public Optional<AssignmentExtended> editAssignment(LtiUserEntity apiUser, AssignmentExtended assignmentExtended,
+            String canvasCourseId) throws CanvasApiException {
         try {
+            PlatformDeployment platformDeployment = apiUser.getPlatformDeployment();
             String canvasBaseUrl = platformDeployment.getBaseUrl();
-            OauthToken oauthToken = new NonRefreshableOauthToken(platformDeployment.getApiToken());
+            String accessToken = getAccessToken(apiUser);
+            OauthToken oauthToken = new NonRefreshableOauthToken(accessToken);
             CanvasApiFactoryExtended apiFactory = new CanvasApiFactoryExtended(canvasBaseUrl);
             AssignmentWriterExtended assignmentWriter = apiFactory.getWriter(AssignmentWriterExtended.class, oauthToken);
             return assignmentWriter.editAssignment(canvasCourseId, assignmentExtended);
@@ -94,10 +115,13 @@ public class CanvasAPIClientImpl implements CanvasAPIClient {
     }
 
     @Override
-    public Optional<AssignmentExtended> deleteAssignment(AssignmentExtended assignmentExtended, String canvasCourseId, PlatformDeployment platformDeployment) throws CanvasApiException {
+    public Optional<AssignmentExtended> deleteAssignment(LtiUserEntity apiUser, AssignmentExtended assignmentExtended,
+            String canvasCourseId) throws CanvasApiException {
         try {
+            PlatformDeployment platformDeployment = apiUser.getPlatformDeployment();
             String canvasBaseUrl = platformDeployment.getBaseUrl();
-            OauthToken oauthToken = new NonRefreshableOauthToken(platformDeployment.getApiToken());
+            String accessToken = getAccessToken(apiUser);
+            OauthToken oauthToken = new NonRefreshableOauthToken(accessToken);
             CanvasApiFactoryExtended apiFactory = new CanvasApiFactoryExtended(canvasBaseUrl);
             AssignmentWriterExtended assignmentWriter = apiFactory.getWriter(AssignmentWriterExtended.class, oauthToken);
             return assignmentWriter.deleteAssignment(canvasCourseId, assignmentExtended.getId());
@@ -109,9 +133,12 @@ public class CanvasAPIClientImpl implements CanvasAPIClient {
 
 
     @Override
-    public List<Submission> listSubmissions(Integer assignmentId, String canvasCourseId, PlatformDeployment platformDeployment) throws CanvasApiException, IOException {
+    public List<Submission> listSubmissions(LtiUserEntity apiUser, Integer assignmentId, String canvasCourseId)
+            throws CanvasApiException, IOException {
+        PlatformDeployment platformDeployment = apiUser.getPlatformDeployment();
         String canvasBaseUrl = platformDeployment.getBaseUrl();
-        OauthToken oauthToken = new NonRefreshableOauthToken(platformDeployment.getApiToken());
+        String accessToken = getAccessToken(apiUser);
+        OauthToken oauthToken = new NonRefreshableOauthToken(accessToken);
         CanvasApiFactoryExtended apiFactory = new CanvasApiFactoryExtended(canvasBaseUrl);
         SubmissionReader submissionReader = apiFactory.getReader(SubmissionReader.class, oauthToken);
         GetSubmissionsOptions submissionsOptions = new GetSubmissionsOptions(canvasCourseId, assignmentId);
@@ -121,10 +148,12 @@ public class CanvasAPIClientImpl implements CanvasAPIClient {
 
 
     @Override
-    public List<Submission> listSubmissionsForGivenUser(Integer assignmentId, String canvasCourseId, String canvasUserId,
-                                                        PlatformDeployment platformDeployment) throws CanvasApiException, IOException {
+    public List<Submission> listSubmissionsForGivenUser(LtiUserEntity apiUser, Integer assignmentId,
+            String canvasCourseId, String canvasUserId) throws CanvasApiException, IOException {
+        PlatformDeployment platformDeployment = apiUser.getPlatformDeployment();
         String canvasBaseUrl = platformDeployment.getBaseUrl();
-        OauthToken oauthToken = new NonRefreshableOauthToken(platformDeployment.getApiToken());
+        String accessToken = getAccessToken(apiUser);
+        OauthToken oauthToken = new NonRefreshableOauthToken(accessToken);
         CanvasApiFactoryExtended apiFactory = new CanvasApiFactoryExtended(canvasBaseUrl);
         SubmissionImpl submissionReader = apiFactory.getReader(SubmissionImpl.class, oauthToken);
         GetSubmissionsOptions submissionsOptions = new GetSubmissionsOptions(canvasCourseId, assignmentId);
@@ -133,14 +162,14 @@ public class CanvasAPIClientImpl implements CanvasAPIClient {
     }
 
     @Override
-    public Optional<Progress> postSubmission(edu.iu.terracotta.model.app.Submission submission, Float maxTerracottaScore)
+    public Optional<Progress> postSubmission(LtiUserEntity apiUser, edu.iu.terracotta.model.app.Submission submission,
+            Float maxTerracottaScore)
             throws CanvasApiException, IOException {
 
         String canvasCourseId = getCanvasCourseId(submission.getParticipant().getLtiMembershipEntity().getContext().getContext_memberships_url());
         int assignmentId = Integer.parseInt(submission.getAssessment().getTreatment().getAssignment().getLmsAssignmentId());
         String canvasUserId = submission.getParticipant().getLtiUserEntity().getLmsUserId();
-        PlatformDeployment platformDeployment = submission.getParticipant().getLtiUserEntity().getPlatformDeployment();
-        Optional<AssignmentExtended> assignmentExtended = listAssignment(canvasCourseId, assignmentId, platformDeployment);
+        Optional<AssignmentExtended> assignmentExtended = listAssignment(apiUser, canvasCourseId, assignmentId);
         if (!assignmentExtended.isPresent()) {
             throw new CanvasApiException(
                     "Failed to get the assignments with id [" + assignmentId + "] from canvas course [" + canvasCourseId + "]");
@@ -157,16 +186,16 @@ public class CanvasAPIClientImpl implements CanvasAPIClient {
         }
         grade = grade * maxCanvasScore / Double.parseDouble(maxTerracottaScore.toString());
 
-        return postGrade(platformDeployment, canvasCourseId, assignmentId, canvasUserId, grade);
+        return postGrade(apiUser, canvasCourseId, assignmentId, canvasUserId, grade);
     }
 
     @Override
-    public Optional<Progress> postConsentSubmission(Participant participant) throws CanvasApiException, IOException {
+    public Optional<Progress> postConsentSubmission(LtiUserEntity apiUser, Participant participant)
+            throws CanvasApiException, IOException {
         String canvasCourseId = getCanvasCourseId(participant.getLtiMembershipEntity().getContext().getContext_memberships_url());
         int assignmentId = Integer.parseInt(participant.getExperiment().getConsentDocument().getLmsAssignmentId());
         String canvasUserId = participant.getLtiUserEntity().getLmsUserId();
-        PlatformDeployment platformDeployment = participant.getLtiUserEntity().getPlatformDeployment();
-        Optional<AssignmentExtended> assignmentExtended = listAssignment(canvasCourseId, assignmentId, platformDeployment);
+        Optional<AssignmentExtended> assignmentExtended = listAssignment(apiUser, canvasCourseId, assignmentId);
         if (!assignmentExtended.isPresent()) {
             throw new CanvasApiException(
                     "Failed to get the assignments with id [" + assignmentId + "] from canvas course [" + canvasCourseId + "]");
@@ -174,13 +203,15 @@ public class CanvasAPIClientImpl implements CanvasAPIClient {
 
         Double grade = Double.valueOf("1.0");
 
-        return postGrade(platformDeployment, canvasCourseId, assignmentId, canvasUserId, grade);
+        return postGrade(apiUser, canvasCourseId, assignmentId, canvasUserId, grade);
     }
 
-    private Optional<Progress> postGrade(PlatformDeployment platformDeployment, String canvasCourseId, int assignmentId,
-                                         String canvasUserId, Double grade) throws IOException {
+    private Optional<Progress> postGrade(LtiUserEntity apiUser, String canvasCourseId, int assignmentId,
+            String canvasUserId, Double grade) throws IOException, CanvasApiException {
+        PlatformDeployment platformDeployment = apiUser.getPlatformDeployment();
         String canvasBaseUrl = platformDeployment.getBaseUrl();
-        OauthToken oauthToken = new NonRefreshableOauthToken(platformDeployment.getApiToken());
+        String accessToken = getAccessToken(apiUser);
+        OauthToken oauthToken = new NonRefreshableOauthToken(accessToken);
         CanvasApiFactoryExtended apiFactory = new CanvasApiFactoryExtended(canvasBaseUrl);
         SubmissionWriter submissionWriter = apiFactory.getWriter(SubmissionWriter.class, oauthToken);
         MultipleSubmissionsOptions multipleSubmissionsOptions = new MultipleSubmissionsOptions(canvasCourseId, assignmentId, new HashMap<>());
@@ -201,10 +232,14 @@ public class CanvasAPIClientImpl implements CanvasAPIClient {
     }
 
     @Override
-    public Optional<AssignmentExtended> checkAssignmentExists(Integer assignmentId, String canvasCourseId, PlatformDeployment platformDeployment) throws CanvasApiException {
+    public Optional<AssignmentExtended> checkAssignmentExists(LtiUserEntity apiUser, Integer assignmentId,
+            String canvasCourseId) throws CanvasApiException {
         try {
+            logger.debug("Checking if assignment {} exists in Canvas course {}", assignmentId, canvasCourseId);
+            PlatformDeployment platformDeployment = apiUser.getPlatformDeployment();
             String canvasBaseUrl = platformDeployment.getBaseUrl();
-            OauthToken oauthToken = new NonRefreshableOauthToken(platformDeployment.getApiToken());
+            String accessToken = getAccessToken(apiUser);
+            OauthToken oauthToken = new NonRefreshableOauthToken(accessToken);
             CanvasApiFactoryExtended apiFactory = new CanvasApiFactoryExtended(canvasBaseUrl);
             AssignmentReaderExtended assignmentReader = apiFactory.getReader(AssignmentReaderExtended.class, oauthToken);
             GetSingleAssignmentOptions getSingleAssignmentsOptions = new GetSingleAssignmentOptions(canvasCourseId, assignmentId);
@@ -219,6 +254,26 @@ public class CanvasAPIClientImpl implements CanvasAPIClient {
 
     private String getCanvasCourseId(String membershipUrl) {
         return StringUtils.substringBetween(membershipUrl, "/courses/", "/");
+    }
+
+    private String getAccessToken(LtiUserEntity apiUser)
+            throws CanvasApiException {
+        String accessToken = null;
+        PlatformDeployment platformDeployment = apiUser.getPlatformDeployment();
+        if (canvasOAuthService.isConfigured(platformDeployment)) {
+            CanvasAPIToken canvasAPIToken = canvasOAuthService.getAccessToken(apiUser);
+            logger.debug("Using access token for user {}", apiUser.getUserKey());
+            accessToken = canvasAPIToken.getAccessToken();
+        } else if (platformDeployment.getApiToken() != null) {
+            logger.debug("Using admin api token configured for platform deployment {}",
+                    platformDeployment.getKeyId());
+            accessToken = platformDeployment.getApiToken();
+        } else {
+            throw new CanvasApiException(MessageFormat.format(
+                    "Could not get a Canvas API token for platform deployment {0} and user {1}",
+                    platformDeployment.getKeyId(), apiUser.getUserKey()));
+        }
+        return accessToken;
     }
 
 }

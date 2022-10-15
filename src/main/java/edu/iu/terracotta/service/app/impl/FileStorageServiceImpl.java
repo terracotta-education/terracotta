@@ -5,6 +5,7 @@ import edu.iu.terracotta.exceptions.AssignmentNotEditedException;
 import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.app.FileStorageException;
 import edu.iu.terracotta.exceptions.app.MyFileNotFoundException;
+import edu.iu.terracotta.model.LtiUserEntity;
 import edu.iu.terracotta.model.app.ConsentDocument;
 import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.FileInfo;
@@ -272,9 +273,11 @@ public class FileStorageServiceImpl implements FileStorageService {
     }
 
     @Override
-    public void uploadConsent(long experimentId, String title, FileInfoDto consentUploaded) throws AssignmentNotCreatedException, CanvasApiException, AssignmentNotEditedException {
+    public void uploadConsent(long experimentId, String title, FileInfoDto consentUploaded, String instructorUserId)
+            throws AssignmentNotCreatedException, CanvasApiException, AssignmentNotEditedException {
         Experiment experiment = experimentService.getExperiment(experimentId);
         ConsentDocument consentDocument = experiment.getConsentDocument();
+        LtiUserEntity instructorUser = allRepositories.ltiUserRepository.findByUserKey(instructorUserId);
         String canvasCourseId = org.apache.commons.lang3.StringUtils.substringBetween(experiment.getLtiContextEntity().getContext_memberships_url(), "courses/", "/names");
         if (consentDocument == null){
             consentDocument = new ConsentDocument();
@@ -299,7 +302,8 @@ public class FileStorageServiceImpl implements FileStorageService {
             canvasAssignment.setPointsPossible(1.0);
             canvasAssignment.setSubmissionTypes(Collections.singletonList("external_tool"));
             try {
-                Optional<AssignmentExtended> assignment = canvasAPIClient.createCanvasAssignment(canvasAssignment,canvasCourseId, experiment.getPlatformDeployment());
+                Optional<AssignmentExtended> assignment = canvasAPIClient.createCanvasAssignment(instructorUser,
+                        canvasAssignment, canvasCourseId);
                 consentDocument.setLmsAssignmentId(Integer.toString(assignment.get().getId()));
                 // consentDocument.setResourceLinkId(assignment.get().getExternalToolTagAttributes().getResourceLinkId());
                 // log.debug("getExternalToolTagAttributes().getResourceLinkId()={}", assignment.get().getExternalToolTagAttributes().getResourceLinkId());
@@ -315,13 +319,14 @@ public class FileStorageServiceImpl implements FileStorageService {
             }
         } else {
             String lmsId = consentDocument.getLmsAssignmentId();
-            Optional<AssignmentExtended> assignmentExtendedOptional = canvasAPIClient.listAssignment(canvasCourseId,Integer.parseInt(lmsId),experiment.getPlatformDeployment());
+            Optional<AssignmentExtended> assignmentExtendedOptional = canvasAPIClient.listAssignment(instructorUser,
+                    canvasCourseId, Integer.parseInt(lmsId));
             if (!assignmentExtendedOptional.isPresent()){
                 throw new AssignmentNotEditedException("Error 136: The assignment is not linked to any Canvas assignment");
             }
             AssignmentExtended assignmentExtended = assignmentExtendedOptional.get();
             assignmentExtended.setName(title);
-            canvasAPIClient.editAssignment(assignmentExtended,canvasCourseId,experiment.getPlatformDeployment());
+            canvasAPIClient.editAssignment(instructorUser, assignmentExtended, canvasCourseId);
             consentDocument.setTitle(title);
         }
         consentDocument = experimentService.saveConsentDocument(consentDocument);
@@ -332,13 +337,15 @@ public class FileStorageServiceImpl implements FileStorageService {
     @Override
     public void deleteConsentAssignment(long experimentId, SecuredInfo securedInfo) throws AssignmentNotEditedException, CanvasApiException {
         Experiment experiment = experimentService.getExperiment(experimentId);
+        LtiUserEntity instructorUser = allRepositories.ltiUserRepository.findByUserKey(securedInfo.getUserId());
         ConsentDocument consentDocument = experiment.getConsentDocument();
         if (consentDocument!=null) {
             String lmsId = consentDocument.getLmsAssignmentId();
-            Optional<AssignmentExtended> assignmentExtendedOptional = canvasAPIClient.listAssignment(securedInfo.getCanvasCourseId(), Integer.parseInt(lmsId), experiment.getPlatformDeployment());
+            Optional<AssignmentExtended> assignmentExtendedOptional = canvasAPIClient.listAssignment(instructorUser,
+                    securedInfo.getCanvasCourseId(), Integer.parseInt(lmsId));
             if (assignmentExtendedOptional.isPresent()) {
                 AssignmentExtended assignmentExtended = assignmentExtendedOptional.get();
-                canvasAPIClient.deleteAssignment(assignmentExtended, securedInfo.getCanvasCourseId(), experiment.getPlatformDeployment());
+                canvasAPIClient.deleteAssignment(instructorUser, assignmentExtended, securedInfo.getCanvasCourseId());
             }
         }
     }

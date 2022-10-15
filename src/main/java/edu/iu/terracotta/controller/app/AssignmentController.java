@@ -78,7 +78,9 @@ public class AssignmentController {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
 
-        List<AssignmentDto> assignments = assignmentService.getAssignments(exposureId, securedInfo.getCanvasCourseId(), securedInfo.getPlatformDeploymentId(), submissions, includeDeleted);
+        String instructorUserId = apijwtService.isInstructorOrHigher(securedInfo) ? securedInfo.getUserId() : null;
+        List<AssignmentDto> assignments = assignmentService.getAssignments(exposureId, securedInfo.getCanvasCourseId(),
+                securedInfo.getPlatformDeploymentId(), submissions, includeDeleted, instructorUserId);
 
         if (assignments.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
@@ -125,7 +127,8 @@ public class AssignmentController {
         apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
 
         if (apijwtService.isInstructorOrHigher(securedInfo)) {
-            AssignmentDto returnedDto = assignmentService.postAssignment(assignmentDto, experimentId, securedInfo.getCanvasCourseId(), exposureId, securedInfo.getPlatformDeploymentId());
+            AssignmentDto returnedDto = assignmentService.postAssignment(assignmentDto, experimentId,
+                    securedInfo.getCanvasCourseId(), exposureId, securedInfo.getUserId());
             HttpHeaders headers = assignmentService.buildHeaders(ucBuilder, experimentId, exposureId, returnedDto.getAssignmentId());
             return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
         } else {
@@ -152,7 +155,8 @@ public class AssignmentController {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
-        AssignmentDto updatedAssignmentDto = assignmentService.updateAssignment(assignmentId, assignmentDto, securedInfo.getCanvasCourseId());
+        AssignmentDto updatedAssignmentDto = assignmentService.updateAssignment(assignmentId, assignmentDto,
+                securedInfo.getCanvasCourseId(), securedInfo.getUserId());
 
         return new ResponseEntity<>(updatedAssignmentDto, HttpStatus.OK);
     }
@@ -179,7 +183,8 @@ public class AssignmentController {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
-        List<AssignmentDto> updatedAssignmentDtos = assignmentService.updateAssignments(assignmentDtos, securedInfo.getCanvasCourseId());
+        List<AssignmentDto> updatedAssignmentDtos = assignmentService.updateAssignments(assignmentDtos,
+                securedInfo.getCanvasCourseId(), securedInfo.getUserId());
 
         return new ResponseEntity<>(updatedAssignmentDtos, HttpStatus.OK);
     }
@@ -200,7 +205,7 @@ public class AssignmentController {
         }
 
         try{
-            assignmentService.deleteById(assignmentId, securedInfo.getCanvasCourseId());
+            assignmentService.deleteById(assignmentId, securedInfo.getCanvasCourseId(), securedInfo.getUserId());
             return new ResponseEntity<>(HttpStatus.OK);
         } catch (EmptyResultDataAccessException e) {
             log.warn(e.getMessage());
@@ -229,7 +234,8 @@ public class AssignmentController {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
-        AssignmentDto returnedDto = assignmentService.duplicateAssignment(assignmentId, securedInfo.getCanvasCourseId(), securedInfo.getPlatformDeploymentId());
+        AssignmentDto returnedDto = assignmentService.duplicateAssignment(assignmentId, securedInfo.getCanvasCourseId(),
+                securedInfo.getPlatformDeploymentId(), securedInfo.getUserId());
         HttpHeaders headers = assignmentService.buildHeaders(ucBuilder, experimentId, exposureId, returnedDto.getAssignmentId());
 
         return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);

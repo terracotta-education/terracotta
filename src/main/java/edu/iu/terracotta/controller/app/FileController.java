@@ -74,7 +74,7 @@ public class FileController {
                 throw new BadConsentFileTypeException(TextConstants.BAD_CONSENT_FILETYPE);
             }
             FileInfoDto consentUploaded = fileStorageService.uploadFile(file, "/" + experimentId + "/consent", "", experimentId,true);
-            fileStorageService.uploadConsent(experimentId, title, consentUploaded);
+            fileStorageService.uploadConsent(experimentId, title, consentUploaded, securedInfo.getUserId());
             return new ResponseEntity<>(consentUploaded, HttpStatus.OK);
         }  else {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);

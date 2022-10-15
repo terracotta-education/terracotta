@@ -1,6 +1,7 @@
 package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.exceptions.*;
+import edu.iu.terracotta.model.LtiUserEntity;
 import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.model.ToolDeployment;
 import edu.iu.terracotta.model.app.*;
@@ -351,10 +352,15 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
             return;
         }
 
-        PlatformDeployment platformDeployment = platformDeploymentList.get(0);
+        int assignmentIdInt = Integer.parseInt(assignmentId);
+        Assignment assignment = allRepositories.assignmentRepository.findByAssignmentId(Long.valueOf(assignmentIdInt));
+        // TODO: use variable substitution instead
+        LtiUserEntity instructorUser = assignment.getExposure().getExperiment().getCreatedBy();
 
-        Optional<AssignmentExtended> assignmentExtended = canvasAPIClient.listAssignment(canvasCourseId, Integer.parseInt(assignmentId), platformDeployment);
-        List<edu.ksu.canvas.model.assignment.Submission> submissionsList = canvasAPIClient.listSubmissions(Integer.parseInt(assignmentId), canvasCourseId, platformDeployment);
+        Optional<AssignmentExtended> assignmentExtended = canvasAPIClient.listAssignment(instructorUser, canvasCourseId,
+                assignmentIdInt);
+        List<edu.ksu.canvas.model.assignment.Submission> submissionsList = canvasAPIClient
+                .listSubmissions(instructorUser, assignmentIdInt, canvasCourseId);
 
         Optional<edu.ksu.canvas.model.assignment.Submission> submission = submissionsList.stream()
             .filter(sub -> { return sub.getUser().getId() == Integer.parseInt(canvasUserId); })

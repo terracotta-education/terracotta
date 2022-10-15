@@ -22,7 +22,24 @@ public interface TreatmentService {
 
     List<Treatment> findAllByConditionId(Long conditionId);
 
-    List<TreatmentDto> getTreatments(Long conditionId, String canvasCourseId, long platformDeploymentId, boolean submissions) throws AssessmentNotMatchingException, NumberFormatException, CanvasApiException;
+    /**
+     * Get all treatments for the given condition.
+     *
+     * @param conditionId
+     * @param canvasCourseId
+     * @param platformDeploymentId
+     * @param submissions
+     * @param instructorUserId     optional user id of instructor. This would be
+     *                             null if authenticating user is a student for
+     *                             example.
+     * @return
+     * @throws AssessmentNotMatchingException
+     * @throws NumberFormatException
+     * @throws CanvasApiException
+     */
+    List<TreatmentDto> getTreatments(Long conditionId, String canvasCourseId, long platformDeploymentId,
+                    boolean submissions, String instructorUserId)
+                    throws AssessmentNotMatchingException, NumberFormatException, CanvasApiException;
 
     Treatment getTreatment(Long id);
 
@@ -30,9 +47,14 @@ public interface TreatmentService {
 
     TreatmentDto putTreatment(TreatmentDto treatmentDto, long treatmentId) throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, IdMissingException, IdMismatchException;
 
-    TreatmentDto duplicateTreatment(long treatmentId, Assignment assignment, String canvasCourseId, long platformDeploymentId) throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, NumberFormatException, CanvasApiException, TreatmentNotMatchingException;
+    TreatmentDto duplicateTreatment(long treatmentId, Assignment assignment, String canvasCourseId,
+            long platformDeploymentId, String instructorUserId)
+            throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException,
+            NumberFormatException, CanvasApiException, TreatmentNotMatchingException;
 
-    TreatmentDto duplicateTreatment(long treatmentId, String canvasCourseId, long platformDeploymentId) throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, NumberFormatException, CanvasApiException, TreatmentNotMatchingException;
+    TreatmentDto duplicateTreatment(long treatmentId, String canvasCourseId, long platformDeploymentId,
+            String instructorUserId) throws IdInPostException, DataServiceException, ExceedingLimitException,
+            AssessmentNotMatchingException, NumberFormatException, CanvasApiException, TreatmentNotMatchingException;
 
     TreatmentDto toDto(Treatment treatment, boolean submissions, boolean addAssignmentDto) throws AssessmentNotMatchingException;
 

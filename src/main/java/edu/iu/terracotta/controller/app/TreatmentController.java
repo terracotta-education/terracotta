@@ -72,7 +72,9 @@ public class TreatmentController {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
 
-        List<TreatmentDto> treatmentList = treatmentService.getTreatments(conditionId, securedInfo.getCanvasCourseId(), securedInfo.getPlatformDeploymentId(), submissions);
+        String instructorUserId = apijwtService.isLearnerOrHigher(securedInfo) ? securedInfo.getUserId() : null;
+        List<TreatmentDto> treatmentList = treatmentService.getTreatments(conditionId, securedInfo.getCanvasCourseId(),
+                securedInfo.getPlatformDeploymentId(), submissions, instructorUserId);
 
         if(treatmentList.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
@@ -190,7 +192,8 @@ public class TreatmentController {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
-        TreatmentDto returnedDto = treatmentService.duplicateTreatment(treatmentId, securedInfo.getCanvasCourseId(), securedInfo.getPlatformDeploymentId());
+        TreatmentDto returnedDto = treatmentService.duplicateTreatment(treatmentId, securedInfo.getCanvasCourseId(),
+                securedInfo.getPlatformDeploymentId(), securedInfo.getUserId());
         HttpHeaders headers = treatmentService.buildHeaders(ucBuilder, experimentId, conditionId, returnedDto.getTreatmentId());
 
         return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);

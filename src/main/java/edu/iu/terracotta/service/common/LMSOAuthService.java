@@ -14,6 +14,8 @@ import io.jsonwebtoken.Jws;
 // TODO: document
 public interface LMSOAuthService {
 
+    public boolean isConfigured(PlatformDeployment platformDeployment);
+
     // TODO: maybe don't need this
     public String createOAuthState(SecuredInfo securedInfo);
 

@@ -48,6 +48,12 @@ public class CanvasOAuthServiceImpl implements LMSOAuthService {
     APIJWTService apijwtService;
 
     @Override
+    public boolean isConfigured(PlatformDeployment platformDeployment) {
+        // TODO Auto-generated method stub
+        return true;
+    }
+
+    @Override
     public String createOAuthState(SecuredInfo securedInfo) {
         // TODO Auto-generated method stub
         return null;
@@ -128,7 +134,10 @@ public class CanvasOAuthServiceImpl implements LMSOAuthService {
 
     @Override
     public CanvasAPIToken getAccessToken(LtiUserEntity user) {
+
         // TODO Auto-generated method stub
+
+        // TODO throw exception if there is no access token available
         return null;
     }
 
@@ -200,4 +209,5 @@ public class CanvasOAuthServiceImpl implements LMSOAuthService {
         return new RestTemplate(
                 new BufferingClientHttpRequestFactory(new SimpleClientHttpRequestFactory()));
     }
+
 }

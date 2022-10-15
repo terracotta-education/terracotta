@@ -48,6 +48,8 @@ import java.util.*;
 @Service
 public class ParticipantServiceImpl implements ParticipantService {
 
+    private static final Logger logger = LoggerFactory.getLogger(ParticipantServiceImpl.class);
+
     @Autowired
     private AllRepositories allRepositories;
 
@@ -71,8 +73,6 @@ public class ParticipantServiceImpl implements ParticipantService {
 
     @Autowired
     private APIJWTService apijwtService;
-
-    private static final Logger log = LoggerFactory.getLogger(ParticipantServiceImpl.class);
 
     @Override
     public List<Participant> findAllByExperimentId(long experimentId) {
@@ -528,29 +528,12 @@ public class ParticipantServiceImpl implements ParticipantService {
         Optional<LineItem> lineItem = lineItems.getLineItemList().stream().filter(li -> li.getResourceLinkId()
                 .equals(participant.getExperiment().getConsentDocument().getResourceLinkId())).findFirst();
 
-        // if we couldn't find lineitem, try to get the resource link id anew
-        // (This is needed because the resourceLinkId for a consent assignment
-        // wasn't accurately assigned previously)
         if (!lineItem.isPresent()) {
-            int assignmentId = Integer.parseInt(experiment.getConsentDocument().getLmsAssignmentId());
-            try {
-                Optional<AssignmentExtended> consentAssignment = canvasAPIClient
-                        .listAssignment(securedInfo.getCanvasCourseId(), assignmentId, platformDeployment);
-                if (consentAssignment.isPresent()) {
-                    String jwtTokenAssignment = consentAssignment.get().getSecureParams();
-                    String resourceLinkId = apijwtService.unsecureToken(jwtTokenAssignment).getBody()
-                            .get("lti_assignment_id").toString();
-                    lineItem = lineItems.getLineItemList().stream().filter(li -> li.getResourceLinkId()
-                            .equals(resourceLinkId)).findFirst();
-                    // If we now have a lineitem, save it with the consent document
-                    if (lineItem.isPresent()) {
-                        experiment.getConsentDocument().setResourceLinkId(resourceLinkId);
-                        experimentService.saveConsentDocument(experiment.getConsentDocument());
-                    }
-                }
-            } catch (CanvasApiException e) {
-                throw new DataServiceException("Error 136: The assignment is not linked to any Canvas assignment");
-            }
+            // if we couldn't find lineitem, try to get the resource link id anew
+            // (This is needed because the resourceLinkId for a consent assignment
+            // wasn't accurately assigned previously. Eventually this can be removed.)
+            lineItem = fixConsentAssignmentResourceLinkId(securedInfo, platformDeployment, experiment, lineItems,
+                    lineItem);
         }
 
         if (lineItem.isPresent()) {
@@ -572,6 +555,53 @@ public class ParticipantServiceImpl implements ParticipantService {
         } else {
             throw new DataServiceException("Error 136: The assignment is not linked to any Canvas assignment");
         }
+    }
+
+    /**
+     * This is needed because the resourceLinkId for a consent assignment wasn't
+     * accurately assigned previous to the fix in TCOTA-430. Eventually this can be
+     * removed.
+     *
+     * @param securedInfo
+     * @param platformDeployment
+     * @param experiment
+     * @param lineItems
+     * @param lineItem
+     * @return
+     * @throws DataServiceException
+     */
+    private Optional<LineItem> fixConsentAssignmentResourceLinkId(SecuredInfo securedInfo,
+            PlatformDeployment platformDeployment,
+            Experiment experiment, LineItems lineItems, Optional<LineItem> lineItem) throws DataServiceException {
+        int assignmentId = Integer.parseInt(experiment.getConsentDocument().getLmsAssignmentId());
+        try {
+            logger.warn(
+                    "Could not find line item for experiment {} consent assignment. Going to use "
+                            + "Canvas API to try to figure out the right resourceLinkId. This is only "
+                            + "for an older issue with setting the resourceLinkId correctly so this "
+                            + "should NEVER happen with new experiments.",
+                    experiment.getExperimentId());
+            LtiUserEntity instructorUser = experiment.getCreatedBy();
+            Optional<AssignmentExtended> consentAssignment = canvasAPIClient
+                    .listAssignment(instructorUser, securedInfo.getCanvasCourseId(), assignmentId);
+            if (consentAssignment.isPresent()) {
+                String jwtTokenAssignment = consentAssignment.get().getSecureParams();
+                String resourceLinkId = apijwtService.unsecureToken(jwtTokenAssignment).getBody()
+                        .get("lti_assignment_id").toString();
+                lineItem = lineItems.getLineItemList().stream().filter(li -> li.getResourceLinkId()
+                        .equals(resourceLinkId)).findFirst();
+                // If we now have a lineitem, save it with the consent document
+                if (lineItem.isPresent()) {
+                    logger.info("Updating the resourceLinkId to {} for the consent assignment of experiment {}",
+                            resourceLinkId, experiment.getExperimentId());
+                    experiment.getConsentDocument().setResourceLinkId(resourceLinkId);
+                    experimentService.saveConsentDocument(experiment.getConsentDocument());
+                }
+            }
+        } catch (CanvasApiException e) {
+            throw new DataServiceException("Error 136: The assignment is not linked to any Canvas assignment");
+        }
+        return lineItem;
     }
 
     @Override

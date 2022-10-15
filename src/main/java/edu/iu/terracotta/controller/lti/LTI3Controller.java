@@ -154,7 +154,6 @@ public class LTI3Controller {
                 String oneTimeToken = apiJWTService.buildJwt(
                         true,
                         lti3Request);
-                assignmentService.checkAndRestoreAssignmentsInCanvasByContext(lti3Request.getContext().getContextId());
                 caliperService.sendToolUseEvent(
                         lti3Request.getMembership(),
                         lti3Request.getLtiCustom().getOrDefault("canvas_user_global_id", "Anonymous").toString(),
@@ -163,7 +162,7 @@ public class LTI3Controller {
                         lti3Request.getLtiCustom().getOrDefault("canvas_login_id", "Anonymous").toString(),
                         lti3Request.getLtiRoles(),
                         lti3Request.getLtiCustom().getOrDefault("canvas_user_name", "Anonymous").toString());
-                
+
                 // Check for platform_redirect_url to determine if this is a first-party interaction request
                 try {
                     List<NameValuePair> targetLinkQueryParams = new URIBuilder(lti3Request.getLtiTargetLinkUrl()).getQueryParams();
@@ -184,6 +183,11 @@ public class LTI3Controller {
                             lti3Request.getUser(), lti3Request);
                     if (oauth2APITokenRedirectURL != null) {
                         model.addAttribute("lms_api_oauth_url", oauth2APITokenRedirectURL);
+                    } else {
+                        // if no redirect url then we must already have a token so we proceed with
+                        // checking and restoring assignments
+                        assignmentService.checkAndRestoreAssignmentsInCanvasByContext(
+                                lti3Request.getContext().getContextId(), lti3Request.getUser().getUserKey());
                     }
                 }
 
