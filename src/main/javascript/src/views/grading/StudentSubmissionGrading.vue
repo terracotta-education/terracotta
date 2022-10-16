@@ -182,6 +182,30 @@
                   </v-col>
                 </v-row>
               </template>
+              <template v-else-if="question.questionType === 'FILE'">
+                <v-row>
+                  <v-col cols="6">
+                    <v-card>
+                      <v-card-title>
+                        <v-row>
+                          <v-col cols="1">
+                          </v-col>
+                          <v-col cols="5">
+                            <v-btn class="ma-2"
+                                   outlined
+                                   :href="studentSubmittedAnswers[question.questionId].url"
+                                   target="_blank">
+                             {{studentSubmittedAnswers[question.questionId].fileName}}
+                            </v-btn>
+                          </v-col>
+                        </v-row>
+
+                      </v-card-title>
+
+                    </v-card>
+                  </v-col>
+                </v-row>
+              </template>
             </div>
           </v-card-title>
         </v-card>
@@ -237,6 +261,13 @@ export default {
             answers[question.questionId] = this.studentSubmittedEssayResponse(
               question.questionId
             );
+          }
+          else if (question.questionType === "FILE") {
+            console.log(question.questionId)
+            answers[question.questionId] = this.studentSubmittedFileResponse(
+                question.questionId
+            );
+            console.log("answer",answers[question.questionId])
           }
         }
       }
@@ -309,6 +340,7 @@ export default {
       const filteredResponse = this.studentResponse?.filter(
         (resp) => resp.questionId === questionId
       );
+      console.log(filteredResponse)
       return filteredResponse?.length > 0
         ? filteredResponse[0]
         : { answerSubmissionDtoList: [] };
@@ -328,6 +360,20 @@ export default {
         return null;
       } else {
         return answerSubmissionDtoList[0].response;
+      }
+    },
+
+    studentSubmittedFileResponse(questionId) {
+      const answerSubmissionDtoList = this.studentResponseForQuestionId(
+          questionId
+      ).answerSubmissionDtoList;
+
+      if (!answerSubmissionDtoList || answerSubmissionDtoList.length === 0) {
+        return null;
+      } else {
+        console.log(answerSubmissionDtoList[0])
+        let file ={'fileName':answerSubmissionDtoList[0].fileName,'url':answerSubmissionDtoList[0].response}
+        return file;
       }
     },
 

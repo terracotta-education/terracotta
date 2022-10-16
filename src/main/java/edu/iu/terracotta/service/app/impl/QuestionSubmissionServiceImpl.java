@@ -138,11 +138,15 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
         if (answerSubmissions) {
             List<AnswerMcSubmission> answerMcSubmissions = allRepositories.answerMcSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmission.getQuestionSubmissionId());
             List<AnswerEssaySubmission> answerEssaySubmissions = allRepositories.answerEssaySubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmission.getQuestionSubmissionId());
+            List<AnswerFileSubmission> answerFileSubmissions = allRepositories.answerFileSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmission.getQuestionSubmissionId());
             for (AnswerMcSubmission answerMcSubmission : answerMcSubmissions) {
                 answerSubmissionDtoList.add(answerSubmissionService.toDtoMC(answerMcSubmission));
             }
             for (AnswerEssaySubmission answerEssaySubmission : answerEssaySubmissions) {
                 answerSubmissionDtoList.add(answerSubmissionService.toDtoEssay(answerEssaySubmission));
+            }
+            for (AnswerFileSubmission answerFileSubmission : answerFileSubmissions) {
+                answerSubmissionDtoList.add(answerSubmissionService.toDtoFile(answerFileSubmission));
             }
         }
         questionSubmissionDto.setAnswerSubmissionDtoList(answerSubmissionDtoList);

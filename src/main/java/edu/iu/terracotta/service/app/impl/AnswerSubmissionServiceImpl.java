@@ -326,6 +326,7 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
         answerSubmissionDto.setFileContent(fileAnswer.getFile());
         answerSubmissionDto.setMimeType(fileAnswer.getMimeType());
         answerSubmissionDto.setFileName(fileAnswer.getFileName());
+        answerSubmissionDto.setResponse("https://readmebucket.s3.amazonaws.com/sample_txt.pdf");
         return answerSubmissionDto;
     }
 
