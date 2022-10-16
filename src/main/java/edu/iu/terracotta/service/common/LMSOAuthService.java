@@ -3,6 +3,7 @@ package edu.iu.terracotta.service.common;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 
+import edu.iu.terracotta.exceptions.LMSOAuthException;
 import edu.iu.terracotta.model.LtiUserEntity;
 import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.model.oauth2.APIToken;
@@ -12,7 +13,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 
 // TODO: document
-public interface LMSOAuthService {
+public interface LMSOAuthService<T extends APIToken> {
 
     public boolean isConfigured(PlatformDeployment platformDeployment);
 
@@ -27,11 +28,11 @@ public interface LMSOAuthService {
     public Jws<Claims> validateState(String state);
 
     // TODO: rename to fetchAndSaveAccessToken
-    public APIToken requestAccessToken(LtiUserEntity user, String code);
+    public T requestAccessToken(LtiUserEntity user, String code);
 
-    public APIToken refreshAccessToken(LtiUserEntity user);
+    public T refreshAccessToken(LtiUserEntity user);
 
-    public APIToken getAccessToken(LtiUserEntity user);
+    public T getAccessToken(LtiUserEntity user) throws LMSOAuthException;
 
     public boolean isAccessTokenAvailable(LtiUserEntity user);
 }

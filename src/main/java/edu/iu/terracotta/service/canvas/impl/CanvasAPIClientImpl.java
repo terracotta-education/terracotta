@@ -1,11 +1,12 @@
 package edu.iu.terracotta.service.canvas.impl;
 
 import edu.iu.terracotta.exceptions.CanvasApiException;
+import edu.iu.terracotta.exceptions.LMSOAuthException;
 import edu.iu.terracotta.model.LtiUserEntity;
 import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.canvas.AssignmentExtended;
-import edu.iu.terracotta.model.canvas.CanvasAPIToken;
+import edu.iu.terracotta.model.canvas.CanvasAPITokenEntity;
 import edu.iu.terracotta.service.canvas.AssignmentReaderExtended;
 import edu.iu.terracotta.service.canvas.AssignmentWriterExtended;
 import edu.iu.terracotta.service.canvas.CanvasAPIClient;
@@ -261,9 +262,14 @@ public class CanvasAPIClientImpl implements CanvasAPIClient {
         String accessToken = null;
         PlatformDeployment platformDeployment = apiUser.getPlatformDeployment();
         if (canvasOAuthService.isConfigured(platformDeployment)) {
-            CanvasAPIToken canvasAPIToken = canvasOAuthService.getAccessToken(apiUser);
-            logger.debug("Using access token for user {}", apiUser.getUserKey());
-            accessToken = canvasAPIToken.getAccessToken();
+            try {
+                CanvasAPITokenEntity canvasAPIToken = canvasOAuthService.getAccessToken(apiUser);
+                logger.debug("Using access token for user {}", apiUser.getUserKey());
+                accessToken = canvasAPIToken.getAccessToken();
+            } catch (LMSOAuthException e) {
+                throw new CanvasApiException(
+                        MessageFormat.format("Could not get a Canvas API token for user {0}", apiUser.getUserKey()), e);
+            }
         } else if (platformDeployment.getApiToken() != null) {
             logger.debug("Using admin api token configured for platform deployment {}",
                     platformDeployment.getKeyId());

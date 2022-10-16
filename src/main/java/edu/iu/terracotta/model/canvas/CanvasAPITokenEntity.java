@@ -13,10 +13,11 @@ import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 
 import edu.iu.terracotta.model.LtiUserEntity;
+import edu.iu.terracotta.model.oauth2.APIToken;
 
 @Entity
 @Table(name = "canvas_api_token")
-public class CanvasAPITokenEntity {
+public class CanvasAPITokenEntity implements APIToken {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "token_id", nullable = false)

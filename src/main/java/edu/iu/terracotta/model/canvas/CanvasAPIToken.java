@@ -28,7 +28,6 @@ public class CanvasAPIToken implements APIToken {
         this.accessToken = accessToken;
     }
 
-    @Override
     public String getRefreshToken() {
         return refreshToken;
     }
@@ -37,7 +36,6 @@ public class CanvasAPIToken implements APIToken {
         this.refreshToken = refreshToken;
     }
 
-    @Override
     public int getExpiresIn() {
         return expiresIn;
     }

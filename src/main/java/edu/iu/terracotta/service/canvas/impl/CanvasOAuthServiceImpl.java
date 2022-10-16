@@ -4,6 +4,9 @@ import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.sql.Timestamp;
 import java.text.MessageFormat;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,6 +23,7 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import edu.iu.terracotta.exceptions.LMSOAuthException;
 import edu.iu.terracotta.model.LtiUserEntity;
 import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.model.canvas.CanvasAPIToken;
@@ -34,7 +38,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 
 @Service
-public class CanvasOAuthServiceImpl implements LMSOAuthService {
+public class CanvasOAuthServiceImpl implements LMSOAuthService<CanvasAPITokenEntity> {
 
     static final Logger log = LoggerFactory.getLogger(CanvasOAuthServiceImpl.class);
 
@@ -82,7 +86,7 @@ public class CanvasOAuthServiceImpl implements LMSOAuthService {
     }
 
     @Override
-    public CanvasAPIToken requestAccessToken(LtiUserEntity user, String code) {
+    public CanvasAPITokenEntity requestAccessToken(LtiUserEntity user, String code) {
         // TODO: retrieve these from database
         String clientId = "202570000000000113";
         String clientSecret = "orqsVzvJzC8voMswY3nMtpA1yt6pNYJFoGUBJO69gnTLGD1TN9ldB5o4Eb5Bvjhh";
@@ -106,10 +110,10 @@ public class CanvasOAuthServiceImpl implements LMSOAuthService {
         if (response.getStatusCode().is2xxSuccessful()) {
             CanvasAPIToken token = response.getBody();
 
-            CanvasAPITokenEntity savedToken = canvasAPITokenRepository.findByUser(user);
-            if (savedToken != null) {
-                canvasAPITokenRepository.delete(savedToken);
-            }
+            Optional<CanvasAPITokenEntity> savedToken = canvasAPITokenRepository.findByUser(user);
+            savedToken.ifPresent(aToken -> {
+                canvasAPITokenRepository.delete(aToken);
+            });
             CanvasAPITokenEntity newToken = new CanvasAPITokenEntity();
             newToken.setAccessToken(token.getAccessToken());
             newToken.setCanvasUserId(token.getUser().getId());
@@ -117,44 +121,49 @@ public class CanvasOAuthServiceImpl implements LMSOAuthService {
             newToken.setExpiresAt(new Timestamp(System.currentTimeMillis() + token.getExpiresIn() * 1000));
             newToken.setRefreshToken(token.getRefreshToken());
             newToken.setUser(user);
-            canvasAPITokenRepository.save(newToken);
-
-            // TODO: return CanvasAPITokenEntity instead. The entity should implement the
-            // APIToken interface.
-            return response.getBody();
+            return canvasAPITokenRepository.save(newToken);
         }
+        // TODO: change to LMSOAuthException
         throw new RuntimeException(MessageFormat.format("Could not retrieve token from {0}", canvasOauth2TokenUrl));
     }
 
     @Override
-    public CanvasAPIToken refreshAccessToken(LtiUserEntity user) {
+    public CanvasAPITokenEntity refreshAccessToken(LtiUserEntity user) {
         // TODO Auto-generated method stub
         return null;
     }
 
     @Override
-    public CanvasAPIToken getAccessToken(LtiUserEntity user) {
+    public CanvasAPITokenEntity getAccessToken(LtiUserEntity user) throws LMSOAuthException {
 
-        // TODO Auto-generated method stub
+        Optional<CanvasAPITokenEntity> canvasAPIToken = canvasAPITokenRepository.findByUser(user);
+        if (!canvasAPIToken.isPresent()) {
+            throw new LMSOAuthException(
+                    MessageFormat.format("User {0} does not have a Canvas API access token nor refresh token!",
+                            user.getUserKey()));
+        }
 
-        // TODO throw exception if there is no access token available
-        return null;
+        if (isAccessTokenFresh(canvasAPIToken.get())) {
+            return canvasAPIToken.get();
+        } else {
+            return refreshAccessToken(canvasAPIToken.get());
+        }
     }
 
     @Override
     public boolean isAccessTokenAvailable(LtiUserEntity user) {
 
-        CanvasAPITokenEntity canvasAPIToken = canvasAPITokenRepository.findByUser(user);
-        if (canvasAPIToken == null) {
+        Optional<CanvasAPITokenEntity> canvasAPIToken = canvasAPITokenRepository.findByUser(user);
+        if (!canvasAPIToken.isPresent()) {
             return false;
         }
 
         // if exists, refresh and save the token, return true
         try {
-            refreshAccessToken(canvasAPIToken);
+            refreshAccessToken(canvasAPIToken.get());
             return true;
         } catch (Exception e) {
-            log.error(MessageFormat.format("Failed to refresh token {0}", canvasAPIToken.getTokenId()), e);
+            log.error(MessageFormat.format("Failed to refresh token {0}", canvasAPIToken.get().getTokenId()), e);
             return false;
         }
     }
@@ -210,4 +219,10 @@ public class CanvasOAuthServiceImpl implements LMSOAuthService {
                 new BufferingClientHttpRequestFactory(new SimpleClientHttpRequestFactory()));
     }
 
+    private boolean isAccessTokenFresh(CanvasAPITokenEntity canvasAPITokenEntity) {
+        Timestamp expiresAt = canvasAPITokenEntity.getExpiresAt();
+        // Add a buffer of 5 minutes just to be safe
+        Instant fiveMinutesFromNow = Instant.now().plus(5, ChronoUnit.MINUTES);
+        return expiresAt.after(Timestamp.from(fiveMinutesFromNow));
+    }
 }

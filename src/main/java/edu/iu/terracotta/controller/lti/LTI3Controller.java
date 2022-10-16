@@ -210,7 +210,7 @@ public class LTI3Controller {
             LTI3Request lti3Request) throws GeneralSecurityException, IOException {
 
         // check if API Token settings exist for this PlatformDeployment
-        LMSOAuthService lmsOAuthService = lmsoAuthServiceManager.getLMSOAuthService(platformDeployment);
+        LMSOAuthService<?> lmsOAuthService = lmsoAuthServiceManager.getLMSOAuthService(platformDeployment);
         if (lmsOAuthService == null) {
             return null;
         }

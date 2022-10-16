@@ -61,7 +61,7 @@ public class LMSOAuthController {
         }
         Jws<Claims> claims = apijwtService.validateStateForAPITokenRequest(state);
         long platformDeploymentId = claims.getBody().get("platformDeploymentId", Long.class);
-        LMSOAuthService lmsoAuthService = lmsoAuthServiceManager.getLMSOAuthService(platformDeploymentId);
+        LMSOAuthService<?> lmsoAuthService = lmsoAuthServiceManager.getLMSOAuthService(platformDeploymentId);
 
         String userKey = claims.getBody().get("userId", String.class);
         LtiUserEntity user = ltiUserRepository.findByUserKey(userKey);
