@@ -34,6 +34,14 @@
             </v-list-item>
             <v-list-item>
               <v-list-item-content>
+                <strong>Allowed Attempts</strong>
+              </v-list-item-content>
+              <v-list-item-icon>
+                <span>{{ allowedAttempts }}</span>
+              </v-list-item-icon>
+            </v-list-item>
+            <v-list-item>
+              <v-list-item-content>
                 <strong>Submitted</strong>
               </v-list-item-content>
               <v-list-item-icon>
@@ -276,6 +284,11 @@ export default {
     showSubmissionDetails() {
       return this.readonly || this.submitted;
     },
+    allowedAttempts() {
+      if (!this.assignmentData) { return ' - ' }
+      const { numOfSubmissions } = this.assignmentData;
+      return numOfSubmissions === null ? 1 : numOfSubmissions === 0 ? 'Unlimited' : numOfSubmissions;
+    },
     selectedSubmissionDateSubmitted() {
       return moment(this.selectedSubmission?.dateSubmitted).format('MMMM Do YYYY hh:mm');
     },
@@ -285,8 +298,8 @@ export default {
     },
     currentScore() {
       let grade;
-      if (!this.selectedSubmission) { // if no selectedSubmission, its in "submitted" mode
-        grade = this.assignmentData?.retakeDetails.keptScore;
+      if (!this.selectedSubmission) {
+        grade = this.assignmentData?.retakeDetails.lastAttemptScore;
       } else {
         const { totalAlteredGrade, alteredCalculatedGrade } = this.selectedSubmission;
         grade = totalAlteredGrade !== null ? totalAlteredGrade : alteredCalculatedGrade;
