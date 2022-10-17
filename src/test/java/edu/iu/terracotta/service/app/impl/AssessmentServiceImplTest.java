@@ -101,16 +101,17 @@ public class AssessmentServiceImplTest {
     @Mock private QuestionRepository questionRepository;
     @Mock private TreatmentRepository treatmentRepository;
 
+    @Mock private EntityManager entityManager;
     @Mock private FileStorageService fileStorageService;
     @Mock private ParticipantService participantService;
     @Mock private QuestionService questionService;
     @Mock private SubmissionService submissionService;
 
     @Mock private Assessment assessment;
+    @Mock private Assessment assessment1;
     @Mock private AssessmentDto assessmentDto;
     @Mock private Assignment assignment;
     @Mock private Condition condition;
-    @Mock private EntityManager entityManager;
     @Mock private Experiment experiment;
     @Mock private Exposure exposure;
     @Mock private ExposureGroupCondition exposureGroupCondition;
@@ -169,7 +170,8 @@ public class AssessmentServiceImplTest {
         when(submissionService.getScoreFromMultipleSubmissions(any(Participant.class), any(Assessment.class))).thenReturn(1F);
         when(submissionService.getSubmissionScore(any(Submission.class))).thenReturn(1F);
 
-        when(assessment.getAssessmentId()).thenReturn(1l);
+        when(assessment.isAllowStudentViewResponses()).thenReturn(true);
+        when(assessment.getAssessmentId()).thenReturn(1L);
         when(assessment.getMultipleSubmissionScoringScheme()).thenReturn(MultipleSubmissionScoringScheme.MOST_RECENT);
         when(assessment.getQuestions()).thenReturn(Collections.emptyList());
         when(assessment.getTreatment()).thenReturn(treatment);
@@ -193,6 +195,7 @@ public class AssessmentServiceImplTest {
         when(treatment.getTreatmentId()).thenReturn(1L);
         when(securedInfo.getCanvasAssignmentId()).thenReturn("canvasAssignmentId");
         when(securedInfo.getUserId()).thenReturn("canvasUserId");
+        when(submission.getAssessment()).thenReturn(assessment);
         when(submission.getDateSubmitted()).thenReturn(Timestamp.from(Instant.now()));
     }
 
@@ -224,6 +227,23 @@ public class AssessmentServiceImplTest {
         assertTrue(assessmentDto.getRetakeDetails().isRetakeAllowed());
         assertNull(assessmentDto.getRetakeDetails().getRetakeNotAllowedReason());
         assertEquals(1F, assessmentDto.getRetakeDetails().getLastAttemptScore());
+        assertEquals(1, assessmentDto.getSubmissions().size());
+    }
+
+    @Test
+    public void testViewAssessmentNoSubmissions() throws ExperimentNotMatchingException, ParticipantNotMatchingException, AssessmentNotMatchingException, GroupNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException {
+        when(submission.getAssessment()).thenReturn(assessment1);
+        when(assessment1.getAssessmentId()).thenReturn(2L);
+        when(submissionService.findByParticipantIdAndAssessmentId(anyLong(), anyLong())).thenReturn(Collections.emptyList());
+        AssessmentDto assessmentDto = assessmentService.viewAssessment(1l, securedInfo);
+
+        assertNotNull(assessmentDto);
+        assertNotNull(assessmentDto.getRetakeDetails());
+        assertEquals(1F, assessmentDto.getRetakeDetails().getKeptScore());
+        assertEquals(0, assessmentDto.getRetakeDetails().getSubmissionAttemptsCount());
+        assertTrue(assessmentDto.getRetakeDetails().isRetakeAllowed());
+        assertNull(assessmentDto.getRetakeDetails().getRetakeNotAllowedReason());
+        assertEquals(0, assessmentDto.getSubmissions().size());
     }
 
     @Test
