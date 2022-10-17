@@ -57,6 +57,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -154,6 +155,15 @@ public class AssessmentServiceImpl implements AssessmentService {
         } catch (AssignmentAttemptException e) {
             retakeDetails.setRetakeAllowed(false);
             retakeDetails.setRetakeNotAllowedReason(RetakeDetails.calculateRetakeNotAllowedReason(e.getMessage()));
+        }
+
+        Optional<Submission> lastSubmission = CollectionUtils.emptyIfNull(participantSubmissionsSubmitted).stream()
+            .sorted(Comparator.comparingLong(Submission::getSubmissionId).reversed())
+            .findFirst();
+
+        if (lastSubmission.isPresent()) {
+            // set last submission score
+            retakeDetails.setLastAttemptScore(submissionService.getSubmissionScore(lastSubmission.get()));
         }
 
         retakeDetails.setKeptScore(submissionService.getScoreFromMultipleSubmissions(participant, assessment));
@@ -682,11 +692,18 @@ public class AssessmentServiceImpl implements AssessmentService {
 
     @Override
     public void verifySubmissionLimit(Integer limit, int existingSubmissionsCount) throws AssignmentAttemptException {
-        if (limit == null || limit == 0) {
+        if (limit == null && existingSubmissionsCount == 0) {
+            // limit == null: multiple attempts not allowed; existing submission attempts must be 0
             return;
         }
 
-        if (existingSubmissionsCount < limit) {
+        if (limit != null && limit.equals(0)) {
+            // limit == 0: unlimited attempts
+            return;
+        }
+
+        if (limit != null && existingSubmissionsCount < limit) {
+            // limit not null: existing submission attempts must be less than the limit allowed
             return;
         }
 
@@ -695,11 +712,13 @@ public class AssessmentServiceImpl implements AssessmentService {
 
     @Override
     public void verifySubmissionWaitTime(Float waitTime, List<Submission> submissionList) throws AssignmentAttemptException {
-        if (waitTime == null || waitTime == 0F) {
+        if (waitTime == null || waitTime.equals(0F)) {
+            // waitTime is null or 0: no wait time limit
             return;
         }
 
         if (CollectionUtils.isEmpty(submissionList)) {
+            // no submissions exist: no wait time limit for first submission
             return;
         }
 
