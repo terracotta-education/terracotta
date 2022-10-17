@@ -1,6 +1,6 @@
 <template>
   <v-container fluid v-if="!loading">
-    <v-row v-if="readonly">
+    <v-row>
       <v-col v-if="canTryAgain">
         <v-btn
           @click="handleTryAgain"
@@ -20,7 +20,7 @@
         </p>
       </v-col>
       <v-spacer />
-      <v-col v-if="!muted">
+      <v-col v-if="showSubmissionDetails">
         <h2>Submission Details</h2>
         <v-divider />
           <v-list dense flat>
@@ -30,6 +30,14 @@
               </v-list-item-content>
               <v-list-item-icon>
                 <span>{{ timeBeforeSubmission }}</span>
+              </v-list-item-icon>
+            </v-list-item>
+            <v-list-item>
+              <v-list-item-content>
+                <strong>Allowed Attempts</strong>
+              </v-list-item-content>
+              <v-list-item-icon>
+                <span>{{ allowedAttempts }}</span>
               </v-list-item-icon>
             </v-list-item>
             <v-list-item>
@@ -286,7 +294,15 @@ export default {
       return this.questionPageIndex < this.questionPages.length - 1;
     },
     canTryAgain() {
-      return this.assignmentData ? this.assignmentData.retakeDetails.retakeAllowed : false;
+      return this.readonly && (this.assignmentData ? this.assignmentData.retakeDetails.retakeAllowed : false);
+    },
+    showSubmissionDetails() {
+      return this.readonly || this.submitted;
+    },
+    allowedAttempts() {
+      if (!this.assignmentData) { return ' - ' }
+      const { numOfSubmissions } = this.assignmentData;
+      return numOfSubmissions === null ? 1 : numOfSubmissions === 0 ? 'Unlimited' : numOfSubmissions;
     },
     cantTryAgainMessage() {
       return this.assignmentData?.retakeDetails?.retakeNotAllowedReason;
@@ -301,7 +317,7 @@ export default {
     currentScore() {
       let grade;
       if (!this.selectedSubmission) {
-        grade = '-';
+        grade = this.assignmentData?.retakeDetails.lastAttemptScore;
       } else {
         const { totalAlteredGrade, alteredCalculatedGrade } = this.selectedSubmission;
         grade = totalAlteredGrade !== null ? totalAlteredGrade : alteredCalculatedGrade;
@@ -468,7 +484,14 @@ export default {
           throw Error("Error submitting quiz: " + data);
         }
 
-        this.submitted = true;
+        const view = await this.viewAssignment();
+
+        if (view?.status === 200) {
+          const { data } = view;
+          this.assignmentData = data;
+          this.submitted = true;
+        }
+
       } catch (e) {
         console.error({ e });
         throw e; // rethrow
@@ -551,6 +574,11 @@ export default {
         this.$refs.form.scrollIntoView({ behavior: "smooth" });
       });
     },
+    async viewAssignment() {
+      const experimentId = this.experimentId;
+      const step = "view_assignment";
+      return this.reportStep({ experimentId, step });
+    },
     async attempt() {
       const experimentId = this.experimentId;
       const step = "launch_assignment";
@@ -585,11 +613,9 @@ export default {
     },
   },
   async created() {
-    const experimentId = this.experimentId;
-    const step = "view_assignment";
     this.loading = true;
     try {
-      const stepResponse = await this.reportStep({ experimentId, step });
+      const stepResponse = await this.viewAssignment();
 
       if (stepResponse?.status === 200) {
         const { data } = stepResponse;
@@ -597,7 +623,6 @@ export default {
 
         const { retakeDetails } = data;
         const { retakeAllowed, submissionAttemptsCount } = retakeDetails;
-        // const { retakeAllowed } = retakeDetails;
         if (retakeAllowed && submissionAttemptsCount === 0) {
           this.attempt();
         } else {
