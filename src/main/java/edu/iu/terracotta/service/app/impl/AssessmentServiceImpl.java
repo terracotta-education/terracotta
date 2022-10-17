@@ -157,9 +157,10 @@ public class AssessmentServiceImpl implements AssessmentService {
             retakeDetails.setRetakeNotAllowedReason(RetakeDetails.calculateRetakeNotAllowedReason(e.getMessage()));
         }
 
-        Optional<Submission> lastSubmission = CollectionUtils.emptyIfNull(participantSubmissionsSubmitted).stream()
-            .sorted(Comparator.comparingLong(Submission::getSubmissionId).reversed())
-            .findFirst();
+        Optional<Submission> lastSubmission = CollectionUtils.emptyIfNull(participantAssessmentSubmissionsSubmitted)
+                .stream()
+                .sorted(Comparator.comparingLong(Submission::getSubmissionId).reversed())
+                .findFirst();
 
         if (lastSubmission.isPresent()) {
             // set last submission score
