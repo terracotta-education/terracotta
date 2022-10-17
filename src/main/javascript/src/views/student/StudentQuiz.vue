@@ -285,7 +285,7 @@ export default {
     },
     currentScore() {
       let grade;
-      if (!this.selectedSubmission) {
+      if (!this.selectedSubmission) { // if no selectedSubmission, its in "submitted" mode
         grade = this.assignmentData?.retakeDetails.keptScore;
       } else {
         const { totalAlteredGrade, alteredCalculatedGrade } = this.selectedSubmission;
