@@ -254,6 +254,7 @@ export default {
       readonly: false,
       answers: [],
       loading: false,
+      submissions: [],
     };
   },
   watch: {
@@ -414,7 +415,7 @@ export default {
         const step = "student_submission";
         const parameters = { submissionIds: this.submissionId };
         const allQuestionSubmissions = this.questionValues.map((q) => {
-          const existingQuestionSubmission = this.questionSubmissions?.find(
+          const existingQuestionSubmission = this.submissions.find(
             (qs) => qs.questionId === q.questionId
           );
           const questionSubmissionId =
@@ -587,8 +588,6 @@ export default {
       try {
         const stepResponse = await this.reportStep({ experimentId, step });
 
-        await this.clearQuestionSubmissions();
-
         if (stepResponse?.status === 200) {
           const data = stepResponse?.data;
           this.conditionId = data.conditionId;
@@ -596,8 +595,12 @@ export default {
           this.assessmentId = data.assessmentId;
           this.submissionId = data.submissionId;
 
-          const { experimentId, conditionId, assessmentId, treatmentId, submissionId } = data;
+          const { experimentId, conditionId, assessmentId, treatmentId, submissionId, questionSubmissionDtoList } = data;
+
+          this.submissions = questionSubmissionDtoList;
+
           this.getQuestions(experimentId, conditionId, assessmentId, treatmentId, submissionId);
+
         }else if(stepResponse?.status == 401) {
           if (stepResponse?.data.toString().includes("Error 150:")) {
             this.$swal({
