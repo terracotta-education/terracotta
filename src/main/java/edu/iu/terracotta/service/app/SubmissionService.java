@@ -80,4 +80,7 @@ public interface SubmissionService {
     void allowedSubmission(Long submissionId, SecuredInfo securedInfo) throws SubmissionNotMatchingException;
 
     Float getScoreFromMultipleSubmissions(Participant participant, Assessment assessment);
+
+    Float getSubmissionScore(Submission submission);
+
 }
