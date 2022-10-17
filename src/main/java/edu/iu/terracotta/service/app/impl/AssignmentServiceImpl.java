@@ -454,6 +454,7 @@ public class AssignmentServiceImpl implements AssignmentService {
                     }
                 }
             }
+
             try {
                 assessmentService.verifySubmissionLimit(assessment.getNumOfSubmissions(), submissionList.size());
                 assessmentService.verifySubmissionWaitTime(assessment.getHoursBetweenSubmissions(), submissionList);

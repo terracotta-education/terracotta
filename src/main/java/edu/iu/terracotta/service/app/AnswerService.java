@@ -20,7 +20,7 @@ public interface AnswerService {
     //METHODS FOR MC ANSWERS
     List<AnswerDto> findAllByQuestionIdMC(Long questionId, boolean showCorrectAnswer);
 
-    List<AnswerDto> findAllByQuestionIdMC(QuestionSubmission questionSubmission);
+    List<AnswerDto> findAllByQuestionIdMC(QuestionSubmission questionSubmission, boolean showCorrectAnswer);
 
     AnswerDto getAnswerMC(Long answerId);
 

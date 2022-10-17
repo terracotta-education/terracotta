@@ -45,10 +45,9 @@ public interface AssessmentService {
 
     Assessment duplicateAssessment(long assessmentId, Treatment treatment, Assignment assignment) throws DataServiceException, AssessmentNotMatchingException, QuestionNotMatchingException;
 
-    AssessmentDto toDto(Assessment assessment, boolean questions, boolean answers, boolean submissions, boolean student) throws AssessmentNotMatchingException;
+    AssessmentDto toDto(Assessment assessment, boolean questions, boolean answers, boolean submissions, boolean isStudent) throws AssessmentNotMatchingException;
 
-    AssessmentDto toDto(Assessment assessment, Long submissionId, boolean questions, boolean answers,
-            boolean submissions, boolean student) throws AssessmentNotMatchingException;
+    AssessmentDto toDto(Assessment assessment, Long submissionId, boolean questions, boolean answers, boolean submissions, boolean isStudent) throws AssessmentNotMatchingException;
 
     Assessment fromDto(AssessmentDto assessmentDto) throws DataServiceException;
 

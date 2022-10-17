@@ -84,8 +84,6 @@ public class AnswerController {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
 
-        boolean student = !apijwtService.isInstructorOrHigher(securedInfo);
-
         if (answerService.getQuestionType(questionId).equals(QuestionTypes.MC.toString())) {
             List<AnswerDto> answerDtoList = answerService.findAllByQuestionIdMC(questionId, false);
 
@@ -119,7 +117,7 @@ public class AnswerController {
 
         if(apijwtService.isLearnerOrHigher(securedInfo)) {
             String answerType = answerService.getQuestionType(questionId);
-            boolean student = !apijwtService.isInstructorOrHigher(securedInfo);
+
             if(answerType.equals(QuestionTypes.MC.toString())){
                 return new ResponseEntity<>(answerService.getAnswerMC(answerId), HttpStatus.OK);
             } else {
