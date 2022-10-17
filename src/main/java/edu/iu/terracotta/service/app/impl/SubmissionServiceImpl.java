@@ -594,7 +594,8 @@ public class SubmissionServiceImpl implements SubmissionService {
         return score;
     }
 
-    private Float getSubmissionScore(Submission submission) {
+    @Override
+    public Float getSubmissionScore(Submission submission) {
 
         Assessment assessment = submission.getAssessment();
         Float maxTerracottaScore = assessmentService.calculateMaxScore(assessment);

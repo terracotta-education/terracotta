@@ -8,6 +8,7 @@ public class RetakeDetails {
     private Float keptScore;
     private Integer submissionAttemptsCount;
     private String retakeNotAllowedReason;
+    private Float lastAttemptScore;
 
     public boolean isRetakeAllowed() {
         return retakeAllowed;
@@ -39,6 +40,14 @@ public class RetakeDetails {
 
     public void setRetakeNotAllowedReason(String retakeNotAllowedReason) {
         this.retakeNotAllowedReason = retakeNotAllowedReason;
+    }
+
+    public Float getLastAttemptScore() {
+        return lastAttemptScore;
+    }
+
+    public void setLastAttemptScore(Float lastAttemptScore) {
+        this.lastAttemptScore = lastAttemptScore;
     }
 
     public enum RetakeNotAllowedReason {
