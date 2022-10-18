@@ -132,16 +132,13 @@
               </v-btn>
             </template>
             <v-list>
-              <template v-for="exposure in exposures">
                 <template
-                  v-for="(assignment, index) in getAssignmentsForExposure(
-                    exposure
-                  )"
+                  v-for="(assignment, index) in assignments"
                 >
                   <v-menu
                     offset-x
                     :key="assignment.assignmentId"
-                    v-if="assignment.treatments.length > 1"
+                    v-if="assignment.treatments.length > 0"
                     open-on-hover
                     transition="slide-x-transition"
                   >
@@ -168,14 +165,14 @@
                               :color="
                                 conditionColorMapping[
                                   conditionForTreatment(
-                                    exposure.groupConditionList,
+                                    getGroupConditionListForAssignment(assignment),
                                     treatment.conditionId
                                   ).conditionName
                                 ]
                               "
                               >{{
                                 conditionForTreatment(
-                                  exposure.groupConditionList,
+                                  getGroupConditionListForAssignment(assignment),
                                   treatment.conditionId
                                 ).conditionName
                               }}</v-chip
@@ -186,7 +183,6 @@
                     </v-list>
                   </v-menu>
                 </template>
-              </template>
             </v-list>
           </v-menu>
           <br />
@@ -320,6 +316,10 @@ export default {
       return this.assignments
         .filter((a) => a.exposureId === exp.exposureId)
         .sort((a, b) => a.assignmentOrder - b.assignmentOrder);
+    },
+    getGroupConditionListForAssignment(assignment) {
+      const exposure = this.exposures.find(e => e.exposureId === assignment.exposureId);
+      return exposure.groupConditionList;
     },
     conditionForTreatment(groupConditionList, conditionId) {
       return groupConditionList.find((c) => c.conditionId === conditionId);
