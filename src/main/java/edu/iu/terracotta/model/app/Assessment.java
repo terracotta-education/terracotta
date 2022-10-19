@@ -196,7 +196,7 @@ public class Assessment extends BaseEntity {
             return false;
         }
 
-        return getStudentViewResponsesBefore() != null && now.before(getStudentViewResponsesBefore());
+        return !(getStudentViewResponsesBefore() != null && now.before(getStudentViewResponsesBefore()));
     }
 
     public boolean canViewCorrectAnswers() {
@@ -210,7 +210,7 @@ public class Assessment extends BaseEntity {
             return false;
         }
 
-        return getStudentViewCorrectAnswersBefore() != null && now.before(getStudentViewCorrectAnswersBefore());
+        return !(getStudentViewCorrectAnswersBefore() != null && now.before(getStudentViewCorrectAnswersBefore()));
     }
 
 }

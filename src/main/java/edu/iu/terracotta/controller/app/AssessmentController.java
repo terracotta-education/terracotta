@@ -30,6 +30,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -83,41 +84,43 @@ public class AssessmentController {
         }
     }
 
-    @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}",
-                    method = RequestMethod.GET, produces = "application/json;")
     @ResponseBody
-    public ResponseEntity<AssessmentDto> getAssessment(@PathVariable("experiment_id") Long experimentId,
-                                                       @PathVariable("condition_id") Long conditionId,
-                                                       @PathVariable("treatment_id") Long treatmentId,
-                                                       @PathVariable("assessment_id") Long assessmentId,
+    @GetMapping(value = "/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<AssessmentDto> getAssessment(@PathVariable long experimentId,
+                                                       @PathVariable long conditionId,
+                                                       @PathVariable long treatmentId,
+                                                       @PathVariable long assessmentId,
                                                        @RequestParam(name = "questions", defaultValue = "false") boolean questions,
                                                        @RequestParam(name = "answers", defaultValue = "false") boolean answers,
                                                        @RequestParam(name = "submissions", defaultValue = "false") boolean submissions,
                                                        @RequestParam(name = "submission_id", required = false) Long submissionId,
                                                        HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, AssessmentNotMatchingException,
-            SubmissionNotMatchingException, NoSubmissionsException {
+                SubmissionNotMatchingException, NoSubmissionsException {
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
+
         if (submissionId != null) {
             apijwtService.submissionAllowed(securedInfo, assessmentId, submissionId);
         }
 
-        if(apijwtService.isLearnerOrHigher(securedInfo)) {
-            boolean student = !apijwtService.isInstructorOrHigher(securedInfo);
-            if (student && submissionId != null) {
-                // This will throw NoSubmissionsException if the submission doesn't belong to
-                // the student
-                this.submissionService.getSubmission(experimentId, securedInfo.getUserId(), submissionId, student);
-            }
-            AssessmentDto assessmentDto = assessmentService.toDto(assessmentService.getAssessment(assessmentId),
-                    submissionId, questions, answers, submissions, student);
-            return new ResponseEntity<>(assessmentDto, HttpStatus.OK);
-        } else {
+        if(!apijwtService.isLearnerOrHigher(securedInfo)) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
+
+        boolean isStudent = !apijwtService.isInstructorOrHigher(securedInfo);
+
+        if (isStudent && submissionId != null) {
+            // This will throw NoSubmissionsException if the submission doesn't belong to the student
+            this.submissionService.getSubmission(experimentId, securedInfo.getUserId(), submissionId, isStudent);
+        }
+
+        AssessmentDto assessmentDto = assessmentService.toDto(assessmentService.getAssessment(assessmentId),
+                submissionId, questions, answers, submissions, isStudent);
+
+        return new ResponseEntity<>(assessmentDto, HttpStatus.OK);
     }
 
     @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments", method = RequestMethod.POST)

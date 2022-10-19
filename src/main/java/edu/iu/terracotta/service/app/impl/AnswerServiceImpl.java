@@ -66,7 +66,7 @@ public class AnswerServiceImpl implements AnswerService {
      * Apply submission specific, possibly random, ordering to answers.
      */
     @Override
-    public List<AnswerDto> findAllByQuestionIdMC(QuestionSubmission questionSubmission) {
+    public List<AnswerDto> findAllByQuestionIdMC(QuestionSubmission questionSubmission, boolean showCorrectAnswer) {
         List<AnswerMc> answerList = allRepositories.answerMcRepository
                 .findByQuestion_QuestionId(questionSubmission.getQuestion().getQuestionId());
 
@@ -80,13 +80,13 @@ public class AnswerServiceImpl implements AnswerService {
         List<AnswerDto> answerDtoList = new ArrayList<>();
         int answerOrder = 0;
         for (AnswerMcSubmissionOption answerMcSubmissionOption : answerMcSubmissionOptions) {
-            answerDtoList.add(toDtoMC(answerMcSubmissionOption.getAnswerMc(), answerOrder++, false));
+            answerDtoList.add(toDtoMC(answerMcSubmissionOption.getAnswerMc(), answerOrder++, showCorrectAnswer));
         }
 
         // check for any missing answers and add them to the list as well
         for (AnswerMc answerMc : answerList) {
             if (answerDtoList.stream().noneMatch(a -> a.getAnswerId().equals(answerMc.getAnswerMcId()))) {
-                answerDtoList.add(toDtoMC(answerMc, answerOrder++, false));
+                answerDtoList.add(toDtoMC(answerMc, answerOrder++, showCorrectAnswer));
             }
         }
 

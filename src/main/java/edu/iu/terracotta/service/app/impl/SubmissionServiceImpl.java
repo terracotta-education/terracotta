@@ -157,7 +157,6 @@ public class SubmissionServiceImpl implements SubmissionService {
                 submission.setAlteredCalculatedGrade(submissionDto.getAlteredCalculatedGrade());
                 submission.setTotalAlteredGrade(submissionDto.getTotalAlteredGrade());
                 save(submission);
-//                sendSubmissionGradeToCanvasWithLTI(submission);
             }
         }
     }
@@ -712,7 +711,7 @@ public class SubmissionServiceImpl implements SubmissionService {
         }
 
         assignment.setStarted(Timestamp.valueOf(LocalDateTime.now()));
-        assignment = assignmentService.save(assignment);
+        assignmentService.save(assignment);
     }
 
 }

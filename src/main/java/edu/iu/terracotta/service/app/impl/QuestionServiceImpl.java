@@ -37,6 +37,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Component
 public class QuestionServiceImpl implements QuestionService {
@@ -61,11 +62,10 @@ public class QuestionServiceImpl implements QuestionService {
     @Override
     public List<QuestionDto> getQuestions(Long assessmentId){
         List<Question> questions = findAllByAssessmentId(assessmentId);
-        List<QuestionDto> questionDtoList = new ArrayList<>();
-        for(Question question : questions){
-            questionDtoList.add(toDto(question, false, false));
-        }
-        return questionDtoList;
+
+        return CollectionUtils.emptyIfNull(questions).stream()
+                    .map(question -> toDto(question, false, false))
+                    .collect(Collectors.toList());
     }
 
     @Override
@@ -97,12 +97,12 @@ public class QuestionServiceImpl implements QuestionService {
     }
 
     @Override
-    public QuestionDto toDto(Question question, boolean answers, boolean student) {
-        return toDto(question, null, answers, student);
+    public QuestionDto toDto(Question question, boolean answers, boolean showCorrectAnswer) {
+        return toDto(question, null, answers, showCorrectAnswer);
     }
 
     @Override
-    public QuestionDto toDto(Question question, Long submissionId, boolean answers, boolean student) {
+    public QuestionDto toDto(Question question, Long submissionId, boolean answers, boolean showCorrectAnswer) {
         QuestionDto questionDto = new QuestionDto();
         questionDto.setQuestionId(question.getQuestionId());
         questionDto.setHtml(fileStorageService.parseHTMLFiles(question.getHtml()));
@@ -122,9 +122,9 @@ public class QuestionServiceImpl implements QuestionService {
 
                 if (questionSubmission.isPresent()) {
                     // Apply submission specific order to answers
-                    questionDto.setAnswers(answerService.findAllByQuestionIdMC(questionSubmission.get()));
+                    questionDto.setAnswers(answerService.findAllByQuestionIdMC(questionSubmission.get(), showCorrectAnswer));
                 } else {
-                    questionDto.setAnswers(answerService.findAllByQuestionIdMC(question.getQuestionId(), answers));
+                    questionDto.setAnswers(answerService.findAllByQuestionIdMC(question.getQuestionId(), showCorrectAnswer));
                 }
             }
 
