@@ -16,6 +16,7 @@ import edu.iu.terracotta.controller.app.LMSOAuthController;
 import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.LMSOAuthException;
 import edu.iu.terracotta.repository.LtiContextRepository;
 import edu.iu.terracotta.repository.LtiLinkRepository;
 import edu.iu.terracotta.service.app.AssignmentService;
@@ -91,7 +92,8 @@ public class LTI3Controller {
     LMSOAuthServiceManager lmsoAuthServiceManager;
 
     @RequestMapping({"", "/"})
-    public String home(HttpServletRequest req, Principal principal, Model model) throws DataServiceException, CanvasApiException, ConnectionException {
+    public String home(HttpServletRequest req, Principal principal, Model model)
+            throws DataServiceException, CanvasApiException, ConnectionException, LMSOAuthException {
 
         //First we will get the state, validate it
         String state = req.getParameter("state");
@@ -207,7 +209,7 @@ public class LTI3Controller {
 
     private String getOAuth2APITokenRedirectURL(HttpServletRequest req, PlatformDeployment platformDeployment,
             LtiUserEntity user,
-            LTI3Request lti3Request) throws GeneralSecurityException, IOException {
+            LTI3Request lti3Request) throws GeneralSecurityException, IOException, LMSOAuthException {
 
         // check if API Token settings exist for this PlatformDeployment
         LMSOAuthService<?> lmsOAuthService = lmsoAuthServiceManager.getLMSOAuthService(platformDeployment);

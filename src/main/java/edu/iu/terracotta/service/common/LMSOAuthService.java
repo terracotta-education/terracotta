@@ -22,13 +22,13 @@ public interface LMSOAuthService<T extends APIToken> {
 
     public String createOAuthState(LTI3Request lti3Request) throws GeneralSecurityException, IOException;
 
-    public String getAuthorizationRequestURI(PlatformDeployment platformDeployment, String state);
+    public String getAuthorizationRequestURI(PlatformDeployment platformDeployment, String state)
+            throws LMSOAuthException;
 
     // TODO: don't need this here
     public Jws<Claims> validateState(String state);
 
-    // TODO: rename to fetchAndSaveAccessToken
-    public T requestAccessToken(LtiUserEntity user, String code);
+    public T fetchAndSaveAccessToken(LtiUserEntity user, String code) throws LMSOAuthException;
 
     public T refreshAccessToken(LtiUserEntity user);
 

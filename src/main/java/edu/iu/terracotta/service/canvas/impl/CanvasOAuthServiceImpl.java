@@ -26,9 +26,11 @@ import org.springframework.web.util.UriComponentsBuilder;
 import edu.iu.terracotta.exceptions.LMSOAuthException;
 import edu.iu.terracotta.model.LtiUserEntity;
 import edu.iu.terracotta.model.PlatformDeployment;
+import edu.iu.terracotta.model.canvas.CanvasAPIOAuthSettings;
 import edu.iu.terracotta.model.canvas.CanvasAPIToken;
 import edu.iu.terracotta.model.canvas.CanvasAPITokenEntity;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
+import edu.iu.terracotta.repository.CanvasAPIOAuthSettingsRepository;
 import edu.iu.terracotta.repository.CanvasAPITokenRepository;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.common.LMSOAuthService;
@@ -46,6 +48,9 @@ public class CanvasOAuthServiceImpl implements LMSOAuthService<CanvasAPITokenEnt
     CanvasAPITokenRepository canvasAPITokenRepository;
 
     @Autowired
+    CanvasAPIOAuthSettingsRepository canvasAPIOAuthSettingsRepository;
+
+    @Autowired
     LTIDataService ltiDataService;
 
     @Autowired
@@ -53,8 +58,9 @@ public class CanvasOAuthServiceImpl implements LMSOAuthService<CanvasAPITokenEnt
 
     @Override
     public boolean isConfigured(PlatformDeployment platformDeployment) {
-        // TODO Auto-generated method stub
-        return true;
+        Optional<CanvasAPIOAuthSettings> canvasAPIOAuthSettings = canvasAPIOAuthSettingsRepository
+                .findByPlatformDeployment(platformDeployment);
+        return canvasAPIOAuthSettings.isPresent();
     }
 
     @Override
@@ -64,12 +70,13 @@ public class CanvasOAuthServiceImpl implements LMSOAuthService<CanvasAPITokenEnt
     }
 
     @Override
-    public String getAuthorizationRequestURI(PlatformDeployment platformDeployment, String state) {
+    public String getAuthorizationRequestURI(PlatformDeployment platformDeployment, String state)
+            throws LMSOAuthException {
 
-        // TODO: get client id and auth endpoint from database config
+        CanvasAPIOAuthSettings canvasAPIOAuthSettings = getCanvasAPIOAuthSettings(platformDeployment);
         // TODO: specify all of the necessary scopes
-        String clientId = "202570000000000113";
-        String url = UriComponentsBuilder.fromUriString("https://terracotta.instructure.com/login/oauth2/auth")
+        String clientId = canvasAPIOAuthSettings.getClientId();
+        String url = UriComponentsBuilder.fromUriString(canvasAPIOAuthSettings.getOauth2AuthUrl())
                 .queryParam("client_id", clientId)
                 .queryParam("response_type", "code")
                 .queryParam("redirect_uri", getRedirectURI())
@@ -86,25 +93,24 @@ public class CanvasOAuthServiceImpl implements LMSOAuthService<CanvasAPITokenEnt
     }
 
     @Override
-    public CanvasAPITokenEntity requestAccessToken(LtiUserEntity user, String code) {
-        // TODO: retrieve these from database
-        String clientId = "202570000000000113";
-        String clientSecret = "orqsVzvJzC8voMswY3nMtpA1yt6pNYJFoGUBJO69gnTLGD1TN9ldB5o4Eb5Bvjhh";
-        String canvasOauth2TokenUrl = "https://terracotta.instructure.com/login/oauth2/token";
+    public CanvasAPITokenEntity fetchAndSaveAccessToken(LtiUserEntity user, String code) throws LMSOAuthException {
+
+        CanvasAPIOAuthSettings canvasAPIOAuthSettings = getCanvasAPIOAuthSettings(user.getPlatformDeployment());
 
         // Create x-www-form-urlencoded POST request
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
         map.add("grant_type", "authorization_code");
-        map.add("client_id", clientId);
-        map.add("client_secret", clientSecret);
+        map.add("client_id", canvasAPIOAuthSettings.getClientId());
+        map.add("client_secret", canvasAPIOAuthSettings.getClientSecret());
         map.add("redirect_uri", getRedirectURI());
         map.add("code", code);
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(map, headers);
 
         RestTemplate restTemplate = createRestTemplate();
-        ResponseEntity<CanvasAPIToken> response = restTemplate.postForEntity(canvasOauth2TokenUrl, request,
+        ResponseEntity<CanvasAPIToken> response = restTemplate.postForEntity(canvasAPIOAuthSettings.getOauth2TokenUrl(),
+                request,
                 CanvasAPIToken.class);
 
         if (response.getStatusCode().is2xxSuccessful()) {
@@ -123,8 +129,8 @@ public class CanvasOAuthServiceImpl implements LMSOAuthService<CanvasAPITokenEnt
             newToken.setUser(user);
             return canvasAPITokenRepository.save(newToken);
         }
-        // TODO: change to LMSOAuthException
-        throw new RuntimeException(MessageFormat.format("Could not retrieve token from {0}", canvasOauth2TokenUrl));
+        throw new LMSOAuthException(
+                MessageFormat.format("Could not retrieve token from {0}", canvasAPIOAuthSettings.getOauth2TokenUrl()));
     }
 
     @Override
@@ -162,7 +168,7 @@ public class CanvasOAuthServiceImpl implements LMSOAuthService<CanvasAPITokenEnt
         try {
             refreshAccessToken(canvasAPIToken.get());
             return true;
-        } catch (Exception e) {
+        } catch (LMSOAuthException e) {
             log.error(MessageFormat.format("Failed to refresh token {0}", canvasAPIToken.get().getTokenId()), e);
             return false;
         }
@@ -173,26 +179,26 @@ public class CanvasOAuthServiceImpl implements LMSOAuthService<CanvasAPITokenEnt
         return apijwtService.generateStateForAPITokenRequest(lti3Request);
     }
 
-    private CanvasAPITokenEntity refreshAccessToken(CanvasAPITokenEntity canvasAPITokenEntity) {
+    private CanvasAPITokenEntity refreshAccessToken(CanvasAPITokenEntity canvasAPITokenEntity)
+            throws LMSOAuthException {
 
-        // TODO: get these from the database
-        String clientId = "202570000000000113";
-        String clientSecret = "orqsVzvJzC8voMswY3nMtpA1yt6pNYJFoGUBJO69gnTLGD1TN9ldB5o4Eb5Bvjhh";
-        String canvasOauth2TokenUrl = "https://terracotta.instructure.com/login/oauth2/token";
+        CanvasAPIOAuthSettings canvasAPIOAuthSettings = getCanvasAPIOAuthSettings(
+                canvasAPITokenEntity.getUser().getPlatformDeployment());
 
         // Create x-www-form-urlencoded POST request
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
         map.add("grant_type", "refresh_token");
-        map.add("client_id", clientId);
-        map.add("client_secret", clientSecret);
+        map.add("client_id", canvasAPIOAuthSettings.getClientId());
+        map.add("client_secret", canvasAPIOAuthSettings.getClientSecret());
         map.add("redirect_uri", getRedirectURI());
         map.add("refresh_token", canvasAPITokenEntity.getRefreshToken());
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(map, headers);
 
         RestTemplate restTemplate = createRestTemplate();
-        ResponseEntity<CanvasAPIToken> response = restTemplate.postForEntity(canvasOauth2TokenUrl, request,
+        ResponseEntity<CanvasAPIToken> response = restTemplate.postForEntity(canvasAPIOAuthSettings.getOauth2TokenUrl(),
+                request,
                 CanvasAPIToken.class);
 
         if (response.getStatusCode().is2xxSuccessful()) {
@@ -203,14 +209,11 @@ public class CanvasOAuthServiceImpl implements LMSOAuthService<CanvasAPITokenEnt
 
             return canvasAPITokenRepository.save(canvasAPITokenEntity);
         }
-        throw new RuntimeException(MessageFormat.format("Could not refresh token for user {0}",
+        throw new LMSOAuthException(MessageFormat.format("Could not refresh token for user {0}",
                 canvasAPITokenEntity.getUser().getUserId()));
     }
 
     private String getRedirectURI() {
-        // TODO: move to interface with default implementation?
-        // TODO: use MvcUriComponentsBuilder
-        // https://docs.spring.io/spring-framework/docs/5.2.22.RELEASE/spring-framework-reference/web.html#mvc-links-to-controllers
         return ltiDataService.getLocalUrl() + "/lms/oauth2/oauth_response";
     }
 
@@ -224,5 +227,15 @@ public class CanvasOAuthServiceImpl implements LMSOAuthService<CanvasAPITokenEnt
         // Add a buffer of 5 minutes just to be safe
         Instant fiveMinutesFromNow = Instant.now().plus(5, ChronoUnit.MINUTES);
         return expiresAt.after(Timestamp.from(fiveMinutesFromNow));
+    }
+
+    private CanvasAPIOAuthSettings getCanvasAPIOAuthSettings(PlatformDeployment platformDeployment)
+            throws LMSOAuthException {
+        CanvasAPIOAuthSettings canvasAPIOAuthSettings = canvasAPIOAuthSettingsRepository
+                .findByPlatformDeployment(platformDeployment)
+                .orElseThrow(() -> {
+                    return new LMSOAuthException("Could not find settings for Canvas API OAuth");
+                });
+        return canvasAPIOAuthSettings;
     }
 }

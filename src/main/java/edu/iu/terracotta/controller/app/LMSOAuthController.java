@@ -13,6 +13,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
+import edu.iu.terracotta.exceptions.LMSOAuthException;
 import edu.iu.terracotta.model.LtiUserEntity;
 import edu.iu.terracotta.repository.LtiUserRepository;
 import edu.iu.terracotta.service.app.APIJWTService;
@@ -43,7 +44,8 @@ public class LMSOAuthController {
     LtiUserRepository ltiUserRepository;
 
     @GetMapping(value = "/oauth_response")
-    public String handleOauthResponse(HttpServletRequest req) throws GeneralSecurityException, IOException {
+    public String handleOauthResponse(HttpServletRequest req)
+            throws GeneralSecurityException, IOException, LMSOAuthException {
 
         String code = req.getParameter("code");
         log.debug("/oauth_response: code={}", code);
@@ -66,7 +68,7 @@ public class LMSOAuthController {
         String userKey = claims.getBody().get("userId", String.class);
         LtiUserEntity user = ltiUserRepository.findByUserKey(userKey);
 
-        lmsoAuthService.requestAccessToken(user, code);
+        lmsoAuthService.fetchAndSaveAccessToken(user, code);
 
         String oneTimeToken = createOneTimeToken(platformDeploymentId, userKey, claims.getBody());
         return "redirect:/app/app.html?token=" + oneTimeToken;
