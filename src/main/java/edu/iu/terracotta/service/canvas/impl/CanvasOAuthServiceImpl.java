@@ -74,17 +74,21 @@ public class CanvasOAuthServiceImpl implements LMSOAuthService<CanvasAPITokenEnt
             throws LMSOAuthException {
 
         CanvasAPIOAuthSettings canvasAPIOAuthSettings = getCanvasAPIOAuthSettings(platformDeployment);
-        // TODO: specify all of the necessary scopes
         String clientId = canvasAPIOAuthSettings.getClientId();
         String url = UriComponentsBuilder.fromUriString(canvasAPIOAuthSettings.getOauth2AuthUrl())
                 .queryParam("client_id", clientId)
                 .queryParam("response_type", "code")
                 .queryParam("redirect_uri", getRedirectURI())
                 .queryParam("state", state)
+                .queryParam("scope", getAllRequiredScopes())
                 .build()
                 .toUriString();
         return url;
 
+    }
+
+    private String getAllRequiredScopes() {
+        return String.join(" ", CanvasAPIClientImpl.SCOPES_REQUIRED);
     }
 
     @Override
