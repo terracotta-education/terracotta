@@ -16,10 +16,9 @@ import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.AnswerService;
 import edu.iu.terracotta.service.app.QuestionService;
 import edu.iu.terracotta.utils.TextConstants;
+import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.collections.CollectionUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
@@ -27,13 +26,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.HttpServletRequest;
@@ -41,6 +40,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @Controller
 @SuppressWarnings({"rawtypes", "unchecked"})
 @RequestMapping(value = AnswerController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
@@ -50,23 +50,18 @@ public class AnswerController {
      but all of the requests can be updated with switch statements to support additional types.
      */
 
-    static final String REQUEST_ROOT = "api/experiments";
-    static final Logger log = LoggerFactory.getLogger(AnswerController.class);
+    public static final String REQUEST_ROOT = "api/experiments/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}/questions";
 
     @Autowired
-    APIJWTService apijwtService;
+    private APIJWTService apijwtService;
 
     @Autowired
-    AnswerService answerService;
+    private AnswerService answerService;
 
     @Autowired
-    QuestionService questionService;
+    private QuestionService questionService;
 
-
-
-    @GetMapping(value = "/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}/questions/{questionId}/answers",
-            produces = MediaType.APPLICATION_JSON_VALUE)
-    @ResponseBody
+    @GetMapping("/{questionId}/answers")
     public ResponseEntity<List<AnswerDto>> getAnswersByQuestion(@PathVariable long experimentId,
                                                                 @PathVariable long conditionId,
                                                                 @PathVariable long treatmentId,
@@ -97,9 +92,7 @@ public class AnswerController {
         return new ResponseEntity("Error 103: Answer type is not supported.", HttpStatus.BAD_REQUEST);
     }
 
-    @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/questions/{question_id}/answers/{answer_id}",
-            method = RequestMethod.GET, produces = "application/json;")
-    @ResponseBody
+    @GetMapping("/{question_id}/answers/{answer_id}")
     public ResponseEntity<AnswerDto> getAnswer(@PathVariable("experiment_id") Long experimentId,
                                                @PathVariable("condition_id") Long conditionId,
                                                @PathVariable("treatment_id") Long treatmentId,
@@ -115,27 +108,26 @@ public class AnswerController {
         apijwtService.questionAllowed(securedInfo, assessmentId, questionId);
         apijwtService.answerAllowed(securedInfo, assessmentId, questionId, answerService.getQuestionType(questionId), answerId);
 
-        if(apijwtService.isLearnerOrHigher(securedInfo)) {
-            String answerType = answerService.getQuestionType(questionId);
-
-            if(answerType.equals(QuestionTypes.MC.toString())){
-                return new ResponseEntity<>(answerService.getAnswerMC(answerId), HttpStatus.OK);
-            } else {
-                return new ResponseEntity("Error 103: Answer type not supported.", HttpStatus.BAD_REQUEST);
-            }
-        } else {
+        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
+
+        String answerType = answerService.getQuestionType(questionId);
+
+        if(answerType.equals(QuestionTypes.MC.toString())){
+            return new ResponseEntity<>(answerService.getAnswerMC(answerId), HttpStatus.OK);
+        }
+
+        return new ResponseEntity("Error 103: Answer type not supported.", HttpStatus.BAD_REQUEST);
     }
 
 
-    @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/questions/{question_id}/answers",
-            method = RequestMethod.POST)
-    public ResponseEntity<AnswerDto> postAnswer(@PathVariable("experiment_id") Long experimentId,
-                                                @PathVariable("condition_id") Long conditionId,
-                                                @PathVariable("treatment_id") Long treatmentId,
-                                                @PathVariable("assessment_id") Long assessmentId,
-                                                @PathVariable("question_id") Long questionId,
+    @PostMapping("/{questionId}/answers")
+    public ResponseEntity<AnswerDto> postAnswer(@PathVariable long experimentId,
+                                                @PathVariable long conditionId,
+                                                @PathVariable long treatmentId,
+                                                @PathVariable long assessmentId,
+                                                @PathVariable long questionId,
                                                 @RequestBody AnswerDto answerDto,
                                                 UriComponentsBuilder ucBuilder,
                                                 HttpServletRequest req)
@@ -147,17 +139,18 @@ public class AnswerController {
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
         apijwtService.questionAllowed(securedInfo, assessmentId, questionId);
 
-        if(apijwtService.isInstructorOrHigher(securedInfo)) {
-            AnswerDto returnedMcdDto = answerService.postAnswerMC(answerDto, questionId);
-            HttpHeaders mcHeaders = answerService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, questionId, returnedMcdDto.getAnswerId());
-            return new ResponseEntity<>(returnedMcdDto, mcHeaders, HttpStatus.CREATED);
-        } else {
+        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
+
+        AnswerDto returnedMcdDto = answerService.postAnswerMC(answerDto, questionId);
+        HttpHeaders mcHeaders = answerService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, questionId, returnedMcdDto.getAnswerId());
+
+        return new ResponseEntity<>(returnedMcdDto, mcHeaders, HttpStatus.CREATED);
     }
 
 
-    @PutMapping("/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}/questions/{questionId}/answers")
+    @PutMapping("/{questionId}/answers")
     public ResponseEntity<List<AnswerDto>> updateAnswers(@PathVariable long experimentId,
                                               @PathVariable long conditionId,
                                               @PathVariable long treatmentId,
@@ -194,11 +187,11 @@ public class AnswerController {
         try {
             return new ResponseEntity<>(answerService.updateAnswerMC(map), HttpStatus.OK);
         } catch (Exception ex) {
-            throw new DataServiceException(String.format("Error 105: An error occurred trying to update the answer list. No answers were updated. %s", ex.getMessage()));
+            throw new DataServiceException(String.format("Error 105: An error occurred trying to update the answer list. No answers were updated. %s", ex.getMessage()), ex);
         }
     }
 
-    @PutMapping("/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}/questions/{questionId}/answers/{answerId}")
+    @PutMapping("/{questionId}/answers/{answerId}")
     public ResponseEntity<AnswerDto> updateAnswer(@PathVariable long experimentId,
                                              @PathVariable long conditionId,
                                              @PathVariable long treatmentId,
@@ -238,14 +231,13 @@ public class AnswerController {
         return new ResponseEntity<>(answerDtos.get(0), HttpStatus.OK);
     }
 
-    @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/questions/{question_id}/answers/{answer_id}",
-            method = RequestMethod.DELETE)
-    public ResponseEntity<Void> deleteAnswer(@PathVariable("experiment_id") Long experimentId,
-                                             @PathVariable("condition_id") Long conditionId,
-                                             @PathVariable("treatment_id") Long treatmentId,
-                                             @PathVariable("assessment_id") Long assessmentId,
-                                             @PathVariable("question_id") Long questionId,
-                                             @PathVariable("answer_id") Long answerId,
+    @DeleteMapping("/{questionId}/answers/{answerId}")
+    public ResponseEntity<Void> deleteAnswer(@PathVariable long experimentId,
+                                             @PathVariable long conditionId,
+                                             @PathVariable long treatmentId,
+                                             @PathVariable long assessmentId,
+                                             @PathVariable long questionId,
+                                             @PathVariable long answerId,
                                              HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionNotMatchingException, AnswerNotMatchingException, BadTokenException {
 
@@ -256,20 +248,21 @@ public class AnswerController {
         String answerType = questionService.findByQuestionId(questionId).getQuestionType().toString();
         apijwtService.answerAllowed(securedInfo, assessmentId, questionId, answerType, answerId);
 
-        if(apijwtService.isInstructorOrHigher(securedInfo)) {
-            if(answerType.equals(QuestionTypes.MC.toString())){
-                try{
-                    answerService.deleteByIdMC(answerId);
-                    return new ResponseEntity<>(HttpStatus.OK);
-                } catch (EmptyResultDataAccessException ex) {
-                    log.warn(ex.getMessage());
-                    return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-                }
-            } else {
-                return new ResponseEntity("Error 103: Answer type not supported.", HttpStatus.BAD_REQUEST);
-            }
-        } else {
+        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
+
+        if (answerType.equals(QuestionTypes.MC.toString())){
+            try{
+                answerService.deleteByIdMC(answerId);
+                return new ResponseEntity<>(HttpStatus.OK);
+            } catch (EmptyResultDataAccessException ex) {
+                log.warn(ex.getMessage());
+                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            }
+        }
+
+        return new ResponseEntity("Error 103: Answer type not supported.", HttpStatus.BAD_REQUEST);
     }
+
 }

@@ -13,17 +13,15 @@
 package edu.iu.terracotta.controller.lti;
 
 import edu.iu.terracotta.exceptions.ConnectionException;
-import edu.iu.terracotta.repository.PlatformDeploymentRepository;
 import edu.iu.terracotta.model.lti.dto.PlatformRegistrationDTO;
 import edu.iu.terracotta.model.lti.dto.ToolConfigurationDTO;
 import edu.iu.terracotta.model.lti.dto.ToolMessagesSupportedDTO;
 import edu.iu.terracotta.model.lti.dto.ToolRegistrationDTO;
-import edu.iu.terracotta.service.lti.LTIDataService;
 import edu.iu.terracotta.service.lti.RegistrationService;
 import edu.iu.terracotta.utils.LtiStrings;
 import edu.iu.terracotta.utils.TextConstants;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Scope;
@@ -36,8 +34,9 @@ import org.springframework.http.client.BufferingClientHttpRequestFactory;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.client.RestTemplate;
 
@@ -54,33 +53,24 @@ import java.util.List;
  * This will handle LTI 1 and 2 (many of the paths ONLY make sense for LTI2 though)
  * Sample Key "key" and secret "secret"
  */
+@Slf4j
 @SuppressWarnings("ALL")
 @Controller
 @Scope("session")
 @RequestMapping("/registration")
 public class RegistrationController {
 
-    static final Logger log = LoggerFactory.getLogger(RegistrationController.class);
-
     @Autowired
-    PlatformDeploymentRepository platformDeploymentRepository;
-
-    @Autowired
-    LTIDataService ltiDataService;
-
-    @Autowired
-    RegistrationService registrationService;
+    private RegistrationService registrationService;
 
     @Value("${application.url}")
     private String localUrl;
-
 
     @Value("${application.name}")
     private String clientName;
 
     @Value("${application.description}")
     private String description;
-
 
     /**
      * This will receive the request to start the dynamic registration process and prepare the answer.
@@ -94,9 +84,8 @@ public class RegistrationController {
      * @param model
      * @return
      */
-    @RequestMapping(value = "/", method = RequestMethod.GET)
+    @GetMapping("/")
     public String registration(@RequestParam("openid_configuration") String openidConfiguration, @RequestParam(LtiStrings.REGISTRATION_TOKEN) String registrationToken, HttpServletRequest req, Model model) {
-
         // We need to call the configuration endpoint recevied in the registration inititaion message and
         // call it to get all the information about the platform
         HttpSession session = req.getSession();
@@ -145,9 +134,8 @@ public class RegistrationController {
         }
     }
 
-    @RequestMapping(value = "/", method = RequestMethod.POST)
-    public String registrationPOST(HttpServletRequest req,
-                                   Model model) {
+    @PostMapping("/")
+    public String registrationPOST(HttpServletRequest req, Model model) {
         HttpSession session = req.getSession();
         String token = (String) session.getAttribute(LtiStrings.REGISTRATION_TOKEN);
         PlatformRegistrationDTO platformRegistrationDTO = (PlatformRegistrationDTO) session.getAttribute(LtiStrings.PLATFORM_CONFIGURATION);
@@ -168,7 +156,6 @@ public class RegistrationController {
         return "registrationConfirmation";
     }
 
-
     /**
      * This generates a JsonNode with all the information that we need to send to the Registration Authorization endpoint in the Platform.
      * In this case, we will put this in the model to be used by the thymeleaf template.
@@ -176,7 +163,6 @@ public class RegistrationController {
      * @return
      */
     private ToolRegistrationDTO generateToolConfiguration() {
-
         ToolRegistrationDTO toolRegistrationDTO = new ToolRegistrationDTO();
         toolRegistrationDTO.setApplication_type("web");
         List<String> grantTypes = new ArrayList<>();

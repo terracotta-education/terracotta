@@ -8,8 +8,6 @@ import java.util.Optional;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -26,14 +24,14 @@ import edu.iu.terracotta.service.lti.LTIDataService;
 import edu.iu.terracotta.utils.TextConstants;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Controller
 @RequestMapping("/lms/oauth2")
 public class LMSOAuthController {
 
     public static final String SESSION_LMS_OAUTH2_STATE = "lms_oauth2_state";
-
-    private static final Logger log = LoggerFactory.getLogger(LMSOAuthController.class);
 
     @Autowired
     LTIDataService ltiDataService;
@@ -113,7 +111,7 @@ public class LMSOAuthController {
 
     private String createOneTimeToken(long platformDeploymentId, String userKey, Claims claims)
             throws GeneralSecurityException, IOException {
-        String oneTimeToken = apijwtService.buildJwt(
+        return apijwtService.buildJwt(
                 true,
                 claims.get("roles", List.class),
                 claims.get("contextId", Long.class),
@@ -134,6 +132,5 @@ public class LMSOAuthController {
                 claims.get("nonce", String.class),
                 claims.get("allowedAttempts", Integer.class),
                 claims.get("studentAttempts", Integer.class));
-        return oneTimeToken;
     }
 }

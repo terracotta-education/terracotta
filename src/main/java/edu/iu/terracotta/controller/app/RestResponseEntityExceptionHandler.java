@@ -17,10 +17,9 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 public class RestResponseEntityExceptionHandler
         extends ResponseEntityExceptionHandler {
 
-    final static Logger log = LoggerFactory.getLogger(RestResponseEntityExceptionHandler.class);
+    private static final Logger log = LoggerFactory.getLogger(RestResponseEntityExceptionHandler.class);
 
-    @ExceptionHandler(value
-            = { BadTokenException.class})
+    @ExceptionHandler(BadTokenException.class)
     protected ResponseEntity<Object> handleBadTokenException(
             BadTokenException ex, WebRequest request) {
         String bodyOfResponse = TextConstants.BAD_TOKEN;

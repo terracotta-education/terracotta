@@ -25,7 +25,7 @@ import edu.iu.terracotta.service.common.LMSOAuthService;
 import edu.iu.terracotta.service.common.LMSOAuthServiceManager;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
-import io.jsonwebtoken.SignatureException;
+import lombok.extern.slf4j.Slf4j;
 import edu.iu.terracotta.model.LtiLinkEntity;
 import edu.iu.terracotta.model.LtiUserEntity;
 import edu.iu.terracotta.model.PlatformDeployment;
@@ -38,12 +38,11 @@ import edu.iu.terracotta.utils.lti.LTI3Request;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.utils.URIBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import javax.servlet.http.HttpServletRequest;
@@ -60,41 +59,38 @@ import java.util.Optional;
  * This LTI 3 redirect controller will retrieve the LTI3 requests and redirect them to the right page.
  * Everything that arrives here is filtered first by the LTI3OAuthProviderProcessingFilter
  */
+@Slf4j
 @Controller
 @Scope("session")
 @RequestMapping("/lti3")
 public class LTI3Controller {
 
-    static final Logger log = LoggerFactory.getLogger(LTI3Controller.class);
+    @Autowired
+    private LTIJWTService ltijwtService;
 
     @Autowired
-    LTIJWTService ltijwtService;
+    private APIJWTService apiJWTService;
 
     @Autowired
-    APIJWTService apiJWTService;
+    private LtiLinkRepository ltiLinkRepository;
 
     @Autowired
-    LtiLinkRepository ltiLinkRepository;
+    private LTIDataService ltiDataService;
 
     @Autowired
-    LTIDataService ltiDataService;
+    private AssignmentService assignmentService;
 
     @Autowired
-    AssignmentService assignmentService;
+    private CaliperService caliperService;
 
     @Autowired
-    CaliperService caliperService;
+    private LtiContextRepository ltiContextRepository;
 
     @Autowired
-    LtiContextRepository ltiContextRepository;
+    private LMSOAuthServiceManager lmsoAuthServiceManager;
 
-    @Autowired
-    LMSOAuthServiceManager lmsoAuthServiceManager;
-
-    @RequestMapping({"", "/"})
-    public String home(HttpServletRequest req, Principal principal, Model model)
-            throws DataServiceException, CanvasApiException, ConnectionException, LMSOAuthException {
-
+    @PostMapping({"", "/"})
+    public String home(HttpServletRequest req, Principal principal, Model model) throws DataServiceException, CanvasApiException, ConnectionException, LMSOAuthException {
         //First we will get the state, validate it
         String state = req.getParameter("state");
         //We will use this link to find the content to display.
@@ -166,17 +162,13 @@ public class LTI3Controller {
                         lti3Request.getLtiCustom().getOrDefault("canvas_user_name", "Anonymous").toString());
 
                 // Check for platform_redirect_url to determine if this is a first-party interaction request
-                try {
-                    List<NameValuePair> targetLinkQueryParams = new URIBuilder(lti3Request.getLtiTargetLinkUrl()).getQueryParams();
-                    Optional<NameValuePair> platformRedirectUrl = targetLinkQueryParams.stream()
-                            .filter(nv -> "platform_redirect_url".equals(nv.getName())).findFirst();
-                    if (platformRedirectUrl.isPresent()) {
-                        model.addAttribute("targetLinkUri", lti3Request.getLtiTargetLinkUrl());
-                        return "redirect:/app/firstParty.html";
-                    }
-                } catch (URISyntaxException ex) {
-                    model.addAttribute(TextConstants.ERROR, ex.getMessage());
-                    return TextConstants.LTI3ERROR;
+                List<NameValuePair> targetLinkQueryParams = new URIBuilder(lti3Request.getLtiTargetLinkUrl()).getQueryParams();
+                Optional<NameValuePair> platformRedirectUrl = targetLinkQueryParams.stream()
+                        .filter(nv -> "platform_redirect_url".equals(nv.getName())).findFirst();
+
+                if (platformRedirectUrl.isPresent()) {
+                    model.addAttribute("targetLinkUri", lti3Request.getLtiTargetLinkUrl());
+                    return "redirect:/app/firstParty.html";
                 }
 
                 // Check if we need to get API token from instructor to use LMS API
@@ -195,27 +187,20 @@ public class LTI3Controller {
 
                 return "redirect:/app/app.html?token=" + oneTimeToken;
             }
-        } catch (SignatureException ex) {
-            model.addAttribute(TextConstants.ERROR, ex.getMessage());
-            return TextConstants.LTI3ERROR;
-        } catch (GeneralSecurityException e) {
-            model.addAttribute(TextConstants.ERROR, e.getMessage());
-            return TextConstants.LTI3ERROR;
-        } catch (IOException e) {
+        } catch (SecurityException | GeneralSecurityException | IOException | URISyntaxException e) {
             model.addAttribute(TextConstants.ERROR, e.getMessage());
             return TextConstants.LTI3ERROR;
         }
     }
 
-    private String getOAuth2APITokenRedirectURL(HttpServletRequest req, PlatformDeployment platformDeployment,
-            LtiUserEntity user,
-            LTI3Request lti3Request) throws GeneralSecurityException, IOException, LMSOAuthException {
-
+    private String getOAuth2APITokenRedirectURL(HttpServletRequest req, PlatformDeployment platformDeployment, LtiUserEntity user, LTI3Request lti3Request)
+            throws GeneralSecurityException, IOException, LMSOAuthException {
         // check if API Token settings exist for this PlatformDeployment
         LMSOAuthService<?> lmsOAuthService = lmsoAuthServiceManager.getLMSOAuthService(platformDeployment);
         if (lmsOAuthService == null) {
             return null;
         }
+
         if (lmsOAuthService.isAccessTokenAvailable(user)) {
             return null;
         }

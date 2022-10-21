@@ -20,12 +20,13 @@ import edu.iu.terracotta.model.lti.dto.LoginInitiationDTO;
 import edu.iu.terracotta.service.lti.LTIDataService;
 import edu.iu.terracotta.utils.TextConstants;
 import edu.iu.terracotta.utils.lti.LtiOidcUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import javax.servlet.http.HttpServletRequest;
@@ -47,12 +48,11 @@ import java.util.UUID;
  * This will handle LTI 1 and 2 (many of the paths ONLY make sense for LTI2 though)
  * Sample Key "key" and secret "secret"
  */
+@Slf4j
 @Controller
 @Scope("session")
 @RequestMapping("/oidc")
 public class OIDCController {
-
-    static final Logger log = LoggerFactory.getLogger(OIDCController.class);
 
     //Constants defined in the LTI standard
     private static final String NONE = "none";
@@ -63,18 +63,17 @@ public class OIDCController {
     private static final String DEPLOYMENT_ID = "lti_deployment_id";
 
     @Autowired
-    PlatformDeploymentRepository platformDeploymentRepository;
+    private PlatformDeploymentRepository platformDeploymentRepository;
 
     @Autowired
-    LTIDataService ltiDataService;
+    private LTIDataService ltiDataService;
 
     /**
      * This will receive the request to start the OIDC process.
      * We receive some parameters (iss, login_hint, target_link_uri, lti_message_hint, and optionally, the deployment_id and the client_id)
      */
-    @RequestMapping("/login_initiations")
+    @PostMapping("/login_initiations")
     public String loginInitiations(HttpServletRequest req, Model model) {
-
         // We need to receive the parameters and search for the deployment of the tool that matches with what we receive.
         LoginInitiationDTO loginInitiationDTO = new LoginInitiationDTO(req);
         List<PlatformDeployment> platformDeploymentListEntityList;
@@ -212,7 +211,6 @@ public class OIDCController {
      * In this case, we will put this in the model to be used by the thymeleaf template.
      */
     private Map<String, String> generateAuthRequestPayload(PlatformDeployment platformDeployment, LoginInitiationDTO loginInitiationDTO, String clientIdValue, String deploymentIdValue) throws GeneralSecurityException, IOException {
-
         Map<String, String> authRequestMap = new HashMap<>();
         authRequestMap.put(CLIENT_ID, platformDeployment.getClientId()); //As it came from the Platform (if it came... if not we should have it configured)
         authRequestMap.put("login_hint", loginInitiationDTO.getLoginHint()); //As it came from the Platform
@@ -254,11 +252,11 @@ public class OIDCController {
         getUrl = addParameter(getUrl, "response_type", model.get("response_type"), false);
         getUrl = addParameter(getUrl, "scope", model.get("scope"), false);
         getUrl = addParameter(getUrl, "state", model.get("state"), false);
+
         return getUrl.toString();
     }
 
     private StringBuilder addParameter(StringBuilder url, String parameter, String value, boolean first) throws UnsupportedEncodingException {
-
         if (value != null) {
             if (first) {
                 url.append("?").append(parameter).append("=");
@@ -267,6 +265,7 @@ public class OIDCController {
             }
             url.append(URLEncoder.encode(value, String.valueOf(StandardCharsets.UTF_8)));
         }
+
         return url;
     }
 
