@@ -20,6 +20,8 @@ import edu.iu.terracotta.model.lti.dto.LoginInitiationDTO;
 import edu.iu.terracotta.service.lti.LTIDataService;
 import edu.iu.terracotta.utils.TextConstants;
 import edu.iu.terracotta.utils.lti.LtiOidcUtils;
+
+import org.apache.commons.lang3.BooleanUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -63,10 +65,10 @@ public class OIDCController {
     private static final String DEPLOYMENT_ID = "lti_deployment_id";
 
     @Autowired
-    PlatformDeploymentRepository platformDeploymentRepository;
+    private PlatformDeploymentRepository platformDeploymentRepository;
 
     @Autowired
-    LTIDataService ltiDataService;
+    private LTIDataService ltiDataService;
 
     /**
      * This will receive the request to start the OIDC process.
@@ -74,10 +76,8 @@ public class OIDCController {
      */
     @RequestMapping("/login_initiations")
     public String loginInitiations(HttpServletRequest req, Model model) {
-
         // We need to receive the parameters and search for the deployment of the tool that matches with what we receive.
         LoginInitiationDTO loginInitiationDTO = new LoginInitiationDTO(req);
-        List<PlatformDeployment> platformDeploymentListEntityList;
         // Getting the client_id (that is optional) and can come in the form or in the URL.
         String clientIdValue;
         // If we already have it in the loginInitiationDTO
@@ -95,25 +95,8 @@ public class OIDCController {
             deploymentIdValue = req.getParameter(DEPLOYMENT_ID);
         }
 
-        // We search for the platformDeployment.
-        // We will try all the options here (from more detailed to less), and we will deal with the error if there are more than one result.
-        if (clientIdValue != null && deploymentIdValue != null) {
-            // search for platformDeployment by iss, clientId and deploymentIdValue
-            platformDeploymentListEntityList = platformDeploymentRepository.findByIssAndClientIdAndToolDeployments_LtiDeploymentId(loginInitiationDTO.getIss(), clientIdValue, deploymentIdValue);
-            if (platformDeploymentListEntityList.isEmpty()) {
-                // if missing, check if we can automatically create a ToolDeployment
-                ToolDeployment toolDeployment = this.ltiDataService.findOrCreateToolDeployment(loginInitiationDTO.getIss(), clientIdValue, deploymentIdValue);
-                if (toolDeployment != null) {
-                    platformDeploymentListEntityList = Collections.singletonList(toolDeployment.getPlatformDeployment());
-                }
-            }
-        } else if (clientIdValue != null) {
-            platformDeploymentListEntityList = platformDeploymentRepository.findByIssAndClientId(loginInitiationDTO.getIss(), clientIdValue);
-        } else if (deploymentIdValue != null) {
-            platformDeploymentListEntityList = platformDeploymentRepository.findByIssAndToolDeployments_LtiDeploymentId(loginInitiationDTO.getIss(), deploymentIdValue);
-        } else {
-            platformDeploymentListEntityList = platformDeploymentRepository.findByIss(loginInitiationDTO.getIss());
-        }
+        List<PlatformDeployment> platformDeploymentListEntityList = getPlatformDeploymentList(clientIdValue, deploymentIdValue, loginInitiationDTO);
+
         // We deal with some possible errors
         if (platformDeploymentListEntityList.isEmpty()) {  //If we don't have configuration
             model.addAttribute(TextConstants.ERROR, "Not found any existing tool deployment with iss: " + loginInitiationDTO.getIss() +
@@ -130,43 +113,57 @@ public class OIDCController {
         if (clientIdValue == null) {
             clientIdValue = lti3KeyEntity.getClientId();
         }
+
+        return createOidcRequest(req, model, lti3KeyEntity, loginInitiationDTO, clientIdValue, deploymentIdValue);
+    }
+
+    private List<PlatformDeployment> getPlatformDeploymentList(String clientIdValue, String deploymentIdValue, LoginInitiationDTO loginInitiationDTO) {
+        // We search for the platformDeployment.
+        // We will try all the options here (from more detailed to less), and we will deal with the error if there are more than one result.
+        if (clientIdValue != null && deploymentIdValue != null) {
+            // search for platformDeployment by iss, clientId and deploymentIdValue
+            List<PlatformDeployment> platformDeploymentListEntityList = platformDeploymentRepository.findByIssAndClientIdAndToolDeployments_LtiDeploymentId(loginInitiationDTO.getIss(), clientIdValue, deploymentIdValue);
+            if (platformDeploymentListEntityList.isEmpty()) {
+                // if missing, check if we can automatically create a ToolDeployment
+                ToolDeployment toolDeployment = this.ltiDataService.findOrCreateToolDeployment(loginInitiationDTO.getIss(), clientIdValue, deploymentIdValue);
+
+                if (toolDeployment != null) {
+                    return Collections.singletonList(toolDeployment.getPlatformDeployment());
+                }
+            }
+
+            return platformDeploymentListEntityList;
+        } else if (clientIdValue != null) {
+            return platformDeploymentRepository.findByIssAndClientId(loginInitiationDTO.getIss(), clientIdValue);
+        } else if (deploymentIdValue != null) {
+            return platformDeploymentRepository.findByIssAndToolDeployments_LtiDeploymentId(loginInitiationDTO.getIss(), deploymentIdValue);
+        }
+
+        return platformDeploymentRepository.findByIss(loginInitiationDTO.getIss());
+    }
+
+    private String createOidcRequest(HttpServletRequest req, Model model, PlatformDeployment lti3KeyEntity, LoginInitiationDTO loginInitiationDTO, String clientIdValue, String deploymentIdValue) {
         try {
             // We are going to create the OIDC request,
             Map<String, String> parameters = generateAuthRequestPayload(lti3KeyEntity, loginInitiationDTO, clientIdValue, deploymentIdValue);
             // We add that information so the thymeleaf template can display it (and prepare the links)
             //model.addAllAttributes(parameters);
             // These 3 are to display what we received from the platform.
-            if (ltiDataService.getDemoMode()){
+            if (BooleanUtils.isTrue(ltiDataService.getDemoMode())) {
                 model.addAllAttributes(parameters);
                 model.addAttribute("initiation_dto", loginInitiationDTO);
                 model.addAttribute("client_id_received", clientIdValue);
                 model.addAttribute("deployment_id_received", deploymentIdValue);
             }
+
             // This can be implemented in different ways, on this case, we are storing the state and nonce in
             // the httpsession, so we can compare later if they are valid states and nonces.
             HttpSession session = req.getSession();
-            List<String> stateList;
+
             List<String> nonceList;
-            String state = parameters.get("state");
             String nonce = parameters.get("nonce");
 
-            // We will keep several states and nonces, and we should delete them once we use them.
-            if (session.getAttribute("lti_state") != null) {
-                List<String> ltiState = (List) session.getAttribute("lti_state");
-                if (ltiState.isEmpty()) {  //If not old states... then just the one we have created
-                    stateList = new ArrayList<>();
-                    stateList.add(state);
-                } else if (ltiState.contains(state)) {  //if the state is already there... then the lti_state is the same. No need to add a duplicate
-                    stateList = ltiState;
-                } else { // if it is a different state and there are more... we add it with the to the string.
-                    ltiState.add(state);
-                    stateList = ltiState;
-                }
-            } else {
-                stateList = new ArrayList<>();
-                stateList.add(state);
-            }
-            session.setAttribute("lti_state", stateList);
+            getStateList(session, parameters);
 
             if (session.getAttribute("lti_nonce") != null) {
                 List<String> ltiNonce = (List) session.getAttribute("lti_nonce");
@@ -182,29 +179,58 @@ public class OIDCController {
                 nonceList.add(nonce);
             }
             session.setAttribute("lti_nonce", nonceList);
+
             // Once all is added to the session, and we have the data ready for the html template, we redirect
-            if (!ltiDataService.getDemoMode()) {
-                model.addAttribute("iss", loginInitiationDTO.getIss());
-                model.addAttribute("login_hint", loginInitiationDTO.getLoginHint());
-                model.addAttribute("client_id", loginInitiationDTO.getClientId());
-                model.addAttribute("lti_message_hint", loginInitiationDTO.getLtiMessageHint());
-                model.addAttribute("targetLinkUri", loginInitiationDTO.getTargetLinkUri());
-                if (loginInitiationDTO.getDeploymentId() != null) {
-                    model.addAttribute("lti_deployment_id", loginInitiationDTO.getDeploymentId());
-                }
-                // storageAccessCheck will immediately do the redirect to
-                // 'oicdEndpointComplete' unless the iframe doesn't have storage
-                // access to the cookies belonging to Terracotta's domain
-                model.addAttribute("oicdEndpointComplete", parameters.get("oicdEndpointComplete"));
-                return "storageAccessCheck";
-            } else {
+            if (BooleanUtils.isTrue(ltiDataService.getDemoMode())) {
                 return "oicdRedirect";
             }
+
+            model.addAttribute("iss", loginInitiationDTO.getIss());
+            model.addAttribute("login_hint", loginInitiationDTO.getLoginHint());
+            model.addAttribute("client_id", loginInitiationDTO.getClientId());
+            model.addAttribute("lti_message_hint", loginInitiationDTO.getLtiMessageHint());
+            model.addAttribute("targetLinkUri", loginInitiationDTO.getTargetLinkUri());
+
+            if (loginInitiationDTO.getDeploymentId() != null) {
+                model.addAttribute("lti_deployment_id", loginInitiationDTO.getDeploymentId());
+            }
+
+            // storageAccessCheck will immediately do the redirect to
+            // 'oicdEndpointComplete' unless the iframe doesn't have storage
+            // access to the cookies belonging to Terracotta's domain
+            model.addAttribute("oicdEndpointComplete", parameters.get("oicdEndpointComplete"));
+
+            return "storageAccessCheck";
         } catch (Exception ex) {
             log.error("Failed creating OIDC request", ex);
             model.addAttribute(TextConstants.ERROR, ex.getMessage());
             return TextConstants.LTI3ERROR;
         }
+    }
+
+    private void getStateList(HttpSession session, Map<String, String> parameters) {
+        List<String> stateList;
+        String state = parameters.get("state");
+
+        // We will keep several states and nonces, and we should delete them once we use them.
+        if (session.getAttribute("lti_state") != null) {
+            List<String> ltiState = (List<String>) session.getAttribute("lti_state");
+
+            if (ltiState.isEmpty()) {  //If not old states... then just the one we have created
+                stateList = new ArrayList<>();
+                stateList.add(state);
+            } else if (ltiState.contains(state)) {  //if the state is already there... then the lti_state is the same. No need to add a duplicate
+                stateList = ltiState;
+            } else { // if it is a different state and there are more... we add it with the to the string.
+                ltiState.add(state);
+                stateList = ltiState;
+            }
+        } else {
+            stateList = new ArrayList<>();
+            stateList.add(state);
+        }
+
+        session.setAttribute("lti_state", stateList);
     }
 
     /**
@@ -258,7 +284,6 @@ public class OIDCController {
     }
 
     private StringBuilder addParameter(StringBuilder url, String parameter, String value, boolean first) throws UnsupportedEncodingException {
-
         if (value != null) {
             if (first) {
                 url.append("?").append(parameter).append("=");

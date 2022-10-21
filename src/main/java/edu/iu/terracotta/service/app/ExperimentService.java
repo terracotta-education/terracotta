@@ -1,6 +1,7 @@
 package edu.iu.terracotta.service.app;
 
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.exceptions.WrongValueException;
@@ -24,7 +25,7 @@ public interface ExperimentService {
 
     ExperimentDto postExperiment(ExperimentDto experimentDto, SecuredInfo securedInfo) throws DataServiceException, TitleValidationException;
 
-    void updateExperiment(long experimentId, long contextId, ExperimentDto experimentDto, SecuredInfo securedInfo) throws TitleValidationException, WrongValueException, ParticipantNotUpdatedException;
+    void updateExperiment(long experimentId, long contextId, ExperimentDto experimentDto, SecuredInfo securedInfo) throws TitleValidationException, WrongValueException, ParticipantNotUpdatedException, ExperimentNotMatchingException;
 
     Optional<Experiment> findOneByDeploymentIdAndCourseIdAndExperimentId(long deploymentId, long contextId, long id);
 
@@ -52,7 +53,7 @@ public interface ExperimentService {
 
     boolean experimentStarted(Experiment experiment);
 
-    boolean titleAlreadyExists(String title, Long contextId, Long ExperimentId);
+    boolean titleAlreadyExists(String title, Long contextId, Long experimentId);
 
     void copyDto(ExperimentDto existingEmpty, ExperimentDto experimentDto);
 

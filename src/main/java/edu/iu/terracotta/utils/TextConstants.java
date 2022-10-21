@@ -13,10 +13,7 @@
 
 package edu.iu.terracotta.utils;
 
-public class TextConstants {
-
-
-
+public final class TextConstants {
 
     private TextConstants() {
         throw new IllegalStateException("Utility class");
@@ -36,6 +33,7 @@ public class TextConstants {
     public static final String LTI3ERROR = "lti3Error";
     public static final String DUPLICATE_PREFIX = "Copy of";
     public static final String NOT_ENOUGH_PERMISSIONS = "Error 104: Not enough permissions to access to this endpoint.";
+    public static final String ANSWER_TYPE_NOT_SUPPORTED = "Error 103: Answer type not supported.";
     public static final String BAD_TOKEN = "The token does not contain the expected information";
     public static final String ID_IN_POST_ERROR = "Error 107: Unable to create. The POST endpoint does not accept objects with id";
     public static final String EXPERIMENT_NOT_MATCHING = "Error 108: The experiment does not belong to the course defined in the JWT token.";
@@ -70,5 +68,6 @@ public class TextConstants {
     public static final String UNABLE_TO_CREATE_TREATMENT = "Error 105: Unable to create Treatment: %s";
     public static final String UNABLE_TO_UPDATE_TREATMENT = "Error 160: Unable to update Treatment: %s";
     public static final String UNABLE_TO_MOVE_ASSIGNMENT_EXPOSURE_SAME = "Error: 161: Unable to move assignment. Current exposure and target exposure are the same.";
+    public static final String ASSIGNMENT_NOT_CREATED = "Error 137: The assignment was not created.";
 
 }

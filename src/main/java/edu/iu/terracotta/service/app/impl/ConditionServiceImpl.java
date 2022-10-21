@@ -193,40 +193,41 @@ public class ConditionServiceImpl implements ConditionService {
     public void validateConditionNames(List<ConditionDto> conditionDtoList, Long experimentId, boolean required) throws TitleValidationException {
         if (required) {
             for (ConditionDto conditionDto : conditionDtoList) {
-                if (StringUtils.isAllBlank(conditionDto.getName())) {
+                if (StringUtils.isBlank(conditionDto.getName())) {
                     throw new TitleValidationException("Error 100: Please give the condition a name.");
                 }
-                if (!StringUtils.isBlank(conditionDto.getName())) {
-                    if (conditionDto.getName().length() > 255) {
-                        throw new TitleValidationException("Error 101: Condition name must be 255 characters or less.");
-                    }
+
+                if (StringUtils.isNotBlank(conditionDto.getName()) && conditionDto.getName().length() > 255) {
+                    throw new TitleValidationException("Error 101: Condition name must be 255 characters or less.");
                 }
             }
         }
 
+        validateNoDuplicates(conditionDtoList, experimentId);
+    }
+
+    private void validateNoDuplicates(List<ConditionDto> conditionDtoList, Long experimentId) throws TitleValidationException {
         for (ConditionDto condto : conditionDtoList) {
             List<Condition> conditions = allRepositories.conditionRepository.
                     findByNameAndExperiment_ExperimentIdAndConditionIdIsNot(condto.getName(), experimentId, condto.getConditionId());
-            if (!conditions.isEmpty()) {
-                for (Condition con : conditions) {
-                    List duplicates = conditionDtoList.stream().filter(co -> {
-                        if (co.getConditionId() == con.getConditionId() && co.getName().equals(con.getName())) {
-                            return true;
-                        }
-                        return false;
-                    }).collect(Collectors.toList());
 
-                    if (!duplicates.isEmpty()) {
-                        throw new TitleValidationException("Error 102: Unable to create the condition. A condition with title \"" + condto.getName() + "\" already exists in this experiment. It is possible " +
-                                "that one of the other conditions has that name and has not been updated with a new one yet. If that is the case and you wish to use this name, " +
-                                "please change that condition's name first, then try again.");
-                    }
+            if (conditions.isEmpty()) {
+                continue;
+            }
+
+            for (Condition con : conditions) {
+                List<ConditionDto> duplicates = conditionDtoList.stream()
+                    .filter(co -> co.getConditionId().equals(con.getConditionId()) && co.getName().equals(con.getName()))
+                    .toList();
+
+                if (!duplicates.isEmpty()) {
+                    throw new TitleValidationException("Error 102: Unable to create the condition. A condition with title \"" + condto.getName() + "\" already exists in this experiment. It is possible " +
+                            "that one of the other conditions has that name and has not been updated with a new one yet. If that is the case and you wish to use this name, " +
+                            "please change that condition's name first, then try again.");
                 }
-
             }
         }
     }
-
 
     private void validateMaximumConditionsNotReached(long experimentId) throws ExperimentConditionLimitReachedException {
         List<Condition> conditions = allRepositories.conditionRepository.findByExperiment_ExperimentId(experimentId);

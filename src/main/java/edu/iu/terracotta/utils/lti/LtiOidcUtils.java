@@ -29,7 +29,7 @@ import java.security.Key;
 import java.util.Date;
 import java.util.Map;
 
-public class LtiOidcUtils {
+public final class LtiOidcUtils {
 
     static final Logger log = LoggerFactory.getLogger(LtiOidcUtils.class);
 
@@ -62,7 +62,7 @@ public class LtiOidcUtils {
                 .claim("clientId", clientIdValue)
                 .claim("ltiDeploymentId", deploymentIdValue)
                 .claim("controller", "/oidc/login_initiations")
-                .signWith(SignatureAlgorithm.RS256, issPrivateKey)  //We sign it
+                .signWith(issPrivateKey, SignatureAlgorithm.RS256)  //We sign it
                 .compact();
         log.debug("State: \n {} \n", state);
         return state;

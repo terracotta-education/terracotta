@@ -62,7 +62,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 @Component
@@ -124,7 +123,7 @@ public class AssessmentServiceImpl implements AssessmentService {
             assessment = fromDto(assessmentDto);
             assessment.setQuestions(new ArrayList<>());
         } catch (DataServiceException ex) {
-            throw new DataServiceException("Error 105: Unable to create Assessment: " + ex.getMessage());
+            throw new DataServiceException("Error 105: Unable to create Assessment: " + ex.getMessage(), ex);
         }
 
         Assessment assessmentSaved = save(assessment);
@@ -187,8 +186,6 @@ public class AssessmentServiceImpl implements AssessmentService {
     @Override
     public AssessmentDto toDto(Assessment assessment, Long submissionId, boolean questions, boolean answers, boolean submissions, boolean isStudent)
             throws AssessmentNotMatchingException {
-        Long submissionsCompletedCount = null;
-        Long submissionsInProgressCount = null;
         AssessmentDto assessmentDto = new AssessmentDto();
         assessmentDto.setAssessmentId(assessment.getAssessmentId());
         assessmentDto.setHtml(fileStorageService.parseHTMLFiles(assessment.getHtml()));
@@ -206,7 +203,6 @@ public class AssessmentServiceImpl implements AssessmentService {
         assessmentDto.setStudentViewCorrectAnswersBefore(assessment.getStudentViewCorrectAnswersBefore());
         assessmentDto.setQuestions(handleQuestionDtos(assessment, submissionId, questions, answers, isStudent));
 
-        List<SubmissionDto> submissionDtoList = new ArrayList<>();
         Long conditionId = assessment.getTreatment().getCondition().getConditionId();
         Long exposureId = assessment.getTreatment().getAssignment().getExposure().getExposureId();
         Optional<ExposureGroupCondition> exposureGroupCondition =
@@ -217,38 +213,17 @@ public class AssessmentServiceImpl implements AssessmentService {
         } else {
             throw new AssessmentNotMatchingException("Error 124: Assessment " + assessment.getAssessmentId() + " is without a Group");
         }
-        Map<Participant, Boolean> participantStatus = new HashMap<>();
+
+        List<SubmissionDto> submissionDtoList = new ArrayList<>();
 
         if (submissions) {
-            for (Submission submission : assessment.getSubmissions()) {
-                // We add the status. False if in progress, true if submitted.
-                if (submission.getDateSubmitted() != null) {
-                    participantStatus.put(submission.getParticipant(), true);
-                    // Only include the submission if it was submitted
-                    submissionDtoList.add(submissionService.toDto(submission, false, false));
-                } else { //We considered submitted an assessment if it has been submitted at least one time by the user
-                    //including if he is in the middle of taking it again.
-                    if (!participantStatus.containsKey(submission.getParticipant())) {
-                        participantStatus.put(submission.getParticipant(), false);
-                    }
-                }
-            }
-            submissionsCompletedCount = 0L;
-            submissionsInProgressCount = 0L;
-            for (Map.Entry<Participant, Boolean> status : participantStatus.entrySet()) {
-                if (status.getValue()) {
-                    submissionsCompletedCount = submissionsCompletedCount + 1;
-                } else {
-                    submissionsInProgressCount = submissionsInProgressCount + 1;
-                }
-            }
-            assessmentDto.setSubmissionsExpected(allRepositories.participantRepository.countDistinctByGroup_GroupId(groupId));
-            assessmentDto.setSubmissionsCompletedCount(submissionsCompletedCount);
-            assessmentDto.setSubmissionsInProgressCount(submissionsInProgressCount);
+            submissionDtoList = handleSubmissionDtos(assessmentDto, assessment, groupId);
         }
+
         if (assessment.getSubmissions() != null && !assessment.getSubmissions().isEmpty()) {
             assessmentDto.setStarted(true);
         }
+
         assessmentDto.setSubmissions(submissionDtoList);
         assessmentDto.setTreatmentId(assessment.getTreatment().getTreatmentId());
         assessmentDto.setMaxPoints(calculateMaxScore(assessment));
@@ -266,6 +241,42 @@ public class AssessmentServiceImpl implements AssessmentService {
         return CollectionUtils.emptyIfNull(questionList).stream()
             .map(question -> questionService.toDto(question, submissionId, showAnswers, !isStudent))
             .collect(Collectors.toList());
+    }
+
+    private List<SubmissionDto> handleSubmissionDtos(AssessmentDto assessmentDto, Assessment assessment, Long groupId) {
+        Map<Participant, Boolean> participantStatus = new HashMap<>();
+        List<SubmissionDto> submissionDtoList = new ArrayList<>();
+
+        for (Submission submission : assessment.getSubmissions()) {
+            // We add the status. False if in progress, true if submitted.
+            if (submission.getDateSubmitted() != null) {
+                participantStatus.put(submission.getParticipant(), true);
+                // Only include the submission if it was submitted
+                submissionDtoList.add(submissionService.toDto(submission, false, false));
+            } else { //We considered submitted an assessment if it has been submitted at least one time by the user
+                //including if he is in the middle of taking it again.
+                if (!participantStatus.containsKey(submission.getParticipant())) {
+                    participantStatus.put(submission.getParticipant(), false);
+                }
+            }
+        }
+
+        long submissionsCompletedCount = 0l;
+        long submissionsInProgressCount = 0l;
+
+        for (Map.Entry<Participant, Boolean> status : participantStatus.entrySet()) {
+            if (BooleanUtils.isTrue(status.getValue())) {
+                submissionsCompletedCount++;
+            } else {
+                submissionsInProgressCount++;
+            }
+        }
+
+        assessmentDto.setSubmissionsExpected(allRepositories.participantRepository.countDistinctByGroup_GroupId(groupId));
+        assessmentDto.setSubmissionsCompletedCount(submissionsCompletedCount);
+        assessmentDto.setSubmissionsInProgressCount(submissionsInProgressCount);
+
+        return submissionDtoList;
     }
 
     @Override

@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import edu.iu.terracotta.exceptions.CanvasApiException;
+import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.exceptions.OutcomeNotMatchingException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.model.app.AnswerEssaySubmission;
 import edu.iu.terracotta.model.app.AnswerMc;
@@ -61,7 +63,9 @@ import java.util.stream.Collectors;
 @Service
 public class ExportServiceImpl implements ExportService {
 
-    static final Logger log = LoggerFactory.getLogger(ExportServiceImpl.class);
+    private static final Logger log = LoggerFactory.getLogger(ExportServiceImpl.class);
+
+    private static final String FIELD_VALUE_DEFAULT = "N/A";
 
     @Autowired
     private AllRepositories allRepositories;
@@ -79,7 +83,7 @@ public class ExportServiceImpl implements ExportService {
     private SubmissionService submissionService;
 
     @Override
-    public Map<String, List<String[]>> getCsvFiles(long experimentId, SecuredInfo securedInfo) throws CanvasApiException, ParticipantNotUpdatedException, IOException {
+    public Map<String, List<String[]>> getCsvFiles(long experimentId, SecuredInfo securedInfo) throws CanvasApiException, ParticipantNotUpdatedException, IOException, ExperimentNotMatchingException, OutcomeNotMatchingException {
         Map<String, List<String[]>> csvFiles = new HashMap<>();
         List<Participant> participants = allRepositories.participantRepository.findByExperiment_ExperimentId(experimentId);
 
@@ -149,7 +153,7 @@ public class ExportServiceImpl implements ExportService {
     }
 
     private void handleOutcomesCsv(long experimentId,  SecuredInfo securedInfo, Map<String, List<String[]>> csvFiles)
-        throws CanvasApiException, IOException, ParticipantNotUpdatedException {
+        throws CanvasApiException, IOException, ParticipantNotUpdatedException, ExperimentNotMatchingException, OutcomeNotMatchingException {
         List<Outcome> outcomes = outcomeService.findAllByExperiment(experimentId);
 
         for (Outcome outcome : outcomes) {
@@ -338,39 +342,32 @@ public class ExportServiceImpl implements ExportService {
                 String participantId = questionSubmission.getSubmission().getParticipant().getParticipantId().toString();
                 String itemId = questionSubmission.getQuestion().getQuestionId().toString();
                 String responseType = questionSubmission.getQuestion().getQuestionType().toString();
-                String response = "N/A";
-                String responseId = "N/A";
-                String responsePosition = "N/A";
-                String correctness = "N/A";
-                String calculatedScore = "N/A";
-                String overrideScore = "N/A";
+                String response = null;
+                String responseId = null;
+                String responsePosition = null;
+                String correctness = null;
+                String calculatedScore = null;
+                String overrideScore = null;
 
                 switch (questionSubmission.getQuestion().getQuestionType()) {
                     case MC:
                         List<AnswerMcSubmission> answerMcSubmissions = allRepositories.answerMcSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmission.getQuestionSubmissionId());
+
                         if (CollectionUtils.isEmpty(answerMcSubmissions)) {
                             break;
                         }
 
                         AnswerMcSubmission answerMcSubmission = answerMcSubmissions.get(0);
-
-                        if (StringUtils.isNotBlank(answerMcSubmission.getAnswerMc().getHtml())) {
-                            response = answerMcSubmission.getAnswerMc().getHtml();
-                        }
+                        response = calculateItemResponseValue(answerMcSubmission.getAnswerMc().getHtml());
 
                         responseId = answerMcSubmission.getAnswerMc().getAnswerMcId().toString();
                         responsePosition = Character.toString(mapResponsePosition(Long.parseLong(itemId),
                                 answerMcSubmission.getAnswerMc().getAnswerMcId(),
                                 questionSubmission.getAnswerMcSubmissionOptions()));
-                        correctness = answerMcSubmission.getAnswerMc().getCorrect().toString().toUpperCase();
+                        correctness = answerMcSubmission.getAnswerMc().getCorrect().toString().toUpperCase(Locale.US);
 
-                        if (questionSubmission.getCalculatedPoints() != null) {
-                            calculatedScore = questionSubmission.getCalculatedPoints().toString();
-                        }
-
-                        if (questionSubmission.getAlteredGrade() != null) {
-                            overrideScore = questionSubmission.getAlteredGrade().toString();
-                        }
+                        calculatedScore = calculateItemResponseValue(questionSubmission.getCalculatedPoints());
+                        overrideScore = calculateItemResponseValue(questionSubmission.getAlteredGrade());
 
                         break;
 
@@ -383,17 +380,12 @@ public class ExportServiceImpl implements ExportService {
 
                         AnswerEssaySubmission answerEssaySubmission = answerEssaySubmissions.get(0);
 
-                        if (StringUtils.isNotBlank(answerEssaySubmission.getResponse())) {
-                            response = answerEssaySubmission.getResponse();
-                        }
-
-                        if (questionSubmission.getCalculatedPoints() != null) {
-                            calculatedScore = answerEssaySubmission.getQuestionSubmission().getCalculatedPoints().toString();
-                        }
-
-                        if (questionSubmission.getAlteredGrade() != null) {
-                            overrideScore = answerEssaySubmission.getQuestionSubmission().getAlteredGrade().toString();
-                        }
+                        response = calculateItemResponseValue(answerEssaySubmission.getResponse());
+                        calculatedScore = calculateItemResponseValue(answerEssaySubmission.getQuestionSubmission().getCalculatedPoints());
+                        overrideScore = calculateItemResponseValue(answerEssaySubmission.getQuestionSubmission().getAlteredGrade());
+                        correctness = calculateItemResponseValue(null);
+                        responsePosition = calculateItemResponseValue(null);
+                        responseId = calculateItemResponseValue(null);
 
                         break;
 
@@ -401,18 +393,26 @@ public class ExportServiceImpl implements ExportService {
                         break;
                 }
 
-                String respondedAt = "N/A";
-
-                if (questionSubmission.getSubmission().getDateSubmitted() != null) {
-                    respondedAt = questionSubmission.getSubmission().getDateSubmitted().toString();
-                }
-
+                String respondedAt = calculateItemResponseValue(questionSubmission.getSubmission().getDateSubmitted());
                 String pointsPossible = questionSubmission.getQuestion().getPoints().toString();
+
                 questionSubmissionData.add(new String[]{itemResponseId, submissionId, assignmentId, conditionId, treatmentId, participantId, itemId, responseType, response, responseId, responsePosition, correctness,
                         respondedAt, pointsPossible, calculatedScore, overrideScore});
             });
 
         csvFiles.put(ItemResponsesCsv.FILENAME, questionSubmissionData);
+    }
+
+    private String calculateItemResponseValue(Object field) {
+        return calculateItemResponseValue(field, FIELD_VALUE_DEFAULT);
+    }
+
+    private String calculateItemResponseValue(Object field, String defaultValue) {
+        if (Objects.isNull(field)) {
+            return defaultValue;
+        }
+
+        return field.toString();
     }
 
     private void handleResponseOptionsCsv(long experimentId, Map<String, List<String[]>> csvFiles) {
@@ -431,9 +431,9 @@ public class ExportServiceImpl implements ExportService {
                 }
 
                 String responsePosition = Character.toString(mapResponsePosition(Long.parseLong(itemId), Long.parseLong(responseId)));
-                String correct = answerMc.getCorrect().toString().toUpperCase();
+                String correct = answerMc.getCorrect().toString().toUpperCase(Locale.US);
                 QuestionMc question = (QuestionMc) answerMc.getQuestion();
-                String randomized = Boolean.toString(question.isRandomizeAnswers()).toUpperCase();
+                String randomized = Boolean.toString(question.isRandomizeAnswers()).toUpperCase(Locale.US);
                 answerData.add(new String[]{responseId, itemId, response, responsePosition, correct, randomized});
             });
 

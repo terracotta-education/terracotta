@@ -40,10 +40,10 @@ import java.util.List;
 @Service
 public class LTIDataServiceImpl implements LTIDataService {
 
-    static final Logger log = LoggerFactory.getLogger(LTIDataServiceImpl.class);
+    private static final Logger log = LoggerFactory.getLogger(LTIDataServiceImpl.class);
 
     @Autowired
-    AllRepositories repos;
+    private AllRepositories repos;
 
     //This will be used to create the deep links. Needs to be in the application properties.
     @Value("${application.url}")
@@ -103,29 +103,47 @@ public class LTIDataServiceImpl implements LTIDataService {
         @SuppressWarnings("unchecked")
         List<Object[]> rows = qDeployment.getResultList();
         if (rows == null || rows.isEmpty()) {
-            log.debug("LTIload: No lti.results found for client_id: " + lti.getAud() + " and  deployment_id:" + lti.getLtiDeploymentId());
+            log.debug("LTIload: No lti.results found for client_id: {} and  deployment_id: {}", lti.getAud(), lti.getLtiDeploymentId());
         } else {
             //If there is a result, then we load the data in the LTI request.
             // k, c, l, m, u, t
-            Object[] row = rows.get(0);
-            if (row.length > 0) {
-                lti.setKey((PlatformDeployment) row[0]);
-            }
-            if (row.length > 1) lti.setContext((LtiContextEntity) row[1]);
-            if (row.length > 2) lti.setLink((LtiLinkEntity) row[2]);
-            if (row.length > 3) lti.setMembership((LtiMembershipEntity) row[3]);
-            if (row.length > 4) lti.setUser((LtiUserEntity) row[4]);
-            if (row.length > 5) lti.setToolDeployment((ToolDeployment) row[5]);
-
-            // check if the loading lti.resulted in a complete set of LTI data
-            lti.checkCompleteLTIRequest();
-            lti.setLoaded(true);
-            //log.info("User " + lti.getUser().getUserKey() + " connected to the context " + lti.getLtiContextId() + " from " + lti.getKey().getBaseUrl() +
-            //        ", with the client id " + lti.getAud() + " and deploymentId " + lti.getLtiDeploymentId());
-            log.debug("LTIload: loaded data for clientid= " + lti.getAud() + " deploymentid=" + lti.getLtiDeploymentId()
-                    + " and context=" + lti.getLtiContextId() + ", complete=" + lti.isComplete());
+            loadLTIRowset(lti, rows);
         }
         return lti.isLoaded();
+    }
+
+    private void loadLTIRowset(LTI3Request lti, List<Object[]> rows) {
+        Object[] row = rows.get(0);
+
+        if (row.length > 0) {
+            lti.setKey((PlatformDeployment) row[0]);
+        }
+
+        if (row.length > 1) {
+            lti.setContext((LtiContextEntity) row[1]);
+        }
+
+        if (row.length > 2) {
+            lti.setLink((LtiLinkEntity) row[2]);
+        }
+
+        if (row.length > 3) {
+            lti.setMembership((LtiMembershipEntity) row[3]);
+        }
+
+        if (row.length > 4) {
+            lti.setUser((LtiUserEntity) row[4]);
+        }
+
+        if (row.length > 5) {
+            lti.setToolDeployment((ToolDeployment) row[5]);
+        }
+
+        // check if the loading lti.resulted in a complete set of LTI data
+        lti.checkCompleteLTIRequest();
+        lti.setLoaded(true);
+        log.debug("LTIload: loaded data for clientid = {} deploymentid = {} and context = {} complete = {}",
+            lti.getAud(), lti.getLtiDeploymentId(), lti.getLtiContextId(), lti.isComplete());
     }
 
     @Override
@@ -135,11 +153,15 @@ public class LTIDataServiceImpl implements LTIDataService {
         if (repos == null) {
             throw new DataServiceException("access to the repos is required");
         }
-        if (toolDeployment == null)
+
+        if (toolDeployment == null) {
             throw new DataServiceException("ToolDeployment data must not be null to update data");
+        }
+
         if (lti.getToolDeployment() == null) {
             lti.setToolDeployment(toolDeployment);
         }
+
         if (link == null) {
             link = lti.getLtiTargetLinkUrl().substring(lti.getLtiTargetLinkUrl().lastIndexOf("?link=") + 6);
         }
@@ -149,6 +171,7 @@ public class LTIDataServiceImpl implements LTIDataService {
         repos.entityManager.merge(lti.getKey());
         int inserts = 0;
         int updates = 0;
+
         if (lti.getContext() == null && lti.getLtiDeploymentId() != null) {
             //Context is not in the lti request at this moment. Let's see if it exists:
             LtiContextEntity ltiContextEntity = repos.contexts.findByContextKeyAndToolDeployment(lti.getLtiContextId(), toolDeployment);
@@ -235,7 +258,6 @@ public class LTIDataServiceImpl implements LTIDataService {
             lti.setLtiEmail(lti.getUser().getEmail());
             log.debug("LTIupdate: Reconnected existing user id=" + lti.getSub());
         }
-
 
         if (lti.getMembership() == null && lti.getContext() != null && lti.getUser() != null) {
             LtiMembershipEntity ltiMembershipEntity = repos.members.findByUserAndContext(lti.getUser(), lti.getContext());

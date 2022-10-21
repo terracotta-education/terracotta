@@ -270,22 +270,13 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
                 if (questionSubmissionDto.getQuestionSubmissionId() != null) {
                     throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
                 }
+
                 validateDtoPost(questionSubmissionDto, assessmentId, submissionId, student);
                 questionSubmissionDto.setSubmissionId(submissionId);
                 QuestionSubmission questionSubmission = fromDto(questionSubmissionDto);
-                if (questionSubmission.getQuestion().getQuestionType().equals(QuestionTypes.MC) || questionSubmission.getQuestion().getQuestionType().equals(QuestionTypes.ESSAY)) {
-                    if (questionSubmissionDto.getAnswerSubmissionDtoList() != null) {
-                        if (questionSubmissionDto.getAnswerSubmissionDtoList().size() > 1) {
-                            throw new ExceedingLimitException("Error 145: Multiple choice and essay questions can only have one answer submission.");
-                        } else if (questionSubmissionDto.getAnswerSubmissionDtoList().size() == 0) {
-                            questionSubmissionDto.getAnswerSubmissionDtoList().add(new AnswerSubmissionDto());
-                        }
-                    } else {
-                        questionSubmissionDto.setAnswerSubmissionDtoList(new ArrayList<>());
-                        questionSubmissionDto.getAnswerSubmissionDtoList().add(new AnswerSubmissionDto());
-                    }
 
-                }
+                handleAnswerSubmissionDtos(questionSubmission, questionSubmissionDto);
+
                 for (AnswerSubmissionDto answerSubmissionDto : questionSubmissionDto.getAnswerSubmissionDtoList()) {
                     if (answerSubmissionDto.getAnswerId() != null) {
                         Optional<AnswerMc> answerMc = allRepositories.answerMcRepository.findByQuestion_QuestionIdAndAnswerMcId(questionSubmission.getQuestion().getQuestionId(), answerSubmissionDto.getAnswerId());
@@ -296,7 +287,24 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
                 }
             }
         } catch (Exception ex) {
-            throw new DataServiceException("Error 105: There is invalid data in the request. No question submissions or answer submissions will be created: " + ex.getMessage());
+            throw new DataServiceException("Error 105: There is invalid data in the request. No question submissions or answer submissions will be created: " + ex.getMessage(), ex);
+        }
+    }
+
+    private void handleAnswerSubmissionDtos(QuestionSubmission questionSubmission, QuestionSubmissionDto questionSubmissionDto) throws ExceedingLimitException {
+        if (!questionSubmission.getQuestion().getQuestionType().equals(QuestionTypes.MC) && !questionSubmission.getQuestion().getQuestionType().equals(QuestionTypes.ESSAY)) {
+            return;
+        }
+
+        if (questionSubmissionDto.getAnswerSubmissionDtoList() != null) {
+            if (questionSubmissionDto.getAnswerSubmissionDtoList().size() > 1) {
+                throw new ExceedingLimitException("Error 145: Multiple choice and essay questions can only have one answer submission.");
+            } else if (questionSubmissionDto.getAnswerSubmissionDtoList().isEmpty()) {
+                questionSubmissionDto.getAnswerSubmissionDtoList().add(new AnswerSubmissionDto());
+            }
+        } else {
+            questionSubmissionDto.setAnswerSubmissionDtoList(new ArrayList<>());
+            questionSubmissionDto.getAnswerSubmissionDtoList().add(new AnswerSubmissionDto());
         }
     }
 
@@ -308,30 +316,43 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
                 if (answerSubmissionDto.getAnswerSubmissionId() == null) {
                     throw new IdMissingException("Error 125: An existing answer submission id must be included in the request.");
                 }
-                String answerType = questionSubmission.getQuestion().getQuestionType().toString();
-                switch (answerType) {
-                    case "MC":
-                        Optional<AnswerMcSubmission> answerMcSubmission = allRepositories.answerMcSubmissionRepository.findById(answerSubmissionDto.getAnswerSubmissionId());
-                        if (!answerMcSubmission.isPresent()) {
-                            throw new AnswerSubmissionNotMatchingException(TextConstants.ANSWER_SUBMISSION_NOT_MATCHING);
-                        }
-                        if (answerSubmissionDto.getAnswerId() != null) {
-                            Optional<AnswerMc> answerMc = allRepositories.answerMcRepository.findByQuestion_QuestionIdAndAnswerMcId(questionSubmission.getQuestion().getQuestionId(), answerSubmissionDto.getAnswerId());
-                            if (!answerMc.isPresent()) {
-                                throw new AnswerNotMatchingException(TextConstants.ANSWER_NOT_MATCHING);
-                            }
-                        }
+
+                switch (questionSubmission.getQuestion().getQuestionType()) {
+                    case MC:
+                        validateQuestionSubmissionMC(answerSubmissionDto, questionSubmission);
                         break;
-                    case "ESSAY":
-                        Optional<AnswerEssaySubmission> answerEssaySubmission = allRepositories.answerEssaySubmissionRepository.findById(answerSubmissionDto.getAnswerSubmissionId());
-                        if (!answerEssaySubmission.isPresent()) {
-                            throw new AnswerSubmissionNotMatchingException(TextConstants.ANSWER_SUBMISSION_NOT_MATCHING);
-                        }
+                    case ESSAY:
+                        validateQuestionSubmissionEssay(answerSubmissionDto);
                         break;
+                    default:
+                        throw new DataServiceException(TextConstants.ANSWER_TYPE_NOT_SUPPORTED);
                 }
             }
         } catch (Exception ex) {
-            throw new DataServiceException("Error 105: There is invalid data in the request. No question submissions or answer submissions will be updated: " + ex.getMessage());
+            throw new DataServiceException("Error 105: There is invalid data in the request. No question submissions or answer submissions will be updated: " + ex.getMessage(), ex);
+        }
+    }
+
+    private void validateQuestionSubmissionMC(AnswerSubmissionDto answerSubmissionDto, QuestionSubmission questionSubmission) throws AnswerSubmissionNotMatchingException, AnswerNotMatchingException {
+        Optional<AnswerMcSubmission> answerMcSubmission = allRepositories.answerMcSubmissionRepository.findById(answerSubmissionDto.getAnswerSubmissionId());
+        if (!answerMcSubmission.isPresent()) {
+            throw new AnswerSubmissionNotMatchingException(TextConstants.ANSWER_SUBMISSION_NOT_MATCHING);
+        }
+
+        if (answerSubmissionDto.getAnswerId() != null) {
+            Optional<AnswerMc> answerMc = allRepositories.answerMcRepository.findByQuestion_QuestionIdAndAnswerMcId(questionSubmission.getQuestion().getQuestionId(), answerSubmissionDto.getAnswerId());
+
+            if (!answerMc.isPresent()) {
+                throw new AnswerNotMatchingException(TextConstants.ANSWER_NOT_MATCHING);
+            }
+        }
+    }
+
+    private void validateQuestionSubmissionEssay(AnswerSubmissionDto answerSubmissionDto) throws AnswerSubmissionNotMatchingException {
+        Optional<AnswerEssaySubmission> answerEssaySubmission = allRepositories.answerEssaySubmissionRepository.findById(answerSubmissionDto.getAnswerSubmissionId());
+
+        if (!answerEssaySubmission.isPresent()) {
+            throw new AnswerSubmissionNotMatchingException(TextConstants.ANSWER_SUBMISSION_NOT_MATCHING);
         }
     }
 

@@ -25,6 +25,8 @@ import org.mockito.MockitoAnnotations;
 import org.mockito.Spy;
 
 import edu.iu.terracotta.exceptions.CanvasApiException;
+import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.exceptions.OutcomeNotMatchingException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.model.LtiContextEntity;
 import edu.iu.terracotta.model.app.AnswerEssaySubmission;
@@ -207,7 +209,7 @@ public class ExportServiceImplTest {
     }
 
     @Test
-    void testGetCsvFiles() throws CanvasApiException, ParticipantNotUpdatedException, IOException {
+    void testGetCsvFiles() throws CanvasApiException, ParticipantNotUpdatedException, IOException, ExperimentNotMatchingException, OutcomeNotMatchingException {
         Map<String, List<String[]>> csvFiles = exportService.getCsvFiles(1L, securedInfo);
 
         assertNotNull(csvFiles);

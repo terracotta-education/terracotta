@@ -6,6 +6,7 @@ import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentLockedException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.IdInPostException;
+import edu.iu.terracotta.exceptions.OutcomeNotMatchingException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.exceptions.WrongValueException;
@@ -175,7 +176,7 @@ public class ExperimentController {
     @RequestMapping(value = "/{id}/zip", method = RequestMethod.GET, produces = "application/zip")
     public ResponseEntity<ByteArrayResource> downloadZip(@PathVariable("id") Long experimentId,
                                                          HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, IOException, CanvasApiException, ParticipantNotUpdatedException {
+            throws ExperimentNotMatchingException, BadTokenException, IOException, CanvasApiException, ParticipantNotUpdatedException, OutcomeNotMatchingException {
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);

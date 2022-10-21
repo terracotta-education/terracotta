@@ -1,5 +1,6 @@
 package edu.iu.terracotta.service.app.impl;
 
+import edu.iu.terracotta.exceptions.AssignmentNotCreatedException;
 import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
@@ -30,7 +31,7 @@ public class ScheduledServiceImpl implements ScheduledService {
 
 
     @Scheduled(cron = "${scheduled.restoredeletedassignments.cron:0 0 3 * * ?}")
-    public void restoreDeletedAssignments() throws DataServiceException, CanvasApiException, ConnectionException, IOException {
+    public void restoreDeletedAssignments() throws DataServiceException, CanvasApiException, ConnectionException, IOException, AssignmentNotCreatedException {
         log.info("Restoring Assignments :: Starting - {} ", dateTimeFormatter.format(LocalDateTime.now()));
         assignmentService.checkAndRestoreAllAssignmentsInCanvas();
         log.info("Restoring Assignments :: Ended - {} ", dateTimeFormatter.format(LocalDateTime.now()));

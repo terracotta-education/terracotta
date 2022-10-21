@@ -75,7 +75,7 @@ public class GroupServiceImpl implements GroupService {
         try{
             group = fromDto(groupDto);
         } catch (DataServiceException e) {
-            throw new DataServiceException("Error 105: Unable to create group:" + e.getMessage());
+            throw new DataServiceException("Error 105: Unable to create group:" + e.getMessage(), e);
         }
         return toDto(save(group));
     }
@@ -156,51 +156,63 @@ public class GroupServiceImpl implements GroupService {
     @Transactional
     public void createAndAssignGroupsToConditionsAndExposures(Long experimentId, SecuredInfo securedInfo, boolean isCustom) throws DataServiceException {
         Optional<Experiment> experiment = allRepositories.experimentRepository.findById(experimentId);
-        if(experiment.isPresent()) {
-            int numberOfGroups = experiment.get().getConditions().size();
-            List<Group> groups = allRepositories.groupRepository.findByExperiment_ExperimentId(experimentId);
-            if (groups.isEmpty()){
-                //We create the groups but we don't assign people to them
-                groups = createGroups(numberOfGroups, experiment.get());
-            } else {
-                if (groups.size() != experiment.get().getConditions().size()){
-                    if (experimentService.experimentStarted(experiment.get())){
-                        //This should never happen, but... just in case
-                        throw new DataServiceException("Error 110: The experiment has started but there is an error with the group amount");
-                    } else {
-                        //RESET THE PARTICIPANT GROUPS
-                        for (Participant participant:experiment.get().getParticipants()){
-                            participant.setGroup(null);
-                            participantService.save(participant);
-                        }
-                        //DELETE THE GROUPS
-                        allRepositories.exposureGroupConditionRepository.deleteByExposure_Experiment_ExperimentId(experimentId);
-                        allRepositories.groupRepository.deleteByExperiment_ExperimentId(experimentId);
-                        //CREATE THEM AGAIN
-                        groups = createGroups(numberOfGroups, experiment.get());
-                    }
-                }
-            }
-            //We assign the groups to the conditions and exposures
-            List<ExposureGroupCondition> exposureGroupConditionList =
-                    allRepositories.exposureGroupConditionRepository.findByCondition_Experiment_ExperimentId(experimentId);
-            if (exposureGroupConditionList.isEmpty()) {
-                assignGroups(groups, experiment.get());
-            } else {
-                if (exposureGroupConditionList.size()!=experiment.get().getConditions().size()*experiment.get().getExposures().size()) {
-                    if (experimentService.experimentStarted(experiment.get())) {
-                        throw new DataServiceException("Error 110: The experiment has started but there is an error with the " +
-                                "group/exposure/condition associations amount");
-                    } else {
-                        allRepositories.exposureGroupConditionRepository.deleteByExposure_Experiment_ExperimentId(experimentId);
-                        assignGroups(groups, experiment.get());
-                    }
-                }
-            }
-            //WE WILL ASSIGN PEOPLE TO THE GROUPS LATER.
-        } else {
+
+        if(!experiment.isPresent()) {
             throw new DataServiceException("The experiment for the group does not exist");
         }
+
+        List<Group> groups = handleGroupAssignments(experiment.get());
+
+        //We assign the groups to the conditions and exposures
+        List<ExposureGroupCondition> exposureGroupConditionList =
+                allRepositories.exposureGroupConditionRepository.findByCondition_Experiment_ExperimentId(experimentId);
+
+        if (exposureGroupConditionList.isEmpty()) {
+            assignGroups(groups, experiment.get());
+        } else {
+            if (exposureGroupConditionList.size() != experiment.get().getConditions().size()*experiment.get().getExposures().size()) {
+                if (experimentService.experimentStarted(experiment.get())) {
+                    throw new DataServiceException("Error 110: The experiment has started but there is an error with the " +
+                            "group/exposure/condition associations amount");
+                } else {
+                    allRepositories.exposureGroupConditionRepository.deleteByExposure_Experiment_ExperimentId(experimentId);
+                    assignGroups(groups, experiment.get());
+                }
+            }
+        }
+        //WE WILL ASSIGN PEOPLE TO THE GROUPS LATER.
+    }
+
+    private List<Group> handleGroupAssignments(Experiment experiment) throws DataServiceException {
+        int numberOfGroups = experiment.getConditions().size();
+        List<Group> groups = allRepositories.groupRepository.findByExperiment_ExperimentId(experiment.getExperimentId());
+
+        if (groups.isEmpty()){
+            //We create the groups but we don't assign people to them
+            return createGroups(numberOfGroups, experiment);
+        }
+
+        if (groups.size() == experiment.getConditions().size()) {
+            return groups;
+        }
+
+        if (experimentService.experimentStarted(experiment)){
+            //This should never happen, but... just in case
+            throw new DataServiceException("Error 110: The experiment has started but there is an error with the group amount");
+        }
+
+        //RESET THE PARTICIPANT GROUPS
+        for (Participant participant : experiment.getParticipants()){
+            participant.setGroup(null);
+            participantService.save(participant);
+        }
+
+        //DELETE THE GROUPS
+        allRepositories.exposureGroupConditionRepository.deleteByExposure_Experiment_ExperimentId(experiment.getExperimentId());
+        allRepositories.groupRepository.deleteByExperiment_ExperimentId(experiment.getExperimentId());
+
+        //CREATE THEM AGAIN
+        return createGroups(numberOfGroups, experiment);
     }
 
     @Override
@@ -219,10 +231,10 @@ public class GroupServiceImpl implements GroupService {
                 exposureGroupConditionList.add(exposureGroupCondition);
             }
         }
-        for (int loop_number=0;loop_number<experiment.getExposures().size();loop_number++){
-            for (int i=0; i<groups.size();i++){
-                int groupIndex = (i+loop_number)%groups.size();
-                int exposureGroupConditionIndex = loop_number*groups.size() + i;
+        for (int loopNumber=0; loopNumber<experiment.getExposures().size(); loopNumber++){
+            for (int i=0; i<groups.size(); i++){
+                int groupIndex = (i+loopNumber)%groups.size();
+                int exposureGroupConditionIndex = loopNumber*groups.size() + i;
                     exposureGroupConditionList.get(exposureGroupConditionIndex).setGroup(groups.get(groupIndex));
                     saveExposureGroupCondition(exposureGroupConditionList.get(exposureGroupConditionIndex));
             }
@@ -244,53 +256,56 @@ public class GroupServiceImpl implements GroupService {
 
     @Override
     public Group nextGroup(Experiment experiment){
-
-        float evenPercent =  (100 / (float) experiment.getConditions().size());
         long totalParticipants = 0L;
         Group moreUnbalanced = null;
         float unbalancement = Float.parseFloat("0");
         Map<Group, Long> count = new HashMap<>();
         List<Group> groups = allRepositories.groupRepository.findByExperiment_ExperimentId(experiment.getExperimentId());
-        for (Group group:groups){
+
+        for (Group group : groups){
             long groupCount = allRepositories.participantRepository.countByGroup_GroupId(group.getGroupId());
             totalParticipants = totalParticipants + groupCount;
             count.put(group,groupCount);
         }
 
-        //If the experiment has just one exposure... we look at the groups/Exposures/etc...
-        // to see the group assigned to the condition
+        //If the experiment has just one exposure... we look at the groups/Exposures/etc to see the group assigned to the condition
         //If the experiment has more than one exposure... we shouldn't be doing this....
         List<ExposureGroupCondition> exposureGroupConditionList =
                 allRepositories.exposureGroupConditionRepository.findByExposure_ExposureId(experiment.getExposures().get(0).getExposureId());
-        for (ExposureGroupCondition exposureGroupCondition:exposureGroupConditionList){
-            Long countGroup = count.get(exposureGroupCondition.getGroup());
-            float groupUnbalancement;
-            if (experiment.getDistributionType().equals(DistributionTypes.EVEN)) {
-                if (totalParticipants!=0) {
-                    groupUnbalancement = evenPercent - (100 * (countGroup / (float) totalParticipants));
-                } else {
-                    groupUnbalancement = evenPercent;
-                }
 
-            } else {
-                if (totalParticipants!=0) {
-                    groupUnbalancement = exposureGroupCondition.getCondition().getDistributionPct() - (100 * (countGroup / (float) totalParticipants));
-                } else {
-                    groupUnbalancement = exposureGroupCondition.getCondition().getDistributionPct();
-                }
+        for (ExposureGroupCondition exposureGroupCondition:exposureGroupConditionList) {
+            float groupUnbalancement = handleUnbalancedGroup(experiment, exposureGroupCondition, totalParticipants, count);
+
+            if (groupUnbalancement > 0 && groupUnbalancement>unbalancement) {
+                unbalancement = groupUnbalancement;
+                moreUnbalanced = exposureGroupCondition.getGroup();
             }
-            if ((groupUnbalancement)>0){
-                if (groupUnbalancement>unbalancement){
-                    unbalancement = groupUnbalancement;
-                    moreUnbalanced = exposureGroupCondition.getGroup();
-                }
-            }
+
             // In case the groups are perfectly balanced, by default pick the first group
             if (moreUnbalanced == null) {
                 moreUnbalanced = exposureGroupCondition.getGroup();
             }
         }
+
         return moreUnbalanced;
+    }
+
+    private float handleUnbalancedGroup(Experiment experiment, ExposureGroupCondition exposureGroupCondition, long totalParticipants, Map<Group, Long> count) {
+        float evenPercent =  100 / (float) experiment.getConditions().size();
+
+        if (DistributionTypes.EVEN.equals(experiment.getDistributionType())) {
+            if (totalParticipants != 0) {
+                return evenPercent - (100 * (count.get(exposureGroupCondition.getGroup()) / (float) totalParticipants));
+            }
+
+            return evenPercent;
+        }
+
+        if (totalParticipants != 0) {
+            return exposureGroupCondition.getCondition().getDistributionPct() - (100 * (count.get(exposureGroupCondition.getGroup()) / (float) totalParticipants));
+        }
+
+        return exposureGroupCondition.getCondition().getDistributionPct();
     }
 
     @Override

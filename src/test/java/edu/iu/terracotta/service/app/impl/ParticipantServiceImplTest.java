@@ -25,6 +25,7 @@ import org.mockito.MockitoAnnotations;
 import org.mockito.Spy;
 
 import edu.iu.terracotta.exceptions.AssignmentNotMatchingException;
+import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.GroupNotMatchingException;
 import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
@@ -38,7 +39,7 @@ import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.GroupService;
 import edu.iu.terracotta.utils.TextConstants;
 
-public class ParticipantServiceImplTest {
+class ParticipantServiceImplTest {
 
     @Spy
     @InjectMocks
@@ -53,7 +54,7 @@ public class ParticipantServiceImplTest {
     @Mock private SecuredInfo securedInfo;
 
     @BeforeEach
-    public void beforeEach() throws ParticipantNotUpdatedException, GroupNotMatchingException, AssignmentNotMatchingException {
+    public void beforeEach() throws ParticipantNotUpdatedException, GroupNotMatchingException, AssignmentNotMatchingException, ExperimentNotMatchingException {
         MockitoAnnotations.openMocks(this);
 
         clearInvocations(participant);
@@ -79,7 +80,7 @@ public class ParticipantServiceImplTest {
     }
 
     @Test
-    public void testhandleExperimentParticipantAutoParticipation() throws GroupNotMatchingException, ParticipantNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException {
+    void testhandleExperimentParticipantAutoParticipation() throws GroupNotMatchingException, ParticipantNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, ExperimentNotMatchingException {
         Participant participant = participantService.handleExperimentParticipant(experiment, securedInfo);
 
         assertNotNull(participant);
@@ -87,7 +88,7 @@ public class ParticipantServiceImplTest {
     }
 
     @Test
-    public void testhandleExperimentParticipantNotAutoParticipation() throws GroupNotMatchingException, ParticipantNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException {
+    void testhandleExperimentParticipantNotAutoParticipation() throws GroupNotMatchingException, ParticipantNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, ExperimentNotMatchingException {
         when(experiment.getParticipationType()).thenReturn(ParticipationTypes.MANUAL);
         Participant participant = participantService.handleExperimentParticipant(experiment, securedInfo);
 
@@ -96,7 +97,7 @@ public class ParticipantServiceImplTest {
     }
 
     @Test
-    public void testhandleExperimentParticipantInGroup() throws GroupNotMatchingException, ParticipantNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException {
+    void testhandleExperimentParticipantInGroup() throws GroupNotMatchingException, ParticipantNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, ExperimentNotMatchingException {
         when(this.participant.getConsent()).thenReturn(true);
 
         Participant participant = participantService.handleExperimentParticipant(experiment, securedInfo);
@@ -106,7 +107,7 @@ public class ParticipantServiceImplTest {
     }
 
     @Test
-    public void testhandleExperimentParticipantNotInAGroup() throws GroupNotMatchingException, ParticipantNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException {
+    void testhandleExperimentParticipantNotInAGroup() throws GroupNotMatchingException, ParticipantNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, ExperimentNotMatchingException {
         when(this.participant.getConsent()).thenReturn(true);
         when(participant.getGroup()).thenReturn(null);
 
@@ -117,7 +118,7 @@ public class ParticipantServiceImplTest {
     }
 
     @Test
-    public void testhandleExperimentParticipantNoParticipant() {
+    void testhandleExperimentParticipantNoParticipant() {
         doReturn(null).when(participantService).findParticipant(anyList(),anyString());
 
         Exception exception = assertThrows(ParticipantNotMatchingException.class, () -> { participantService.handleExperimentParticipant(experiment, securedInfo); });

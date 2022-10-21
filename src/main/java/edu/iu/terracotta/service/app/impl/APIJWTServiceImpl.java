@@ -130,7 +130,7 @@ public class APIJWTServiceImpl implements APIJWTService {
     //Here we could add other checks like expiration of the state (not implemented)
     @Override
     public Jws<Claims> validateToken(String token) {
-        return Jwts.parser().setSigningKeyResolver(new SigningKeyResolverAdapter() {
+        return Jwts.parserBuilder().setSigningKeyResolver(new SigningKeyResolverAdapter() {
             // This is done because each state is signed with a different key based on the issuer... so
             // we don't know the key and we need to check it pre-extracting the claims and finding the kid
             @Override
@@ -146,7 +146,9 @@ public class APIJWTServiceImpl implements APIJWTService {
                 }
                 return toolPublicKey;
             }
-        }).parseClaimsJws(token);
+        })
+        .build()
+        .parseClaimsJws(token);
         // If we are on this point, then the state signature has been validated. We can start other tasks now.
     }
 
@@ -166,7 +168,7 @@ public class APIJWTServiceImpl implements APIJWTService {
     public Jwt<Header, Claims> unsecureToken(String token){
         int i = token.lastIndexOf('.');
         String withoutSignature = token.substring(0, i+1);
-        return Jwts.parser().parseClaimsJwt(withoutSignature);
+        return Jwts.parserBuilder().build().parseClaimsJwt(withoutSignature);
     }
 
     @Override
@@ -225,7 +227,7 @@ public class APIJWTServiceImpl implements APIJWTService {
                 .claim("lockAt", lockAt)
                 .claim("unlockAt", unlockAt)
                 .claim("nonce", nonce)
-                .signWith(SignatureAlgorithm.RS256, toolPrivateKey);  //We sign it with our own private key. The platform has the public one.
+                .signWith(toolPrivateKey, SignatureAlgorithm.RS256);  //We sign it with our own private key. The platform has the public one.
         String token = builder.compact();
         if (oneUse){
             apiDataService.addOneUseToken(token);
@@ -298,7 +300,7 @@ public class APIJWTServiceImpl implements APIJWTService {
                 .setNotBefore(date) //a java.util.Date
                 .setIssuedAt(date) // for example, now
                 .claim("fileId", fileId)  //This is an specific claim to ask for tokens.
-                .signWith(SignatureAlgorithm.RS256, toolPrivateKey);  //We sign it with our own private key. The platform has the public one.
+                .signWith(toolPrivateKey, SignatureAlgorithm.RS256);  //We sign it with our own private key. The platform has the public one.
         String token = builder.compact();
         log.debug("Token Request: \n {} \n", token);
         return token;
@@ -340,7 +342,7 @@ public class APIJWTServiceImpl implements APIJWTService {
                 .claim("lockAt", tokenClaims.getBody().get("lockAt"))
                 .claim("unlockAt", tokenClaims.getBody().get("unlockAt"))
                 .claim("nonce", tokenClaims.getBody().get("nonce"))
-                .signWith(SignatureAlgorithm.RS256, toolPrivateKey);  //We sign it with our own private key. The platform has the public one.
+                .signWith(toolPrivateKey, SignatureAlgorithm.RS256);  //We sign it with our own private key. The platform has the public one.
         String newToken = builder.compact();
         log.debug("Token Request: \n {} \n", newToken);
         return newToken;

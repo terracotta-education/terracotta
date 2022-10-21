@@ -11,6 +11,7 @@ import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExceedingLimitException;
+import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.ExposureNotMatchingException;
 import edu.iu.terracotta.exceptions.GroupNotMatchingException;
 import edu.iu.terracotta.exceptions.IdInPostException;
@@ -418,7 +419,7 @@ public class AssignmentServiceImpl implements AssignmentService {
     public ResponseEntity<Object> launchAssignment(Long experimentId, SecuredInfo securedInfo) throws
             AssessmentNotMatchingException, ParticipantNotUpdatedException, AssignmentDatesException,
             DataServiceException, CanvasApiException, IOException, GroupNotMatchingException,
-            ParticipantNotMatchingException, ConnectionException, AssignmentAttemptException, AssignmentNotMatchingException {
+            ParticipantNotMatchingException, ConnectionException, AssignmentAttemptException, AssignmentNotMatchingException, ExperimentNotMatchingException {
         Optional<Experiment> experiment = experimentService.findById(experimentId);
         if (experiment.isPresent()) {
             Participant participant = participantService.handleExperimentParticipant(experiment.get(), securedInfo);
@@ -475,7 +476,7 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     @Override
-    public void checkAndRestoreAllAssignmentsInCanvas() throws CanvasApiException, DataServiceException, ConnectionException, IOException {
+    public void checkAndRestoreAllAssignmentsInCanvas() throws CanvasApiException, DataServiceException, ConnectionException, IOException, AssignmentNotCreatedException {
         List<PlatformDeployment> allDeployments = allRepositories.platformDeploymentRepository.findAll();
         for (PlatformDeployment platformDeployment:allDeployments){
             checkAndRestoreAssignmentsInCanvas(platformDeployment.getKeyId());
@@ -483,7 +484,7 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     @Override
-    public void checkAndRestoreAssignmentsInCanvas(Long platformDeploymentKeyId) throws CanvasApiException, DataServiceException, ConnectionException, IOException {
+    public void checkAndRestoreAssignmentsInCanvas(Long platformDeploymentKeyId) throws CanvasApiException, DataServiceException, ConnectionException, IOException, AssignmentNotCreatedException {
         List<Assignment> assignmentsToCheck = allRepositories.assignmentRepository.findAssignmentsToCheckByPlatform(platformDeploymentKeyId);
         for (Assignment assignment:assignmentsToCheck){
             if (!checkCanvasAssignmentExists(assignment)){
@@ -493,7 +494,7 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     @Override
-    public void checkAndRestoreAssignmentsInCanvasByContext(Long contextId) throws CanvasApiException, DataServiceException, ConnectionException, IOException {
+    public void checkAndRestoreAssignmentsInCanvasByContext(Long contextId) throws CanvasApiException, DataServiceException, ConnectionException, IOException, AssignmentNotCreatedException {
         List<Assignment> assignmentsToCheck = allRepositories.assignmentRepository.findAssignmentsToCheckByContext(contextId);
         for (Assignment assignment:assignmentsToCheck){
             if (!checkCanvasAssignmentExists(assignment)){
@@ -509,7 +510,7 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     @Override
-    public Assignment restoreAssignmentInCanvas(Assignment assignment) throws CanvasApiException, DataServiceException, ConnectionException, IOException {
+    public Assignment restoreAssignmentInCanvas(Assignment assignment) throws CanvasApiException, DataServiceException, ConnectionException, IOException, AssignmentNotCreatedException {
         //1 Create the new Assignment in Canvas
         AssignmentExtended canvasAssignment = new AssignmentExtended();
         edu.ksu.canvas.model.assignment.Assignment.ExternalToolTagAttribute canvasExternalToolTagAttributes = canvasAssignment.new ExternalToolTagAttribute();
@@ -528,6 +529,11 @@ public class AssignmentServiceImpl implements AssignmentService {
         Optional<AssignmentExtended> canvasAssignmentReturned = canvasAPIClient.createCanvasAssignment(canvasAssignment,
                 canvasCourseId,
                 assignment.getExposure().getExperiment().getPlatformDeployment());
+
+        if (!canvasAssignmentReturned.isPresent()) {
+            throw new AssignmentNotCreatedException(TextConstants.ASSIGNMENT_NOT_CREATED);
+        }
+
         assignment.setLmsAssignmentId(Integer.toString(canvasAssignmentReturned.get().getId()));
         String jwtTokenAssignment = canvasAssignmentReturned.get().getSecureParams();
         String resourceLinkId = apijwtService.unsecureToken(jwtTokenAssignment).getBody().get("lti_assignment_id").toString();

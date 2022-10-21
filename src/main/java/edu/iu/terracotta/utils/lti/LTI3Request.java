@@ -24,7 +24,7 @@ import edu.iu.terracotta.service.lti.impl.LTIDataServiceImpl;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.JwsHeader;
-import io.jsonwebtoken.JwtParser;
+import io.jsonwebtoken.JwtParserBuilder;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SigningKeyResolverAdapter;
 import edu.iu.terracotta.model.LtiContextEntity;
@@ -254,35 +254,9 @@ public class LTI3Request {
         this.httpServletRequest = request;
         // extract the typical LTI data from the request
         String jwt = httpServletRequest.getParameter("id_token");
-        JwtParser parser = Jwts.parser();
-        parser.setSigningKeyResolver(new SigningKeyResolverAdapter() {
-
-            // This is done because each state is signed with a different key based on the issuer... so
-            // we don't know the key and we need to check it pre-extracting the claims and finding the kid
-            @Override
-            public Key resolveSigningKey(JwsHeader header, Claims claims) {
-
-                // We are dealing with RS256 encryption, so we have some Oauth utils to manage the keys and
-                // convert them to keys from the string stored in DB. There are for sure other ways to manage this.
-                PlatformDeployment platformDeployment = ltiDataService.getRepos().platformDeploymentRepository.findByIssAndClientId(claims.getIssuer(), claims.getAudience()).get(0);
-
-                if (StringUtils.isNoneEmpty(platformDeployment.getJwksEndpoint())) {
-                    try {
-                        JWKSet publicKeys = JWKSet.load(new URL(platformDeployment.getJwksEndpoint()));
-                        JWK jwk = publicKeys.getKeyByKeyId(header.getKeyId());
-                        return ((AsymmetricJWK) jwk).toPublicKey();
-                    } catch (JOSEException | ParseException | IOException ex) {
-                        log.error("Error getting the iss public key", ex);
-                        return null;
-                    }
-                } else {
-                    log.error("The platform configuration must contain a Jwks endpoint");
-                    return null;
-                }
-
-            }
-        });
-        Jws<Claims> jws = parser.parseClaimsJws(jwt);
+        JwtParserBuilder parser = Jwts.parserBuilder();
+        createSigningKeyResolver(parser);
+        Jws<Claims> jws = parser.build().parseClaimsJws(jwt);
         //This is just for logging.
         Enumeration<String> sessionAttributes = httpServletRequest.getSession().getAttributeNames();
         log.debug("----------------------BEFORE---------------------------------------------------------------------------------");
@@ -309,23 +283,57 @@ public class LTI3Request {
             throw new IllegalStateException("Request is not a valid LTI3 request: " + processRequestParameters);
         }
         // We update the database in case we have new values. (New users, new resources...etc)
-        if (isLTI3Request.equals(LtiStrings.LTI_MESSAGE_TYPE_RESOURCE_LINK) || isLTI3Request.equals(LtiStrings.LTI_MESSAGE_TYPE_DEEP_LINKING)) {
-            //Load data from DB related with this request and update it if needed with the new values.
-            ToolDeployment toolDeployment = ltiDataService.findOrCreateToolDeployment(this.iss, this.aud, this.ltiDeploymentId);
-            if (toolDeployment == null) {
-                throw new IllegalStateException(
-                        MessageFormat.format("Could not find a tool deployment for iss: {0}, clientId: {1}, ltiDeploymentId: {2}",
-                                this.iss, this.aud, this.ltiDeploymentId));
-            }
-            ltiDataService.loadLTIDataFromDB(this, linkId);
-            if (update) {
-                if (isLTI3Request.equals(LtiStrings.LTI_MESSAGE_TYPE_RESOURCE_LINK)) {
-                    ltiDataService.upsertLTIDataInDB(this, toolDeployment, linkId);
-                } else {
-                    ltiDataService.upsertLTIDataInDB(this, toolDeployment, null);
+        if (!isLTI3Request.equals(LtiStrings.LTI_MESSAGE_TYPE_RESOURCE_LINK) && !isLTI3Request.equals(LtiStrings.LTI_MESSAGE_TYPE_DEEP_LINKING)) {
+            return;
+        }
+
+        //Load data from DB related with this request and update it if needed with the new values.
+        ToolDeployment toolDeployment = ltiDataService.findOrCreateToolDeployment(this.iss, this.aud, this.ltiDeploymentId);
+        if (toolDeployment == null) {
+            throw new IllegalStateException(
+                    MessageFormat.format("Could not find a tool deployment for iss: {0}, clientId: {1}, ltiDeploymentId: {2}",
+                            this.iss, this.aud, this.ltiDeploymentId));
+        }
+        ltiDataService.loadLTIDataFromDB(this, linkId);
+        if (!update) {
+            return;
+        }
+
+        if (isLTI3Request.equals(LtiStrings.LTI_MESSAGE_TYPE_RESOURCE_LINK)) {
+            ltiDataService.upsertLTIDataInDB(this, toolDeployment, linkId);
+        }
+
+        ltiDataService.upsertLTIDataInDB(this, toolDeployment, null);
+    }
+
+    private void createSigningKeyResolver(JwtParserBuilder parser) {
+        parser.setSigningKeyResolver(
+            new SigningKeyResolverAdapter() {
+                // This is done because each state is signed with a different key based on the issuer... so
+                // we don't know the key and we need to check it pre-extracting the claims and finding the kid
+                @Override
+                public Key resolveSigningKey(JwsHeader header, Claims claims) {
+
+                    // We are dealing with RS256 encryption, so we have some Oauth utils to manage the keys and
+                    // convert them to keys from the string stored in DB. There are for sure other ways to manage this.
+                    PlatformDeployment platformDeployment = ltiDataService.getRepos().platformDeploymentRepository.findByIssAndClientId(claims.getIssuer(), claims.getAudience()).get(0);
+
+                    if (StringUtils.isNoneEmpty(platformDeployment.getJwksEndpoint())) {
+                        try {
+                            JWKSet publicKeys = JWKSet.load(new URL(platformDeployment.getJwksEndpoint()));
+                            JWK jwk = publicKeys.getKeyByKeyId(header.getKeyId());
+                            return ((AsymmetricJWK) jwk).toPublicKey();
+                        } catch (JOSEException | ParseException | IOException ex) {
+                            log.error("Error getting the iss public key", ex);
+                            return null;
+                        }
+                    }
+
+                    log.error("The platform configuration must contain a Jwks endpoint");
+                    return null;
                 }
             }
-        }
+        );
     }
 
     /**
