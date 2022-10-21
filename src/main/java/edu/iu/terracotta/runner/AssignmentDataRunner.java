@@ -48,7 +48,7 @@ public class AssignmentDataRunner implements ApplicationListener<ApplicationRead
         while (CollectionUtils.isNotEmpty(assignments.getContent())) {
             processed += assignments.getContent().size();
             assignments.getContent().stream()
-                .filter(assignment -> { return !assignment.isStarted(); })
+                .filter(assignment -> !assignment.isStarted())
                 .forEach(
                     assignment -> {
                         long submissionsCount = allRepositories.submissionRepository.countByAssessment_Treatment_Assignment_AssignmentId(assignment.getAssignmentId());

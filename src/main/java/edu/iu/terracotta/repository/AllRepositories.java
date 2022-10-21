@@ -15,6 +15,9 @@ package edu.iu.terracotta.repository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 
@@ -24,27 +27,27 @@ import javax.persistence.PersistenceContext;
  * This is just here to make it a little easier to get access to the full set of repositories instead of always injecting
  * the lot of them (reduces code duplication)
  */
-@SuppressWarnings("SpringJavaAutowiringInspection")
 @Component
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class AllRepositories {
 
     @Autowired
-    public ConfigRepository configs;
+    public ConfigRepository configRepository;
 
     @Autowired
-    public LtiContextRepository contexts;
+    public LtiContextRepository ltiContextRepository;
 
     @Autowired
-    public LtiLinkRepository links;
+    public LtiLinkRepository ltiLinkRepository;
 
     @Autowired
-    public LtiMembershipRepository members;
+    public LtiMembershipRepository ltiMembershipRepository;
 
     @Autowired
-    public LtiResultRepository results;
+    public LtiResultRepository ltiResultRepository;
 
     @Autowired
-    public LtiUserRepository users;
+    public LtiUserRepository ltiUserRepository;
 
     @Autowired
     public PlatformDeploymentRepository platformDeploymentRepository;
@@ -107,9 +110,6 @@ public class AllRepositories {
     public SubmissionCommentRepository submissionCommentRepository;
 
     @Autowired
-    public LtiUserRepository ltiUserRepository;
-
-    @Autowired
     public QuestionSubmissionCommentRepository questionSubmissionCommentRepository;
 
     @Autowired
@@ -130,14 +130,7 @@ public class AllRepositories {
     @Autowired
     public EventRepository eventRepository;
 
-
     @PersistenceContext
     public EntityManager entityManager;
-
-    /**
-     * Do NOT construct this class manually
-     */
-    protected AllRepositories() {
-    }
 
 }

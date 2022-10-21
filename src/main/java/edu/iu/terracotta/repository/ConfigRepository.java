@@ -35,4 +35,5 @@ public interface ConfigRepository extends JpaRepository<ConfigEntity, Long> {
      */
     @Cacheable(value = "configs", key = "#name")
     ConfigEntity findByName(String name);
+
 }

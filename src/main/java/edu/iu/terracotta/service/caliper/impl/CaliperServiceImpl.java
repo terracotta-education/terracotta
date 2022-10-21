@@ -148,11 +148,11 @@ public class CaliperServiceImpl implements CaliperService {
             event.setEventTime(new Timestamp(time.getMillis()));
             event.setActorId(actor.getId());
             event.setActorType(actor.getType().value());
-            event.setPlatform_deployment(membershipEntity.getUser().getPlatformDeployment().getBaseUrl());
-            event.setType(EventType.ASSESSMENT.value());
-            event.setProfile("AssessmentProfile");
-            event.setAction(Action.STARTED.value());
-            event.setGroup(group.getId());
+            event.setPlatformDeployment(membershipEntity.getUser().getPlatformDeployment().getBaseUrl());
+            event.setEventType(EventType.ASSESSMENT.value());
+            event.setEventProfile("AssessmentProfile");
+            event.setEventAction(Action.STARTED.value());
+            event.setEventGroup(group.getId());
             event.setObjectId(assessment.getId());
             event.setObjectType(EntityType.ASSESSMENT.value());
             event.setReferrerId(membershipEntity.getUser().getPlatformDeployment().getBaseUrl());
@@ -215,11 +215,11 @@ public class CaliperServiceImpl implements CaliperService {
             event.setEventTime(new Timestamp(time.getMillis()));
             event.setActorId(actor.getId());
             event.setActorType(actor.getType().value());
-            event.setPlatform_deployment(membershipEntity.getUser().getPlatformDeployment().getBaseUrl());
-            event.setType(EventType.ASSESSMENT.value());
-            event.setProfile("AssessmentProfile");
-            event.setAction(Action.SUBMITTED.value());
-            event.setGroup(group.getId());
+            event.setPlatformDeployment(membershipEntity.getUser().getPlatformDeployment().getBaseUrl());
+            event.setEventType(EventType.ASSESSMENT.value());
+            event.setEventProfile("AssessmentProfile");
+            event.setEventAction(Action.SUBMITTED.value());
+            event.setEventGroup(group.getId());
             event.setObjectId(assessment.getId());
             event.setObjectType(EntityType.ASSESSMENT.value());
             event.setReferrerId(membershipEntity.getUser().getPlatformDeployment().getBaseUrl());
@@ -280,11 +280,11 @@ public class CaliperServiceImpl implements CaliperService {
             event.setEventTime(new Timestamp(time.getMillis()));
             event.setActorId(actor.getId());
             event.setActorType(actor.getType().value());
-            event.setPlatform_deployment(membershipEntity.getUser().getPlatformDeployment().getBaseUrl());
-            event.setType(EventType.ASSESSMENT.value());
-            event.setProfile("AssessmentProfile");
-            event.setAction(Action.RESTARTED.value());
-            event.setGroup(group.getId());
+            event.setPlatformDeployment(membershipEntity.getUser().getPlatformDeployment().getBaseUrl());
+            event.setEventType(EventType.ASSESSMENT.value());
+            event.setEventProfile("AssessmentProfile");
+            event.setEventAction(Action.RESTARTED.value());
+            event.setEventGroup(group.getId());
             event.setObjectId(assessment.getId());
             event.setObjectType(EntityType.ASSESSMENT.value());
             event.setReferrerId(membershipEntity.getUser().getPlatformDeployment().getBaseUrl());
@@ -351,13 +351,11 @@ public class CaliperServiceImpl implements CaliperService {
             event.setEventTime(new Timestamp(mediaEventDto.getEventTime().getMillis()));
             event.setActorId(actor.getId());
             event.setActorType(actor.getType().value());
-            event.setPlatform_deployment(membershipEntity.getUser().getPlatformDeployment().getBaseUrl());
-            event.setType(mediaEventDto.getType().value());
-            event.setProfile(mediaEventDto.getProfile());
-            event.setAction(mediaEventDto.getAction().value());
-
-
-            event.setGroup(group.getId());
+            event.setPlatformDeployment(membershipEntity.getUser().getPlatformDeployment().getBaseUrl());
+            event.setEventType(mediaEventDto.getType().value());
+            event.setEventProfile(mediaEventDto.getProfile());
+            event.setEventAction(mediaEventDto.getAction().value());
+            event.setEventGroup(group.getId());
             event.setObjectId(mediaEventDto.getObject().getId());
             event.setObjectType(mediaEventDto.getObject().getType().value());
             event.setReferrerId(membershipEntity.getUser().getPlatformDeployment().getBaseUrl());
@@ -435,11 +433,11 @@ public class CaliperServiceImpl implements CaliperService {
             event.setEventTime(new Timestamp(time.getMillis()));
             event.setActorId(actor.getId());
             event.setActorType(actor.getType().value());
-            event.setPlatform_deployment(membershipEntity.getUser().getPlatformDeployment().getBaseUrl());
-            event.setType(EventType.VIEW.value());
-            event.setProfile("GradingProfile");
-            event.setAction(Action.VIEWED.value());
-            event.setGroup(group.getId());
+            event.setPlatformDeployment(membershipEntity.getUser().getPlatformDeployment().getBaseUrl());
+            event.setEventType(EventType.VIEW.value());
+            event.setEventProfile("GradingProfile");
+            event.setEventAction(Action.VIEWED.value());
+            event.setEventGroup(group.getId());
             event.setObjectId(result.getId());
             event.setObjectType(EntityType.RESULT.value());
             event.setReferrerId(membershipEntity.getUser().getPlatformDeployment().getBaseUrl());
@@ -502,11 +500,11 @@ public class CaliperServiceImpl implements CaliperService {
             event.setEventTime(new Timestamp(time.getMillis()));
             event.setActorId(actor.getId());
             event.setActorType(actor.getType().value());
-            event.setPlatform_deployment(membershipEntity.getUser().getPlatformDeployment().getBaseUrl());
-            event.setType(EventType.TOOL_USE.value());
-            event.setProfile("ToolUseProfile");
-            event.setAction(Action.USED.value());
-            event.setGroup(group.getId());
+            event.setPlatformDeployment(membershipEntity.getUser().getPlatformDeployment().getBaseUrl());
+            event.setEventType(EventType.TOOL_USE.value());
+            event.setEventProfile("ToolUseProfile");
+            event.setEventAction(Action.USED.value());
+            event.setEventGroup(group.getId());
             event.setObjectId(softwareApplication.getId());
             event.setObjectType(softwareApplication.getType().value());
             event.setReferrerId(membershipEntity.getUser().getPlatformDeployment().getBaseUrl());
@@ -797,7 +795,7 @@ public class CaliperServiceImpl implements CaliperService {
                         .connectionTimeout(platformDeployment.getCaliperConnectionTimeout())
                         .contentType(platformDeployment.getCaliperContentType())
                         .host(platformDeployment.getCaliperHost())
-                        .socketTimeout(platformDeployment.getCaliperSocketTimeOut())
+                        .socketTimeout(platformDeployment.getCaliperSocketTimeout())
                         .build();
                 HttpClient httpClient = HttpClient.create(platformDeployment.getClientId(), httpClientOptions);
                 sensor.registerClient(httpClient);

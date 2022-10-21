@@ -18,6 +18,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.transaction.annotation.Transactional;
 
 @Transactional
+@SuppressWarnings({"squid:S100", "PMD.MethodNamingConventions"})
 public interface LtiUserRepository extends JpaRepository<LtiUserEntity, Long> {
 
     LtiUserEntity findByUserKeyAndPlatformDeployment(String linkKey, PlatformDeployment platformDeployment);
@@ -29,6 +30,5 @@ public interface LtiUserRepository extends JpaRepository<LtiUserEntity, Long> {
     LtiUserEntity findByUserId(long userId);
 
     LtiUserEntity findByUserKey(String userKey);
-
 
 }

@@ -1,54 +1,21 @@
 package edu.iu.terracotta.model.app;
 
+import java.io.Serializable;
+
 import edu.iu.terracotta.utils.TextConstants;
 
-public class RetakeDetails {
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
+public class RetakeDetails implements Serializable {
 
     private boolean retakeAllowed = false;
     private Float keptScore;
     private Integer submissionAttemptsCount;
     private String retakeNotAllowedReason;
     private Float lastAttemptScore;
-
-    public boolean isRetakeAllowed() {
-        return retakeAllowed;
-    }
-
-    public void setRetakeAllowed(boolean retakeAllowed) {
-        this.retakeAllowed = retakeAllowed;
-    }
-
-    public Float getKeptScore() {
-        return keptScore;
-    }
-
-    public void setKeptScore(Float keptScore) {
-        this.keptScore = keptScore;
-    }
-
-    public Integer getSubmissionAttemptsCount() {
-        return submissionAttemptsCount;
-    }
-
-    public void setSubmissionAttemptsCount(Integer submissionAttemptsCount) {
-        this.submissionAttemptsCount = submissionAttemptsCount;
-    }
-
-    public String getRetakeNotAllowedReason() {
-        return retakeNotAllowedReason;
-    }
-
-    public void setRetakeNotAllowedReason(String retakeNotAllowedReason) {
-        this.retakeNotAllowedReason = retakeNotAllowedReason;
-    }
-
-    public Float getLastAttemptScore() {
-        return lastAttemptScore;
-    }
-
-    public void setLastAttemptScore(Float lastAttemptScore) {
-        this.lastAttemptScore = lastAttemptScore;
-    }
 
     public enum RetakeNotAllowedReason {
 
