@@ -1,7 +1,6 @@
 package edu.iu.terracotta.model.app.dto.media;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import jdk.net.SocketFlow;
 import org.imsglobal.caliper.entities.EntityType;
 import org.imsglobal.caliper.entities.agent.Status;
 import org.joda.time.DateTime;
