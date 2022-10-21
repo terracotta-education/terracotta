@@ -38,9 +38,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.slf4j.LoggerFactory;
-import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.http.HttpHeaders;
 
@@ -53,18 +51,16 @@ import java.util.List;
 @RequestMapping(value = AssignmentController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
 public class AssignmentController {
 
-    static final Logger log = LoggerFactory.getLogger(AssignmentController.class);
-    static final String REQUEST_ROOT = "api/experiments";
+    private static final Logger log = LoggerFactory.getLogger(AssignmentController.class);
+    public static final String REQUEST_ROOT = "api/experiments/{experimentId}/exposures/{exposureId}/assignments";
 
     @Autowired
-    AssignmentService assignmentService;
+    private AssignmentService assignmentService;
 
     @Autowired
-    APIJWTService apijwtService;
+    private APIJWTService apijwtService;
 
-
-    @GetMapping(value = "/{experimentId}/exposures/{exposureId}/assignments", produces = "application/json;")
-    @ResponseBody
+    @GetMapping
     public ResponseEntity<List<AssignmentDto>> allAssignmentsByExposure(@PathVariable long experimentId,
                                                                         @PathVariable long exposureId,
                                                                         @RequestParam(name = "submissions", defaultValue = "false") boolean submissions,
@@ -89,30 +85,30 @@ public class AssignmentController {
         return new ResponseEntity<>(assignments, HttpStatus.OK);
     }
 
-    @RequestMapping(value = "/{experiment_id}/exposures/{exposure_id}/assignments/{assignment_id}", method = RequestMethod.GET, produces = "application/json;")
-    @ResponseBody
-    public ResponseEntity<AssignmentDto> getAssignment(@PathVariable("experiment_id") long experimentId,
-                                                       @PathVariable("exposure_id") long exposureId,
-                                                       @PathVariable("assignment_id") long assignmentId,
+    @GetMapping("/{assignmentId}")
+    public ResponseEntity<AssignmentDto> getAssignment(@PathVariable long experimentId,
+                                                       @PathVariable long exposureId,
+                                                       @PathVariable long assignmentId,
                                                        @RequestParam(name = "submissions", defaultValue = "false") boolean submissions,
                                                        HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, AssignmentNotMatchingException, AssessmentNotMatchingException {
-
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assignmentAllowed(securedInfo, experimentId, exposureId, assignmentId);
-        if (apijwtService.isLearnerOrHigher(securedInfo)) {
-            AssignmentDto assignmentDto = assignmentService.toDto(assignmentService.getAssignment(assignmentId), submissions, true);
-            return new ResponseEntity<>(assignmentDto, HttpStatus.OK);
-        } else {
+
+        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
+
+        AssignmentDto assignmentDto = assignmentService.toDto(assignmentService.getAssignment(assignmentId), submissions, true);
+
+        return new ResponseEntity<>(assignmentDto, HttpStatus.OK);
     }
 
+    @PostMapping
     @Transactional
-    @RequestMapping(value = "/{experiment_id}/exposures/{exposure_id}/assignments", method = RequestMethod.POST)
-    public ResponseEntity<AssignmentDto> postAssignment(@PathVariable("experiment_id") long experimentId,
-                                                        @PathVariable("exposure_id") long exposureId,
+    public ResponseEntity<AssignmentDto> postAssignment(@PathVariable long experimentId,
+                                                        @PathVariable long exposureId,
                                                         @RequestBody AssignmentDto assignmentDto,
                                                         UriComponentsBuilder ucBuilder,
                                                         HttpServletRequest req)
@@ -120,22 +116,22 @@ public class AssignmentController {
             AssessmentNotMatchingException, TitleValidationException, AssignmentNotCreatedException, IdInPostException,
             DataServiceException, RevealResponsesSettingValidationException,
             MultipleAttemptsSettingsValidationException, NumberFormatException, CanvasApiException {
-
         log.debug("Creating Assignment: {}", assignmentDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
 
-        if (apijwtService.isInstructorOrHigher(securedInfo)) {
-            AssignmentDto returnedDto = assignmentService.postAssignment(assignmentDto, experimentId, securedInfo.getCanvasCourseId(), exposureId, securedInfo.getPlatformDeploymentId());
-            HttpHeaders headers = assignmentService.buildHeaders(ucBuilder, experimentId, exposureId, returnedDto.getAssignmentId());
-            return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
-        } else {
+        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
+
+        AssignmentDto returnedDto = assignmentService.postAssignment(assignmentDto, experimentId, securedInfo.getCanvasCourseId(), exposureId, securedInfo.getPlatformDeploymentId());
+        HttpHeaders headers = assignmentService.buildHeaders(ucBuilder, experimentId, exposureId, returnedDto.getAssignmentId());
+
+        return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
     }
 
-    @PutMapping("/{experimentId}/exposures/{exposureId}/assignments/{assignmentId}")
+    @PutMapping("/{assignmentId}")
     public ResponseEntity<AssignmentDto> updateAssignment(@PathVariable long experimentId,
                                                  @PathVariable long exposureId,
                                                  @PathVariable long assignmentId,
@@ -159,7 +155,7 @@ public class AssignmentController {
         return new ResponseEntity<>(updatedAssignmentDto, HttpStatus.OK);
     }
 
-    @PutMapping("/{experimentId}/exposures/{exposureId}/assignments")
+    @PutMapping
     public ResponseEntity<List<AssignmentDto>> updateAssignments(@PathVariable long experimentId,
                                                                  @PathVariable long exposureId,
                                                                  @RequestBody List<AssignmentDto> assignmentDtos,
@@ -186,7 +182,7 @@ public class AssignmentController {
         return new ResponseEntity<>(updatedAssignmentDtos, HttpStatus.OK);
     }
 
-    @DeleteMapping("/{experimentId}/exposures/{exposureId}/assignments/{assignmentId}")
+    @DeleteMapping("/{assignmentId}")
     public ResponseEntity<Void> deleteAssignment(@PathVariable long experimentId,
                                                  @PathVariable long exposureId,
                                                  @PathVariable long assignmentId,
@@ -211,7 +207,7 @@ public class AssignmentController {
     }
 
     @Transactional
-    @PostMapping(value = "/{experimentId}/exposures/{exposureId}/assignments/{assignmentId}/duplicate")
+    @PostMapping("/{assignmentId}/duplicate")
     public ResponseEntity<AssignmentDto> duplicateAssignment(@PathVariable long experimentId,
                                                         @PathVariable long exposureId,
                                                         @PathVariable long assignmentId,
@@ -238,7 +234,7 @@ public class AssignmentController {
     }
 
     @Transactional
-    @PostMapping(value = "/{experimentId}/exposures/{exposureId}/assignments/{assignmentId}/move")
+    @PostMapping("/{assignmentId}/move")
     public ResponseEntity<AssignmentDto> moveAssignment(@PathVariable long experimentId,
                                                         @PathVariable long exposureId,
                                                         @PathVariable long assignmentId,

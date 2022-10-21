@@ -15,13 +15,11 @@ package edu.iu.terracotta.controller.lti;
 import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
-import edu.iu.terracotta.repository.LtiContextRepository;
 import edu.iu.terracotta.repository.LtiLinkRepository;
 import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.caliper.CaliperService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
-import io.jsonwebtoken.SignatureException;
 import edu.iu.terracotta.model.LtiLinkEntity;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.lti.LTIDataService;
@@ -38,6 +36,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import javax.servlet.http.HttpServletRequest;
@@ -57,32 +56,28 @@ import java.util.Optional;
 @RequestMapping("/lti3")
 public class LTI3Controller {
 
-    static final Logger log = LoggerFactory.getLogger(LTI3Controller.class);
+    private static final Logger log = LoggerFactory.getLogger(LTI3Controller.class);
 
     @Autowired
-    LTIJWTService ltijwtService;
+    private LTIJWTService ltijwtService;
 
     @Autowired
-    APIJWTService apiJWTService;
+    private APIJWTService apiJWTService;
 
     @Autowired
-    LtiLinkRepository ltiLinkRepository;
+    private LtiLinkRepository ltiLinkRepository;
 
     @Autowired
-    LTIDataService ltiDataService;
+    private LTIDataService ltiDataService;
 
     @Autowired
-    AssignmentService assignmentService;
+    private AssignmentService assignmentService;
 
     @Autowired
-    CaliperService caliperService;
+    private CaliperService caliperService;
 
-    @Autowired
-    LtiContextRepository ltiContextRepository;
-
-    @RequestMapping({"", "/"})
+    @PostMapping({"", "/"})
     public String home(HttpServletRequest req, Principal principal, Model model) throws DataServiceException, CanvasApiException, ConnectionException {
-
         //First we will get the state, validate it
         String state = req.getParameter("state");
         //We will use this link to find the content to display.
@@ -153,34 +148,23 @@ public class LTI3Controller {
                         lti3Request.getLtiCustom().getOrDefault("canvas_login_id", "Anonymous").toString(),
                         lti3Request.getLtiRoles(),
                         lti3Request.getLtiCustom().getOrDefault("canvas_user_name", "Anonymous").toString());
-                
+
                 // Check for platform_redirect_url to determine if this is a first-party interaction request
-                try {
-                    List<NameValuePair> targetLinkQueryParams = new URIBuilder(lti3Request.getLtiTargetLinkUrl()).getQueryParams();
-                    Optional<NameValuePair> platformRedirectUrl = targetLinkQueryParams.stream()
-                            .filter(nv -> "platform_redirect_url".equals(nv.getName())).findFirst();
-                    if (platformRedirectUrl.isPresent()) {
-                        model.addAttribute("targetLinkUri", lti3Request.getLtiTargetLinkUrl());
-                        return "redirect:/app/firstParty.html";
-                    }
-                } catch (URISyntaxException ex) {
-                    model.addAttribute(TextConstants.ERROR, ex.getMessage());
-                    return TextConstants.LTI3ERROR;
+                List<NameValuePair> targetLinkQueryParams = new URIBuilder(lti3Request.getLtiTargetLinkUrl()).getQueryParams();
+                Optional<NameValuePair> platformRedirectUrl = targetLinkQueryParams.stream()
+                        .filter(nv -> "platform_redirect_url".equals(nv.getName())).findFirst();
+
+                if (platformRedirectUrl.isPresent()) {
+                    model.addAttribute("targetLinkUri", lti3Request.getLtiTargetLinkUrl());
+                    return "redirect:/app/firstParty.html";
                 }
 
                 return "redirect:/app/app.html?token=" + oneTimeToken;
             }
-        } catch (SignatureException ex) {
-            model.addAttribute(TextConstants.ERROR, ex.getMessage());
-            return TextConstants.LTI3ERROR;
-        } catch (GeneralSecurityException e) {
-            model.addAttribute(TextConstants.ERROR, e.getMessage());
-            return TextConstants.LTI3ERROR;
-        } catch (IOException e) {
+        } catch (SecurityException | GeneralSecurityException | IOException | URISyntaxException e) {
             model.addAttribute(TextConstants.ERROR, e.getMessage());
             return TextConstants.LTI3ERROR;
         }
     }
-
 
 }

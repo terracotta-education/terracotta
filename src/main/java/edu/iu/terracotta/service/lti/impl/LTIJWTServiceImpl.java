@@ -64,7 +64,7 @@ public class LTIJWTServiceImpl implements LTIJWTService {
     //Here we could add other checks like expiration of the state (not implemented)
     @Override
     public Jws<Claims> validateState(String state) {
-        return Jwts.parser().setSigningKeyResolver(new SigningKeyResolverAdapter() {
+        return Jwts.parserBuilder().setSigningKeyResolver(new SigningKeyResolverAdapter() {
             // This is done because each state is signed with a different key based on the issuer... so
             // we don't know the key and we need to check it pre-extracting the claims and finding the kid
             @Override
@@ -80,7 +80,9 @@ public class LTIJWTServiceImpl implements LTIJWTService {
                 }
                 return toolPublicKey;
             }
-        }).parseClaimsJws(state);
+        })
+        .build()
+        .parseClaimsJws(state);
         // If we are on this point, then the state signature has been validated. We can start other tasks now.
     }
 
@@ -94,7 +96,7 @@ public class LTIJWTServiceImpl implements LTIJWTService {
     @Override
     public Jws<Claims> validateJWT(String jwt, String clientId) {
 
-        return Jwts.parser().setSigningKeyResolver(new SigningKeyResolverAdapter() {
+        return Jwts.parserBuilder().setSigningKeyResolver(new SigningKeyResolverAdapter() {
 
             // This is done because each state is signed with a different key based on the issuer... so
             // we don't know the key and we need to check it pre-extracting the claims and finding the kid
@@ -128,7 +130,9 @@ public class LTIJWTServiceImpl implements LTIJWTService {
                 }
 
             }
-        }).parseClaimsJws(jwt);
+        })
+        .build()
+        .parseClaimsJws(jwt);
     }
 
     /**
@@ -156,7 +160,7 @@ public class LTIJWTServiceImpl implements LTIJWTService {
                 .setNotBefore(date) //a java.util.Date
                 .setIssuedAt(date) // for example, now
                 .claim("jti", UUID.randomUUID().toString())  //This is an specific claim to ask for tokens.
-                .signWith(SignatureAlgorithm.RS256, toolPrivateKey)  //We sign it with our own private key. The platform has the public one.
+                .signWith(toolPrivateKey, SignatureAlgorithm.RS256)  //We sign it with our own private key. The platform has the public one.
                 .compact();
         log.debug("Token Request: \n {} \n", state);
         return state;

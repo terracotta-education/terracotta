@@ -22,8 +22,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
@@ -35,67 +35,66 @@ import java.util.List;
 public class TokenController {
 
     @Autowired
-    APIJWTService apijwtService;
+    private APIJWTService apijwtService;
 
     @SuppressWarnings("rawtypes")
-    @RequestMapping(method = RequestMethod.POST, value = "/trade")
+    @PostMapping("/trade")
     public ResponseEntity getTimedToken(HttpServletRequest req) {
-
         //TODO, surely we want to do something more complicated here. Like read the previous token values and make the token similar
         String token = apijwtService.extractJwtStringValue(req, true);
         Jws<Claims> claims = apijwtService.validateToken(token);
-        if ((Boolean)claims.getBody().get("oneUse")) {
-            try {
-                //ExperimentId and assignmentId are optionals so I need to check the null.
-                Long assignmentId = null;
-                if (claims.getBody().get("assignmentId")!=null){
-                    assignmentId = Long.parseLong(claims.getBody().get("assignmentId").toString());
-                }
-                Long experimentId = null;
-                if (claims.getBody().get("experimentId")!=null){
-                    experimentId = Long.parseLong(claims.getBody().get("experimentId").toString());
-                }
-                return new ResponseEntity<>(apijwtService.buildJwt(false,
-                        (List<String>)claims.getBody().get("roles"),
-                        Long.parseLong(claims.getBody().get("contextId").toString()),
-                        Long.parseLong(claims.getBody().get("platformDeploymentId").toString()),
-                        claims.getBody().get("userId").toString(),
-                        assignmentId,
-                        experimentId,
-                        (Boolean) claims.getBody().get("consent"),
-                        claims.getBody().get("canvasUserId").toString(),
-                        claims.getBody().get("canvasUserGlobalId").toString(),
-                        claims.getBody().get("canvasLoginId").toString(),
-                        claims.getBody().get("canvasUserName").toString(),
-                        claims.getBody().get("canvasCourseId").toString(),
-                        claims.getBody().get("canvasAssignmentId").toString(),
-                        claims.getBody().get("dueAt").toString(),
-                        claims.getBody().get("lockAt").toString(),
-                        claims.getBody().get("unlockAt").toString(),
-                        claims.getBody().get("nonce").toString())
-                        , HttpStatus.OK);
-            } catch (GeneralSecurityException | IOException e) {
-                return new ResponseEntity<>("Error generating token: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-            }
-        } else {
+
+        if (!(Boolean)claims.getBody().get("oneUse")) {
             return new ResponseEntity<>("Token passed was not a one time valid token", HttpStatus.UNAUTHORIZED);
+        }
+
+        try {
+            //ExperimentId and assignmentId are optionals so I need to check the null.
+            Long assignmentId = null;
+            if (claims.getBody().get("assignmentId")!=null){
+                assignmentId = Long.parseLong(claims.getBody().get("assignmentId").toString());
+            }
+            Long experimentId = null;
+            if (claims.getBody().get("experimentId")!=null){
+                experimentId = Long.parseLong(claims.getBody().get("experimentId").toString());
+            }
+            return new ResponseEntity<>(apijwtService.buildJwt(false,
+                    (List<String>)claims.getBody().get("roles"),
+                    Long.parseLong(claims.getBody().get("contextId").toString()),
+                    Long.parseLong(claims.getBody().get("platformDeploymentId").toString()),
+                    claims.getBody().get("userId").toString(),
+                    assignmentId,
+                    experimentId,
+                    (Boolean) claims.getBody().get("consent"),
+                    claims.getBody().get("canvasUserId").toString(),
+                    claims.getBody().get("canvasUserGlobalId").toString(),
+                    claims.getBody().get("canvasLoginId").toString(),
+                    claims.getBody().get("canvasUserName").toString(),
+                    claims.getBody().get("canvasCourseId").toString(),
+                    claims.getBody().get("canvasAssignmentId").toString(),
+                    claims.getBody().get("dueAt").toString(),
+                    claims.getBody().get("lockAt").toString(),
+                    claims.getBody().get("unlockAt").toString(),
+                    claims.getBody().get("nonce").toString())
+                    , HttpStatus.OK);
+        } catch (GeneralSecurityException | IOException e) {
+            return new ResponseEntity<>("Error generating token: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
     @SuppressWarnings("rawtypes")
-    @RequestMapping(method = RequestMethod.POST, value = "/refresh")
+    @PostMapping("/refresh")
     public ResponseEntity refreshToken(HttpServletRequest req) {
-
         String token = apijwtService.extractJwtStringValue(req, true);
+
         try {
             return new ResponseEntity<>(apijwtService.refreshToken(token), HttpStatus.OK);
-        } catch (GeneralSecurityException e) {
+        } catch (GeneralSecurityException | IOException e) {
             e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
+            return new ResponseEntity<>("Error generating token", HttpStatus.INTERNAL_SERVER_ERROR);
         } catch (BadTokenException e) {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
-        return new ResponseEntity<>("Error generating token", HttpStatus.INTERNAL_SERVER_ERROR);
     }
+
 }

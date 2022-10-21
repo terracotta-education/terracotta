@@ -23,13 +23,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.HttpServletRequest;
@@ -42,53 +44,49 @@ import java.util.Optional;
  */
 @Controller
 @Scope("session")
-@RequestMapping("/config")
+@RequestMapping(value = "/config", produces = MediaType.APPLICATION_JSON_VALUE)
 public class ConfigurationController {
 
-    static final Logger log = LoggerFactory.getLogger(ConfigurationController.class);
-
-
-    @Autowired
-    PlatformDeploymentRepository platformDeploymentRepository;
+    private static final Logger log = LoggerFactory.getLogger(ConfigurationController.class);
 
     @Autowired
-    ToolDeploymentRepository toolDeploymentRepository;
+    private PlatformDeploymentRepository platformDeploymentRepository;
 
+    @Autowired
+    private ToolDeploymentRepository toolDeploymentRepository;
 
     /**
      * To show the configurations.
      */
-    @RequestMapping(value = "/", method = RequestMethod.GET, produces = "application/json;")
-    @ResponseBody
+    @GetMapping("/")
     public ResponseEntity<List<PlatformDeployment>> displayConfigs(HttpServletRequest req) {
-
         List<PlatformDeployment> platformDeploymentListEntityList = platformDeploymentRepository.findAll();
+
         if (platformDeploymentListEntityList.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
             // You many decide to return HttpStatus.NOT_FOUND
         }
+
         return new ResponseEntity<>(platformDeploymentListEntityList, HttpStatus.OK);
     }
 
     /**
      * To show the configurations.
      */
-    @RequestMapping(value = "/{id}", method = RequestMethod.GET, produces = "application/json;")
-    @ResponseBody
-    public ResponseEntity<PlatformDeployment> displayConfig(@PathVariable("id") long id, HttpServletRequest req) {
-
+    @GetMapping("/{id}")
+    public ResponseEntity<PlatformDeployment> displayConfig(@PathVariable long id, HttpServletRequest req) {
         Optional<PlatformDeployment> platformDeployment = platformDeploymentRepository.findById(id);
 
-        if (!platformDeployment.isPresent()) {
-            log.error("platformDeployment with id {} not found.", id);
-            return new ResponseEntity("platformDeployment with id " + id
-                    + TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
-        } else {
+        if (platformDeployment.isPresent()) {
             return new ResponseEntity<>(platformDeployment.get(), HttpStatus.OK);
         }
+
+        log.error("platformDeployment with id {} not found.", id);
+
+        return new ResponseEntity("platformDeployment with id " + id + TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
     }
 
-    @RequestMapping(value = "/", method = RequestMethod.POST)
+    @PostMapping("/")
     public ResponseEntity<String> createDeployment(@RequestBody PlatformDeployment platformDeployment, UriComponentsBuilder ucBuilder) {
         log.info("Creating Deployment : {}", platformDeployment);
 
@@ -96,7 +94,9 @@ public class ConfigurationController {
             log.error("Unable to create. A platformDeployment like that already exist");
             return new ResponseEntity<String>("Unable to create. A platformDeployment with same key already exist.", HttpStatus.CONFLICT);
         }
+
         PlatformDeployment platformDeploymentSaved = platformDeploymentRepository.save(platformDeployment);
+
         if (platformDeployment.getToolDeployments() != null) {
             for (ToolDeployment toolDeployment : platformDeployment.getToolDeployments()) {
                 toolDeployment.setPlatformDeployment(platformDeploymentSaved);
@@ -106,11 +106,12 @@ public class ConfigurationController {
 
         HttpHeaders headers = new HttpHeaders();
         headers.setLocation(ucBuilder.path("/config/{id}").buildAndExpand(platformDeploymentSaved.getKeyId()).toUri());
+
         return new ResponseEntity<>(headers, HttpStatus.CREATED);
     }
 
-    @RequestMapping(value = "/{id}", method = RequestMethod.PUT)
-    public ResponseEntity<PlatformDeployment> updateDeployment(@PathVariable("id") long id, @RequestBody PlatformDeployment platformDeployment) {
+    @PutMapping("/{id}")
+    public ResponseEntity<PlatformDeployment> updateDeployment(@PathVariable long id, @RequestBody PlatformDeployment platformDeployment) {
         log.info("Updating User with id {}", id);
 
         Optional<PlatformDeployment> platformDeploymentSearchResult = platformDeploymentRepository.findById(id);
@@ -120,6 +121,7 @@ public class ConfigurationController {
             return new ResponseEntity("Unable to update. User with id " + id + TextConstants.NOT_FOUND_SUFFIX,
                     HttpStatus.NOT_FOUND);
         }
+
         PlatformDeployment platformDeploymentToChange = platformDeploymentSearchResult.get();
         platformDeploymentToChange.setoAuth2TokenUrl(platformDeployment.getoAuth2TokenUrl());
         platformDeploymentToChange.setClientId(platformDeployment.getClientId());
@@ -139,6 +141,8 @@ public class ConfigurationController {
         }
 
         platformDeploymentRepository.saveAndFlush(platformDeploymentToChange);
+
         return new ResponseEntity<>(platformDeploymentToChange, HttpStatus.OK);
     }
+
 }

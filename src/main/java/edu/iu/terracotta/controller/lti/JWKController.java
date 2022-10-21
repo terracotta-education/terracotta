@@ -20,10 +20,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.servlet.http.HttpServletRequest;
@@ -40,15 +41,15 @@ import java.util.Map;
  */
 @Controller
 @Scope("session")
-@RequestMapping("/jwks")
+@RequestMapping(value = "/jwks/jwk", produces = MediaType.APPLICATION_JSON_VALUE)
 public class JWKController {
 
+    private static final Logger log = LoggerFactory.getLogger(JWKController.class);
+
     @Autowired
-    LTIDataService ltiDataService;
+    private LTIDataService ltiDataService;
 
-    static final Logger log = LoggerFactory.getLogger(JWKController.class);
-
-    @RequestMapping(value = "/jwk", method = RequestMethod.GET, produces = "application/json;")
+    @GetMapping
     @ResponseBody
     public Map<String, List<Map<String, Object>>> jkw(HttpServletRequest req, Model model) throws GeneralSecurityException {
         Map<String, List<Map<String, Object>>> keys = new HashMap<>();
@@ -65,6 +66,8 @@ public class JWKController {
         List<Map<String, Object>> valuesList = new ArrayList<>();
         valuesList.add(values);
         keys.put("keys", valuesList);
+
         return keys;
     }
+
 }

@@ -23,11 +23,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.HttpServletRequest;
@@ -38,28 +40,25 @@ import java.util.List;
 @RequestMapping(value = QuestionSubmissionCommentController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
 public class QuestionSubmissionCommentController {
 
-    static final String REQUEST_ROOT = "api/experiments";
-    static final Logger log = LoggerFactory.getLogger(QuestionSubmissionCommentController.class);
+    public static final String REQUEST_ROOT = "api/experiments/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}/submissions/{submissionId}/question_submissions";
+    private static final Logger log = LoggerFactory.getLogger(QuestionSubmissionCommentController.class);
 
     @Autowired
-    APIJWTService apijwtService;
+    private APIJWTService apijwtService;
 
     @Autowired
-    SubmissionService submissionService;
+    private SubmissionService submissionService;
 
     @Autowired
-    QuestionSubmissionCommentService questionSubmissionCommentService;
+    private QuestionSubmissionCommentService questionSubmissionCommentService;
 
-    @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}/question_submissions/{question_submission_id}/question_submission_comments",
-            method = RequestMethod.GET,
-            produces = "application/json;")
-    @ResponseBody
-    public ResponseEntity<List<QuestionSubmissionCommentDto>> getQuestionSubmissionComments(@PathVariable("experiment_id") Long experimentId,
-                                                                                            @PathVariable("condition_id") Long conditionId,
-                                                                                            @PathVariable("treatment_id") Long treatmentId,
-                                                                                            @PathVariable("assessment_id") Long assessmentId,
-                                                                                            @PathVariable("submission_id") Long submissionId,
-                                                                                            @PathVariable("question_submission_id") Long questionSubmissionId,
+    @GetMapping("/{questionSubmissionId}/question_submission_comments")
+    public ResponseEntity<List<QuestionSubmissionCommentDto>> getQuestionSubmissionComments(@PathVariable long experimentId,
+                                                                                            @PathVariable long conditionId,
+                                                                                            @PathVariable long treatmentId,
+                                                                                            @PathVariable long assessmentId,
+                                                                                            @PathVariable long submissionId,
+                                                                                            @PathVariable long questionSubmissionId,
                                                                                             HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, BadTokenException, InvalidUserException {
 
@@ -68,32 +67,31 @@ public class QuestionSubmissionCommentController {
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
         apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, questionSubmissionId);
 
-        if(apijwtService.isLearnerOrHigher(securedInfo)) {
-            if(!apijwtService.isInstructorOrHigher(securedInfo)){
-                submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
-            }
-            List<QuestionSubmissionCommentDto> questionSubmissionCommentList = questionSubmissionCommentService.getQuestionSubmissionComments(questionSubmissionId);
-
-            if(questionSubmissionCommentList.isEmpty()) {
-                return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-            }
-            return new ResponseEntity<>(questionSubmissionCommentList, HttpStatus.OK);
-        } else {
+        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
+
+        if(!apijwtService.isInstructorOrHigher(securedInfo)){
+            submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
+        }
+
+        List<QuestionSubmissionCommentDto> questionSubmissionCommentList = questionSubmissionCommentService.getQuestionSubmissionComments(questionSubmissionId);
+
+        if(questionSubmissionCommentList.isEmpty()) {
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        }
+
+        return new ResponseEntity<>(questionSubmissionCommentList, HttpStatus.OK);
     }
 
-
-    @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}/question_submissions/{question_submission_id}/question_submission_comments/{question_submission_comment_id}",
-            method = RequestMethod.GET)
-    @ResponseBody
-    public ResponseEntity<QuestionSubmissionCommentDto> getQuestionSubmissionComment(@PathVariable("experiment_id") Long experimentId,
-                                                                                     @PathVariable("condition_id") Long conditionId,
-                                                                                     @PathVariable("treatment_id") Long treatmentId,
-                                                                                     @PathVariable("assessment_id") Long assessmentId,
-                                                                                     @PathVariable("submission_id") Long submissionId,
-                                                                                     @PathVariable("question_submission_id") Long questionSubmissionId,
-                                                                                     @PathVariable("question_submission_comment_id") Long questionSubmissionCommentId,
+    @GetMapping("/{questionSubmissionId}/question_submission_comments/{questionSubmissionCommentId}")
+    public ResponseEntity<QuestionSubmissionCommentDto> getQuestionSubmissionComment(@PathVariable long experimentId,
+                                                                                     @PathVariable long conditionId,
+                                                                                     @PathVariable long treatmentId,
+                                                                                     @PathVariable long assessmentId,
+                                                                                     @PathVariable long submissionId,
+                                                                                     @PathVariable long questionSubmissionId,
+                                                                                     @PathVariable long questionSubmissionCommentId,
                                                                                      HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, QuestionSubmissionCommentNotMatchingException, BadTokenException, InvalidUserException {
 
@@ -103,27 +101,27 @@ public class QuestionSubmissionCommentController {
         apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, questionSubmissionId);
         apijwtService.questionSubmissionCommentAllowed(securedInfo, questionSubmissionId, questionSubmissionCommentId);
 
-        if(apijwtService.isLearnerOrHigher(securedInfo)) {
-
-            if(!apijwtService.isInstructorOrHigher(securedInfo)){
-                submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
-            }
-            QuestionSubmissionCommentDto questionSubmissionCommentDto = questionSubmissionCommentService.toDto(questionSubmissionCommentService.getQuestionSubmissionComment(questionSubmissionCommentId));
-            return new ResponseEntity<>(questionSubmissionCommentDto, HttpStatus.OK);
-        } else {
+        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
+
+
+        if(!apijwtService.isInstructorOrHigher(securedInfo)){
+            submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
+        }
+
+        QuestionSubmissionCommentDto questionSubmissionCommentDto = questionSubmissionCommentService.toDto(questionSubmissionCommentService.getQuestionSubmissionComment(questionSubmissionCommentId));
+
+        return new ResponseEntity<>(questionSubmissionCommentDto, HttpStatus.OK);
     }
 
-
-    @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}/question_submissions/{question_submission_id}/question_submission_comments",
-            method = RequestMethod.POST)
-    public ResponseEntity<QuestionSubmissionCommentDto> postQuestionSubmissionComment(@PathVariable("experiment_id") Long experimentId,
-                                                                                      @PathVariable("condition_id") Long conditionId,
-                                                                                      @PathVariable("treatment_id") Long treatmentId,
-                                                                                      @PathVariable("assessment_id") Long assessmentId,
-                                                                                      @PathVariable("submission_id") Long submissionId,
-                                                                                      @PathVariable("question_submission_id") Long questionSubmissionId,
+    @PostMapping("/{questionSubmissionId}/question_submission_comments")
+    public ResponseEntity<QuestionSubmissionCommentDto> postQuestionSubmissionComment(@PathVariable long experimentId,
+                                                                                      @PathVariable long conditionId,
+                                                                                      @PathVariable long treatmentId,
+                                                                                      @PathVariable long assessmentId,
+                                                                                      @PathVariable long submissionId,
+                                                                                      @PathVariable long questionSubmissionId,
                                                                                       @RequestBody QuestionSubmissionCommentDto questionSubmissionCommentDto,
                                                                                       UriComponentsBuilder ucBuilder,
                                                                                       HttpServletRequest req)
@@ -135,28 +133,28 @@ public class QuestionSubmissionCommentController {
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
         apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, questionSubmissionId);
 
-        if(apijwtService.isLearnerOrHigher(securedInfo)) {
-            if(!apijwtService.isInstructorOrHigher(securedInfo)){
-                submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
-            }
-            QuestionSubmissionCommentDto returnedDto = questionSubmissionCommentService.postQuestionSubmissionComment(questionSubmissionCommentDto, questionSubmissionId, securedInfo.getUserId());
-            HttpHeaders headers = questionSubmissionCommentService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, submissionId, questionSubmissionId, returnedDto.getQuestionSubmissionCommentId());
-            return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
-        } else {
+        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
+
+        if(!apijwtService.isInstructorOrHigher(securedInfo)){
+            submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
+        }
+
+        QuestionSubmissionCommentDto returnedDto = questionSubmissionCommentService.postQuestionSubmissionComment(questionSubmissionCommentDto, questionSubmissionId, securedInfo.getUserId());
+        HttpHeaders headers = questionSubmissionCommentService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, submissionId, questionSubmissionId, returnedDto.getQuestionSubmissionCommentId());
+
+        return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
     }
 
-
-    @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}/question_submissions/{question_submission_id}/question_submission_comments/{question_submission_comment_id}",
-            method = RequestMethod.PUT)
-    public ResponseEntity<Void> updateQuestionSubmissionComment(@PathVariable("experiment_id") Long experimentId,
-                                                                @PathVariable("condition_id") Long conditionId,
-                                                                @PathVariable("treatment_id") Long treatmentId,
-                                                                @PathVariable("assessment_id") Long assessmentId,
-                                                                @PathVariable("submission_id") Long submissionId,
-                                                                @PathVariable("question_submission_id") Long questionSubmissionId,
-                                                                @PathVariable("question_submission_comment_id") Long questionSubmissionCommentId,
+    @PutMapping("/{questionSubmissionId}/question_submission_comments/{questionSubmissionCommentId}")
+    public ResponseEntity<Void> updateQuestionSubmissionComment(@PathVariable long experimentId,
+                                                                @PathVariable long conditionId,
+                                                                @PathVariable long treatmentId,
+                                                                @PathVariable long assessmentId,
+                                                                @PathVariable long submissionId,
+                                                                @PathVariable long questionSubmissionId,
+                                                                @PathVariable long questionSubmissionCommentId,
                                                                 @RequestBody QuestionSubmissionCommentDto questionSubmissionCommentDto,
                                                                 HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, QuestionSubmissionCommentNotMatchingException, BadTokenException, InvalidUserException, DataServiceException {
@@ -168,27 +166,27 @@ public class QuestionSubmissionCommentController {
         apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, questionSubmissionId);
         apijwtService.questionSubmissionCommentAllowed(securedInfo, questionSubmissionId, questionSubmissionCommentId);
 
-        if(apijwtService.isLearnerOrHigher(securedInfo)) {
-            if(!apijwtService.isInstructorOrHigher(securedInfo)){
-                submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
-            }
-            questionSubmissionCommentService.updateQuestionSubmissionComment(questionSubmissionCommentDto, questionSubmissionCommentId, experimentId, submissionId, securedInfo.getUserId());
-            return new ResponseEntity<>(HttpStatus.OK);
-        } else {
+        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
+
+        if(!apijwtService.isInstructorOrHigher(securedInfo)){
+            submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
+        }
+
+        questionSubmissionCommentService.updateQuestionSubmissionComment(questionSubmissionCommentDto, questionSubmissionCommentId, experimentId, submissionId, securedInfo.getUserId());
+
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
-
-    @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}/question_submissions/{question_submission_id}/question_submission_comments/{question_submission_comment_id}",
-            method = RequestMethod.DELETE)
-    public ResponseEntity<Void> deleteQuestionSubmissionComment(@PathVariable("experiment_id") Long experimentId,
-                                                                @PathVariable("condition_id") Long conditionId,
-                                                                @PathVariable("treatment_id") Long treatmentId,
-                                                                @PathVariable("assessment_id") Long assessmentId,
-                                                                @PathVariable("submission_id") Long submissionId,
-                                                                @PathVariable("question_submission_id") Long questionSubmissionId,
-                                                                @PathVariable("question_submission_comment_id") Long questionSubmissionCommentId,
+    @DeleteMapping("/{questionSubmissionId}/question_submission_comments/{questionSubmissionCommentId}")
+    public ResponseEntity<Void> deleteQuestionSubmissionComment(@PathVariable long experimentId,
+                                                                @PathVariable long conditionId,
+                                                                @PathVariable long treatmentId,
+                                                                @PathVariable long assessmentId,
+                                                                @PathVariable long submissionId,
+                                                                @PathVariable long questionSubmissionId,
+                                                                @PathVariable long questionSubmissionCommentId,
                                                                 HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, QuestionSubmissionCommentNotMatchingException, BadTokenException {
 
@@ -198,16 +196,17 @@ public class QuestionSubmissionCommentController {
         apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, questionSubmissionId);
         apijwtService.questionSubmissionCommentAllowed(securedInfo, questionSubmissionId, questionSubmissionCommentId);
 
-        if(apijwtService.isInstructorOrHigher(securedInfo)) {
-            try{
-                questionSubmissionCommentService.deleteById(questionSubmissionCommentId);
-                return new ResponseEntity<>(HttpStatus.OK);
-            } catch (EmptyResultDataAccessException ex) {
-                log.warn(ex.getMessage());
-                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-            }
-        } else {
+        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
+
+        try {
+            questionSubmissionCommentService.deleteById(questionSubmissionCommentId);
+            return new ResponseEntity<>(HttpStatus.OK);
+        } catch (EmptyResultDataAccessException ex) {
+            log.warn(ex.getMessage());
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
     }
+
 }

@@ -32,8 +32,8 @@ import java.util.Map;
 @RequestMapping(value = QuestionSubmissionController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
 public class QuestionSubmissionController {
 
-    static final String REQUEST_ROOT = "api/experiments";
-    static final Logger log = LoggerFactory.getLogger(QuestionSubmissionController.class);
+    public static final String REQUEST_ROOT = "api/experiments/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}/submissions/{submissionId}/question_submissions";
+    private static final Logger log = LoggerFactory.getLogger(QuestionSubmissionController.class);
 
     @Autowired
     private APIJWTService apijwtService;
@@ -44,8 +44,7 @@ public class QuestionSubmissionController {
     @Autowired
     private SubmissionService submissionService;
 
-    @GetMapping("/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}/submissions/{submissionId}/question_submissions")
-    @ResponseBody
+    @GetMapping
     public ResponseEntity<List<QuestionSubmissionDto>> getQuestionSubmissionsBySubmission(@PathVariable long experimentId,
                                                                                           @PathVariable long conditionId,
                                                                                           @PathVariable long treatmentId,
@@ -78,15 +77,13 @@ public class QuestionSubmissionController {
         return new ResponseEntity<>(questionSubmissionList, HttpStatus.OK);
     }
 
-    @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}/question_submissions/{question_submission_id}",
-            method = RequestMethod.GET)
-    @ResponseBody
-    public ResponseEntity<QuestionSubmissionDto> getQuestionSubmission(@PathVariable("experiment_id") Long experimentId,
-                                                                       @PathVariable("condition_id") Long conditionId,
-                                                                       @PathVariable("treatment_id") Long treatmentId,
-                                                                       @PathVariable("assessment_id") Long assessmentId,
-                                                                       @PathVariable("submission_id") Long submissionId,
-                                                                       @PathVariable("question_submission_id") Long questionSubmissionId,
+    @GetMapping("/{questionSubmissionId}")
+    public ResponseEntity<QuestionSubmissionDto> getQuestionSubmission(@PathVariable long experimentId,
+                                                                       @PathVariable long conditionId,
+                                                                       @PathVariable long treatmentId,
+                                                                       @PathVariable long assessmentId,
+                                                                       @PathVariable long submissionId,
+                                                                       @PathVariable long questionSubmissionId,
                                                                        @RequestParam(name = "answer_submissions", defaultValue = "false") boolean answerSubmissions,
                                                                        @RequestParam(name = "question_submission_comments", defaultValue = "false") boolean questionSubmissionComments,
                                                                        HttpServletRequest req)
@@ -97,19 +94,20 @@ public class QuestionSubmissionController {
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
         apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, questionSubmissionId);
 
-        if (apijwtService.isLearnerOrHigher(securedInfo)) {
-            if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-                submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
-            }
-            QuestionSubmissionDto questionSubmissionDto = questionSubmissionService.toDto(questionSubmissionService.getQuestionSubmission(questionSubmissionId), answerSubmissions, questionSubmissionComments);
-            return new ResponseEntity<>(questionSubmissionDto, HttpStatus.OK);
-        } else {
+        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
+
+        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
+            submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
+        }
+
+        QuestionSubmissionDto questionSubmissionDto = questionSubmissionService.toDto(questionSubmissionService.getQuestionSubmission(questionSubmissionId), answerSubmissions, questionSubmissionComments);
+
+        return new ResponseEntity<>(questionSubmissionDto, HttpStatus.OK);
     }
 
-
-    @PostMapping("/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}/submissions/{submissionId}/question_submissions")
+    @PostMapping
     public ResponseEntity<List<QuestionSubmissionDto>> postQuestionSubmission(@PathVariable long experimentId,
                                                                               @PathVariable long conditionId,
                                                                               @PathVariable long treatmentId,
@@ -155,14 +153,13 @@ public class QuestionSubmissionController {
     }
 
 
-    @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}/question_submissions/{question_submission_id}",
-            method = RequestMethod.PUT)
-    public ResponseEntity<Void> updateQuestionSubmission(@PathVariable("experiment_id") Long experimentId,
-                                                         @PathVariable("condition_id") Long conditionId,
-                                                         @PathVariable("treatment_id") Long treatmentId,
-                                                         @PathVariable("assessment_id") Long assessmentId,
-                                                         @PathVariable("submission_id") Long submissionId,
-                                                         @PathVariable("question_submission_id") Long questionSubmissionId,
+    @PutMapping("/{questionSubmissionId}")
+    public ResponseEntity<Void> updateQuestionSubmission(@PathVariable long experimentId,
+                                                         @PathVariable long conditionId,
+                                                         @PathVariable long treatmentId,
+                                                         @PathVariable long assessmentId,
+                                                         @PathVariable long submissionId,
+                                                         @PathVariable long questionSubmissionId,
                                                          @RequestBody QuestionSubmissionDto questionSubmissionDto,
                                                          HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, BadTokenException, InvalidUserException, DataServiceException, AnswerNotMatchingException, AnswerSubmissionNotMatchingException, IdMissingException {
@@ -173,31 +170,32 @@ public class QuestionSubmissionController {
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
         apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, questionSubmissionId);
 
-        if (apijwtService.isLearnerOrHigher(securedInfo)) {
-            boolean student = false;
-            if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-                submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
-                student = true;
-            }
-            questionSubmissionService.validateQuestionSubmission(questionSubmissionDto);
-            QuestionSubmission questionSubmission = questionSubmissionService.getQuestionSubmission(questionSubmissionId);
-            Map<QuestionSubmission, QuestionSubmissionDto> map = new HashMap<>();
-            map.put(questionSubmission, questionSubmissionDto);
-            questionSubmissionService.updateQuestionSubmissions(map, student);
-            return new ResponseEntity<>(HttpStatus.OK);
-        } else {
+        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
+
+        boolean student = false;
+
+        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
+            submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
+            student = true;
+        }
+
+        questionSubmissionService.validateQuestionSubmission(questionSubmissionDto);
+        QuestionSubmission questionSubmission = questionSubmissionService.getQuestionSubmission(questionSubmissionId);
+        Map<QuestionSubmission, QuestionSubmissionDto> map = new HashMap<>();
+        map.put(questionSubmission, questionSubmissionDto);
+        questionSubmissionService.updateQuestionSubmissions(map, student);
+
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
-
-    @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}/question_submissions",
-            method = RequestMethod.PUT)
-    public ResponseEntity<Void> updateQuestionSubmissions(@PathVariable("experiment_id") Long experimentId,
-                                                          @PathVariable("condition_id") Long conditionId,
-                                                          @PathVariable("treatment_id") Long treatmentId,
-                                                          @PathVariable("assessment_id") Long assessmentId,
-                                                          @PathVariable("submission_id") Long submissionId,
+    @PutMapping
+    public ResponseEntity<Void> updateQuestionSubmissions(@PathVariable long experimentId,
+                                                          @PathVariable long conditionId,
+                                                          @PathVariable long treatmentId,
+                                                          @PathVariable long assessmentId,
+                                                          @PathVariable long submissionId,
                                                           @RequestBody List<QuestionSubmissionDto> questionSubmissionDtoList,
                                                           HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException,
@@ -207,58 +205,60 @@ public class QuestionSubmissionController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
 
-        if (apijwtService.isLearnerOrHigher(securedInfo)) {
-            boolean student = false;
-            if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-                submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
-                student = true;
-            }
-            Map<QuestionSubmission, QuestionSubmissionDto> map = new HashMap<>();
-            for (QuestionSubmissionDto questionSubmissionDto : questionSubmissionDtoList) {
-                apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, questionSubmissionDto.getQuestionSubmissionId());
-                QuestionSubmission questionSubmission = questionSubmissionService.getQuestionSubmission(questionSubmissionDto.getQuestionSubmissionId());
-                log.debug("Updating question submission with id: {}", questionSubmission.getQuestionSubmissionId());
-                questionSubmissionService.validateQuestionSubmission(questionSubmissionDto);
-                map.put(questionSubmission, questionSubmissionDto);
-            }
-            try {
-                questionSubmissionService.updateQuestionSubmissions(map, student);
-                return new ResponseEntity<>(HttpStatus.OK);
-            } catch (Exception ex) {
-                throw new DataServiceException("Error 105: There was an error updating the question submission list. No question submissions were updated. " + ex.getMessage());
-            }
-        } else {
+        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
+        }
+
+        boolean student = false;
+
+        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
+            submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
+            student = true;
+        }
+
+        Map<QuestionSubmission, QuestionSubmissionDto> map = new HashMap<>();
+
+        for (QuestionSubmissionDto questionSubmissionDto : questionSubmissionDtoList) {
+            apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, questionSubmissionDto.getQuestionSubmissionId());
+            QuestionSubmission questionSubmission = questionSubmissionService.getQuestionSubmission(questionSubmissionDto.getQuestionSubmissionId());
+            log.debug("Updating question submission with id: {}", questionSubmission.getQuestionSubmissionId());
+            questionSubmissionService.validateQuestionSubmission(questionSubmissionDto);
+            map.put(questionSubmission, questionSubmissionDto);
+        }
+
+        try {
+            questionSubmissionService.updateQuestionSubmissions(map, student);
+            return new ResponseEntity<>(HttpStatus.OK);
+        } catch (Exception ex) {
+            throw new DataServiceException("Error 105: There was an error updating the question submission list. No question submissions were updated. " + ex.getMessage());
         }
     }
 
-
-    @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}/question_submissions/{question_submission_id}",
-            method = RequestMethod.DELETE)
-    public ResponseEntity<Void> deleteQuestionSubmission(@PathVariable("experiment_id") Long experimentId,
-                                                         @PathVariable("condition_id") Long conditionId,
-                                                         @PathVariable("treatment_id") Long treatmentId,
-                                                         @PathVariable("assessment_id") Long assessmentId,
-                                                         @PathVariable("submission_id") Long submissionId,
-                                                         @PathVariable("question_submission_id") Long questionSubmissionId,
+    @DeleteMapping("/{questionSubmissionId}")
+    public ResponseEntity<Void> deleteQuestionSubmission(@PathVariable long experimentId,
+                                                         @PathVariable long conditionId,
+                                                         @PathVariable long treatmentId,
+                                                         @PathVariable long assessmentId,
+                                                         @PathVariable long submissionId,
+                                                         @PathVariable long questionSubmissionId,
                                                          HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, BadTokenException {
-
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
         apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, questionSubmissionId);
 
-        if (apijwtService.isInstructorOrHigher(securedInfo)) {
-            try {
-                questionSubmissionService.deleteById(questionSubmissionId);
-                return new ResponseEntity<>(HttpStatus.OK);
-            } catch (EmptyResultDataAccessException ex) {
-                log.warn(ex.getMessage());
-                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-            }
-        } else {
+        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
+
+        try {
+            questionSubmissionService.deleteById(questionSubmissionId);
+            return new ResponseEntity<>(HttpStatus.OK);
+        } catch (EmptyResultDataAccessException ex) {
+            log.warn(ex.getMessage());
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
     }
+
 }
