@@ -237,7 +237,7 @@ public class OutcomeServiceImpl implements OutcomeService {
         for (Submission submission : submissions) {
             boolean found = false;
             for (OutcomeScore outcomeScore : outcome.getOutcomeScores()) {
-                if (outcomeScore.getParticipant().getLtiUserEntity().getEmail() != null && outcomeScore.getParticipant().getLtiUserEntity().getEmail().equals(submission.getUser().getLoginId()) && outcomeScore.getParticipant().getLtiUserEntity().getDisplayName().equals(submission.getUser().getName())) {
+                if (outcomeScore.getParticipant().getLtiUserEntity().getEmail() != null && outcomeScore.getParticipant().getLtiUserEntity().getEmail().equals(submission.getUser().getLoginId()) && outcomeScore.getParticipant().getLtiUserEntity().getDisplayname().equals(submission.getUser().getName())) {
                     found = true;
                     if (submission.getScore() != null) {
                         outcomeScore.setScoreNumeric(submission.getScore().floatValue());
@@ -249,7 +249,7 @@ public class OutcomeServiceImpl implements OutcomeService {
             }
             if (!found) {
                 for (OutcomeScore outcomeScore : outcome.getOutcomeScores()) {
-                    if (outcomeScore.getParticipant().getLtiUserEntity().getDisplayName().equals(submission.getUser().getName())) {
+                    if (outcomeScore.getParticipant().getLtiUserEntity().getDisplayname().equals(submission.getUser().getName())) {
                         found = true;
                         if (submission.getScore() != null) {
                             outcomeScore.setScoreNumeric(submission.getScore().floatValue());
@@ -263,7 +263,7 @@ public class OutcomeServiceImpl implements OutcomeService {
             }
             if (!found) {
                 for (Participant participant : outcome.getExposure().getExperiment().getParticipants()) {
-                    if (participant.getLtiUserEntity().getEmail() != null && participant.getLtiUserEntity().getEmail().equals(submission.getUser().getLoginId()) && participant.getLtiUserEntity().getDisplayName().equals(submission.getUser().getName())) {
+                    if (participant.getLtiUserEntity().getEmail() != null && participant.getLtiUserEntity().getEmail().equals(submission.getUser().getLoginId()) && participant.getLtiUserEntity().getDisplayname().equals(submission.getUser().getName())) {
                         found = true;
                         OutcomeScore outcomeScore = new OutcomeScore();
                         outcomeScore.setOutcome(outcome);
@@ -280,7 +280,7 @@ public class OutcomeServiceImpl implements OutcomeService {
             }
             if (!found) {
                 for (Participant participant : outcome.getExposure().getExperiment().getParticipants()) {
-                    if (participant.getLtiUserEntity().getDisplayName().equals(submission.getUser().getName())) {
+                    if (participant.getLtiUserEntity().getDisplayname().equals(submission.getUser().getName())) {
                         OutcomeScore outcomeScore = new OutcomeScore();
                         outcomeScore.setOutcome(outcome);
                         outcomeScore.setParticipant(participant);

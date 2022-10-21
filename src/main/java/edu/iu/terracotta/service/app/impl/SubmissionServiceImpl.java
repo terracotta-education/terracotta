@@ -174,7 +174,7 @@ public class SubmissionServiceImpl implements SubmissionService {
         submissionDto.setAlteredCalculatedGrade(submission.getAlteredCalculatedGrade());
         submissionDto.setTotalAlteredGrade(submission.getTotalAlteredGrade());
         submissionDto.setDateSubmitted(submission.getDateSubmitted());
-        submissionDto.setLateSubmission(submission.getLateSubmission());
+        submissionDto.setLateSubmission(submission.isLateSubmission());
         submissionDto.setDateCreated(submission.getCreatedAt());
         submissionDto.setQuestionSubmissionDtoList(Collections.emptyList());
         submissionDto.setSubmissionCommentDtoList(Collections.emptyList());
@@ -221,7 +221,7 @@ public class SubmissionServiceImpl implements SubmissionService {
             submission.setTotalAlteredGrade(submissionDto.getTotalAlteredGrade());
         }
         submission.setDateSubmitted(submissionDto.getDateSubmitted());
-        submission.setLateSubmission(submissionDto.getLateSubmission());
+        submission.setLateSubmission(submissionDto.isLateSubmission());
         Optional<Participant> participant = allRepositories.participantRepository.findById(submissionDto.getParticipantId());
         if (participant.isPresent()) {
             submission.setParticipant(participant.get());

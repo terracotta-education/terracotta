@@ -148,7 +148,7 @@ public class ParticipantServiceImpl implements ParticipantService {
         UserDto userDto = new UserDto();
         userDto.setUserId(user.getUserId());
         userDto.setUserKey(user.getUserKey());
-        userDto.setDisplayName(user.getDisplayName());
+        userDto.setDisplayName(user.getDisplayname());
         return userDto;
     }
 
@@ -172,7 +172,7 @@ public class ParticipantServiceImpl implements ParticipantService {
             throw new DataServiceException("The experiment for the participant does not exist");
         }
         try {
-            Optional<LtiUserEntity> userEntity = allRepositories.users.findById(participantDto.getUser().getUserId());
+            Optional<LtiUserEntity> userEntity = allRepositories.ltiUserRepository.findById(participantDto.getUser().getUserId());
             if (userEntity.isPresent()) {
                 participant.setLtiUserEntity(userEntity.get());
             } else {
@@ -234,7 +234,7 @@ public class ParticipantServiceImpl implements ParticipantService {
                         //TODO: We don't have a way here to get the userCanvasId except calling the API
                         // or waiting for the user to access. BUT we just need this to send the grades with the API...
                         // so if the user never accessed... we can't send them until we use LTI.
-                        newLtiUserEntity.setDisplayName(courseUser.getName());
+                        newLtiUserEntity.setDisplayname(courseUser.getName());
                         //By default it adds a value in the constructor, but if we are generating it, it means that the user has never logged in
                         newLtiUserEntity.setLoginAt(null);
                         ltiUserEntity = ltiDataService.saveLtiUserEntity(newLtiUserEntity);

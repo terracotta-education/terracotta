@@ -14,6 +14,8 @@ package edu.iu.terracotta.model;
 
 import org.apache.commons.lang3.StringUtils;
 
+import lombok.NoArgsConstructor;
+
 import javax.persistence.Basic;
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -25,30 +27,40 @@ import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
+
 import java.util.Objects;
 import java.util.Set;
 
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
 @Entity
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "lti_link")
 public class LtiLinkEntity extends BaseEntity {
+
     @Id
+    @Column(nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "link_id", nullable = false)
     private long linkId;
+
     @Basic
-    @Column(name = "link_key", nullable = false, length = 4096)
+    @Column(nullable = false, length = 4096)
     private String linkKey;
+
     @Basic
-    @Column(name = "title", length = 4096)
+    @Column(length = 4096)
     private String title;
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+
     @JoinColumn(name = "context_id")
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     private LtiContextEntity context;
+
     @OneToMany(mappedBy = "link", fetch = FetchType.LAZY)
     private Set<LtiResultEntity> results;
-
-    protected LtiLinkEntity() {
-    }
 
     /**
      * @param linkKey the external id for this link
@@ -56,54 +68,18 @@ public class LtiLinkEntity extends BaseEntity {
      * @param title   OPTIONAL title of this link (null for none)
      */
     public LtiLinkEntity(String linkKey, LtiContextEntity context, String title) {
-        if (!StringUtils.isNotBlank(linkKey)) throw new AssertionError();
-        if (context == null) throw new AssertionError();
+        if (StringUtils.isBlank(linkKey)) {
+            throw new AssertionError();
+        }
+
+        if (context == null) {
+            throw new AssertionError();
+        }
+
         this.linkKey = linkKey;
         this.context = context;
         this.title = title;
-
     }
-
-    public long getLinkId() {
-        return linkId;
-    }
-
-    public void setLinkId(long linkId) {
-        this.linkId = linkId;
-    }
-
-    public String getLinkKey() {
-        return linkKey;
-    }
-
-    public void setLinkKey(String linkKey) {
-        this.linkKey = linkKey;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
-    public LtiContextEntity getContext() {
-        return context;
-    }
-
-    public void setContext(LtiContextEntity context) {
-        this.context = context;
-    }
-
-    public Set<LtiResultEntity> getResults() {
-        return results;
-    }
-
-    public void setResults(Set<LtiResultEntity> results) {
-        this.results = results;
-    }
-
 
     public String createHtmlFromLink() {
         return "Link Requested:\n" +
@@ -116,12 +92,20 @@ public class LtiLinkEntity extends BaseEntity {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         LtiLinkEntity that = (LtiLinkEntity) o;
 
-        if (linkId != that.linkId) return false;
+        if (linkId != that.linkId) {
+            return false;
+        }
+
         return Objects.equals(linkKey, that.linkKey);
     }
 
@@ -129,6 +113,7 @@ public class LtiLinkEntity extends BaseEntity {
     public int hashCode() {
         int result = (int) linkId;
         result = 31 * result + (linkKey != null ? linkKey.hashCode() : 0);
+
         return result;
     }
 

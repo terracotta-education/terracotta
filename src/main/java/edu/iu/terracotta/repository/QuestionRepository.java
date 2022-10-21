@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 
+@SuppressWarnings({"squid:S100", "PMD.MethodNamingConventions"})
 public interface QuestionRepository extends JpaRepository<Question, Long> {
 
     List<Question> findByAssessment_AssessmentIdOrderByQuestionOrder(Long assessmentId);

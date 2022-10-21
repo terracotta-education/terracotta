@@ -14,6 +14,11 @@ package edu.iu.terracotta.model.lti.dto;
 
 import java.util.List;
 
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
 public class PlatformConfigurationDTO {
 
     private String product_family_code;
@@ -21,39 +26,4 @@ public class PlatformConfigurationDTO {
     private List<MessagesSupportedDTO> messages_supported;
     private List<String> variables;
 
-
-    public PlatformConfigurationDTO() {//Empty on purpose
-    }
-
-    public String getProduct_family_code() {
-        return product_family_code;
-    }
-
-    public void setProduct_family_code(String product_family_code) {
-        this.product_family_code = product_family_code;
-    }
-
-    public String getVersion() {
-        return version;
-    }
-
-    public void setVersion(String version) {
-        this.version = version;
-    }
-
-    public List<MessagesSupportedDTO> getMessages_supported() {
-        return messages_supported;
-    }
-
-    public void setMessages_supported(List<MessagesSupportedDTO> messages_supported) {
-        this.messages_supported = messages_supported;
-    }
-
-    public List<String> getVariables() {
-        return variables;
-    }
-
-    public void setVariables(List<String> variables) {
-        this.variables = variables;
-    }
 }

@@ -14,6 +14,8 @@ package edu.iu.terracotta.model;
 
 import org.apache.commons.lang3.StringUtils;
 
+import lombok.NoArgsConstructor;
+
 import javax.persistence.Basic;
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -26,50 +28,71 @@ import javax.persistence.Lob;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
+
 import java.util.Objects;
 import java.util.Set;
 
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
 @Entity
+@NoArgsConstructor
 @Table(name = "lti_context")
 public class LtiContextEntity extends BaseEntity {
+
     @Id
+    @Column(nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "context_id", nullable = false)
     private long contextId;
+
     @Basic
-    @Column(name = "context_key", nullable = false, length = 4096)
+    @Column(nullable = false, length = 4096)
     private String contextKey;
+
     @Basic
-    @Column(name = "title", length = 4096)
+    @Column(length = 4096)
     private String title;
+
     @Basic
-    @Column(name = "context_memberships_url", length = 4096)
+    @Column(length = 4096)
     private String context_memberships_url;
+
     @Basic
-    @Column(name = "lineitems", length = 4096)
+    @Column(length = 4096)
     private String lineitems;
+
     @Lob
-    @Column(name = "json")
+    @Column
     private String json;
+
     @Lob
-    @Column(name = "settings")
+    @Column
     private String settings;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "deployment_id", referencedColumnName = "deployment_id", nullable = false)
+    @JoinColumn(
+        name = "deployment_id",
+        nullable = false
+    )
     private ToolDeployment toolDeployment;
 
     @OneToMany(mappedBy = "context")
     private Set<LtiLinkEntity> links;
+
     @OneToMany(mappedBy = "context")
     private Set<LtiMembershipEntity> memberships;
 
-    public LtiContextEntity() {
-    }
-
     public LtiContextEntity(String contextKey, ToolDeployment toolDeployment, String title, String json) {
-        if (!StringUtils.isNotBlank(contextKey)) throw new AssertionError();
-        if (toolDeployment == null) throw new AssertionError();
+        if (!StringUtils.isNotBlank(contextKey)) {
+            throw new AssertionError();
+        }
+
+        if (toolDeployment == null) {
+            throw new AssertionError();
+        }
+
         this.contextKey = contextKey;
         this.toolDeployment = toolDeployment;
         this.title = title;
@@ -77,104 +100,38 @@ public class LtiContextEntity extends BaseEntity {
     }
 
     public LtiContextEntity(String contextKey, ToolDeployment toolDeployment, String title, String context_memberships_url, String lineitems, String json) {
-        if (!StringUtils.isNotBlank(contextKey)) throw new AssertionError();
-        if (toolDeployment == null) throw new AssertionError();
+        if (StringUtils.isBlank(contextKey)) {
+            throw new AssertionError();
+        }
+
+        if (toolDeployment == null) {
+            throw new AssertionError();
+        }
+
         this.contextKey = contextKey;
         this.toolDeployment = toolDeployment;
         this.title = title;
         this.context_memberships_url = context_memberships_url;
         this.lineitems = lineitems;
         this.json = json;
-    }
-
-    public long getContextId() {
-        return contextId;
-    }
-
-    public void setContextId(long contextId) {
-        this.contextId = contextId;
-    }
-
-    public String getContextKey() {
-        return contextKey;
-    }
-
-    public void setContextKey(String contextKey) {
-        this.contextKey = contextKey;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
-    public String getJson() {
-        return json;
-    }
-
-    public void setJson(String json) {
-        this.json = json;
-    }
-
-    public String getSettings() {
-        return settings;
-    }
-
-    public void setSettings(String settings) {
-        this.settings = settings;
-    }
-
-    public ToolDeployment getToolDeployment() {
-        return toolDeployment;
-    }
-
-    public void setToolDeployment(ToolDeployment toolDeployment) {
-        this.toolDeployment = toolDeployment;
-    }
-
-    public Set<LtiLinkEntity> getLinks() {
-        return links;
-    }
-
-    public void setLinks(Set<LtiLinkEntity> links) {
-        this.links = links;
-    }
-
-    public Set<LtiMembershipEntity> getMemberships() {
-        return memberships;
-    }
-
-    public void setMemberships(Set<LtiMembershipEntity> memberships) {
-        this.memberships = memberships;
-    }
-
-    public String getContext_memberships_url() {
-        return context_memberships_url;
-    }
-
-    public void setContext_memberships_url(String context_memberships_url) {
-        this.context_memberships_url = context_memberships_url;
-    }
-
-    public String getLineitems() {
-        return lineitems;
-    }
-
-    public void setLineitems(String lineitems) {
-        this.lineitems = lineitems;
     }
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         LtiContextEntity that = (LtiContextEntity) o;
 
-        if (contextId != that.contextId) return false;
+        if (contextId != that.contextId) {
+            return false;
+        }
+
         return Objects.equals(contextKey, that.contextKey);
     }
 
@@ -182,6 +139,7 @@ public class LtiContextEntity extends BaseEntity {
     public int hashCode() {
         int result = (int) contextId;
         result = 31 * result + (contextKey != null ? contextKey.hashCode() : 0);
+
         return result;
     }
 

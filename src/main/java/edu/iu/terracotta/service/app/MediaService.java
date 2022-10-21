@@ -22,7 +22,7 @@ public interface MediaService {
 
     List<Event> getAllEvents();
 
-    List<Event> findAllByType(String type);
+    List<Event> findAllByEventType(String eventType);
 
     void deleteById(Long id);
 

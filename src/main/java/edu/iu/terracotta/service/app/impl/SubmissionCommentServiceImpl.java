@@ -47,7 +47,7 @@ public class SubmissionCommentServiceImpl implements SubmissionCommentService {
         }
         submissionCommentDto.setSubmissionId(submissionId);
         LtiUserEntity user = findByUserKey(userId);
-        submissionCommentDto.setCreator(user.getDisplayName());
+        submissionCommentDto.setCreator(user.getDisplayname());
         SubmissionComment submissionComment;
         try {
             submissionComment = fromDto(submissionCommentDto);

@@ -22,29 +22,35 @@ import javax.persistence.Table;
 import edu.iu.terracotta.model.BaseEntity;
 import edu.iu.terracotta.model.app.enumerator.MultipleSubmissionScoringScheme;
 
-@Table(name = "terr_assessment")
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
 @Entity
+@Table(name = "terr_assessment")
 public class Assessment extends BaseEntity {
-    @Column(name = "assessment_id", nullable = false)
+
     @Id
+    @Column(nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long assessmentId;
 
-    @Column(name = "html")
     @Lob
+    @Column
     private String html;
 
     @OneToMany(mappedBy = "assessment", orphanRemoval = true)
     private List<Question> questions;
 
-    @JoinColumn(name = "treatment_treatment_id", nullable = false)
     @OneToOne(optional = false)
+    @JoinColumn(name = "treatment_treatment_id", nullable = false)
     private Treatment treatment;
 
-    @Column(name = "title")
+    @Column
     private String title;
 
-    @Column(name = "auto_submit", nullable = false)
+    @Column(nullable = false)
     private boolean autoSubmit;
 
     // if null, no multiple attempts allowed; if zero, then the number of submissions is unlimited
@@ -55,137 +61,33 @@ public class Assessment extends BaseEntity {
     @Column
     private Float hoursBetweenSubmissions;
 
+    @Column(nullable = false)
     @Enumerated(EnumType.STRING)
-    @Column(name = "multiple_submission_scoring_scheme", nullable = false)
     private MultipleSubmissionScoringScheme multipleSubmissionScoringScheme = MultipleSubmissionScoringScheme.MOST_RECENT;
 
-    @Column(name = "cumulative_scoring_initial_percentage", nullable = true)
+    @Column
     private Float cumulativeScoringInitialPercentage;
 
-    @Column(name = "allow_student_view_responses", nullable = false)
+    @Column(nullable = false)
     private boolean allowStudentViewResponses = false;
 
-    @Column(name = "student_view_responses_after", nullable = true)
+    @Column
     private Timestamp studentViewResponsesAfter;
 
-    @Column(name = "student_view_responses_before", nullable = true)
+    @Column
     private Timestamp studentViewResponsesBefore;
 
-    @Column(name = "allow_student_view_correct_answers", nullable = false)
+    @Column(nullable = false)
     private boolean allowStudentViewCorrectAnswers = false;
 
-    @Column(name = "student_view_correct_answers_after", nullable = true)
+    @Column
     private Timestamp studentViewCorrectAnswersAfter;
 
-    @Column(name = "student_view_correct_answers_before", nullable = true)
+    @Column
     private Timestamp studentViewCorrectAnswersBefore;
 
     @OneToMany(mappedBy = "assessment", orphanRemoval = true)
     private List<Submission> submissions;
-
-    public Long getAssessmentId() { return assessmentId; }
-
-    public void setAssessmentId(Long assessmentId) { this.assessmentId = assessmentId; }
-
-    public String getHtml() { return html; }
-
-    public void setHtml(String html) { this.html = html; }
-
-    public List<Question> getQuestions() { return questions; }
-
-    public void setQuestions(List<Question> questions) { this.questions = questions; }
-
-    public Treatment getTreatment() { return treatment; }
-
-    public void setTreatment(Treatment treatment) { this.treatment = treatment; }
-
-    public String getTitle() { return title; }
-
-    public void setTitle(String title) { this.title = title; }
-
-    public boolean getAutoSubmit() { return autoSubmit; }
-
-    public void setAutoSubmit(boolean autoSubmit) { this.autoSubmit = autoSubmit; }
-
-    public Integer getNumOfSubmissions() { return numOfSubmissions; }
-
-    public void setNumOfSubmissions(Integer numOfSubmissions) { this.numOfSubmissions = numOfSubmissions; }
-
-    public List<Submission> getSubmissions() { return submissions; }
-
-    public void setSubmissions(List<Submission> submissions) { this.submissions = submissions; }
-
-    public boolean isAllowStudentViewResponses() {
-        return allowStudentViewResponses;
-    }
-
-    public void setAllowStudentViewResponses(boolean allowStudentViewResponses) {
-        this.allowStudentViewResponses = allowStudentViewResponses;
-    }
-
-    public Timestamp getStudentViewResponsesAfter() {
-        return studentViewResponsesAfter;
-    }
-
-    public void setStudentViewResponsesAfter(Timestamp studentViewResponsesAfter) {
-        this.studentViewResponsesAfter = studentViewResponsesAfter;
-    }
-
-    public Timestamp getStudentViewResponsesBefore() {
-        return studentViewResponsesBefore;
-    }
-
-    public void setStudentViewResponsesBefore(Timestamp studentViewResponsesBefore) {
-        this.studentViewResponsesBefore = studentViewResponsesBefore;
-    }
-
-    public boolean isAllowStudentViewCorrectAnswers() {
-        return allowStudentViewCorrectAnswers;
-    }
-
-    public void setAllowStudentViewCorrectAnswers(boolean allowStudentViewCorrectAnswers) {
-        this.allowStudentViewCorrectAnswers = allowStudentViewCorrectAnswers;
-    }
-
-    public Timestamp getStudentViewCorrectAnswersAfter() {
-        return studentViewCorrectAnswersAfter;
-    }
-
-    public void setStudentViewCorrectAnswersAfter(Timestamp studentViewCorrectAnswersAfter) {
-        this.studentViewCorrectAnswersAfter = studentViewCorrectAnswersAfter;
-    }
-
-    public Timestamp getStudentViewCorrectAnswersBefore() {
-        return studentViewCorrectAnswersBefore;
-    }
-
-    public void setStudentViewCorrectAnswersBefore(Timestamp studentViewCorrectAnswersBefore) {
-        this.studentViewCorrectAnswersBefore = studentViewCorrectAnswersBefore;
-    }
-
-    public Float getHoursBetweenSubmissions() {
-        return hoursBetweenSubmissions;
-    }
-
-    public void setHoursBetweenSubmissions(Float hoursBetweenSubmissions) {
-        this.hoursBetweenSubmissions = hoursBetweenSubmissions;
-    }
-
-    public MultipleSubmissionScoringScheme getMultipleSubmissionScoringScheme() {
-        return multipleSubmissionScoringScheme;
-    }
-
-    public void setMultipleSubmissionScoringScheme(MultipleSubmissionScoringScheme multipleSubmissionScoringScheme) {
-        this.multipleSubmissionScoringScheme = multipleSubmissionScoringScheme;
-    }
-
-    public Float getCumulativeScoringInitialPercentage() {
-        return cumulativeScoringInitialPercentage;
-    }
-
-    public void setCumulativeScoringInitialPercentage(Float cumulativeScoringInitialPercentage) {
-        this.cumulativeScoringInitialPercentage = cumulativeScoringInitialPercentage;
-    }
 
     public boolean canViewResponses() {
         if (!isAllowStudentViewResponses()) {
