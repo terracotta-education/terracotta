@@ -6,7 +6,9 @@ import java.sql.Timestamp;
 import java.text.MessageFormat;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -91,6 +93,10 @@ public class CanvasOAuthServiceImpl implements LMSOAuthService<CanvasAPITokenEnt
         return String.join(" ", CanvasAPIClientImpl.SCOPES_REQUIRED);
     }
 
+    private Set<String> getAllRequiredScopesAsSet() {
+        return new HashSet<>(CanvasAPIClientImpl.SCOPES_REQUIRED);
+    }
+
     @Override
     public Jws<Claims> validateState(String state) {
         return apijwtService.validateStateForAPITokenRequest(state);
@@ -130,6 +136,7 @@ public class CanvasOAuthServiceImpl implements LMSOAuthService<CanvasAPITokenEnt
             newToken.setCanvasUserName(token.getUser().getName());
             newToken.setExpiresAt(new Timestamp(System.currentTimeMillis() + token.getExpiresIn() * 1000));
             newToken.setRefreshToken(token.getRefreshToken());
+            newToken.setScopes(getAllRequiredScopes());
             newToken.setUser(user);
             return canvasAPITokenRepository.save(newToken);
         }
@@ -166,6 +173,16 @@ public class CanvasOAuthServiceImpl implements LMSOAuthService<CanvasAPITokenEnt
         Optional<CanvasAPITokenEntity> canvasAPIToken = canvasAPITokenRepository.findByUser(user);
         if (!canvasAPIToken.isPresent()) {
             return false;
+        }
+
+        // check that token's scopes include all required scopes
+        Set<String> allRequiredScopes = this.getAllRequiredScopesAsSet();
+        Set<String> tokenScopes = canvasAPIToken.get().getScopesAsSet();
+        if (tokenScopes == null || !tokenScopes.containsAll(allRequiredScopes)) {
+            allRequiredScopes.removeAll(tokenScopes);
+            log.info("Token {} is missing required scopes. Has {} but needs {}", canvasAPIToken.get().getTokenId(),
+                    tokenScopes, allRequiredScopes);
+            return false; // need to get a new token with all required scopes
         }
 
         // if exists, refresh and save the token, return true

@@ -1,6 +1,10 @@
 package edu.iu.terracotta.model.canvas;
 
 import java.sql.Timestamp;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 import javax.persistence.Basic;
 import javax.persistence.Column;
@@ -9,6 +13,7 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
+import javax.persistence.Lob;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 
@@ -42,6 +47,10 @@ public class CanvasAPITokenEntity implements APIToken {
     @Basic
     @Column(name = "canvas_user_name", nullable = false)
     private String canvasUserName;
+
+    @Lob
+    @Column(name = "scopes")
+    private String scopes;
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "user_id")
@@ -101,6 +110,22 @@ public class CanvasAPITokenEntity implements APIToken {
 
     public void setUser(LtiUserEntity user) {
         this.user = user;
+    }
+
+    public String getScopes() {
+        return scopes;
+    }
+
+    public void setScopes(String scopes) {
+        this.scopes = scopes;
+    }
+
+    public Set<String> getScopesAsSet() {
+        if (this.scopes == null) {
+            return Collections.emptySet();
+        } else {
+            return new HashSet<>(Arrays.asList(this.scopes.split(" ")));
+        }
     }
 
     @Override
