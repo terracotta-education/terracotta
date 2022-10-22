@@ -2,6 +2,7 @@ package edu.iu.terracotta.controller.app;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.text.MessageFormat;
 import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
@@ -10,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
@@ -20,6 +22,7 @@ import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.common.LMSOAuthService;
 import edu.iu.terracotta.service.common.LMSOAuthServiceManager;
 import edu.iu.terracotta.service.lti.LTIDataService;
+import edu.iu.terracotta.utils.TextConstants;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 
@@ -44,7 +47,7 @@ public class LMSOAuthController {
     LtiUserRepository ltiUserRepository;
 
     @GetMapping(value = "/oauth_response")
-    public String handleOauthResponse(HttpServletRequest req)
+    public String handleOauthResponse(HttpServletRequest req, Model model)
             throws GeneralSecurityException, IOException, LMSOAuthException {
 
         String code = req.getParameter("code");
@@ -53,6 +56,13 @@ public class LMSOAuthController {
         // Verify that state parameter matches session state
         String state = req.getParameter("state");
         log.debug("/oauth_response: state={}", state);
+
+        String error = req.getParameter("error");
+        if (error != null) {
+            model.addAttribute(TextConstants.ERROR,
+                    MessageFormat.format("Error getting LMS API access token: {0}", error));
+            return TextConstants.OAUTH2_ERROR;
+        }
 
         String sessionState = (String) req.getSession().getAttribute(SESSION_LMS_OAUTH2_STATE);
         if (sessionState == null) {
