@@ -2,6 +2,7 @@ package edu.iu.terracotta.service.common;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.util.Optional;
 
 import edu.iu.terracotta.exceptions.LMSOAuthException;
 import edu.iu.terracotta.model.LtiUserEntity;
@@ -26,7 +27,7 @@ public interface LMSOAuthService<T extends APIToken> {
             throws LMSOAuthException;
 
     // TODO: don't need this here
-    public Jws<Claims> validateState(String state);
+    public Optional<Jws<Claims>> validateState(String state);
 
     public T fetchAndSaveAccessToken(LtiUserEntity user, String code) throws LMSOAuthException;
 

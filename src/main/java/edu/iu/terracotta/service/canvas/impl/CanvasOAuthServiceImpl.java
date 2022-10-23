@@ -1,12 +1,15 @@
 package edu.iu.terracotta.service.canvas.impl;
 
 import java.io.IOException;
+import java.net.URI;
 import java.security.GeneralSecurityException;
 import java.sql.Timestamp;
 import java.text.MessageFormat;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -23,6 +26,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.UnknownContentTypeException;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import edu.iu.terracotta.exceptions.LMSOAuthException;
@@ -98,7 +102,7 @@ public class CanvasOAuthServiceImpl implements LMSOAuthService<CanvasAPITokenEnt
     }
 
     @Override
-    public Jws<Claims> validateState(String state) {
+    public Optional<Jws<Claims>> validateState(String state) {
         return apijwtService.validateStateForAPITokenRequest(state);
     }
 
@@ -118,30 +122,21 @@ public class CanvasOAuthServiceImpl implements LMSOAuthService<CanvasAPITokenEnt
         map.add("code", code);
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(map, headers);
 
-        RestTemplate restTemplate = createRestTemplate();
-        ResponseEntity<CanvasAPIToken> response = restTemplate.postForEntity(canvasAPIOAuthSettings.getOauth2TokenUrl(),
-                request,
-                CanvasAPIToken.class);
+        CanvasAPIToken token = postToTokenURL(request, user);
 
-        if (response.getStatusCode().is2xxSuccessful()) {
-            CanvasAPIToken token = response.getBody();
-
-            Optional<CanvasAPITokenEntity> savedToken = canvasAPITokenRepository.findByUser(user);
-            savedToken.ifPresent(aToken -> {
-                canvasAPITokenRepository.delete(aToken);
-            });
-            CanvasAPITokenEntity newToken = new CanvasAPITokenEntity();
-            newToken.setAccessToken(token.getAccessToken());
-            newToken.setCanvasUserId(token.getUser().getId());
-            newToken.setCanvasUserName(token.getUser().getName());
-            newToken.setExpiresAt(new Timestamp(System.currentTimeMillis() + token.getExpiresIn() * 1000));
-            newToken.setRefreshToken(token.getRefreshToken());
-            newToken.setScopes(getAllRequiredScopes());
-            newToken.setUser(user);
-            return canvasAPITokenRepository.save(newToken);
-        }
-        throw new LMSOAuthException(
-                MessageFormat.format("Could not retrieve token from {0}", canvasAPIOAuthSettings.getOauth2TokenUrl()));
+        Optional<CanvasAPITokenEntity> savedToken = canvasAPITokenRepository.findByUser(user);
+        savedToken.ifPresent(aToken -> {
+            canvasAPITokenRepository.delete(aToken);
+        });
+        CanvasAPITokenEntity newToken = new CanvasAPITokenEntity();
+        newToken.setAccessToken(token.getAccessToken());
+        newToken.setCanvasUserId(token.getUser().getId());
+        newToken.setCanvasUserName(token.getUser().getName());
+        newToken.setExpiresAt(new Timestamp(System.currentTimeMillis() + token.getExpiresIn() * 1000));
+        newToken.setRefreshToken(token.getRefreshToken());
+        newToken.setScopes(getAllRequiredScopes());
+        newToken.setUser(user);
+        return canvasAPITokenRepository.save(newToken);
     }
 
     @Override
@@ -217,21 +212,49 @@ public class CanvasOAuthServiceImpl implements LMSOAuthService<CanvasAPITokenEnt
         map.add("refresh_token", canvasAPITokenEntity.getRefreshToken());
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(map, headers);
 
+        CanvasAPIToken tokenResponse = postToTokenURL(request, canvasAPITokenEntity.getUser());
+        canvasAPITokenEntity.setAccessToken(tokenResponse.getAccessToken());
+        canvasAPITokenEntity
+                .setExpiresAt(new Timestamp(System.currentTimeMillis() + tokenResponse.getExpiresIn() * 1000));
+
+        return canvasAPITokenRepository.save(canvasAPITokenEntity);
+    }
+
+    private CanvasAPIToken postToTokenURL(HttpEntity<MultiValueMap<String, String>> request,
+            LtiUserEntity user) throws LMSOAuthException {
+
+        CanvasAPIOAuthSettings canvasAPIOAuthSettings = getCanvasAPIOAuthSettings(user.getPlatformDeployment());
+
         RestTemplate restTemplate = createRestTemplate();
-        ResponseEntity<CanvasAPIToken> response = restTemplate.postForEntity(canvasAPIOAuthSettings.getOauth2TokenUrl(),
-                request,
-                CanvasAPIToken.class);
+        try {
+            ResponseEntity<CanvasAPIToken> response = restTemplate.postForEntity(
+                    canvasAPIOAuthSettings.getOauth2TokenUrl(),
+                    request,
+                    CanvasAPIToken.class);
+            if (response.getStatusCode().is2xxSuccessful()) {
+                return response.getBody();
+            }
+        } catch (UnknownContentTypeException unknownContentTypeException) {
+            if (unknownContentTypeException.getRawStatusCode() == 302) {
 
-        if (response.getStatusCode().is2xxSuccessful()) {
-            CanvasAPIToken tokenResponse = response.getBody();
-            canvasAPITokenEntity.setAccessToken(tokenResponse.getAccessToken());
-            canvasAPITokenEntity
-                    .setExpiresAt(new Timestamp(System.currentTimeMillis() + tokenResponse.getExpiresIn() * 1000));
-
-            return canvasAPITokenRepository.save(canvasAPITokenEntity);
+                URI location = unknownContentTypeException.getResponseHeaders().getLocation();
+                String queryParameters = location.getQuery();
+                Map<String, String> paramMap = new HashMap<>();
+                for (String queryParam : queryParameters.split("&")) {
+                    String[] nameValue = queryParam.split("=");
+                    paramMap.put(nameValue[0], nameValue[1]);
+                }
+                throw new LMSOAuthException(
+                        MessageFormat.format("Error getting access token: error: {0}, error_description: {1}",
+                                paramMap.get("error"), paramMap.get("error_description")),
+                        unknownContentTypeException);
+            } else {
+                throw new LMSOAuthException(unknownContentTypeException.getResponseBodyAsString(),
+                        unknownContentTypeException);
+            }
         }
         throw new LMSOAuthException(MessageFormat.format("Could not refresh token for user {0}",
-                canvasAPITokenEntity.getUser().getUserId()));
+                user.getUserId()));
     }
 
     private String getRedirectURI() {

@@ -12,6 +12,7 @@ import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.List;
+import java.util.Optional;
 
 public interface APIJWTService {
 
@@ -49,7 +50,7 @@ public interface APIJWTService {
      * token is successfully obtained, the values in this JWT will be used to
      * construct the one time token that is handed off to the Terracotta
      * frontend app.
-     * 
+     *
      * @param lti3Request
      * @return
      * @throws GeneralSecurityException
@@ -57,7 +58,7 @@ public interface APIJWTService {
      */
     String generateStateForAPITokenRequest(LTI3Request lti3Request) throws GeneralSecurityException, IOException;
 
-    Jws<Claims> validateStateForAPITokenRequest(String state);
+    Optional<Jws<Claims>> validateStateForAPITokenRequest(String state);
 
     String refreshToken(String token) throws GeneralSecurityException, IOException, BadTokenException;
 

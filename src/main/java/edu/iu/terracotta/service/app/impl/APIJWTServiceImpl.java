@@ -323,15 +323,19 @@ public class APIJWTServiceImpl implements APIJWTService {
     }
 
     @Override
-    public Jws<Claims> validateStateForAPITokenRequest(String state) {
+    public Optional<Jws<Claims>> validateStateForAPITokenRequest(String state) {
 
         Jws<Claims> claims = validateToken(state);
 
-        String issuer = claims.getBody().getIssuer();
-        if (!issuer.equals(ISSUER_LMS_OAUTH_API_TOKEN_REQUEST)) {
-            return null;
+        if (claims != null) {
+            String issuer = claims.getBody().getIssuer();
+            if (!issuer.equals(ISSUER_LMS_OAUTH_API_TOKEN_REQUEST)) {
+                return Optional.empty();
+            }
+            return Optional.of(claims);
+        } else {
+            return Optional.empty();
         }
-        return claims;
     }
 
     @Override

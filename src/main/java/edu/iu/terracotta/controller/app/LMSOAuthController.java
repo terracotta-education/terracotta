@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.text.MessageFormat;
 import java.util.List;
+import java.util.Optional;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -65,22 +66,47 @@ public class LMSOAuthController {
         }
 
         String sessionState = (String) req.getSession().getAttribute(SESSION_LMS_OAUTH2_STATE);
-        if (sessionState == null) {
-            throw new IllegalStateException("OAuth2 request doesn't contains the expected state");
+        if (sessionState == null || !sessionState.equals(state)) {
+
+            String errMessage = "OAuth2 request doesn't contain the expected state";
+            model.addAttribute(TextConstants.ERROR,
+                    MessageFormat.format("Error getting LMS API access token: {0}", errMessage));
+            return TextConstants.OAUTH2_ERROR;
         }
-        if (!sessionState.equals(state)) {
-            throw new IllegalStateException("OAuth2 request doesn't contains the expected state");
+
+        Optional<Jws<Claims>> claims = Optional.empty();
+        try {
+            claims = apijwtService.validateStateForAPITokenRequest(state);
+        } catch (Throwable t) {
+            log.error("Failed to validate the state claims", t);
+            String errMessage = "Could not validate the OAuth2 request state";
+            model.addAttribute(TextConstants.ERROR,
+                    MessageFormat.format("Error getting LMS API access token: {0}", errMessage));
+            return TextConstants.OAUTH2_ERROR;
         }
-        Jws<Claims> claims = apijwtService.validateStateForAPITokenRequest(state);
-        long platformDeploymentId = claims.getBody().get("platformDeploymentId", Long.class);
+        if (!claims.isPresent()) {
+
+            String errMessage = "OAuth2 request doesn't contain the expected state";
+            model.addAttribute(TextConstants.ERROR,
+                    MessageFormat.format("Error getting LMS API access token: {0}", errMessage));
+            return TextConstants.OAUTH2_ERROR;
+        }
+
+        long platformDeploymentId = claims.get().getBody().get("platformDeploymentId", Long.class);
         LMSOAuthService<?> lmsoAuthService = lmsoAuthServiceManager.getLMSOAuthService(platformDeploymentId);
 
-        String userKey = claims.getBody().get("userId", String.class);
+        String userKey = claims.get().getBody().get("userId", String.class);
         LtiUserEntity user = ltiUserRepository.findByUserKey(userKey);
 
-        lmsoAuthService.fetchAndSaveAccessToken(user, code);
+        try {
+            lmsoAuthService.fetchAndSaveAccessToken(user, code);
+        } catch (LMSOAuthException e) {
+            model.addAttribute(TextConstants.ERROR,
+                    MessageFormat.format("Error getting LMS API access token: {0}", e.getMessage()));
+            return TextConstants.OAUTH2_ERROR;
+        }
 
-        String oneTimeToken = createOneTimeToken(platformDeploymentId, userKey, claims.getBody());
+        String oneTimeToken = createOneTimeToken(platformDeploymentId, userKey, claims.get().getBody());
         return "redirect:/app/app.html?token=" + oneTimeToken;
 
     }

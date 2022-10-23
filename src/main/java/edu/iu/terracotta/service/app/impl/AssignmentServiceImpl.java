@@ -503,6 +503,7 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     @Override
+    @Transactional(rollbackFor = { CanvasApiException.class })
     public void checkAndRestoreAssignmentsInCanvas(Long platformDeploymentKeyId) throws CanvasApiException, DataServiceException, ConnectionException, IOException {
         List<Assignment> assignmentsToCheck = allRepositories.assignmentRepository.findAssignmentsToCheckByPlatform(platformDeploymentKeyId);
         for (Assignment assignment:assignmentsToCheck){
@@ -514,6 +515,7 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     @Override
+    @Transactional(rollbackFor = { CanvasApiException.class })
     public void checkAndRestoreAssignmentsInCanvasByContext(Long contextId, String instructorUserId)
             throws CanvasApiException, DataServiceException, ConnectionException, IOException {
         List<Assignment> assignmentsToCheck = allRepositories.assignmentRepository.findAssignmentsToCheckByContext(contextId);
@@ -684,8 +686,7 @@ public class AssignmentServiceImpl implements AssignmentService {
             String resourceLinkId = apijwtService.unsecureToken(jwtTokenAssignment).getBody().get("lti_assignment_id").toString();
             assignment.setResourceLinkId(resourceLinkId);
         } catch (CanvasApiException e) {
-            log.info("Create the assignment failed");
-            e.printStackTrace();
+            log.error("Create the assignment failed", e);
             throw new AssignmentNotCreatedException("Error 137: The assignment was not created.");
         }
     }
@@ -705,8 +706,7 @@ public class AssignmentServiceImpl implements AssignmentService {
         try {
             canvasAPIClient.editAssignment(instructorUser, assignmentExtended, canvasCourseId);
         } catch (CanvasApiException e) {
-            log.info("Edit the assignment failed");
-            e.printStackTrace();
+            log.error("Edit the assignment failed", e);
             throw new AssignmentNotEditedException("Error 137: The assignment was not created.");
         }
     }
@@ -726,8 +726,7 @@ public class AssignmentServiceImpl implements AssignmentService {
         try {
             canvasAPIClient.deleteAssignment(instructorUser, assignmentExtended, canvasCourseId);
         } catch (CanvasApiException e) {
-            log.info("Deleting the assignment failed");
-            e.printStackTrace();
+            log.error("Deleting the assignment failed", e);
             throw new AssignmentNotEditedException("Error 137: The assignment was not created.");
         }
     }
@@ -739,8 +738,7 @@ public class AssignmentServiceImpl implements AssignmentService {
             try {
                 deleteAssignmentInCanvas(assignment, securedInfo.getCanvasCourseId(), securedInfo.getUserId());
             } catch (CanvasApiException | AssignmentNotEditedException e) {
-                log.warn("Assignment : " + assignment.getTitle() + "was not deleted in canvas");
-                e.printStackTrace();
+                log.warn("Assignment : {} was not deleted in canvas", assignment.getTitle());
             }
         }
     }

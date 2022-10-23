@@ -4,25 +4,20 @@ import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.LMSOAuthException;
 import edu.iu.terracotta.model.LtiUserEntity;
 import edu.iu.terracotta.model.PlatformDeployment;
-import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.canvas.AssignmentExtended;
 import edu.iu.terracotta.model.canvas.CanvasAPITokenEntity;
 import edu.iu.terracotta.service.canvas.AssignmentReaderExtended;
 import edu.iu.terracotta.service.canvas.AssignmentWriterExtended;
 import edu.iu.terracotta.service.canvas.CanvasAPIClient;
+import edu.ksu.canvas.exception.CanvasException;
 import edu.ksu.canvas.exception.ObjectNotFoundException;
-import edu.ksu.canvas.impl.SubmissionImpl;
 import edu.ksu.canvas.interfaces.SubmissionReader;
-import edu.ksu.canvas.interfaces.SubmissionWriter;
-import edu.ksu.canvas.model.Progress;
 import edu.ksu.canvas.model.assignment.Submission;
 import edu.ksu.canvas.oauth.NonRefreshableOauthToken;
 import edu.ksu.canvas.oauth.OauthToken;
 import edu.ksu.canvas.requestOptions.GetSingleAssignmentOptions;
 import edu.ksu.canvas.requestOptions.GetSubmissionsOptions;
 import edu.ksu.canvas.requestOptions.ListCourseAssignmentsOptions;
-import edu.ksu.canvas.requestOptions.MultipleSubmissionsOptions;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -78,7 +73,7 @@ public class CanvasAPIClientImpl implements CanvasAPIClient {
             CanvasApiFactoryExtended apiFactory = new CanvasApiFactoryExtended(canvasBaseUrl);
             AssignmentWriterExtended assignmentWriter = apiFactory.getWriter(AssignmentWriterExtended.class, oauthToken);
             return assignmentWriter.createAssignment(canvasCourseId, canvasAssignment);
-        } catch (IOException ex) {
+        } catch (IOException | CanvasException ex) {
             throw new CanvasApiException(
                     "Failed to create Assignment in Canvas course by ID [" + canvasCourseId + "]", ex);
         }
@@ -115,7 +110,7 @@ public class CanvasAPIClientImpl implements CanvasAPIClient {
             AssignmentReaderExtended assignmentReader = apiFactory.getReader(AssignmentReaderExtended.class, oauthToken);
             ListCourseAssignmentsOptions listCourseAssignmentsOptions = new ListCourseAssignmentsOptions(canvasCourseId);
             return assignmentReader.listCourseAssignments(listCourseAssignmentsOptions);
-        } catch (IOException ex) {
+        } catch (IOException | CanvasException ex) {
             throw new CanvasApiException(
                     "Failed to get the list of assignments Canvas course [" + canvasCourseId + "]", ex);
         }
@@ -139,11 +134,13 @@ public class CanvasAPIClientImpl implements CanvasAPIClient {
             AssignmentReaderExtended assignmentReader = apiFactory.getReader(AssignmentReaderExtended.class, oauthToken);
             GetSingleAssignmentOptions assignmentsOptions = new GetSingleAssignmentOptions(canvasCourseId, assignmentId);
             return assignmentReader.getSingleAssignment(assignmentsOptions);
-        } catch (IOException ex) {
-            throw new CanvasApiException(
-                    "Failed to get the assignments with id [" + assignmentId + "] from canvas course [" + canvasCourseId + "]", ex);
         } catch (ObjectNotFoundException ex) {
             return Optional.empty();
+        } catch (IOException | CanvasException ex) {
+            throw new CanvasApiException(
+                    "Failed to get the assignments with id [" + assignmentId + "] from canvas course [" + canvasCourseId
+                            + "]",
+                    ex);
         }
     }
 
@@ -164,7 +161,7 @@ public class CanvasAPIClientImpl implements CanvasAPIClient {
             CanvasApiFactoryExtended apiFactory = new CanvasApiFactoryExtended(canvasBaseUrl);
             AssignmentWriterExtended assignmentWriter = apiFactory.getWriter(AssignmentWriterExtended.class, oauthToken);
             return assignmentWriter.editAssignment(canvasCourseId, assignmentExtended);
-        } catch (IOException ex) {
+        } catch (IOException | CanvasException ex) {
             throw new CanvasApiException(
                     "Failed to edit the assignments with id [" + assignmentExtended.getId() + "] from canvas course [" + canvasCourseId + "]", ex);
         }
@@ -187,7 +184,7 @@ public class CanvasAPIClientImpl implements CanvasAPIClient {
             CanvasApiFactoryExtended apiFactory = new CanvasApiFactoryExtended(canvasBaseUrl);
             AssignmentWriterExtended assignmentWriter = apiFactory.getWriter(AssignmentWriterExtended.class, oauthToken);
             return assignmentWriter.deleteAssignment(canvasCourseId, assignmentExtended.getId());
-        } catch (IOException ex) {
+        } catch (IOException | CanvasException ex) {
             throw new CanvasApiException(
                     "Failed to edit the assignments with id [" + assignmentExtended.getId() + "] from canvas course [" + canvasCourseId + "]", ex);
         }
@@ -320,7 +317,7 @@ public class CanvasAPIClientImpl implements CanvasAPIClient {
             return assignmentReader.getSingleAssignment(getSingleAssignmentsOptions);
         } catch (edu.ksu.canvas.exception.ObjectNotFoundException e) {
             return Optional.empty();
-        } catch (IOException ex) {
+        } catch (IOException | CanvasException ex) {
             throw new CanvasApiException(
                     "Failed to get the Assignment in Canvas course by ID [" + canvasCourseId + "]", ex);
         }

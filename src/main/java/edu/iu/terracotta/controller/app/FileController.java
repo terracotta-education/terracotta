@@ -60,6 +60,7 @@ public class FileController {
 
     @RequestMapping(value = "/{experiment_id}/consent", method = RequestMethod.POST, produces = "application/json")
     @ResponseBody
+    @Transactional(rollbackFor = { AssignmentNotCreatedException.class, CanvasApiException.class })
     public ResponseEntity<FileInfoDto> uploadConsentFiles(@RequestParam("consent") MultipartFile file,
                                                           @PathVariable("experiment_id") long experimentId,
                                                           @RequestParam(name = "title", defaultValue = "Invitation to Participate in a Research Study") String title,

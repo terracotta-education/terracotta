@@ -109,7 +109,7 @@ public class AssignmentController {
         }
     }
 
-    @Transactional
+    @Transactional(rollbackFor = { AssignmentNotCreatedException.class })
     @RequestMapping(value = "/{experiment_id}/exposures/{exposure_id}/assignments", method = RequestMethod.POST)
     public ResponseEntity<AssignmentDto> postAssignment(@PathVariable("experiment_id") long experimentId,
                                                         @PathVariable("exposure_id") long exposureId,
@@ -136,6 +136,7 @@ public class AssignmentController {
         }
     }
 
+    @Transactional(rollbackFor = { AssignmentNotEditedException.class, CanvasApiException.class })
     @PutMapping("/{experimentId}/exposures/{exposureId}/assignments/{assignmentId}")
     public ResponseEntity<AssignmentDto> updateAssignment(@PathVariable long experimentId,
                                                  @PathVariable long exposureId,
@@ -161,6 +162,7 @@ public class AssignmentController {
         return new ResponseEntity<>(updatedAssignmentDto, HttpStatus.OK);
     }
 
+    @Transactional(rollbackFor = { AssignmentNotEditedException.class, CanvasApiException.class })
     @PutMapping("/{experimentId}/exposures/{exposureId}/assignments")
     public ResponseEntity<List<AssignmentDto>> updateAssignments(@PathVariable long experimentId,
                                                                  @PathVariable long exposureId,
@@ -189,6 +191,7 @@ public class AssignmentController {
         return new ResponseEntity<>(updatedAssignmentDtos, HttpStatus.OK);
     }
 
+    @Transactional(rollbackFor = { AssignmentNotEditedException.class, CanvasApiException.class })
     @DeleteMapping("/{experimentId}/exposures/{exposureId}/assignments/{assignmentId}")
     public ResponseEntity<Void> deleteAssignment(@PathVariable long experimentId,
                                                  @PathVariable long exposureId,
