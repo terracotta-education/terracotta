@@ -62,6 +62,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 @Component
@@ -96,9 +97,11 @@ public class AssessmentServiceImpl implements AssessmentService {
     public List<AssessmentDto> getAllAssessmentsByTreatment(Long treatmentId, boolean submissions) throws AssessmentNotMatchingException {
         List<Assessment> assessmentList = findAllByTreatmentId(treatmentId);
         List<AssessmentDto> assessmentDtoList = new ArrayList<>();
+
         for (Assessment assessment : assessmentList) {
             assessmentDtoList.add(toDto(assessment, false, false, submissions, false));
         }
+
         return assessmentDtoList;
     }
 
@@ -116,6 +119,7 @@ public class AssessmentServiceImpl implements AssessmentService {
         // updateAssessment.
         assessmentDto = defaultAssessment(assessmentDto, treatmentId);
         Assessment assessment;
+
         try {
             assessment = fromDto(assessmentDto);
             assessment.setQuestions(new ArrayList<>());
@@ -125,6 +129,7 @@ public class AssessmentServiceImpl implements AssessmentService {
 
         Assessment assessmentSaved = save(assessment);
         updateTreatment(treatmentId, assessmentSaved);
+
         return toDto(assessmentSaved, false, false, false, false);
     }
 
@@ -175,14 +180,13 @@ public class AssessmentServiceImpl implements AssessmentService {
     }
 
     @Override
-    public AssessmentDto toDto(Assessment assessment, boolean questions, boolean answers, boolean submissions, boolean student) throws AssessmentNotMatchingException {
-        return toDto(assessment, null, questions, answers, submissions, student);
+    public AssessmentDto toDto(Assessment assessment, boolean questions, boolean answers, boolean submissions, boolean isStudent) throws AssessmentNotMatchingException {
+        return toDto(assessment, null, questions, answers, submissions, isStudent);
     }
 
     @Override
-    public AssessmentDto toDto(Assessment assessment, Long submissionId, boolean questions, boolean answers,
-            boolean submissions, boolean student) throws AssessmentNotMatchingException {
-
+    public AssessmentDto toDto(Assessment assessment, Long submissionId, boolean questions, boolean answers, boolean submissions, boolean isStudent)
+            throws AssessmentNotMatchingException {
         Long submissionsCompletedCount = null;
         Long submissionsInProgressCount = null;
         AssessmentDto assessmentDto = new AssessmentDto();
@@ -200,19 +204,8 @@ public class AssessmentServiceImpl implements AssessmentService {
         assessmentDto.setAllowStudentViewCorrectAnswers(assessment.isAllowStudentViewCorrectAnswers());
         assessmentDto.setStudentViewCorrectAnswersAfter(assessment.getStudentViewCorrectAnswersAfter());
         assessmentDto.setStudentViewCorrectAnswersBefore(assessment.getStudentViewCorrectAnswersBefore());
-        List<QuestionDto> questionDtoList = new ArrayList<>();
-        if (questions) {
-            List<Question> questionList = allRepositories.questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(assessment.getAssessmentId());
-            for (Question question : questionList) {
-                if (submissionId != null) {
-                    // apply submission specific ordering to of answers
-                    questionDtoList.add(questionService.toDto(question, submissionId, answers, student));
-                } else {
-                    questionDtoList.add(questionService.toDto(question, answers, student));
-                }
-            }
-        }
-        assessmentDto.setQuestions(questionDtoList);
+        assessmentDto.setQuestions(handleQuestionDtos(assessment, submissionId, questions, answers, isStudent));
+
         List<SubmissionDto> submissionDtoList = new ArrayList<>();
         Long conditionId = assessment.getTreatment().getCondition().getConditionId();
         Long exposureId = assessment.getTreatment().getAssignment().getExposure().getExposureId();
@@ -263,6 +256,17 @@ public class AssessmentServiceImpl implements AssessmentService {
         return assessmentDto;
     }
 
+    private List<QuestionDto> handleQuestionDtos(Assessment assessment, Long submissionId, boolean showQuestions, boolean showAnswers, boolean isStudent) {
+        if (!showQuestions) {
+            return Collections.emptyList();
+        }
+
+        List<Question> questionList = allRepositories.questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(assessment.getAssessmentId());
+
+        return CollectionUtils.emptyIfNull(questionList).stream()
+            .map(question -> questionService.toDto(question, submissionId, showAnswers, !isStudent))
+            .collect(Collectors.toList());
+    }
 
     @Override
     public Assessment fromDto(AssessmentDto assessmentDto) throws DataServiceException {

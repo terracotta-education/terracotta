@@ -5,11 +5,9 @@ import edu.iu.terracotta.model.app.QuestionSubmission;
 import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.dto.QuestionSubmissionDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
-import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.QuestionSubmissionService;
 import edu.iu.terracotta.service.app.SubmissionService;
-import edu.iu.terracotta.service.canvas.CanvasAPIClient;
 import edu.iu.terracotta.utils.TextConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,12 +43,6 @@ public class QuestionSubmissionController {
 
     @Autowired
     private SubmissionService submissionService;
-
-    @Autowired
-    private AllRepositories allRepositories;
-
-    @Autowired
-    private CanvasAPIClient canvasAPIClient;
 
     @GetMapping("/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}/submissions/{submissionId}/question_submissions")
     @ResponseBody

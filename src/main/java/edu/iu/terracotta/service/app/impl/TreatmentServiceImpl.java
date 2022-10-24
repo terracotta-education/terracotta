@@ -160,7 +160,7 @@ public class TreatmentServiceImpl implements TreatmentService {
         }
 
         if(treatment.getAssessment() != null) {
-            treatmentDto.setAssessmentDto(assessmentService.toDto(treatment.getAssessment(), true,false, submissions, false));
+            treatmentDto.setAssessmentDto(assessmentService.toDto(treatment.getAssessment(), true, false, submissions, false));
         }
 
         treatmentDto.setConditionId(treatment.getCondition().getConditionId());

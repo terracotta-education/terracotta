@@ -335,17 +335,9 @@ export default {
       const { allowStudentViewResponses, studentViewResponsesAfter, studentViewResponsesBefore } = this.assignmentData;
       if (allowStudentViewResponses) {
         const now = Date.now();
-        let isAfter = true;
-        let isBefore = true;
-        if (studentViewResponsesAfter) {
-          isAfter = moment(now).isAfter(studentViewResponsesAfter);
-        }
-        if (studentViewResponsesBefore) {
-          isBefore = moment(now).isBefore(studentViewResponsesBefore);
-        }
-        if (isAfter && isBefore) {
-          return false;
-        }
+        const isAfter = studentViewResponsesAfter ? moment(now).isAfter(studentViewResponsesAfter) : true;
+        const isBefore = studentViewResponsesBefore ? moment(now).isBefore(studentViewResponsesBefore) : true;
+        return isAfter && isBefore ? false : true;
       }
       return true;
     },
@@ -354,19 +346,11 @@ export default {
       const { allowStudentViewCorrectAnswers, studentViewCorrectAnswersAfter, studentViewCorrectAnswersBefore } = this.assignmentData;
       if (allowStudentViewCorrectAnswers) {
         const now = Date.now();
-        let isAfter = true;
-        let isBefore = true;
-        if (studentViewCorrectAnswersAfter) {
-          isAfter = moment(now).isAfter(studentViewCorrectAnswersAfter);
-        }
-        if (studentViewCorrectAnswersBefore) {
-          isBefore = moment(now).isBefore(studentViewCorrectAnswersBefore);
-        }
-        if (isAfter && isBefore) {
-          return false;
-        }
-      }
-      return true;
+        const isAfter = studentViewCorrectAnswersAfter ? moment(now).isAfter(studentViewCorrectAnswersAfter) : true;
+        const isBefore = studentViewCorrectAnswersBefore ? moment(now).isBefore(studentViewCorrectAnswersBefore) : true;
+        return isAfter && isBefore;
+      } 
+      return false;
     },
     showResponses() {
       return this.assignmentData?.allowStudentViewCorrectAnswers;

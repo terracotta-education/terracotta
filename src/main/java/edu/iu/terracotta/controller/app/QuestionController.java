@@ -23,6 +23,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -78,14 +79,13 @@ public class QuestionController {
         }
     }
 
-    @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/questions/{question_id}",
-            method = RequestMethod.GET, produces = "application/json;")
+    @GetMapping(value = "/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}/questions/{questionId}", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
-    public ResponseEntity<QuestionDto> getQuestion(@PathVariable("experiment_id") Long experimentId,
-                                                   @PathVariable("condition_id") Long conditionId,
-                                                   @PathVariable("treatment_id") Long treatmentId,
-                                                   @PathVariable("assessment_id") Long assessmentId,
-                                                   @PathVariable("question_id") Long questionId,
+    public ResponseEntity<QuestionDto> getQuestion(@PathVariable long experimentId,
+                                                   @PathVariable long conditionId,
+                                                   @PathVariable long treatmentId,
+                                                   @PathVariable long assessmentId,
+                                                   @PathVariable long questionId,
                                                    @RequestParam(name = "answers", defaultValue = "false") boolean answers,
                                                    HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionNotMatchingException, BadTokenException {
@@ -95,15 +95,14 @@ public class QuestionController {
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
         apijwtService.questionAllowed(securedInfo, assessmentId, questionId);
 
-        if(apijwtService.isLearnerOrHigher(securedInfo)){
-            boolean correctAnswers = apijwtService.isInstructorOrHigher(securedInfo);
-            QuestionDto questionDto = questionService.toDto(questionService.getQuestion(questionId), answers, correctAnswers);
-            return new ResponseEntity<>(questionDto, HttpStatus.OK);
-        } else {
+        if(!apijwtService.isLearnerOrHigher(securedInfo)){
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
-    }
 
+        QuestionDto questionDto = questionService.toDto(questionService.getQuestion(questionId), answers, apijwtService.isInstructorOrHigher(securedInfo));
+
+        return new ResponseEntity<>(questionDto, HttpStatus.OK);
+    }
 
     @PostMapping("/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}/questions")
     public ResponseEntity<QuestionDto> postQuestion(@PathVariable long experimentId,
