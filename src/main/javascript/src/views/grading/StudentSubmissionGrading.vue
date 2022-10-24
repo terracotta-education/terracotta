@@ -263,11 +263,9 @@ export default {
             );
           }
           else if (question.questionType === "FILE") {
-            console.log(question.questionId)
             answers[question.questionId] = this.studentSubmittedFileResponse(
                 question.questionId
             );
-            console.log("answer",answers[question.questionId])
           }
         }
       }
@@ -340,7 +338,6 @@ export default {
       const filteredResponse = this.studentResponse?.filter(
         (resp) => resp.questionId === questionId
       );
-      console.log(filteredResponse)
       return filteredResponse?.length > 0
         ? filteredResponse[0]
         : { answerSubmissionDtoList: [] };
@@ -371,8 +368,10 @@ export default {
       if (!answerSubmissionDtoList || answerSubmissionDtoList.length === 0) {
         return null;
       } else {
-        console.log(answerSubmissionDtoList[0])
-        let file ={'fileName':answerSubmissionDtoList[0].fileName,'url':answerSubmissionDtoList[0].response}
+        let decodedStringAtoB = atob(answerSubmissionDtoList[0].fileContent);
+        // let fileC = new Blob([decodedStringAtoB], { type: 'application/pdf' });
+        let fileURL = URL.createObjectURL(decodedStringAtoB); //only supports pdfs
+        let file ={'fileName':answerSubmissionDtoList[0].fileName,'url':fileURL}
         return file;
       }
     },

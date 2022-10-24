@@ -9,6 +9,7 @@ import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.core.io.Resource;
 
+import java.io.File;
 import java.security.GeneralSecurityException;
 import java.util.List;
 import java.util.Optional;
@@ -44,4 +45,7 @@ public interface FileStorageService {
     void deleteConsentAssignment(long experimentId, SecuredInfo securedInfo) throws AssignmentNotEditedException, CanvasApiException;
 
     String parseHTMLFiles (String html);
+
+
+    String uploadFileToAWSAndGetURI(File file);
 }

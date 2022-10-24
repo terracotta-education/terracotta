@@ -15,6 +15,7 @@ import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.FileStorageService;
+import edu.iu.terracotta.service.aws.AWSService;
 import edu.iu.terracotta.service.canvas.CanvasAPIClient;
 import edu.ksu.canvas.model.assignment.Assignment;
 import org.jsoup.Jsoup;
@@ -25,6 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
 import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -33,6 +35,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import javax.annotation.PostConstruct;
+import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.nio.file.Files;
@@ -70,6 +73,12 @@ public class FileStorageServiceImpl implements FileStorageService {
 
     @Autowired
     AllRepositories allRepositories;
+
+    @Autowired
+    AWSService awsService;
+
+    @Autowired
+    Environment env;
 
     @PostConstruct
     public void init() {
@@ -379,4 +388,10 @@ public class FileStorageServiceImpl implements FileStorageService {
         }
     }
 
+    @Override
+    public String uploadFileToAWSAndGetURI(File file) {
+            String readmeBucketName = env.getProperty("aws.submissions.bucket-name");
+            String URI = awsService.putObject(readmeBucketName,file);
+            return URI;
+    }
 }

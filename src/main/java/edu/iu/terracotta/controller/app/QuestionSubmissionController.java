@@ -8,11 +8,11 @@ import edu.iu.terracotta.model.app.dto.AnswerSubmissionDto;
 import edu.iu.terracotta.model.app.dto.QuestionSubmissionDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.AllRepositories;
-import edu.iu.terracotta.service.app.APIJWTService;
-import edu.iu.terracotta.service.app.QuestionSubmissionService;
-import edu.iu.terracotta.service.app.SubmissionService;
+import edu.iu.terracotta.service.app.*;
 import edu.iu.terracotta.service.canvas.CanvasAPIClient;
 import edu.iu.terracotta.utils.TextConstants;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,7 +27,10 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.HttpServletRequest;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -50,12 +53,14 @@ public class QuestionSubmissionController {
     @Autowired
     SubmissionService submissionService;
 
-
     @Autowired
     AllRepositories allRepositories;
 
     @Autowired
     CanvasAPIClient canvasAPIClient;
+
+    @Autowired
+    FileStorageService fileStorageService;
 
 
     @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}/question_submissions",
@@ -302,7 +307,10 @@ public class QuestionSubmissionController {
         }
         String fileName = file.getResource().getFilename();
         String mimeType = file.getContentType();
-
+        File tempFile = getFile(file, file.getName());
+        String URI = fileStorageService.uploadFileToAWSAndGetURI(tempFile);
+        byte[] encoded = Base64.encodeBase64(FileUtils.readFileToByteArray(tempFile));
+        String fileContent = new String(encoded, StandardCharsets.US_ASCII);
         ObjectMapper objectMapper = new ObjectMapper();
         QuestionSubmissionDto questionSubmissionDto = objectMapper.readValue(questionSubmissionDtoStr, QuestionSubmissionDto.class);
         List<QuestionSubmissionDto> questionSubmissionDtoList = new ArrayList<>();
@@ -313,10 +321,13 @@ public class QuestionSubmissionController {
         AnswerSubmissionDto answerSubmissionDto = new AnswerSubmissionDto();
         answerSubmissionDto.setFileName(fileName);
         answerSubmissionDto.setMimeType(mimeType);
-        answerSubmissionDto.setFileContent(file.getBytes());
+        answerSubmissionDto.setFile(tempFile);
+        answerSubmissionDto.setFileContent(fileContent);
+        answerSubmissionDto.setFileURI(URI);
         answerSubmissionDtoList.add(answerSubmissionDto);
         questionSubmissionDto.setAnswerSubmissionDtoList(answerSubmissionDtoList);
         questionSubmissionDtoList.add(questionSubmissionDto);
+
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
@@ -352,5 +363,16 @@ public class QuestionSubmissionController {
         }
         return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 }
+
+    private File getFile(MultipartFile multipartFile, String fileName) {
+        File tempFile = new File(fileName);
+        try (FileOutputStream fos = new FileOutputStream(tempFile)) {
+            fos.write(multipartFile.getBytes());
+            fos.close();
+        } catch (IOException e) {
+            log.error("Error while converting Multipart file to file ",tempFile.getName());
+        }
+        return tempFile;
+    }
 
 }

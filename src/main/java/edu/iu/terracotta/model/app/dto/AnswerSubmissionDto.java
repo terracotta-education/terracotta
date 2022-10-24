@@ -1,14 +1,18 @@
 package edu.iu.terracotta.model.app.dto;
 
+import java.io.File;
+
 public class AnswerSubmissionDto {
 
     private Long answerSubmissionId;
     private Long answerId;
     private Long questionSubmissionId;
     private String response;
-    private  byte[] fileContent;
-     private String fileName;
-     private String mimeType;
+    private String fileContent;
+    private String fileName;
+    private String mimeType;
+    private String fileURI;
+    private File file;
 
     public Long getAnswerSubmissionId() { return answerSubmissionId; }
 
@@ -26,11 +30,11 @@ public class AnswerSubmissionDto {
 
     public void setResponse(String response) { this.response = response; }
 
-    public byte[] getFileContent() {
+    public String getFileContent() {
         return fileContent;
     }
 
-    public void setFileContent(byte[] fileContent) {
+    public void setFileContent(String fileContent) {
         this.fileContent = fileContent;
     }
 
@@ -48,5 +52,21 @@ public class AnswerSubmissionDto {
 
     public void setMimeType(String mimeType) {
         this.mimeType = mimeType;
+    }
+
+    public String getFileURI() {
+        return fileURI;
+    }
+
+    public void setFileURI(String fileURI) {
+        this.fileURI = fileURI;
+    }
+
+    public File getFile() {
+        return file;
+    }
+
+    public void setFile(File file) {
+        this.file = file;
     }
 }

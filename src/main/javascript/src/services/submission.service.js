@@ -91,12 +91,10 @@ async function createQuestionSubmissions(
             const bodyFormData = new FormData();
             const answer = file.answerSubmissionDtoList[0];
             const file_ex = answer.response;
-            console.log(file_ex);
             answer.response = null;
             delete answer.type;
             const val = JSON.stringify(file)
             bodyFormData.append('question_dto', val);
-            console.log(file_ex);
             bodyFormData.append('file', file_ex);
 
             const requestOptions = {

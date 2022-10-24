@@ -6,11 +6,16 @@ import edu.iu.terracotta.model.app.dto.AnswerSubmissionDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.AnswerSubmissionService;
+import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.service.app.SubmissionService;
+import edu.iu.terracotta.service.aws.AWSService;
 import edu.iu.terracotta.utils.TextConstants;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -22,7 +27,10 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -46,6 +54,10 @@ public class AnswerSubmissionController {
 
     @Autowired
     APIJWTService apijwtService;
+
+    @Autowired
+    FileStorageService fileStorageService;
+
 
 
     @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}/question_submissions/{question_submission_id}/answer_submissions",
@@ -236,14 +248,23 @@ public class AnswerSubmissionController {
             log.error("Invalid file ");
             return new ResponseEntity(TextConstants.FILE_MISSING, HttpStatus.BAD_REQUEST);
         }
+
+        File tempFile = getFile(file, file.getName());
+        String URI = fileStorageService.uploadFileToAWSAndGetURI(tempFile);
+
+        byte[] encoded = Base64.encodeBase64(FileUtils.readFileToByteArray(tempFile));
+        String fileContent = new String(encoded, StandardCharsets.US_ASCII);
         String fileName = file.getResource().getFilename();
         String mimeType = file.getContentType();
 
         ObjectMapper objectMapper = new ObjectMapper();
         AnswerSubmissionDto answerSubmissionDto = objectMapper.readValue(answerSubmissionDtoStr, AnswerSubmissionDto.class);
-        answerSubmissionDto.setFileContent(file.getBytes());
+        answerSubmissionDto.setFileContent(fileContent);
         answerSubmissionDto.setFileName(fileName);
         answerSubmissionDto.setMimeType(mimeType);
+        answerSubmissionDto.setFileURI(URI);
+        answerSubmissionDto.setFile(tempFile);
+
         log.info("Creating answer submission: {}", answerSubmissionDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -265,5 +286,17 @@ public class AnswerSubmissionController {
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
+    }
+
+
+    private File getFile(MultipartFile multipartFile, String fileName) {
+        File tempFile = new File(fileName);
+        try (FileOutputStream fos = new FileOutputStream(tempFile)) {
+            fos.write(multipartFile.getBytes());
+            fos.close();
+        } catch (IOException e) {
+           log.error("Error while converting Multipart file to file ",tempFile.getName());
+        }
+        return tempFile;
     }
 }

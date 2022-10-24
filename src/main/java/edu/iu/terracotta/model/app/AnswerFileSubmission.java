@@ -17,9 +17,9 @@ public class AnswerFileSubmission extends BaseEntity {
     private QuestionSubmission questionSubmission;
 
 
-    @Column(name = "file_content")
+    @Column(name = "file_content",  columnDefinition="CLOB")
     @Lob
-    private byte[] file;
+    private String file;
 
     @Column(name = "file_name")
     private String fileName;
@@ -27,15 +27,18 @@ public class AnswerFileSubmission extends BaseEntity {
     @Column(name = "mime_type")
     private  String mimeType;
 
+    @Column(name= "file_uri")
+    private String fileURI;
+
     public QuestionSubmission getQuestionSubmission() { return questionSubmission; }
 
     public void setQuestionSubmission(QuestionSubmission questionSubmission) { this.questionSubmission = questionSubmission; }
 
-    public byte[] getFile() {
+    public String getFile() {
         return file;
     }
 
-    public void setFile(byte[] file) {
+    public void setFile(String file) {
         this.file = file;
     }
 
@@ -57,5 +60,14 @@ public class AnswerFileSubmission extends BaseEntity {
 
     public void setMimeType(String mimeType) {
         this.mimeType = mimeType;
+    }
+
+
+    public String getFileURI() {
+        return fileURI;
+    }
+
+    public void setFileURI(String fileURI) {
+        this.fileURI = fileURI;
     }
 }

@@ -11,13 +11,18 @@ import edu.iu.terracotta.model.app.dto.AnswerSubmissionDto;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.AnswerSubmissionService;
 import edu.iu.terracotta.service.app.QuestionSubmissionService;
+import edu.iu.terracotta.service.aws.AWSService;
 import edu.iu.terracotta.utils.TextConstants;
+import org.apache.commons.codec.binary.Base64;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
+import org.springframework.core.env.Environment;
 
+
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -31,6 +36,11 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
     @Autowired
     QuestionSubmissionService questionSubmissionService;
 
+    @Autowired
+    Environment env;
+
+    @Autowired
+    AWSService awsService;
     /*
     general methods
      */
@@ -326,7 +336,9 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
         answerSubmissionDto.setFileContent(fileAnswer.getFile());
         answerSubmissionDto.setMimeType(fileAnswer.getMimeType());
         answerSubmissionDto.setFileName(fileAnswer.getFileName());
-        answerSubmissionDto.setResponse("https://readmebucket.s3.amazonaws.com/sample_txt.pdf");
+        answerSubmissionDto.setFileURI(fileAnswer.getFileURI());
+
+        answerSubmissionDto.setResponse(fileAnswer.getFileURI()); //TODO: remove once url assignment is fixed.
         return answerSubmissionDto;
     }
 
@@ -337,6 +349,7 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
         answerFileSubmission.setFile(answerSubmissionDto.getFileContent());
         answerFileSubmission.setFileName(answerSubmissionDto.getFileName());
         answerFileSubmission.setMimeType(answerSubmissionDto.getMimeType());
+        answerFileSubmission.setFileURI(answerSubmissionDto.getFileURI());
         Optional<QuestionSubmission> questionSubmission = questionSubmissionService.findById(answerSubmissionDto.getQuestionSubmissionId());
         if(questionSubmission.isPresent()){
             answerFileSubmission.setQuestionSubmission(questionSubmission.get());
@@ -414,4 +427,6 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
                 .buildAndExpand(experimentId, conditionId, treatmentId, assessmentId, submissionId, questionSubmissionId, answerSubmissionId).toUri());
         return headers;
     }
+
+
 }
