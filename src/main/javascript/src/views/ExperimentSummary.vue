@@ -8,8 +8,8 @@
               src="@/assets/terracotta_logo_mark.svg"
               class="mr-6"
               alt="Terracotta Logo"
-              max-height="30"
-              max-width="27"
+              height="30"
+              max-width="26"
             />
             <span>{{ experiment.title }}</span>
           </p>
