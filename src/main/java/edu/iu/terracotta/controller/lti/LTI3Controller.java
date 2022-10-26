@@ -222,7 +222,7 @@ public class LTI3Controller {
 
         // if LMS OAuth settings are configured but user doesn't have an access token,
         // we'll need to get one. Create and return authorization url.
-        String state = lmsOAuthService.createOAuthState(lti3Request);
+        String state = apiJWTService.generateStateForAPITokenRequest(lti3Request);
         HttpSession session = req.getSession();
         session.setAttribute(LMSOAuthController.SESSION_LMS_OAUTH2_STATE, state);
 

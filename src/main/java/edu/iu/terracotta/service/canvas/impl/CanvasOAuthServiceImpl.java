@@ -1,8 +1,6 @@
 package edu.iu.terracotta.service.canvas.impl;
 
-import java.io.IOException;
 import java.net.URI;
-import java.security.GeneralSecurityException;
 import java.sql.Timestamp;
 import java.text.MessageFormat;
 import java.time.Instant;
@@ -35,15 +33,11 @@ import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.model.canvas.CanvasAPIOAuthSettings;
 import edu.iu.terracotta.model.canvas.CanvasAPIToken;
 import edu.iu.terracotta.model.canvas.CanvasAPITokenEntity;
-import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.CanvasAPIOAuthSettingsRepository;
 import edu.iu.terracotta.repository.CanvasAPITokenRepository;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.common.LMSOAuthService;
 import edu.iu.terracotta.service.lti.LTIDataService;
-import edu.iu.terracotta.utils.lti.LTI3Request;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jws;
 
 @Service
 public class CanvasOAuthServiceImpl implements LMSOAuthService<CanvasAPITokenEntity> {
@@ -70,12 +64,6 @@ public class CanvasOAuthServiceImpl implements LMSOAuthService<CanvasAPITokenEnt
     }
 
     @Override
-    public String createOAuthState(SecuredInfo securedInfo) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
     public String getAuthorizationRequestURI(PlatformDeployment platformDeployment, String state)
             throws LMSOAuthException {
 
@@ -87,23 +75,19 @@ public class CanvasOAuthServiceImpl implements LMSOAuthService<CanvasAPITokenEnt
                 .queryParam("redirect_uri", getRedirectURI())
                 .queryParam("state", state)
                 .queryParam("scope", getAllRequiredScopes())
+                .encode()
                 .build()
                 .toUriString();
         return url;
 
     }
 
-    private String getAllRequiredScopes() {
+    String getAllRequiredScopes() {
         return String.join(" ", CanvasAPIClientImpl.SCOPES_REQUIRED);
     }
 
-    private Set<String> getAllRequiredScopesAsSet() {
+    Set<String> getAllRequiredScopesAsSet() {
         return new HashSet<>(CanvasAPIClientImpl.SCOPES_REQUIRED);
-    }
-
-    @Override
-    public Optional<Jws<Claims>> validateState(String state) {
-        return apijwtService.validateStateForAPITokenRequest(state);
     }
 
     @Override
@@ -137,12 +121,6 @@ public class CanvasOAuthServiceImpl implements LMSOAuthService<CanvasAPITokenEnt
         newToken.setScopes(getAllRequiredScopes());
         newToken.setUser(user);
         return canvasAPITokenRepository.save(newToken);
-    }
-
-    @Override
-    public CanvasAPITokenEntity refreshAccessToken(LtiUserEntity user) {
-        // TODO Auto-generated method stub
-        return null;
     }
 
     @Override
@@ -188,11 +166,6 @@ public class CanvasOAuthServiceImpl implements LMSOAuthService<CanvasAPITokenEnt
             log.error(MessageFormat.format("Failed to refresh token {0}", canvasAPIToken.get().getTokenId()), e);
             return false;
         }
-    }
-
-    @Override
-    public String createOAuthState(LTI3Request lti3Request) throws GeneralSecurityException, IOException {
-        return apijwtService.generateStateForAPITokenRequest(lti3Request);
     }
 
     private CanvasAPITokenEntity refreshAccessToken(CanvasAPITokenEntity canvasAPITokenEntity)
@@ -253,7 +226,7 @@ public class CanvasOAuthServiceImpl implements LMSOAuthService<CanvasAPITokenEnt
                         unknownContentTypeException);
             }
         }
-        throw new LMSOAuthException(MessageFormat.format("Could not refresh token for user {0}",
+        throw new LMSOAuthException(MessageFormat.format("Could not fetch token for user {0}",
                 user.getUserId()));
     }
 
@@ -261,7 +234,7 @@ public class CanvasOAuthServiceImpl implements LMSOAuthService<CanvasAPITokenEnt
         return ltiDataService.getLocalUrl() + "/lms/oauth2/oauth_response";
     }
 
-    private RestTemplate createRestTemplate() {
+    RestTemplate createRestTemplate() {
         return new RestTemplate(
                 new BufferingClientHttpRequestFactory(new SimpleClientHttpRequestFactory()));
     }

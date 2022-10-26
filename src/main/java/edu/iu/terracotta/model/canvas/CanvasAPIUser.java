@@ -11,6 +11,11 @@ public class CanvasAPIUser {
     public CanvasAPIUser() {
     }
 
+    public CanvasAPIUser(long id, String name) {
+        this.id = id;
+        this.name = name;
+    }
+
     public long getId() {
         return id;
     }
