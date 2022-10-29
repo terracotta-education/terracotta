@@ -30,32 +30,43 @@
             outlined
           ></v-textarea>
 
-          <h4 class="mb-3"><strong>Questions</strong></h4>
+          <div class="d-flex align-center mb-3 justify-space-between">
+            <h4 class="pa-0"><strong>Questions</strong></h4>
+            <v-btn color="primary" text elevation="0" class="saveButton" @click="handleClearQuestions()" :disabled="!canClearAll">Clear All</v-btn>
+          </div>
 
           <template v-if="questionPages && questionPages.length > 0">
             <template v-for="questionPage in questionPages">
               <div :key="questionPage.key">
                 <v-expansion-panels
-                  class="v-expansion-panels--outlined"
                   flat
                   accordion
+                  outlined
+                  class="v-expansion-panels--outlined"
                   :key="questionPage.key"
                 >
+                <draggable :list="questionPage.questions" group="questions" handle=".dragger"
+                  @change="(ev) => handleQuestionOrderChange(ev)"
+                  class="" style="width:100%">
                   <v-expansion-panel
                     v-for="(question, qIndex) in questionPage.questions"
                     :key="qIndex"
-                    class="text-left"
+                    :class="[qIndex === 0 ? 'rounded-lg' : qIndex === questionPage.questions.length - 1 ? 'rounded-lg rounded-t-0' : '',
+                      qIndex === questionPage.questions.length - 1 ? '' : 'rounded-b-0']"
                   >
                     <template v-if="question">
                       <v-expansion-panel-header class="text-left">
-                        <h2 class="pa-0">
-                          {{ questionPage.questionStartIndex + qIndex + 1 }}
-                          <span
-                            class="pl-3 question-text"
-                            v-if="question.html"
-                            v-html="textOnly(question.html)"
-                          ></span>
-                        </h2>
+                        <div class="d-flex align-start">
+                          <span class="dragger me-2"><v-icon>mdi-drag</v-icon></span>
+                          <h2 class="pa-0">
+                            {{ questionPage.questionStartIndex + qIndex + 1 }}
+                            <span
+                              class="pl-3 question-text"
+                              v-if="question.html"
+                              v-html="textOnly(question.html)"
+                            ></span>
+                          </h2>
+                        </div>
                       </v-expansion-panel-header>
                       <v-expansion-panel-content>
                         <component
@@ -65,6 +76,7 @@
                       </v-expansion-panel-content>
                     </template>
                   </v-expansion-panel>
+                </draggable>
                 </v-expansion-panels>
                 <page-break v-if="questionPage.pageBreakAfter" />
               </div>
@@ -103,6 +115,76 @@
               </v-list-item>
             </v-list>
           </v-menu>
+          <v-menu offset-y close-on-click close-on-content-click transition="slide-y-transition" v-model="copyMenuShown">
+            <template v-slot:activator="{ on, attrs }">
+              <v-btn
+                color="primary"
+                elevation="0"
+                plain
+                v-bind="attrs"
+                v-on="on"
+                class="mb-3 mt-3"
+                
+                :disabled="questions.length > 0"
+              >
+                Copy Treatment From
+                <v-icon>mdi-chevron-down</v-icon>
+              </v-btn>
+            </template>
+            <v-list>
+                <template
+                  v-for="(assignment, index) in assignments"
+                >
+                  <v-menu
+                    offset-x
+                    :key="assignment.assignmentId"
+                    v-if="assignment.treatments.length > 0"
+                    open-on-hover
+                    transition="slide-x-transition"
+                  >
+                    <template v-slot:activator="{ on, attrs }">
+                      <v-list-item :key="index" v-bind="attrs" v-on="on">
+                        <v-list-item-title>{{
+                          assignment.title
+                        }}</v-list-item-title>
+                        <v-list-item-action class="justify-end">
+                          <v-icon>mdi-menu-right</v-icon>
+                        </v-list-item-action>
+                      </v-list-item>
+                    </template>
+                    <v-list>
+                      <template v-for="treatment in assignment.treatments">
+                        <v-list-item
+                          :key="treatment.treatmentId"
+                          @click="duplicate(treatment)"
+                        >
+                          <v-list-item-title
+                            >Treatment
+                            <v-chip
+                              label
+                              :color="
+                                conditionColorMapping[
+                                  conditionForTreatment(
+                                    getGroupConditionListForAssignment(assignment),
+                                    treatment.conditionId
+                                  ).conditionName
+                                ]
+                              "
+                              >{{
+                                conditionForTreatment(
+                                  getGroupConditionListForAssignment(assignment),
+                                  treatment.conditionId
+                                ).conditionName
+                              }}</v-chip
+                            ></v-list-item-title
+                          >
+                        </v-list-item>
+                      </template>
+                    </v-list>
+                  </v-menu>
+                </template>
+            </v-list>
+          </v-menu>
           <br />
         </form>
       </v-tab-item>
@@ -128,6 +210,9 @@ import MultipleChoiceQuestionEditor from "./MultipleChoiceQuestionEditor.vue";
 import QuestionEditor from "./QuestionEditor.vue";
 import PageBreak from "./PageBreak.vue";
 import TreatmentSettings from "./TreatmentSettings.vue";
+import draggable from 'vuedraggable';
+import { assessmentService } from '@/services';
+import omitDeep from '../../helpers/deep-omit';
 
 export default {
   name: "TerracottaBuilder",
@@ -153,12 +238,18 @@ export default {
         (c) => parseInt(c.conditionId) === parseInt(this.condition_id)
       );
     },
+    canClearAll() {
+      return this.assessment.questions.length > 0 && !this.assessment.started;
+    },
     ...mapGetters({
       assignment: "assignment/assignment",
+      exposures: "exposures/exposures",
+      assignments: "assignment/assignments",
       assessment: "assessment/assessment",
       questions: "assessment/questions",
       answerableQuestions: "assessment/answerableQuestions",
       questionPages: "assessment/questionPages",
+      conditionColorMapping: "condition/conditionColorMapping",
     }),
     contDisabled() {
       return (
@@ -197,6 +288,7 @@ export default {
   },
   data() {
     return {
+      copyMenuShown: false,
       rules: [
         (v) => (v && !!v.trim()) || "required",
         (v) =>
@@ -208,15 +300,34 @@ export default {
   methods: {
     ...mapMutations({
       setAssessment: "assessment/setAssessment",
+      updateQuestions: "assessment/updateQuestions",
     }),
     ...mapActions({
       fetchAssessment: "assessment/fetchAssessment",
       updateAssessment: "assessment/updateAssessment",
+      fetchExposures: "exposures/fetchExposures",
       createQuestion: "assessment/createQuestion",
       updateQuestion: "assessment/updateQuestion",
       deleteQuestion: "assessment/deleteQuestion",
       updateAnswer: "assessment/updateAnswer",
+      updateTreatment: "treatment/updateTreatment",
     }),
+    getAssignmentsForExposure(exp) {
+      return this.assignments
+        .filter((a) => a.exposureId === exp.exposureId)
+        .sort((a, b) => a.assignmentOrder - b.assignmentOrder);
+    },
+    getGroupConditionListForAssignment(assignment) {
+      const exposure = this.exposures.find(e => e.exposureId === assignment.exposureId);
+      return exposure.groupConditionList;
+    },
+    conditionForTreatment(groupConditionList, conditionId) {
+      return groupConditionList.find((c) => c.conditionId === conditionId);
+    },
+    async getAssignmentDetails() {
+      await this.fetchExposures(this.experiment.experimentId);
+      return this.exposures;
+    },
     async handleAddQuestion(questionType) {
       // POST QUESTION
       try {
@@ -225,7 +336,7 @@ export default {
           this.condition_id,
           this.treatment_id,
           this.assessment_id,
-          0,
+          this.questions.length,
           questionType,
           1, // points
           "",
@@ -233,6 +344,38 @@ export default {
       } catch (error) {
         console.error(error);
       }
+    },
+    async handleQuestionOrderChange(event) {
+      if (!event.removed) {
+        const list = [...this.questions.map(q => ({...q}))];
+        const evt = event.added ? event.added : event.moved;
+        const { element, newIndex } = evt;
+        const oldIndex = list.findIndex((v) => v.questionId === element.questionId);
+        const movedItem = list.splice(oldIndex, 1)[0];
+        list.splice(newIndex, 0, movedItem);
+        list.forEach((q, idx) => {
+          q.questionOrder = idx;
+        });
+
+        this.handleSaveQuestions(list);
+      }
+    },
+    async handleClearQuestions() {
+      this.assessment.questions.forEach((q) => {
+        this.deleteQuestion([
+          this.experiment.experimentId,
+          this.condition.conditionId,
+          this.treatment_id,
+          this.assessment_id,
+          q.questionId
+        ]).then(response => {
+          if (response.status === 400) {
+            this.$swal(response.data);
+            return false;
+          }
+        });
+      });
+      return true;
     },
     async handleSaveAssessment() {
       // PUT ASSESSMENT TITLE & HTML (description) & SETTINGS
@@ -249,6 +392,10 @@ export default {
         this.assessment.allowStudentViewCorrectAnswers,
         this.assessment.studentViewCorrectAnswersAfter,
         this.assessment.studentViewCorrectAnswersBefore,
+        this.assessment.numOfSubmissions,
+        this.assessment.multipleSubmissionScoringScheme,
+        this.assessment.hoursBetweenSubmissions,
+        this.assessment.cumulativeScoringInitialPercentage
       ]);
       if (response.status === 400) {
         this.$swal(response.data);
@@ -256,12 +403,13 @@ export default {
       }
       return true;
     },
-    async handleSaveQuestions() {
+    async handleSaveQuestions(questions) {
       // LOOP AND PUT QUESTIONS
       return Promise.all(
-        this.questions.map(async (question, index) => {
+        questions.map(async (question, index) => {
           // save question
           try {
+            this.updateQuestions(question);
             const q = await this.updateQuestion([
               this.experiment.experimentId,
               this.condition_id,
@@ -273,8 +421,8 @@ export default {
               index,
               question.questionType,
               question.randomizeAnswers,
+              question.answers
             ]);
-
             return Promise.resolve(q);
           } catch (error) {
             return Promise.reject(error);
@@ -309,6 +457,7 @@ export default {
       );
     },
     async saveAll(routeName) {
+
       if (this.answerableQuestions.some((q) => !q.html)) {
         this.$swal("Please fill or delete empty questions.");
         return false;
@@ -316,13 +465,60 @@ export default {
 
       const savedAssessment = await this.handleSaveAssessment();
       if (savedAssessment) {
-        await this.handleSaveQuestions();
+        await this.handleSaveQuestions(this.questions);
         await this.handleSaveAnswers();
-
         this.$router.push({
           name: routeName,
-          params: { exposure_id: this.exposure_id },
+          params: { exposure_id: isNaN(this.exposure_id) ? this.$route.params.exposure_id : this.exposure_id },
         });
+      }
+    },
+    async duplicate(treatment) {
+      const { assessmentDto, conditionId } = treatment;
+      /* eslint-disable-next-line */
+      const { treatmentId, assessmentId } = assessmentDto;
+      let assessment;
+
+      this.copyMenuShown = false;
+
+      try {
+        assessment = await assessmentService.fetchAssessment(this.experiment.experimentId, conditionId, treatmentId, assessmentId)
+      } catch (error) {
+        console.error("handleCreateTreatment | catch", { error });
+        return;
+      }
+
+      const copy = omitDeep({
+        ...assessment.data
+      }, ['answerId', 'questionId', 'assessmentId']);
+
+      try {
+        await this.updateTreatment([
+          this.experiment.experimentId,
+          this.condition_id,
+          this.treatment_id,
+          {
+            treatmentId: this.treatment_id,
+            conditionId: this.condition_id,
+            assignmentId: this.assignment_id,
+            assessmentDto: {
+              ...copy,
+              treatmentId: this.treatment_id,
+              assessmentId: this.assessment_id
+            },
+            assignmentDto: {
+              ...this.assignment
+            }
+          },
+        ]);
+        return await this.fetchAssessment([
+          this.experiment.experimentId,
+          this.condition_id,
+          this.treatment_id,
+          this.assessment_id,
+        ]);
+      } catch (error) {
+        console.error("handleCreateTreatment | catch", { error });
       }
     },
     saveExit() {
@@ -342,17 +538,25 @@ export default {
       this.treatment_id,
       this.assessment_id,
     ]);
+    this.getAssignmentDetails();
   },
   components: {
     QuestionEditor,
     MultipleChoiceQuestionEditor,
     PageBreak,
     TreatmentSettings,
+    draggable
   },
 };
 </script>
 
 <style lang="scss">
+v-expansion-panels {
+  &, & > div {
+    width: 100%;
+  }
+  
+}
 .terracotta-builder {
   .v-expansion-panel-header {
     &--active {

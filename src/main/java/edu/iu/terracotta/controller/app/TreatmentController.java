@@ -1,6 +1,7 @@
 package edu.iu.terracotta.controller.app;
 
 import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
+import edu.iu.terracotta.exceptions.AssignmentNotEditedException;
 import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.ConditionNotMatchingException;
@@ -11,6 +12,12 @@ import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.IdMismatchException;
 import edu.iu.terracotta.exceptions.IdMissingException;
+import edu.iu.terracotta.exceptions.MultipleAttemptsSettingsValidationException;
+import edu.iu.terracotta.exceptions.MultipleChoiceLimitReachedException;
+import edu.iu.terracotta.exceptions.NegativePointsException;
+import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
+import edu.iu.terracotta.exceptions.RevealResponsesSettingValidationException;
+import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
 import edu.iu.terracotta.model.app.dto.TreatmentDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
@@ -74,7 +81,7 @@ public class TreatmentController {
 
         String instructorUserId = apijwtService.isLearnerOrHigher(securedInfo) ? securedInfo.getUserId() : null;
         List<TreatmentDto> treatmentList = treatmentService.getTreatments(conditionId, securedInfo.getCanvasCourseId(),
-                securedInfo.getPlatformDeploymentId(), submissions, instructorUserId);
+                submissions, instructorUserId);
 
         if(treatmentList.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
@@ -111,7 +118,7 @@ public class TreatmentController {
                                                       @RequestBody TreatmentDto treatmentDto,
                                                       UriComponentsBuilder ucBuilder,
                                                       HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, ConditionNotMatchingException, ExperimentLockedException, AssessmentNotMatchingException, IdInPostException, ExceedingLimitException, DataServiceException {
+            throws ExperimentNotMatchingException, BadTokenException, ConditionNotMatchingException, ExperimentLockedException, AssessmentNotMatchingException, IdInPostException, ExceedingLimitException, DataServiceException, TreatmentNotMatchingException {
 
         log.debug("Creating Treatment: {}", treatmentDto);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
@@ -133,8 +140,12 @@ public class TreatmentController {
                                                 @PathVariable long conditionId,
                                                 @PathVariable long treatmentId,
                                                 @RequestBody TreatmentDto treatmentDto,
+                                                @RequestParam(name = "questions", defaultValue = "true") boolean questions,
                                                 HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, TreatmentNotMatchingException, IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, IdMissingException, IdMismatchException {
+            throws ExperimentNotMatchingException, BadTokenException, TreatmentNotMatchingException, IdInPostException, DataServiceException,
+                ExceedingLimitException, AssessmentNotMatchingException, IdMissingException, IdMismatchException,
+                TitleValidationException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException,
+                CanvasApiException, AssignmentNotEditedException, NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException {
 
         log.debug("Updating treatment with id: {}", treatmentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
@@ -145,7 +156,7 @@ public class TreatmentController {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
-        return new ResponseEntity(treatmentService.putTreatment(treatmentDto, treatmentId), HttpStatus.OK);
+        return new ResponseEntity(treatmentService.putTreatment(treatmentDto, treatmentId, securedInfo, questions), HttpStatus.OK);
     }
 
     @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}", method = RequestMethod.DELETE)
@@ -180,7 +191,7 @@ public class TreatmentController {
                                                           UriComponentsBuilder ucBuilder,
                                                           HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ConditionNotMatchingException, ExperimentLockedException,
-                    AssessmentNotMatchingException, IdInPostException, ExceedingLimitException, DataServiceException, NumberFormatException, CanvasApiException, TreatmentNotMatchingException {
+                    AssessmentNotMatchingException, IdInPostException, ExceedingLimitException, DataServiceException, NumberFormatException, CanvasApiException, TreatmentNotMatchingException, QuestionNotMatchingException {
 
         log.debug("Duplicating Treatment ID: {}", treatmentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
@@ -193,7 +204,7 @@ public class TreatmentController {
         }
 
         TreatmentDto returnedDto = treatmentService.duplicateTreatment(treatmentId, securedInfo.getCanvasCourseId(),
-                securedInfo.getPlatformDeploymentId(), securedInfo.getUserId());
+                securedInfo.getUserId());
         HttpHeaders headers = treatmentService.buildHeaders(ucBuilder, experimentId, conditionId, returnedDto.getTreatmentId());
 
         return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);

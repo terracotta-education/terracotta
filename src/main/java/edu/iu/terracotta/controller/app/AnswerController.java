@@ -16,6 +16,8 @@ import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.AnswerService;
 import edu.iu.terracotta.service.app.QuestionService;
 import edu.iu.terracotta.utils.TextConstants;
+
+import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +29,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -81,8 +84,6 @@ public class AnswerController {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
 
-        boolean student = !apijwtService.isInstructorOrHigher(securedInfo);
-
         if (answerService.getQuestionType(questionId).equals(QuestionTypes.MC.toString())) {
             List<AnswerDto> answerDtoList = answerService.findAllByQuestionIdMC(questionId, false);
 
@@ -116,7 +117,7 @@ public class AnswerController {
 
         if(apijwtService.isLearnerOrHigher(securedInfo)) {
             String answerType = answerService.getQuestionType(questionId);
-            boolean student = !apijwtService.isInstructorOrHigher(securedInfo);
+
             if(answerType.equals(QuestionTypes.MC.toString())){
                 return new ResponseEntity<>(answerService.getAnswerMC(answerId), HttpStatus.OK);
             } else {
@@ -156,13 +157,12 @@ public class AnswerController {
     }
 
 
-    @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/questions/{question_id}/answers",
-            method = RequestMethod.PUT)
-    public ResponseEntity<Void> updateAnswers(@PathVariable("experiment_id") Long experimentId,
-                                              @PathVariable("condition_id") Long conditionId,
-                                              @PathVariable("treatment_id") Long treatmentId,
-                                              @PathVariable("assessment_id") Long assessmentId,
-                                              @PathVariable("question_id") Long questionId,
+    @PutMapping("/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}/questions/{questionId}/answers")
+    public ResponseEntity<List<AnswerDto>> updateAnswers(@PathVariable long experimentId,
+                                              @PathVariable long conditionId,
+                                              @PathVariable long treatmentId,
+                                              @PathVariable long assessmentId,
+                                              @PathVariable long questionId,
                                               @RequestBody List<AnswerDto> answerDtoList,
                                               HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionNotMatchingException, AnswerNotMatchingException, BadTokenException, DataServiceException {
@@ -172,42 +172,42 @@ public class AnswerController {
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
         apijwtService.questionAllowed(securedInfo, assessmentId, questionId);
 
-        if(apijwtService.isInstructorOrHigher(securedInfo)){
-            String answerType = answerService.getQuestionType(questionId);
-            if(answerType.equals(QuestionTypes.MC.toString())){
-                Map<AnswerMc, AnswerDto> map = new HashMap<>();
-                for(AnswerDto answerDto : answerDtoList) {
-                    apijwtService.answerAllowed(securedInfo, assessmentId, questionId, answerType, answerDto.getAnswerId());
-                    AnswerMc mcAnswer = answerService.findByAnswerId(answerDto.getAnswerId());
-                    log.debug("Updating answer with id: " + mcAnswer.getAnswerMcId());
-                    map.put(mcAnswer, answerDto);
-                }
-                try{
-                    answerService.updateAnswerMC(map);
-                    return new ResponseEntity<>(HttpStatus.OK);
-                } catch (Exception ex) {
-                    throw new DataServiceException("Error 105: An error occurred trying to update the answer list. No answers were updated. " + ex.getMessage());
-                }
-            } else {
-                return new ResponseEntity("Error 103: Answer type not supported.", HttpStatus.BAD_REQUEST);
-            }
-        } else {
+        if(!apijwtService.isInstructorOrHigher(securedInfo)){
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
+        }
+
+        String answerType = answerService.getQuestionType(questionId);
+
+        if(!QuestionTypes.MC.toString().equals(answerType)){
+            return new ResponseEntity("Error 103: Answer type not supported.", HttpStatus.BAD_REQUEST);
+        }
+
+        Map<AnswerMc, AnswerDto> map = new HashMap<>();
+
+        for(AnswerDto answerDto : answerDtoList) {
+            apijwtService.answerAllowed(securedInfo, assessmentId, questionId, answerType, answerDto.getAnswerId());
+            AnswerMc mcAnswer = answerService.findByAnswerId(answerDto.getAnswerId());
+            log.debug("Updating answer with id: {}", mcAnswer.getAnswerMcId());
+            map.put(mcAnswer, answerDto);
+        }
+
+        try {
+            return new ResponseEntity<>(answerService.updateAnswerMC(map), HttpStatus.OK);
+        } catch (Exception ex) {
+            throw new DataServiceException(String.format("Error 105: An error occurred trying to update the answer list. No answers were updated. %s", ex.getMessage()));
         }
     }
 
-
-    @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/questions/{question_id}/answers/{answer_id}",
-            method = RequestMethod.PUT)
-    public ResponseEntity<Void> updateAnswer(@PathVariable("experiment_id") Long experimentId,
-                                             @PathVariable("condition_id") Long conditionId,
-                                             @PathVariable("treatment_id") Long treatmentId,
-                                             @PathVariable("assessment_id") Long assessmentId,
-                                             @PathVariable("question_id") Long questionId,
-                                             @PathVariable("answer_id") Long answerId,
+    @PutMapping("/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}/questions/{questionId}/answers/{answerId}")
+    public ResponseEntity<AnswerDto> updateAnswer(@PathVariable long experimentId,
+                                             @PathVariable long conditionId,
+                                             @PathVariable long treatmentId,
+                                             @PathVariable long assessmentId,
+                                             @PathVariable long questionId,
+                                             @PathVariable long answerId,
                                              @RequestBody AnswerDto answerDto,
                                              HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionNotMatchingException, AnswerNotMatchingException, BadTokenException {
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionNotMatchingException, AnswerNotMatchingException, BadTokenException, DataServiceException {
 
         log.debug("Updating answer with id: {}", answerId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
@@ -217,21 +217,26 @@ public class AnswerController {
         String answerType = questionService.findByQuestionId(questionId).getQuestionType().toString();
         apijwtService.answerAllowed(securedInfo, assessmentId, questionId, answerType, answerId);
 
-        if(apijwtService.isInstructorOrHigher(securedInfo)) {
-            if(answerType.equals(QuestionTypes.MC.toString())){
-                AnswerMc answerMc = answerService.findByAnswerId(answerId);
-                Map<AnswerMc, AnswerDto> map = new HashMap<>();
-                map.put(answerMc, answerDto);
-                answerService.updateAnswerMC(map);
-                return new ResponseEntity<>(HttpStatus.OK);
-            } else {
-                return new ResponseEntity("Error 103: Answer type not supported.", HttpStatus.BAD_REQUEST);
-            }
-        } else {
+        if(!apijwtService.isInstructorOrHigher(securedInfo)) {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
-    }
 
+        if(!QuestionTypes.MC.toString().equals(answerType)){
+            return new ResponseEntity("Error 103: Answer type not supported.", HttpStatus.BAD_REQUEST);
+        }
+
+        AnswerMc answerMc = answerService.findByAnswerId(answerId);
+        Map<AnswerMc, AnswerDto> map = new HashMap<>();
+        map.put(answerMc, answerDto);
+
+        List<AnswerDto> answerDtos = answerService.updateAnswerMC(map);
+
+        if (CollectionUtils.isEmpty(answerDtos)) {
+            throw new DataServiceException("Error 105: An error occurred trying to update the answer. Answer was not updated.");
+        }
+
+        return new ResponseEntity<>(answerDtos.get(0), HttpStatus.OK);
+    }
 
     @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/questions/{question_id}/answers/{answer_id}",
             method = RequestMethod.DELETE)

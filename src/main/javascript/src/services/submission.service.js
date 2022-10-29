@@ -120,7 +120,7 @@ async function getQuestionSubmissions(
   };
 
   return fetch(
-    `${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/submissions/${submission_id}/question_submissions`,
+    `${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/submissions/${submission_id}/question_submissions?answer_submissions=true&question_submission_comments=true`,
     requestOptions
   ).then(handleResponse);
 }

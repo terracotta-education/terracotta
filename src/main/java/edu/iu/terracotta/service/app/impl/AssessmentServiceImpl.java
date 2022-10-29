@@ -1,14 +1,18 @@
 package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
+import edu.iu.terracotta.exceptions.AssignmentAttemptException;
 import edu.iu.terracotta.exceptions.AssignmentNotMatchingException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.GroupNotMatchingException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.MultipleAttemptsSettingsValidationException;
+import edu.iu.terracotta.exceptions.MultipleChoiceLimitReachedException;
+import edu.iu.terracotta.exceptions.NegativePointsException;
 import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
+import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
 import edu.iu.terracotta.exceptions.RevealResponsesSettingValidationException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.model.app.Assessment;
@@ -36,6 +40,7 @@ import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.utils.TextConstants;
 
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,12 +52,17 @@ import org.springframework.web.util.UriComponentsBuilder;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 @Component
@@ -87,9 +97,11 @@ public class AssessmentServiceImpl implements AssessmentService {
     public List<AssessmentDto> getAllAssessmentsByTreatment(Long treatmentId, boolean submissions) throws AssessmentNotMatchingException {
         List<Assessment> assessmentList = findAllByTreatmentId(treatmentId);
         List<AssessmentDto> assessmentDtoList = new ArrayList<>();
+
         for (Assessment assessment : assessmentList) {
             assessmentDtoList.add(toDto(assessment, false, false, submissions, false));
         }
+
         return assessmentDtoList;
     }
 
@@ -107,6 +119,7 @@ public class AssessmentServiceImpl implements AssessmentService {
         // updateAssessment.
         assessmentDto = defaultAssessment(assessmentDto, treatmentId);
         Assessment assessment;
+
         try {
             assessment = fromDto(assessmentDto);
             assessment.setQuestions(new ArrayList<>());
@@ -116,16 +129,20 @@ public class AssessmentServiceImpl implements AssessmentService {
 
         Assessment assessmentSaved = save(assessment);
         updateTreatment(treatmentId, assessmentSaved);
+
         return toDto(assessmentSaved, false, false, false, false);
     }
 
     private AssessmentDto toDto(Assessment assessment, Participant participant, boolean canViewSubmissions) throws AssessmentNotMatchingException {
         AssessmentDto assessmentDto = toDto(assessment, null, false, false, false, false);
 
-        List<Submission> participantSubmissions = submissionService.findByParticipantId(participant.getParticipantId());
+        List<Submission> participantSubmissions = submissionService.findByParticipantIdAndAssessmentId(participant.getParticipantId(), assessment.getAssessmentId());
 
-        List<SubmissionDto> submissionDtosSubmitted = CollectionUtils.emptyIfNull(participantSubmissions).stream()
+        List<Submission> participantAssessmentSubmissionsSubmitted = CollectionUtils.emptyIfNull(participantSubmissions).stream()
             .filter(submission -> submission.getDateSubmitted() != null)
+            .collect(Collectors.toList());
+
+        List<SubmissionDto> submissionDtosSubmitted = CollectionUtils.emptyIfNull(participantAssessmentSubmissionsSubmitted).stream()
             .map(submission -> submissionService.toDto(submission, false, false))
             .collect(Collectors.toList());
 
@@ -134,6 +151,27 @@ public class AssessmentServiceImpl implements AssessmentService {
         }
 
         RetakeDetails retakeDetails = new RetakeDetails();
+
+        try {
+            verifySubmissionLimit(assessment.getNumOfSubmissions(), submissionDtosSubmitted.size());
+            verifySubmissionWaitTime(assessment.getHoursBetweenSubmissions(), participantAssessmentSubmissionsSubmitted);
+
+            retakeDetails.setRetakeAllowed(true);
+        } catch (AssignmentAttemptException e) {
+            retakeDetails.setRetakeAllowed(false);
+            retakeDetails.setRetakeNotAllowedReason(RetakeDetails.calculateRetakeNotAllowedReason(e.getMessage()));
+        }
+
+        Optional<Submission> lastSubmission = CollectionUtils.emptyIfNull(participantAssessmentSubmissionsSubmitted)
+                .stream()
+                .sorted(Comparator.comparingLong(Submission::getSubmissionId).reversed())
+                .findFirst();
+
+        if (lastSubmission.isPresent()) {
+            // set last submission score
+            retakeDetails.setLastAttemptScore(submissionService.getSubmissionScore(lastSubmission.get()));
+        }
+
         retakeDetails.setKeptScore(submissionService.getScoreFromMultipleSubmissions(participant, assessment));
         retakeDetails.setSubmissionAttemptsCount(submissionDtosSubmitted.size());
         assessmentDto.setRetakeDetails(retakeDetails);
@@ -142,14 +180,13 @@ public class AssessmentServiceImpl implements AssessmentService {
     }
 
     @Override
-    public AssessmentDto toDto(Assessment assessment, boolean questions, boolean answers, boolean submissions, boolean student) throws AssessmentNotMatchingException {
-        return toDto(assessment, null, questions, answers, submissions, student);
+    public AssessmentDto toDto(Assessment assessment, boolean questions, boolean answers, boolean submissions, boolean isStudent) throws AssessmentNotMatchingException {
+        return toDto(assessment, null, questions, answers, submissions, isStudent);
     }
 
     @Override
-    public AssessmentDto toDto(Assessment assessment, Long submissionId, boolean questions, boolean answers,
-            boolean submissions, boolean student) throws AssessmentNotMatchingException {
-
+    public AssessmentDto toDto(Assessment assessment, Long submissionId, boolean questions, boolean answers, boolean submissions, boolean isStudent)
+            throws AssessmentNotMatchingException {
         Long submissionsCompletedCount = null;
         Long submissionsInProgressCount = null;
         AssessmentDto assessmentDto = new AssessmentDto();
@@ -167,19 +204,8 @@ public class AssessmentServiceImpl implements AssessmentService {
         assessmentDto.setAllowStudentViewCorrectAnswers(assessment.isAllowStudentViewCorrectAnswers());
         assessmentDto.setStudentViewCorrectAnswersAfter(assessment.getStudentViewCorrectAnswersAfter());
         assessmentDto.setStudentViewCorrectAnswersBefore(assessment.getStudentViewCorrectAnswersBefore());
-        List<QuestionDto> questionDtoList = new ArrayList<>();
-        if (questions) {
-            List<Question> questionList = allRepositories.questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(assessment.getAssessmentId());
-            for (Question question : questionList) {
-                if (submissionId != null) {
-                    // apply submission specific ordering to of answers
-                    questionDtoList.add(questionService.toDto(question, submissionId, answers, student));
-                } else {
-                    questionDtoList.add(questionService.toDto(question, answers, student));
-                }
-            }
-        }
-        assessmentDto.setQuestions(questionDtoList);
+        assessmentDto.setQuestions(handleQuestionDtos(assessment, submissionId, questions, answers, isStudent));
+
         List<SubmissionDto> submissionDtoList = new ArrayList<>();
         Long conditionId = assessment.getTreatment().getCondition().getConditionId();
         Long exposureId = assessment.getTreatment().getAssignment().getExposure().getExposureId();
@@ -230,6 +256,17 @@ public class AssessmentServiceImpl implements AssessmentService {
         return assessmentDto;
     }
 
+    private List<QuestionDto> handleQuestionDtos(Assessment assessment, Long submissionId, boolean showQuestions, boolean showAnswers, boolean isStudent) {
+        if (!showQuestions) {
+            return Collections.emptyList();
+        }
+
+        List<Question> questionList = allRepositories.questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(assessment.getAssessmentId());
+
+        return CollectionUtils.emptyIfNull(questionList).stream()
+            .map(question -> questionService.toDto(question, submissionId, showAnswers, !isStudent))
+            .collect(Collectors.toList());
+    }
 
     @Override
     public Assessment fromDto(AssessmentDto assessmentDto) throws DataServiceException {
@@ -275,13 +312,28 @@ public class AssessmentServiceImpl implements AssessmentService {
     }
 
     @Override
-    public void updateAssessment(Long id, AssessmentDto assessmentDto)
+    public AssessmentDto putAssessment(Long id, AssessmentDto assessmentDto, boolean processQuestions)
             throws TitleValidationException, RevealResponsesSettingValidationException,
-            MultipleAttemptsSettingsValidationException {
+                MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException, IdInPostException, DataServiceException,
+                NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException {
+        return toDto(updateAssessment(id, assessmentDto, processQuestions), true, true, false, false);
+    }
+
+    @Override
+    public Assessment updateAssessment(Long id, AssessmentDto assessmentDto, boolean processQuestions)
+            throws TitleValidationException, RevealResponsesSettingValidationException,
+                MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException, IdInPostException, DataServiceException,
+                NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException {
         Assessment assessment = allRepositories.assessmentRepository.findByAssessmentId(id);
-        if (StringUtils.isAllBlank(assessmentDto.getTitle()) && StringUtils.isAllBlank(assessment.getTitle())) {
+
+        if (assessment == null) {
+            throw new AssessmentNotMatchingException(TextConstants.ASSESSMENT_NOT_MATCHING);
+        }
+
+        if (StringUtils.isAllBlank(assessmentDto.getTitle(), assessment.getTitle())) {
             throw new TitleValidationException("Error 100: Please give the assessment a title.");
         }
+
         validateMultipleAttemptsSettings(assessmentDto);
         validateTitle(assessmentDto.getTitle());
         validateRevealAssignmentResponsesSettings(assessmentDto);
@@ -301,12 +353,60 @@ public class AssessmentServiceImpl implements AssessmentService {
         assessment.setMultipleSubmissionScoringScheme(multipleSubmissionScoringScheme);
         assessment.setCumulativeScoringInitialPercentage(assessmentDto.getCumulativeScoringInitialPercentage());
 
-        saveAndFlush(assessment);
+        if (processQuestions) {
+            processAssessmentQuestions(assessmentDto);
+        }
+
+        return save(assessment);
+    }
+
+    private void processAssessmentQuestions(AssessmentDto assessmentDto) throws IdInPostException, DataServiceException, QuestionNotMatchingException, NegativePointsException, MultipleChoiceLimitReachedException {
+        if (CollectionUtils.isNotEmpty(assessmentDto.getQuestions())) {
+            List<Question> questions = questionService.findAllByAssessmentId(assessmentDto.getAssessmentId());
+
+            List<Long> existingQuestionIds = CollectionUtils.emptyIfNull(questions).stream()
+                .map(Question::getQuestionId).collect(Collectors.toList());
+
+            Map<Question, QuestionDto> questionMap = new HashMap<>();
+
+            for (QuestionDto questionDto : assessmentDto.getQuestions()) {
+                if (questionDto.getQuestionId() == null) {
+                    // create new question
+                    questionService.postQuestion(questionDto, assessmentDto.getAssessmentId(), false);
+                    continue;
+                }
+
+                // update question
+                Question question = questionService.getQuestion(questionDto.getQuestionId());
+
+                if (question == null) {
+                    throw new QuestionNotMatchingException(TextConstants.QUESTION_NOT_MATCHING);
+                }
+
+                // remove question ID from list, as it exists in the question DTO list
+                existingQuestionIds.remove(question.getQuestionId());
+                questionMap.put(question, questionDto);
+            }
+
+            if (MapUtils.isNotEmpty(questionMap)) {
+                questionService.updateQuestion(questionMap);
+            }
+
+            // remove questions not passed in
+            CollectionUtils.emptyIfNull(existingQuestionIds).stream()
+                .forEach(existingQuestionId -> questionService.deleteById(existingQuestionId));
+        } else {
+            // delete all questions from the assessment; none were passed in
+            List<Question> questions = questionService.findAllByAssessmentId(assessmentDto.getAssessmentId());
+
+            CollectionUtils.emptyIfNull(questions).stream()
+                .forEach(question -> questionService.deleteById(question.getQuestionId()));
+        }
     }
 
     @Override
-    public void saveAndFlush(Assessment assessmentToChange) {
-        allRepositories.assessmentRepository.saveAndFlush(assessmentToChange);
+    public Assessment saveAndFlush(Assessment assessmentToChange) {
+        return allRepositories.assessmentRepository.saveAndFlush(assessmentToChange);
     }
 
     @Override
@@ -448,7 +548,8 @@ public class AssessmentServiceImpl implements AssessmentService {
     }
 
     @Override
-    public AssessmentDto duplicateAssessment(long assessmentId, long treatmentId) throws DataServiceException, AssessmentNotMatchingException, TreatmentNotMatchingException {
+    public Assessment duplicateAssessment(long assessmentId, long treatmentId)
+            throws DataServiceException, AssessmentNotMatchingException, TreatmentNotMatchingException, QuestionNotMatchingException {
         Treatment treatment = allRepositories.treatmentRepository.findByTreatmentId(treatmentId);
 
         if (treatment == null) {
@@ -459,7 +560,8 @@ public class AssessmentServiceImpl implements AssessmentService {
     }
 
     @Override
-    public AssessmentDto duplicateAssessment(long assessmentId, Treatment treatment, Assignment assignment) throws DataServiceException, AssessmentNotMatchingException {
+    public Assessment duplicateAssessment(long assessmentId, Treatment treatment, Assignment assignment)
+            throws DataServiceException, AssessmentNotMatchingException, QuestionNotMatchingException {
         Assessment from = getAssessment(assessmentId);
 
         if (from == null) {
@@ -479,16 +581,10 @@ public class AssessmentServiceImpl implements AssessmentService {
 
         Assessment newAssessment = save(from);
 
-        // update the treatment
-        updateTreatment(treatment.getTreatmentId(), newAssessment);
-
         // duplicate questions
-        List<QuestionDto> questionDtos = questionService.duplicateQuestionsForAssessment(oldAssessmentId, newAssessment.getAssessmentId());
+        questionService.duplicateQuestionsForAssessment(oldAssessmentId, newAssessment);
 
-        AssessmentDto assessmentDto = toDto(newAssessment, false, false, false, false);
-        assessmentDto.setQuestions(questionDtos);
-
-        return assessmentDto;
+        return newAssessment;
     }
 
     @Override
@@ -597,6 +693,54 @@ public class AssessmentServiceImpl implements AssessmentService {
         }
 
         return toDto(assessment, participant, assessment.isAllowStudentViewResponses());
+    }
+
+    @Override
+    public void verifySubmissionLimit(Integer limit, int existingSubmissionsCount) throws AssignmentAttemptException {
+        if (limit == null && existingSubmissionsCount == 0) {
+            // limit == null: multiple attempts not allowed; existing submission attempts must be 0
+            return;
+        }
+
+        if (limit != null && limit.equals(0)) {
+            // limit == 0: unlimited attempts
+            return;
+        }
+
+        if (limit != null && existingSubmissionsCount < limit) {
+            // limit not null: existing submission attempts must be less than the limit allowed
+            return;
+        }
+
+        throw new AssignmentAttemptException(TextConstants.LIMIT_OF_SUBMISSIONS_REACHED);
+    }
+
+    @Override
+    public void verifySubmissionWaitTime(Float waitTime, List<Submission> submissionList) throws AssignmentAttemptException {
+        if (waitTime == null || waitTime.equals(0F)) {
+            // waitTime is null or 0: no wait time limit
+            return;
+        }
+
+        if (CollectionUtils.isEmpty(submissionList)) {
+            // no submissions exist: no wait time limit for first submission
+            return;
+        }
+
+        // calculate the allowable submission time limit
+        Timestamp limit = Timestamp.from(Instant.now().minus(Math.round(waitTime * 60 * 60), ChronoUnit.SECONDS));
+
+        // check for any submissions after the allowable time
+        Optional<Submission> invalidSubmission = submissionList.stream()
+            .filter(submission -> submission.getDateSubmitted().after(limit))
+            .findAny();
+
+        if (!invalidSubmission.isPresent()) {
+            return;
+        }
+
+        // there are existing submissions that are not passed the time limit
+        throw new AssignmentAttemptException(TextConstants.ASSIGNMENT_SUBMISSION_WAIT_TIME_NOT_REACHED);
     }
 
 }

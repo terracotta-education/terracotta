@@ -20,59 +20,59 @@ export default {
   },
   computed: {
     ...mapGetters({
-      assessment: "assessment/assessment",
+      assignment: "assignment/assignment",
     }),
     revealResponseSettings: {
       // two-way computed property
       get() {
-        return this.assessment
+        return this.assignment
           ? {
-              allowStudentViewResponses: this.assessment
+              allowStudentViewResponses: this.assignment
                 .allowStudentViewResponses,
-              studentViewResponsesAfter: this.assessment
+              studentViewResponsesAfter: this.assignment
                 .studentViewResponsesAfter,
-              studentViewResponsesBefore: this.assessment
+              studentViewResponsesBefore: this.assignment
                 .studentViewResponsesBefore,
-              allowStudentViewCorrectAnswers: this.assessment
+              allowStudentViewCorrectAnswers: this.assignment
                 .allowStudentViewCorrectAnswers,
-              studentViewCorrectAnswersAfter: this.assessment
+              studentViewCorrectAnswersAfter: this.assignment
                 .studentViewCorrectAnswersAfter,
-              studentViewCorrectAnswersBefore: this.assessment
+              studentViewCorrectAnswersBefore: this.assignment
                 .studentViewCorrectAnswersBefore,
             }
           : null;
       },
       set(value) {
-        this.setAssessment({ ...this.assessment, ...value });
+        this.setAssignment({ ...this.assignment, ...value });
       },
     },
     multipleAttemptsSettings: {
       // two-way computed property
       get() {
-        return this.assessment
+        return this.assignment
           ? {
-              allowMultipleAttempts: this.assessment
+              allowMultipleAttempts: this.assignment
                 .allowMultipleAttempts,
-              numOfSubmissions: this.assessment
+              numOfSubmissions: this.assignment
                 .numOfSubmissions,
-              hoursBetweenSubmissions: this.assessment
+              hoursBetweenSubmissions: this.assignment
                 .hoursBetweenSubmissions,
-              multipleSubmissionScoringScheme: this.assessment
+              multipleSubmissionScoringScheme: this.assignment
                 .multipleSubmissionScoringScheme,
-              cumulativeScoringInitialPercentage: this.assessment
+              cumulativeScoringInitialPercentage: this.assignment
                 .cumulativeScoringInitialPercentage,
             }
           : null;
       },
       set(value) {
-        this.setAssessment({ ...this.assessment, ...value });
+        this.setAssignment({ ...this.assignment, ...value });
       },
     },
 
   },
   methods: {
     ...mapMutations({
-      setAssessment: "assessment/setAssessment",
+      setAssignment: "assignment/setAssignment",
     }),
   },
 };

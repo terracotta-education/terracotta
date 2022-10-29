@@ -3,64 +3,86 @@
     <h1>Create your assignment</h1>
     <p>This will create an unpublished assignment shell in Canvas and will be the way Terracotta will deliver treatments
       to students.</p>
-    <form
-      @submit.prevent="saveTitle('AssignmentTreatmentSelect')"
-      class="my-5"
-      v-if="experiment && exposures"
+    <v-row>
+      <div class="col-6">
+          <v-text-field
+              v-model="assignment.title"
+              label="Assignment name"
+              :rules="rules"
+              outlined
+          ></v-text-field>
+      </div>
+    </v-row>
+    <v-divider class=""></v-divider>
+    <v-tabs v-model="tab" class="tabs">
+      <v-tab>Settings</v-tab>
+    </v-tabs>
+    <v-divider class=""></v-divider>
+    <v-tabs-items v-model="tab">
+        <v-tab-item class="my-5">
+            <assignment-settings />
+        </v-tab-item>
+    </v-tabs-items>
+    <v-btn
+      :disabled="contDisabled"
+      elevation="0"
+      color="primary"
+      class="mr-4"
+      @click="handleSaveAssignment('AssignmentTreatmentSelect')"
     >
-      <v-text-field
-        v-model="title"
-        :rules="rules"
-        label="Assignment name"
-        placeholder="e.g. Lorem ipsum"
-        autofocus
-        outlined
-        required
-      ></v-text-field>
-      <v-btn
-        :disabled="!title || !title.trim() || title.length > 255"
-        elevation="0"
-        color="primary"
-        class="mr-4"
-        type="submit"
-      >
-        Next
-      </v-btn>
-    </form>
+      Continue
+    </v-btn>
   </div>
 </template>
 
 <script>
-import {mapActions, mapGetters} from 'vuex'
+import { mapGetters, mapActions, mapMutations } from "vuex";
+import AssignmentSettings from './AssignmentSettings.vue';
 
 export default {
-  name: 'CreateAssignment',
-  props: ['experiment'],
-  computed: {
-    exposure_id() {
-      return parseInt(this.$route.params.exposure_id)
-    },
-    experiment_id() {
-      return parseInt(this.experiment.experimentId)
-    },
-    ...mapGetters({
-      exposures: 'exposures/exposures'
-    })
+  name: "CreateAssignment",
+  data() {
+    return {
+      tab: null,
+      rules: [
+        v => v && !!v.trim() || 'Assignment Name is required',
+        v => (v || '').length <= 255 || 'A maximum of 255 characters is allowed'
+      ],
+    };
   },
-  data: () => ({
-    title: "",
-    rules: [
-      v => v && !!v.trim() || 'Assignment Name is required',
-      v => (v || '').length <= 255 || 'A maximum of 255 characters is allowed'
-    ],
-  }),
+  computed: {
+    ...mapGetters({
+      assignment: "assignment/assignment",
+    }),
+    experiment_id() {
+      return parseInt(this.$route.params.experiment_id);
+    },
+    exposure_id() {
+      return parseInt(this.$route.params.exposure_id);
+    },
+    condition_id() {
+      return parseInt(this.$route.params.condition_id);
+    },
+    contDisabled() {
+      return (
+        !this.assignment.title
+      );
+    },
+  },
   methods: {
+    saveExit() {
+      this.$router.push({name:'Home'})
+    },
     ...mapActions({
       createAssignment: 'assignment/createAssignment'
     }),
-    async saveTitle(path) {
+    ...mapMutations({
+      setAssignment: "assignment/setAssignment",
+    }),
+    async handleSaveAssignment(path) {
+      // POST ASSESSMENT TITLE & HTML (description) & SETTINGS
       try {
-        const response = await this.createAssignment([this.experiment_id, this.exposure_id, this.title, 1])
+        const response = await this.createAssignment([this.experiment_id, this.exposure_id, this.assignment, 1])
 
         if (response?.status === 201) {
           this.$router.push({name: path, params:{
@@ -75,9 +97,14 @@ export default {
         this.$swal('There was an error creating the assignment.')
       }
     },
-    saveExit() {
-      this.saveTitle('Home')
-    }
   },
-}
+  async created () {
+    this.setAssignment({
+      numOfSubmissions: null
+    });
+  },
+  components: {
+    AssignmentSettings,
+  },
+};
 </script>

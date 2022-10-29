@@ -1,7 +1,7 @@
 <template>
   <div>
     <h4>Reveal treatment responses</h4>
-    <p class="grey--text text--darken-2">
+    <p class="grey--text text--darken-2 pb-0">
       Decide if students should see their treatment responses and points once a
       treatment question is answered
     </p>
@@ -103,7 +103,7 @@ export default {
       studentViewResponsesAfterMenu: null,
       studentViewResponsesBeforeMenu: null,
       studentViewCorrectAnswersAfterMenu: null,
-      studentViewCorrectAnswersBeforeMenu: null,
+      studentViewCorrectAnswersBeforeMenu: null
     };
   },
   computed: {

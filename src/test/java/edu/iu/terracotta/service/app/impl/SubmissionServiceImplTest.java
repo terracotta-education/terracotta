@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Collections;
 import java.util.Optional;
@@ -79,7 +80,10 @@ public class SubmissionServiceImplTest {
     public void beforeEach() {
         MockitoAnnotations.openMocks(this);
 
+        ReflectionTestUtils.setField(submissionService, "localUrl", "localhost");
+
         clearInvocations(assignmentRepository);
+
         allRepositories.answerMcRepository = answerMcRepository;
         allRepositories.answerMcSubmissionOptionRepository = answerMcSubmissionOptionRepository;
         allRepositories.assessmentRepository = assessmentRepository;

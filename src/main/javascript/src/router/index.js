@@ -55,10 +55,11 @@ const routes = [
             component: () => import('../views/grading/AssignmentScores.vue')
           },
           {
-            path: 'assignment/:assignment_id/assessment/:assessment_id/condition/:condition_id/treatment/:treatment_id/participants/:participant_id/submissions/:submission_id/student-assignment-scores',
+            path: 'assignment/:assignment_id/assessment/:assessment_id/condition/:condition_id/treatment/:treatment_id/participants/:participant_id/student-assignment-scores',
             name: 'StudentSubmissionGrading',
             meta: {
-              previousStep: 'AssignmentScores'
+              previousStep: 'AssignmentScores',
+              stepActionText: 'SAVE'
             },
             component: () => import('../views/grading/StudentSubmissionGrading.vue')
           },
@@ -365,6 +366,17 @@ const routes = [
               currentSection: 'assignments',
               currentStep: 'your_assignments',
               previousStep: 'AssignmentTreatmentSelect'
+            }
+          },
+          {
+            path: 'exposure-sets/:exposure_id/assignment/:assignment_id/edit',
+            alias: 'editor',
+            name: 'AssignmentEditor',
+            component: () => import('../views/assignment/AssignmentEditor.vue'),
+            meta: {
+              currentSection: 'assignments',
+              currentStep: 'assignment_editor',
+              previousStep: 'ExperimentSummary',
             }
           },
         ]

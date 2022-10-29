@@ -6,10 +6,22 @@ const state = {
 }
 
 const actions = {
+  async updateAssignment({ commit }, payload) {
+    try {
+      const response = await assignmentService.updateAssignment(...payload);
+
+      commit('setAssignment', response)
+      return {
+        status: 200,
+        data: response
+      };
+    } catch (e) {
+      console.error(e)
+    }
+  },
   async saveAssignmentOrder({ commit }, payload) {
     try {
       const response = await assignmentService.updateAssignments(...payload);
-      console.log(response);
       commit('updateAssignments', response);
     } catch (e) {
       console.error(e)
@@ -30,7 +42,7 @@ const actions = {
     // * = optional
     // get assignments by their exposureId
     try {
-      const assignments = await assignmentService.fetchAssignmentsByExposure(...payload)
+      const assignments = await assignmentService.fetchAssignmentsByExposure(...payload);
       commit('updateAssignments', assignments)
     } catch (e) {
       console.error(e)
@@ -89,6 +101,22 @@ const actions = {
       console.error('createAssignment catch', {error})
     }
   },
+  async moveAssignment({commit}, payload) {
+    const aId = payload[2];
+    try {
+      const response = await assignmentService.moveAssignment(...payload);
+      if (response?.assignmentId) {
+        commit('deleteAssignment', aId)
+        commit('setAssignment', response)
+        return {
+          status: 201,
+          data: response
+        }
+      }
+    } catch (error) {
+      console.error('updateAssignment catch', {error})
+    }
+  }
 }
 const mutations = {
   updateAssignments(state, assignments) {

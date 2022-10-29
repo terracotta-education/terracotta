@@ -49,7 +49,7 @@ public class Assignment extends BaseEntity {
     @Column(name = "soft_deleted")
     private Boolean softDeleted = false;
 
-    // if null then the number of submissions is unlimited
+    // if null, no multiple attempts allowed; if zero, then the number of submissions is unlimited
     @Column(name = "num_of_submissions", nullable = true)
     private Integer numOfSubmissions;
 

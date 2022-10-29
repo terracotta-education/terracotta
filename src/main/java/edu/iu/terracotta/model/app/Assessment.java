@@ -2,6 +2,8 @@ package edu.iu.terracotta.model.app;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.List;
 
 import javax.persistence.Column;
@@ -45,7 +47,7 @@ public class Assessment extends BaseEntity {
     @Column(name = "auto_submit", nullable = false)
     private boolean autoSubmit;
 
-    // if null then the number of submissions is unlimited
+    // if null, no multiple attempts allowed; if zero, then the number of submissions is unlimited
     @Column
     private Integer numOfSubmissions;
 
@@ -190,13 +192,15 @@ public class Assessment extends BaseEntity {
             return false;
         }
 
-        Timestamp now = Timestamp.from(Instant.now());
+        Timestamp now = Timestamp.valueOf(ZonedDateTime.ofInstant(Instant.ofEpochMilli(System.currentTimeMillis()), ZoneOffset.UTC).toLocalDateTime());
 
-        if (getStudentViewResponsesAfter() != null && !now.after(getStudentViewResponsesAfter())) {
+        if (getStudentViewResponsesAfter() != null && now.before(getStudentViewResponsesAfter())) {
+            // current time is before the allowed time
             return false;
         }
 
-        return getStudentViewResponsesBefore() != null && now.before(getStudentViewResponsesBefore());
+        // return false if current time is after the allowed time; true otherwise
+        return !(getStudentViewResponsesBefore() != null && now.after(getStudentViewResponsesBefore()));
     }
 
     public boolean canViewCorrectAnswers() {
@@ -204,13 +208,15 @@ public class Assessment extends BaseEntity {
             return false;
         }
 
-        Timestamp now = Timestamp.from(Instant.now());
+        Timestamp now = Timestamp.valueOf(ZonedDateTime.ofInstant(Instant.ofEpochMilli(System.currentTimeMillis()), ZoneOffset.UTC).toLocalDateTime());
 
-        if (getStudentViewCorrectAnswersAfter() != null && !now.after(getStudentViewCorrectAnswersAfter())) {
+        if (getStudentViewCorrectAnswersAfter() != null && now.before(getStudentViewCorrectAnswersAfter())) {
+            // current time is before the allowed time
             return false;
         }
 
-        return getStudentViewCorrectAnswersBefore() != null && now.before(getStudentViewCorrectAnswersBefore());
+        // return false if current time is after the allowed time; true otherwise
+        return !(getStudentViewCorrectAnswersBefore() != null && now.after(getStudentViewCorrectAnswersBefore()));
     }
 
 }

@@ -5,9 +5,9 @@
         <v-col cols="12">
           <v-divider class=""></v-divider>
           <v-tabs v-model="tab" elevation="0" show-arrows>
-            <v-tab v-for="(exposure, index) in exposures" :key="index">
+            <v-tab v-for="(exposure, eidx) in exposures" :key="eidx">
               <div class="d-flex flex-column align-start py-1">
-                <div class="">Set {{ index + 1 }}</div>
+                <div class="">Set {{ eidx + 1 }}</div>
                 <div class="d-block mt-4" :class="balanced ? '' : 'red--text'">
                   {{ getAssignmentsForExposure(exposure).length }} assignments
                 </div>
@@ -18,15 +18,15 @@
           <v-tabs-items v-model="tab">
             <v-tab-item
               class="py-3 px-3"
-              v-for="(exposure, index) in exposures"
-              :key="index"
+              v-for="(exposure, eidx) in exposures"
+              :key="eidx"
             >
               <div class="d-flex justify-space-between">
                 <h3>Assignments</h3>
                 <v-btn
                   color="primary"
                   elevation="0"
-                  @click="handleEdit('AssignmentExposureSets')"
+                  :to="{name: 'AssignmentCreateAssignment', params: {exposure_id: exposure.exposureId }}"
                   >Add Assignment</v-btn
                 >
               </div>
@@ -35,7 +35,6 @@
                   :headers="assignmentHeaders"
                   :items="getAssignmentsForExposure(exposure)"
                   :single-expand="singleExpand"
-                  :expanded.sync="expanded"
                   :sort-by="['assignmentOrder']"
                   hide-default-footer
                   v-sortable-data-table
@@ -105,7 +104,10 @@
                   </template>
                   <!-- eslint-disable-next-line -->
                   <template v-slot:item.treatments="{ item }">
+                    <span :class="item.treatments.length !== conditions.length ? 'red--text' : ''">
                     {{ item.treatments.length }} / {{ conditions.length }}
+                    <v-icon v-if="item.treatments.length !== conditions.length" class="red--text">mdi-alert-circle-outline</v-icon>
+                    </span>
                   </template>
                   <!-- eslint-disable-next-line -->
                   <template v-slot:item.drag="{ item }">
@@ -126,7 +128,7 @@
                     <v-btn
                       text
                       tile
-                      @click="handleEdit('AssignmentExposureSets')"
+                      @click="handleEdit('AssignmentEditor', item.assignmentId, exposure.exposureId)"
                       class="text--lighten-5 text--grey"
                     >
                       <v-icon>mdi-pencil</v-icon>
@@ -139,6 +141,38 @@
                         </v-btn>
                       </template>
                       <v-list>
+                        <v-menu
+                          offset-x
+                          :key="exposure.exposureId"
+                          open-on-hover
+                          transition="slide-x-transition"
+                        >
+                          <template v-slot:activator="{ on, attrs }">
+                            <v-list-item v-bind="attrs" v-on="on">
+                              <v-list-item-title
+                                ><v-icon>mdi-arrow-right-top</v-icon
+                                >Move 
+                                </v-list-item-title
+                              >
+                              <v-list-item-action class="justify-end">
+                                  <v-icon>mdi-menu-right</v-icon>
+                                </v-list-item-action>
+                            </v-list-item>
+                          </template>
+                          <v-list>
+                            <template v-for="(exposure, idx) in exposures">
+                              <v-list-item v-if="exposure.exposureId !== item.exposureId" :key="exposure.exposureId"
+                                @click="
+                                  handleMoveAssignment(exposure.exposureId, item)
+                                "
+                              >
+                                <v-list-item-title
+                                  >Exposure set {{ idx + 1 }}</v-list-item-title
+                                >
+                              </v-list-item>
+                            </template>
+                          </v-list>
+                        </v-menu>
                         <v-list-item
                           @click="
                             handleDuplicateAssignment(exposure.exposureId, item)
@@ -172,7 +206,7 @@
                 <div
                   class="groupNames"
                   :key="group"
-                  v-for="group in sortedGroups(exposure.groupConditionList, designExpanded ? maxDesignGroups : null)"
+                  v-for="group in sortedGroups(exposure.groupConditionList, designExpanded ? null : maxDesignGroups)"
                 >
                   {{ group }} will receive
                   <v-chip
@@ -251,7 +285,6 @@ export default {
     maxDesignGroups: 2,
     conditionTreatments: {},
     conditionColors: [""],
-    expanded: [],
     singleExpand: true,
     designExpanded: false,
     assignmentHeaders: [
@@ -312,6 +345,7 @@ export default {
       createAssessment: "assessment/createAssessment",
       getConsentFile: "consent/getConsentFile",
       getZip: "exportdata/fetchExportData",
+      moveAssignment: "assignment/moveAssignment",
     }),
     saveOrder(event, assignments, exposure) {
       const movedItem = assignments.splice(event.oldIndex, 1)[0];
@@ -326,14 +360,45 @@ export default {
         updated,
       ]);
     },
+    async handleMoveAssignment(targetExposureId, assignment) {
+      try {
+        const response = await this.moveAssignment([
+          this.experiment.experimentId,
+          assignment.exposureId,
+          assignment.assignmentId,
+          {
+            ...assignment,
+            assignmentId: null,
+            exposureId: targetExposureId
+          }
+        ]);
+
+        if (response.status === 201) {
+          return await this.fetchAssignmentsByExposure([
+            this.experiment_id,
+            targetExposureId,
+            true,
+          ]);
+        }
+      } catch (error) {
+        console.error("handleMoveAssignment | catch", { error });
+      }
+    },
     getAssignmentsForExposure(exp) {
+      // console.log(this.assignments);
       return this.assignments
         .filter((a) => a.exposureId === exp.exposureId)
         .sort((a, b) => a.assignmentOrder - b.assignmentOrder);
     },
     // Navigate to EDIT section
-    handleEdit(componentName) {
-      this.$router.push({ name: componentName });
+    handleEdit(componentName, assignment_id, exposure_id) {
+      this.$router.push({
+        name: componentName,
+        params: {
+          assignment_id,
+          exposure_id
+        }
+      });
     },
     async getAssignmentDetails() {
       await this.fetchExposures(this.experiment.experimentId);
