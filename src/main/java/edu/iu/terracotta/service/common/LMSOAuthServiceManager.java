@@ -4,7 +4,7 @@ import edu.iu.terracotta.model.PlatformDeployment;
 
 public interface LMSOAuthServiceManager {
 
-    LMSOAuthService getLMSOAuthService(PlatformDeployment platformDeployment);
+    LMSOAuthService<?> getLMSOAuthService(PlatformDeployment platformDeployment);
 
-    LMSOAuthService getLMSOAuthService(long platformDeploymentId);
+    LMSOAuthService<?> getLMSOAuthService(long platformDeploymentId);
 }

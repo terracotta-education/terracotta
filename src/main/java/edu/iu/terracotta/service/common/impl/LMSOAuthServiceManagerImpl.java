@@ -19,7 +19,7 @@ public class LMSOAuthServiceManagerImpl implements LMSOAuthServiceManager {
     PlatformDeploymentRepository platformDeploymentRepository;
 
     @Override
-    public LMSOAuthService getLMSOAuthService(PlatformDeployment platformDeployment) {
+    public LMSOAuthService<?> getLMSOAuthService(PlatformDeployment platformDeployment) {
         if (canvasOAuthService.isConfigured(platformDeployment)) {
             return canvasOAuthService;
         }
@@ -27,7 +27,7 @@ public class LMSOAuthServiceManagerImpl implements LMSOAuthServiceManager {
     }
 
     @Override
-    public LMSOAuthService getLMSOAuthService(long platformDeploymentId) {
+    public LMSOAuthService<?> getLMSOAuthService(long platformDeploymentId) {
         PlatformDeployment platformDeployment = platformDeploymentRepository.getOne(platformDeploymentId);
         return getLMSOAuthService(platformDeployment);
     }
