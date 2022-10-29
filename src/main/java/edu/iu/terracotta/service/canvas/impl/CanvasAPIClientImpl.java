@@ -11,6 +11,8 @@ import edu.iu.terracotta.service.canvas.AssignmentWriterExtended;
 import edu.iu.terracotta.service.canvas.CanvasAPIClient;
 import edu.ksu.canvas.exception.CanvasException;
 import edu.ksu.canvas.exception.ObjectNotFoundException;
+import edu.ksu.canvas.interfaces.CanvasReader;
+import edu.ksu.canvas.interfaces.CanvasWriter;
 import edu.ksu.canvas.interfaces.SubmissionReader;
 import edu.ksu.canvas.model.assignment.Submission;
 import edu.ksu.canvas.oauth.NonRefreshableOauthToken;
@@ -66,31 +68,13 @@ public class CanvasAPIClientImpl implements CanvasAPIClient {
         //https://github.com/kstateome/canvas-api/tree/master
 
         try {
-            PlatformDeployment platformDeployment = apiUser.getPlatformDeployment();
-            String canvasBaseUrl = platformDeployment.getBaseUrl();
-            String accessToken = getAccessToken(apiUser);
-            OauthToken oauthToken = new NonRefreshableOauthToken(accessToken);
-            CanvasApiFactoryExtended apiFactory = new CanvasApiFactoryExtended(canvasBaseUrl);
-            AssignmentWriterExtended assignmentWriter = apiFactory.getWriter(AssignmentWriterExtended.class, oauthToken);
+            AssignmentWriterExtended assignmentWriter = getWriter(apiUser, AssignmentWriterExtended.class);
             return assignmentWriter.createAssignment(canvasCourseId, canvasAssignment);
         } catch (IOException | CanvasException ex) {
             throw new CanvasApiException(
                     "Failed to create Assignment in Canvas course by ID [" + canvasCourseId + "]", ex);
         }
     }
-
-    // <T extends CanvasWriter<?, T>> T getWriter(LtiUserEntity apiUser, Class<T>
-    // clazz) throws CanvasApiException {
-
-    // PlatformDeployment platformDeployment = apiUser.getPlatformDeployment();
-    // String canvasBaseUrl = platformDeployment.getBaseUrl();
-    // String accessToken = getAccessToken(apiUser);
-    // OauthToken oauthToken = new NonRefreshableOauthToken(accessToken);
-    // CanvasApiFactoryExtended apiFactory = new
-    // CanvasApiFactoryExtended(canvasBaseUrl);
-    // T assignmentWriter = apiFactory.getWriter(clazz, oauthToken);
-    // return assignmentWriter;
-    // }
 
     /**
      * required scopes:
@@ -102,12 +86,7 @@ public class CanvasAPIClientImpl implements CanvasAPIClient {
     public List<AssignmentExtended> listAssignments(LtiUserEntity apiUser, String canvasCourseId)
             throws CanvasApiException {
         try {
-            PlatformDeployment platformDeployment = apiUser.getPlatformDeployment();
-            String canvasBaseUrl = platformDeployment.getBaseUrl();
-            String accessToken = getAccessToken(apiUser);
-            OauthToken oauthToken = new NonRefreshableOauthToken(accessToken);
-            CanvasApiFactoryExtended apiFactory = new CanvasApiFactoryExtended(canvasBaseUrl);
-            AssignmentReaderExtended assignmentReader = apiFactory.getReader(AssignmentReaderExtended.class, oauthToken);
+            AssignmentReaderExtended assignmentReader = getReader(apiUser, AssignmentReaderExtended.class);
             ListCourseAssignmentsOptions listCourseAssignmentsOptions = new ListCourseAssignmentsOptions(canvasCourseId);
             return assignmentReader.listCourseAssignments(listCourseAssignmentsOptions);
         } catch (IOException | CanvasException ex) {
@@ -126,12 +105,7 @@ public class CanvasAPIClientImpl implements CanvasAPIClient {
     public Optional<AssignmentExtended> listAssignment(LtiUserEntity apiUser, String canvasCourseId, int assignmentId)
             throws CanvasApiException {
         try {
-            PlatformDeployment platformDeployment = apiUser.getPlatformDeployment();
-            String accessToken = getAccessToken(apiUser);
-            String canvasBaseUrl = platformDeployment.getBaseUrl();
-            OauthToken oauthToken = new NonRefreshableOauthToken(accessToken);
-            CanvasApiFactoryExtended apiFactory = new CanvasApiFactoryExtended(canvasBaseUrl);
-            AssignmentReaderExtended assignmentReader = apiFactory.getReader(AssignmentReaderExtended.class, oauthToken);
+            AssignmentReaderExtended assignmentReader = getReader(apiUser, AssignmentReaderExtended.class);
             GetSingleAssignmentOptions assignmentsOptions = new GetSingleAssignmentOptions(canvasCourseId, assignmentId);
             return assignmentReader.getSingleAssignment(assignmentsOptions);
         } catch (ObjectNotFoundException ex) {
@@ -154,12 +128,7 @@ public class CanvasAPIClientImpl implements CanvasAPIClient {
     public Optional<AssignmentExtended> editAssignment(LtiUserEntity apiUser, AssignmentExtended assignmentExtended,
             String canvasCourseId) throws CanvasApiException {
         try {
-            PlatformDeployment platformDeployment = apiUser.getPlatformDeployment();
-            String canvasBaseUrl = platformDeployment.getBaseUrl();
-            String accessToken = getAccessToken(apiUser);
-            OauthToken oauthToken = new NonRefreshableOauthToken(accessToken);
-            CanvasApiFactoryExtended apiFactory = new CanvasApiFactoryExtended(canvasBaseUrl);
-            AssignmentWriterExtended assignmentWriter = apiFactory.getWriter(AssignmentWriterExtended.class, oauthToken);
+            AssignmentWriterExtended assignmentWriter = getWriter(apiUser, AssignmentWriterExtended.class);
             return assignmentWriter.editAssignment(canvasCourseId, assignmentExtended);
         } catch (IOException | CanvasException ex) {
             throw new CanvasApiException(
@@ -177,12 +146,7 @@ public class CanvasAPIClientImpl implements CanvasAPIClient {
     public Optional<AssignmentExtended> deleteAssignment(LtiUserEntity apiUser, AssignmentExtended assignmentExtended,
             String canvasCourseId) throws CanvasApiException {
         try {
-            PlatformDeployment platformDeployment = apiUser.getPlatformDeployment();
-            String canvasBaseUrl = platformDeployment.getBaseUrl();
-            String accessToken = getAccessToken(apiUser);
-            OauthToken oauthToken = new NonRefreshableOauthToken(accessToken);
-            CanvasApiFactoryExtended apiFactory = new CanvasApiFactoryExtended(canvasBaseUrl);
-            AssignmentWriterExtended assignmentWriter = apiFactory.getWriter(AssignmentWriterExtended.class, oauthToken);
+            AssignmentWriterExtended assignmentWriter = getWriter(apiUser, AssignmentWriterExtended.class);
             return assignmentWriter.deleteAssignment(canvasCourseId, assignmentExtended.getId());
         } catch (IOException | CanvasException ex) {
             throw new CanvasApiException(
@@ -200,12 +164,7 @@ public class CanvasAPIClientImpl implements CanvasAPIClient {
     @Override
     public List<Submission> listSubmissions(LtiUserEntity apiUser, Integer assignmentId, String canvasCourseId)
             throws CanvasApiException, IOException {
-        PlatformDeployment platformDeployment = apiUser.getPlatformDeployment();
-        String canvasBaseUrl = platformDeployment.getBaseUrl();
-        String accessToken = getAccessToken(apiUser);
-        OauthToken oauthToken = new NonRefreshableOauthToken(accessToken);
-        CanvasApiFactoryExtended apiFactory = new CanvasApiFactoryExtended(canvasBaseUrl);
-        SubmissionReader submissionReader = apiFactory.getReader(SubmissionReader.class, oauthToken);
+        SubmissionReader submissionReader = getReader(apiUser, SubmissionReader.class);
         GetSubmissionsOptions submissionsOptions = new GetSubmissionsOptions(canvasCourseId, assignmentId);
         submissionsOptions.includes(Collections.singletonList(GetSubmissionsOptions.Include.USER));
         return submissionReader.getCourseSubmissions(submissionsOptions);
@@ -307,12 +266,7 @@ public class CanvasAPIClientImpl implements CanvasAPIClient {
             String canvasCourseId) throws CanvasApiException {
         try {
             logger.debug("Checking if assignment {} exists in Canvas course {}", assignmentId, canvasCourseId);
-            PlatformDeployment platformDeployment = apiUser.getPlatformDeployment();
-            String canvasBaseUrl = platformDeployment.getBaseUrl();
-            String accessToken = getAccessToken(apiUser);
-            OauthToken oauthToken = new NonRefreshableOauthToken(accessToken);
-            CanvasApiFactoryExtended apiFactory = new CanvasApiFactoryExtended(canvasBaseUrl);
-            AssignmentReaderExtended assignmentReader = apiFactory.getReader(AssignmentReaderExtended.class, oauthToken);
+            AssignmentReaderExtended assignmentReader = getReader(apiUser, AssignmentReaderExtended.class);
             GetSingleAssignmentOptions getSingleAssignmentsOptions = new GetSingleAssignmentOptions(canvasCourseId, assignmentId);
             return assignmentReader.getSingleAssignment(getSingleAssignmentsOptions);
         } catch (edu.ksu.canvas.exception.ObjectNotFoundException e) {
@@ -326,6 +280,43 @@ public class CanvasAPIClientImpl implements CanvasAPIClient {
     // private String getCanvasCourseId(String membershipUrl) {
     //     return StringUtils.substringBetween(membershipUrl, "/courses/", "/");
     // }
+
+    private <T extends CanvasWriter<?, T>> T getWriter(LtiUserEntity apiUser, Class<T> clazz)
+            throws CanvasApiException {
+
+        OauthToken oauthToken = getOauthToken(apiUser);
+        return getWriterInternal(apiUser, clazz, oauthToken);
+    }
+
+    private <T extends CanvasReader<?, T>> T getReader(LtiUserEntity apiUser, Class<T> clazz)
+            throws CanvasApiException {
+
+        OauthToken oauthToken = getOauthToken(apiUser);
+        return getReaderInternal(apiUser, clazz, oauthToken);
+    }
+
+    <T extends CanvasReader<?, T>> T getReaderInternal(LtiUserEntity apiUser, Class<T> clazz,
+            OauthToken oauthToken) {
+        CanvasApiFactoryExtended apiFactory = getApiFactory(apiUser);
+        return apiFactory.getReader(clazz, oauthToken);
+    }
+
+    <T extends CanvasWriter<?, T>> T getWriterInternal(LtiUserEntity apiUser, Class<T> clazz,
+            OauthToken oauthToken) {
+        CanvasApiFactoryExtended apiFactory = getApiFactory(apiUser);
+        return apiFactory.getWriter(clazz, oauthToken);
+    }
+
+    private CanvasApiFactoryExtended getApiFactory(LtiUserEntity apiUser) {
+        PlatformDeployment platformDeployment = apiUser.getPlatformDeployment();
+        String canvasBaseUrl = platformDeployment.getBaseUrl();
+        return new CanvasApiFactoryExtended(canvasBaseUrl);
+    }
+
+    private OauthToken getOauthToken(LtiUserEntity apiUser) throws CanvasApiException {
+        String accessToken = getAccessToken(apiUser);
+        return new NonRefreshableOauthToken(accessToken);
+    }
 
     private String getAccessToken(LtiUserEntity apiUser)
             throws CanvasApiException {
