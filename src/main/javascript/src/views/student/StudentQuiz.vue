@@ -387,6 +387,7 @@ export default {
           try {
             this.$swal.update({
               text: "Please don’t refresh or close your browser window until assignment submission is confirmed.",
+              showConfirmButton: false,
             });
             return await this.submitQuiz();
           } catch (error) {
