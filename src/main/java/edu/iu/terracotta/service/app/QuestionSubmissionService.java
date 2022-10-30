@@ -63,6 +63,7 @@ public interface QuestionSubmissionService {
 
     void validateQuestionSubmission(QuestionSubmissionDto questionSubmissionDto) throws DataServiceException;
 
-    void canSubmit(String canvasCourseId, String assignmentId, String canvasUserIs, long deploymentId) throws CanvasApiException, IOException, AssignmentAttemptException;
+    void canSubmit(String canvasCourseId, String assignmentId, String canvasUserIs, long deploymentId,
+            long experimentId) throws CanvasApiException, IOException, AssignmentAttemptException;
 
 }

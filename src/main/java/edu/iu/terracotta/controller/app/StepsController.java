@@ -128,7 +128,7 @@ public class StepsController {
                         Submission submission = submissionService.getSubmission(experimentId, securedInfo.getUserId(), submissionId, student);
                         String assignmentId = submission.getAssessment().getTreatment().getAssignment().getLmsAssignmentId();
                         questionSubmissionService.canSubmit(securedInfo.getCanvasCourseId(), assignmentId, securedInfo.getCanvasUserId(),
-                                securedInfo.getPlatformDeploymentId());
+                                securedInfo.getPlatformDeploymentId(), experimentId);
                         submissionService.allowedSubmission(submissionId, securedInfo);
                         submissionService.finalizeAndGrade(submissionId, securedInfo, student);
                     } else if (apijwtService.isInstructorOrHigher(securedInfo)) {
@@ -138,7 +138,8 @@ public class StepsController {
                             String assignmentId = submission.getAssessment().getTreatment().getAssignment()
                                     .getLmsAssignmentId();
                             questionSubmissionService.canSubmit(securedInfo.getCanvasCourseId(),
-                                    assignmentId, securedInfo.getCanvasUserId(), securedInfo.getPlatformDeploymentId());
+                                    assignmentId, securedInfo.getCanvasUserId(), securedInfo.getPlatformDeploymentId(),
+                                    experimentId);
                             submissionService.finalizeAndGrade(submissionId, securedInfo, student);
                         }
                     } else {
@@ -183,7 +184,8 @@ public class StepsController {
 
                 try {
                     questionSubmissionService.canSubmit(securedInfo.getCanvasCourseId(),
-                        securedInfo.getCanvasAssignmentId(), securedInfo.getCanvasUserId(), securedInfo.getPlatformDeploymentId());
+                            securedInfo.getCanvasAssignmentId(), securedInfo.getCanvasUserId(),
+                            securedInfo.getPlatformDeploymentId(), experimentId);
 
                     return assignmentService.launchAssignment(experimentId, securedInfo);
                 } catch (AssignmentAttemptException | AssignmentNotMatchingException e) {

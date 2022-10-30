@@ -337,7 +337,8 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
     }
 
     @Override
-    public void canSubmit(String canvasCourseId, String assignmentId, String canvasUserId, long deploymentId) throws CanvasApiException, AssignmentAttemptException, IOException {
+    public void canSubmit(String canvasCourseId, String assignmentId, String canvasUserId, long deploymentId,
+            long experimentId) throws CanvasApiException, AssignmentAttemptException, IOException {
         // We find the right deployment:
         Optional<ToolDeployment> toolDeployment = allRepositories.toolDeploymentRepository.findById(deploymentId);
 
@@ -353,7 +354,8 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
         }
 
         int assignmentIdInt = Integer.parseInt(assignmentId);
-        Assignment assignment = allRepositories.assignmentRepository.findByAssignmentId(Long.valueOf(assignmentIdInt));
+        Assignment assignment = allRepositories.assignmentRepository
+                .findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(experimentId, assignmentId);
         // TODO: use variable substitution instead
         LtiUserEntity instructorUser = assignment.getExposure().getExperiment().getCreatedBy();
 
