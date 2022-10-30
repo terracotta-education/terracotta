@@ -375,27 +375,29 @@ export default {
       this.attempt();
     },
     async handleSubmit() {
-      const reallySubmit = await this.$swal({
+      await this.$swal({
         target: "#app",
         icon: "question",
         text: "Are you ready to submit your answers?",
         showCancelButton: true,
         confirmButtonText: "Yes, submit",
         cancelButtonText: "No, cancel",
+        showLoaderOnConfirm: true,
+        preConfirm: async () => {
+          try {
+            return await this.submitQuiz();
+          } catch (error) {
+            this.$swal({
+              // add popup to #app so we can use vuetify styling
+              target: "#app",
+              text: "Could not submit: " + error.message,
+              icon: "error",
+              footer: this.errorFooter(),
+            });
+          }
+        },
+        allowOutsideClick: () => !this.$swal.isLoading(),
       });
-      if (reallySubmit.isConfirmed) {
-        try {
-          await this.submitQuiz();
-        } catch (error) {
-          this.$swal({
-            // add popup to #app so we can use vuetify styling
-            target: "#app",
-            text: "Could not submit: " + error.message,
-            icon: "error",
-            footer: this.errorFooter(),
-          });
-        }
-      }
     },
     async submitQuiz() {
       try {
