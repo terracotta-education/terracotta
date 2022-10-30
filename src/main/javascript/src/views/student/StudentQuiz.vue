@@ -92,7 +92,7 @@
         >
           <h3>Your assignment is muted</h3>
           <p class="pb-0">
-            Your instructor has not released the grades yet. 
+            Your instructor has not released the grades yet.
           </p>
         </v-card>
         <div v-if="!muted && assignmentData && assignmentData.submissions">
@@ -349,7 +349,7 @@ export default {
         const isAfter = studentViewCorrectAnswersAfter ? moment(now).isAfter(studentViewCorrectAnswersAfter) : true;
         const isBefore = studentViewCorrectAnswersBefore ? moment(now).isBefore(studentViewCorrectAnswersBefore) : true;
         return isAfter && isBefore;
-      } 
+      }
       return false;
     },
     showResponses() {
@@ -376,6 +376,7 @@ export default {
     },
     async handleSubmit() {
       const reallySubmit = await this.$swal({
+        target: "#app",
         icon: "question",
         text: "Are you ready to submit your answers?",
         showCancelButton: true,
@@ -387,8 +388,11 @@ export default {
           await this.submitQuiz();
         } catch (error) {
           this.$swal({
+            // add popup to #app so we can use vuetify styling
+            target: "#app",
             text: "Could not submit: " + error.message,
             icon: "error",
+            footer: this.errorFooter(),
           });
         }
       }
@@ -493,7 +497,7 @@ export default {
     },
     async getQuestions(experimentId, conditionId, assessmentId, treatmentId, submissionId) {
       this.questionValues = [];
-      
+
       await this.fetchAssessmentForSubmission([
           experimentId,
           conditionId,
@@ -526,6 +530,12 @@ export default {
       const questionSubmissionDto = this.questionSubmissions?.find(s => s.questionId === question.questionId);
       if (!questionSubmissionDto) { return null; }
       return questionSubmissionDto.answerSubmissionDtoList.find(a => a.questionSubmissionId === questionSubmissionDto.questionSubmissionId);
+    },
+    errorFooter() {
+      return `<div class="text--secondary body-2">
+                  <div>Timestamp: ${new Date().toString()}</div>
+                  <div>Experiment: ${this.experimentId}</div>
+                </div>`;
     },
     areAllQuestionsAnswered(answerableQuestions) {
       for (const question of answerableQuestions) {
@@ -588,8 +598,10 @@ export default {
         }else if(stepResponse?.status == 401) {
           if (stepResponse?.data.toString().includes("Error 150:")) {
             this.$swal({
+              target: "#app",
               text: "You have no more attempts available",
               icon: "error",
+              footer: this.errorFooter(),
             });
           }
         }
@@ -619,8 +631,10 @@ export default {
       }else if(stepResponse?.status == 401) {
          if (stepResponse?.data.toString().includes("Error 150:")) {
            this.$swal({
+             target: "#app",
              text: "You have no more attempts available",
              icon: "error",
+             footer: this.errorFooter(),
            });
          }
       }
