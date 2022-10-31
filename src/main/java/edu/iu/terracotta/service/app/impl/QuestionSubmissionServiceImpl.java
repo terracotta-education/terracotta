@@ -336,22 +336,11 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
     }
 
     @Override
-    public void canSubmit(String canvasCourseId, String assignmentId, String canvasUserId, long deploymentId) throws CanvasApiException, AssignmentAttemptException, IOException {
-        // We find the right deployment:
-        Optional<ToolDeployment> toolDeployment = allRepositories.toolDeploymentRepository.findById(deploymentId);
+    public void canSubmit(String canvasCourseId, String assignmentId, String canvasUserId, long platformDeploymentId)
+            throws CanvasApiException, AssignmentAttemptException, IOException {
 
-        if (!toolDeployment.isPresent()) {
-            return;
-        }
-
-        String litDeploymentId = toolDeployment.get().getLtiDeploymentId();
-        List<PlatformDeployment> platformDeploymentList = allRepositories.platformDeploymentRepository.findByToolDeployments_LtiDeploymentId(litDeploymentId);
-
-        if (platformDeploymentList.isEmpty()) {
-            return;
-        }
-
-        PlatformDeployment platformDeployment = platformDeploymentList.get(0);
+        PlatformDeployment platformDeployment = allRepositories.platformDeploymentRepository
+                .getOne(platformDeploymentId);
 
         Optional<AssignmentExtended> assignmentExtended = canvasAPIClient.listAssignment(canvasCourseId, Integer.parseInt(assignmentId), platformDeployment);
         List<edu.ksu.canvas.model.assignment.Submission> submissionsList = canvasAPIClient.listSubmissions(Integer.parseInt(assignmentId), canvasCourseId, platformDeployment);
