@@ -92,7 +92,7 @@
         >
           <h3>Your assignment is muted</h3>
           <p class="pb-0">
-            Your instructor has not released the grades yet. 
+            Your instructor has not released the grades yet.
           </p>
         </v-card>
         <div v-if="!muted && assignmentData && assignmentData.submissions">
@@ -349,7 +349,7 @@ export default {
         const isAfter = studentViewCorrectAnswersAfter ? moment(now).isAfter(studentViewCorrectAnswersAfter) : true;
         const isBefore = studentViewCorrectAnswersBefore ? moment(now).isBefore(studentViewCorrectAnswersBefore) : true;
         return isAfter && isBefore;
-      } 
+      }
       return false;
     },
     showResponses() {
@@ -375,23 +375,33 @@ export default {
       this.attempt();
     },
     async handleSubmit() {
-      const reallySubmit = await this.$swal({
+      await this.$swal({
+        target: "#app",
         icon: "question",
         text: "Are you ready to submit your answers?",
         showCancelButton: true,
         confirmButtonText: "Yes, submit",
         cancelButtonText: "No, cancel",
+        showLoaderOnConfirm: true,
+        preConfirm: async () => {
+          try {
+            this.$swal.update({
+              text: "Please don’t refresh or close your browser window until assignment submission is confirmed.",
+              showConfirmButton: false,
+            });
+            return await this.submitQuiz();
+          } catch (error) {
+            this.$swal({
+              // add popup to #app so we can use vuetify styling
+              target: "#app",
+              text: "Could not submit: " + error.message,
+              icon: "error",
+              footer: this.errorFooter(),
+            });
+          }
+        },
+        allowOutsideClick: () => !this.$swal.isLoading(),
       });
-      if (reallySubmit.isConfirmed) {
-        try {
-          await this.submitQuiz();
-        } catch (error) {
-          this.$swal({
-            text: "Could not submit: " + error.message,
-            icon: "error",
-          });
-        }
-      }
     },
     async submitQuiz() {
       try {
@@ -493,7 +503,7 @@ export default {
     },
     async getQuestions(experimentId, conditionId, assessmentId, treatmentId, submissionId) {
       this.questionValues = [];
-      
+
       await this.fetchAssessmentForSubmission([
           experimentId,
           conditionId,
@@ -526,6 +536,12 @@ export default {
       const questionSubmissionDto = this.questionSubmissions?.find(s => s.questionId === question.questionId);
       if (!questionSubmissionDto) { return null; }
       return questionSubmissionDto.answerSubmissionDtoList.find(a => a.questionSubmissionId === questionSubmissionDto.questionSubmissionId);
+    },
+    errorFooter() {
+      return `<div class="text--secondary body-2">
+                  <div>Timestamp: ${new Date().toString()}</div>
+                  <div>Experiment: ${this.experimentId}</div>
+                </div>`;
     },
     areAllQuestionsAnswered(answerableQuestions) {
       for (const question of answerableQuestions) {
@@ -588,8 +604,10 @@ export default {
         }else if(stepResponse?.status == 401) {
           if (stepResponse?.data.toString().includes("Error 150:")) {
             this.$swal({
+              target: "#app",
               text: "You have no more attempts available",
               icon: "error",
+              footer: this.errorFooter(),
             });
           }
         }
@@ -619,8 +637,10 @@ export default {
       }else if(stepResponse?.status == 401) {
          if (stepResponse?.data.toString().includes("Error 150:")) {
            this.$swal({
+             target: "#app",
              text: "You have no more attempts available",
              icon: "error",
+             footer: this.errorFooter(),
            });
          }
       }
