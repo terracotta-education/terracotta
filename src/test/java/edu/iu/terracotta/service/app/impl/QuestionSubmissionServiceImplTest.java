@@ -6,8 +6,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -38,6 +41,7 @@ import edu.iu.terracotta.repository.AnswerMcSubmissionRepository;
 import edu.iu.terracotta.repository.AssessmentRepository;
 import edu.iu.terracotta.repository.QuestionSubmissionCommentRepository;
 import edu.iu.terracotta.repository.QuestionSubmissionRepository;
+import edu.iu.terracotta.repository.SubmissionRepository;
 import edu.iu.terracotta.service.app.AnswerService;
 import edu.iu.terracotta.service.app.AnswerSubmissionService;
 import edu.iu.terracotta.service.app.QuestionSubmissionCommentService;
@@ -53,6 +57,8 @@ public class QuestionSubmissionServiceImplTest {
     @Mock private AssessmentRepository assessmentRepository;
     @Mock private QuestionSubmissionCommentRepository questionSubmissionCommentRepository;
     @Mock private QuestionSubmissionRepository questionSubmissionRepository;
+    @Mock
+    private SubmissionRepository submissionRepository;
 
     @Mock private AnswerService answerService;
     @Mock private AnswerSubmissionService answerSubmissionService;
@@ -78,12 +84,14 @@ public class QuestionSubmissionServiceImplTest {
         allRepositories.answerMcSubmissionRepository = answerMcSubmissionRepository;
         allRepositories.questionSubmissionCommentRepository = questionSubmissionCommentRepository;
         allRepositories.questionSubmissionRepository = questionSubmissionRepository;
+        allRepositories.submissionRepository = submissionRepository;
 
         when(assessmentRepository.findById(anyLong())).thenReturn(Optional.of(assessment));
         when(answerEssaySubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(anyLong())).thenReturn(Collections.singletonList(answerEssaySubmission));
         when(answerMcSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(anyLong())).thenReturn(Collections.singletonList(answerMcSubmission));
         when(questionSubmissionCommentRepository.findByQuestionSubmission_QuestionSubmissionId(anyLong())).thenReturn(Collections.singletonList(questionSubmissionComment));
         when(questionSubmissionRepository.findBySubmission_SubmissionId(anyLong())).thenReturn(Collections.singletonList(questionSubmission));
+        when(submissionRepository.findBySubmissionId(anyLong())).thenReturn(submission);
 
         when(answerService.findAllByQuestionIdMC(anyLong(), anyBoolean())).thenReturn(Collections.singletonList(answerDto));
         when(answerSubmissionService.toDtoEssay(any(AnswerEssaySubmission.class))).thenReturn(answerSubmissionDto);
@@ -124,6 +132,8 @@ public class QuestionSubmissionServiceImplTest {
     @Test
     public void testGetQuestionSubmissionsIsStudentCannotViewResponses() throws AssessmentNotMatchingException {
         when(assessment.canViewResponses()).thenReturn(false);
+        // The submission has been submitted (dateSubmitted != null)
+        when(submission.getDateSubmitted()).thenReturn(new Timestamp(System.currentTimeMillis()));
         List<QuestionSubmissionDto> questionSubmissions = questionSubmissionService.getQuestionSubmissions(1l, true, true, 1l, true);
 
         assertNotNull(questionSubmissions);
@@ -131,6 +141,23 @@ public class QuestionSubmissionServiceImplTest {
         assertEquals(1, questionSubmissions.get(0).getAnswerDtoList().size());
         assertTrue(CollectionUtils.isEmpty(questionSubmissions.get(0).getAnswerSubmissionDtoList()));
         assertTrue(CollectionUtils.isEmpty(questionSubmissions.get(0).getQuestionSubmissionCommentDtoList()));
+    }
+
+    @Test
+    public void testGetQuestionSubmissionsIsStudentCannotViewResponsesButSubmissionIsNotSubmitted() throws AssessmentNotMatchingException {
+        when(assessment.canViewResponses()).thenReturn(false);
+        // The submission has NOT been submitted (dateSubmitted == null)
+        when(submission.getDateSubmitted()).thenReturn(null);
+
+        List<QuestionSubmissionDto> questionSubmissions = questionSubmissionService.getQuestionSubmissions(1l, true, true, 1l, true);
+
+        assertNotNull(questionSubmissions);
+        assertEquals(1, questionSubmissions.size());
+        assertEquals(1, questionSubmissions.get(0).getAnswerDtoList().size());
+        assertEquals(2, questionSubmissions.get(0).getAnswerSubmissionDtoList().size());
+        assertEquals(1, questionSubmissions.get(0).getQuestionSubmissionCommentDtoList().size());
+
+        verify(answerService).findAllByQuestionIdMC(anyLong(), eq(false));
     }
 
     @Test

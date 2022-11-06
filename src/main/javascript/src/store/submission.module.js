@@ -80,10 +80,20 @@ const actions = {
     }
   },
 
+  async updateAnswerSubmission({ state }, payload) {
+    // payload = experiment_id, condition_id, treatment_id, assessment_id, submission_id, question_submission_id, answer_submission_id, answerSubmission
+
+    try {
+      return await submissionService.updateAnswerSubmission(...payload);
+    } catch (error) {
+      console.error("updateAnswerSubmission catch", { error, state });
+    }
+  },
+
   async clearQuestionSubmissions({ commit }) {
     // payload = experiment_id, condition_id, treatment_id, assessment_id, submission_id, answerSubmissions
 
-    commit('setQuestionSubmissions', []);
+    commit("setQuestionSubmissions", []);
 
     return Promise.resolve([]);
   },
