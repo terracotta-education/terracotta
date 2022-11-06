@@ -369,7 +369,7 @@ export default {
       fetchQuestionSubmissions: "submissions/fetchQuestionSubmissions",
       createQuestionSubmissions: "submissions/createQuestionSubmissions",
       createAnswerSubmissions: "submissions/createAnswerSubmissions",
-      clearQuestionSubmissions: "submissions/clearQuestionSubmissions",
+      updateAnswerSubmission: "submissions/updateAnswerSubmission",
     }),
     async handleTryAgain() {
       this.attempt();
@@ -386,7 +386,8 @@ export default {
         preConfirm: async () => {
           try {
             this.$swal.update({
-              text: "Please don’t refresh or close your browser window until assignment submission is confirmed.",
+              text:
+                "Please don't refresh or close your browser window until assignment submission is confirmed.",
               showConfirmButton: false,
             });
             return await this.submitQuiz();
@@ -408,66 +409,18 @@ export default {
         const experimentId = this.experimentId;
         const step = "student_submission";
         const parameters = { submissionIds: this.submissionId };
-        const allQuestionSubmissions = this.questionValues.map((q) => {
-          const existingQuestionSubmission = this.submissions.find(
-            (qs) => qs.questionId === q.questionId
-          );
-          const questionSubmissionId =
-            existingQuestionSubmission?.questionSubmissionId;
-          const questionSubmission = {
-            questionSubmissionId,
-            questionId: q.questionId,
-            answerSubmissionDtoList: [
-              {
-                answerId: q.answerId,
-                response: q.response,
-                questionSubmissionId,
-              },
-            ],
-          };
-          return questionSubmission;
-        });
-
-        // separate question submissions into existing and new by whether they have id
-        const existingQuestionSubmissions = allQuestionSubmissions.filter(
-          (qs) => !!qs.questionSubmissionId
-        );
-        const newQuestionSubmissions = allQuestionSubmissions.filter(
-          (qs) => !qs.questionSubmissionId
-        );
-
-        // call createAnswerSubmission for all existing question submissions
-        const answerSubmissions = existingQuestionSubmissions.map(
-          (qs) => qs.answerSubmissionDtoList[0]
-        );
-        if (answerSubmissions.length > 0) {
-          const { data, status } = await this.createAnswerSubmissions([
-            this.experimentId,
+        // Reload question submissions so we know whether to create/update question/answer submissions
+        if (!this.submissions) {
+          await this.fetchQuestionSubmissions([
+            experimentId,
             this.conditionId,
             this.treatmentId,
             this.assessmentId,
             this.submissionId,
-            answerSubmissions,
           ]);
-          if (status && ![200, 201].includes(status)) {
-            throw Error("Error submitting quiz: " + data);
-          }
+          this.submissions = this.questionSubmissions;
         }
-
-        // call createQuestionSubmissions for all new question submissions
-        if (newQuestionSubmissions.length > 0) {
-          const { data, status } = await this.createQuestionSubmissions([
-            this.experimentId,
-            this.conditionId,
-            this.treatmentId,
-            this.assessmentId,
-            this.submissionId,
-            newQuestionSubmissions,
-          ]);
-          if (status && ![200, 201].includes(status)) {
-            throw Error("Error submitting quiz: " + data);
-          }
-        }
+        await this.saveAnswers();
 
         // submit step
         const { data, status } = await this.reportStep({
@@ -475,7 +428,7 @@ export default {
           step,
           parameters,
         });
-        if (status && ![200, 201].includes(status)) {
+        if (!status || ![200, 201].includes(status)) {
           throw Error("Error submitting quiz: " + data);
         }
 
@@ -486,10 +439,106 @@ export default {
           this.assignmentData = data;
           this.submitted = true;
         }
-
       } catch (e) {
+        // Clear question submissions for this attempt. Will need to reload
+        // these to figure out what QuestionSubmissions and/or AnswerSubmissions
+        // need to be updated
+        this.submissions = null;
         console.error({ e });
         throw e; // rethrow
+      }
+    },
+    async saveAnswers() {
+      const allQuestionSubmissions = this.questionValues.map((q) => {
+        const existingQuestionSubmission = this.submissions.find(
+          (qs) => qs.questionId === q.questionId
+        );
+        const questionSubmissionId =
+          existingQuestionSubmission?.questionSubmissionId;
+        // find existing answer submission id if it exists
+        const answerSubmissionId =
+          existingQuestionSubmission?.answerSubmissionDtoList?.[0]
+            ?.answerSubmissionId;
+        const questionSubmission = {
+          questionSubmissionId,
+          questionId: q.questionId,
+          answerSubmissionDtoList: [
+            {
+              answerSubmissionId,
+              questionSubmissionId,
+              answerId: q.answerId,
+              response: q.response,
+            },
+          ],
+        };
+        return questionSubmission;
+      });
+
+      // separate question submissions into existing and new by whether they have id
+      const existingQuestionSubmissions = allQuestionSubmissions.filter(
+        (qs) => !!qs.questionSubmissionId
+      );
+      const newQuestionSubmissions = allQuestionSubmissions.filter(
+        (qs) => !qs.questionSubmissionId
+      );
+
+      // call createAnswerSubmission for all existing question submissions
+      const answerSubmissions = existingQuestionSubmissions.map(
+        (qs) => qs.answerSubmissionDtoList[0]
+      );
+      if (answerSubmissions.length > 0) {
+        // separate into existing and new answer submissions and call the appropriate end point
+        const existingAnswerSubmissions = answerSubmissions.filter(
+          (ans) => !!ans.answerSubmissionId
+        );
+        const newAnswerSubmissions = answerSubmissions.filter(
+          (ans) => !ans.answerSubmissionId
+        );
+        if (newAnswerSubmissions.length > 0) {
+          const { data, status } = await this.createAnswerSubmissions([
+            this.experimentId,
+            this.conditionId,
+            this.treatmentId,
+            this.assessmentId,
+            this.submissionId,
+            newAnswerSubmissions,
+          ]);
+          if (!status || ![200, 201].includes(status)) {
+            throw Error("Error submitting quiz: " + data);
+          }
+        }
+        if (existingAnswerSubmissions.length > 0) {
+          for (const answerSubmission of existingAnswerSubmissions) {
+            const { data, status } = await this.updateAnswerSubmission([
+              this.experimentId,
+              this.conditionId,
+              this.treatmentId,
+              this.assessmentId,
+              this.submissionId,
+              answerSubmission.questionSubmissionId,
+              answerSubmission.answerSubmissionId,
+              answerSubmission,
+            ]);
+            if (!status || ![200, 201].includes(status)) {
+              throw Error("Error submitting quiz: " + data);
+            }
+          }
+        }
+      }
+
+      // call createQuestionSubmissions for all new question submissions
+      if (newQuestionSubmissions.length > 0) {
+        const { data, status } = await this.createQuestionSubmissions([
+          this.experimentId,
+          this.conditionId,
+          this.treatmentId,
+          this.assessmentId,
+          this.submissionId,
+          newQuestionSubmissions,
+        ]);
+        if (!status || ![200, 201].includes(status)) {
+          throw Error("Error submitting quiz: " + data);
+        }
       }
     },
     async getAnswers(experimentId, conditionId, assessmentId, treatmentId, submissionId) {

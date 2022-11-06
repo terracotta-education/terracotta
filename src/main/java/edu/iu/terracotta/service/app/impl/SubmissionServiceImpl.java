@@ -180,10 +180,15 @@ public class SubmissionServiceImpl implements SubmissionService {
         submissionDto.setSubmissionCommentDtoList(Collections.emptyList());
 
         if (questionSubmissions) {
-            List<QuestionSubmission> questionSubmissionList = allRepositories.questionSubmissionRepository.findBySubmission_SubmissionId(submission.getSubmissionId());
+            List<QuestionSubmission> questionSubmissionList = allRepositories.questionSubmissionRepository
+                    .findBySubmission_SubmissionId(submission.getSubmissionId());
+            // If submission has not been submitted for grading yet, also return the answer
+            // submissions (so the frontend can tell whether it needs to create or update
+            // answer submissions)
+            boolean hasSubmitted = submission.getDateSubmitted() != null;
             List<QuestionSubmissionDto> questionSubmissionDtoList = questionSubmissionList.stream()
-                .map(questionSubmission ->
-                    questionSubmissionService.toDto(questionSubmission, false, false))
+                    .map(questionSubmission -> questionSubmissionService.toDto(questionSubmission, !hasSubmitted,
+                            false))
                 .collect(Collectors.toList());
             submissionDto.setQuestionSubmissionDtoList(questionSubmissionDtoList);
         }

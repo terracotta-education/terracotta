@@ -15,7 +15,10 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 import edu.iu.terracotta.exceptions.DataServiceException;
@@ -46,6 +49,7 @@ import edu.iu.terracotta.repository.QuestionSubmissionRepository;
 import edu.iu.terracotta.repository.SubmissionRepository;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.AssignmentService;
+import edu.iu.terracotta.service.app.QuestionSubmissionService;
 
 public class SubmissionServiceImplTest {
 
@@ -63,6 +67,8 @@ public class SubmissionServiceImplTest {
 
     @Mock private APIJWTService apijwtService;
     @Mock private AssignmentService assignmentService;
+    @Mock
+    private QuestionSubmissionService questionSubmissionService;
 
     @Mock private AnswerMc answerMc;
     @Mock private Assessment assessment;
@@ -153,4 +159,45 @@ public class SubmissionServiceImplTest {
         verify(assignmentService, never()).save(assignment);
     }
 
+    // test toDto when questionSubmissions is true and not submitted, calls
+    // QuestionSubmissionService with answerSubmissions=true
+    @Test
+    public void testToDtoWithQuestionSubmissionsWhenSubmissionNotSubmitted() {
+
+        when(submission.getDateSubmitted()).thenReturn(null);
+
+        List<QuestionSubmission> questionSubmissions = new ArrayList<>();
+        QuestionSubmission qs1 = new QuestionSubmission();
+        QuestionSubmission qs2 = new QuestionSubmission();
+        questionSubmissions.add(qs1);
+        questionSubmissions.add(qs2);
+
+        when(questionSubmissionRepository.findBySubmission_SubmissionId(anyLong())).thenReturn(questionSubmissions);
+
+        submissionService.toDto(submission, true, false);
+
+        verify(questionSubmissionService).toDto(qs1, true, false);
+        verify(questionSubmissionService).toDto(qs2, true, false);
+    }
+
+    // test toDto when questionSubmissions is true and submitted, calls
+    // QuestionSubmissionService with answerSubmissions=false
+    @Test
+    public void testToDtoWithQuestionSubmissionsWhenSubmissionIsSubmitted() {
+
+        when(submission.getDateSubmitted()).thenReturn(new Timestamp(System.currentTimeMillis()));
+
+        List<QuestionSubmission> questionSubmissions = new ArrayList<>();
+        QuestionSubmission qs1 = new QuestionSubmission();
+        QuestionSubmission qs2 = new QuestionSubmission();
+        questionSubmissions.add(qs1);
+        questionSubmissions.add(qs2);
+
+        when(questionSubmissionRepository.findBySubmission_SubmissionId(anyLong())).thenReturn(questionSubmissions);
+
+        submissionService.toDto(submission, true, false);
+
+        verify(questionSubmissionService).toDto(qs1, false, false);
+        verify(questionSubmissionService).toDto(qs2, false, false);
+    }
 }
