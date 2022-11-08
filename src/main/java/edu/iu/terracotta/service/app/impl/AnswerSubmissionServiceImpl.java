@@ -129,8 +129,10 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
         switch (answerType) {
             case "MC":
                 updateAnswerMcSubmission(answerSubmissionId, answerSubmissionDto);
+                break;
             case "ESSAY":
                 updateAnswerEssaySubmission(answerSubmissionId, answerSubmissionDto);
+                break;
             default: throw new DataServiceException("Error 103: Answer type not supported.");
         }
     }
@@ -140,8 +142,10 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
         switch(answerType){
             case "MC":
                 deleteByIdMC(answerSubmissionId);
+                break;
             case "ESSAY":
                 deleteByIdEssay(answerSubmissionId);
+                break;
             default: throw new DataServiceException("Error 103: Answer type not supported.");
         }
     }

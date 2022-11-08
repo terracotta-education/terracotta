@@ -67,9 +67,15 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
                 throw new AssessmentNotMatchingException(TextConstants.ASSESSMENT_NOT_MATCHING);
             }
 
-            answerSubmissions = assessment.get().canViewResponses();
+            Submission submission = allRepositories.submissionRepository.findBySubmissionId(submissionId);
+            boolean hasSubmitted = submission.getDateSubmitted() != null;
+            // allow answerSubmissions if submission is unsubmitted (student users are
+            // allowed to retrieve their previously saved answers in order, in the future,
+            // to update and save responses)
+            answerSubmissions = assessment.get().canViewResponses() || !hasSubmitted;
             questionSubmissionComments = answerSubmissions;
-            showCorrectAnswers = assessment.get().canViewCorrectAnswers();
+            // only allow returning correct answers for a submission that has been submitted
+            showCorrectAnswers = assessment.get().canViewCorrectAnswers() && hasSubmitted;
         }
 
         List<QuestionSubmission> questionSubmissions = findAllBySubmissionId(submissionId);
