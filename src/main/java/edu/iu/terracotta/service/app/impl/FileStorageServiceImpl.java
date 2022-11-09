@@ -389,9 +389,9 @@ public class FileStorageServiceImpl implements FileStorageService {
     }
 
     @Override
-    public String uploadFileToAWSAndGetURI(File file) {
+    public String uploadFileToAWSAndGetURI(File file, String fileName, String extension) {
             String readmeBucketName = env.getProperty("aws.submissions.bucket-name");
-            String URI = awsService.putObject(readmeBucketName,file);
+            String URI = awsService.putObject(readmeBucketName,fileName, extension,file);
             return URI;
     }
 }

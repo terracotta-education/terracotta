@@ -250,12 +250,15 @@ public class AnswerSubmissionController {
         }
 
         File tempFile = getFile(file, file.getName());
-        String URI = fileStorageService.uploadFileToAWSAndGetURI(tempFile);
+
+        String fileName = file.getResource().getFilename();
+        String mimeType = file.getContentType();
+
+        String URI = fileStorageService.uploadFileToAWSAndGetURI(tempFile,fileName, mimeType.split("/")[1] );
 
         byte[] encoded = Base64.encodeBase64(FileUtils.readFileToByteArray(tempFile));
         String fileContent = new String(encoded, StandardCharsets.US_ASCII);
-        String fileName = file.getResource().getFilename();
-        String mimeType = file.getContentType();
+
 
         ObjectMapper objectMapper = new ObjectMapper();
         AnswerSubmissionDto answerSubmissionDto = objectMapper.readValue(answerSubmissionDtoStr, AnswerSubmissionDto.class);

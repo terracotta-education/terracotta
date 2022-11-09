@@ -47,5 +47,5 @@ public interface FileStorageService {
     String parseHTMLFiles (String html);
 
 
-    String uploadFileToAWSAndGetURI(File file);
+    String uploadFileToAWSAndGetURI(File file, String fileName, String extension);
 }

@@ -336,9 +336,11 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
         answerSubmissionDto.setFileContent(fileAnswer.getFile());
         answerSubmissionDto.setMimeType(fileAnswer.getMimeType());
         answerSubmissionDto.setFileName(fileAnswer.getFileName());
-        answerSubmissionDto.setFileURI(fileAnswer.getFileURI());
+        //Generate pre-signed url
+        String uri = awsService.getFileURI(fileAnswer.getFileURI());
+        answerSubmissionDto.setFileURI(uri);
 
-        answerSubmissionDto.setResponse(fileAnswer.getFileURI()); //TODO: remove once url assignment is fixed.
+        answerSubmissionDto.setResponse(uri); //TODO: remove once url assignment is fixed.
         return answerSubmissionDto;
     }
 

@@ -8,5 +8,7 @@ public interface AWSService {
     public InputStream readFileFromS3Bucket(String bucketName, String key);
 
 
-    public String putObject(String bucketName,  File file);
+    public String putObject(String bucketName, String fileName, String extension, File file);
+
+    public String getFileURI(String url);
 }

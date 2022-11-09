@@ -368,10 +368,7 @@ export default {
       if (!answerSubmissionDtoList || answerSubmissionDtoList.length === 0) {
         return null;
       } else {
-        let decodedStringAtoB = atob(answerSubmissionDtoList[0].fileContent);
-        // let fileC = new Blob([decodedStringAtoB], { type: 'application/pdf' });
-        let fileURL = URL.createObjectURL(decodedStringAtoB); //only supports pdfs
-        let file ={'fileName':answerSubmissionDtoList[0].fileName,'url':fileURL}
+        let file ={'fileName':answerSubmissionDtoList[0].fileName,'url':answerSubmissionDtoList[0].response}
         return file;
       }
     },
