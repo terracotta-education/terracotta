@@ -577,8 +577,10 @@ public class ParticipantServiceImpl implements ParticipantService {
     @Override
     @Transactional
     public Participant handleExperimentParticipant(Experiment experiment, SecuredInfo securedInfo) throws GroupNotMatchingException, ParticipantNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException {
-        List<Participant> participants = refreshParticipants(experiment.getExperimentId(), securedInfo, experiment.getParticipants());
-        Participant participant = findParticipant(participants, securedInfo.getUserId());
+        // FIXME: temporarily disabling refreshing of participants because it is taking too long and failing with conflicted updates
+        // List<Participant> participants = refreshParticipants(experiment.getExperimentId(), securedInfo, experiment.getParticipants());
+        // Participant participant = findParticipant(experiment.getParticipants(), securedInfo.getUserId());
+        Participant participant = allRepositories.participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experiment.getExperimentId(), securedInfo.getUserId());
 
         if (participant == null) {
             throw new ParticipantNotMatchingException(TextConstants.PARTICIPANT_NOT_MATCHING);
