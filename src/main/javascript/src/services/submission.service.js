@@ -12,6 +12,7 @@ export const submissionService = {
   updateQuestionSubmissions,
   studentResponse,
   createAnswerSubmissions,
+  updateAnswerSubmission,
 };
 
 /**
@@ -165,6 +166,31 @@ async function createAnswerSubmissions(
 
   return fetch(
     `${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/submissions/${submission_id}/answer_submissions`,
+    requestOptions
+  ).then(handleResponse);
+}
+
+/**
+ * PUT Answer Submission
+ */
+async function updateAnswerSubmission(
+  experiment_id,
+  condition_id,
+  treatment_id,
+  assessment_id,
+  submission_id,
+  question_submission_id,
+  answer_submission_id,
+  answerSubmission
+) {
+  const requestOptions = {
+    method: "PUT",
+    headers: authHeader(),
+    body: JSON.stringify(answerSubmission),
+  };
+
+  return fetch(
+    `${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/submissions/${submission_id}/question_submissions/${question_submission_id}/answer_submissions/${answer_submission_id}`,
     requestOptions
   ).then(handleResponse);
 }

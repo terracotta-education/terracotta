@@ -68,9 +68,15 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
                 throw new AssessmentNotMatchingException(TextConstants.ASSESSMENT_NOT_MATCHING);
             }
 
-            answerSubmissions = assessment.get().canViewResponses();
+            Submission submission = allRepositories.submissionRepository.findBySubmissionId(submissionId);
+            boolean hasSubmitted = submission.getDateSubmitted() != null;
+            // allow answerSubmissions if submission is unsubmitted (student users are
+            // allowed to retrieve their previously saved answers in order, in the future,
+            // to update and save responses)
+            answerSubmissions = assessment.get().canViewResponses() || !hasSubmitted;
             questionSubmissionComments = answerSubmissions;
-            showCorrectAnswers = assessment.get().canViewCorrectAnswers();
+            // only allow returning correct answers for a submission that has been submitted
+            showCorrectAnswers = assessment.get().canViewCorrectAnswers() && hasSubmitted;
         }
 
         List<QuestionSubmission> questionSubmissions = findAllBySubmissionId(submissionId);
@@ -337,28 +343,14 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
     }
 
     @Override
-    public void canSubmit(String canvasCourseId, String assignmentId, String canvasUserId, long deploymentId,
-            long experimentId) throws CanvasApiException, AssignmentAttemptException, IOException {
-        // We find the right deployment:
-        Optional<ToolDeployment> toolDeployment = allRepositories.toolDeploymentRepository.findById(deploymentId);
-
-        if (!toolDeployment.isPresent()) {
-            return;
-        }
-
-        String litDeploymentId = toolDeployment.get().getLtiDeploymentId();
-        List<PlatformDeployment> platformDeploymentList = allRepositories.platformDeploymentRepository.findByToolDeployments_LtiDeploymentId(litDeploymentId);
-
-        if (platformDeploymentList.isEmpty()) {
-            return;
-        }
+    public void canSubmit(String canvasCourseId, String assignmentId, String canvasUserId, long experimentId)
+            throws CanvasApiException, AssignmentAttemptException, IOException {
 
         int assignmentIdInt = Integer.parseInt(assignmentId);
         Assignment assignment = allRepositories.assignmentRepository
                 .findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(experimentId, assignmentId);
         // TODO: use variable substitution instead
         LtiUserEntity instructorUser = assignment.getExposure().getExperiment().getCreatedBy();
-
         Optional<AssignmentExtended> assignmentExtended = canvasAPIClient.listAssignment(instructorUser, canvasCourseId,
                 assignmentIdInt);
         List<edu.ksu.canvas.model.assignment.Submission> submissionsList = canvasAPIClient

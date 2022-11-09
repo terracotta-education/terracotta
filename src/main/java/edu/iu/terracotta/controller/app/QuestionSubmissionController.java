@@ -144,7 +144,7 @@ public class QuestionSubmissionController {
 
         try {
             questionSubmissionService.canSubmit(securedInfo.getCanvasCourseId(), assignmentId,
-                    securedInfo.getCanvasUserId(), securedInfo.getPlatformDeploymentId(), experimentId);
+                    securedInfo.getCanvasUserId(), experimentId);
             questionSubmissionService.validateAndPrepareQuestionSubmissionList(questionSubmissionDtoList, assessmentId, submissionId, student);
             List<QuestionSubmissionDto> returnedDtoList = questionSubmissionService. postQuestionSubmissions(questionSubmissionDtoList, assessmentId, submissionId, student);
             HttpHeaders headers = questionSubmissionService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, submissionId);
