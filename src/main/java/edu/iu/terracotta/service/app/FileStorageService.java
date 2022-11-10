@@ -10,11 +10,17 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.core.io.Resource;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.InputStream;
 import java.security.GeneralSecurityException;
 import java.util.List;
 import java.util.Optional;
 
 public interface FileStorageService {
+
+    public enum StorageType{
+        AWS
+    }
 
     String storeFile(MultipartFile file, String extraPath, Long experimentId, boolean consent);
 
@@ -48,4 +54,7 @@ public interface FileStorageService {
 
 
     String uploadFileToAWSAndGetURI(File file, String fileName, String extension);
+
+
+    File  downloadFilesFromURI(String uri, StorageType storageType) throws FileNotFoundException;
 }

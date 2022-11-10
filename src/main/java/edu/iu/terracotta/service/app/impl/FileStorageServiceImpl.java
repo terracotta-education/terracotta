@@ -27,16 +27,18 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
+import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.core.io.Resource;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import javax.annotation.PostConstruct;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -45,11 +47,7 @@ import java.nio.file.StandardCopyOption;
 import java.security.GeneralSecurityException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 public class FileStorageServiceImpl implements FileStorageService {
@@ -84,7 +82,7 @@ public class FileStorageServiceImpl implements FileStorageService {
     public void init() {
         try {
             Files.createDirectories(Paths.get(uploadDir));
-        }catch (IOException e) {
+        } catch (IOException e) {
             throw new RuntimeException("Error 138: Could not create upload folder!");
         }
     }
@@ -97,15 +95,15 @@ public class FileStorageServiceImpl implements FileStorageService {
         }
 
         try {
-            if(fileName.contains("..")) {
+            if (fileName.contains("..")) {
                 throw new FileStorageException("Error 139: Sorry, Filename contains invalid path sequence " + fileName);
             }
             String finalPath = uploadDir;
-            if (StringUtils.hasText(extraPath)){
+            if (StringUtils.hasText(extraPath)) {
                 finalPath = finalPath + extraPath + "/";
             }
 
-            if (!Files.exists(Paths.get(finalPath))){
+            if (!Files.exists(Paths.get(finalPath))) {
                 Files.createDirectories(Paths.get(finalPath));
             }
 
@@ -117,18 +115,19 @@ public class FileStorageServiceImpl implements FileStorageService {
             throw new FileStorageException("Error 140: Could not store file " + fileName + ". Please try again.", ex);
         }
     }
+
     @Override
     public Resource loadFileAsResource(String fileName, String extraPath) {
         try {
             String finalPath = uploadDir;
-            if (StringUtils.hasText(extraPath)){
+            if (StringUtils.hasText(extraPath)) {
                 finalPath = finalPath + extraPath;
             }
             Path filePath = Paths.get(finalPath).resolve(fileName).normalize();
             Resource resource = new UrlResource(filePath.toUri());
-            if(resource.exists()) {
+            if (resource.exists()) {
                 return resource;
-            }else {
+            } else {
                 throw new MyFileNotFoundException("Error 126: File not found " + fileName);
             }
         } catch (MalformedURLException ex) {
@@ -137,14 +136,14 @@ public class FileStorageServiceImpl implements FileStorageService {
     }
 
     @Override
-    public Resource getFileAsResource(String fileId){
+    public Resource getFileAsResource(String fileId) {
         Optional<FileInfo> fileInfo = allRepositories.fileInfoRepository.findByFileId(fileId);
-        if(fileInfo.isPresent()){
-            try{
+        if (fileInfo.isPresent()) {
+            try {
                 String finalPath = uploadDir + "/" + fileInfo.get().getExperiment().getExperimentId() + "/files/" + fileInfo.get().getFilename();
                 Path filePath = Paths.get(finalPath).normalize();
                 Resource resource = new UrlResource(filePath.toUri());
-                if(resource.exists()){
+                if (resource.exists()) {
                     return resource;
                 } else {
                     throw new MyFileNotFoundException("Error 126: File not found.");
@@ -158,7 +157,7 @@ public class FileStorageServiceImpl implements FileStorageService {
     }
 
     @Override
-    public void saveFile(MultipartFile multipartFile, String extraPath, Long experimentId){
+    public void saveFile(MultipartFile multipartFile, String extraPath, Long experimentId) {
         FileInfo file = new FileInfo();
         file.setFilename(extraPath + "/" + multipartFile.getOriginalFilename());
         file.setFileId(UUID.randomUUID().toString());
@@ -174,15 +173,15 @@ public class FileStorageServiceImpl implements FileStorageService {
         try {
 
             String finalPath = uploadDir;
-            if (StringUtils.hasText(extraPath)){
+            if (StringUtils.hasText(extraPath)) {
                 finalPath = finalPath + extraPath;
             }
 
             Path filePath = Paths.get(finalPath).resolve(fileName).normalize();
             Resource resource = new UrlResource(filePath.toUri());
-            if(resource.exists()) {
+            if (resource.exists()) {
                 return filePath.toFile().delete();
-            }else {
+            } else {
                 throw new MyFileNotFoundException("Error 126: File not found " + fileName);
             }
         } catch (MalformedURLException ex) {
@@ -192,7 +191,7 @@ public class FileStorageServiceImpl implements FileStorageService {
 
     @Override
     public boolean deleteByFileId(String fileId) {
-        try{
+        try {
             Optional<FileInfo> fileInfo = allRepositories.fileInfoRepository.findById(fileId);
             if (fileInfo.isPresent()) {
                 String finalPath = uploadDir + "/" + fileInfo.get().getExperiment().getExperimentId() + "/files/" + fileInfo.get().getFilename();
@@ -207,19 +206,23 @@ public class FileStorageServiceImpl implements FileStorageService {
             } else {
                 throw new MyFileNotFoundException("Error 126: File not found.");
             }
-        } catch (MalformedURLException ex){
+        } catch (MalformedURLException ex) {
             throw new MyFileNotFoundException("Error 126: File Not found.", ex);
         }
     }
 
     @Override
-    public Optional<FileInfo> findByFileId(String fileId) { return allRepositories.fileInfoRepository.findById(fileId); }
+    public Optional<FileInfo> findByFileId(String fileId) {
+        return allRepositories.fileInfoRepository.findById(fileId);
+    }
 
     @Override
-    public List<FileInfo> findByExperimentId(Long experimentId){ return allRepositories.fileInfoRepository.findByExperiment_ExperimentId(experimentId); }
+    public List<FileInfo> findByExperimentId(Long experimentId) {
+        return allRepositories.fileInfoRepository.findByExperiment_ExperimentId(experimentId);
+    }
 
     @Override
-    public FileInfo findByExperimentIdAndFilename(Long experimentId, String filename){
+    public FileInfo findByExperimentIdAndFilename(Long experimentId, String filename) {
         return allRepositories.fileInfoRepository.findByExperiment_ExperimentIdAndFilename(experimentId, filename);
     }
 
@@ -274,7 +277,7 @@ public class FileStorageServiceImpl implements FileStorageService {
     public List<FileInfoDto> getFiles(long experimentId) {
         List<FileInfo> fileInfoList = findByExperimentId(experimentId);
         List<FileInfoDto> fileInfoDtoList = new ArrayList<>();
-        for(FileInfo fileInfo : fileInfoList){
+        for (FileInfo fileInfo : fileInfoList) {
             fileInfoDtoList.add(toDto(fileInfo));
         }
         return fileInfoDtoList;
@@ -285,7 +288,7 @@ public class FileStorageServiceImpl implements FileStorageService {
         Experiment experiment = experimentService.getExperiment(experimentId);
         ConsentDocument consentDocument = experiment.getConsentDocument();
         String canvasCourseId = org.apache.commons.lang3.StringUtils.substringBetween(experiment.getLtiContextEntity().getContext_memberships_url(), "courses/", "/names");
-        if (consentDocument == null){
+        if (consentDocument == null) {
             consentDocument = new ConsentDocument();
             consentDocument.setFilePointer(consentUploaded.getUrl());
             consentDocument.setExperiment(experiment);
@@ -294,7 +297,7 @@ public class FileStorageServiceImpl implements FileStorageService {
             consentDocument.setFilePointer(consentUploaded.getUrl());
         }
         //Let's see if we have the assignment generated in Canvas
-        if (consentDocument.getLmsAssignmentId()==null){
+        if (consentDocument.getLmsAssignmentId() == null) {
             AssignmentExtended canvasAssignment = new AssignmentExtended();
             Assignment.ExternalToolTagAttribute canvasExternalToolTagAttributes = canvasAssignment.new ExternalToolTagAttribute();
             canvasExternalToolTagAttributes.setUrl(ServletUriComponentsBuilder.fromCurrentContextPath().path("/lti3?consent=true&experiment=" + experimentId).build().toUriString());
@@ -308,7 +311,7 @@ public class FileStorageServiceImpl implements FileStorageService {
             canvasAssignment.setPointsPossible(1.0);
             canvasAssignment.setSubmissionTypes(Collections.singletonList("external_tool"));
             try {
-                Optional<AssignmentExtended> assignment = canvasAPIClient.createCanvasAssignment(canvasAssignment,canvasCourseId, experiment.getPlatformDeployment());
+                Optional<AssignmentExtended> assignment = canvasAPIClient.createCanvasAssignment(canvasAssignment, canvasCourseId, experiment.getPlatformDeployment());
                 consentDocument.setLmsAssignmentId(Integer.toString(assignment.get().getId()));
                 // consentDocument.setResourceLinkId(assignment.get().getExternalToolTagAttributes().getResourceLinkId());
                 // log.debug("getExternalToolTagAttributes().getResourceLinkId()={}", assignment.get().getExternalToolTagAttributes().getResourceLinkId());
@@ -324,13 +327,13 @@ public class FileStorageServiceImpl implements FileStorageService {
             }
         } else {
             String lmsId = consentDocument.getLmsAssignmentId();
-            Optional<AssignmentExtended> assignmentExtendedOptional = canvasAPIClient.listAssignment(canvasCourseId,Integer.parseInt(lmsId),experiment.getPlatformDeployment());
-            if (!assignmentExtendedOptional.isPresent()){
+            Optional<AssignmentExtended> assignmentExtendedOptional = canvasAPIClient.listAssignment(canvasCourseId, Integer.parseInt(lmsId), experiment.getPlatformDeployment());
+            if (!assignmentExtendedOptional.isPresent()) {
                 throw new AssignmentNotEditedException("Error 136: The assignment is not linked to any Canvas assignment");
             }
             AssignmentExtended assignmentExtended = assignmentExtendedOptional.get();
             assignmentExtended.setName(title);
-            canvasAPIClient.editAssignment(assignmentExtended,canvasCourseId,experiment.getPlatformDeployment());
+            canvasAPIClient.editAssignment(assignmentExtended, canvasCourseId, experiment.getPlatformDeployment());
             consentDocument.setTitle(title);
         }
         consentDocument = experimentService.saveConsentDocument(consentDocument);
@@ -342,7 +345,7 @@ public class FileStorageServiceImpl implements FileStorageService {
     public void deleteConsentAssignment(long experimentId, SecuredInfo securedInfo) throws AssignmentNotEditedException, CanvasApiException {
         Experiment experiment = experimentService.getExperiment(experimentId);
         ConsentDocument consentDocument = experiment.getConsentDocument();
-        if (consentDocument!=null) {
+        if (consentDocument != null) {
             String lmsId = consentDocument.getLmsAssignmentId();
             Optional<AssignmentExtended> assignmentExtendedOptional = canvasAPIClient.listAssignment(securedInfo.getCanvasCourseId(), Integer.parseInt(lmsId), experiment.getPlatformDeployment());
             if (assignmentExtendedOptional.isPresent()) {
@@ -353,7 +356,7 @@ public class FileStorageServiceImpl implements FileStorageService {
     }
 
     @Override
-    public String parseHTMLFiles (String html) {
+    public String parseHTMLFiles(String html) {
 
         if (org.apache.commons.lang3.StringUtils.isNotBlank(html)) {
             Document doc = Jsoup.parse(html);
@@ -369,18 +372,18 @@ public class FileStorageServiceImpl implements FileStorageService {
     private void parseAndUpdateElements(Document doc, String attribute, String prefixToSearch, String stringToSearch, boolean alreadyToken) {
 
         Elements elements = doc.getElementsByAttributeValueStarting(attribute, applicationUrl + prefixToSearch);
-        for (Element element:elements){
+        for (Element element : elements) {
             String originalLink = element.attr(attribute);
-            if (originalLink.contains(stringToSearch)){
-                String fileId = org.apache.commons.lang3.StringUtils.substringAfterLast(originalLink,"/");
-                if (alreadyToken){
-                    fileId = org.apache.commons.lang3.StringUtils.substringBefore(fileId,"?token=");
+            if (originalLink.contains(stringToSearch)) {
+                String fileId = org.apache.commons.lang3.StringUtils.substringAfterLast(originalLink, "/");
+                if (alreadyToken) {
+                    fileId = org.apache.commons.lang3.StringUtils.substringBefore(fileId, "?token=");
                 }
                 try {
                     String token = apijwtService.buildFileToken(fileId);
                     String fileDownloadUrl = applicationUrl + "/files/" + fileId + "?token=" + token;
                     element.attr(attribute, fileDownloadUrl);
-                } catch (GeneralSecurityException gs){
+                } catch (GeneralSecurityException gs) {
                     //In case of problem we don't modify anything but it won't fail
                     log.warn("Error when trying to build a file token " + fileId);
                 }
@@ -390,8 +393,20 @@ public class FileStorageServiceImpl implements FileStorageService {
 
     @Override
     public String uploadFileToAWSAndGetURI(File file, String fileName, String extension) {
-            String readmeBucketName = env.getProperty("aws.submissions.bucket-name");
-            String URI = awsService.putObject(readmeBucketName,fileName, extension,file);
-            return URI;
+        String readmeBucketName = env.getProperty("aws.submissions.bucket-name");
+        String URI = awsService.putObject(readmeBucketName, fileName, extension, file);
+        return URI;
     }
+
+    @Override
+    public File downloadFilesFromURI(String uri, StorageType storageType) throws FileNotFoundException {
+        if (storageType.equals(StorageType.AWS)) {
+            return awsService.downloadFileURI(uri);
+
+        } else {
+            throw new UnsupportedOperationException("Storage type  not supported");
+        }
+    }
+
+
 }

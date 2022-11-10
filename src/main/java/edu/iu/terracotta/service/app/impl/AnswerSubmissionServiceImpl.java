@@ -41,6 +41,8 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
 
     @Autowired
     AWSService awsService;
+
+
     /*
     general methods
      */
@@ -337,9 +339,10 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
         answerSubmissionDto.setMimeType(fileAnswer.getMimeType());
         answerSubmissionDto.setFileName(fileAnswer.getFileName());
         //Generate pre-signed url
-        String uri = awsService.getFileURI(fileAnswer.getFileURI());
+//        String uri = awsService.getFileURI(fileAnswer.getFileURI());
+        String host = env.getProperty("application.url");
+        String uri = host+"/"+"files/download?file_uri="+fileAnswer.getFileURI();
         answerSubmissionDto.setFileURI(uri);
-
         answerSubmissionDto.setResponse(uri); //TODO: remove once url assignment is fixed.
         return answerSubmissionDto;
     }
