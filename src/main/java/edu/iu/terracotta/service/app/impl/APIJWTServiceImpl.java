@@ -49,6 +49,7 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -173,28 +174,30 @@ public class APIJWTServiceImpl implements APIJWTService {
 
     @Override
     public String buildJwt(boolean oneUse,
-                           List<String> roles,
-                           Long contextId,
-                           Long platformDeploymentId,
-                           String userId,
-                           Long assignmentId,
-                           Long experimentId,
-                           Boolean consent,
-                           String canvasUserId,
-                           String canvasUserGlobalId,
-                           String canvasLoginId,
-                           String canvasUserName,
-                           String canvasCourseId,
-                           String canvasAssignmentId,
-                           String dueAt,
-                           String lockAt,
-                           String unlockAt,
-                           String nonce
+            List<String> roles,
+            Long contextId,
+            Long platformDeploymentId,
+            String userId,
+            Long assignmentId,
+            Long experimentId,
+            Boolean consent,
+            String canvasUserId,
+            String canvasUserGlobalId,
+            String canvasLoginId,
+            String canvasUserName,
+            String canvasCourseId,
+            String canvasAssignmentId,
+            String dueAt,
+            String lockAt,
+            String unlockAt,
+            String nonce,
+            Integer allowedAttempts,
+            Integer studentAttempts
     ) throws GeneralSecurityException, IOException {
 
         return buildJwt(oneUse, ISSUER_TERRACOTTA_API, roles, contextId, platformDeploymentId, userId, assignmentId,
                 experimentId, consent, canvasUserId, canvasUserGlobalId, canvasLoginId, canvasUserName, canvasCourseId,
-                canvasAssignmentId, dueAt, lockAt, unlockAt, nonce);
+                canvasAssignmentId, dueAt, lockAt, unlockAt, nonce, allowedAttempts, studentAttempts);
     }
 
     private String buildJwt(boolean oneUse,
@@ -215,7 +218,9 @@ public class APIJWTServiceImpl implements APIJWTService {
             String dueAt,
             String lockAt,
             String unlockAt,
-            String nonce) throws GeneralSecurityException, IOException {
+            String nonce,
+            Integer allowedAttempts,
+            Integer studentAttempts) throws GeneralSecurityException, IOException {
 
         int length = 3600;
         // We only allow 30 seconds (surely we can low that) for the one time token,
@@ -253,6 +258,8 @@ public class APIJWTServiceImpl implements APIJWTService {
                 .claim("lockAt", lockAt)
                 .claim("unlockAt", unlockAt)
                 .claim("nonce", nonce)
+                .claim("allowedAttempts", allowedAttempts)
+                .claim("studentAttempts", studentAttempts)
                 .signWith(SignatureAlgorithm.RS256, toolPrivateKey); // We sign it with our own private key. The
                                                                      // platform has the public one.
         String token = builder.compact();
@@ -312,7 +319,9 @@ public class APIJWTServiceImpl implements APIJWTService {
                 lti3Request.getLtiCustom().get("due_at").toString(),
                 lti3Request.getLtiCustom().get("lock_at").toString(),
                 lti3Request.getLtiCustom().get("unlock_at").toString(),
-                lti3Request.getNonce());
+                lti3Request.getNonce(),
+                extractAllowedAttempts(lti3Request.getLtiCustom()),
+                parseInt(lti3Request.getLtiCustom().get("student_attempts")));
 
     }
 
@@ -394,6 +403,10 @@ public class APIJWTServiceImpl implements APIJWTService {
                 .claim("lockAt", tokenClaims.getBody().get("lockAt"))
                 .claim("unlockAt", tokenClaims.getBody().get("unlockAt"))
                 .claim("nonce", tokenClaims.getBody().get("nonce"))
+                // .addClaims(Collections.singletonMap("allowedAttempts",
+                // tokenClaims.getBody().get("allowedAttempts")))
+                .claim("allowedAttempts", tokenClaims.getBody().get("allowedAttempts"))
+                .claim("studentAttempts", tokenClaims.getBody().get("studentAttempts"))
                 .signWith(SignatureAlgorithm.RS256, toolPrivateKey);  //We sign it with our own private key. The platform has the public one.
         String newToken = builder.compact();
         log.debug("Token Request: \n {} \n", newToken);
@@ -439,6 +452,8 @@ public class APIJWTServiceImpl implements APIJWTService {
           securedInfo.setUnlockAt(extractTimestamp(claims,"unlockAt"));
           securedInfo.setNonce(claims.getBody().get("nonce").toString());
           securedInfo.setConsent((Boolean)claims.getBody().get("consent"));
+          securedInfo.setAllowedAttempts(claims.getBody().get("allowedAttempts", Integer.class));
+          securedInfo.setStudentAttempts(claims.getBody().get("studentAttempts", Integer.class));
           return securedInfo;
         } else {
           return null;
@@ -453,6 +468,36 @@ public class APIJWTServiceImpl implements APIJWTService {
             return null;
         }
         return extracted;
+    }
+
+    private Integer parseInt(Object value) {
+        try {
+            return value != null ? Integer.valueOf(value.toString()) : null;
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    /**
+     * Get allowed_attempts from LTI custom claims (variable substitution). If
+     * allowed_attempts claim exists, but the value is null, return -1 instead. The
+     * special value -1 stands in place of null to indicate unlimited attempts since
+     * the value of null is indistinguishable from there not being an
+     * allowed_attempts claim.
+     *
+     * @param ltiCustomClaims
+     * @return
+     */
+    private Integer extractAllowedAttempts(Map<String, Object> ltiCustomClaims) {
+        if (ltiCustomClaims.containsKey("allowed_attempts")) {
+            Integer allowedAttempts = parseInt(ltiCustomClaims.get("allowed_attempts"));
+            if (allowedAttempts != null) {
+                return allowedAttempts;
+            } else if (ltiCustomClaims.get("allowed_attempts") == null) {
+                return -1;
+            }
+        }
+        return null;
     }
 
     @Override

@@ -3,7 +3,6 @@ package edu.iu.terracotta.controller.app;
 import edu.iu.terracotta.exceptions.*;
 import edu.iu.terracotta.model.app.Assignment;
 import edu.iu.terracotta.model.app.Participant;
-import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.dto.AssessmentDto;
 import edu.iu.terracotta.model.app.dto.ParticipantDto;
 import edu.iu.terracotta.model.app.dto.StepDto;
@@ -12,8 +11,6 @@ import edu.iu.terracotta.service.app.*;
 import edu.iu.terracotta.utils.TextConstants;
 import io.jsonwebtoken.lang.Collections;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -125,21 +122,12 @@ public class StepsController {
                         }
 
                         Long submissionId = Long.parseLong(submissionsId.get(0));
-                        Submission submission = submissionService.getSubmission(experimentId, securedInfo.getUserId(), submissionId, student);
-                        String assignmentId = submission.getAssessment().getTreatment().getAssignment().getLmsAssignmentId();
-                        questionSubmissionService.canSubmit(securedInfo.getCanvasCourseId(), assignmentId,
-                                securedInfo.getCanvasUserId(), experimentId);
+                        questionSubmissionService.canSubmit(securedInfo, experimentId);
                         submissionService.allowedSubmission(submissionId, securedInfo);
                         submissionService.finalizeAndGrade(submissionId, securedInfo, student);
                     } else if (apijwtService.isInstructorOrHigher(securedInfo)) {
                         for (String submissionIdString : submissionsId) {
                             Long submissionId = Long.parseLong(submissionIdString);
-                            Submission submission = submissionService. getSubmission(experimentId, securedInfo.getUserId(), submissionId, student);
-                            String assignmentId = submission.getAssessment().getTreatment().getAssignment()
-                                    .getLmsAssignmentId();
-                            questionSubmissionService.canSubmit(securedInfo.getCanvasCourseId(),
-                                    assignmentId, securedInfo.getCanvasUserId(),
-                                    experimentId);
                             submissionService.finalizeAndGrade(submissionId, securedInfo, student);
                         }
                     } else {
@@ -183,8 +171,7 @@ public class StepsController {
                 }
 
                 try {
-                    questionSubmissionService.canSubmit(securedInfo.getCanvasCourseId(),
-                            securedInfo.getCanvasAssignmentId(), securedInfo.getCanvasUserId(), experimentId);
+                    questionSubmissionService.canSubmit(securedInfo, experimentId);
 
                     return assignmentService.launchAssignment(experimentId, securedInfo);
                 } catch (AssignmentAttemptException | AssignmentNotMatchingException e) {

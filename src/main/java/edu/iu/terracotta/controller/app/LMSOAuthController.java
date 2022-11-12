@@ -131,7 +131,9 @@ public class LMSOAuthController {
                 claims.get("dueAt", String.class),
                 claims.get("lockAt", String.class),
                 claims.get("unlockAt", String.class),
-                claims.get("nonce", String.class));
+                claims.get("nonce", String.class),
+                claims.get("allowedAttempts", Integer.class),
+                claims.get("studentAttempts", Integer.class));
         return oneTimeToken;
     }
 }
