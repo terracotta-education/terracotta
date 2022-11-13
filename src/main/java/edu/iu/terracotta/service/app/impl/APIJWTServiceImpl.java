@@ -321,7 +321,7 @@ public class APIJWTServiceImpl implements APIJWTService {
                 lti3Request.getLtiCustom().get("unlock_at").toString(),
                 lti3Request.getNonce(),
                 extractAllowedAttempts(lti3Request.getLtiCustom()),
-                parseInt(lti3Request.getLtiCustom().get("student_attempts")));
+                extractStudentAttempts(lti3Request.getLtiCustom()));
 
     }
 
@@ -500,6 +500,24 @@ public class APIJWTServiceImpl implements APIJWTService {
         return null;
     }
 
+    /**
+     * Get student_attempts from LTI custom claims (variable substitution). If
+     * student_attempts claim exists, but the value is null, return 0 instead.
+     *
+     * @param ltiCustomClaims
+     * @return
+     */
+    private Integer extractStudentAttempts(Map<String, Object> ltiCustomClaims) {
+        if (ltiCustomClaims.containsKey("student_attempts")) {
+            Integer allowedAttempts = parseInt(ltiCustomClaims.get("student_attempts"));
+            if (allowedAttempts != null) {
+                return allowedAttempts;
+            } else if (ltiCustomClaims.get("student_attempts") == null) {
+                return 0;
+            }
+        }
+        return null;
+    }
     @Override
     public boolean isAdmin(SecuredInfo securedInfo){ return securedInfo.getRoles().contains(Roles.ADMIN); }
 

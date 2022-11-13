@@ -2,6 +2,7 @@ package edu.iu.terracotta.service.app.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
@@ -105,5 +106,19 @@ public class APIJWTServiceImplTest {
 
         assertEquals(3, claims.getBody().get("allowedAttempts", Integer.class));
         assertEquals(1, claims.getBody().get("studentAttempts", Integer.class));
+    }
+
+    // assignment context, test with allowed_attempts = 3, student_attempts = null
+    @Test
+    public void testBuildJwtWithNoStudentAttemptsCustomVariable() throws GeneralSecurityException, IOException {
+
+        customVars.put("allowed_attempts", "3");
+        customVars.put("student_attempts", null);
+
+        String jwt = apiJWTService.buildJwt(false, lti3Request);
+        Jwt<Header, Claims> claims = this.apiJWTService.unsecureToken(jwt);
+
+        assertEquals(3, claims.getBody().get("allowedAttempts", Integer.class));
+        assertEquals(0, claims.getBody().get("studentAttempts", Integer.class));
     }
 }
