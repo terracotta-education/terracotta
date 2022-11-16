@@ -107,13 +107,14 @@ public class ParticipantServiceImplTest {
         when(securedInfo.getCanvasAssignmentId()).thenReturn("1");
         when(securedInfo.getUserId()).thenReturn("userId");
 
-        doReturn(Collections.singletonList(participant)).when(participantService).refreshParticipants(anyLong(), any(SecuredInfo.class), anyList());
         doReturn(participant).when(participantService).findParticipant(anyList(), anyString());
         doReturn(participant).when(participantService).save(any(Participant.class));
     }
 
     @Test
     public void testhandleExperimentParticipantAutoParticipation() throws GroupNotMatchingException, ParticipantNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException {
+        doReturn(Collections.singletonList(participant)).when(participantService).refreshParticipants(anyLong(),
+                anyList());
         Participant participant = participantService.handleExperimentParticipant(experiment, securedInfo);
 
         assertNotNull(participant);
@@ -122,6 +123,8 @@ public class ParticipantServiceImplTest {
 
     @Test
     public void testhandleExperimentParticipantNotAutoParticipation() throws GroupNotMatchingException, ParticipantNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException {
+        doReturn(Collections.singletonList(participant)).when(participantService).refreshParticipants(anyLong(),
+                anyList());
         when(experiment.getParticipationType()).thenReturn(ParticipationTypes.MANUAL);
         Participant participant = participantService.handleExperimentParticipant(experiment, securedInfo);
 
@@ -131,6 +134,8 @@ public class ParticipantServiceImplTest {
 
     @Test
     public void testhandleExperimentParticipantInGroup() throws GroupNotMatchingException, ParticipantNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException {
+        doReturn(Collections.singletonList(participant)).when(participantService).refreshParticipants(anyLong(),
+                anyList());
         when(this.participant.getConsent()).thenReturn(true);
 
         Participant participant = participantService.handleExperimentParticipant(experiment, securedInfo);
@@ -141,6 +146,8 @@ public class ParticipantServiceImplTest {
 
     @Test
     public void testhandleExperimentParticipantNotInAGroup() throws GroupNotMatchingException, ParticipantNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException {
+        doReturn(Collections.singletonList(participant)).when(participantService).refreshParticipants(anyLong(),
+                anyList());
         when(this.participant.getConsent()).thenReturn(true);
         when(participant.getGroup()).thenReturn(null);
 
@@ -151,7 +158,9 @@ public class ParticipantServiceImplTest {
     }
 
     @Test
-    public void testhandleExperimentParticipantNoParticipant() {
+    public void testhandleExperimentParticipantNoParticipant() throws ParticipantNotUpdatedException {
+        doReturn(Collections.singletonList(participant)).when(participantService).refreshParticipants(anyLong(),
+                anyList());
         doReturn(null).when(participantService).findParticipant(anyList(),anyString());
 
         Exception exception = assertThrows(ParticipantNotMatchingException.class, () -> { participantService.handleExperimentParticipant(experiment, securedInfo); });
@@ -206,7 +215,7 @@ public class ParticipantServiceImplTest {
         currentParticipants.add(participant3);
 
         List<Participant> refreshedParticipants = participantService.refreshParticipants(experiment.getExperimentId(),
-                null, currentParticipants);
+                currentParticipants);
 
         assertEquals(refreshedParticipants.size(), currentParticipants.size());
         verify(participantRepository).flush();
@@ -273,7 +282,7 @@ public class ParticipantServiceImplTest {
         currentParticipants.add(participant3);
 
         List<Participant> refreshedParticipants = participantService.refreshParticipants(experiment.getExperimentId(),
-                null, currentParticipants);
+                currentParticipants);
 
         assertEquals(4, refreshedParticipants.size());
         Optional<Participant> newParticipant = refreshedParticipants.stream()
@@ -337,7 +346,7 @@ public class ParticipantServiceImplTest {
         currentParticipants.add(participant3);
 
         List<Participant> refreshedParticipants = participantService.refreshParticipants(experiment.getExperimentId(),
-                null, currentParticipants);
+                currentParticipants);
 
         assertEquals(3, refreshedParticipants.size());
         verify(participantRepository)
@@ -409,7 +418,7 @@ public class ParticipantServiceImplTest {
         currentParticipants.add(participant3);
 
         List<Participant> refreshedParticipants = participantService.refreshParticipants(experiment.getExperimentId(),
-                null, currentParticipants);
+                currentParticipants);
 
         assertTrue(refreshedParticipants.stream().allMatch(p -> p.getConsent() == false));
         assertTrue(refreshedParticipants.stream().allMatch(p -> p.getDateGiven() == null));
@@ -427,10 +436,12 @@ public class ParticipantServiceImplTest {
     public void testHandleExperimentParticipantAddedStudent() throws GroupNotMatchingException, ParticipantNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException {
 
         when(participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(anyLong(), anyString())).thenReturn(null);
+        doReturn(Collections.singletonList(participant)).when(participantService).refreshParticipants(anyLong(),
+                anyList());
 
         participantService.handleExperimentParticipant(experiment, securedInfo);
 
-        verify(participantService).refreshParticipants(anyLong(), eq(securedInfo), anyList());
+        verify(participantService).refreshParticipants(anyLong(), anyList());
     }
 
     // Test handleExperimentParticipant when a student has consented but
@@ -441,10 +452,12 @@ public class ParticipantServiceImplTest {
         when(participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(anyLong(), anyString())).thenReturn(participant);
         when(participant.getConsent()).thenReturn(true);
         when(participant.getGroup()).thenReturn(null);
+        doReturn(Collections.singletonList(participant)).when(participantService).refreshParticipants(anyLong(),
+                anyList());
 
         participantService.handleExperimentParticipant(experiment, securedInfo);
 
-        verify(participantService).refreshParticipants(anyLong(), eq(securedInfo), anyList());
+        verify(participantService).refreshParticipants(anyLong(), anyList());
     }
 
     // Test handleExperimentParticipant when a student has consented and been
@@ -458,7 +471,7 @@ public class ParticipantServiceImplTest {
 
         participantService.handleExperimentParticipant(experiment, securedInfo);
 
-        verify(participantService, never()).refreshParticipants(anyLong(), eq(securedInfo), anyList());
+        verify(participantService, never()).refreshParticipants(anyLong(), anyList());
     }
 
     // Test handleExperimentParticipant when a student has not consented but
@@ -469,10 +482,12 @@ public class ParticipantServiceImplTest {
         when(participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(anyLong(), anyString())).thenReturn(participant);
         when(participant.getConsent()).thenReturn(false);
         when(participant.getDropped()).thenReturn(true);
+        doReturn(Collections.singletonList(participant)).when(participantService).refreshParticipants(anyLong(),
+                anyList());
 
         participantService.handleExperimentParticipant(experiment, securedInfo);
 
-        verify(participantService).refreshParticipants(anyLong(), eq(securedInfo), anyList());
+        verify(participantService).refreshParticipants(anyLong(), anyList());
     }
 
     // Test handleExperimentParticipant when a student has not consented and
@@ -486,6 +501,6 @@ public class ParticipantServiceImplTest {
 
         participantService.handleExperimentParticipant(experiment, securedInfo);
 
-        verify(participantService, never()).refreshParticipants(anyLong(), eq(securedInfo), anyList());
+        verify(participantService, never()).refreshParticipants(anyLong(), anyList());
     }
 }

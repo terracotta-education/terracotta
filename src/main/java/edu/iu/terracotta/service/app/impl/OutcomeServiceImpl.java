@@ -230,7 +230,8 @@ public class OutcomeServiceImpl implements OutcomeService {
         if (outcome.getExternal() == null || !outcome.getExternal()) {
             return;
         }
-        participantService.refreshParticipants(outcome.getExposure().getExperiment().getExperimentId(), securedInfo, outcome.getExposure().getExperiment().getParticipants());
+        participantService.refreshParticipants(outcome.getExposure().getExperiment().getExperimentId(),
+                outcome.getExposure().getExperiment().getParticipants());
         List<OutcomeScore> newScores = new ArrayList<>();
         String canvasCourseId = StringUtils.substringBetween(outcome.getExposure().getExperiment().getLtiContextEntity().getContext_memberships_url(), "courses/", "/names");
         List<Submission> submissions = canvasAPIClient.listSubmissions(Integer.parseInt(outcome.getLmsOutcomeId()), canvasCourseId, outcome.getExposure().getExperiment().getPlatformDeployment());

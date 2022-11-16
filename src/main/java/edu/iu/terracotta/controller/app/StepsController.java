@@ -198,7 +198,7 @@ public class StepsController {
                     List<ParticipantDto> studentUserAsParticipant = participantService.getParticipants(
                             currentParticipantList, experimentId, securedInfo.getUserId(), true);
                     if (studentUserAsParticipant.isEmpty()) {
-                        participantService.refreshParticipants(experimentId, securedInfo, currentParticipantList);
+                        participantService.refreshParticipants(experimentId, currentParticipantList);
                         studentUserAsParticipant = participantService.getParticipants(
                                 currentParticipantList, experimentId, securedInfo.getUserId(), true);
                     }

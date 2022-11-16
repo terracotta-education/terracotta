@@ -211,7 +211,8 @@ public class ParticipantServiceImpl implements ParticipantService {
 
     @Override
     @Transactional
-    public List<Participant> refreshParticipants(long experimentId, SecuredInfo securedInfo, List<Participant> currentParticipantList) throws ParticipantNotUpdatedException {
+    public List<Participant> refreshParticipants(long experimentId, List<Participant> currentParticipantList)
+            throws ParticipantNotUpdatedException {
 
         long startTime = System.currentTimeMillis();
 
@@ -407,7 +408,7 @@ public class ParticipantServiceImpl implements ParticipantService {
 
         List<Participant> currentParticipantList =
                 findAllByExperimentId(experimentId);
-        refreshParticipants(experimentId, securedInfo, currentParticipantList);
+        refreshParticipants(experimentId, currentParticipantList);
     }
 
     @Override
@@ -516,7 +517,7 @@ public class ParticipantServiceImpl implements ParticipantService {
     @Transactional
     public void setAllToNull(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException {
         List<Participant> participants = allRepositories.participantRepository.findByExperiment_ExperimentId(experimentId);
-        refreshParticipants(experimentId, securedInfo, participants);
+        refreshParticipants(experimentId, participants);
         for (Participant participant : participants) {
             participant.setConsent(null);
             participant.setDateGiven(null);
@@ -528,7 +529,7 @@ public class ParticipantServiceImpl implements ParticipantService {
     @Transactional
     public void setAllToTrue(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException {
         List<Participant> participants = allRepositories.participantRepository.findByExperiment_ExperimentId(experimentId);
-        refreshParticipants(experimentId, securedInfo, participants);
+        refreshParticipants(experimentId, participants);
         for (Participant participant : participants) {
             participant.setConsent(true);
             participant.setDateGiven(new Timestamp(System.currentTimeMillis()));
@@ -540,7 +541,7 @@ public class ParticipantServiceImpl implements ParticipantService {
     @Transactional
     public void setAllToFalse(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException {
         List<Participant> participants = allRepositories.participantRepository.findByExperiment_ExperimentId(experimentId);
-        refreshParticipants(experimentId, securedInfo, participants);
+        refreshParticipants(experimentId, participants);
         for (Participant participant : participants) {
             participant.setConsent(false);
             participant.setDateGiven(new Timestamp(System.currentTimeMillis()));
@@ -623,7 +624,7 @@ public class ParticipantServiceImpl implements ParticipantService {
         if (participant == null
                 || (BooleanUtils.isTrue(participant.getConsent()) && participant.getGroup() == null)
                 || BooleanUtils.isTrue(participant.getDropped())) {
-            List<Participant> participants = refreshParticipants(experiment.getExperimentId(), securedInfo,
+            List<Participant> participants = refreshParticipants(experiment.getExperimentId(),
                     experiment.getParticipants());
             participant = findParticipant(participants, securedInfo.getUserId());
         }
