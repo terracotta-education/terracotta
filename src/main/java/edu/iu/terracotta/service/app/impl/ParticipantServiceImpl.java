@@ -213,6 +213,8 @@ public class ParticipantServiceImpl implements ParticipantService {
     @Transactional
     public List<Participant> refreshParticipants(long experimentId, SecuredInfo securedInfo, List<Participant> currentParticipantList) throws ParticipantNotUpdatedException {
 
+        long startTime = System.currentTimeMillis();
+
         // We don't want to delete participants if they drop the course, so... we
         // will keep the all participants But we will need to mark them as
         // dropped if they are not in the course roster. So... a way to create a
@@ -253,6 +255,9 @@ public class ParticipantServiceImpl implements ParticipantService {
             throw new ParticipantNotUpdatedException(e.getMessage());
         }
         allRepositories.participantRepository.flush();
+
+        log.debug("Refreshing participants for experiment {} took {}s", experimentId,
+                (System.currentTimeMillis() - startTime) / 1000f);
         return newParticipantList;
     }
 
