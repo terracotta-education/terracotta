@@ -10,7 +10,8 @@ const state = {
   experimentId: '',
   assignmentId: '',
   consent: '',
-  userId: ''
+  userId: '',
+  lmsApiOAuthURL: '',
 }
 
 const actions = {
@@ -75,6 +76,9 @@ const actions = {
         console.error('reportStep | catch', {response, state})
         return response
       })
+  },
+  setLmsApiOAuthURL({commit}, url) {
+    commit('setLmsApiOAuthURL', url);
   }
 }
 
@@ -102,6 +106,9 @@ const mutations = {
   },
   setUserId(state, data) {
     state.userId = data
+  },
+  setLmsApiOAuthURL(state, data) {
+    state.lmsApiOAuthURL = data;
   }
 }
 
@@ -133,6 +140,9 @@ const getters = {
   },
   userId(state) {
     return state.userId
+  },
+  lmsApiOAuthURL(state) {
+    return state.lmsApiOAuthURL;
   }
 }
 

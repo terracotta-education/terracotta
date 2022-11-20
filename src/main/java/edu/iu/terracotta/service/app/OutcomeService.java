@@ -45,7 +45,8 @@ public interface OutcomeService {
 
     boolean outcomeBelongsToExperimentAndExposure(Long experimentId, Long exposureId, Long outcomeId);
 
-    List<OutcomePotentialDto> potentialOutcomes(Long experimentId) throws DataServiceException, CanvasApiException;
+    List<OutcomePotentialDto> potentialOutcomes(Long experimentId, String instructorUserId)
+            throws DataServiceException, CanvasApiException;
 
     void updateOutcomeGrades(Long outcomeId, SecuredInfo securedInfo) throws CanvasApiException, IOException, ParticipantNotUpdatedException;
 

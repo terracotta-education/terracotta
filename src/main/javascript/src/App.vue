@@ -1,5 +1,5 @@
 <template>
-	<v-app>
+	<v-app :style="appStyle">
 		<v-main>
 			<template v-if="hasTokens && userInfo === 'Instructor'">
 				<router-view :key="$route.fullPath"/>
@@ -53,8 +53,12 @@ export default {
       assignmentId: 'api/assignmentId',
 			consent: 'api/consent',
 			userId: 'api/userId',
-			api_token: 'api/api_token'
+			api_token: 'api/api_token',
 		}),
+		// Apply per route global styling to the v-app component
+		appStyle() {
+			return this.$route.meta.appStyle;
+		},
 	},
 	methods: {
 		...mapActions({

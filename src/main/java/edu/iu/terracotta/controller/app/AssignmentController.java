@@ -80,7 +80,9 @@ public class AssignmentController {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
 
-        List<AssignmentDto> assignments = assignmentService.getAssignments(exposureId, securedInfo.getCanvasCourseId(), securedInfo.getPlatformDeploymentId(), submissions, includeDeleted);
+        String instructorUserId = apijwtService.isInstructorOrHigher(securedInfo) ? securedInfo.getUserId() : null;
+        List<AssignmentDto> assignments = assignmentService.getAssignments(exposureId, securedInfo.getCanvasCourseId(),
+                submissions, includeDeleted, instructorUserId);
 
         if (assignments.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
@@ -109,7 +111,7 @@ public class AssignmentController {
         }
     }
 
-    @Transactional
+    @Transactional(rollbackFor = { AssignmentNotCreatedException.class })
     @RequestMapping(value = "/{experiment_id}/exposures/{exposure_id}/assignments", method = RequestMethod.POST)
     public ResponseEntity<AssignmentDto> postAssignment(@PathVariable("experiment_id") long experimentId,
                                                         @PathVariable("exposure_id") long exposureId,
@@ -127,7 +129,8 @@ public class AssignmentController {
         apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
 
         if (apijwtService.isInstructorOrHigher(securedInfo)) {
-            AssignmentDto returnedDto = assignmentService.postAssignment(assignmentDto, experimentId, securedInfo.getCanvasCourseId(), exposureId, securedInfo.getPlatformDeploymentId());
+            AssignmentDto returnedDto = assignmentService.postAssignment(assignmentDto, experimentId,
+                    securedInfo.getCanvasCourseId(), exposureId, securedInfo.getUserId());
             HttpHeaders headers = assignmentService.buildHeaders(ucBuilder, experimentId, exposureId, returnedDto.getAssignmentId());
             return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
         } else {
@@ -135,6 +138,7 @@ public class AssignmentController {
         }
     }
 
+    @Transactional(rollbackFor = { AssignmentNotEditedException.class, CanvasApiException.class })
     @PutMapping("/{experimentId}/exposures/{exposureId}/assignments/{assignmentId}")
     public ResponseEntity<AssignmentDto> updateAssignment(@PathVariable long experimentId,
                                                  @PathVariable long exposureId,
@@ -154,11 +158,12 @@ public class AssignmentController {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
-        AssignmentDto updatedAssignmentDto = assignmentService.putAssignment(assignmentId, assignmentDto, securedInfo.getCanvasCourseId());
+        AssignmentDto updatedAssignmentDto = assignmentService.putAssignment(assignmentId, assignmentDto, securedInfo.getCanvasCourseId(), securedInfo.getUserId());
 
         return new ResponseEntity<>(updatedAssignmentDto, HttpStatus.OK);
     }
 
+    @Transactional(rollbackFor = { AssignmentNotEditedException.class, CanvasApiException.class })
     @PutMapping("/{experimentId}/exposures/{exposureId}/assignments")
     public ResponseEntity<List<AssignmentDto>> updateAssignments(@PathVariable long experimentId,
                                                                  @PathVariable long exposureId,
@@ -181,11 +186,13 @@ public class AssignmentController {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
-        List<AssignmentDto> updatedAssignmentDtos = assignmentService.updateAssignments(assignmentDtos, securedInfo.getCanvasCourseId());
+        List<AssignmentDto> updatedAssignmentDtos = assignmentService.updateAssignments(assignmentDtos,
+                securedInfo.getCanvasCourseId(), securedInfo.getUserId());
 
         return new ResponseEntity<>(updatedAssignmentDtos, HttpStatus.OK);
     }
 
+    @Transactional(rollbackFor = { AssignmentNotEditedException.class, CanvasApiException.class })
     @DeleteMapping("/{experimentId}/exposures/{exposureId}/assignments/{assignmentId}")
     public ResponseEntity<Void> deleteAssignment(@PathVariable long experimentId,
                                                  @PathVariable long exposureId,
@@ -202,7 +209,7 @@ public class AssignmentController {
         }
 
         try{
-            assignmentService.deleteById(assignmentId, securedInfo.getCanvasCourseId());
+            assignmentService.deleteById(assignmentId, securedInfo.getCanvasCourseId(), securedInfo.getUserId());
             return new ResponseEntity<>(HttpStatus.OK);
         } catch (EmptyResultDataAccessException e) {
             log.warn(e.getMessage());
@@ -231,13 +238,15 @@ public class AssignmentController {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
-        AssignmentDto returnedDto = assignmentService.duplicateAssignment(assignmentId, securedInfo.getCanvasCourseId(), securedInfo.getPlatformDeploymentId());
+        AssignmentDto returnedDto = assignmentService.duplicateAssignment(assignmentId, securedInfo.getCanvasCourseId(),
+                securedInfo.getUserId());
         HttpHeaders headers = assignmentService.buildHeaders(ucBuilder, experimentId, exposureId, returnedDto.getAssignmentId());
 
         return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
     }
 
-    @Transactional
+    @Transactional(rollbackFor = { AssignmentNotCreatedException.class, CanvasApiException.class,
+            AssignmentNotEditedException.class })
     @PostMapping(value = "/{experimentId}/exposures/{exposureId}/assignments/{assignmentId}/move")
     public ResponseEntity<AssignmentDto> moveAssignment(@PathVariable long experimentId,
                                                         @PathVariable long exposureId,
@@ -259,7 +268,8 @@ public class AssignmentController {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
-        AssignmentDto returnedDto = assignmentService.moveAssignment(assignmentId, assignmentDto, experimentId, exposureId, securedInfo.getCanvasCourseId(), securedInfo.getPlatformDeploymentId());
+        AssignmentDto returnedDto = assignmentService.moveAssignment(assignmentId, assignmentDto, experimentId,
+                exposureId, securedInfo.getCanvasCourseId(), securedInfo.getUserId());
         HttpHeaders headers = assignmentService.buildHeaders(ucBuilder, experimentId, exposureId, returnedDto.getAssignmentId());
 
         return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
