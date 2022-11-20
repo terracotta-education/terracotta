@@ -257,7 +257,7 @@ public class ParticipantServiceImpl implements ParticipantService {
         }
         allRepositories.participantRepository.flush();
 
-        log.debug("Refreshing participants for experiment {} took {}s", experimentId,
+        logger.debug("Refreshing participants for experiment {} took {}s", experimentId,
                 (System.currentTimeMillis() - startTime) / 1000f);
         return newParticipantList;
     }

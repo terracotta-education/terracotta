@@ -245,7 +245,8 @@ public class AssignmentController {
         return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
     }
 
-    @Transactional
+    @Transactional(rollbackFor = { AssignmentNotCreatedException.class, CanvasApiException.class,
+            AssignmentNotEditedException.class })
     @PostMapping(value = "/{experimentId}/exposures/{exposureId}/assignments/{assignmentId}/move")
     public ResponseEntity<AssignmentDto> moveAssignment(@PathVariable long experimentId,
                                                         @PathVariable long exposureId,

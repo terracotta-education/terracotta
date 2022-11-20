@@ -403,8 +403,6 @@ public class APIJWTServiceImpl implements APIJWTService {
                 .claim("lockAt", tokenClaims.getBody().get("lockAt"))
                 .claim("unlockAt", tokenClaims.getBody().get("unlockAt"))
                 .claim("nonce", tokenClaims.getBody().get("nonce"))
-                // .addClaims(Collections.singletonMap("allowedAttempts",
-                // tokenClaims.getBody().get("allowedAttempts")))
                 .claim("allowedAttempts", tokenClaims.getBody().get("allowedAttempts"))
                 .claim("studentAttempts", tokenClaims.getBody().get("studentAttempts"))
                 .signWith(SignatureAlgorithm.RS256, toolPrivateKey);  //We sign it with our own private key. The platform has the public one.
