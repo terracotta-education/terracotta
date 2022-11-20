@@ -1,5 +1,5 @@
 <template>
-	<v-app>
+	<v-app :style="appStyle">
 		<v-main>
 			<template v-if="hasTokens && userInfo === 'Instructor'">
 				<router-view :key="$route.fullPath"/>
@@ -54,8 +54,11 @@ export default {
 			consent: 'api/consent',
 			userId: 'api/userId',
 			api_token: 'api/api_token',
-			lmsApiOAuthURL: 'api/lmsApiOAuthURL',
 		}),
+		// Apply per route global styling to the v-app component
+		appStyle() {
+			return this.$route.meta.appStyle;
+		},
 	},
 	methods: {
 		...mapActions({
@@ -67,11 +70,6 @@ export default {
     setInterval(function () {
       this.refreshToken(this.api_token)
     }.bind(this), 1000 * 60 * 59)
-
-	if (this.lmsApiOAuthURL) {
-		await this.$swal("We need to redirect you back to Canvas so that you can authorize Terracotta to do things on your behalf");
-		window.location.replace(this.lmsApiOAuthURL);
-	}
 	},
 };
 </script>

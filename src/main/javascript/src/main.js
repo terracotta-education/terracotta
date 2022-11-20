@@ -34,6 +34,9 @@ function startVue() {
 
   cleanURL()
 
+  if (lmsApiOAuthURL) {
+    router.replace({name: "oauth2-redirect"});
+  }
   new Vue({
     store,
     router,
