@@ -62,7 +62,7 @@ public class ParticipantController {
             boolean student = !apijwtService.isInstructorOrHigher(securedInfo);
             List<Participant> currentParticipantList = participantService.findAllByExperimentId(experimentId);
             if (apijwtService.isInstructorOrHigher(securedInfo) && refresh) {
-                currentParticipantList = participantService.refreshParticipants(experimentId, securedInfo, currentParticipantList);
+                currentParticipantList = participantService.refreshParticipants(experimentId, currentParticipantList);
             }
             if (currentParticipantList.isEmpty()) {
                 return new ResponseEntity<>(HttpStatus.NO_CONTENT);

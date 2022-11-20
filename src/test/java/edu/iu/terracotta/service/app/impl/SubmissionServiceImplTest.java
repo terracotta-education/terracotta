@@ -1,5 +1,8 @@
 package edu.iu.terracotta.service.app.impl;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -25,12 +28,16 @@ import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.InvalidUserException;
 import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
+import edu.iu.terracotta.exceptions.SubmissionNotMatchingException;
+import edu.iu.terracotta.model.LtiUserEntity;
 import edu.iu.terracotta.model.app.AnswerMc;
 import edu.iu.terracotta.model.app.AnswerMcSubmissionOption;
 import edu.iu.terracotta.model.app.Assessment;
 import edu.iu.terracotta.model.app.Assignment;
 import edu.iu.terracotta.model.app.Condition;
 import edu.iu.terracotta.model.app.Experiment;
+import edu.iu.terracotta.model.app.ExposureGroupCondition;
+import edu.iu.terracotta.model.app.Group;
 import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.QuestionMc;
 import edu.iu.terracotta.model.app.QuestionSubmission;
@@ -44,6 +51,7 @@ import edu.iu.terracotta.repository.AnswerMcRepository;
 import edu.iu.terracotta.repository.AnswerMcSubmissionOptionRepository;
 import edu.iu.terracotta.repository.AssessmentRepository;
 import edu.iu.terracotta.repository.AssignmentRepository;
+import edu.iu.terracotta.repository.ExposureGroupConditionRepository;
 import edu.iu.terracotta.repository.ParticipantRepository;
 import edu.iu.terracotta.repository.QuestionSubmissionRepository;
 import edu.iu.terracotta.repository.SubmissionRepository;
@@ -64,6 +72,8 @@ public class SubmissionServiceImplTest {
     @Mock private ParticipantRepository participantRepository;
     @Mock private QuestionSubmissionRepository questionSubmissionRepository;
     @Mock private SubmissionRepository submissionRepository;
+    @Mock
+    private ExposureGroupConditionRepository exposureGroupConditionRepository;
 
     @Mock private APIJWTService apijwtService;
     @Mock private AssignmentService assignmentService;
@@ -81,6 +91,8 @@ public class SubmissionServiceImplTest {
     @Mock private SecuredInfo securedInfo;
     @Mock private Submission submission;
     @Mock private Treatment treatment;
+    @Mock
+    private LtiUserEntity ltiUser;
 
     @BeforeEach
     public void beforeEach() {
@@ -97,6 +109,7 @@ public class SubmissionServiceImplTest {
         allRepositories.participantRepository = participantRepository;
         allRepositories.questionSubmissionRepository = questionSubmissionRepository;
         allRepositories.submissionRepository = submissionRepository;
+        allRepositories.exposureGroupConditionRepository = exposureGroupConditionRepository;
 
         when(answerMcRepository.findByQuestion_QuestionId(anyLong())).thenReturn(Collections.singletonList(answerMc));
         when(answerMcSubmissionOptionRepository.save(any(AnswerMcSubmissionOption.class))).thenReturn(null);
@@ -106,6 +119,7 @@ public class SubmissionServiceImplTest {
         when(participantRepository.findById(anyLong())).thenReturn(Optional.of(participant));
         when(questionSubmissionRepository.save(any(QuestionSubmission.class))).thenReturn(questionSubmission);
         when(submissionRepository.save(any(Submission.class))).thenReturn(submission);
+        when(submissionRepository.findById(anyLong())).thenReturn(Optional.of(submission));
 
         when(apijwtService.isTestStudent(any(SecuredInfo.class))).thenReturn(false);
 
@@ -115,6 +129,8 @@ public class SubmissionServiceImplTest {
         when(question.getQuestionType()).thenReturn(QuestionTypes.MC);
         when(question.isRandomizeAnswers()).thenReturn(true);
         when(securedInfo.getUserId()).thenReturn("canvasUserId");
+        when(ltiUser.getUserKey()).thenReturn(("canvasUserId"));
+        when(participant.getLtiUserEntity()).thenReturn(ltiUser);
         when(submission.getParticipant()).thenReturn(participant);
         when(submission.getAssessment()).thenReturn(assessment);
         when(treatment.getAssignment()).thenReturn(assignment);
@@ -199,5 +215,53 @@ public class SubmissionServiceImplTest {
 
         verify(questionSubmissionService).toDto(qs1, false, false);
         verify(questionSubmissionService).toDto(qs2, false, false);
+    }
+
+    // test allowedSubmission that when participant has revoked consent but is
+    // assigned to a group and submission is for default treatment, should NOT
+    // throw exception
+    @Test
+    public void testAllowedSubmissionWithConsentRevokedAndGroupAssignmentAndDefaultTreatment() {
+        when(participant.getConsent()).thenReturn(false);
+        Group group1 = new Group();
+        group1.setGroupId(1L);
+        when(participant.getGroup()).thenReturn(group1);
+        when(condition.getDefaultCondition()).thenReturn(true);
+
+        ExposureGroupCondition exposureGroupCondition = new ExposureGroupCondition();
+        Group group2 = new Group();
+        group2.setGroupId(2L);
+        exposureGroupCondition.setGroup(group2);
+        // Don't expect this to be called, but for completeness this is stubbed out
+        when(exposureGroupConditionRepository.getByCondition_ConditionIdAndExposure_ExposureId(anyLong(), anyLong())).thenReturn(Optional.of(exposureGroupCondition));
+        assertNotEquals(group1, group2);
+
+        assertDoesNotThrow(() -> {
+            submissionService.allowedSubmission(1l, securedInfo);
+        });
+    }
+
+    // test allowedSubmission that when participant has revoked consent but is
+    // assigned to a group and submission is NOT for default treatment, SHOULD
+    // throw exception
+    @Test
+    public void testAllowedSubmissionWithConsentRevokedAndGroupAssignmentAndNotDefaultTreatment() {
+        when(participant.getConsent()).thenReturn(false);
+        Group group1 = new Group();
+        group1.setGroupId(1L);
+        when(participant.getGroup()).thenReturn(group1);
+        when(condition.getDefaultCondition()).thenReturn(false);
+
+        ExposureGroupCondition exposureGroupCondition = new ExposureGroupCondition();
+        Group group2 = new Group();
+        group2.setGroupId(2L);
+        exposureGroupCondition.setGroup(group2);
+        // Don't expect this to be called, but for completeness this is stubbed out
+        when(exposureGroupConditionRepository.getByCondition_ConditionIdAndExposure_ExposureId(anyLong(), anyLong())).thenReturn(Optional.of(exposureGroupCondition));
+        assertNotEquals(group1, group2);
+
+        assertThrows(SubmissionNotMatchingException.class, () -> {
+            submissionService.allowedSubmission(1l, securedInfo);
+        });
     }
 }

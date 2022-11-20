@@ -35,7 +35,8 @@ public interface ParticipantService {
 
     void deleteById(Long id);
 
-    List<Participant> refreshParticipants(long experimentId, SecuredInfo securedInfo, List<Participant> currentParticipantList) throws ParticipantNotUpdatedException;
+    List<Participant> refreshParticipants(long experimentId, List<Participant> currentParticipantList)
+            throws ParticipantNotUpdatedException;
 
     boolean participantBelongsToExperiment(Long experimentId, Long participantId);
 
