@@ -25,18 +25,24 @@ import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
+import javax.persistence.UniqueConstraint;
+
 import java.util.Objects;
 import java.util.Set;
 
 @Entity
-@Table(name = "lti_link")
+@Table(name = "lti_link", uniqueConstraints = {
+        @UniqueConstraint(columnNames = { "link_key", "context_id" })
+})
 public class LtiLinkEntity extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "link_id", nullable = false)
     private long linkId;
     @Basic
-    @Column(name = "link_key", nullable = false, length = 4096)
+    // per LTI 1.3, the resource link 'id' claim must not be more than 255
+    // characters in length.
+    @Column(name = "link_key", nullable = false, length = 255)
     private String linkKey;
     @Basic
     @Column(name = "title", length = 4096)
