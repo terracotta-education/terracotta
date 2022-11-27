@@ -26,20 +26,27 @@ import javax.persistence.Lob;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
+import javax.persistence.UniqueConstraint;
+
 import java.sql.Timestamp;
 import java.util.Date;
 import java.util.Objects;
 import java.util.Set;
 
 @Entity
-@Table(name = "lti_user")
+@Table(name = "lti_user", uniqueConstraints = {
+        @UniqueConstraint(columnNames = { "user_key", "key_id" }),
+})
 public class LtiUserEntity extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "user_id", nullable = false)
     private long userId;
+
     @Basic
-    @Column(name = "user_key", nullable = false, length = 4096)
+    // per LTI 1.3 and OIDC specifications, the 'sub' claim must not be more than
+    // 255 characters in length.
+    @Column(name = "user_key", nullable = false, length = 255)
     private String userKey;
     @Basic
     @Column(name = "lms_user_id")
