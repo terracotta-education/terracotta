@@ -9,7 +9,7 @@
 				<v-expansion-panel-header hide-actions><img src="@/assets/consent_invite.svg" alt="invite students"> <strong>Students will be invited to consent</strong></v-expansion-panel-header>
 				<v-expansion-panel-content>
 					<p>Select this option if you would like to create a consent assignment within Canvas</p>
-					<v-btn @click="setParticipationType('CONSENT')" color="primary" elevation="0">Select</v-btn>
+					<v-btn @click="setParticipationType('CONSENT')" color="primary" elevation="0" :loading="loading" :disabled="loading">Select</v-btn>
 				</v-expansion-panel-content>
 			</v-expansion-panel>
 
@@ -17,7 +17,7 @@
 				<v-expansion-panel-header hide-actions><img src="@/assets/consent_manual.svg" alt="manually decide students"> <strong>Teacher will manually decide</strong></v-expansion-panel-header>
 				<v-expansion-panel-content>
 					<p>Select this option if you are working with minors or will be collecting parental consent</p>
-					<v-btn @click="setParticipationType('MANUAL')" color="primary" elevation="0">Select</v-btn>
+					<v-btn @click="setParticipationType('MANUAL')" color="primary" elevation="0" :loading="loading" :disabled="loading">Select</v-btn>
 				</v-expansion-panel-content>
 			</v-expansion-panel>
 
@@ -25,7 +25,7 @@
 				<v-expansion-panel-header hide-actions><img src="@/assets/consent_automatic.svg" alt="automatically include all students"> <strong>Automatically include all students</strong></v-expansion-panel-header>
 				<v-expansion-panel-content>
 					<p>Select this option if informed consent is not needed to run the study</p>
-					<v-btn @click="setParticipationType('AUTO')" color="primary" elevation="0">Select</v-btn>
+					<v-btn @click="setParticipationType('AUTO')" color="primary" elevation="0" :loading="loading" :disabled="loading">Select</v-btn>
 				</v-expansion-panel-content>
 			</v-expansion-panel>
 
@@ -40,6 +40,11 @@ import { mapActions } from "vuex";
 export default {
 	name: 'ParticipationSelectionMethod',
 	props: ['experiment'],
+	data() {
+		return {
+			loading: false,
+		}
+	},
 	methods: {
 		...mapActions({
 			reportStep: 'api/reportStep',
@@ -52,6 +57,7 @@ export default {
 			const experimentId = e.experimentId
 			const step = "participation_type"
 
+			this.loading = true;
 			this.updateExperiment(e)
 					.then(async response => {
             if (typeof response?.status !== "undefined" && response?.status === 200) {
@@ -78,6 +84,7 @@ export default {
             console.error("updateExperiment | catch", {response})
             this.$swal('There was an error saving the experiment.')
 					})
+					.finally(() => {this.loading = false;})
 		},
 		saveExit() {
 			this.$router.push({name:'Home', params:{experiment: this.experiment.experimentId}})
