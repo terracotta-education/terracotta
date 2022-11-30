@@ -19,6 +19,8 @@
         </RollingFile>
     </Appenders>
     <Loggers>
+        <!-- enable http request logging -->
+        <!-- <logger name="org.springframework.web.filter.CommonsRequestLoggingFilter" level="DEBUG"/> -->
         <Root level="INFO">
             <AppenderRef ref="Console"/>
             <AppenderRef ref="RollingFileAppender"/>
