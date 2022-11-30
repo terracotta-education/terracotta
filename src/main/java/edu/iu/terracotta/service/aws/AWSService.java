@@ -11,7 +11,5 @@ public interface AWSService {
 
     public String putObject(String bucketName, String fileName, String extension, File file);
 
-    public String getFileURI(String url);
-
     public File downloadFileURI(String url) throws FileNotFoundException;
 }

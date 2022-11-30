@@ -74,21 +74,6 @@ public class AWSServiceImpl implements AWSService {
         return s3Client.utilities().getUrl(request).toExternalForm();
     }
 
-    @Override
-    public String getFileURI(String url) {
-//        java.util.Date expiration = new java.util.Date();
-//        long expTimeMillis = Instant.now().toEpochMilli();
-//        expTimeMillis += 1000 * 60 * 60; // Add 1 hour.
-//        expiration.setTime(expTimeMillis);
-//        AmazonS3URI amazonS3URI = new AmazonS3URI(url);
-//        GeneratePresignedUrlRequest generatePresignedUrlRequest =
-//                new GeneratePresignedUrlRequest(amazonS3URI.getBucket(), amazonS3URI.getKey());
-//        generatePresignedUrlRequest.setMethod(HttpMethod.GET);
-//        generatePresignedUrlRequest.setExpiration(expiration);
-//        URL uri = this.amazonS3.generatePresignedUrl(generatePresignedUrlRequest);
-//        return uri.toString();
-        return null;
-    }
 
     @Override
     public File downloadFileURI(String url) throws FileNotFoundException {
