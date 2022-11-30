@@ -7,9 +7,10 @@ import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.dto.AnswerSubmissionDto;
 import edu.iu.terracotta.model.app.dto.QuestionSubmissionDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
-import edu.iu.terracotta.repository.AllRepositories;
-import edu.iu.terracotta.service.app.*;
-import edu.iu.terracotta.service.canvas.CanvasAPIClient;
+import edu.iu.terracotta.service.app.APIJWTService;
+import edu.iu.terracotta.service.app.FileStorageService;
+import edu.iu.terracotta.service.app.QuestionSubmissionService;
+import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.utils.TextConstants;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.FileUtils;
@@ -45,56 +46,51 @@ public class QuestionSubmissionController {
     static final Logger log = LoggerFactory.getLogger(QuestionSubmissionController.class);
 
     @Autowired
-    APIJWTService apijwtService;
+    private APIJWTService apijwtService;
 
     @Autowired
-    QuestionSubmissionService questionSubmissionService;
+    private QuestionSubmissionService questionSubmissionService;
 
     @Autowired
-    SubmissionService submissionService;
+    private SubmissionService submissionService;
 
-    @Autowired
-    AllRepositories allRepositories;
-
-    @Autowired
-    CanvasAPIClient canvasAPIClient;
 
     @Autowired
     FileStorageService fileStorageService;
 
-
-    @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}/question_submissions",
-            method = RequestMethod.GET)
+    @GetMapping("/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}/submissions/{submissionId}/question_submissions")
     @ResponseBody
-    public ResponseEntity<List<QuestionSubmissionDto>> getQuestionSubmissionsBySubmission(@PathVariable("experiment_id") Long experimentId,
-                                                                                          @PathVariable("condition_id") Long conditionId,
-                                                                                          @PathVariable("treatment_id") Long treatmentId,
-                                                                                          @PathVariable("assessment_id") Long assessmentId,
-                                                                                          @PathVariable("submission_id") Long submissionId,
+    public ResponseEntity<List<QuestionSubmissionDto>> getQuestionSubmissionsBySubmission(@PathVariable long experimentId,
+                                                                                          @PathVariable long conditionId,
+                                                                                          @PathVariable long treatmentId,
+                                                                                          @PathVariable long assessmentId,
+                                                                                          @PathVariable long submissionId,
                                                                                           @RequestParam(name = "answer_submissions", defaultValue = "false") boolean answerSubmissions,
                                                                                           @RequestParam(name = "question_submission_comments", defaultValue = "false") boolean questionSubmissionComments,
                                                                                           HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, SubmissionNotMatchingException, BadTokenException, InvalidUserException {
-
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
         apijwtService.submissionAllowed(securedInfo, assessmentId, submissionId);
 
-        if (apijwtService.isLearnerOrHigher(securedInfo)) {
-            if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-                submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
-            }
-            List<QuestionSubmissionDto> questionSubmissionList = questionSubmissionService.getQuestionSubmissions(submissionId, answerSubmissions, questionSubmissionComments);
-            if (questionSubmissionList.isEmpty()) {
-                return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-            }
-            return new ResponseEntity<>(questionSubmissionList, HttpStatus.OK);
-        } else {
+        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
-    }
 
+        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
+            submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
+        }
+
+        List<QuestionSubmissionDto> questionSubmissionList = questionSubmissionService.getQuestionSubmissions(
+                submissionId, answerSubmissions, questionSubmissionComments, assessmentId, apijwtService.isLearner(securedInfo));
+
+        if (questionSubmissionList.isEmpty()) {
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        }
+
+        return new ResponseEntity<>(questionSubmissionList, HttpStatus.OK);
+    }
 
     @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}/question_submissions/{question_submission_id}",
             method = RequestMethod.GET)
@@ -127,13 +123,12 @@ public class QuestionSubmissionController {
     }
 
 
-    @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}/question_submissions",
-            method = RequestMethod.POST)
-    public ResponseEntity<List<QuestionSubmissionDto>> postQuestionSubmission(@PathVariable("experiment_id") Long experimentId,
-                                                                              @PathVariable("condition_id") Long conditionId,
-                                                                              @PathVariable("treatment_id") Long treatmentId,
-                                                                              @PathVariable("assessment_id") Long assessmentId,
-                                                                              @PathVariable("submission_id") Long submissionId,
+    @PostMapping("/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}/submissions/{submissionId}/question_submissions")
+    public ResponseEntity<List<QuestionSubmissionDto>> postQuestionSubmission(@PathVariable long experimentId,
+                                                                              @PathVariable long conditionId,
+                                                                              @PathVariable long treatmentId,
+                                                                              @PathVariable long assessmentId,
+                                                                              @PathVariable long submissionId,
                                                                               @RequestBody List<QuestionSubmissionDto> questionSubmissionDtoList,
                                                                               UriComponentsBuilder ucBuilder,
                                                                               HttpServletRequest req)
@@ -147,35 +142,27 @@ public class QuestionSubmissionController {
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
         apijwtService.submissionAllowed(securedInfo, assessmentId, submissionId);
 
-        if (apijwtService.isLearnerOrHigher(securedInfo)) {
-            boolean student = false;
-            if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-                submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
-                student = true;
-            }
-
-            Submission submission = submissionService.
-                    getSubmission(experimentId, securedInfo.getUserId(), submissionId, student);
-            String assignmentId = submission.getAssessment().getTreatment().getAssignment()
-                    .getLmsAssignmentId();
-
-            if (questionSubmissionService.canSubmit(securedInfo.getCanvasCourseId(), assignmentId, securedInfo.getCanvasUserId(),
-                    securedInfo.getPlatformDeploymentId())) {
-
-                questionSubmissionService.
-                        validateAndPrepareQuestionSubmissionList(questionSubmissionDtoList, assessmentId, submissionId, student);
-
-                List<QuestionSubmissionDto> returnedDtoList = questionSubmissionService.
-                        postQuestionSubmissions(questionSubmissionDtoList, assessmentId, submissionId, student);
-                HttpHeaders headers = questionSubmissionService.
-                        buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, submissionId);
-                return new ResponseEntity<>(returnedDtoList, headers, HttpStatus.CREATED);
-
-            } else {
-                return new ResponseEntity(TextConstants.MAX_SUBMISSION_ATTEMPTS_REACHED, HttpStatus.UNAUTHORIZED);
-            }
+        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
-        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+
+        boolean student = false;
+
+        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
+            submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
+            student = true;
+        }
+
+        try {
+            questionSubmissionService.canSubmit(securedInfo, experimentId);
+            questionSubmissionService.validateAndPrepareQuestionSubmissionList(questionSubmissionDtoList, assessmentId, submissionId, student);
+            List<QuestionSubmissionDto> returnedDtoList = questionSubmissionService.postQuestionSubmissions(questionSubmissionDtoList, assessmentId, submissionId, student);
+            HttpHeaders headers = questionSubmissionService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, submissionId);
+
+            return new ResponseEntity<>(returnedDtoList, headers, HttpStatus.CREATED);
+        } catch (AssignmentAttemptException e) {
+            return new ResponseEntity(e.getMessage(), HttpStatus.UNAUTHORIZED);
+        }
     }
 
 
@@ -287,19 +274,18 @@ public class QuestionSubmissionController {
     }
 
 
-
     @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}/question_submissions/file",
             method = RequestMethod.POST, consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
     public ResponseEntity<List<QuestionSubmissionDto>> postFileQuestionSubmission(@PathVariable("experiment_id") Long experimentId,
-                                                                        @PathVariable("condition_id") Long conditionId,
-                                                                        @PathVariable("treatment_id") Long treatmentId,
-                                                                        @PathVariable("assessment_id") Long assessmentId,
-                                                                        @PathVariable("submission_id") Long submissionId,
-                                                                        @RequestParam("question_dto") String questionSubmissionDtoStr,
-                                                                        UriComponentsBuilder ucBuilder,
-                                                                        @RequestPart("file") MultipartFile file,
-                                                                        HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, BadTokenException, InvalidUserException, TypeNotSupportedException, DataServiceException, IdInPostException, IOException, SubmissionNotMatchingException, NoSubmissionsException, CanvasApiException, IdMissingException, ExceedingLimitException, AnswerNotMatchingException, DuplicateQuestionException, AnswerSubmissionNotMatchingException {
+                                                                                  @PathVariable("condition_id") Long conditionId,
+                                                                                  @PathVariable("treatment_id") Long treatmentId,
+                                                                                  @PathVariable("assessment_id") Long assessmentId,
+                                                                                  @PathVariable("submission_id") Long submissionId,
+                                                                                  @RequestParam("question_dto") String questionSubmissionDtoStr,
+                                                                                  UriComponentsBuilder ucBuilder,
+                                                                                  @RequestPart("file") MultipartFile file,
+                                                                                  HttpServletRequest req)
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, BadTokenException, InvalidUserException, TypeNotSupportedException, DataServiceException, IdInPostException, IOException, SubmissionNotMatchingException, NoSubmissionsException, CanvasApiException, IdMissingException, ExceedingLimitException, AnswerNotMatchingException, DuplicateQuestionException, AnswerSubmissionNotMatchingException, AssignmentAttemptException {
 
         if (file.isEmpty()) {
             log.error("Invalid file ");
@@ -309,7 +295,7 @@ public class QuestionSubmissionController {
         String mimeType = file.getContentType();
         File tempFile = getFile(file, file.getName());
 
-        String URI = fileStorageService.uploadFileToAWSAndGetURI(tempFile,fileName, mimeType.split("/")[1] );
+        String URI = fileStorageService.uploadFileToAWSAndGetURI(tempFile, fileName, mimeType.split("/")[1]);
 
         byte[] encoded = Base64.encodeBase64(FileUtils.readFileToByteArray(tempFile));
         String fileContent = new String(encoded, StandardCharsets.US_ASCII);
@@ -347,24 +333,21 @@ public class QuestionSubmissionController {
             String assignmentId = submission.getAssessment().getTreatment().getAssignment()
                     .getLmsAssignmentId();
 
-            if (questionSubmissionService.canSubmit(securedInfo.getCanvasCourseId(), assignmentId, securedInfo.getCanvasUserId(),
-                    securedInfo.getPlatformDeploymentId())) {
+            questionSubmissionService.canSubmit(securedInfo, experimentId);
 
-                questionSubmissionService.
-                        validateAndPrepareQuestionSubmissionList(questionSubmissionDtoList, assessmentId, submissionId, student);
+            questionSubmissionService.
+                    validateAndPrepareQuestionSubmissionList(questionSubmissionDtoList, assessmentId, submissionId, student);
 
-                List<QuestionSubmissionDto> returnedDtoList = questionSubmissionService.
-                        postQuestionSubmissions(questionSubmissionDtoList, assessmentId, submissionId, student);
-                HttpHeaders headers = questionSubmissionService.
-                        buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, submissionId);
-                return new ResponseEntity<>(returnedDtoList, headers, HttpStatus.CREATED);
+            List<QuestionSubmissionDto> returnedDtoList = questionSubmissionService.
+                    postQuestionSubmissions(questionSubmissionDtoList, assessmentId, submissionId, student);
+            HttpHeaders headers = questionSubmissionService.
+                    buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, submissionId);
+            return new ResponseEntity<>(returnedDtoList, headers, HttpStatus.CREATED);
 
-            } else {
-                return new ResponseEntity(TextConstants.MAX_SUBMISSION_ATTEMPTS_REACHED, HttpStatus.UNAUTHORIZED);
-            }
+
         }
         return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-}
+    }
 
     private File getFile(MultipartFile multipartFile, String fileName) {
         File tempFile = new File(fileName);
@@ -372,7 +355,7 @@ public class QuestionSubmissionController {
             fos.write(multipartFile.getBytes());
             fos.close();
         } catch (IOException e) {
-            log.error("Error while converting Multipart file to file ",tempFile.getName());
+            log.error("Error while converting Multipart file to file ", tempFile.getName());
         }
         return tempFile;
     }

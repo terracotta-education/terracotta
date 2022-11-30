@@ -6,7 +6,6 @@ import edu.iu.terracotta.model.app.dto.ParticipantDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.ParticipantService;
-import edu.iu.terracotta.service.canvas.CanvasAPIClient;
 import edu.iu.terracotta.service.lti.AdvantageAGSService;
 import edu.iu.terracotta.utils.TextConstants;
 import org.slf4j.Logger;
@@ -27,7 +26,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.HttpServletRequest;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -64,7 +62,7 @@ public class ParticipantController {
             boolean student = !apijwtService.isInstructorOrHigher(securedInfo);
             List<Participant> currentParticipantList = participantService.findAllByExperimentId(experimentId);
             if (apijwtService.isInstructorOrHigher(securedInfo) && refresh) {
-                currentParticipantList = participantService.refreshParticipants(experimentId, securedInfo, currentParticipantList);
+                currentParticipantList = participantService.refreshParticipants(experimentId, currentParticipantList);
             }
             if (currentParticipantList.isEmpty()) {
                 return new ResponseEntity<>(HttpStatus.NO_CONTENT);

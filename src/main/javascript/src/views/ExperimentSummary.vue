@@ -5,11 +5,11 @@
         <v-col cols="8">
           <p class="header ma-0 pa-0">
             <v-img
-              src="@/assets/terracotta_logo_mark.svg"
+              src="../../public/terracotta_logo_mark.svg"
               class="mr-6"
               alt="Terracotta Logo"
-              max-height="30"
-              max-width="27"
+              height="30"
+              max-width="26"
             />
             <span>{{ experiment.title }}</span>
           </p>
@@ -31,303 +31,272 @@
         <v-col cols="12">
           <v-divider></v-divider>
           <v-tabs v-model="tab" elevation="0">
-            <v-tab v-for="item in items" :key="item">
-              {{ item }}
+            <v-tab v-for="item in setupTabs" :key="item.tab">
+              {{ item.tab }}
             </v-tab>
           </v-tabs>
-          <v-divider class="mb-6"></v-divider>
+          <v-divider class=""></v-divider>
           <v-tabs-items v-model="tab">
-            <v-tab-item class="py-3" v-for="item in items" :key="item">
-              <!-- Status Panel -->
-              <template v-if="item === 'status'">
-                <experiment-summary-status :experiment="experiment" />
-              </template>
-              <!-- Setup Panel -->
-              <template v-if="item === 'setup'">
+            <v-tab-item
+              class="tab-section pt-6"
+              v-for="item in setupTabs"
+              :key="item.tab"
+              :class="item.tab"
+            >
+              <div class="tab-heading">
+                <!-- Setup Panel -->
                 <v-card
                   class="pt-5 px-5 mx-auto blue lighten-5 rounded-lg"
                   outlined
+                  :key="item.title"
                 >
                   <p class="pb-0">
                     <strong>Note:</strong> You are currently collecting
-                    assignment submissions. Some setup functionality may be
-                    disabled to not disrupt the experiment.
+                    assignment submissions. Some setup functionality may not be
+                    available to avoid disrupting the experiment.
                   </p>
                 </v-card>
-                <!-- Design, Participants and Assignment Panels -->
-                <v-expansion-panels class="mt-5 v-expansion-panels--icon" flat>
-                  <v-expansion-panel
-                    v-for="panel in setupPanels"
-                    :key="panel.title"
-                  >
-                    <v-expansion-panel-header>
-                      <div class="panel-overview">
-                        <div class="a1">
-                          <v-img
-                            :src="panel.image"
-                            class="mr-6"
-                            :alt="panel.title"
-                            min-height="55"
-                            min-width="50"
-                          />
-                        </div>
-                        <div class="panelInformation">
-                          <h2>{{ panel.title }}</h2>
-                          <span>{{ panel.description }}</span>
-                        </div>
-                      </div>
-                    </v-expansion-panel-header>
-                    <v-expansion-panel-content>
-                      <table>
-                        <tr
-                          v-for="item in sectionValuesMap[panel.title]"
-                          :key="item.title"
-                          class="tableRow"
+                <div class="px-5">
+                  <div class="panel-overview py-6">
+                    <div class="a1">
+                      <v-img
+                        v-if="item.image"
+                        :src="item.image"
+                        class="mr-6"
+                        :alt="item.title"
+                        min-height="55"
+                        min-width="50"
+                      />
+                    </div>
+                    <div
+                      class="panelInformation d-flex flex-column justify-center"
+                    >
+                      <h2 class="mb-0">{{ item.title }}</h2>
+                      <span v-if="item.description">{{
+                        item.description
+                      }}</span>
+                    </div>
+                  </div>
+                </div>
+                <template v-if="item.tab === 'status'">
+                  <experiment-summary-status :experiment="experiment" />
+                </template>
+                <template v-if="item.tab === 'assignment'">
+                  <div class="px-5">
+                    <!--<pre>{{ experiment }}</pre>-->
+                    <p class="pb-0" v-if="exposures">
+                      Because you have <strong>{{ conditionCount }}</strong> (<a
+                        @click="handleEdit('ExperimentDesignConditions')"
+                        >edit</a
+                      >) and would like your students to be
+                      <strong>{{
+                        exposureText[experiment.exposureType]
+                      }}</strong>
+                      ({{ exposureType[experiment.exposureType] }}) (<a
+                        @click="handleEdit('ExperimentDesignConditions')"
+                        >edit</a
+                      >), we set you up with {{ exposures.length }} exposure
+                      sets.
+                      <v-tooltip top>
+                        <template v-slot:activator="{ on, attrs }">
+                          <a v-bind="attrs" v-on="on">
+                            What is an exposure set?
+                          </a>
+                        </template>
+                        <span>
+                          <strong class="d-block"
+                            >What is an exposure set?</strong
+                          >
+                          An "exposure set" exposes a student to a specific
+                          condition during a specific time period. Students will
+                          change conditions between exposure sets, and the order
+                          of conditions across exposure sets will be randomly
+                          assigned to different students (<a
+                            @click="handleEdit('ExperimentDesignConditions')"
+                            >edit</a
+                          >). An exposure set contains one or more assignments,
+                          and there must be an equal number of assignments in
+                          each exposure set in order to balance the experiment.
+                          For more details about exposure sets, see our blog
+                          post here.</span
                         >
-                          <td class="leftData col-4">
-                            <template>
-                              <div class="detail">
-                                <span class="heading">{{ item.title }}</span>
-                                <a @click="handleEdit(item.editSection)"
-                                  >EDIT</a
-                                >
-                              </div>
-                            </template>
-                          </td>
-                          <td class="col-7 rightData">
-                            <!-- String Data -->
-                            <!-- For Experiment Title and Description -->
-                            <template v-if="item.type === 'string'">
-                              {{ item.description }}
-                            </template>
-                            <!-- Array data -->
-                            <!-- For Experiment Condition Details -->
-                            <template
-                              v-if="item.type === 'array'"
-                              class="arrayData"
+                      </v-tooltip>
+                    </p>
+                    <div
+                      class="panelInformation d-flex flex-column justify-center"
+                    >
+                      <h3 class="mb-0">Exposure Sets</h3>
+                      <span
+                        >Your exposure sets are currently:
+                        <v-chip label outlined class="mr-2">
+                          <span class="red--text" v-if="!balanced"
+                            ><v-icon>mdi-scale-unbalanced</v-icon>
+                            Unbalanced</span
+                          >
+                          <span v-if="balanced"
+                            ><v-icon>mdi-scale-balance</v-icon>
+                            Balanced
+                          </span>
+                        </v-chip>
+                        <v-tooltip top>
+                          <template v-slot:activator="{ on, attrs }">
+                            <a v-bind="attrs" v-on="on">
+                              What does this mean?
+                            </a>
+                          </template>
+                          <span v-if="balanced">
+                            <strong class="d-block"
+                              >Balanced Exposure Sets</strong
                             >
-                              <label
-                                v-for="(condition, index) in item.description"
-                                :key="condition.conditionId"
-                                :for="`condition-${condition.conditionId}`"
-                                class="text-left conditionLabel"
-                              >
-                                <span class="conditionName"
-                                  >Condition {{ index + 1 }}</span
-                                >
-                                <br />
-                                <span>{{ condition.name }}</span>
-                                <span
-                                  class="rounded-pill px-3 py-1 primary ml-3 defaultPill"
-                                  v-show="condition.defaultCondition"
-                                >
-                                  <v-icon>mdi-check</v-icon>
-                                  <span>Default</span>
-                                </span>
-                              </label>
-                            </template>
-                            <!-- Constant values -->
-                            <!-- For Experiment Type -->
-                            <template v-if="item.type === 'constant'">
-                              <template v-if="item.description === 'WITHIN'">
-                                <img
-                                  src="@/assets/all_conditions.svg"
-                                  alt="all conditions"
-                                  class="constantImage mb-2"
-                                />
-                                <span class="conditionType mb-2"
-                                  >All conditions</span
-                                >
-                                <p class="conditionDetail">
-                                  All students are exposed to every condition,
-                                  in different orders. This way you can compare
-                                  how the different conditions affected each
-                                  individual student. This is called a
-                                  within-subject design.
-                                </p>
-                              </template>
-                              <template v-if="item.description === 'BETWEEN'">
-                                <img
-                                  src="@/assets/one_condition.svg"
-                                  alt="one conditions"
-                                  class="constantImage mb-2"
-                                />
-                                <span class="conditionType mb-2"
-                                  >Only one condition</span
-                                >
-                                <p class="conditionDetail">
-                                  Each student is only exposed to one condition,
-                                  so that you can compare how the different
-                                  conditions affected different students. This
-                                  is called a between-subjects design.
-                                </p>
-                              </template>
-                            </template>
-                            <!-- Assignment data -->
-                            <template v-if="item.type === 'assignments'">
-                              <template v-for="(exposure, index) in exposures">
-                                <div
-                                  :key="exposure.exposureId"
-                                  class="assignmentExpansion"
-                                >
-                                  <span class="exposureSetName">
-                                    Exposure Set {{ index + 1 }}
-                                  </span>
-                                  <br />
-                                  <div
-                                    class="groupNames"
-                                    :key="group"
-                                    v-for="group in sortedGroups(
-                                      exposure.groupConditionList
-                                    )"
-                                  >
-                                    {{ group }} will receive
-                                    <v-chip
-                                      class="ma-2"
-                                      :color="
-                                        conditionColorMapping[
-                                          groupNameConditionMapping(
-                                            exposure.groupConditionList
-                                          )[group]
-                                        ]
-                                      "
-                                      label
-                                      :key="group"
-                                    >
-                                      <!-- Sorted Group Names -->
-                                      {{
-                                        groupNameConditionMapping(
-                                          exposure.groupConditionList
-                                        )[group]
-                                      }}</v-chip
-                                    >
-                                  </div>
-                                  <!-- Assignment Expansion Panels -->
-                                  <v-expansion-panels
-                                    class="v-expansion-panels--outlined"
-                                    flat
-                                  >
-                                    <v-expansion-panel
-                                      class="assignmentExpansionPanel"
-                                      v-for="assignment in assignments.filter(
-                                        (a) =>
-                                          a.exposureId === exposure.exposureId
-                                      )"
-                                      :key="assignment.assignmentId"
-                                    >
-                                      <v-expansion-panel-header
-                                        style="display:flex;flex-direction: row"
-                                      >
-                                        {{ assignment.title }} ({{
-                                          (assignment.treatments &&
-                                            assignment.treatments.length) ||
-                                            0
-                                        }}/{{ conditions.length || 0 }})
-                                      </v-expansion-panel-header>
-                                      <v-expansion-panel-content>
-                                        <v-list class="pa-0">
-                                          <v-list-item
-                                            class="justify-center px-0"
-                                            v-for="condition in conditions"
-                                            :key="condition.conditionId"
-                                          >
-                                            <v-list-item-content>
-                                              <p
-                                                class="ma-0 pa-0 assignmentConditionName"
-                                              >
-                                                {{ condition.name }}
-                                              </p>
-                                            </v-list-item-content>
-
-                                            <v-list-item-action>
-                                              <!-- Assignment Edit Button -->
-                                              <template
-                                                v-if="
-                                                  hasTreatment(
-                                                    condition.conditionId,
-                                                    assignment.assignmentId
-                                                  )
-                                                "
-                                              >
-                                                <v-btn
-                                                  icon
-                                                  outlined
-                                                  text
-                                                  tile
-                                                  @click="
-                                                    goToBuilder(
-                                                      condition.conditionId,
-                                                      assignment.assignmentId
-                                                    )
-                                                  "
-                                                >
-                                                  <v-icon>mdi-pencil</v-icon>
-                                                </v-btn>
-                                              </template>
-                                              <!-- Assignment Select Button -->
-                                              <template v-else>
-                                                <v-btn
-                                                  color="primary"
-                                                  outlined
-                                                  @click="
-                                                    goToBuilder(
-                                                      condition.conditionId,
-                                                      assignment.assignmentId
-                                                    )
-                                                  "
-                                                  >Create
-                                                </v-btn>
-                                              </template>
-                                            </v-list-item-action>
-                                          </v-list-item>
-                                        </v-list>
-                                      </v-expansion-panel-content>
-                                    </v-expansion-panel>
-                                  </v-expansion-panels>
-                                </div>
-                              </template>
-                            </template>
-                            <!-- Participation data -->
-                            <template v-if="item.type === 'participation'">
-                              <!-- Consent Participation -->
-                              <template v-if="item.description === 'CONSENT'">
-                                Informed Consent
-                                <button class="pdfButton" @click="openPDF">
-                                  {{ experiment.consent.title }}
-                                </button>
-                              </template>
-                              <!-- Manual Participation -->
-                              <template
-                                v-else-if="item.description === 'MANUAL'"
-                              >
-                                Manual
-                                <br />
-                                <span
-                                  >{{ experiment.acceptedParticipants }}
-                                  students selected to participate out of
-                                  {{ experiment.potentialParticipants }}
-                                  students enrolled
-                                </span>
-                              </template>
-                              <!-- All Participation -->
-                              <template v-else>
-                                Include All Students
-                                <br />
-                                <span
-                                  >{{ experiment.potentialParticipants }}
-                                  students selected to participate out of
-                                  {{ experiment.potentialParticipants }}
-                                  students enrolled
-                                </span>
-                              </template>
-                            </template>
-                          </td>
-                        </tr>
-                      </table>
-                    </v-expansion-panel-content>
-                  </v-expansion-panel>
-                </v-expansion-panels>
-              </template>
+                            Your exposure sets contain all the same number assignments, and assignments contain the same number of treatments. Great work!</span
+                          >
+                          <span v-if="!balanced">
+                            <strong class="d-block"
+                              >Unbalanced Exposure Sets</strong
+                            >
+                            A balanced experiment needs to have the same number
+                            of assignments within each exposure set, and a
+                            treatment for each condition within each assignment.
+                            This will allow your students to be exposed to every
+                            condition, but in different orders, so you can
+                            compare how the different conditions affected each
+                            individual student.</span
+                          >
+                        </v-tooltip>
+                      </span>
+                    </div>
+                    <experiment-assignments :experiment="experiment" :balanced="balanced" />
+                  </div>
+                </template>
+                <template
+                  v-if="item.tab !== 'status' && item.tab !== 'assignment'"
+                >
+                  <table class="">
+                    <tr
+                      v-for="section in sectionValuesMap[item.title]"
+                      :key="section.title"
+                      class="tableRow"
+                    >
+                      <td class="leftData col-4">
+                        <template>
+                          <div class="detail">
+                            <span class="heading">{{ section.title }}</span>
+                            <a @click="handleEdit(section.editSection)">EDIT</a>
+                          </div>
+                        </template>
+                      </td>
+                      <td class="col-7 rightData">
+                        <!-- String Data -->
+                        <!-- For Experiment Title and Description -->
+                        <template v-if="section.type === 'string'">
+                          {{ section.description }}
+                        </template>
+                        <!-- Array data -->
+                        <!-- For Experiment Condition Details -->
+                        <template
+                          v-if="section.type === 'array'"
+                          class="arrayData"
+                        >
+                          <label
+                            v-for="(condition, index) in section.description"
+                            :key="condition.conditionId"
+                            :for="`condition-${condition.conditionId}`"
+                            class="text-left conditionLabel"
+                          >
+                            <span class="conditionName"
+                              >Condition {{ index + 1 }}</span
+                            >
+                            <br />
+                            <v-chip
+                              label
+                              :color="conditionColorMapping[condition.name]"
+                              >{{ condition.name }}</v-chip
+                            >
+                            <v-chip
+                              class="px-3 py-1  ml-3 defaultPill"
+                              color="primary"
+                              v-show="condition.defaultCondition"
+                            >
+                              <v-icon>mdi-check</v-icon>
+                              <span>Default</span>
+                            </v-chip>
+                          </label>
+                        </template>
+                        <!-- Constant values -->
+                        <!-- For Experiment Type -->
+                        <template v-if="section.type === 'constant'">
+                          <template v-if="section.description === 'WITHIN'">
+                            <img
+                              src="@/assets/all_conditions.svg"
+                              alt="all conditions"
+                              class="constantImage mb-2"
+                            />
+                            <span class="conditionType mb-2"
+                              >All conditions</span
+                            >
+                            <p class="conditionDetail">
+                              All students are exposed to every condition, in
+                              different orders. This way you can compare how the
+                              different conditions affected each individual
+                              student. This is called a within-subject design.
+                            </p>
+                          </template>
+                          <template v-if="section.description === 'BETWEEN'">
+                            <img
+                              src="@/assets/one_condition.svg"
+                              alt="one conditions"
+                              class="constantImage mb-2"
+                            />
+                            <span class="conditionType mb-2"
+                              >Only one condition</span
+                            >
+                            <p class="conditionDetail">
+                              Each student is only exposed to one condition, so
+                              that you can compare how the different conditions
+                              affected different students. This is called a
+                              between-subjects design.
+                            </p>
+                          </template>
+                        </template>
+                        <!-- Participation data -->
+                        <template v-if="section.type === 'participation'">
+                          <!-- Consent Participation -->
+                          <template v-if="section.description === 'CONSENT'">
+                            Informed Consent
+                            <button class="pdfButton" @click="openPDF">
+                              {{ experiment.consent.title }}
+                            </button>
+                          </template>
+                          <!-- Manual Participation -->
+                          <template
+                            v-else-if="section.description === 'MANUAL'"
+                          >
+                            Manual
+                            <br />
+                            <span
+                              >{{ experiment.acceptedParticipants }}
+                              students selected to participate out of
+                              {{ experiment.potentialParticipants }}
+                              students enrolled
+                            </span>
+                          </template>
+                          <!-- All Participation -->
+                          <template v-else>
+                            Include All Students
+                            <br />
+                            <span
+                              >{{ experiment.potentialParticipants }}
+                              students selected to participate out of
+                              {{ experiment.potentialParticipants }}
+                              students enrolled
+                            </span>
+                          </template>
+                        </template>
+                      </td>
+                    </tr>
+                  </table>
+                </template>
+              </div>
             </v-tab-item>
           </v-tabs-items>
         </v-col>
@@ -344,10 +313,11 @@ import store from "@/store";
 import { mapGetters, mapActions } from "vuex";
 import { saveAs } from "file-saver";
 import ExperimentSummaryStatus from "@/views/ExperimentSummaryStatus";
+import ExperimentAssignments from "@/views/ExperimentAssignments";
 
 export default {
   name: "ExperimentSummary",
-  components: { ExperimentSummaryStatus },
+  components: { ExperimentSummaryStatus, ExperimentAssignments },
   computed: {
     ...mapGetters({
       experiment: "experiment/experiment",
@@ -365,6 +335,26 @@ export default {
         Participants: this.participantDetails,
         Assignments: this.assignmentDetails,
       };
+    },
+    exposureType() {
+      return {
+        WITHIN: "within-subject",
+        BETWEEN: "between",
+      };
+    },
+    exposureText() {
+      return {
+        WITHIN: "exposed to every condition",
+        BETWEEN: "exposed to only one condition",
+      };
+    },
+    balanced() {
+      return this.exposures
+        .map((exp) => {
+          return this.assignments.filter((a) => a.exposureId === exp.exposureId)
+            .length;
+        })
+        .every((v, i, arr) => v === arr[0]);
     },
     // Design Expansion View Values
     designDetails() {
@@ -395,6 +385,11 @@ export default {
         },
       ];
     },
+    conditionCount() {
+      return `${this.experiment.conditions.length} condition${
+        this.experiment.conditions.length > 1 ? "s" : ""
+      }`;
+    },
     // Participation Expansion View Values
     participantDetails() {
       return [
@@ -421,27 +416,36 @@ export default {
 
   data: () => ({
     tab: null,
-    items: ["status", "setup"],
+    items: ["status", "design", "participant", "assignment"],
     // Expansion Tab Header Values
-    setupPanels: [
+    setupTabs: [
+      {
+        title: "Experiment Status",
+        tab: "status",
+        description:
+          "Once your experiment is running, you will see status updates below",
+      },
       {
         title: "Design",
+        tab: "design",
         description: "The basic design of your experiment",
         image: require("@/assets/design_summary.svg"),
       },
       {
         title: "Participants",
+        tab: "participant",
         description:
           "How students in your class become participants in your experiment",
         image: require("@/assets/participants_summary.svg"),
       },
       {
         title: "Assignments",
-        description: "All experiment assignments",
+        tab: "assignment",
         image: require("@/assets/assignments_summary.svg"),
       },
     ],
     conditionTreatments: {},
+    conditionColors: [""],
   }),
   methods: {
     ...mapActions({
@@ -572,7 +576,7 @@ export default {
   },
 
   async created() {
-    this.tab = this.$router.currentRoute.name === "ExperimentSummary" ? 1 : 0;
+    this.tab = this.$router.currentRoute.name === "ExperimentSummary" ? 3 : 0;
 
     await this.fetchExposures(this.experiment.experimentId);
     for (const e of this.exposures) {
@@ -633,15 +637,30 @@ export default {
     border-bottom: 2px solid #e0e0e0 !important;
   }
 }
+
+.v-application .v-sheet--outlined.blue.lighten-5 {
+  border-color: rgba(29, 157, 255, 0.6) !important;
+}
+
+.v-tooltip__content {
+  max-width: 400px;
+  opacity: 1 !important;
+  a {
+    color: #afdcff;
+  }
+}
+
 table {
   font-size: 16px;
   color: black;
   border-spacing: 0 25px;
+  margin-left: 50px;
   .leftData {
     white-space: nowrap;
     text-align: left;
     vertical-align: top;
     padding: 0 25px;
+    width: auto;
     .detail {
       display: inline-flex;
       flex-direction: column;

@@ -72,7 +72,9 @@ public class TokenController {
                         claims.getBody().get("dueAt").toString(),
                         claims.getBody().get("lockAt").toString(),
                         claims.getBody().get("unlockAt").toString(),
-                        claims.getBody().get("nonce").toString())
+                        claims.getBody().get("nonce").toString(),
+                        claims.getBody().get("allowedAttempts", Integer.class),
+                        claims.getBody().get("studentAttempts", Integer.class))
                         , HttpStatus.OK);
             } catch (GeneralSecurityException | IOException e) {
                 return new ResponseEntity<>("Error generating token: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);

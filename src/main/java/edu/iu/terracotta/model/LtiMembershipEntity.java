@@ -22,10 +22,14 @@ import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
+import javax.persistence.UniqueConstraint;
+
 import java.util.Objects;
 
 @Entity
-@Table(name = "lti_membership")
+@Table(name = "lti_membership", uniqueConstraints = {
+        @UniqueConstraint(columnNames = { "user_id", "context_id" })
+})
 public class LtiMembershipEntity extends BaseEntity {
 
 

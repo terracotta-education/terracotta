@@ -26,18 +26,24 @@ import javax.persistence.Lob;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
+import javax.persistence.UniqueConstraint;
+
 import java.util.Objects;
 import java.util.Set;
 
 @Entity
-@Table(name = "lti_context")
+@Table(name = "lti_context", uniqueConstraints = {
+        @UniqueConstraint(columnNames = { "context_key", "deployment_id" })
+})
 public class LtiContextEntity extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "context_id", nullable = false)
     private long contextId;
     @Basic
-    @Column(name = "context_key", nullable = false, length = 4096)
+    // per LTI 1.3, the 'Context.id' claim must not be more than 255 characters
+    // in length.
+    @Column(name = "context_key", nullable = false, length = 255)
     private String contextKey;
     @Basic
     @Column(name = "title", length = 4096)

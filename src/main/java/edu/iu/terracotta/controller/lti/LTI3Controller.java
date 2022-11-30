@@ -12,17 +12,23 @@
  */
 package edu.iu.terracotta.controller.lti;
 
+import edu.iu.terracotta.controller.app.LMSOAuthController;
 import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.LMSOAuthException;
 import edu.iu.terracotta.repository.LtiContextRepository;
 import edu.iu.terracotta.repository.LtiLinkRepository;
 import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.caliper.CaliperService;
+import edu.iu.terracotta.service.common.LMSOAuthService;
+import edu.iu.terracotta.service.common.LMSOAuthServiceManager;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.SignatureException;
 import edu.iu.terracotta.model.LtiLinkEntity;
+import edu.iu.terracotta.model.LtiUserEntity;
+import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.lti.LTIDataService;
 import edu.iu.terracotta.service.lti.LTIJWTService;
@@ -41,6 +47,8 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
+
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.security.GeneralSecurityException;
@@ -80,8 +88,12 @@ public class LTI3Controller {
     @Autowired
     LtiContextRepository ltiContextRepository;
 
+    @Autowired
+    LMSOAuthServiceManager lmsoAuthServiceManager;
+
     @RequestMapping({"", "/"})
-    public String home(HttpServletRequest req, Principal principal, Model model) throws DataServiceException, CanvasApiException, ConnectionException {
+    public String home(HttpServletRequest req, Principal principal, Model model)
+            throws DataServiceException, CanvasApiException, ConnectionException, LMSOAuthException {
 
         //First we will get the state, validate it
         String state = req.getParameter("state");
@@ -144,7 +156,6 @@ public class LTI3Controller {
                 String oneTimeToken = apiJWTService.buildJwt(
                         true,
                         lti3Request);
-                assignmentService.checkAndRestoreAssignmentsInCanvasByContext(lti3Request.getContext().getContextId());
                 caliperService.sendToolUseEvent(
                         lti3Request.getMembership(),
                         lti3Request.getLtiCustom().getOrDefault("canvas_user_global_id", "Anonymous").toString(),
@@ -153,7 +164,7 @@ public class LTI3Controller {
                         lti3Request.getLtiCustom().getOrDefault("canvas_login_id", "Anonymous").toString(),
                         lti3Request.getLtiRoles(),
                         lti3Request.getLtiCustom().getOrDefault("canvas_user_name", "Anonymous").toString());
-                
+
                 // Check for platform_redirect_url to determine if this is a first-party interaction request
                 try {
                     List<NameValuePair> targetLinkQueryParams = new URIBuilder(lti3Request.getLtiTargetLinkUrl()).getQueryParams();
@@ -166,6 +177,20 @@ public class LTI3Controller {
                 } catch (URISyntaxException ex) {
                     model.addAttribute(TextConstants.ERROR, ex.getMessage());
                     return TextConstants.LTI3ERROR;
+                }
+
+                // Check if we need to get API token from instructor to use LMS API
+                if (lti3Request.isRoleInstructor()) {
+                    String oauth2APITokenRedirectURL = getOAuth2APITokenRedirectURL(req, lti3Request.getKey(),
+                            lti3Request.getUser(), lti3Request);
+                    if (oauth2APITokenRedirectURL != null) {
+                        model.addAttribute("lms_api_oauth_url", oauth2APITokenRedirectURL);
+                    } else {
+                        // if no redirect url then we must already have a token so we proceed with
+                        // checking and restoring assignments
+                        assignmentService.checkAndRestoreAssignmentsInCanvasByContext(
+                                lti3Request.getContext().getContextId(), lti3Request.getUser().getUserKey());
+                    }
                 }
 
                 return "redirect:/app/app.html?token=" + oneTimeToken;
@@ -182,5 +207,26 @@ public class LTI3Controller {
         }
     }
 
+    private String getOAuth2APITokenRedirectURL(HttpServletRequest req, PlatformDeployment platformDeployment,
+            LtiUserEntity user,
+            LTI3Request lti3Request) throws GeneralSecurityException, IOException, LMSOAuthException {
+
+        // check if API Token settings exist for this PlatformDeployment
+        LMSOAuthService<?> lmsOAuthService = lmsoAuthServiceManager.getLMSOAuthService(platformDeployment);
+        if (lmsOAuthService == null) {
+            return null;
+        }
+        if (lmsOAuthService.isAccessTokenAvailable(user)) {
+            return null;
+        }
+
+        // if LMS OAuth settings are configured but user doesn't have an access token,
+        // we'll need to get one. Create and return authorization url.
+        String state = apiJWTService.generateStateForAPITokenRequest(lti3Request);
+        HttpSession session = req.getSession();
+        session.setAttribute(LMSOAuthController.SESSION_LMS_OAUTH2_STATE, state);
+
+        return lmsOAuthService.getAuthorizationRequestURI(platformDeployment, state);
+    }
 
 }

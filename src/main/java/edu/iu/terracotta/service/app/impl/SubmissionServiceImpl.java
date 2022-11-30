@@ -1,7 +1,14 @@
 package edu.iu.terracotta.service.app.impl;
 
-import edu.iu.terracotta.exceptions.*;
-import edu.iu.terracotta.model.ags.LineItem;
+import edu.iu.terracotta.exceptions.AssignmentDatesException;
+import edu.iu.terracotta.exceptions.CanvasApiException;
+import edu.iu.terracotta.exceptions.ConnectionException;
+import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.IdInPostException;
+import edu.iu.terracotta.exceptions.InvalidUserException;
+import edu.iu.terracotta.exceptions.NoSubmissionsException;
+import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
+import edu.iu.terracotta.exceptions.SubmissionNotMatchingException;
 import edu.iu.terracotta.model.ags.Score;
 import edu.iu.terracotta.model.app.*;
 import edu.iu.terracotta.model.app.dto.QuestionSubmissionDto;
@@ -16,6 +23,8 @@ import edu.iu.terracotta.service.caliper.CaliperService;
 import edu.iu.terracotta.service.canvas.CanvasAPIClient;
 import edu.iu.terracotta.service.lti.AdvantageAGSService;
 import edu.iu.terracotta.utils.TextConstants;
+
+import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -27,7 +36,16 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.io.IOException;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 @Component
 public class SubmissionServiceImpl implements SubmissionService {
@@ -61,6 +79,9 @@ public class SubmissionServiceImpl implements SubmissionService {
 
     @Autowired
     CanvasAPIClient canvasAPIClient;
+
+    @Autowired
+    private APIJWTService apijwtService;
 
     @Override
     public List<Submission> findAllByAssessmentId(Long assessmentId) {
@@ -107,18 +128,24 @@ public class SubmissionServiceImpl implements SubmissionService {
     }
 
     @Override
-    public SubmissionDto postSubmission(SubmissionDto submissionDto, long experimentId, String userId, long assessmentId, boolean student) throws IdInPostException, ParticipantNotMatchingException, InvalidUserException, DataServiceException {
+    public SubmissionDto postSubmission(SubmissionDto submissionDto, long experimentId, SecuredInfo securedInfo, long assessmentId, boolean student)
+            throws IdInPostException, ParticipantNotMatchingException, InvalidUserException, DataServiceException {
         if (submissionDto.getSubmissionId() != null) {
             throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
         }
+
         submissionDto.setAssessmentId(assessmentId);
-        validateDto(experimentId, userId, submissionDto);
+        validateDto(experimentId, securedInfo.getUserId(), submissionDto);
         Submission submission;
+
         try {
             submission = fromDto(submissionDto, student);
         } catch (DataServiceException ex) {
-            throw new DataServiceException("Error 105: Unable to create Submission: " + ex.getMessage());
+            throw new DataServiceException(String.format("Error 105: Unable to create Submission: %s", ex.getMessage()));
         }
+
+        setAssignmentStart(submission.getAssessment().getTreatment().getAssignment(), securedInfo);
+
         return toDto(save(submission), false, false);
     }
 
@@ -132,14 +159,12 @@ public class SubmissionServiceImpl implements SubmissionService {
                 submission.setAlteredCalculatedGrade(submissionDto.getAlteredCalculatedGrade());
                 submission.setTotalAlteredGrade(submissionDto.getTotalAlteredGrade());
                 save(submission);
-//                sendSubmissionGradeToCanvasWithLTI(submission);
             }
         }
     }
 
     @Override
     public SubmissionDto toDto(Submission submission, boolean questionSubmissions, boolean submissionComments) {
-
         SubmissionDto submissionDto = new SubmissionDto();
         submissionDto.setSubmissionId(submission.getSubmissionId());
         submissionDto.setParticipantId(submission.getParticipant().getParticipantId());
@@ -152,32 +177,43 @@ public class SubmissionServiceImpl implements SubmissionService {
         submissionDto.setTotalAlteredGrade(submission.getTotalAlteredGrade());
         submissionDto.setDateSubmitted(submission.getDateSubmitted());
         submissionDto.setLateSubmission(submission.getLateSubmission());
-        List<QuestionSubmissionDto> questionSubmissionDtoList = new ArrayList<>();
+        submissionDto.setDateCreated(submission.getCreatedAt());
+        submissionDto.setQuestionSubmissionDtoList(Collections.emptyList());
+        submissionDto.setSubmissionCommentDtoList(Collections.emptyList());
+
         if (questionSubmissions) {
-            List<QuestionSubmission> questionSubmissionList = allRepositories.questionSubmissionRepository.findBySubmission_SubmissionId(submission.getSubmissionId());
-            for (QuestionSubmission questionSubmission : questionSubmissionList) {
-                questionSubmissionDtoList.add(questionSubmissionService.toDto(questionSubmission, false, false));
-            }
+            List<QuestionSubmission> questionSubmissionList = allRepositories.questionSubmissionRepository
+                    .findBySubmission_SubmissionId(submission.getSubmissionId());
+            // If submission has not been submitted for grading yet, also return the answer
+            // submissions (so the frontend can tell whether it needs to create or update
+            // answer submissions)
+            boolean hasSubmitted = submission.getDateSubmitted() != null;
+            List<QuestionSubmissionDto> questionSubmissionDtoList = questionSubmissionList.stream()
+                    .map(questionSubmission -> questionSubmissionService.toDto(questionSubmission, !hasSubmitted,
+                            false))
+                .collect(Collectors.toList());
+            submissionDto.setQuestionSubmissionDtoList(questionSubmissionDtoList);
         }
-        submissionDto.setQuestionSubmissionDtoList(questionSubmissionDtoList);
-        List<SubmissionCommentDto> submissionCommentDtoList = new ArrayList<>();
+
         if (submissionComments) {
             List<SubmissionComment> submissionCommentList = allRepositories.submissionCommentRepository.findBySubmission_SubmissionId(submission.getSubmissionId());
-            for (SubmissionComment submissionComment : submissionCommentList) {
-                submissionCommentDtoList.add(submissionCommentService.toDto(submissionComment));
-            }
+            List<SubmissionCommentDto> submissionCommentDtoList = submissionCommentList.stream()
+                .map(submissionComment -> submissionCommentService.toDto(submissionComment))
+                .collect(Collectors.toList());
+            submissionDto.setSubmissionCommentDtoList(submissionCommentDtoList);
         }
-        submissionDto.setSubmissionCommentDtoList(submissionCommentDtoList);
-        String path = localUrl +
-                "/api/experiments/" +
-                submission.getAssessment().getTreatment().getCondition().getExperiment().getExperimentId() +
-                "/conditions/" +
-                submission.getAssessment().getTreatment().getCondition().getConditionId() +
-                "/treatments/" +
-                submission.getAssessment().getTreatment().getTreatmentId() +
-                "/assessments/" +
-                submission.getAssessment().getAssessmentId();
-        submissionDto.setAssessmentLink(path);
+
+        StringBuilder path = new StringBuilder(localUrl)
+                .append("/api/experiments/")
+                .append(submission.getAssessment().getTreatment().getCondition().getExperiment().getExperimentId())
+                .append("/conditions/")
+                .append(submission.getAssessment().getTreatment().getCondition().getConditionId())
+                .append("/treatments/")
+                .append(submission.getAssessment().getTreatment().getTreatmentId())
+                .append("/assessments/")
+                .append(submission.getAssessment().getAssessmentId());
+        submissionDto.setAssessmentLink(path.toString());
+
         return submissionDto;
     }
 
@@ -296,34 +332,41 @@ public class SubmissionServiceImpl implements SubmissionService {
         Submission submission = new Submission();
         submission.setAssessment(assessment);
         submission.setParticipant(participant);
-        submission = save(submission);
+        final Submission newSubmission = save(submission);
 
-        // for each randomized MC question, create a QuestionSubmission and
-        // randomized list of AnswerMcSubmissionOptions
-        for (Question question : assessment.getQuestions()) {
-            if (question.getQuestionType() == QuestionTypes.MC) {
-                QuestionMc questionMc = (QuestionMc) question;
-                if (questionMc.isRandomizeAnswers()) {
+        // for each randomized MC question, create a QuestionSubmission and randomized list of AnswerMcSubmissionOptions
+        assessment.getQuestions().stream()
+            .filter(
+                question -> {
+                    if (question.getQuestionType() != QuestionTypes.MC) {
+                        return false;
+                    }
+
+                    return ((QuestionMc) question).isRandomizeAnswers();
+                })
+            .forEach(
+                question -> {
                     QuestionSubmission questionSubmission = new QuestionSubmission();
                     questionSubmission.setQuestion(question);
-                    questionSubmission.setSubmission(submission);
-                    questionSubmission = allRepositories.questionSubmissionRepository.save(questionSubmission);
-                    List<AnswerMc> answers = allRepositories.answerMcRepository
-                            .findByQuestion_QuestionId(question.getQuestionId());
+                    questionSubmission.setSubmission(newSubmission);
+                    final QuestionSubmission newQuestionSubmission = allRepositories.questionSubmissionRepository.save(questionSubmission);
+                    List<AnswerMc> answers = allRepositories.answerMcRepository.findByQuestion_QuestionId(question.getQuestionId());
                     Collections.shuffle(answers);
-                    int order = 0;
-                    for (AnswerMc answerMc : answers) {
-                        AnswerMcSubmissionOption answerMcSubmissionOption = new AnswerMcSubmissionOption();
-                        answerMcSubmissionOption.setAnswerMc(answerMc);
-                        answerMcSubmissionOption.setAnswerOrder(order++);
-                        answerMcSubmissionOption.setQuestionSubmission(questionSubmission);
-                        allRepositories.answerMcSubmissionOptionRepository.save(answerMcSubmissionOption);
-                    }
-                }
-            }
-        }
+                    AtomicInteger order = new AtomicInteger(0);
 
-        return submission;
+                    answers.forEach(
+                        answerMc -> {
+                            AnswerMcSubmissionOption answerMcSubmissionOption = new AnswerMcSubmissionOption();
+                            answerMcSubmissionOption.setAnswerMc(answerMc);
+                            answerMcSubmissionOption.setAnswerOrder(order.getAndIncrement());
+                            answerMcSubmissionOption.setQuestionSubmission(newQuestionSubmission);
+                            allRepositories.answerMcSubmissionOptionRepository.save(answerMcSubmissionOption);
+                        });
+                });
+
+        setAssignmentStart(assessment.getTreatment().getAssignment(), securedInfo);
+
+        return newSubmission;
     }
 
     @Override
@@ -364,6 +407,8 @@ public class SubmissionServiceImpl implements SubmissionService {
                     questionGraded = questionSubmission;
                     questionGraded.setCalculatedPoints(Float.valueOf("0"));
                     break;
+                default:
+                    break;
 
             }
             automatic = automatic + questionGraded.getCalculatedPoints();
@@ -386,7 +431,8 @@ public class SubmissionServiceImpl implements SubmissionService {
     public void sendSubmissionGradeToCanvasWithLTI(Submission submission, boolean studentSubmission)
             throws ConnectionException, DataServiceException {
         //We need, the assignment, and the iss configuration...
-        Assignment assignment = submission.getAssessment().getTreatment().getAssignment();
+        Assessment assessment = submission.getAssessment();
+        Assignment assignment = assessment.getTreatment().getAssignment();
         Experiment experiment = assignment.getExposure().getExperiment();
         LTIToken ltiTokenScore = advantageAGSService.getToken("scores", experiment.getPlatformDeployment());
         LTIToken ltiTokenResults = advantageAGSService.getToken("results", experiment.getPlatformDeployment());
@@ -397,19 +443,22 @@ public class SubmissionServiceImpl implements SubmissionService {
             throw new DataServiceException("Error 136: The assignment is not linked to any Canvas assignment");
         }
         Score score = new Score();
-        score.setUserId(submission.getParticipant().getLtiUserEntity().getUserKey());
+        Participant participant = submission.getParticipant();
+        score.setUserId(participant.getLtiUserEntity().getUserKey());
         boolean manualGradingNeeded = this.isManualGradingNeeded(submission);
-        // Only set the score if additional manual grading isn't needed, i.e.,
-        // if the grade is complete
-        if (!manualGradingNeeded) {
-            if (submission.getTotalAlteredGrade() != null) {
-                score.setScoreGiven(submission.getTotalAlteredGrade().toString());
-            } else {
-                score.setScoreGiven(submission.getAlteredCalculatedGrade().toString());
-            }
+
+        Float scoreGiven = getScoreFromMultipleSubmissions(participant, assessment);
+        if (scoreGiven != null) {
+            score.setScoreGiven(scoreGiven.toString());
         }
-        Float maxTerracottaScore = assessmentService.calculateMaxScore(submission.getAssessment());
-        score.setScoreMaximum(maxTerracottaScore.toString());
+        Float maxTerracottaScore = assessmentService.calculateMaxScore(assessment);
+        if (maxTerracottaScore == 0) {
+            // zero point assignments full credit (1 point) is given for completion so the
+            // maximum is 1 point
+            score.setScoreMaximum(Float.valueOf(1).toString());
+        } else {
+            score.setScoreMaximum(maxTerracottaScore.toString());
+        }
         score.setActivityProgress("Completed");
         if (manualGradingNeeded) {
             score.setGradingProgress("PendingManual");
@@ -449,12 +498,123 @@ public class SubmissionServiceImpl implements SubmissionService {
 
         // If the submission's grade has been altered, then the entire
         // submission has been manually graded.
-        // If any of the ESSAY questions have a null alteredGrade, then the
-        // assessment still needs to be manually graded.
+        // If any of the ESSAY questions with positive max points have a null
+        // alteredGrade, then the assessment still needs to be manually graded.
         return !this.isGradeAltered(submission)
                 && submission.getQuestionSubmissions().stream().anyMatch(qs -> {
-                    return qs.getQuestion().getQuestionType() == QuestionTypes.ESSAY && qs.getAlteredGrade() == null;
+                    return qs.getQuestion().getQuestionType() == QuestionTypes.ESSAY
+                            && qs.getQuestion().getPoints() > 0
+                            && qs.getAlteredGrade() == null;
                 });
+    }
+
+    /**
+     * Calculate a score, possibly considering multiple submissions.
+     *
+     * @param participant
+     * @param assessment
+     * @return null if all submissions require manual grading
+     */
+    public Float getScoreFromMultipleSubmissions(Participant participant, Assessment assessment) {
+        List<Submission> submissionList = allRepositories.submissionRepository
+                .findByParticipant_ParticipantIdAndAssessment_AssessmentIdAndDateSubmittedNotNullOrderByDateSubmitted(
+                        participant.getParticipantId(), assessment.getAssessmentId());
+
+        // Handle case where only one submission is allowed
+        if (assessment.getNumOfSubmissions() != null && assessment.getNumOfSubmissions() == 1) {
+            Submission soleSubmission = submissionList.get(0);
+            if (!isManualGradingNeeded(soleSubmission)) {
+                return getSubmissionScore(soleSubmission);
+            } else {
+                return null;
+            }
+        }
+        // Only submissions that are fully graded will be considered for calculating
+        // score
+        Float score = null;
+        switch (assessment.getMultipleSubmissionScoringScheme()) {
+            case MOST_RECENT:
+                // consider the most recently fully graded submission, if there is one
+                for (int i = submissionList.size() - 1; i >= 0; i--) {
+                    Submission submission = submissionList.get(i);
+                    if (!isManualGradingNeeded(submission)) {
+                        score = getSubmissionScore(submission);
+                        break;
+                    }
+                }
+                break;
+            case AVERAGE:
+                // average all fully graded submissions
+                int count = 0;
+                for (Submission submission : submissionList) {
+                    if (!isManualGradingNeeded(submission)) {
+                        if (score == null) {
+                            score = 0f;
+                        }
+                        score += getSubmissionScore(submission);
+                        count++;
+                    }
+                }
+                if (score != null) {
+                    score = score / count;
+                }
+                break;
+            case HIGHEST:
+                // take the highest of the fully graded submissions
+                for (Submission submission : submissionList) {
+                    if (!isManualGradingNeeded(submission)) {
+                        Float submissionScore = getSubmissionScore(submission);
+                        if (score == null || submissionScore > score) {
+                            score = submissionScore;
+                        }
+                    }
+                }
+                break;
+            case CUMULATIVE:
+                // only include fully graded submissions, but consider them in order
+
+                // The first submission's score contributes
+                // 'cumulativeScoringInitialPercentage' to the total score
+                if (submissionList.size() > 0) {
+                    Submission submission = submissionList.get(0);
+                    if (!isManualGradingNeeded(submission)) {
+                        score = getSubmissionScore(submission)
+                                * assessment.getCumulativeScoringInitialPercentage() / 100f;
+                    }
+                }
+                // All subsequent submission scores contribute an evenly distributed amount of
+                // the remaining percentage
+                if (submissionList.size() > 1) {
+                    float subsequentPercentage = (100f - assessment.getCumulativeScoringInitialPercentage())
+                            / 100f / (assessment.getNumOfSubmissions() - 1);
+                    for (Submission submission : submissionList.subList(1, submissionList.size())) {
+                        if (!isManualGradingNeeded(submission)) {
+                            if (score == null) {
+                                score = 0f;
+                            }
+                            score = score + getSubmissionScore(submission) * subsequentPercentage;
+                        }
+                    }
+                }
+                break;
+        }
+        return score;
+    }
+
+    @Override
+    public Float getSubmissionScore(Submission submission) {
+
+        Assessment assessment = submission.getAssessment();
+        Float maxTerracottaScore = assessmentService.calculateMaxScore(assessment);
+        // zero point assignments should be given full credit for completion
+        if (maxTerracottaScore == 0) {
+            return 1f;
+        }
+        if (submission.getTotalAlteredGrade() != null) {
+            return submission.getTotalAlteredGrade();
+        } else {
+            return submission.getAlteredCalculatedGrade();
+        }
     }
 
     private boolean isGradeAltered(Submission submission) {
@@ -517,7 +677,11 @@ public class SubmissionServiceImpl implements SubmissionService {
                 if (!submissionOptional.get().getParticipant().getLtiUserEntity().getUserKey().equals(securedInfo.getUserId())) {
                     throw new SubmissionNotMatchingException("Submission don't belong to the user");
                 }
-                Group group = submissionOptional.get().getParticipant().getGroup();
+                boolean consent = BooleanUtils.isTrue(submissionOptional.get().getParticipant().getConsent());
+                // Group is only used for determining treatment when participant
+                // has consented. Students that haven't given consent should
+                // always get the default condition's treatment.
+                Group group = consent ? submissionOptional.get().getParticipant().getGroup() : null;
                 Treatment treatment = submissionOptional.get().getAssessment().getTreatment();
                 Condition condition = treatment.getCondition();
                 if (group == null) {
@@ -539,6 +703,27 @@ public class SubmissionServiceImpl implements SubmissionService {
             throw new SubmissionNotMatchingException("Error 147: Not allowed to submit this submission: " + ex.getMessage());
         }
         throw new SubmissionNotMatchingException("Error 147: Not allowed to submit this submission");
+    }
+
+    /**
+     * If this is the first submission mark the assignment as started.
+     *
+     * @param assignment the {@link Assignment}
+     * @param securedInfo the {@link SecuredInfo}
+     */
+    private void setAssignmentStart(Assignment assignment, SecuredInfo securedInfo) {
+        if (assignment.isStarted()) {
+            // already started
+            return;
+        }
+
+        if (apijwtService.isTestStudent(securedInfo)) {
+            // is a test student
+            return;
+        }
+
+        assignment.setStarted(Timestamp.valueOf(LocalDateTime.now()));
+        assignmentService.save(assignment);
     }
 
 }

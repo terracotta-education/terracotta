@@ -60,6 +60,7 @@ public class FileController {
 
     @RequestMapping(value = "/{experiment_id}/consent", method = RequestMethod.POST, produces = "application/json")
     @ResponseBody
+    @Transactional(rollbackFor = { AssignmentNotCreatedException.class, CanvasApiException.class })
     public ResponseEntity<FileInfoDto> uploadConsentFiles(@RequestParam("consent") MultipartFile file,
                                                           @PathVariable("experiment_id") long experimentId,
                                                           @RequestParam(name = "title", defaultValue = "Invitation to Participate in a Research Study") String title,
@@ -74,7 +75,7 @@ public class FileController {
                 throw new BadConsentFileTypeException(TextConstants.BAD_CONSENT_FILETYPE);
             }
             FileInfoDto consentUploaded = fileStorageService.uploadFile(file, "/" + experimentId + "/consent", "", experimentId,true);
-            fileStorageService.uploadConsent(experimentId, title, consentUploaded);
+            fileStorageService.uploadConsent(experimentId, title, consentUploaded, securedInfo.getUserId());
             return new ResponseEntity<>(consentUploaded, HttpStatus.OK);
         }  else {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);

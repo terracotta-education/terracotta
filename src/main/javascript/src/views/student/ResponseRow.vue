@@ -4,7 +4,7 @@
       &nbsp;
     </v-col>
     <v-col cols="10">
-      <v-card outlined>
+      <v-card outlined :class="border">
         <v-card-title class="py-0">
           <slot />
         </v-card-title>
@@ -14,7 +14,30 @@
 </template>
 
 <script>
-export default {};
+export default {
+  props: {
+    correct: {
+      default() {
+        return null;
+      }
+    }
+  },
+  computed: {
+    border() {
+      return this.correct ? 'green--border' : this.correct === null ? '' : 'red--border';
+    }
+  }
+};
 </script>
 
-<style></style>
+<style>
+.green--border {
+  border-color: #38ADB6 !important;
+  border-width: 2px !important;
+}
+
+.red--border {
+  border-color: #E5153E !important;
+  border-width: 2px !important;
+}
+</style>

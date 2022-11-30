@@ -20,6 +20,8 @@ public class SecuredInfo {
     Timestamp unlockAt;
     String nonce;
     Boolean consent;
+    Integer allowedAttempts;
+    Integer studentAttempts;
 
     public SecuredInfo() {
     }
@@ -144,4 +146,25 @@ public class SecuredInfo {
         this.consent = consent;
     }
 
+    /**
+     * Return number of allowed attempts for assignment. The value is only populated
+     * when Terracotta tool is launched as an assignment.
+     *
+     * @return the number of allowed attempts, or -1 if attempts are unlimited
+     */
+    public Integer getAllowedAttempts() {
+        return allowedAttempts;
+    }
+
+    public void setAllowedAttempts(Integer allowedAttempts) {
+        this.allowedAttempts = allowedAttempts;
+    }
+
+    public Integer getStudentAttempts() {
+        return studentAttempts;
+    }
+
+    public void setStudentAttempts(Integer studentAttempts) {
+        this.studentAttempts = studentAttempts;
+    }
 }

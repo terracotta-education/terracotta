@@ -1,8 +1,11 @@
 package edu.iu.terracotta.service.app.impl;
 
+import edu.iu.terracotta.exceptions.AssignmentNotMatchingException;
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.GroupNotMatchingException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
+import edu.iu.terracotta.model.app.Assignment;
 import edu.iu.terracotta.model.app.Condition;
 import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.Exposure;
@@ -303,4 +306,22 @@ public class GroupServiceImpl implements GroupService {
         headers.setLocation(ucBuilder.path("/api/experiment/{experiment_id}/groups/{id}").buildAndExpand(experimentId, groupId).toUri());
         return headers;
     }
+
+    @Override
+    public Group getUniqueGroupByConditionId(Long experimentId, String canvasAssignmentId, Long conditionId) throws GroupNotMatchingException, AssignmentNotMatchingException {
+        Assignment assignment = allRepositories.assignmentRepository.findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(experimentId, canvasAssignmentId);
+
+        if (assignment == null) {
+            throw new AssignmentNotMatchingException(TextConstants.ASSIGNMENT_NOT_MATCHING);
+        }
+
+        Optional<ExposureGroupCondition> exposureGroupCondition = allRepositories.exposureGroupConditionRepository.getByCondition_ConditionIdAndExposure_ExposureId(conditionId, assignment.getExposure().getExposureId());
+
+        if (!exposureGroupCondition.isPresent()){
+            throw new GroupNotMatchingException("Error 130: This assignment does not have a condition assigned for the participant group.");
+        }
+
+        return exposureGroupCondition.get().getGroup();
+    }
+
 }

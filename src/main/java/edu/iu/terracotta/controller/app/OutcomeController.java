@@ -177,7 +177,8 @@ public class OutcomeController {
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         if(apijwtService.isInstructorOrHigher(securedInfo)){
-            List<OutcomePotentialDto> potentialDtoList = outcomeService.potentialOutcomes(experimentId);
+            List<OutcomePotentialDto> potentialDtoList = outcomeService.potentialOutcomes(experimentId,
+                    securedInfo.getUserId());
             return new ResponseEntity<>(potentialDtoList, HttpStatus.OK);
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);

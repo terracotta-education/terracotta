@@ -6,6 +6,27 @@ const state = {
 }
 
 const actions = {
+  async updateAssignment({ commit }, payload) {
+    try {
+      const response = await assignmentService.updateAssignment(...payload);
+
+      commit('setAssignment', response)
+      return {
+        status: 200,
+        data: response
+      };
+    } catch (e) {
+      console.error(e)
+    }
+  },
+  async saveAssignmentOrder({ commit }, payload) {
+    try {
+      const response = await assignmentService.updateAssignments(...payload);
+      commit('updateAssignments', response);
+    } catch (e) {
+      console.error(e)
+    }
+  },
   async fetchAssignment({commit}, payload) {
     // payload = experiment_id, exposure_id, assignment_id
     // get assignment by it's assignmentId
@@ -21,7 +42,7 @@ const actions = {
     // * = optional
     // get assignments by their exposureId
     try {
-      const assignments = await assignmentService.fetchAssignmentsByExposure(...payload)
+      const assignments = await assignmentService.fetchAssignmentsByExposure(...payload);
       commit('updateAssignments', assignments)
     } catch (e) {
       console.error(e)
@@ -46,6 +67,23 @@ const actions = {
       console.error('deleteAssignment catch', {error})
     }
   },
+  async duplicateAssignment({commit}, payload) {
+    // payload = experiment_id, exposure_id, assignment_id
+    // duplicate assignment, commit mutation, and return the status/data response
+    try {
+      const response = await assignmentService.duplicateAssignment(...payload);
+
+      if (response?.assignmentId) {
+        commit('setAssignment', response)
+        return {
+          status: 201,
+          data: response
+        }
+      }
+    } catch (error) {
+      console.error('duplicateAssignment catch', {error})
+    }
+  },
   async createAssignment({commit}, payload) {
     // payload = experiment_id, exposure_id, title, order
     // create the assignment, commit an update mutation, and return the status/data response
@@ -63,6 +101,22 @@ const actions = {
       console.error('createAssignment catch', {error})
     }
   },
+  async moveAssignment({commit}, payload) {
+    const aId = payload[2];
+    try {
+      const response = await assignmentService.moveAssignment(...payload);
+      if (response?.assignmentId) {
+        commit('deleteAssignment', aId)
+        commit('setAssignment', response)
+        return {
+          status: 201,
+          data: response
+        }
+      }
+    } catch (error) {
+      console.error('updateAssignment catch', {error})
+    }
+  }
 }
 const mutations = {
   updateAssignments(state, assignments) {

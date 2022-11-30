@@ -1,6 +1,108 @@
 <template>
-  <v-container fluid v-if="assessment && questionValues.length > 0">
+  <v-container fluid v-if="!loading">
     <v-row>
+      <v-col v-if="canTryAgain">
+        <v-btn
+          @click="handleTryAgain"
+          elevation="0"
+          color="primary"
+          class="mt-4 mb-2"
+          type="button"
+        >
+          Try Again
+        </v-btn>
+        <p>
+          <span v-if="assignmentData.multipleSubmissionScoringScheme === 'HIGHEST'">The highest</span>
+          <span v-else-if="assignmentData.multipleSubmissionScoringScheme === 'MOST_RECENT'">The most recent</span>
+          <span v-else-if="assignmentData.multipleSubmissionScoringScheme === 'AVERAGE'">The average</span>
+          <span v-else-if="assignmentData.multipleSubmissionScoringScheme === 'CUMULATIVE'">A cumulative</span>
+           score will be kept
+        </p>
+      </v-col>
+      <v-spacer />
+      <v-col v-if="showSubmissionDetails">
+        <h2>Submission Details</h2>
+        <v-divider />
+          <v-list dense flat>
+            <v-list-item>
+              <v-list-item-content>
+                <strong>Time</strong>
+              </v-list-item-content>
+              <v-list-item-icon>
+                <span>{{ timeBeforeSubmission }}</span>
+              </v-list-item-icon>
+            </v-list-item>
+            <v-list-item>
+              <v-list-item-content>
+                <strong>Allowed Attempts</strong>
+              </v-list-item-content>
+              <v-list-item-icon>
+                <span>{{ allowedAttempts }}</span>
+              </v-list-item-icon>
+            </v-list-item>
+            <v-list-item>
+              <v-list-item-content>
+                <strong>Submitted</strong>
+              </v-list-item-content>
+              <v-list-item-icon>
+                <span>{{ selectedSubmissionDateSubmitted }}</span>
+              </v-list-item-icon>
+            </v-list-item>
+            <v-list-item>
+              <v-list-item-content>
+                <strong>Current Score</strong>
+              </v-list-item-content>
+              <v-list-item-icon>
+                <span>{{ currentScore }}</span>
+              </v-list-item-icon>
+            </v-list-item>
+            <v-list-item>
+              <v-list-item-content>
+                <strong>Kept Score</strong>
+              </v-list-item-content>
+              <v-list-item-icon>
+                <span>{{ keptScore }}</span>
+              </v-list-item-icon>
+            </v-list-item>
+          </v-list>
+        <v-divider />
+      </v-col>
+    </v-row>
+    <v-row v-if="cantTryAgainMessage">
+      <v-col>
+        <v-card
+          class="pt-5 px-5 mx-auto yellow lighten-5 rounded-lg"
+          outlined
+        >
+          <p class="pb-0" v-if="cantTryAgainMessage === 'MAX_NUMBER_ATTEMPTS_REACHED'">
+            You have reached the maximum number of attempts for this assignment.
+          </p>
+          <p class="pb-0" v-if="cantTryAgainMessage === 'WAIT_TIME_NOT_REACHED'">
+            Wait time not reached... You must wait a period of time before submitting again.
+          </p>
+        </v-card>
+      </v-col>
+    </v-row>
+    <v-row v-if="readonly">
+      <v-col>
+        <v-card
+          class="pt-5 px-5 mx-auto yellow lighten-5 rounded-lg"
+          outlined
+          v-if="muted"
+        >
+          <h3>Your assignment is muted</h3>
+          <p class="pb-0">
+            Your instructor has not released the grades yet.
+          </p>
+        </v-card>
+        <div v-if="!muted && assignmentData && assignmentData.submissions">
+          <submission-selector
+            :submissions="assignmentData.submissions"
+            @select="(id) => selectedSubmissionId = id" />
+        </div>
+      </v-col>
+    </v-row>
+    <v-row v-if="assessment && questionValues.length > 0">
       <v-col>
         <template v-if="!submitted">
           <!-- only display assessment instructions on the first page -->
@@ -40,7 +142,14 @@
                       </youtube-event-capture>
                     </v-col>
                     <v-col>
-                      <div class="total-points text-right ml-2">
+                      <div class="total-points text-right ml-2" v-if="!readonly">
+                        {{ question.points }} Point{{
+                          question.points > 1 ? "s" : ""
+                        }}
+                      </div>
+                      <div class="total-points text-right ml-2" v-if="readonly">
+                        {{ getQuestionSubmissionValue(question) }}
+                        /
                         {{ question.points }} Point{{
                           question.points > 1 ? "s" : ""
                         }}
@@ -49,19 +158,21 @@
                   </v-row>
                 </v-card-title>
                 <!-- Options (Answers) -->
-                <v-card-text v-if="questionValues.length > 0">
+                <v-card-text v-if="questionValues && questionValues.length > 0">
                   <template v-if="question.questionType === 'MC'">
                     <multiple-choice-response-editor
-                      :answers="question.answers"
-                      v-model="
-                        questionValues.find(
+                      :answers="getQuestionAnswers(question)"
+                      :readonly="readonly"
+                      :showAnswers="showAnswers"
+                      v-model="questionValues.find(
                           ({ questionId }) => questionId === question.questionId
-                        ).answerId
-                      "
+                        ).answerId"
                     />
                   </template>
                   <template v-else-if="question.questionType === 'ESSAY'">
                     <essay-response-editor
+                      :answer="getEssayResponse(question)"
+                      :readonly="readonly"
                       v-model="
                         questionValues.find(
                           ({ questionId }) => questionId === question.questionId
@@ -94,12 +205,12 @@
               Next
             </v-btn>
             <v-btn
-              v-else
               :disabled="!allQuestionsAnswered"
               elevation="0"
               color="primary"
               class="mt-4"
               type="submit"
+              v-if="!readonly && !hasNextQuestionPage"
             >
               Submit
             </v-btn>
@@ -114,10 +225,19 @@
 </template>
 
 <script>
+import Vue from 'vue';
 import { mapActions, mapGetters } from "vuex";
 import EssayResponseEditor from "./EssayResponseEditor.vue";
 import MultipleChoiceResponseEditor from "./MultipleChoiceResponseEditor.vue";
 import YoutubeEventCapture from "./YoutubeEventCapture.vue";
+import moment from 'moment';
+import SubmissionSelector from '../assignment/SubmissionSelector.vue';
+
+Vue.filter('formatDate', (value) => {
+  if (value) {
+    return moment(value).format('MM/DD/YYYY hh:mm')
+  }
+});
 import FileUploadResponseEditor from "@/views/student/FileUploadResponseEditor";
 
 export default {
@@ -128,6 +248,7 @@ export default {
     EssayResponseEditor,
     MultipleChoiceResponseEditor,
     YoutubeEventCapture,
+    SubmissionSelector,
   },
   data() {
     return {
@@ -139,15 +260,38 @@ export default {
       assessmentId: null,
       submitted: false,
       questionPageIndex: 0,
-      questionSubmissions: null,
+      assignmentData: null,
+      selectedSubmissionId: null,
+      readonly: false,
+      answers: [],
+      loading: false,
+      submissions: [],
     };
+  },
+  watch: {
+    selectedSubmissionId() {
+      if (this.selectedSubmission) {
+        const { experimentId, conditionId, assessmentId, treatmentId, submissionId } = this.selectedSubmission;
+        this.getQuestions(experimentId, conditionId, assessmentId, treatmentId, submissionId);
+        this.getAnswers(experimentId, conditionId, assessmentId, treatmentId, submissionId);
+      }
+    },
+    answerableQuestions(newValue) {
+      this.questionValues = newValue.map((q) => {
+        return {
+          questionId: q.questionId,
+          answerId: null,
+          response: null,
+        };
+      });
+    }
   },
   computed: {
     ...mapGetters({
       assessment: "assessment/assessment",
       answerableQuestions: "assessment/answerableQuestions",
       questionPages: "assessment/questionPages",
-      // questionSubmissions: "submissions/questionSubmissions",
+      questionSubmissions: "submissions/questionSubmissions"
     }),
     allCurrentPageQuestionsAnswered() {
       return this.areAllQuestionsAnswered(this.currentQuestionPage.questions);
@@ -161,6 +305,73 @@ export default {
     hasNextQuestionPage() {
       return this.questionPageIndex < this.questionPages.length - 1;
     },
+    canTryAgain() {
+      return this.readonly && (this.assignmentData ? this.assignmentData.retakeDetails.retakeAllowed : false);
+    },
+    showSubmissionDetails() {
+      return this.readonly || this.submitted;
+    },
+    allowedAttempts() {
+      if (!this.assignmentData) { return ' - ' }
+      const { numOfSubmissions } = this.assignmentData;
+      return numOfSubmissions === null ? 1 : numOfSubmissions === 0 ? 'Unlimited' : numOfSubmissions;
+    },
+    cantTryAgainMessage() {
+      return this.assignmentData?.retakeDetails?.retakeNotAllowedReason;
+    },
+    selectedSubmissionDateSubmitted() {
+      return moment(this.selectedSubmission?.dateSubmitted).format('MMMM Do YYYY hh:mm');
+    },
+    timeBeforeSubmission() {
+      const time = this.selectedSubmission?.dateSubmitted - this.selectedSubmission?.dateCreated;
+      return isNaN(time) ? '' : moment.duration(time, "milliseconds").humanize();
+    },
+    currentScore() {
+      let grade;
+      if (!this.selectedSubmission) {
+        grade = this.assignmentData?.retakeDetails.lastAttemptScore;
+      } else {
+        const { totalAlteredGrade, alteredCalculatedGrade } = this.selectedSubmission;
+        grade = totalAlteredGrade !== null ? totalAlteredGrade : alteredCalculatedGrade;
+      }
+      return `${grade} / ${this.assignmentData?.maxPoints}`;
+    },
+    keptScore() {
+      const kept = this.assignmentData?.retakeDetails.keptScore;
+
+      return `${kept ? kept : 0} / ${this.assignmentData?.maxPoints}`;
+    },
+    muted() {
+      if (!this.assignmentData) { return true; }
+      const { allowStudentViewResponses, studentViewResponsesAfter, studentViewResponsesBefore } = this.assignmentData;
+      if (allowStudentViewResponses) {
+        const now = Date.now();
+        const isAfter = studentViewResponsesAfter ? moment(now).isAfter(studentViewResponsesAfter) : true;
+        const isBefore = studentViewResponsesBefore ? moment(now).isBefore(studentViewResponsesBefore) : true;
+        return isAfter && isBefore ? false : true;
+      }
+      return true;
+    },
+    showAnswers() {
+      if (!this.assignmentData) { return false; }
+      const { allowStudentViewCorrectAnswers, studentViewCorrectAnswersAfter, studentViewCorrectAnswersBefore } = this.assignmentData;
+      if (allowStudentViewCorrectAnswers) {
+        const now = Date.now();
+        const isAfter = studentViewCorrectAnswersAfter ? moment(now).isAfter(studentViewCorrectAnswersAfter) : true;
+        const isBefore = studentViewCorrectAnswersBefore ? moment(now).isBefore(studentViewCorrectAnswersBefore) : true;
+        return isAfter && isBefore;
+      }
+      return false;
+    },
+    showResponses() {
+      return this.assignmentData?.allowStudentViewCorrectAnswers;
+    },
+    selectedSubmission() {
+      return this.assignmentData?.submissions.find(s => s.submissionId === this.selectedSubmissionId);
+    },
+    selectedSubmissionConditionId() {
+      return this.selectedSubmission?.conditionId;
+    },
   },
   methods: {
     ...mapActions({
@@ -169,93 +380,58 @@ export default {
       fetchQuestionSubmissions: "submissions/fetchQuestionSubmissions",
       createQuestionSubmissions: "submissions/createQuestionSubmissions",
       createAnswerSubmissions: "submissions/createAnswerSubmissions",
+      updateAnswerSubmission: "submissions/updateAnswerSubmission",
     }),
+    async handleTryAgain() {
+      this.attempt();
+    },
     async handleSubmit() {
-      const reallySubmit = await this.$swal({
+      await this.$swal({
+        target: "#app",
         icon: "question",
         text: "Are you ready to submit your answers?",
         showCancelButton: true,
         confirmButtonText: "Yes, submit",
         cancelButtonText: "No, cancel",
+        showLoaderOnConfirm: true,
+        preConfirm: async () => {
+          try {
+            this.$swal.update({
+              text:
+                "Please don't refresh or close your browser window until assignment submission is confirmed.",
+              showConfirmButton: false,
+            });
+            return await this.submitQuiz();
+          } catch (error) {
+            this.$swal({
+              // add popup to #app so we can use vuetify styling
+              target: "#app",
+              text: "Could not submit: " + error.message,
+              icon: "error",
+              footer: this.errorFooter(),
+            });
+          }
+        },
+        allowOutsideClick: () => !this.$swal.isLoading(),
       });
-      if (reallySubmit.isConfirmed) {
-        try {
-          await this.submitQuiz();
-        } catch (error) {
-          this.$swal({
-            text: "Could not submit: " + error.message,
-            icon: "error",
-          });
-        }
-      }
     },
     async submitQuiz() {
       try {
         const experimentId = this.experimentId;
         const step = "student_submission";
         const parameters = { submissionIds: this.submissionId };
-        const allQuestionSubmissions = this.questionValues.map((q) => {
-          const existingQuestionSubmission = this.questionSubmissions.find(
-            (qs) => qs.questionId === q.questionId
-          );
-          const questionSubmissionId =
-            existingQuestionSubmission?.questionSubmissionId;
-          const questionSubmission = {
-            questionSubmissionId,
-            questionId: q.questionId,
-            type:q.type,
-            answerSubmissionDtoList: [
-              {
-                answerId: q.answerId,
-                response: q.response,
-                type:q.type,
-                questionSubmissionId,
-              },
-            ],
-          };
-          return questionSubmission;
-        });
-
-        // separate question submissions into existing and new by whether they have id
-        const existingQuestionSubmissions = allQuestionSubmissions.filter(
-          (qs) => !!qs.questionSubmissionId
-        );
-        const newQuestionSubmissions = allQuestionSubmissions.filter(
-          (qs) => !qs.questionSubmissionId
-        );
-
-        // call createAnswerSubmission for all existing question submissions
-        const answerSubmissions = existingQuestionSubmissions.map(
-          (qs) => qs.answerSubmissionDtoList[0]
-        );
-        if (answerSubmissions.length > 0) {
-          const { data, status } = await this.createAnswerSubmissions([
-            this.experimentId,
+        // Reload question submissions so we know whether to create/update question/answer submissions
+        if (!this.submissions) {
+          await this.fetchQuestionSubmissions([
+            experimentId,
             this.conditionId,
             this.treatmentId,
             this.assessmentId,
             this.submissionId,
-            answerSubmissions,
           ]);
-          if (status && ![200, 201].includes(status)) {
-            throw Error("Error submitting quiz: " + data);
-          }
+          this.submissions = this.questionSubmissions;
         }
-
-        // call createQuestionSubmissions for all new question submissions
-        if (newQuestionSubmissions.length > 0) {
-          const { data, status } = await this.createQuestionSubmissions([
-            this.experimentId,
-            this.conditionId,
-            this.treatmentId,
-            this.assessmentId,
-            this.submissionId,
-            newQuestionSubmissions,
-          ]);
-          if (status && ![200, 201].includes(status)) {
-            throw Error("Error submitting quiz: " + data);
-          }
-        }
+        await this.saveAnswers();
 
         // submit step
         const { data, status } = await this.reportStep({
@@ -263,15 +439,169 @@ export default {
           step,
           parameters,
         });
-        if (status && ![200, 201].includes(status)) {
+        if (!status || ![200, 201].includes(status)) {
           throw Error("Error submitting quiz: " + data);
         }
 
-        this.submitted = true;
+        const view = await this.viewAssignment();
+
+        if (view?.status === 200) {
+          const { data } = view;
+          this.assignmentData = data;
+          this.submitted = true;
+        }
       } catch (e) {
+        // Clear question submissions for this attempt. Will need to reload
+        // these to figure out what QuestionSubmissions and/or AnswerSubmissions
+        // need to be updated
+        this.submissions = null;
         console.error({ e });
         throw e; // rethrow
       }
+    },
+    async saveAnswers() {
+      const allQuestionSubmissions = this.questionValues.map((q) => {
+        const existingQuestionSubmission = this.submissions.find(
+          (qs) => qs.questionId === q.questionId
+        );
+        const questionSubmissionId =
+          existingQuestionSubmission?.questionSubmissionId;
+        // find existing answer submission id if it exists
+        const answerSubmissionId =
+          existingQuestionSubmission?.answerSubmissionDtoList?.[0]
+            ?.answerSubmissionId;
+        const questionSubmission = {
+          questionSubmissionId,
+          questionId: q.questionId,
+          answerSubmissionDtoList: [
+            {
+              answerSubmissionId,
+              questionSubmissionId,
+              answerId: q.answerId,
+              response: q.response,
+            },
+          ],
+        };
+        return questionSubmission;
+      });
+
+      // separate question submissions into existing and new by whether they have id
+      const existingQuestionSubmissions = allQuestionSubmissions.filter(
+        (qs) => !!qs.questionSubmissionId
+      );
+      const newQuestionSubmissions = allQuestionSubmissions.filter(
+        (qs) => !qs.questionSubmissionId
+      );
+
+      // call createAnswerSubmission for all existing question submissions
+      const answerSubmissions = existingQuestionSubmissions.map(
+        (qs) => qs.answerSubmissionDtoList[0]
+      );
+      if (answerSubmissions.length > 0) {
+        // separate into existing and new answer submissions and call the appropriate end point
+        const existingAnswerSubmissions = answerSubmissions.filter(
+          (ans) => !!ans.answerSubmissionId
+        );
+        const newAnswerSubmissions = answerSubmissions.filter(
+          (ans) => !ans.answerSubmissionId
+        );
+        if (newAnswerSubmissions.length > 0) {
+          const { data, status } = await this.createAnswerSubmissions([
+            this.experimentId,
+            this.conditionId,
+            this.treatmentId,
+            this.assessmentId,
+            this.submissionId,
+            newAnswerSubmissions,
+          ]);
+          if (!status || ![200, 201].includes(status)) {
+            throw Error("Error submitting quiz: " + data);
+          }
+        }
+        if (existingAnswerSubmissions.length > 0) {
+          for (const answerSubmission of existingAnswerSubmissions) {
+            const { data, status } = await this.updateAnswerSubmission([
+              this.experimentId,
+              this.conditionId,
+              this.treatmentId,
+              this.assessmentId,
+              this.submissionId,
+              answerSubmission.questionSubmissionId,
+              answerSubmission.answerSubmissionId,
+              answerSubmission,
+            ]);
+            if (!status || ![200, 201].includes(status)) {
+              throw Error("Error submitting quiz: " + data);
+            }
+          }
+        }
+      }
+
+      // call createQuestionSubmissions for all new question submissions
+      if (newQuestionSubmissions.length > 0) {
+        const { data, status } = await this.createQuestionSubmissions([
+          this.experimentId,
+          this.conditionId,
+          this.treatmentId,
+          this.assessmentId,
+          this.submissionId,
+          newQuestionSubmissions,
+        ]);
+        if (!status || ![200, 201].includes(status)) {
+          throw Error("Error submitting quiz: " + data);
+        }
+      }
+    },
+    async getAnswers(experimentId, conditionId, assessmentId, treatmentId, submissionId) {
+      await this.fetchQuestionSubmissions([
+        experimentId,
+        conditionId,
+        treatmentId,
+        assessmentId,
+        submissionId,
+      ]);
+    },
+    async getQuestions(experimentId, conditionId, assessmentId, treatmentId, submissionId) {
+      this.questionValues = [];
+
+      await this.fetchAssessmentForSubmission([
+          experimentId,
+          conditionId,
+          treatmentId,
+          assessmentId,
+          submissionId,
+      ]);
+    },
+    getQuestionSubmissionValue(question) {
+      const value = this.questionSubmissions?.find(({ questionId }) => questionId === question.questionId);
+      return value?.calculatedPoints;
+    },
+    getQuestionAnswers(question) {
+      if (!this.readonly) { return question.answers; }
+      const questionSubmissionDto = this.questionSubmissions?.find(s => s.questionId === question.questionId);
+      if (!questionSubmissionDto) { return []; }
+
+      const answers = questionSubmissionDto.answerDtoList;
+      const responses = questionSubmissionDto.answerSubmissionDtoList;
+      return answers.map(a => {
+        const resp = responses.find(r => r.answerId === a.answerId);
+        return {
+          ...a,
+          studentResponse: resp ? resp.answerId : false
+        };
+      });
+    },
+    getEssayResponse(question) {
+      if (!this.readonly) { return null; }
+      const questionSubmissionDto = this.questionSubmissions?.find(s => s.questionId === question.questionId);
+      if (!questionSubmissionDto) { return null; }
+      return questionSubmissionDto.answerSubmissionDtoList.find(a => a.questionSubmissionId === questionSubmissionDto.questionSubmissionId);
+    },
+    errorFooter() {
+      return `<div class="text--secondary body-2">
+                  <div>Timestamp: ${new Date().toString()}</div>
+                  <div>Experiment: ${this.experimentId}</div>
+                </div>`;
     },
     areAllQuestionsAnswered(answerableQuestions) {
       for (const question of answerableQuestions) {
@@ -313,55 +643,87 @@ export default {
         this.$refs.form.scrollIntoView({ behavior: "smooth" });
       });
     },
+    async viewAssignment() {
+      const experimentId = this.experimentId;
+      const step = "view_assignment";
+      return this.reportStep({ experimentId, step });
+    },
+    async attempt() {
+      const experimentId = this.experimentId;
+      const step = "launch_assignment";
+      this.readonly = false;
+      this.loading = true;
+      try {
+        const stepResponse = await this.reportStep({ experimentId, step });
+
+        if (stepResponse?.status === 200) {
+          const data = stepResponse?.data;
+          this.conditionId = data.conditionId;
+          this.treatmentId = data.treatmentId;
+          this.assessmentId = data.assessmentId;
+          this.submissionId = data.submissionId;
+
+          const { experimentId, conditionId, assessmentId, treatmentId, submissionId, questionSubmissionDtoList } = data;
+
+          this.submissions = questionSubmissionDtoList;
+
+          this.getQuestions(experimentId, conditionId, assessmentId, treatmentId, submissionId);
+
+        }else if(stepResponse?.status == 401) {
+          if (stepResponse?.data.toString().includes("Error 150:")) {
+            this.$swal({
+              target: "#app",
+              text: "You have no more attempts available",
+              icon: "error",
+              footer: this.errorFooter(),
+            });
+          }
+        }
+        this.loading = false;
+      } catch (e) {
+        console.error({ e });
+      }
+    },
   },
   async created() {
-    const experimentId = this.experimentId;
-    const step = "launch_assignment";
-
+    this.loading = true;
     try {
-      const stepResponse = await this.reportStep({ experimentId, step });
+      const stepResponse = await this.viewAssignment();
 
       if (stepResponse?.status === 200) {
-        const data = stepResponse?.data;
-        this.conditionId = data.conditionId;
-        this.treatmentId = data.treatmentId;
-        this.assessmentId = data.assessmentId;
-        this.submissionId = data.submissionId;
+        const { data } = stepResponse;
+        this.assignmentData = data;
 
-        await this.fetchAssessmentForSubmission([
-          experimentId,
-          data.conditionId,
-          data.treatmentId,
-          data.assessmentId,
-          data.submissionId,
-        ]);
+        const { retakeDetails } = data;
+        const { retakeAllowed, submissionAttemptsCount } = retakeDetails;
+        if (retakeAllowed && submissionAttemptsCount === 0) {
+          this.attempt();
+        } else {
+          this.readonly = true;
+        }
 
-        this.questionSubmissions = data.questionSubmissionDtoList;
-
-        this.questionValues = this.answerableQuestions.map((q) => {
-          return {
-            questionId: q.questionId,
-            answerId: null,
-            response: null,
-            type:q.questionType,
-          };
-        });
       }else if(stepResponse?.status == 401) {
          if (stepResponse?.data.toString().includes("Error 150:")) {
            this.$swal({
+             target: "#app",
              text: "You have no more attempts available",
              icon: "error",
+             footer: this.errorFooter(),
            });
          }
       }
     } catch (e) {
       console.error({ e });
     }
+    this.loading = false;
   },
 };
 </script>
 
 <style lang="scss" scoped>
+.v-application .v-sheet--outlined.yellow.lighten-5 {
+  border-color: #FFE0B2 !important;
+}
 .total-points {
   line-height: 24px;
   font-size: 16px;

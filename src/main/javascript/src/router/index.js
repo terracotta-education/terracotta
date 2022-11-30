@@ -1,3 +1,4 @@
+import OAuth2Redirect from '@/views/OAuth2Redirect.vue'
 import Vue from 'vue'
 import VueRouter from 'vue-router'
 import Home from '../views/Home.vue'
@@ -55,10 +56,11 @@ const routes = [
             component: () => import('../views/grading/AssignmentScores.vue')
           },
           {
-            path: 'assignment/:assignment_id/assessment/:assessment_id/condition/:condition_id/treatment/:treatment_id/participants/:participant_id/submissions/:submission_id/student-assignment-scores',
+            path: 'assignment/:assignment_id/assessment/:assessment_id/condition/:condition_id/treatment/:treatment_id/participants/:participant_id/student-assignment-scores',
             name: 'StudentSubmissionGrading',
             meta: {
-              previousStep: 'AssignmentScores'
+              previousStep: 'AssignmentScores',
+              stepActionText: 'SAVE'
             },
             component: () => import('../views/grading/StudentSubmissionGrading.vue')
           },
@@ -367,9 +369,30 @@ const routes = [
               previousStep: 'AssignmentTreatmentSelect'
             }
           },
+          {
+            path: 'exposure-sets/:exposure_id/assignment/:assignment_id/edit',
+            alias: 'editor',
+            name: 'AssignmentEditor',
+            component: () => import('../views/assignment/AssignmentEditor.vue'),
+            meta: {
+              currentSection: 'assignments',
+              currentStep: 'assignment_editor',
+              previousStep: 'ExperimentSummary',
+            }
+          },
         ]
       },
     ]
+  },
+  {
+    path: '/oauth2-redirect',
+    name: 'oauth2-redirect',
+    component: OAuth2Redirect,
+    meta: {
+      appStyle: {
+        backgroundColor: "#fdf5f2",
+      },
+    }
   },
   {
     path: '*',

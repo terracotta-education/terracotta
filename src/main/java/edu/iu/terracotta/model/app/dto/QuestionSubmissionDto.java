@@ -19,6 +19,8 @@ public class QuestionSubmissionDto {
     private List<QuestionSubmissionCommentDto> questionSubmissionCommentDtoList;
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<AnswerSubmissionDto> answerSubmissionDtoList;
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private List<AnswerDto> answerDtoList;
 
     public Long getQuestionSubmissionId() { return questionSubmissionId; }
 
@@ -47,5 +49,14 @@ public class QuestionSubmissionDto {
     public List<AnswerSubmissionDto> getAnswerSubmissionDtoList() { return answerSubmissionDtoList; }
 
     public void setAnswerSubmissionDtoList(List<AnswerSubmissionDto> answerSubmissionDtoList) { this.answerSubmissionDtoList = answerSubmissionDtoList; }
+
+    public List<AnswerDto> getAnswerDtoList() {
+        return answerDtoList;
+    }
+
+    public void setAnswerDtoList(List<AnswerDto> answerDtoList) {
+        this.answerDtoList = answerDtoList;
+    }
+
 
 }

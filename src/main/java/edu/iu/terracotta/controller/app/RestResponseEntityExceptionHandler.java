@@ -408,4 +408,32 @@ public class RestResponseEntityExceptionHandler
         log.warn(bodyOfResponse);
         return handleExceptionInternal(ex, bodyOfResponse, new HttpHeaders(), HttpStatus.BAD_REQUEST, request);
     }
+
+    @ExceptionHandler(value = { RevealResponsesSettingValidationException.class })
+    protected ResponseEntity<Object> handleRevealResponsesSettingValidationException(
+                    RevealResponsesSettingValidationException ex,
+                    WebRequest request) {
+            String bodyOfResponse = ex.getMessage();
+            log.warn(bodyOfResponse);
+            return handleExceptionInternal(ex, bodyOfResponse, new HttpHeaders(), HttpStatus.BAD_REQUEST, request);
+    }
+
+    @ExceptionHandler(value = { MultipleAttemptsSettingsValidationException.class })
+    protected ResponseEntity<Object> handleMultipleAttemptsSettingsValidationException(
+                    MultipleAttemptsSettingsValidationException ex,
+                    WebRequest request) {
+            String bodyOfResponse = ex.getMessage();
+            log.warn(bodyOfResponse);
+            return handleExceptionInternal(ex, bodyOfResponse, new HttpHeaders(), HttpStatus.BAD_REQUEST, request);
+    }
+
+    @ExceptionHandler(value = { AssignmentAttemptException.class })
+    protected ResponseEntity<Object> handleAssignmentAttemptException(
+                    AssignmentAttemptException ex,
+                    WebRequest request) {
+            String bodyOfResponse = ex.getMessage();
+            log.warn(bodyOfResponse);
+            return handleExceptionInternal(ex, bodyOfResponse, new HttpHeaders(), HttpStatus.UNAUTHORIZED, request);
+    }
+
 }
