@@ -16,7 +16,7 @@ public enum ResponseOptionsCsv {
 
     private String header;
 
-    private ResponseOptionsCsv(String header) {
+    ResponseOptionsCsv(String header) {
         this.header = header;
     }
 

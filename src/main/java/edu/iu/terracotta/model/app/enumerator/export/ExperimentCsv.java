@@ -21,8 +21,7 @@ public enum ExperimentCsv {
 
     private String header;
 
-
-    private ExperimentCsv(String header) {
+    ExperimentCsv(String header) {
         this.header = header;
     }
 

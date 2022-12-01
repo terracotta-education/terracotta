@@ -26,7 +26,7 @@ public enum ItemResponsesCsv {
 
     private String header;
 
-    private ItemResponsesCsv(String header) {
+    ItemResponsesCsv(String header) {
         this.header = header;
     }
 
