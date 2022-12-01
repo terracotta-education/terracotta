@@ -179,16 +179,18 @@ public class ExportServiceImpl implements ExportService {
                     score = outcomeScore.getScoreNumeric().toString();
                 }
 
-                outcomeData.add(new String[]{outcomeId, participantId, String.valueOf(exposureId), source, outcomeName, pointsPossible, score});
                 Long groupId = outcomeScore.getParticipant().getGroup().getGroupId();
                 Optional<ExposureGroupCondition> groupConditionOptional =
                         allRepositories.exposureGroupConditionRepository.getByGroup_GroupIdAndExposure_ExposureId(groupId, exposureId);
 
                 if (groupConditionOptional.isPresent()) {
-                    ExposureGroupCondition groupCondition = groupConditionOptional.get();
                     outcomeData.add(new String[]{outcomeId, participantId, String.valueOf(exposureId), source, outcomeName, pointsPossible, score,
-                            groupCondition.getCondition().getName(), String.valueOf(groupCondition.getCondition().getConditionId())});
+                        groupConditionOptional.get().getCondition().getName(), String.valueOf(groupConditionOptional.get().getCondition().getConditionId())});
+                    return;
                 }
+
+                outcomeData.add(new String[]{outcomeId, participantId, String.valueOf(exposureId), source, outcomeName, pointsPossible, score,
+                    StringUtils.EMPTY, StringUtils.EMPTY});
             });
 
         csvFiles.put(OutcomesCsv.FILENAME, outcomeData);
