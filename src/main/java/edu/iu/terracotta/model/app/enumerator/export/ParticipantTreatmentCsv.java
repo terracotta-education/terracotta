@@ -21,7 +21,7 @@ public enum ParticipantTreatmentCsv {
 
     private String header;
 
-    private ParticipantTreatmentCsv(String header) {
+    ParticipantTreatmentCsv(String header) {
         this.header = header;
     }
 
