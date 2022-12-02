@@ -1,8 +1,29 @@
 package edu.iu.terracotta.service.app.impl;
 
-import edu.iu.terracotta.exceptions.*;
+import edu.iu.terracotta.exceptions.AnswerNotMatchingException;
+import edu.iu.terracotta.exceptions.AnswerSubmissionNotMatchingException;
+import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
+import edu.iu.terracotta.exceptions.AssignmentAttemptException;
+import edu.iu.terracotta.exceptions.CanvasApiException;
+import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.DuplicateQuestionException;
+import edu.iu.terracotta.exceptions.ExceedingLimitException;
+import edu.iu.terracotta.exceptions.IdInPostException;
+import edu.iu.terracotta.exceptions.IdMissingException;
+import edu.iu.terracotta.exceptions.InvalidUserException;
+import edu.iu.terracotta.exceptions.QuestionSubmissionNotMatchingException;
+import edu.iu.terracotta.exceptions.TypeNotSupportedException;
 import edu.iu.terracotta.model.LtiUserEntity;
-import edu.iu.terracotta.model.app.*;
+import edu.iu.terracotta.model.app.AnswerEssaySubmission;
+import edu.iu.terracotta.model.app.AnswerFileSubmission;
+import edu.iu.terracotta.model.app.AnswerMc;
+import edu.iu.terracotta.model.app.AnswerMcSubmission;
+import edu.iu.terracotta.model.app.Assessment;
+import edu.iu.terracotta.model.app.Assignment;
+import edu.iu.terracotta.model.app.Question;
+import edu.iu.terracotta.model.app.QuestionSubmission;
+import edu.iu.terracotta.model.app.QuestionSubmissionComment;
+import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.dto.AnswerDto;
 import edu.iu.terracotta.model.app.dto.AnswerSubmissionDto;
 import edu.iu.terracotta.model.app.dto.QuestionSubmissionCommentDto;
@@ -13,43 +34,53 @@ import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.AnswerService;
 import edu.iu.terracotta.service.app.AnswerSubmissionService;
+import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.service.app.QuestionSubmissionCommentService;
 import edu.iu.terracotta.service.app.QuestionSubmissionService;
 import edu.iu.terracotta.service.canvas.CanvasAPIClient;
 import edu.iu.terracotta.utils.TextConstants;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+@Slf4j
 @Component
 public class QuestionSubmissionServiceImpl implements QuestionSubmissionService {
 
-    static final Logger log = LoggerFactory.getLogger(QuestionSubmissionServiceImpl.class);
-
     @Autowired
-    AllRepositories allRepositories;
+    private AllRepositories allRepositories;
 
     @Autowired
     private AnswerService answerService;
 
     @Autowired
-    AnswerSubmissionService answerSubmissionService;
+    private AnswerSubmissionService answerSubmissionService;
 
     @Autowired
-    QuestionSubmissionCommentService questionSubmissionCommentService;
+    private FileStorageService fileStorageService;
 
     @Autowired
-    CanvasAPIClient canvasAPIClient;
+    private QuestionSubmissionCommentService questionSubmissionCommentService;
+
+    @Autowired
+    private CanvasAPIClient canvasAPIClient;
+
+    private ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     public List<QuestionSubmission> findAllBySubmissionId(Long submissionId) {
@@ -57,7 +88,7 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
     }
 
     @Override
-    public List<QuestionSubmissionDto> getQuestionSubmissions(long submissionId, boolean answerSubmissions, boolean questionSubmissionComments, long assessmentId, boolean isStudent) throws AssessmentNotMatchingException {
+    public List<QuestionSubmissionDto> getQuestionSubmissions(long submissionId, boolean answerSubmissions, boolean questionSubmissionComments, long assessmentId, boolean isStudent) throws AssessmentNotMatchingException, IOException {
         boolean showCorrectAnswers = true;
 
         if (isStudent) {
@@ -141,7 +172,7 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
         return returnedDtoList;
     }
 
-    private QuestionSubmissionDto toDto(QuestionSubmission questionSubmission, boolean answerSubmissions, boolean questionSubmissionComments, boolean showCorrectAnswers) {
+    private QuestionSubmissionDto toDto(QuestionSubmission questionSubmission, boolean answerSubmissions, boolean questionSubmissionComments, boolean showCorrectAnswers) throws IOException {
         QuestionSubmissionDto questionSubmissionDto = toDto(questionSubmission, answerSubmissions, questionSubmissionComments);
 
         List<AnswerDto> answerDtos = answerService.findAllByQuestionIdMC(questionSubmission.getQuestion().getQuestionId(), showCorrectAnswers);
@@ -151,7 +182,7 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
     }
 
     @Override
-    public QuestionSubmissionDto toDto(QuestionSubmission questionSubmission, boolean answerSubmissions, boolean questionSubmissionComments) {
+    public QuestionSubmissionDto toDto(QuestionSubmission questionSubmission, boolean answerSubmissions, boolean questionSubmissionComments) throws IOException {
         QuestionSubmissionDto questionSubmissionDto = new QuestionSubmissionDto();
         questionSubmissionDto.setQuestionSubmissionId(questionSubmission.getQuestionSubmissionId());
         questionSubmissionDto.setSubmissionId(questionSubmission.getSubmission().getSubmissionId());
@@ -168,17 +199,27 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
         }
         questionSubmissionDto.setQuestionSubmissionCommentDtoList(questionSubmissionCommentDtoList);
         List<AnswerSubmissionDto> answerSubmissionDtoList = new ArrayList<>();
+
         if (answerSubmissions) {
             List<AnswerMcSubmission> answerMcSubmissions = allRepositories.answerMcSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmission.getQuestionSubmissionId());
             List<AnswerEssaySubmission> answerEssaySubmissions = allRepositories.answerEssaySubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmission.getQuestionSubmissionId());
+            List<AnswerFileSubmission> answerFileSubmissions = allRepositories.answerFileSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmission.getQuestionSubmissionId());
+
             for (AnswerMcSubmission answerMcSubmission : answerMcSubmissions) {
                 answerSubmissionDtoList.add(answerSubmissionService.toDtoMC(answerMcSubmission));
             }
+
             for (AnswerEssaySubmission answerEssaySubmission : answerEssaySubmissions) {
                 answerSubmissionDtoList.add(answerSubmissionService.toDtoEssay(answerEssaySubmission));
             }
+
+            for (AnswerFileSubmission answerFileSubmission : answerFileSubmissions) {
+                answerSubmissionDtoList.add(answerSubmissionService.toDtoFile(answerFileSubmission));
+            }
         }
+
         questionSubmissionDto.setAnswerSubmissionDtoList(answerSubmissionDtoList);
+
         return questionSubmissionDto;
     }
 
@@ -279,7 +320,9 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
                 validateDtoPost(questionSubmissionDto, assessmentId, submissionId, student);
                 questionSubmissionDto.setSubmissionId(submissionId);
                 QuestionSubmission questionSubmission = fromDto(questionSubmissionDto);
-                if (questionSubmission.getQuestion().getQuestionType().equals(QuestionTypes.MC) || questionSubmission.getQuestion().getQuestionType().equals(QuestionTypes.ESSAY)) {
+                if (questionSubmission.getQuestion().getQuestionType().equals(QuestionTypes.MC)
+                    || questionSubmission.getQuestion().getQuestionType().equals(QuestionTypes.ESSAY)
+                    || questionSubmission.getQuestion().getQuestionType().equals(QuestionTypes.FILE)) {
                     if (questionSubmissionDto.getAnswerSubmissionDtoList() != null) {
                         if (questionSubmissionDto.getAnswerSubmissionDtoList().size() > 1) {
                             throw new ExceedingLimitException("Error 145: Multiple choice and essay questions can only have one answer submission.");
@@ -399,6 +442,47 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
 
         // all allowable submission checks have failed, disallow submit attempt
         throw new AssignmentAttemptException(TextConstants.MAX_SUBMISSION_ATTEMPTS_REACHED);
+    }
+
+    public List<QuestionSubmissionDto> handleFileQuestionSubmission(MultipartFile file, String questionSubmissionDtoStr, long experimentId, long assessmentId, long submissionId, boolean student, SecuredInfo securedInfo)
+            throws IOException, CanvasApiException, AssignmentAttemptException, IdInPostException, DataServiceException, DuplicateQuestionException, InvalidUserException, IdMissingException,
+                AnswerSubmissionNotMatchingException, AnswerNotMatchingException, ExceedingLimitException, TypeNotSupportedException {
+        String fileName = file.getResource().getFilename();
+        File tempFile = getFile(file, file.getName());
+
+        String uri = fileStorageService.saveFileSubmissionLocal(file);
+
+        QuestionSubmissionDto questionSubmissionDto = objectMapper.readValue(questionSubmissionDtoStr, QuestionSubmissionDto.class);
+
+        AnswerSubmissionDto answerSubmissionDto = new AnswerSubmissionDto();
+        answerSubmissionDto.setFileName(fileName);
+        answerSubmissionDto.setMimeType(file.getContentType());
+        answerSubmissionDto.setFile(tempFile);
+        answerSubmissionDto.setFileUri(uri);
+
+        List<AnswerSubmissionDto> answerSubmissionDtoList = new ArrayList<>();
+        answerSubmissionDtoList.add(answerSubmissionDto);
+        questionSubmissionDto.setAnswerSubmissionDtoList(answerSubmissionDtoList);
+
+        List<QuestionSubmissionDto> questionSubmissionDtoList = new ArrayList<>();
+        questionSubmissionDtoList.add(questionSubmissionDto);
+
+        canSubmit(securedInfo, experimentId);
+        validateAndPrepareQuestionSubmissionList(questionSubmissionDtoList, assessmentId, submissionId, student);
+
+        return postQuestionSubmissions(questionSubmissionDtoList, assessmentId, submissionId, student);
+    }
+
+    private File getFile(MultipartFile multipartFile, String fileName) {
+        File tempFile = new File(fileName);
+
+        try (FileOutputStream fos = new FileOutputStream(tempFile)) {
+            fos.write(multipartFile.getBytes());
+        } catch (IOException e) {
+            log.error("Error while converting Multipart file to file {}", tempFile.getName());
+        }
+
+        return tempFile;
     }
 
 }

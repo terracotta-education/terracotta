@@ -1,6 +1,22 @@
 package edu.iu.terracotta.controller.app;
 
-import edu.iu.terracotta.exceptions.*;
+import edu.iu.terracotta.exceptions.AnswerNotMatchingException;
+import edu.iu.terracotta.exceptions.AnswerSubmissionNotMatchingException;
+import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
+import edu.iu.terracotta.exceptions.AssignmentAttemptException;
+import edu.iu.terracotta.exceptions.BadTokenException;
+import edu.iu.terracotta.exceptions.CanvasApiException;
+import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.DuplicateQuestionException;
+import edu.iu.terracotta.exceptions.ExceedingLimitException;
+import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.exceptions.IdInPostException;
+import edu.iu.terracotta.exceptions.IdMissingException;
+import edu.iu.terracotta.exceptions.InvalidUserException;
+import edu.iu.terracotta.exceptions.NoSubmissionsException;
+import edu.iu.terracotta.exceptions.QuestionSubmissionNotMatchingException;
+import edu.iu.terracotta.exceptions.SubmissionNotMatchingException;
+import edu.iu.terracotta.exceptions.TypeNotSupportedException;
 import edu.iu.terracotta.model.app.QuestionSubmission;
 import edu.iu.terracotta.model.app.dto.QuestionSubmissionDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
@@ -8,6 +24,7 @@ import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.QuestionSubmissionService;
 import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.utils.TextConstants;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,9 +35,11 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.HttpServletRequest;
+
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
@@ -53,7 +72,7 @@ public class QuestionSubmissionController {
                                                                                           @RequestParam(name = "answer_submissions", defaultValue = "false") boolean answerSubmissions,
                                                                                           @RequestParam(name = "question_submission_comments", defaultValue = "false") boolean questionSubmissionComments,
                                                                                           HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, SubmissionNotMatchingException, BadTokenException, InvalidUserException {
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, SubmissionNotMatchingException, BadTokenException, InvalidUserException, IOException {
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
@@ -89,7 +108,7 @@ public class QuestionSubmissionController {
                                                                        @RequestParam(name = "answer_submissions", defaultValue = "false") boolean answerSubmissions,
                                                                        @RequestParam(name = "question_submission_comments", defaultValue = "false") boolean questionSubmissionComments,
                                                                        HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, BadTokenException, InvalidUserException {
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, BadTokenException, InvalidUserException, IOException {
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -257,4 +276,45 @@ public class QuestionSubmissionController {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
     }
+
+    @PostMapping(value = "/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}/submissions/{submissionId}/question_submissions/file",
+            consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
+    public ResponseEntity<List<QuestionSubmissionDto>> postFileQuestionSubmission(@PathVariable long experimentId,
+                                                                                  @PathVariable long conditionId,
+                                                                                  @PathVariable long treatmentId,
+                                                                                  @PathVariable long assessmentId,
+                                                                                  @PathVariable long submissionId,
+                                                                                  @RequestParam("question_dto") String questionSubmissionDtoStr,
+                                                                                  UriComponentsBuilder ucBuilder,
+                                                                                  @RequestPart("file") MultipartFile file,
+                                                                                  HttpServletRequest req)
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, BadTokenException, InvalidUserException, TypeNotSupportedException, DataServiceException, IdInPostException, IOException, SubmissionNotMatchingException, NoSubmissionsException, CanvasApiException, IdMissingException, ExceedingLimitException, AnswerNotMatchingException, DuplicateQuestionException, AnswerSubmissionNotMatchingException, AssignmentAttemptException {
+
+        if (file.isEmpty()) {
+            log.error("File cannot be empty.");
+            return new ResponseEntity(TextConstants.FILE_MISSING, HttpStatus.BAD_REQUEST);
+        }
+
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
+        apijwtService.submissionAllowed(securedInfo, assessmentId, submissionId);
+
+        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+
+        boolean student = false;
+
+        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
+            submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
+            student = true;
+        }
+
+        List<QuestionSubmissionDto> returnedDtoList = questionSubmissionService.handleFileQuestionSubmission(file, questionSubmissionDtoStr, experimentId, assessmentId, submissionId, student, securedInfo);
+        HttpHeaders headers = questionSubmissionService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, submissionId);
+
+        return new ResponseEntity<>(returnedDtoList, headers, HttpStatus.CREATED);
+    }
+
 }

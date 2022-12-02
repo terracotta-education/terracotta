@@ -189,8 +189,14 @@ public class SubmissionServiceImpl implements SubmissionService {
             // answer submissions)
             boolean hasSubmitted = submission.getDateSubmitted() != null;
             List<QuestionSubmissionDto> questionSubmissionDtoList = questionSubmissionList.stream()
-                    .map(questionSubmission -> questionSubmissionService.toDto(questionSubmission, !hasSubmitted,
-                            false))
+                    .map(
+                        questionSubmission -> {
+                            try {
+                                return questionSubmissionService.toDto(questionSubmission, !hasSubmitted, false);
+                            } catch(Exception e) {
+                                return null;
+                            }
+                        })
                 .collect(Collectors.toList());
             submissionDto.setQuestionSubmissionDtoList(questionSubmissionDtoList);
         }
@@ -403,6 +409,7 @@ public class SubmissionServiceImpl implements SubmissionService {
                     }
                     break;
                 case ESSAY:
+                case FILE:
                     questionGraded = questionSubmission;
                     questionGraded.setCalculatedPoints(Float.valueOf("0"));
                     break;

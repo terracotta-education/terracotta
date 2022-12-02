@@ -17,11 +17,17 @@ import javax.persistence.MappedSuperclass;
 import javax.persistence.PrePersist;
 import javax.persistence.PreUpdate;
 import javax.persistence.Version;
+
+import lombok.Getter;
+import lombok.Setter;
+
 import java.sql.Timestamp;
 
 /**
  * Specialty class which handles the created_at and updated_at fields automatically
  */
+@Getter
+@Setter
 @MappedSuperclass
 public class BaseEntity {
 
@@ -43,30 +49,6 @@ public class BaseEntity {
     @PreUpdate
     void preUpdate() {
         this.updatedAt = new Timestamp(System.currentTimeMillis());
-    }
-
-    public Timestamp getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(Timestamp createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public Timestamp getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(Timestamp updatedAt) {
-        this.updatedAt = updatedAt;
-    }
-
-    public int getVersion() {
-        return version;
-    }
-
-    public void setVersion(int version) {
-        this.version = version;
     }
 
 }
