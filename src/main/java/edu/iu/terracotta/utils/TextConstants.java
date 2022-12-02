@@ -15,9 +15,6 @@ package edu.iu.terracotta.utils;
 
 public class TextConstants {
 
-
-
-
     private TextConstants() {
         throw new IllegalStateException("Utility class");
     }
@@ -71,5 +68,6 @@ public class TextConstants {
     public static final String UNABLE_TO_CREATE_TREATMENT = "Error 105: Unable to create Treatment: %s";
     public static final String UNABLE_TO_UPDATE_TREATMENT = "Error 160: Unable to update Treatment: %s";
     public static final String UNABLE_TO_MOVE_ASSIGNMENT_EXPOSURE_SAME = "Error: 161: Unable to move assignment. Current exposure and target exposure are the same.";
+    public static final String FILE_MISSING = "Error 151: The request does not contain a file";
 
 }

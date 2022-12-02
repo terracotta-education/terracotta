@@ -113,6 +113,12 @@
                   choice</v-list-item-title
                 >
               </v-list-item>
+              <v-list-item @click="handleAddQuestion('FILE')">
+                <v-list-item-title>
+                  <v-icon class="mr-1">mdi-radiobox-marked</v-icon>
+                    File upload
+                  </v-list-item-title>
+              </v-list-item>
             </v-list>
           </v-menu>
           <v-menu offset-y close-on-click close-on-content-click transition="slide-y-transition" v-model="copyMenuShown">
@@ -124,7 +130,7 @@
                 v-bind="attrs"
                 v-on="on"
                 class="mb-3 mt-3"
-                
+
                 :disabled="questions.length > 0"
               >
                 Copy Treatment From
@@ -213,6 +219,7 @@ import TreatmentSettings from "./TreatmentSettings.vue";
 import draggable from 'vuedraggable';
 import { assessmentService } from '@/services';
 import omitDeep from '../../helpers/deep-omit';
+import FileUploadQuestionEditor from "./FileUploadQuestionEditor.vue";
 
 export default {
   name: "TerracottaBuilder",
@@ -265,6 +272,7 @@ export default {
       return {
         MC: MultipleChoiceQuestionEditor,
         ESSAY: QuestionEditor,
+        FILE: FileUploadQuestionEditor,
       };
     },
     title: {
@@ -543,6 +551,7 @@ export default {
   components: {
     QuestionEditor,
     MultipleChoiceQuestionEditor,
+    FileUploadQuestionEditor,
     PageBreak,
     TreatmentSettings,
     draggable
@@ -555,7 +564,7 @@ v-expansion-panels {
   &, & > div {
     width: 100%;
   }
-  
+
 }
 .terracotta-builder {
   .v-expansion-panel-header {

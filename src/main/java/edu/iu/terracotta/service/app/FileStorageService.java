@@ -10,11 +10,17 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.core.io.Resource;
 
 import java.io.IOException;
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.security.GeneralSecurityException;
 import java.util.List;
 import java.util.Optional;
 
 public interface FileStorageService {
+
+    enum StorageType {
+        AWS
+    }
 
     String storeFile(MultipartFile file, String extraPath, Long experimentId, boolean consent);
 
@@ -46,5 +52,9 @@ public interface FileStorageService {
     void deleteConsentAssignment(long experimentId, SecuredInfo securedInfo) throws AssignmentNotEditedException, CanvasApiException;
 
     String parseHTMLFiles (String html);
+
+    String saveFileSubmissionLocal(MultipartFile file);
+
+    File getFileSubmissionLocal(long id);
 
 }

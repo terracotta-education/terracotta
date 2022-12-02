@@ -43,7 +43,7 @@ export default {
     emitValueChanged() {
       this.$emit("input", this.response);
     },
-    getColor(answer) { 
+    getColor(answer) {
       if (this.readonly) {
         if (answer.correct) {
           if (!this.showAnswers && !answer.studentResponse) {

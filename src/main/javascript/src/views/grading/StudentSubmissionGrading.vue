@@ -210,6 +210,30 @@
         </div>
       </template>
     </template>
+    <template v-else-if="question.questionType === 'FILE'">
+      <v-row>
+        <v-col cols="6">
+          <v-card>
+            <v-card-title>
+              <v-row>
+                <v-col cols="1">
+                </v-col>
+                <v-col cols="5">
+                  <v-btn class="ma-2"
+                         outlined
+                         :href="studentSubmittedAnswers[question.questionId].url"
+                         target="_blank">
+                    {{studentSubmittedAnswers[question.questionId].fileName}}
+                  </v-btn>
+                </v-col>
+              </v-row>
+
+            </v-card-title>
+
+          </v-card>
+        </v-col>
+      </v-row>
+    </template>
   </div>
 </template>
 
@@ -260,6 +284,10 @@ export default {
           } else if (question.questionType === "ESSAY") {
             answers[question.questionId] = this.studentSubmittedEssayResponse(
               question.questionId
+            );
+          } else if (question.questionType === "FILE") {
+            answers[question.questionId] = this.studentSubmittedFileResponse(
+                question.questionId
             );
           }
         }
@@ -370,6 +398,19 @@ export default {
         return answerSubmissionDtoList[0].response;
       }
     },
+
+    studentSubmittedFileResponse(questionId) {
+      const answerSubmissionDtoList = this.studentResponseForQuestionId(
+          questionId
+      ).answerSubmissionDtoList;
+      if (!answerSubmissionDtoList || answerSubmissionDtoList.length === 0) {
+        return null;
+      } else {
+        let file ={'fileName':answerSubmissionDtoList[0].fileName,'url':answerSubmissionDtoList[0].response}
+        return file;
+      }
+    },
+
     async saveExit() {
       const updateSubmissions = this.studentResponse.map((response) => {
         return {
@@ -416,7 +457,7 @@ export default {
       } catch (error) {
         return Promise.reject(error);
       }
-      
+
     },
     getQuestionIndex(question) {
       for (const questionPage of this.questionPages) {
