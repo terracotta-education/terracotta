@@ -11,13 +11,15 @@ public enum OutcomesCsv {
     SOURCE("source"),
     OUTCOME_NAME("outcome_name"),
     POINTS_POSSIBLE("points_possible"),
-    OUTCOME_SCORE("outcome_score");
+    OUTCOME_SCORE("outcome_score"),
+    CONDITION_NAME("condition_name"),
+    CONDITION_ID("condition_id");
 
     public static final String FILENAME = "outcomes.csv";
 
     private String header;
 
-    private OutcomesCsv(String header) {
+    OutcomesCsv(String header) {
         this.header = header;
     }
 

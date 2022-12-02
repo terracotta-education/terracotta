@@ -13,7 +13,7 @@ public enum ParticipantsCsv {
 
     private String header;
 
-    private ParticipantsCsv(String header) {
+    ParticipantsCsv(String header) {
         this.header = header;
     }
 

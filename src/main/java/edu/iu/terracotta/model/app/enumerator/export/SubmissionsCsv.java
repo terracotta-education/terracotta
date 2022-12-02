@@ -18,7 +18,7 @@ public enum SubmissionsCsv {
 
     private String header;
 
-    private SubmissionsCsv(String header) {
+    SubmissionsCsv(String header) {
         this.header = header;
     }
 

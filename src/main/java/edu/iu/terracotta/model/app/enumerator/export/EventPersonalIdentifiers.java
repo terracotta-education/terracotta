@@ -15,8 +15,7 @@ public enum EventPersonalIdentifiers {
 
     private String field;
 
-
-    private EventPersonalIdentifiers(String header) {
+    EventPersonalIdentifiers(String header) {
         this.field = header;
     }
 
