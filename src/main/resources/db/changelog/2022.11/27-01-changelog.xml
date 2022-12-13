@@ -21,9 +21,10 @@
     <changeSet author="machrist (generated)" id="1669567576303-6">
         <addUniqueConstraint columnNames="context_key, deployment_id" constraintName="UK_LTI_CONTEXT_ON_CONTEXT_KEY_AND_DEPLOYMENT_ID" tableName="lti_context"/>
     </changeSet>
-    <changeSet author="machrist (generated)" id="1669567576303-7">
+    <!-- removed due to data truncation error -->
+    <!-- changeSet author="machrist (generated)" id="1669567576303-7">
         <modifyDataType columnName="link_key" newDataType="VARCHAR(255)" tableName="lti_link"/>
-    </changeSet>
+    </changeSet -->
     <changeSet author="machrist (generated)" id="1669567576303-8">
         <addNotNullConstraint columnDataType="VARCHAR(255)" columnName="link_key" tableName="lti_link"/>
     </changeSet>
