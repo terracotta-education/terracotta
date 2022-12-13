@@ -62,7 +62,8 @@ public class TreatmentServiceImpl implements TreatmentService {
     }
 
     @Override
-    public List<TreatmentDto> getTreatments(Long conditionId, String canvasCourseId, long platformDeploymentId, boolean submissions)
+    public List<TreatmentDto> getTreatments(Long conditionId, String canvasCourseId,
+            boolean submissions, String instructorUserId)
             throws AssessmentNotMatchingException, NumberFormatException, CanvasApiException {
         List<Treatment> treatments = findAllByConditionId(conditionId);
 
@@ -73,7 +74,10 @@ public class TreatmentServiceImpl implements TreatmentService {
         List<TreatmentDto> treatmentDtoList = new ArrayList<>();
 
         for(Treatment treatment : treatments){
-            assignmentService.setAssignmentDtoAttrs(treatment.getAssignment(), canvasCourseId, platformDeploymentId);
+            // Only add assignment DTO attributes when an instructor user
+            if (instructorUserId != null) {
+                assignmentService.setAssignmentDtoAttrs(treatment.getAssignment(), canvasCourseId, instructorUserId);
+            }
             treatmentDtoList.add(toDto(treatment, submissions, true));
         }
 
@@ -226,14 +230,15 @@ public class TreatmentServiceImpl implements TreatmentService {
     }
 
     @Override
-    public TreatmentDto duplicateTreatment(long treatmentId, String canvasCourseId, long platformDeploymentId)
+    public TreatmentDto duplicateTreatment(long treatmentId, String canvasCourseId, String instructorUserId)
         throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, NumberFormatException,
             CanvasApiException, TreatmentNotMatchingException, QuestionNotMatchingException {
-        return duplicateTreatment(treatmentId, null, canvasCourseId, platformDeploymentId);
+        return duplicateTreatment(treatmentId, null, canvasCourseId, instructorUserId);
     }
 
     @Override
-    public TreatmentDto duplicateTreatment(long treatmentId, Assignment assignment, String canvasCourseId, long platformDeploymentId)
+    public TreatmentDto duplicateTreatment(long treatmentId, Assignment assignment, String canvasCourseId,
+            String instructorUserId)
         throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, NumberFormatException,
             CanvasApiException, TreatmentNotMatchingException, QuestionNotMatchingException {
         Treatment from = getTreatment(treatmentId);
@@ -256,7 +261,7 @@ public class TreatmentServiceImpl implements TreatmentService {
         from.setAssessment(null);
 
         Treatment newTreatment = save(from);
-        assignmentService.setAssignmentDtoAttrs(newTreatment.getAssignment(), canvasCourseId, platformDeploymentId);
+        assignmentService.setAssignmentDtoAttrs(newTreatment.getAssignment(), canvasCourseId, instructorUserId);
         TreatmentDto treatmentDto = toDto(newTreatment, false, true);
 
         // duplicate assessment

@@ -1,6 +1,7 @@
 package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.exceptions.*;
+import edu.iu.terracotta.model.LtiUserEntity;
 import edu.iu.terracotta.model.app.*;
 import edu.iu.terracotta.model.app.dto.OutcomeDto;
 import edu.iu.terracotta.model.app.dto.OutcomePotentialDto;
@@ -186,13 +187,16 @@ public class OutcomeServiceImpl implements OutcomeService {
     }
 
     @Override
-    public List<OutcomePotentialDto> potentialOutcomes(Long experimentId) throws DataServiceException, CanvasApiException {
+    public List<OutcomePotentialDto> potentialOutcomes(Long experimentId, String instructorUserId)
+            throws DataServiceException, CanvasApiException {
         Optional<Experiment> experiment = experimentService.findById(experimentId);
+        LtiUserEntity instructorUser = allRepositories.ltiUserRepository.findByUserKey(instructorUserId);
         List<Assignment> assignmentList = allRepositories.assignmentRepository.findByExposure_Experiment_ExperimentId(experimentId);
         List<OutcomePotentialDto> outcomePotentialDtos = new ArrayList<>();
         if (experiment.isPresent()) {
             String canvasCourseId = StringUtils.substringBetween(experiment.get().getLtiContextEntity().getContext_memberships_url(), "courses/", "/names");
-            List<AssignmentExtended> assignmentExtendedList = canvasAPIClient.listAssignments(canvasCourseId, experiment.get().getPlatformDeployment());
+            List<AssignmentExtended> assignmentExtendedList = canvasAPIClient.listAssignments(instructorUser,
+                    canvasCourseId);
             for (AssignmentExtended assignmentExtended : assignmentExtendedList) {
                 List<Assignment> matched = assignmentList.stream().filter(x -> {
                     if (assignmentExtended.getId().intValue() == Integer.valueOf(x.getLmsAssignmentId()).intValue()) {
@@ -230,10 +234,13 @@ public class OutcomeServiceImpl implements OutcomeService {
         if (outcome.getExternal() == null || !outcome.getExternal()) {
             return;
         }
-        participantService.refreshParticipants(outcome.getExposure().getExperiment().getExperimentId(), securedInfo, outcome.getExposure().getExperiment().getParticipants());
+        participantService.refreshParticipants(outcome.getExposure().getExperiment().getExperimentId(),
+                outcome.getExposure().getExperiment().getParticipants());
         List<OutcomeScore> newScores = new ArrayList<>();
         String canvasCourseId = StringUtils.substringBetween(outcome.getExposure().getExperiment().getLtiContextEntity().getContext_memberships_url(), "courses/", "/names");
-        List<Submission> submissions = canvasAPIClient.listSubmissions(Integer.parseInt(outcome.getLmsOutcomeId()), canvasCourseId, outcome.getExposure().getExperiment().getPlatformDeployment());
+        LtiUserEntity instructorUser = allRepositories.ltiUserRepository.findByUserKey(securedInfo.getUserId());
+        List<Submission> submissions = canvasAPIClient.listSubmissions(instructorUser,
+                Integer.parseInt(outcome.getLmsOutcomeId()), canvasCourseId);
         for (Submission submission : submissions) {
             boolean found = false;
             for (OutcomeScore outcomeScore : outcome.getOutcomeScores()) {

@@ -16,6 +16,8 @@ import edu.iu.terracotta.exceptions.TypeNotSupportedException;
 import edu.iu.terracotta.model.app.AnswerMcSubmission;
 import edu.iu.terracotta.model.app.QuestionSubmission;
 import edu.iu.terracotta.model.app.dto.QuestionSubmissionDto;
+import edu.iu.terracotta.model.oauth2.SecuredInfo;
+
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -63,7 +65,7 @@ public interface QuestionSubmissionService {
 
     void validateQuestionSubmission(QuestionSubmissionDto questionSubmissionDto) throws DataServiceException;
 
-    void canSubmit(String canvasCourseId, String assignmentId, String canvasUserIs, long platformDeploymentId)
+    void canSubmit(SecuredInfo securedInfo, long experimentId)
             throws CanvasApiException, IOException, AssignmentAttemptException;
 
 }

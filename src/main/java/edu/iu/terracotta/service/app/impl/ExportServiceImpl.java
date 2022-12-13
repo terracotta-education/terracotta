@@ -23,6 +23,7 @@ import edu.iu.terracotta.model.app.QuestionMc;
 import edu.iu.terracotta.model.app.QuestionSubmission;
 import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.Treatment;
+import edu.iu.terracotta.model.app.enumerator.ParticipationTypes;
 import edu.iu.terracotta.model.app.enumerator.export.EventPersonalIdentifiers;
 import edu.iu.terracotta.model.app.enumerator.export.ExperimentCsv;
 import edu.iu.terracotta.model.app.enumerator.export.ItemResponsesCsv;
@@ -41,6 +42,7 @@ import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.service.aws.AWSService;
 
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -179,16 +181,21 @@ public class ExportServiceImpl implements ExportService {
                     score = outcomeScore.getScoreNumeric().toString();
                 }
 
-                outcomeData.add(new String[]{outcomeId, participantId, String.valueOf(exposureId), source, outcomeName, pointsPossible, score});
-                Long groupId = outcomeScore.getParticipant().getGroup().getGroupId();
-                Optional<ExposureGroupCondition> groupConditionOptional =
-                        allRepositories.exposureGroupConditionRepository.getByGroup_GroupIdAndExposure_ExposureId(groupId, exposureId);
+                if (outcomeScore.getParticipant().getGroup() != null) {
+                    // participant has been assigned to a group; get exposure group condition
+                    Long groupId = outcomeScore.getParticipant().getGroup().getGroupId();
+                    Optional<ExposureGroupCondition> groupConditionOptional =
+                            allRepositories.exposureGroupConditionRepository.getByGroup_GroupIdAndExposure_ExposureId(groupId, exposureId);
 
-                if (groupConditionOptional.isPresent()) {
-                    ExposureGroupCondition groupCondition = groupConditionOptional.get();
-                    outcomeData.add(new String[]{outcomeId, participantId, String.valueOf(exposureId), source, outcomeName, pointsPossible, score,
-                            groupCondition.getCondition().getName(), String.valueOf(groupCondition.getCondition().getConditionId())});
+                    if (groupConditionOptional.isPresent()) {
+                        outcomeData.add(new String[]{outcomeId, participantId, String.valueOf(exposureId), source, outcomeName, pointsPossible, score,
+                            groupConditionOptional.get().getCondition().getName(), String.valueOf(groupConditionOptional.get().getCondition().getConditionId())});
+                        return;
+                    }
                 }
+
+                outcomeData.add(new String[]{outcomeId, participantId, String.valueOf(exposureId), source, outcomeName, pointsPossible, score,
+                    StringUtils.EMPTY, StringUtils.EMPTY});
             });
 
         csvFiles.put(OutcomesCsv.FILENAME, outcomeData);
@@ -270,6 +277,12 @@ public class ExportServiceImpl implements ExportService {
                 String participantId = participant.getParticipantId().toString();
                 String consentedAt = participant.getDateGiven().toString();
                 String consentSource = participant.getExperiment().getParticipationType().toString();
+
+                if (BooleanUtils.isTrue(participant.getConsent()) && participant.getGroup() == null) {
+                    // participant has consented, but not assigned to a group
+                    consentSource = ParticipationTypes.CONSENTED_BUT_NOT_ASSIGNED.toString();
+                }
+
                 participantData.add(new String[]{participantId, consentedAt, consentSource});
             });
 

@@ -49,6 +49,7 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -57,6 +58,8 @@ import java.util.Optional;
  */
 @Service
 public class APIJWTServiceImpl implements APIJWTService {
+
+    private static final String ISSUER_LMS_OAUTH_API_TOKEN_REQUEST = "lmsOAuthAPITokenRequest";
 
     static final Logger log = LoggerFactory.getLogger(APIJWTServiceImpl.class);
 
@@ -171,50 +174,80 @@ public class APIJWTServiceImpl implements APIJWTService {
 
     @Override
     public String buildJwt(boolean oneUse,
-                           List<String> roles,
-                           Long contextId,
-                           Long platformDeploymentId,
-                           String userId,
-                           Long assignmentId,
-                           Long experimentId,
-                           Boolean consent,
-                           String canvasUserId,
-                           String canvasUserGlobalId,
-                           String canvasLoginId,
-                           String canvasUserName,
-                           String canvasCourseId,
-                           String canvasAssignmentId,
-                           String dueAt,
-                           String lockAt,
-                           String unlockAt,
-                           String nonce
+            List<String> roles,
+            Long contextId,
+            Long platformDeploymentId,
+            String userId,
+            Long assignmentId,
+            Long experimentId,
+            Boolean consent,
+            String canvasUserId,
+            String canvasUserGlobalId,
+            String canvasLoginId,
+            String canvasUserName,
+            String canvasCourseId,
+            String canvasAssignmentId,
+            String dueAt,
+            String lockAt,
+            String unlockAt,
+            String nonce,
+            Integer allowedAttempts,
+            Integer studentAttempts
     ) throws GeneralSecurityException, IOException {
 
+        return buildJwt(oneUse, ISSUER_TERRACOTTA_API, roles, contextId, platformDeploymentId, userId, assignmentId,
+                experimentId, consent, canvasUserId, canvasUserGlobalId, canvasLoginId, canvasUserName, canvasCourseId,
+                canvasAssignmentId, dueAt, lockAt, unlockAt, nonce, allowedAttempts, studentAttempts);
+    }
+
+    private String buildJwt(boolean oneUse,
+            String issuer,
+            List<String> roles,
+            Long contextId,
+            Long platformDeploymentId,
+            String userId,
+            Long assignmentId,
+            Long experimentId,
+            Boolean consent,
+            String canvasUserId,
+            String canvasUserGlobalId,
+            String canvasLoginId,
+            String canvasUserName,
+            String canvasCourseId,
+            String canvasAssignmentId,
+            String dueAt,
+            String lockAt,
+            String unlockAt,
+            String nonce,
+            Integer allowedAttempts,
+            Integer studentAttempts) throws GeneralSecurityException, IOException {
+
         int length = 3600;
-        //We only allow 30 seconds (surely we can low that) for the one time token, because that one must be traded
+        // We only allow 30 seconds (surely we can low that) for the one time token,
+        // because that one must be traded
         // immediately
-        if (oneUse){
-            length = 300; //TODO, change this test value to 30
+        if (oneUse) {
+            length = 300; // TODO, change this test value to 30
         }
         Date date = new Date();
         Key toolPrivateKey = OAuthUtils.loadPrivateKey(ltiDataService.getOwnPrivateKey());
         JwtBuilder builder = Jwts.builder()
                 .setHeaderParam("kid", TextConstants.DEFAULT_KID)
                 .setHeaderParam("typ", "JWT")
-                .setIssuer("TERRACOTTA")
+                .setIssuer(issuer)
                 .setSubject(userId) // The clientId
-                .setAudience(ltiDataService.getLocalUrl())  //We send here the authToken url.
-                .setExpiration(DateUtils.addSeconds(date, length)) //a java.util.Date
-                .setNotBefore(date) //a java.util.Date
+                .setAudience(ltiDataService.getLocalUrl()) // We send here the authToken url.
+                .setExpiration(DateUtils.addSeconds(date, length)) // a java.util.Date
+                .setNotBefore(date) // a java.util.Date
                 .setIssuedAt(date) // for example, now
-                .claim("contextId", contextId)  //This is an specific claim to ask for tokens.
-                .claim("platformDeploymentId", platformDeploymentId)  //This is an specific claim to ask for tokens.
-                .claim("userId", userId)  //This is an specific claim to ask for tokens.
+                .claim("contextId", contextId) // This is an specific claim to ask for tokens.
+                .claim("platformDeploymentId", platformDeploymentId) // This is an specific claim to ask for tokens.
+                .claim("userId", userId) // This is an specific claim to ask for tokens.
                 .claim("roles", roles)
                 .claim("assignmentId", assignmentId)
                 .claim("consent", consent)
                 .claim("experimentId", experimentId)
-                .claim("oneUse", oneUse)  //This is an specific claim to ask for tokens.
+                .claim("oneUse", oneUse) // This is an specific claim to ask for tokens.
                 .claim("canvasUserId", canvasUserId)
                 .claim("canvasUserGlobalId", canvasUserGlobalId)
                 .claim("canvasLoginId", canvasLoginId)
@@ -225,15 +258,17 @@ public class APIJWTServiceImpl implements APIJWTService {
                 .claim("lockAt", lockAt)
                 .claim("unlockAt", unlockAt)
                 .claim("nonce", nonce)
-                .signWith(SignatureAlgorithm.RS256, toolPrivateKey);  //We sign it with our own private key. The platform has the public one.
+                .claim("allowedAttempts", allowedAttempts)
+                .claim("studentAttempts", studentAttempts)
+                .signWith(SignatureAlgorithm.RS256, toolPrivateKey); // We sign it with our own private key. The
+                                                                     // platform has the public one.
         String token = builder.compact();
-        if (oneUse){
+        if (oneUse) {
             apiDataService.addOneUseToken(token);
         }
         log.debug("Token Request: \n {} \n", token);
         return token;
     }
-
 
     /**
      * This JWT will contain the token request
@@ -241,30 +276,34 @@ public class APIJWTServiceImpl implements APIJWTService {
     @Override
     public String buildJwt(boolean oneUse, LTI3Request lti3Request) throws GeneralSecurityException, IOException {
 
+        return buildJwt(oneUse, ISSUER_TERRACOTTA_API, lti3Request);
+    }
+
+    private String buildJwt(boolean oneUse, String issuer, LTI3Request lti3Request)
+            throws GeneralSecurityException, IOException {
+
         String targetLinkUrl = lti3Request.getLtiTargetLinkUrl();
-        MultiValueMap<String, String> queryParams =
-                UriComponentsBuilder.fromUriString(targetLinkUrl).build().getQueryParams();
+        MultiValueMap<String, String> queryParams = UriComponentsBuilder.fromUriString(targetLinkUrl).build()
+                .getQueryParams();
         String assignmentIdText = queryParams.getFirst("assignment");
         Long assignmentId = null;
-        if (StringUtils.isNotBlank(assignmentIdText)){
+        if (StringUtils.isNotBlank(assignmentIdText)) {
             assignmentId = Long.parseLong(assignmentIdText);
         }
         String consentText = queryParams.getFirst("consent");
         boolean consent = false;
-        if (StringUtils.isNotBlank(consentText)){
-            if (consentText.equals("true")){
+        if (StringUtils.isNotBlank(consentText)) {
+            if (consentText.equals("true")) {
                 consent = true;
             }
         }
         String experimentIdText = queryParams.getFirst("experiment");
         Long experimentId = null;
-        if (StringUtils.isNotBlank(experimentIdText)){
+        if (StringUtils.isNotBlank(experimentIdText)) {
             experimentId = Long.parseLong(experimentIdText);
         }
 
-
-
-        return buildJwt(oneUse, lti3Request.getLtiRoles(),
+        return buildJwt(oneUse, issuer, lti3Request.getLtiRoles(),
                 lti3Request.getContext().getContextId(),
                 lti3Request.getKey().getKeyId(),
                 lti3Request.getUser().getUserKey(),
@@ -280,8 +319,32 @@ public class APIJWTServiceImpl implements APIJWTService {
                 lti3Request.getLtiCustom().get("due_at").toString(),
                 lti3Request.getLtiCustom().get("lock_at").toString(),
                 lti3Request.getLtiCustom().get("unlock_at").toString(),
-                lti3Request.getNonce());
+                lti3Request.getNonce(),
+                extractAllowedAttempts(lti3Request.getLtiCustom()),
+                extractStudentAttempts(lti3Request.getLtiCustom()));
 
+    }
+
+    @Override
+    public String generateStateForAPITokenRequest(LTI3Request lti3Request)
+            throws GeneralSecurityException, IOException {
+        return buildJwt(false, ISSUER_LMS_OAUTH_API_TOKEN_REQUEST, lti3Request);
+    }
+
+    @Override
+    public Optional<Jws<Claims>> validateStateForAPITokenRequest(String state) {
+
+        Jws<Claims> claims = validateToken(state);
+
+        if (claims != null) {
+            String issuer = claims.getBody().getIssuer();
+            if (!issuer.equals(ISSUER_LMS_OAUTH_API_TOKEN_REQUEST)) {
+                return Optional.empty();
+            }
+            return Optional.of(claims);
+        } else {
+            return Optional.empty();
+        }
     }
 
     @Override
@@ -340,6 +403,8 @@ public class APIJWTServiceImpl implements APIJWTService {
                 .claim("lockAt", tokenClaims.getBody().get("lockAt"))
                 .claim("unlockAt", tokenClaims.getBody().get("unlockAt"))
                 .claim("nonce", tokenClaims.getBody().get("nonce"))
+                .claim("allowedAttempts", tokenClaims.getBody().get("allowedAttempts"))
+                .claim("studentAttempts", tokenClaims.getBody().get("studentAttempts"))
                 .signWith(SignatureAlgorithm.RS256, toolPrivateKey);  //We sign it with our own private key. The platform has the public one.
         String newToken = builder.compact();
         log.debug("Token Request: \n {} \n", newToken);
@@ -385,6 +450,8 @@ public class APIJWTServiceImpl implements APIJWTService {
           securedInfo.setUnlockAt(extractTimestamp(claims,"unlockAt"));
           securedInfo.setNonce(claims.getBody().get("nonce").toString());
           securedInfo.setConsent((Boolean)claims.getBody().get("consent"));
+          securedInfo.setAllowedAttempts(claims.getBody().get("allowedAttempts", Integer.class));
+          securedInfo.setStudentAttempts(claims.getBody().get("studentAttempts", Integer.class));
           return securedInfo;
         } else {
           return null;
@@ -401,6 +468,54 @@ public class APIJWTServiceImpl implements APIJWTService {
         return extracted;
     }
 
+    private Integer parseInt(Object value) {
+        try {
+            return value != null ? Integer.valueOf(value.toString()) : null;
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    /**
+     * Get allowed_attempts from LTI custom claims (variable substitution). If
+     * allowed_attempts claim exists, but the value is null, return -1 instead. The
+     * special value -1 stands in place of null to indicate unlimited attempts since
+     * the value of null is indistinguishable from there not being an
+     * allowed_attempts claim.
+     *
+     * @param ltiCustomClaims
+     * @return
+     */
+    private Integer extractAllowedAttempts(Map<String, Object> ltiCustomClaims) {
+        if (ltiCustomClaims.containsKey("allowed_attempts")) {
+            Integer allowedAttempts = parseInt(ltiCustomClaims.get("allowed_attempts"));
+            if (allowedAttempts != null) {
+                return allowedAttempts;
+            } else if (ltiCustomClaims.get("allowed_attempts") == null) {
+                return -1;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Get student_attempts from LTI custom claims (variable substitution). If
+     * student_attempts claim exists, but the value is null, return 0 instead.
+     *
+     * @param ltiCustomClaims
+     * @return
+     */
+    private Integer extractStudentAttempts(Map<String, Object> ltiCustomClaims) {
+        if (ltiCustomClaims.containsKey("student_attempts")) {
+            Integer allowedAttempts = parseInt(ltiCustomClaims.get("student_attempts"));
+            if (allowedAttempts != null) {
+                return allowedAttempts;
+            } else if (ltiCustomClaims.get("student_attempts") == null) {
+                return 0;
+            }
+        }
+        return null;
+    }
     @Override
     public boolean isAdmin(SecuredInfo securedInfo){ return securedInfo.getRoles().contains(Roles.ADMIN); }
 

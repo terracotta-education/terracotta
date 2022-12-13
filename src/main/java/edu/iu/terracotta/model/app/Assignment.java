@@ -46,7 +46,7 @@ public class Assignment extends BaseEntity {
     @Column(name = "assignment_order")
     private Integer assignmentOrder;
 
-    @Column(name = "soft_deleted", columnDefinition = "boolean default false")
+    @Column(name = "soft_deleted")
     private Boolean softDeleted = false;
 
     // if null, no multiple attempts allowed; if zero, then the number of submissions is unlimited

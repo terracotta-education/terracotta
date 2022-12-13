@@ -5,7 +5,7 @@
         <v-col cols="8">
           <p class="header ma-0 pa-0">
             <v-img
-              src="@/assets/terracotta_logo_mark.svg"
+              src="../../public/terracotta_logo_mark.svg"
               class="mr-6"
               alt="Terracotta Logo"
               height="30"

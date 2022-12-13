@@ -1,8 +1,7 @@
 package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.exceptions.*;
-import edu.iu.terracotta.model.PlatformDeployment;
-import edu.iu.terracotta.model.ToolDeployment;
+import edu.iu.terracotta.model.LtiUserEntity;
 import edu.iu.terracotta.model.app.*;
 import edu.iu.terracotta.model.app.dto.AnswerDto;
 import edu.iu.terracotta.model.app.dto.AnswerSubmissionDto;
@@ -10,6 +9,7 @@ import edu.iu.terracotta.model.app.dto.QuestionSubmissionCommentDto;
 import edu.iu.terracotta.model.app.dto.QuestionSubmissionDto;
 import edu.iu.terracotta.model.app.enumerator.QuestionTypes;
 import edu.iu.terracotta.model.canvas.AssignmentExtended;
+import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.AnswerService;
 import edu.iu.terracotta.service.app.AnswerSubmissionService;
@@ -342,17 +342,41 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
     }
 
     @Override
-    public void canSubmit(String canvasCourseId, String assignmentId, String canvasUserId, long platformDeploymentId)
+    public void canSubmit(SecuredInfo securedInfo, long experimentId)
             throws CanvasApiException, AssignmentAttemptException, IOException {
 
-        PlatformDeployment platformDeployment = allRepositories.platformDeploymentRepository
-                .getOne(platformDeploymentId);
+        // There are two possible ways to do this check. First, and preferred,
+        // is using LTI custom variable substitution to get the allowed attempts
+        // and the number of student attempts. The second is by making Canvas
+        // API calls to get the same information.
 
-        Optional<AssignmentExtended> assignmentExtended = canvasAPIClient.listAssignment(canvasCourseId, Integer.parseInt(assignmentId), platformDeployment);
-        List<edu.ksu.canvas.model.assignment.Submission> submissionsList = canvasAPIClient.listSubmissions(Integer.parseInt(assignmentId), canvasCourseId, platformDeployment);
+        // (Approach #1) Using LTI custom variable substitution
+        if (securedInfo.getAllowedAttempts() != null && securedInfo.getStudentAttempts() != null) {
+            if (securedInfo.getAllowedAttempts() == -1) {
+                return;
+            }
+            if (securedInfo.getStudentAttempts() < securedInfo.getAllowedAttempts()) {
+                return;
+            }
+            throw new AssignmentAttemptException(TextConstants.MAX_SUBMISSION_ATTEMPTS_REACHED);
+        }
+
+        // (Approach #2) Using Canvas API calls
+        int assignmentIdInt = Integer.parseInt(securedInfo.getCanvasAssignmentId());
+        Assignment assignment = allRepositories.assignmentRepository
+                .findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(experimentId,
+                        securedInfo.getCanvasAssignmentId());
+        LtiUserEntity instructorUser = assignment.getExposure().getExperiment().getCreatedBy();
+        Optional<AssignmentExtended> assignmentExtended = canvasAPIClient.listAssignment(instructorUser,
+                securedInfo.getCanvasCourseId(),
+                assignmentIdInt);
+        List<edu.ksu.canvas.model.assignment.Submission> submissionsList = canvasAPIClient
+                .listSubmissions(instructorUser, assignmentIdInt, securedInfo.getCanvasCourseId());
 
         Optional<edu.ksu.canvas.model.assignment.Submission> submission = submissionsList.stream()
-            .filter(sub -> { return sub.getUser().getId() == Integer.parseInt(canvasUserId); })
+                .filter(sub -> {
+                    return sub.getUser().getId() == Integer.parseInt(securedInfo.getCanvasUserId());
+                })
             .findFirst();
 
         if (!assignmentExtended.isPresent() || !submission.isPresent()) {

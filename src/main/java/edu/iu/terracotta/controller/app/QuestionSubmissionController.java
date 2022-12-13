@@ -2,7 +2,6 @@ package edu.iu.terracotta.controller.app;
 
 import edu.iu.terracotta.exceptions.*;
 import edu.iu.terracotta.model.app.QuestionSubmission;
-import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.dto.QuestionSubmissionDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
@@ -139,11 +138,8 @@ public class QuestionSubmissionController {
             student = true;
         }
 
-        Submission submission = submissionService.getSubmission(experimentId, securedInfo.getUserId(), submissionId, student);
-        String assignmentId = submission.getAssessment().getTreatment().getAssignment().getLmsAssignmentId();
-
         try {
-            questionSubmissionService.canSubmit(securedInfo.getCanvasCourseId(), assignmentId,securedInfo.getCanvasUserId(), securedInfo.getPlatformDeploymentId());
+            questionSubmissionService.canSubmit(securedInfo, experimentId);
             questionSubmissionService.validateAndPrepareQuestionSubmissionList(questionSubmissionDtoList, assessmentId, submissionId, student);
             List<QuestionSubmissionDto> returnedDtoList = questionSubmissionService. postQuestionSubmissions(questionSubmissionDtoList, assessmentId, submissionId, student);
             HttpHeaders headers = questionSubmissionService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, submissionId);

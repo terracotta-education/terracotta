@@ -73,8 +73,6 @@ public class AdvantageMembershipServiceImpl implements AdvantageMembershipServic
             log.debug("GET_MEMBERSHIP -  " + GET_MEMBERSHIP);
             ResponseEntity<CourseUsers> membershipGetResponse = restTemplate.
                     exchange(GET_MEMBERSHIP, HttpMethod.GET, request, CourseUsers.class);
-            ResponseEntity<String> membershipGetResponse2 = restTemplate.
-                    exchange(GET_MEMBERSHIP, HttpMethod.GET, request, String.class);
             HttpStatus status = membershipGetResponse.getStatusCode();
             if (status.is2xxSuccessful()) {
                 courseUsers = membershipGetResponse.getBody();

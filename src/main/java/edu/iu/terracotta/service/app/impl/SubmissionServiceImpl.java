@@ -23,6 +23,8 @@ import edu.iu.terracotta.service.caliper.CaliperService;
 import edu.iu.terracotta.service.canvas.CanvasAPIClient;
 import edu.iu.terracotta.service.lti.AdvantageAGSService;
 import edu.iu.terracotta.utils.TextConstants;
+
+import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -674,7 +676,11 @@ public class SubmissionServiceImpl implements SubmissionService {
                 if (!submissionOptional.get().getParticipant().getLtiUserEntity().getUserKey().equals(securedInfo.getUserId())) {
                     throw new SubmissionNotMatchingException("Submission don't belong to the user");
                 }
-                Group group = submissionOptional.get().getParticipant().getGroup();
+                boolean consent = BooleanUtils.isTrue(submissionOptional.get().getParticipant().getConsent());
+                // Group is only used for determining treatment when participant
+                // has consented. Students that haven't given consent should
+                // always get the default condition's treatment.
+                Group group = consent ? submissionOptional.get().getParticipant().getGroup() : null;
                 Treatment treatment = submissionOptional.get().getAssessment().getTreatment();
                 Condition condition = treatment.getCondition();
                 if (group == null) {

@@ -39,7 +39,8 @@ public interface FileStorageService {
 
     FileInfoDto uploadFile(MultipartFile multipartFile, String prefix, String extraPath, long experimentId, boolean consent);
 
-    void uploadConsent(long experimentId, String title, FileInfoDto fileInfoDto) throws AssignmentNotCreatedException, CanvasApiException, AssignmentNotEditedException;
+    void uploadConsent(long experimentId, String title, FileInfoDto fileInfoDto, String instructorUserId)
+            throws AssignmentNotCreatedException, CanvasApiException, AssignmentNotEditedException;
 
     void deleteConsentAssignment(long experimentId, SecuredInfo securedInfo) throws AssignmentNotEditedException, CanvasApiException;
 

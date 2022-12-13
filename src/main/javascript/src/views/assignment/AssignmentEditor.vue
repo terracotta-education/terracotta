@@ -67,8 +67,13 @@ export default {
     },
   },
   methods: {
-    saveExit() {
-      this.$router.push({name:'Home'})
+    async saveExit() {
+      if (!this.contDisabled) {
+        const savedAssignment = await this.handleSaveAssignment();
+        if (savedAssignment) {
+          this.$router.push({name:'Home'});
+        }
+      }
     },
     ...mapActions({
       updateAssignment: 'assignment/updateAssignment',

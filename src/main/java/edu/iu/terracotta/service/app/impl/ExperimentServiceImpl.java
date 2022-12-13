@@ -156,8 +156,7 @@ public class ExperimentServiceImpl implements ExperimentService {
                                 experimentToChange.setConsentDocument(null);
                             }
                         } catch (CanvasApiException | AssignmentNotEditedException e) {
-                            log.warn("Consent from experiment " + experimentId + "was not deleted");
-                            e.printStackTrace();
+                            log.warn("Consent from experiment {} was not deleted", experimentId);
                         }
                     }
                     changeParticipantionType(experimentDto.getParticipationType(),experimentId, securedInfo);
@@ -329,8 +328,7 @@ public class ExperimentServiceImpl implements ExperimentService {
         try {
             fileStorageService.deleteConsentAssignment(id, securedInfo);
         } catch (CanvasApiException | AssignmentNotEditedException e) {
-            log.warn("Consent from experiment " + id + "was not deleted");
-            e.printStackTrace();
+            log.warn("Consent from experiment {} was not deleted", id);
         }
         allRepositories.experimentRepository.deleteByExperimentId(id);
     }
