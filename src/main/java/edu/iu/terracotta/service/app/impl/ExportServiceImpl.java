@@ -94,15 +94,25 @@ public class ExportServiceImpl implements ExportService {
     @Autowired
     private SubmissionService submissionService;
 
-    @Value("${app.export.batch.size:100}")
+    @Value("${app.export.batch.size:50}")
     private int exportBatchSize;
+
+    List<Assignment> assignments;
+    List<ExposureGroupCondition> exposureGroupConditions;
+    List<Treatment> treatments;
 
     @Override
     public Map<String, String> getFiles(long experimentId, SecuredInfo securedInfo) throws CanvasApiException, ParticipantNotUpdatedException, IOException {
         /*
+         * Prepare the datasets that will be utilized multiple times
+         */
+        prepareData(experimentId);
+
+        /*
          * Mapping: filename => temporary_file_path (/tmp/data.csv)
          */
         Map<String, String> files = new HashMap<>();
+
         int page = 0;
         List<Participant> participants = allRepositories.participantRepository.findByExperiment_ExperimentId(experimentId, PageRequest.of(page, exportBatchSize)).getContent();
         long consentedParticipantsCount = 0l;
@@ -166,18 +176,23 @@ public class ExportServiceImpl implements ExportService {
                 experiment.getParticipationType().toString(),
                 experiment.getDistributionType().toString(),
                 Timestamp.valueOf(LocalDateTime.now()).toString(),
-                String.valueOf(allRepositories.participantRepository.findByExperiment_ExperimentId(experimentId).size()),
+                String.valueOf(allRepositories.participantRepository.countByExperiment_ExperimentId(experimentId)),
                 String.valueOf(consentedParticipantsCount),
-                String.valueOf(allRepositories.conditionRepository.findByExperiment_ExperimentId(experimentId).size())
+                String.valueOf(allRepositories.conditionRepository.countByExperiment_ExperimentId(experimentId))
             });
         }
     }
 
     private void handleOutcomesCsv(long experimentId,  SecuredInfo securedInfo, Map<String, String> files) throws CanvasApiException, IOException, ParticipantNotUpdatedException {
-        List<Outcome> outcomes = outcomeService.findAllByExperiment(experimentId);
+        int outcomesPage = 0;
+        List<Outcome> outcomes = outcomeService.findAllByExperiment(experimentId, PageRequest.of(outcomesPage, exportBatchSize));
 
-        for (Outcome outcome : outcomes) {
-            outcomeService.updateOutcomeGrades(outcome.getOutcomeId(), securedInfo);
+        while (CollectionUtils.isNotEmpty(outcomes)) {
+            for (Outcome outcome : outcomes) {
+                outcomeService.updateOutcomeGrades(outcome.getOutcomeId(), securedInfo);
+            }
+
+            outcomes = outcomeService.findAllByExperiment(experimentId, PageRequest.of(++outcomesPage, exportBatchSize));
         }
 
         Path path = createTempFile();
@@ -195,11 +210,10 @@ public class ExportServiceImpl implements ExportService {
                     .forEach(outcomeScore -> {
                         if (outcomeScore.getParticipant().getGroup() != null) {
                             // participant has been assigned to a group; get exposure group condition
-                            Optional<ExposureGroupCondition> groupConditionOptional =
-                                allRepositories.exposureGroupConditionRepository.getByGroup_GroupIdAndExposure_ExposureId(
+                            Optional<ExposureGroupCondition> exposureGroupCondition = findExposureGroupConditionByGroupIdAndExposureId(
                                     outcomeScore.getParticipant().getGroup().getGroupId(), outcomeScore.getOutcome().getExposure().getExposureId());
 
-                            if (groupConditionOptional.isPresent()) {
+                            if (exposureGroupCondition.isPresent()) {
                                 writer.writeNext(new String[]{
                                     outcomeScore.getOutcome().getOutcomeId().toString(),
                                     outcomeScore.getParticipant().getParticipantId().toString(),
@@ -208,8 +222,8 @@ public class ExportServiceImpl implements ExportService {
                                     StringUtils.isBlank(outcomeScore.getOutcome().getTitle()) ? "N/A" : outcomeScore.getOutcome().getTitle(),
                                     outcomeScore.getOutcome().getMaxPoints().toString(),
                                     outcomeScore.getScoreNumeric() != null ? outcomeScore.getScoreNumeric().toString() : "N/A",
-                                    groupConditionOptional.get().getCondition().getName(),
-                                    String.valueOf(groupConditionOptional.get().getCondition().getConditionId())
+                                    exposureGroupCondition.get().getCondition().getName(),
+                                    String.valueOf(exposureGroupCondition.get().getCondition().getConditionId())
                                 });
 
                                 return;
@@ -253,18 +267,12 @@ public class ExportServiceImpl implements ExportService {
 
             CollectionUtils.emptyIfNull(participants).stream()
                 .filter(participant -> participant.getConsent() != null && participant.getConsent() && participant.getGroup() != null)
-                .forEach(participant -> {
-                    List<ExposureGroupCondition> egcList = allRepositories.exposureGroupConditionRepository.findByGroup_GroupId(participant.getGroup().getGroupId());
-
-                    CollectionUtils.emptyIfNull(egcList).stream()
-                        .forEach(egc -> {
-                            List<Assignment> assignments = allRepositories.assignmentRepository.findByExposure_ExposureIdAndSoftDeleted(egc.getExposure().getExposureId(), false);
-
-                            CollectionUtils.emptyIfNull(assignments).stream()
-                                .forEach(assignment -> {
-                                    List<Treatment> treatments = allRepositories.treatmentRepository.findByCondition_ConditionIdAndAssignment_AssignmentId(egc.getCondition().getConditionId(), assignment.getAssignmentId());
-
-                                    CollectionUtils.emptyIfNull(treatments).stream()
+                .forEach(participant ->
+                    CollectionUtils.emptyIfNull(findExposureGroupConditionByGroupId(participant.getGroup().getGroupId())).stream()
+                        .forEach(egc ->
+                            CollectionUtils.emptyIfNull(findAssignmentsByExposureIdAndActive(egc.getExposure().getExposureId())).stream()
+                                .forEach(assignment ->
+                                    CollectionUtils.emptyIfNull(findTreatmentByConditionIdAndAssignmentId(egc.getCondition().getConditionId(), assignment.getAssignmentId())).stream()
                                         .forEach(treatment ->
                                             writer.writeNext(
                                                 new String[] {
@@ -280,10 +288,10 @@ public class ExportServiceImpl implements ExportService {
                                                     calculateTimeRequiredBetweenAttempts(treatment.getAssignment().getHoursBetweenSubmissions()),
                                                     calculateFinalScore(participant, treatment.getAssessment())
                                                 })
-                                        );
-                                });
-                        });
-                });
+                                        )
+                                )
+                        )
+                );
         }
     }
 
@@ -413,7 +421,7 @@ public class ExportServiceImpl implements ExportService {
 
             while (CollectionUtils.isNotEmpty(questionSubmissions)) {
                 CollectionUtils.emptyIfNull(questionSubmissions).stream()
-                    .filter(questionSubmission -> questionSubmission.getSubmission().getParticipant().getConsent() != null && questionSubmission.getSubmission().getParticipant().getConsent())
+                    .filter(questionSubmission -> BooleanUtils.isNotFalse(questionSubmission.getSubmission().getParticipant().getConsent()))
                     .forEach(questionSubmission -> {
                         String response = "N/A";
                         String responseId = "N/A";
@@ -538,15 +546,20 @@ public class ExportServiceImpl implements ExportService {
         try (PrintStream printStream = new PrintStream(path.toString())) {
             printStream.println("[");
 
-            List<Event> events = allRepositories.eventRepository.findByParticipant_Experiment_ExperimentId(experimentId);
+            int page = 0;
+            List<Event> events = allRepositories.eventRepository.findByParticipant_Experiment_ExperimentId(experimentId, PageRequest.of(page, exportBatchSize)).getContent();
 
-            CollectionUtils.emptyIfNull(events).stream()
-                .filter(event -> event.getParticipant().getConsent() != null && event.getParticipant().getConsent() && event.getJson() != null)
-                .forEach(event -> {
-                    // Filter out personally identifying fields
-                    printStream.println(removePersonalIdentifiersFromEvent(event.getJson()));
-                    printStream.println(",");
-                });
+            while (CollectionUtils.isNotEmpty(events)) {
+                CollectionUtils.emptyIfNull(events).stream()
+                    .filter(event -> BooleanUtils.isNotFalse(event.getParticipant().getConsent()) && event.getJson() != null)
+                    .forEach(event -> {
+                        // Filter out personally identifying fields
+                        printStream.println(removePersonalIdentifiersFromEvent(event.getJson()));
+                        printStream.println(",");
+                    });
+
+                events = allRepositories.eventRepository.findByParticipant_Experiment_ExperimentId(experimentId, PageRequest.of(++page, exportBatchSize)).getContent();
+            }
 
             printStream.println("]");
         }
@@ -644,6 +657,39 @@ public class ExportServiceImpl implements ExportService {
 
     private CSVWriter createCsvFileWriter(Path path, boolean append) throws IOException {
         return new CSVWriter(new FileWriter(new File(path.toString()), append));
+    }
+
+    private void prepareData(long experimentId) {
+        exposureGroupConditions = allRepositories.exposureGroupConditionRepository.findByCondition_Experiment_ExperimentId(experimentId);
+        assignments = allRepositories.assignmentRepository.findByExposure_Experiment_ExperimentId(experimentId);
+        treatments = allRepositories.treatmentRepository.findByCondition_Experiment_ExperimentId(experimentId);
+    }
+
+    private List<ExposureGroupCondition> findExposureGroupConditionByGroupId(long groupId) {
+        return exposureGroupConditions.stream()
+            .filter(exposureGroupCondition -> exposureGroupCondition.getGroup().getGroupId() == groupId)
+            .collect(Collectors.toList());
+    }
+
+    private Optional<ExposureGroupCondition> findExposureGroupConditionByGroupIdAndExposureId(long groupId, long exposureId) {
+        return exposureGroupConditions.stream()
+            .filter(exposureGroupCondition -> exposureGroupCondition.getGroup().getGroupId() == groupId)
+            .filter(exposureGroupCondition -> exposureGroupCondition.getExposure().getExposureId() == exposureId)
+            .findFirst();
+    }
+
+    private List<Assignment> findAssignmentsByExposureIdAndActive(long exposureId) {
+        return assignments.stream()
+            .filter(assignment -> BooleanUtils.isNotTrue(assignment.getSoftDeleted()))
+            .filter(assignment -> assignment.getExposure().getExposureId() == exposureId)
+            .collect(Collectors.toList());
+    }
+
+    private List<Treatment> findTreatmentByConditionIdAndAssignmentId(long conditionId, long assignmentId) {
+        return treatments.stream()
+            .filter(treatment -> treatment.getCondition().getConditionId() == conditionId)
+            .filter(treatment -> treatment.getAssignment().getAssignmentId() == assignmentId)
+            .collect(Collectors.toList());
     }
 
 }
