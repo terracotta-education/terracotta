@@ -1,6 +1,9 @@
 package edu.iu.terracotta.repository;
 
 import edu.iu.terracotta.model.app.QuestionSubmission;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -14,6 +17,8 @@ public interface QuestionSubmissionRepository extends JpaRepository<QuestionSubm
     List<QuestionSubmission> findBySubmission_SubmissionId(Long submissionId);
 
     List<QuestionSubmission> findBySubmission_Participant_Experiment_ExperimentId(Long experimentId);
+
+    Page<QuestionSubmission> findBySubmission_Participant_Experiment_ExperimentId(Long experimentId, Pageable pageable);
 
     QuestionSubmission findByQuestionSubmissionId(Long questionSubmissionId);
 
