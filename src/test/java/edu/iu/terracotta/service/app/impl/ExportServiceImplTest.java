@@ -6,10 +6,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Path;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Collections;
@@ -23,6 +26,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.Spy;
+import org.springframework.core.env.Environment;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
@@ -64,6 +73,7 @@ import edu.iu.terracotta.repository.AnswerEssaySubmissionRepository;
 import edu.iu.terracotta.repository.AnswerMcRepository;
 import edu.iu.terracotta.repository.AssignmentRepository;
 import edu.iu.terracotta.repository.ConditionRepository;
+import edu.iu.terracotta.repository.EventRepository;
 import edu.iu.terracotta.repository.ExperimentRepository;
 import edu.iu.terracotta.repository.ExposureGroupConditionRepository;
 import edu.iu.terracotta.repository.OutcomeScoreRepository;
@@ -74,6 +84,7 @@ import edu.iu.terracotta.repository.SubmissionRepository;
 import edu.iu.terracotta.repository.TreatmentRepository;
 import edu.iu.terracotta.service.app.OutcomeService;
 import edu.iu.terracotta.service.app.SubmissionService;
+import edu.iu.terracotta.service.aws.AWSService;
 
 public class ExportServiceImplTest {
 
@@ -86,6 +97,7 @@ public class ExportServiceImplTest {
     @Mock private AnswerMcRepository answerMcRepository;
     @Mock private AssignmentRepository assignmentRepository;
     @Mock private ConditionRepository conditionRepository;
+    @Mock private EventRepository eventRepository;
     @Mock private ExperimentRepository experimentRepository;
     @Mock private ExposureGroupConditionRepository exposureGroupConditionRepository;
     @Mock private OutcomeScoreRepository outcomeScoreRepository;
@@ -95,6 +107,7 @@ public class ExportServiceImplTest {
     @Mock private SubmissionRepository submissionRepository;
     @Mock private TreatmentRepository treatmentRepository;
 
+    @Mock private AWSService awsService;
     @Mock private OutcomeService outcomeService;
     @Mock private SubmissionService submissionService;
 
@@ -103,10 +116,12 @@ public class ExportServiceImplTest {
     @Mock private Assessment assessment;
     @Mock private Assignment assignment;
     @Mock private Condition condition;
+    @Mock private Environment env;
     @Mock private Experiment experiment;
     @Mock private Exposure exposure;
     @Mock private ExposureGroupCondition exposureGroupCondition;
     @Mock private Group group;
+    @Mock private InputStream inputStream;
     @Mock private LtiContextEntity ltiContextEntity;
     @Mock private Outcome outcome;
     @Mock private OutcomeScore outcomeScore;
@@ -126,6 +141,7 @@ public class ExportServiceImplTest {
         allRepositories.answerMcRepository = answerMcRepository;
         allRepositories.assignmentRepository = assignmentRepository;
         allRepositories.conditionRepository = conditionRepository;
+        allRepositories.eventRepository = eventRepository;
         allRepositories.experimentRepository = experimentRepository;
         allRepositories.exposureGroupConditionRepository = exposureGroupConditionRepository;
         allRepositories.outcomeScoreRepository = outcomeScoreRepository;
@@ -138,19 +154,33 @@ public class ExportServiceImplTest {
         doReturn('X').when(exportService).mapResponsePosition(anyLong(), anyLong(), anyList());
 
         when(answerEssaySubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(anyLong())).thenReturn(Collections.singletonList(answerEssaySubmission));
-        when(answerMcRepository.findByQuestion_Assessment_Treatment_Condition_Experiment_ExperimentId(anyLong())).thenReturn(Collections.singletonList(answerMc));
+        when(answerMcRepository.findByQuestion_Assessment_Treatment_Condition_Experiment_ExperimentId(anyLong(), any(Pageable.class)))
+            .thenReturn(new PageImpl<>(Collections.singletonList(answerMc)))
+            .thenReturn(new PageImpl<>(Collections.emptyList()));
         when(assignmentRepository.findByExposure_ExposureIdAndSoftDeleted(1L, false)).thenReturn(Collections.singletonList(assignment));
         when(conditionRepository.findByExperiment_ExperimentId(anyLong())).thenReturn(Collections.singletonList(condition));
+        when(eventRepository.findByParticipant_Experiment_ExperimentId(anyLong())).thenReturn(Collections.emptyList());
         when(experimentRepository.findByExperimentId(anyLong())).thenReturn(experiment);
         when(exposureGroupConditionRepository.findByGroup_GroupId(anyLong())).thenReturn(Collections.singletonList(exposureGroupCondition));
         when(exposureGroupConditionRepository.getByGroup_GroupIdAndExposure_ExposureId(anyLong(), anyLong())).thenReturn(Optional.empty());
-        when(outcomeScoreRepository.findByOutcome_Exposure_Experiment_ExperimentId(anyLong())).thenReturn(Collections.singletonList(outcomeScore));
-        when(participantRepository.findByExperiment_ExperimentId(anyLong())).thenReturn(Collections.singletonList(participant));
-        when(questionRepository.findByAssessment_Treatment_Condition_Experiment_ExperimentId(anyLong())).thenReturn(Collections.singletonList(question));
-        when(questionSubmissionRepository.findBySubmission_Participant_Experiment_ExperimentId(anyLong())).thenReturn(Collections.singletonList(questionSubmission));
-        when(submissionRepository.findByParticipant_Experiment_ExperimentId(anyLong())).thenReturn(Collections.singletonList(submission));
+        when(outcomeScoreRepository.findByOutcome_Exposure_Experiment_ExperimentId(anyLong(), any(Pageable.class)))
+            .thenReturn(new PageImpl<>(Collections.singletonList(outcomeScore)))
+            .thenReturn(new PageImpl<>(Collections.emptyList()));
+        when(participantRepository.findByExperiment_ExperimentId(anyLong(), any(Pageable.class)))
+            .thenReturn(new PageImpl<>(Collections.singletonList(participant)))
+            .thenReturn(new PageImpl<>(Collections.emptyList()));
+        when(questionRepository.findByAssessment_Treatment_Condition_Experiment_ExperimentId(anyLong(), any(Pageable.class)))
+            .thenReturn(new PageImpl<>(Collections.singletonList(question)))
+            .thenReturn(new PageImpl<>(Collections.emptyList()));
+        when(questionSubmissionRepository.findBySubmission_Participant_Experiment_ExperimentId(anyLong(), any(Pageable.class)))
+            .thenReturn(new PageImpl<>(Collections.singletonList(questionSubmission)))
+            .thenReturn(new PageImpl<>(Collections.emptyList()));
+        when(submissionRepository.findByParticipant_Experiment_ExperimentId(anyLong(), any(Pageable.class)))
+            .thenReturn(new PageImpl<>(Collections.singletonList(submission)))
+            .thenReturn(new PageImpl<>(Collections.emptyList()));
         when(treatmentRepository.findByCondition_ConditionIdAndAssignment_AssignmentId(anyLong(), anyLong())).thenReturn(Collections.singletonList(treatment));
 
+        when(awsService.readFileFromS3Bucket(anyString(), anyString())).thenReturn(inputStream);
         when(outcomeService.findAllByExperiment(anyLong())).thenReturn(Collections.singletonList(outcome));
         when(submissionService.getScoreFromMultipleSubmissions(any(Participant.class), any(Assessment.class))).thenReturn(null);
 
@@ -163,6 +193,7 @@ public class ExportServiceImplTest {
         when(assignment.getAssignmentId()).thenReturn(1L);
         when(assignment.getTitle()).thenReturn("assignment1");
         when(condition.getConditionId()).thenReturn(1L);
+        when(env.getProperty(anyString())).thenReturn("aws_string");
         when(experiment.getExperimentId()).thenReturn(1L);
         when(experiment.getExposureType()).thenReturn(ExposureTypes.BETWEEN);
         when(experiment.getLtiContextEntity()).thenReturn(ltiContextEntity);
@@ -208,26 +239,21 @@ public class ExportServiceImplTest {
 
     @Test
     void testGetCsvFiles() throws CanvasApiException, ParticipantNotUpdatedException, IOException {
-        Map<String, List<String[]>> csvFiles = exportService.getCsvFiles(1L, securedInfo);
+        ReflectionTestUtils.setField(exportService, "exportBatchSize", 1);
 
-        assertNotNull(csvFiles);
-        assertEquals(8, csvFiles.size());
-        assertTrue(csvFiles.containsKey(ExperimentCsv.FILENAME));
-        assertEquals(ExperimentCsv.getHeaderRow().length, csvFiles.get(ExperimentCsv.FILENAME).get(0).length);
-        assertTrue(csvFiles.containsKey(ItemResponsesCsv.FILENAME));
-        assertEquals(ItemResponsesCsv.getHeaderRow().length, csvFiles.get(ItemResponsesCsv.FILENAME).get(0).length);
-        assertTrue(csvFiles.containsKey(ItemsCsv.FILENAME));
-        assertEquals(ItemsCsv.getHeaderRow().length, csvFiles.get(ItemsCsv.FILENAME).get(0).length);
-        assertTrue(csvFiles.containsKey(OutcomesCsv.FILENAME));
-        assertEquals(OutcomesCsv.getHeaderRow().length, csvFiles.get(OutcomesCsv.FILENAME).get(0).length);
-        assertTrue(csvFiles.containsKey(ParticipantTreatmentCsv.FILENAME));
-        assertEquals(ParticipantTreatmentCsv.getHeaderRow().length, csvFiles.get(ParticipantTreatmentCsv.FILENAME).get(0).length);
-        assertTrue(csvFiles.containsKey(ParticipantsCsv.FILENAME));
-        assertEquals(ParticipantsCsv.getHeaderRow().length, csvFiles.get(ParticipantsCsv.FILENAME).get(0).length);
-        assertTrue(csvFiles.containsKey(ResponseOptionsCsv.FILENAME));
-        assertEquals(ResponseOptionsCsv.getHeaderRow().length, csvFiles.get(ResponseOptionsCsv.FILENAME).get(0).length);
-        assertTrue(csvFiles.containsKey(SubmissionsCsv.FILENAME));
-        assertEquals(SubmissionsCsv.getHeaderRow().length, csvFiles.get(SubmissionsCsv.FILENAME).get(0).length);
+        Map<String, String> files = exportService.getFiles(1L, securedInfo);
+
+        assertNotNull(files);
+        assertEquals(10, files.size());
+        assertTrue(files.containsKey(ExperimentCsv.FILENAME));
+        assertTrue(files.containsKey(ItemResponsesCsv.FILENAME));
+        assertTrue(files.containsKey(ItemsCsv.FILENAME));
+        assertTrue(files.containsKey(OutcomesCsv.FILENAME));
+        assertTrue(files.containsKey(ParticipantTreatmentCsv.FILENAME));
+        assertTrue(files.containsKey(ParticipantsCsv.FILENAME));
+        assertTrue(files.containsKey(ResponseOptionsCsv.FILENAME));
+        assertTrue(files.containsKey(SubmissionsCsv.FILENAME));
+        assertTrue(files.containsKey("events.json"));
     }
 
 }
