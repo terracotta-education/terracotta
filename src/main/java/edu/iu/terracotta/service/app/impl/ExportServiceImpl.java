@@ -72,6 +72,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 @Service
@@ -556,19 +557,23 @@ public class ExportServiceImpl implements ExportService {
 
             int page = 0;
             List<Event> events = allRepositories.eventRepository.findByParticipant_Experiment_ExperimentId(experimentId, PageRequest.of(page, exportBatchSize)).getContent();
+            AtomicBoolean isFirstElement = new AtomicBoolean(true);
 
             while (CollectionUtils.isNotEmpty(events)) {
                 CollectionUtils.emptyIfNull(events).stream()
                     .filter(event -> BooleanUtils.isNotFalse(event.getParticipant().getConsent()) && event.getJson() != null)
                     .forEach(event -> {
+                        if (!isFirstElement.getAndSet(false)) {
+                            printStream.println(",");
+                        }
                         // Filter out personally identifying fields
-                        printStream.println(removePersonalIdentifiersFromEvent(event.getJson()));
-                        printStream.println(",");
+                        printStream.print(removePersonalIdentifiersFromEvent(event.getJson()));
                     });
 
                 events = allRepositories.eventRepository.findByParticipant_Experiment_ExperimentId(experimentId, PageRequest.of(++page, exportBatchSize)).getContent();
             }
 
+            printStream.println();
             printStream.println("]");
         }
     }
