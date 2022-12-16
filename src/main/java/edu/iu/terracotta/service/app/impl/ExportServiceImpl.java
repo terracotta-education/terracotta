@@ -708,5 +708,4 @@ public class ExportServiceImpl implements ExportService {
 
         return consentedParticipantsCount <= eventsOutputParticipantThreshold;
     }
-
 }
