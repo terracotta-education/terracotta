@@ -97,9 +97,16 @@ public class ExportServiceImpl implements ExportService {
     @Value("${app.export.batch.size:50}")
     private int exportBatchSize;
 
-    List<Assignment> assignments;
-    List<ExposureGroupCondition> exposureGroupConditions;
-    List<Treatment> treatments;
+    @Value("${app.export.enable.events.output:true}")
+    private boolean eventsOutputEnabled;
+
+    @Value("${app.export.events.output.participant.threshold:400}")
+    private int eventsOutputParticipantThreshold;
+
+    long consentedParticipantsCount;
+    private List<Assignment> assignments;
+    private List<ExposureGroupCondition> exposureGroupConditions;
+    private List<Treatment> treatments;
 
     @Override
     public Map<String, String> getFiles(long experimentId, SecuredInfo securedInfo) throws CanvasApiException, ParticipantNotUpdatedException, IOException {
@@ -115,11 +122,10 @@ public class ExportServiceImpl implements ExportService {
 
         int page = 0;
         List<Participant> participants = allRepositories.participantRepository.findByExperiment_ExperimentId(experimentId, PageRequest.of(page, exportBatchSize)).getContent();
-        long consentedParticipantsCount = 0l;
 
         while (CollectionUtils.isNotEmpty(participants)) {
             consentedParticipantsCount += CollectionUtils.emptyIfNull(participants).stream()
-                .filter(participant -> participant.getConsent() != null && participant.getConsent())
+                .filter(participant -> BooleanUtils.isNotFalse(participant.getConsent()))
                 .count();
 
             // participant_treatment.csv
@@ -150,7 +156,9 @@ public class ExportServiceImpl implements ExportService {
         handleResponseOptionsCsv(experimentId, files);
 
         // events.json
-        getJsonFiles(experimentId, files);
+        if (isEventExportAllowed()) {
+            getJsonFiles(experimentId, files);
+        }
 
         // README
         getReadMeFile(files);
@@ -541,7 +549,7 @@ public class ExportServiceImpl implements ExportService {
 
     public void getJsonFiles(Long experimentId, Map<String, String> files) throws IOException {
         Path path = createTempFile();
-        files.put("events.json", path.toString());
+        files.put(EventPersonalIdentifiers.FILENAME, path.toString());
 
         try (PrintStream printStream = new PrintStream(path.toString())) {
             printStream.println("[");
@@ -660,6 +668,7 @@ public class ExportServiceImpl implements ExportService {
     }
 
     private void prepareData(long experimentId) {
+        consentedParticipantsCount = 0l;
         exposureGroupConditions = allRepositories.exposureGroupConditionRepository.findByCondition_Experiment_ExperimentId(experimentId);
         assignments = allRepositories.assignmentRepository.findByExposure_Experiment_ExperimentId(experimentId);
         treatments = allRepositories.treatmentRepository.findByCondition_Experiment_ExperimentId(experimentId);
@@ -692,4 +701,11 @@ public class ExportServiceImpl implements ExportService {
             .collect(Collectors.toList());
     }
 
+    private boolean isEventExportAllowed() {
+        if (!eventsOutputEnabled) {
+            return false;
+        }
+
+        return consentedParticipantsCount <= eventsOutputParticipantThreshold;
+    }
 }
