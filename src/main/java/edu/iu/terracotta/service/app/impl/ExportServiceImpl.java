@@ -43,7 +43,6 @@ import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.service.aws.AWSService;
 
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -252,14 +251,22 @@ public class ExportServiceImpl implements ExportService {
                         });
                     });
 
-                outcomeScores = allRepositories.outcomeScoreRepository.findByOutcome_Exposure_Experiment_ExperimentId(experimentId, PageRequest.of(++page, exportBatchSize)).getContent();
-            }
-        }
-    }
+                if (outcomeScore.getParticipant().getGroup() != null) {
+                    // participant has been assigned to a group; get exposure group condition
+                    Long groupId = outcomeScore.getParticipant().getGroup().getGroupId();
+                    Optional<ExposureGroupCondition> groupConditionOptional =
+                            allRepositories.exposureGroupConditionRepository.getByGroup_GroupIdAndExposure_ExposureId(groupId, exposureId);
 
-    private void handleParticipantTreatmentCsv(List<Participant> participants, Map<String, String> files) throws IOException {
-        Path path;
-        boolean writeHeader = false;
+                    if (groupConditionOptional.isPresent()) {
+                        outcomeData.add(new String[]{outcomeId, participantId, String.valueOf(exposureId), source, outcomeName, pointsPossible, score,
+                            groupConditionOptional.get().getCondition().getName(), String.valueOf(groupConditionOptional.get().getCondition().getConditionId())});
+                        return;
+                    }
+                }
+
+                outcomeData.add(new String[]{outcomeId, participantId, String.valueOf(exposureId), source, outcomeName, pointsPossible, score,
+                    StringUtils.EMPTY, StringUtils.EMPTY});
+            });
 
         if (files.get(ParticipantTreatmentCsv.FILENAME) != null) {
             path = Paths.get(files.get(ParticipantTreatmentCsv.FILENAME));
@@ -330,9 +337,24 @@ public class ExportServiceImpl implements ExportService {
         return Float.toString(finalScore);
     }
 
-    private void handleParticpantsCsv(List<Participant> participants, Map<String, String> files) throws IOException {
-        Path path;
-        boolean writeHeader = false;
+    private void handleParticpantsCsv(List<Participant> participants, Map<String, List<String[]>> csvFiles) {
+        List<String[]> participantData = new ArrayList<>();
+        participantData.add(ParticipantsCsv.getHeaderRow());
+
+        CollectionUtils.emptyIfNull(participants).stream()
+            .filter(participant -> participant.getConsent() != null && participant.getConsent())
+            .forEach(participant -> {
+                String participantId = participant.getParticipantId().toString();
+                String consentedAt = participant.getDateGiven().toString();
+                String consentSource = participant.getExperiment().getParticipationType().toString();
+
+                if (BooleanUtils.isTrue(participant.getConsent()) && participant.getGroup() == null) {
+                    // participant has consented, but not assigned to a group
+                    consentSource = ParticipationTypes.CONSENTED_BUT_NOT_ASSIGNED.toString();
+                }
+
+                participantData.add(new String[]{participantId, consentedAt, consentSource});
+            });
 
         if (files.get(ParticipantsCsv.FILENAME) != null) {
             path = Paths.get(files.get(ParticipantsCsv.FILENAME));
