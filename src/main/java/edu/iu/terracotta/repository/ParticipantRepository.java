@@ -1,6 +1,9 @@
 package edu.iu.terracotta.repository;
 
 import edu.iu.terracotta.model.app.Participant;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -11,6 +14,10 @@ import java.util.Optional;
 
 public interface ParticipantRepository extends JpaRepository<Participant, Long> {
   List<Participant> findByExperiment_ExperimentId(Long experimentId);
+
+  long countByExperiment_ExperimentId(Long experimentId);
+
+  Page<Participant> findByExperiment_ExperimentId(Long experimentId, Pageable pageable);
 
   Optional<Participant> findByParticipantIdAndExperiment_ExperimentId(Long participantId, Long experimentId);
 

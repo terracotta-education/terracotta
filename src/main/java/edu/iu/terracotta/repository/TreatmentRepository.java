@@ -14,6 +14,8 @@ public interface TreatmentRepository extends JpaRepository<Treatment, Long> {
 
     List<Treatment> findByCondition_ConditionIdAndAssignment_AssignmentId(Long conditionId, Long assignmentId);
 
+    List<Treatment> findByCondition_Experiment_ExperimentId(Long experimentId);
+
     List<Treatment> findByAssignment_AssignmentId(Long assignmentId);
 
     Treatment findByTreatmentId(Long treatmentId);

@@ -1,6 +1,9 @@
 package edu.iu.terracotta.repository;
 
 import edu.iu.terracotta.model.app.Outcome;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -12,6 +15,8 @@ public interface OutcomeRepository extends JpaRepository<Outcome, Long> {
     List<Outcome> findByExposure_ExposureId(Long exposureId);
 
     List<Outcome> findByExposure_Experiment_ExperimentId(Long experimentId);
+
+    Page<Outcome> findByExposure_Experiment_ExperimentId(Long experimentId, Pageable pageable);
 
     Outcome findByOutcomeId(Long outcomeId);
 

@@ -26,6 +26,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -37,6 +38,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import javax.servlet.http.HttpServletRequest;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
@@ -171,22 +173,17 @@ public class ExperimentController {
         }
     }
 
-
-    @RequestMapping(value = "/{id}/zip", method = RequestMethod.GET, produces = "application/zip")
-    public ResponseEntity<ByteArrayResource> downloadZip(@PathVariable("id") Long experimentId,
-                                                         HttpServletRequest req)
+    @GetMapping(value = "/{experimentId}/zip", produces = "application/zip")
+    public ResponseEntity<ByteArrayResource> downloadZip(@PathVariable long experimentId, HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, IOException, CanvasApiException, ParticipantNotUpdatedException {
-
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
 
-        if(apijwtService.isInstructorOrHigher(securedInfo)){
-            Map<String, List<String[]>> csvFiles = exportService.getCsvFiles(experimentId, securedInfo);
-            Map<String, String> jsonFiles = exportService.getJsonFiles(experimentId);
-            Map<String, String> readMeFile = exportService.getReadMeFile();
-            return new ResponseEntity<>(ZipUtil.generateZipFile(csvFiles, jsonFiles,readMeFile), HttpStatus.OK);
-        } else {
+        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
+
+        return new ResponseEntity<>(ZipUtil.generateZipFile(exportService.getFiles(experimentId, securedInfo)), HttpStatus.OK);
     }
+
 }

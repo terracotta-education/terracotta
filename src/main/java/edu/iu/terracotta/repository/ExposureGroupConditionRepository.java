@@ -1,6 +1,9 @@
 package edu.iu.terracotta.repository;
 
 import edu.iu.terracotta.model.app.ExposureGroupCondition;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -10,6 +13,8 @@ public interface ExposureGroupConditionRepository extends JpaRepository<Exposure
     Optional<ExposureGroupCondition> getByGroup_GroupIdAndExposure_ExposureId(Long groupId, Long exposureId);
 
     List<ExposureGroupCondition> findByGroup_GroupId(Long groupId);
+
+    Page<ExposureGroupCondition> findByGroup_GroupId(Long groupId, Pageable pageable);
 
     List<ExposureGroupCondition> findByCondition_Experiment_ExperimentId(Long experimentId);
 

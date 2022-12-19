@@ -11,7 +11,7 @@ public enum EventPersonalIdentifiers {
     CANVAS_USER_ID("canvas_user_id"),
     CANVAS_USER_GLOBAL_ID("canvas_user_global_id");
 
-    public static final String FILENAME = "experiment.csv";
+    public static final String FILENAME = "events.json";
 
     private String field;
 
