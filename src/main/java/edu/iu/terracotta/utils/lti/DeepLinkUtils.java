@@ -32,7 +32,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class DeepLinkUtils {
+public final class DeepLinkUtils {
 
     private DeepLinkUtils() {
         throw new IllegalStateException("Utility class");
@@ -64,7 +64,7 @@ public class DeepLinkUtils {
                 .claim(LtiStrings.LTI_VERSION, LtiStrings.LTI_VERSION_3)
                 .claim(LtiStrings.LTI_DATA, lti3Request.deepLinkData)
                 .claim(LtiStrings.LTI_CONTENT_ITEMS, new HashMap<String, Object>())
-                .signWith(SignatureAlgorithm.RS256, toolPrivateKey)  //We sign it
+                .signWith(toolPrivateKey, SignatureAlgorithm.RS256)  //We sign it
                 .compact();
 
         deepLinkJwtMap.put("jwt1", jwt1);
@@ -86,7 +86,7 @@ public class DeepLinkUtils {
                 .claim(LtiStrings.LTI_VERSION, LtiStrings.LTI_VERSION_3)
                 .claim(LtiStrings.LTI_DATA, lti3Request.deepLinkData)
                 .claim(LtiStrings.LTI_CONTENT_ITEMS, oneDeepLink)
-                .signWith(SignatureAlgorithm.RS256, toolPrivateKey)  //We sign it
+                .signWith(toolPrivateKey, SignatureAlgorithm.RS256)  //We sign it
                 .compact();
 
         deepLinkJwtMap.put("jwt2", jwt2);
@@ -109,7 +109,7 @@ public class DeepLinkUtils {
                 .claim(LtiStrings.LTI_VERSION, LtiStrings.LTI_VERSION_3)
                 .claim(LtiStrings.LTI_DATA, lti3Request.deepLinkData)
                 .claim(LtiStrings.LTI_CONTENT_ITEMS, oneDeepLinkNoLti)
-                .signWith(SignatureAlgorithm.RS256, toolPrivateKey)  //We sign it
+                .signWith(toolPrivateKey, SignatureAlgorithm.RS256)  //We sign it
                 .compact();
 
         deepLinkJwtMap.put("jwt2b", jwt2b);
@@ -132,7 +132,7 @@ public class DeepLinkUtils {
                 .claim(LtiStrings.LTI_VERSION, LtiStrings.LTI_VERSION_3)
                 .claim(LtiStrings.LTI_DATA, lti3Request.deepLinkData)
                 .claim(LtiStrings.LTI_CONTENT_ITEMS, multipleDeepLink)
-                .signWith(SignatureAlgorithm.RS256, toolPrivateKey)  //We sign it
+                .signWith(toolPrivateKey, SignatureAlgorithm.RS256)  //We sign it
                 .compact();
 
         deepLinkJwtMap.put("jwt3", jwt3);
@@ -155,7 +155,7 @@ public class DeepLinkUtils {
                 .claim(LtiStrings.LTI_VERSION, LtiStrings.LTI_VERSION_3)
                 .claim(LtiStrings.LTI_DATA, lti3Request.deepLinkData)
                 .claim(LtiStrings.LTI_CONTENT_ITEMS, multipleDeepLinkOnlyLti)
-                .signWith(SignatureAlgorithm.RS256, toolPrivateKey)  //We sign it
+                .signWith(toolPrivateKey, SignatureAlgorithm.RS256)  //We sign it
                 .compact();
 
         deepLinkJwtMap.put("jwt3b", jwt3b);
@@ -248,8 +248,8 @@ public class DeepLinkUtils {
 
         Map<String, Object> iframe = new HashMap<>();
         iframe.put("src", "https://www.youtube.com/embed/corV3-WsIro");
-        iframe.put("width", new Integer("560"));
-        iframe.put("height", new Integer("315"));
+        iframe.put("width", 560);
+        iframe.put("height", 315);
         deepLink2.put("iframe", iframe);
         deepLinks.add(deepLink2);
 
