@@ -18,6 +18,7 @@ import org.apache.commons.lang3.EnumUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -61,6 +62,11 @@ public class OutcomeServiceImpl implements OutcomeService {
     @Override
     public List<Outcome> findAllByExperiment(long experimentId) {
         return allRepositories.outcomeRepository.findByExposure_Experiment_ExperimentId(experimentId);
+    }
+
+    @Override
+    public List<Outcome> findAllByExperiment(long experimentId, Pageable pageable) {
+        return allRepositories.outcomeRepository.findByExposure_Experiment_ExperimentId(experimentId, pageable).getContent();
     }
 
     @Override

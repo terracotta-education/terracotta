@@ -4,6 +4,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.opencsv.CSVWriter;
+
 import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.model.app.AnswerEssaySubmission;
@@ -12,7 +14,6 @@ import edu.iu.terracotta.model.app.AnswerMcSubmission;
 import edu.iu.terracotta.model.app.AnswerMcSubmissionOption;
 import edu.iu.terracotta.model.app.Assessment;
 import edu.iu.terracotta.model.app.Assignment;
-import edu.iu.terracotta.model.app.Condition;
 import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.ExposureGroupCondition;
 import edu.iu.terracotta.model.app.Outcome;
@@ -23,6 +24,7 @@ import edu.iu.terracotta.model.app.QuestionMc;
 import edu.iu.terracotta.model.app.QuestionSubmission;
 import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.Treatment;
+import edu.iu.terracotta.model.app.enumerator.ParticipationTypes;
 import edu.iu.terracotta.model.app.enumerator.export.EventPersonalIdentifiers;
 import edu.iu.terracotta.model.app.enumerator.export.ExperimentCsv;
 import edu.iu.terracotta.model.app.enumerator.export.ItemResponsesCsv;
@@ -41,21 +43,36 @@ import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.service.aws.AWSService;
 
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
-import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
+import java.io.PrintStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 @Service
@@ -67,10 +84,10 @@ public class ExportServiceImpl implements ExportService {
     private AllRepositories allRepositories;
 
     @Autowired
-    private OutcomeService outcomeService;
+    private AWSService awsService;
 
     @Autowired
-    private AWSService awsService;
+    private OutcomeService outcomeService;
 
     @Autowired
     private Environment env;
@@ -78,162 +95,213 @@ public class ExportServiceImpl implements ExportService {
     @Autowired
     private SubmissionService submissionService;
 
+    @Value("${app.export.batch.size:50}")
+    private int exportBatchSize;
+
+    @Value("${app.export.enable.events.output:true}")
+    private boolean eventsOutputEnabled;
+
+    @Value("${app.export.events.output.participant.threshold:400}")
+    private int eventsOutputParticipantThreshold;
+
+    long consentedParticipantsCount;
+    private List<Assignment> assignments;
+    private List<ExposureGroupCondition> exposureGroupConditions;
+    private List<Treatment> treatments;
+
     @Override
-    public Map<String, List<String[]>> getCsvFiles(long experimentId, SecuredInfo securedInfo) throws CanvasApiException, ParticipantNotUpdatedException, IOException {
-        Map<String, List<String[]>> csvFiles = new HashMap<>();
-        List<Participant> participants = allRepositories.participantRepository.findByExperiment_ExperimentId(experimentId);
+    public Map<String, String> getFiles(long experimentId, SecuredInfo securedInfo) throws CanvasApiException, ParticipantNotUpdatedException, IOException {
+        /*
+         * Prepare the datasets that will be utilized multiple times
+         */
+        prepareData(experimentId);
+
+        /*
+         * Mapping: filename => temporary_file_path (/tmp/data.csv)
+         */
+        Map<String, String> files = new HashMap<>();
+
+        int page = 0;
+        List<Participant> participants = allRepositories.participantRepository.findByExperiment_ExperimentId(experimentId, PageRequest.of(page, exportBatchSize)).getContent();
+
+        while (CollectionUtils.isNotEmpty(participants)) {
+            consentedParticipantsCount += CollectionUtils.emptyIfNull(participants).stream()
+                .filter(participant -> BooleanUtils.isNotFalse(participant.getConsent()))
+                .count();
+
+            // participant_treatment.csv
+            handleParticipantTreatmentCsv(participants, files);
+
+            // participants.csv
+            handleParticpantsCsv(participants, files);
+
+            participants = allRepositories.participantRepository.findByExperiment_ExperimentId(experimentId, PageRequest.of(++page, exportBatchSize)).getContent();
+        }
 
         // experiment.csv
-        handleExperimentCsv(experimentId, participants, csvFiles);
+        handleExperimentCsv(experimentId, consentedParticipantsCount, files);
 
         // outcomes.csv
-        handleOutcomesCsv(experimentId, securedInfo, csvFiles);
-
-        // participant_treatment.csv
-        handleParticipantTreatmentCsv(participants, csvFiles);
-
-        // participants.csv
-        handleParticpantsCsv(participants, csvFiles);
+        handleOutcomesCsv(experimentId, securedInfo, files);
 
         // submissions.csv
-        handleSubmissionsCsv(experimentId, csvFiles);
+        handleSubmissionsCsv(experimentId, files);
 
         // items.csv
-        handleItemsCsv(experimentId, csvFiles);
+        handleItemsCsv(experimentId, files);
 
         // item_responses.csv
-        handleItemResponsesCsv(experimentId, csvFiles);
+        handleItemResponsesCsv(experimentId, files);
 
         // response_options.csv
-        handleResponseOptionsCsv(experimentId, csvFiles);
+        handleResponseOptionsCsv(experimentId, files);
 
-        return csvFiles;
+        // events.json
+        if (isEventExportAllowed()) {
+            getJsonFiles(experimentId, files);
+        }
+
+        // README
+        getReadMeFile(files);
+
+        return files;
     }
 
-    private void handleExperimentCsv(long experimentId, List<Participant> participants, Map<String, List<String[]>> csvFiles) {
-        List<String[]> experimentData = new ArrayList<>();
-        experimentData.add(ExperimentCsv.getHeaderRow());
-        Experiment experiment = allRepositories.experimentRepository.findByExperimentId(experimentId);
-        String exportExperimentId = experiment.getExperimentId().toString();
-        String courseId = String.valueOf(experiment.getLtiContextEntity().getContextId());
-        String experimentTitle = "N/A";
+    private void handleExperimentCsv(long experimentId, long consentedParticipantsCount, Map<String, String> files) throws IOException {
+        Path path = createTempFile();
+        files.put(ExperimentCsv.FILENAME, path.toString());
 
-        if (!StringUtils.isAllBlank(experiment.getTitle())) {
-            experimentTitle = experiment.getTitle();
-        }
+        try (CSVWriter writer = createCsvFileWriter(path)) {
+            writer.writeNext(ExperimentCsv.getHeaderRow());
 
-        String experimentDescription = "N/A";
+            Experiment experiment = allRepositories.experimentRepository.findByExperimentId(experimentId);
 
-        if (!StringUtils.isAllBlank(experiment.getDescription())) {
-            experimentDescription = experiment.getDescription();
-        }
-
-        String exposureType = experiment.getExposureType().toString();
-        String participationType = experiment.getParticipationType().toString();
-        String distributionType = experiment.getDistributionType().toString();
-        String exportAt = Timestamp.valueOf(LocalDateTime.now()).toString();
-        List<Participant> enrolled = allRepositories.participantRepository.findByExperiment_ExperimentId(experimentId);
-        String enrollmentCount = String.valueOf(enrolled.size());
-
-        List<Participant> consentedParticipants = CollectionUtils.emptyIfNull(participants).stream()
-            .filter(participant -> participant.getConsent() != null && participant.getConsent())
-            .collect(Collectors.toList());
-
-        String participantCount = String.valueOf(consentedParticipants.size());
-        List<Condition> conditions = allRepositories.conditionRepository.findByExperiment_ExperimentId(experimentId);
-        String conditionCount = String.valueOf(conditions.size());
-
-        experimentData.add(new String[] {exportExperimentId, courseId, experimentTitle, experimentDescription, exposureType,
-            participationType, distributionType, exportAt, enrollmentCount, participantCount, conditionCount});
-        csvFiles.put(ExperimentCsv.FILENAME, experimentData);
-    }
-
-    private void handleOutcomesCsv(long experimentId,  SecuredInfo securedInfo, Map<String, List<String[]>> csvFiles)
-        throws CanvasApiException, IOException, ParticipantNotUpdatedException {
-        List<Outcome> outcomes = outcomeService.findAllByExperiment(experimentId);
-
-        for (Outcome outcome : outcomes) {
-            outcomeService.updateOutcomeGrades(outcome.getOutcomeId(), securedInfo);
-        }
-
-        List<OutcomeScore> outcomeScores = allRepositories.outcomeScoreRepository.findByOutcome_Exposure_Experiment_ExperimentId(experimentId);
-        List<String[]> outcomeData = new ArrayList<>();
-        outcomeData.add(OutcomesCsv.getHeaderRow());
-
-        CollectionUtils.emptyIfNull(outcomeScores).stream()
-            .filter(outcomeScore -> outcomeScore.getParticipant().getConsent() != null && outcomeScore.getParticipant().getConsent())
-            .forEach(outcomeScore -> {
-                String outcomeId = outcomeScore.getOutcome().getOutcomeId().toString();
-                String participantId = outcomeScore.getParticipant().getParticipantId().toString();
-                Long exposureId = outcomeScore.getOutcome().getExposure().getExposureId();
-                String source = outcomeScore.getOutcome().getLmsType().toString();
-                String outcomeName = "N/A";
-
-                if (!StringUtils.isAllBlank(outcomeScore.getOutcome().getTitle())) {
-                    outcomeName = outcomeScore.getOutcome().getTitle();
-                }
-                String pointsPossible = outcomeScore.getOutcome().getMaxPoints().toString();
-                String score = "N/A";
-
-                if (outcomeScore.getScoreNumeric() != null) {
-                    score = outcomeScore.getScoreNumeric().toString();
-                }
-
-                Long groupId = outcomeScore.getParticipant().getGroup().getGroupId();
-                Optional<ExposureGroupCondition> groupConditionOptional =
-                        allRepositories.exposureGroupConditionRepository.getByGroup_GroupIdAndExposure_ExposureId(groupId, exposureId);
-
-                if (groupConditionOptional.isPresent()) {
-                    outcomeData.add(new String[]{outcomeId, participantId, String.valueOf(exposureId), source, outcomeName, pointsPossible, score,
-                        groupConditionOptional.get().getCondition().getName(), String.valueOf(groupConditionOptional.get().getCondition().getConditionId())});
-                    return;
-                }
-
-                outcomeData.add(new String[]{outcomeId, participantId, String.valueOf(exposureId), source, outcomeName, pointsPossible, score,
-                    StringUtils.EMPTY, StringUtils.EMPTY});
+            writer.writeNext(new String[] {
+                experiment.getExperimentId().toString(),
+                String.valueOf(experiment.getLtiContextEntity().getContextId()),
+                StringUtils.isAllBlank(experiment.getTitle()) ? "N/A" : experiment.getTitle(),
+                StringUtils.isAllBlank(experiment.getDescription()) ? "N/A" : experiment.getDescription(),
+                experiment.getExposureType().toString(),
+                experiment.getParticipationType().toString(),
+                experiment.getDistributionType().toString(),
+                Timestamp.valueOf(LocalDateTime.now()).toString(),
+                String.valueOf(allRepositories.participantRepository.countByExperiment_ExperimentId(experimentId)),
+                String.valueOf(consentedParticipantsCount),
+                String.valueOf(allRepositories.conditionRepository.countByExperiment_ExperimentId(experimentId))
             });
-
-        csvFiles.put(OutcomesCsv.FILENAME, outcomeData);
+        }
     }
 
-    private void handleParticipantTreatmentCsv(List<Participant> participants, Map<String, List<String[]>> csvFiles) {
-        List<String[]> participantTreatments = new ArrayList<>();
-        participantTreatments.add(ParticipantTreatmentCsv.getHeaderRow());
+    private void handleOutcomesCsv(long experimentId,  SecuredInfo securedInfo, Map<String, String> files) throws CanvasApiException, IOException, ParticipantNotUpdatedException {
+        int outcomesPage = 0;
+        List<Outcome> outcomes = outcomeService.findAllByExperiment(experimentId, PageRequest.of(outcomesPage, exportBatchSize));
 
-        CollectionUtils.emptyIfNull(participants).stream()
-            .filter(participant -> participant.getConsent() != null && participant.getConsent() && participant.getGroup() != null)
-            .forEach(participant -> {
-                String participantId = participant.getParticipantId().toString();
-                List<ExposureGroupCondition> egcList = allRepositories.exposureGroupConditionRepository.findByGroup_GroupId(participant.getGroup().getGroupId());
+        while (CollectionUtils.isNotEmpty(outcomes)) {
+            for (Outcome outcome : outcomes) {
+                outcomeService.updateOutcomeGrades(outcome.getOutcomeId(), securedInfo);
+            }
 
-                CollectionUtils.emptyIfNull(egcList).stream()
-                    .forEach(egc -> {
-                        String exposureId = egc.getExposure().getExposureId().toString();
-                        String conditionId = egc.getCondition().getConditionId().toString();
-                        final String conditionName = StringUtils.isNotBlank(egc.getCondition().getName()) ? egc.getCondition().getName() : "N/A";
+            outcomes = outcomeService.findAllByExperiment(experimentId, PageRequest.of(++outcomesPage, exportBatchSize));
+        }
 
-                        List<Assignment> assignments = allRepositories.assignmentRepository.findByExposure_ExposureIdAndSoftDeleted(egc.getExposure().getExposureId(), false);
+        Path path = createTempFile();
+        files.put(OutcomesCsv.FILENAME, path.toString());
 
-                        CollectionUtils.emptyIfNull(assignments).stream().forEach(assignment -> {
-                            String assignmentId = assignment.getAssignmentId().toString();
-                            String assignmentName = assignment.getTitle();
-                            List<Treatment> treatments = allRepositories.treatmentRepository.findByCondition_ConditionIdAndAssignment_AssignmentId(Long.parseLong(conditionId), Long.parseLong(assignmentId));
+        try (CSVWriter writer = createCsvFileWriter(path)) {
+            writer.writeNext(OutcomesCsv.getHeaderRow());
 
-                            CollectionUtils.emptyIfNull(treatments).stream()
-                                .forEach(treatment ->
-                                    participantTreatments.add(
-                                        new String[] {participantId, exposureId, conditionId, conditionName, assignmentId, assignmentName,
-                                            treatment.getTreatmentId().toString(), treatment.getAssessment().getMultipleSubmissionScoringScheme().toString(),
-                                            calculateAttemptsAllowed(treatment.getAssessment().getNumOfSubmissions()),
-                                            calculateTimeRequiredBetweenAttempts(treatment.getAssignment().getHoursBetweenSubmissions()),
-                                            calculateFinalScore(participant, treatment.getAssessment())
-                                        })
-                                );
+            int page = 0;
+            List<OutcomeScore> outcomeScores = allRepositories.outcomeScoreRepository.findByOutcome_Exposure_Experiment_ExperimentId(experimentId, PageRequest.of(page, exportBatchSize)).getContent();
+
+            while (CollectionUtils.isNotEmpty(outcomeScores)) {
+                CollectionUtils.emptyIfNull(outcomeScores).stream()
+                    .filter(outcomeScore -> outcomeScore.getParticipant().getConsent() != null && outcomeScore.getParticipant().getConsent())
+                    .forEach(outcomeScore -> {
+                        if (outcomeScore.getParticipant().getGroup() != null) {
+                            // participant has been assigned to a group; get exposure group condition
+                            Optional<ExposureGroupCondition> exposureGroupCondition = findExposureGroupConditionByGroupIdAndExposureId(
+                                    outcomeScore.getParticipant().getGroup().getGroupId(), outcomeScore.getOutcome().getExposure().getExposureId());
+
+                            if (exposureGroupCondition.isPresent()) {
+                                writer.writeNext(new String[]{
+                                    outcomeScore.getOutcome().getOutcomeId().toString(),
+                                    outcomeScore.getParticipant().getParticipantId().toString(),
+                                    String.valueOf(outcomeScore.getOutcome().getExposure().getExposureId()),
+                                    outcomeScore.getOutcome().getLmsType().toString(),
+                                    StringUtils.isBlank(outcomeScore.getOutcome().getTitle()) ? "N/A" : outcomeScore.getOutcome().getTitle(),
+                                    outcomeScore.getOutcome().getMaxPoints().toString(),
+                                    outcomeScore.getScoreNumeric() != null ? outcomeScore.getScoreNumeric().toString() : "N/A",
+                                    exposureGroupCondition.get().getCondition().getName(),
+                                    String.valueOf(exposureGroupCondition.get().getCondition().getConditionId())
+                                });
+
+                                return;
+                            }
+                        }
+
+                        writer.writeNext(new String[] {
+                            outcomeScore.getOutcome().getOutcomeId().toString(),
+                            outcomeScore.getParticipant().getParticipantId().toString(),
+                            String.valueOf(outcomeScore.getOutcome().getExposure().getExposureId()),
+                            outcomeScore.getOutcome().getLmsType().toString(),
+                            StringUtils.isBlank(outcomeScore.getOutcome().getTitle()) ? "N/A" : outcomeScore.getOutcome().getTitle(),
+                            outcomeScore.getOutcome().getMaxPoints().toString(),
+                            outcomeScore.getScoreNumeric() != null ? outcomeScore.getScoreNumeric().toString() : "N/A",
+                            StringUtils.EMPTY,
+                            StringUtils.EMPTY
                         });
                     });
-            });
 
-        csvFiles.put(ParticipantTreatmentCsv.FILENAME, participantTreatments);
+                outcomeScores = allRepositories.outcomeScoreRepository.findByOutcome_Exposure_Experiment_ExperimentId(experimentId, PageRequest.of(++page, exportBatchSize)).getContent();
+            }
+        }
+    }
+
+    private void handleParticipantTreatmentCsv(List<Participant> participants, Map<String, String> files) throws IOException {
+        Path path;
+        boolean writeHeader = false;
+
+        if (files.get(ParticipantTreatmentCsv.FILENAME) != null) {
+            path = Paths.get(files.get(ParticipantTreatmentCsv.FILENAME));
+        } else {
+            path = createTempFile();
+            files.put(ParticipantTreatmentCsv.FILENAME, path.toString());
+            writeHeader = true;
+        }
+
+        try (CSVWriter writer = createCsvFileWriter(path, true)) {
+            if (writeHeader) {
+                writer.writeNext(ParticipantTreatmentCsv.getHeaderRow());
+            }
+
+            CollectionUtils.emptyIfNull(participants).stream()
+                .filter(participant -> participant.getConsent() != null && participant.getConsent() && participant.getGroup() != null)
+                .forEach(participant ->
+                    CollectionUtils.emptyIfNull(findExposureGroupConditionByGroupId(participant.getGroup().getGroupId())).stream()
+                        .forEach(egc ->
+                            CollectionUtils.emptyIfNull(findAssignmentsByExposureIdAndActive(egc.getExposure().getExposureId())).stream()
+                                .forEach(assignment ->
+                                    CollectionUtils.emptyIfNull(findTreatmentByConditionIdAndAssignmentId(egc.getCondition().getConditionId(), assignment.getAssignmentId())).stream()
+                                        .forEach(treatment ->
+                                            writer.writeNext(
+                                                new String[] {
+                                                    participant.getParticipantId().toString(),
+                                                    egc.getExposure().getExposureId().toString(),
+                                                    egc.getCondition().getConditionId().toString(),
+                                                    StringUtils.isNotBlank(egc.getCondition().getName()) ? egc.getCondition().getName() : "N/A",
+                                                    assignment.getAssignmentId().toString(),
+                                                    assignment.getTitle(),
+                                                    treatment.getTreatmentId().toString(),
+                                                    treatment.getAssessment().getMultipleSubmissionScoringScheme().toString(),
+                                                    calculateAttemptsAllowed(treatment.getAssessment().getNumOfSubmissions()),
+                                                    calculateTimeRequiredBetweenAttempts(treatment.getAssignment().getHoursBetweenSubmissions()),
+                                                    calculateFinalScore(participant, treatment.getAssessment())
+                                                })
+                                        )
+                                )
+                        )
+                );
+        }
     }
 
     private String calculateAttemptsAllowed(Integer numOfSubmissions) {
@@ -262,205 +330,252 @@ public class ExportServiceImpl implements ExportService {
         return Float.toString(finalScore);
     }
 
-    private void handleParticpantsCsv(List<Participant> participants, Map<String, List<String[]>> csvFiles) {
-        List<String[]> participantData = new ArrayList<>();
-        participantData.add(ParticipantsCsv.getHeaderRow());
+    private void handleParticpantsCsv(List<Participant> participants, Map<String, String> files) throws IOException {
+        Path path;
+        boolean writeHeader = false;
 
-        CollectionUtils.emptyIfNull(participants).stream()
-            .filter(participant -> participant.getConsent() != null && participant.getConsent())
-            .forEach(participant -> {
-                String participantId = participant.getParticipantId().toString();
-                String consentedAt = participant.getDateGiven().toString();
-                String consentSource = participant.getExperiment().getParticipationType().toString();
-                participantData.add(new String[]{participantId, consentedAt, consentSource});
-            });
+        if (files.get(ParticipantsCsv.FILENAME) != null) {
+            path = Paths.get(files.get(ParticipantsCsv.FILENAME));
+        } else {
+            path = createTempFile();
+            files.put(ParticipantsCsv.FILENAME, path.toString());
+            writeHeader = true;
+        }
 
-        csvFiles.put(ParticipantsCsv.FILENAME, participantData);
+        try (CSVWriter writer = createCsvFileWriter(path, true)) {
+            if (writeHeader) {
+                writer.writeNext(ParticipantsCsv.getHeaderRow());
+            }
+
+            CollectionUtils.emptyIfNull(participants).stream()
+                .filter(participant -> participant.getConsent() != null && participant.getConsent())
+                .forEach(participant ->
+                    writer.writeNext(new String[] {
+                        participant.getParticipantId().toString(),
+                        participant.getDateGiven().toString(),
+                        BooleanUtils.isTrue(participant.getConsent()) && participant.getGroup() == null ?
+                            ParticipationTypes.CONSENTED_BUT_NOT_ASSIGNED.toString() : participant.getExperiment().getParticipationType().toString()
+                    })
+                );
+        }
     }
 
-    private void handleSubmissionsCsv(long experimentId, Map<String, List<String[]>> csvFiles) {
-        List<Submission> submissions = allRepositories.submissionRepository.findByParticipant_Experiment_ExperimentId(experimentId);
-        List<String[]> submissionData = new ArrayList<>();
-        submissionData.add(SubmissionsCsv.getHeaderRow());
+    private void handleSubmissionsCsv(long experimentId, Map<String, String> files) throws IOException {
+        Path path = createTempFile();
+        files.put(SubmissionsCsv.FILENAME, path.toString());
 
-        CollectionUtils.emptyIfNull(submissions).stream()
-            .filter(submission -> submission.getParticipant().getConsent() != null && submission.getParticipant().getConsent() && submission.getDateSubmitted() != null)
-            .forEach(submission -> {
-                String submittedAt = submission.getDateSubmitted().toString();
-                String participantId = submission.getParticipant().getParticipantId().toString();
-                String assignmentId = submission.getAssessment().getTreatment().getAssignment().getAssignmentId().toString();
-                String treatmentId = submission.getAssessment().getTreatment().getTreatmentId().toString();
-                String calculatedScore = submission.getCalculatedGrade().toString();
-                String overrideScore = submission.getAlteredCalculatedGrade().toString();
-                String finalScore = submission.getTotalAlteredGrade().toString();
-                String submissionId = submission.getSubmissionId().toString();
-                submissionData.add(new String[]{submissionId, participantId, assignmentId, treatmentId, submittedAt, calculatedScore, overrideScore, finalScore});
-            });
+        try (CSVWriter writer = createCsvFileWriter(path)) {
+            writer.writeNext(SubmissionsCsv.getHeaderRow());
 
-        csvFiles.put(SubmissionsCsv.FILENAME, submissionData);
+            int page = 0;
+            List<Submission> submissions = allRepositories.submissionRepository.findByParticipant_Experiment_ExperimentId(experimentId, PageRequest.of(page, exportBatchSize)).getContent();
+
+            while (CollectionUtils.isNotEmpty(submissions)) {
+                CollectionUtils.emptyIfNull(submissions).stream()
+                    .filter(submission -> submission.getParticipant().getConsent() != null && submission.getParticipant().getConsent() && submission.getDateSubmitted() != null)
+                    .forEach(submission ->
+                        writer.writeNext(new String[] {
+                            submission.getSubmissionId().toString(),
+                            submission.getParticipant().getParticipantId().toString(),
+                            submission.getAssessment().getTreatment().getAssignment().getAssignmentId().toString(),
+                            submission.getAssessment().getTreatment().getTreatmentId().toString(),
+                            submission.getDateSubmitted().toString(),
+                            submission.getCalculatedGrade().toString(),
+                            submission.getAlteredCalculatedGrade().toString(),
+                            submission.getTotalAlteredGrade().toString()
+                        })
+                );
+
+                submissions = allRepositories.submissionRepository.findByParticipant_Experiment_ExperimentId(experimentId, PageRequest.of(++page, exportBatchSize)).getContent();
+            }
+        }
     }
 
-    private void handleItemsCsv(long experimentId, Map<String, List<String[]>> csvFiles) {
-        List<Question> questions = allRepositories.questionRepository.findByAssessment_Treatment_Condition_Experiment_ExperimentId(experimentId);
-        List<String[]> questionData = new ArrayList<>();
-        questionData.add(ItemsCsv.getHeaderRow());
+    private void handleItemsCsv(long experimentId, Map<String, String> files) throws IOException {
+        Path path = createTempFile();
+        files.put(ItemsCsv.FILENAME, path.toString());
 
-        CollectionUtils.emptyIfNull(questions).stream()
-            .forEach(question -> {
-                String itemId = question.getQuestionId().toString();
-                String assignmentId = question.getAssessment().getTreatment().getAssignment().getAssignmentId().toString();
-                String treatmentId = question.getAssessment().getTreatment().getTreatmentId().toString();
-                String conditionId = question.getAssessment().getTreatment().getCondition().getConditionId().toString();
-                String itemText = "N/A";
+        try (CSVWriter writer = createCsvFileWriter(path)) {
+            writer.writeNext(ItemsCsv.getHeaderRow());
 
-                if (StringUtils.isNotBlank(question.getHtml())) {
-                    itemText = question.getHtml();
-                }
+            int page = 0;
+            List<Question> questions = allRepositories.questionRepository.findByAssessment_Treatment_Condition_Experiment_ExperimentId(experimentId, PageRequest.of(page, exportBatchSize)).getContent();
 
-                String itemFormat = question.getQuestionType().toString();
-                questionData.add(new String[] {itemId, assignmentId, treatmentId, conditionId, itemText, itemFormat});
-            });
+            while (CollectionUtils.isNotEmpty(questions)) {
+                CollectionUtils.emptyIfNull(questions).stream()
+                    .forEach(question ->
+                        writer.writeNext(new String[] {
+                            question.getQuestionId().toString(),
+                            question.getAssessment().getTreatment().getAssignment().getAssignmentId().toString(),
+                            question.getAssessment().getTreatment().getTreatmentId().toString(),
+                            question.getAssessment().getTreatment().getCondition().getConditionId().toString(),
+                            StringUtils.isNotBlank(question.getHtml()) ? question.getHtml() : "N/A",
+                            question.getQuestionType().toString()})
+                    );
 
-        csvFiles.put(ItemsCsv.FILENAME, questionData);
+                questions = allRepositories.questionRepository.findByAssessment_Treatment_Condition_Experiment_ExperimentId(experimentId, PageRequest.of(++page, exportBatchSize)).getContent();
+            }
+        }
     }
 
-    private void handleItemResponsesCsv(long experimentId, Map<String, List<String[]>> csvFiles) {
-        List<QuestionSubmission> questionSubmissions = allRepositories.questionSubmissionRepository.findBySubmission_Participant_Experiment_ExperimentId(experimentId);
-        List<String[]> questionSubmissionData = new ArrayList<>();
-        questionSubmissionData.add(ItemResponsesCsv.getHeaderRow());
+    private void handleItemResponsesCsv(long experimentId, Map<String, String> files) throws IOException {
+        Path path = createTempFile();
+        files.put(ItemResponsesCsv.FILENAME, path.toString());
 
-        CollectionUtils.emptyIfNull(questionSubmissions).stream()
-            .filter(questionSubmission -> questionSubmission.getSubmission().getParticipant().getConsent() != null && questionSubmission.getSubmission().getParticipant().getConsent())
-            .forEach(questionSubmission -> {
-                String itemResponseId = questionSubmission.getQuestionSubmissionId().toString();
-                String submissionId = questionSubmission.getSubmission().getSubmissionId().toString();
-                String assignmentId = questionSubmission.getQuestion().getAssessment().getTreatment().getAssignment().getAssignmentId().toString();
-                String conditionId = questionSubmission.getQuestion().getAssessment().getTreatment().getCondition().getConditionId().toString();
-                String treatmentId = questionSubmission.getQuestion().getAssessment().getTreatment().getTreatmentId().toString();
-                String participantId = questionSubmission.getSubmission().getParticipant().getParticipantId().toString();
-                String itemId = questionSubmission.getQuestion().getQuestionId().toString();
-                String responseType = questionSubmission.getQuestion().getQuestionType().toString();
-                String response = "N/A";
-                String responseId = "N/A";
-                String responsePosition = "N/A";
-                String correctness = "N/A";
-                String calculatedScore = "N/A";
-                String overrideScore = "N/A";
+        try (CSVWriter writer = createCsvFileWriter(path)) {
+            writer.writeNext(ItemResponsesCsv.getHeaderRow());
 
-                switch (questionSubmission.getQuestion().getQuestionType()) {
-                    case MC:
-                        List<AnswerMcSubmission> answerMcSubmissions = allRepositories.answerMcSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmission.getQuestionSubmissionId());
-                        if (CollectionUtils.isEmpty(answerMcSubmissions)) {
-                            break;
+            int page = 0;
+            List<QuestionSubmission> questionSubmissions = allRepositories.questionSubmissionRepository.findBySubmission_Participant_Experiment_ExperimentId(experimentId, PageRequest.of(page, exportBatchSize)).getContent();
+
+            while (CollectionUtils.isNotEmpty(questionSubmissions)) {
+                CollectionUtils.emptyIfNull(questionSubmissions).stream()
+                    .filter(questionSubmission -> BooleanUtils.isNotFalse(questionSubmission.getSubmission().getParticipant().getConsent()))
+                    .forEach(questionSubmission -> {
+                        String response = "N/A";
+                        String responseId = "N/A";
+                        String responsePosition = "N/A";
+                        String correctness = "N/A";
+                        String calculatedScore = "N/A";
+                        String overrideScore = "N/A";
+
+                        switch (questionSubmission.getQuestion().getQuestionType()) {
+                            case MC:
+                                List<AnswerMcSubmission> answerMcSubmissions = allRepositories.answerMcSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmission.getQuestionSubmissionId());
+                                if (CollectionUtils.isEmpty(answerMcSubmissions)) {
+                                    break;
+                                }
+
+                                AnswerMcSubmission answerMcSubmission = answerMcSubmissions.get(0);
+
+                                if (StringUtils.isNotBlank(answerMcSubmission.getAnswerMc().getHtml())) {
+                                    response = answerMcSubmission.getAnswerMc().getHtml();
+                                }
+
+                                responseId = answerMcSubmission.getAnswerMc().getAnswerMcId().toString();
+                                responsePosition = Character.toString(mapResponsePosition(questionSubmission.getQuestion().getQuestionId(),
+                                        answerMcSubmission.getAnswerMc().getAnswerMcId(),
+                                        questionSubmission.getAnswerMcSubmissionOptions()));
+                                correctness = answerMcSubmission.getAnswerMc().getCorrect().toString().toUpperCase(Locale.US);
+
+                                if (questionSubmission.getCalculatedPoints() != null) {
+                                    calculatedScore = questionSubmission.getCalculatedPoints().toString();
+                                }
+
+                                if (questionSubmission.getAlteredGrade() != null) {
+                                    overrideScore = questionSubmission.getAlteredGrade().toString();
+                                }
+
+                                break;
+
+                            case ESSAY:
+                                List<AnswerEssaySubmission> answerEssaySubmissions = allRepositories.answerEssaySubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmission.getQuestionSubmissionId());
+
+                                if (CollectionUtils.isEmpty(answerEssaySubmissions)) {
+                                    break;
+                                }
+
+                                AnswerEssaySubmission answerEssaySubmission = answerEssaySubmissions.get(0);
+
+                                if (StringUtils.isNotBlank(answerEssaySubmission.getResponse())) {
+                                    response = answerEssaySubmission.getResponse();
+                                }
+
+                                if (questionSubmission.getCalculatedPoints() != null) {
+                                    calculatedScore = answerEssaySubmission.getQuestionSubmission().getCalculatedPoints().toString();
+                                }
+
+                                if (questionSubmission.getAlteredGrade() != null) {
+                                    overrideScore = answerEssaySubmission.getQuestionSubmission().getAlteredGrade().toString();
+                                }
+
+                                break;
+
+                            default:
+                                break;
                         }
 
-                        AnswerMcSubmission answerMcSubmission = answerMcSubmissions.get(0);
+                        writer.writeNext(new String[] {
+                            questionSubmission.getQuestionSubmissionId().toString(),
+                            questionSubmission.getSubmission().getSubmissionId().toString(),
+                            questionSubmission.getQuestion().getAssessment().getTreatment().getAssignment().getAssignmentId().toString(),
+                            questionSubmission.getQuestion().getAssessment().getTreatment().getCondition().getConditionId().toString(),
+                            questionSubmission.getQuestion().getAssessment().getTreatment().getTreatmentId().toString(),
+                            questionSubmission.getSubmission().getParticipant().getParticipantId().toString(),
+                            questionSubmission.getQuestion().getQuestionId().toString(),
+                            questionSubmission.getQuestion().getQuestionType().toString(),
+                            response,
+                            responseId,
+                            responsePosition,
+                            correctness,
+                            questionSubmission.getSubmission().getDateSubmitted() != null ?  questionSubmission.getSubmission().getDateSubmitted().toString() : "N/A",
+                            questionSubmission.getQuestion().getPoints().toString(),
+                            calculatedScore,
+                            overrideScore
+                        });
+                    });
 
-                        if (StringUtils.isNotBlank(answerMcSubmission.getAnswerMc().getHtml())) {
-                            response = answerMcSubmission.getAnswerMc().getHtml();
-                        }
-
-                        responseId = answerMcSubmission.getAnswerMc().getAnswerMcId().toString();
-                        responsePosition = Character.toString(mapResponsePosition(Long.parseLong(itemId),
-                                answerMcSubmission.getAnswerMc().getAnswerMcId(),
-                                questionSubmission.getAnswerMcSubmissionOptions()));
-                        correctness = answerMcSubmission.getAnswerMc().getCorrect().toString().toUpperCase();
-
-                        if (questionSubmission.getCalculatedPoints() != null) {
-                            calculatedScore = questionSubmission.getCalculatedPoints().toString();
-                        }
-
-                        if (questionSubmission.getAlteredGrade() != null) {
-                            overrideScore = questionSubmission.getAlteredGrade().toString();
-                        }
-
-                        break;
-
-                    case ESSAY:
-                        List<AnswerEssaySubmission> answerEssaySubmissions = allRepositories.answerEssaySubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmission.getQuestionSubmissionId());
-
-                        if (CollectionUtils.isEmpty(answerEssaySubmissions)) {
-                            break;
-                        }
-
-                        AnswerEssaySubmission answerEssaySubmission = answerEssaySubmissions.get(0);
-
-                        if (StringUtils.isNotBlank(answerEssaySubmission.getResponse())) {
-                            response = answerEssaySubmission.getResponse();
-                        }
-
-                        if (questionSubmission.getCalculatedPoints() != null) {
-                            calculatedScore = answerEssaySubmission.getQuestionSubmission().getCalculatedPoints().toString();
-                        }
-
-                        if (questionSubmission.getAlteredGrade() != null) {
-                            overrideScore = answerEssaySubmission.getQuestionSubmission().getAlteredGrade().toString();
-                        }
-
-                        break;
-
-                    default:
-                        break;
-                }
-
-                String respondedAt = "N/A";
-
-                if (questionSubmission.getSubmission().getDateSubmitted() != null) {
-                    respondedAt = questionSubmission.getSubmission().getDateSubmitted().toString();
-                }
-
-                String pointsPossible = questionSubmission.getQuestion().getPoints().toString();
-                questionSubmissionData.add(new String[]{itemResponseId, submissionId, assignmentId, conditionId, treatmentId, participantId, itemId, responseType, response, responseId, responsePosition, correctness,
-                        respondedAt, pointsPossible, calculatedScore, overrideScore});
-            });
-
-        csvFiles.put(ItemResponsesCsv.FILENAME, questionSubmissionData);
+                questionSubmissions = allRepositories.questionSubmissionRepository.findBySubmission_Participant_Experiment_ExperimentId(experimentId, PageRequest.of(++page, exportBatchSize)).getContent();
+            }
+        }
     }
 
-    private void handleResponseOptionsCsv(long experimentId, Map<String, List<String[]>> csvFiles) {
-        List<AnswerMc> answerMcs = allRepositories.answerMcRepository.findByQuestion_Assessment_Treatment_Condition_Experiment_ExperimentId(experimentId);
-        List<String[]> answerData = new ArrayList<>();
-        answerData.add(ResponseOptionsCsv.getHeaderRow());
+    private void handleResponseOptionsCsv(long experimentId, Map<String, String> files) throws IOException {
+        Path path = createTempFile();
+        files.put(ResponseOptionsCsv.FILENAME, path.toString());
 
-        CollectionUtils.emptyIfNull(answerMcs).stream()
-            .forEach(answerMc -> {
-                String responseId = answerMc.getAnswerMcId().toString();
-                String itemId = answerMc.getQuestion().getQuestionId().toString();
-                String response = "N/A";
+        try (CSVWriter writer = createCsvFileWriter(path)) {
+            writer.writeNext(ResponseOptionsCsv.getHeaderRow());
 
-                if (!StringUtils.isAllBlank(answerMc.getHtml())) {
-                    response = answerMc.getHtml();
-                }
+            int page = 0;
+            List<AnswerMc> answerMcs = allRepositories.answerMcRepository.findByQuestion_Assessment_Treatment_Condition_Experiment_ExperimentId(experimentId, PageRequest.of(page, exportBatchSize)).getContent();
 
-                String responsePosition = Character.toString(mapResponsePosition(Long.parseLong(itemId), Long.parseLong(responseId)));
-                String correct = answerMc.getCorrect().toString().toUpperCase();
-                QuestionMc question = (QuestionMc) answerMc.getQuestion();
-                String randomized = Boolean.toString(question.isRandomizeAnswers()).toUpperCase();
-                answerData.add(new String[]{responseId, itemId, response, responsePosition, correct, randomized});
-            });
+            while (CollectionUtils.isNotEmpty(answerMcs)) {
+                CollectionUtils.emptyIfNull(answerMcs).stream()
+                    .forEach(answerMc ->
+                        writer.writeNext(new String[] {
+                            answerMc.getAnswerMcId().toString(),
+                            answerMc.getQuestion().getQuestionId().toString(),
+                            StringUtils.isNotBlank(answerMc.getHtml()) ? answerMc.getHtml() : "N/A",
+                            Character.toString(mapResponsePosition(answerMc.getQuestion().getQuestionId(), answerMc.getAnswerMcId())),
+                            answerMc.getCorrect().toString().toUpperCase(Locale.US),
+                            Boolean.toString(((QuestionMc) answerMc.getQuestion()).isRandomizeAnswers()).toUpperCase(Locale.US)
+                        })
+                    );
 
-        csvFiles.put(ResponseOptionsCsv.FILENAME, answerData);
+                answerMcs = allRepositories.answerMcRepository.findByQuestion_Assessment_Treatment_Condition_Experiment_ExperimentId(experimentId, PageRequest.of(++page, exportBatchSize)).getContent();
+            }
+        }
     }
 
-    @Override
-    public Map<String, String> getJsonFiles(Long experimentId) {
-        Map<String, String> jsonFiles = new HashMap<>();
+    public void getJsonFiles(Long experimentId, Map<String, String> files) throws IOException {
+        Path path = createTempFile();
+        files.put(EventPersonalIdentifiers.FILENAME, path.toString());
 
-        // events.json
-        List<Event> events = allRepositories.eventRepository.findByParticipant_Experiment_ExperimentId(experimentId);
-        List<String> caliperJsonEvents = new ArrayList<>();
+        try (PrintStream printStream = new PrintStream(path.toString())) {
+            printStream.println("[");
 
-        CollectionUtils.emptyIfNull(events).stream()
-            .filter(event -> event.getParticipant().getConsent() != null && event.getParticipant().getConsent() && event.getJson() != null)
-            .forEach(event -> {
-                // Filter out personally identifying fields
-                caliperJsonEvents.add(removePersonalIdentifiersFromEvent(event.getJson()));
-            });
+            int page = 0;
+            List<Event> events = allRepositories.eventRepository.findByParticipant_Experiment_ExperimentId(experimentId, PageRequest.of(page, exportBatchSize)).getContent();
+            AtomicBoolean isFirstElement = new AtomicBoolean(true);
 
-        String eventsJson = "[" + String.join(",", caliperJsonEvents) + "]";
-        jsonFiles.put("events.json", eventsJson);
+            while (CollectionUtils.isNotEmpty(events)) {
+                CollectionUtils.emptyIfNull(events).stream()
+                    .filter(event -> BooleanUtils.isNotFalse(event.getParticipant().getConsent()) && event.getJson() != null)
+                    .forEach(event -> {
+                        if (!isFirstElement.getAndSet(false)) {
+                            printStream.println(",");
+                        }
+                        // Filter out personally identifying fields
+                        printStream.print(removePersonalIdentifiersFromEvent(event.getJson()));
+                    });
 
-        return jsonFiles;
+                events = allRepositories.eventRepository.findByParticipant_Experiment_ExperimentId(experimentId, PageRequest.of(++page, exportBatchSize)).getContent();
+            }
+
+            printStream.println();
+            printStream.println("]");
+        }
     }
 
     /**
@@ -482,8 +597,7 @@ public class ExportServiceImpl implements ExportService {
      * @param answerMcSubmissionOptions
      * @return
      */
-    public char mapResponsePosition(Long questionId, Long answerId,
-                                    List<AnswerMcSubmissionOption> answerMcSubmissionOptions) {
+    public char mapResponsePosition(Long questionId, Long answerId, List<AnswerMcSubmissionOption> answerMcSubmissionOptions) {
         List<AnswerMc> answerList = null;
         // Randomized option order is stored in AnswerMcSubmissionOptions, sort
         // AnswerMc's by its order
@@ -535,22 +649,68 @@ public class ExportServiceImpl implements ExportService {
         }
     }
 
-
-    @Override
-    public Map<String, String> getReadMeFile() throws IOException {
-        Map<String, String> map = new HashMap<>();
+    public void getReadMeFile(Map<String, String> files) throws IOException {
         String readmeBucketName = env.getProperty("aws.bucket-name");
         String readmeObjectKey = env.getProperty("aws.object-key");
+        Path path = createTempFile();
+        files.put(readmeObjectKey, path.toString());
 
         try (InputStream inputStream = awsService.readFileFromS3Bucket(readmeBucketName, readmeObjectKey)) {
-            String text = new BufferedReader(
-                    new InputStreamReader(inputStream, StandardCharsets.UTF_8))
-                    .lines()
-                    .collect(Collectors.joining(System.lineSeparator()));
-
-            map.put(readmeObjectKey, text);
-            return map;
+            FileUtils.copyInputStreamToFile(inputStream, new File(path.toString()));
         }
     }
 
+    private Path createTempFile() throws IOException {
+        return Files.createTempFile(UUID.randomUUID().toString(), null);
+    }
+
+    private CSVWriter createCsvFileWriter(Path path) throws IOException {
+        return createCsvFileWriter(path, false);
+    }
+
+    private CSVWriter createCsvFileWriter(Path path, boolean append) throws IOException {
+        return new CSVWriter(new FileWriter(new File(path.toString()), append));
+    }
+
+    private void prepareData(long experimentId) {
+        consentedParticipantsCount = 0l;
+        exposureGroupConditions = allRepositories.exposureGroupConditionRepository.findByCondition_Experiment_ExperimentId(experimentId);
+        assignments = allRepositories.assignmentRepository.findByExposure_Experiment_ExperimentId(experimentId);
+        treatments = allRepositories.treatmentRepository.findByCondition_Experiment_ExperimentId(experimentId);
+    }
+
+    private List<ExposureGroupCondition> findExposureGroupConditionByGroupId(long groupId) {
+        return exposureGroupConditions.stream()
+            .filter(exposureGroupCondition -> exposureGroupCondition.getGroup().getGroupId() == groupId)
+            .collect(Collectors.toList());
+    }
+
+    private Optional<ExposureGroupCondition> findExposureGroupConditionByGroupIdAndExposureId(long groupId, long exposureId) {
+        return exposureGroupConditions.stream()
+            .filter(exposureGroupCondition -> exposureGroupCondition.getGroup().getGroupId() == groupId)
+            .filter(exposureGroupCondition -> exposureGroupCondition.getExposure().getExposureId() == exposureId)
+            .findFirst();
+    }
+
+    private List<Assignment> findAssignmentsByExposureIdAndActive(long exposureId) {
+        return assignments.stream()
+            .filter(assignment -> BooleanUtils.isNotTrue(assignment.getSoftDeleted()))
+            .filter(assignment -> assignment.getExposure().getExposureId() == exposureId)
+            .collect(Collectors.toList());
+    }
+
+    private List<Treatment> findTreatmentByConditionIdAndAssignmentId(long conditionId, long assignmentId) {
+        return treatments.stream()
+            .filter(treatment -> treatment.getCondition().getConditionId() == conditionId)
+            .filter(treatment -> treatment.getAssignment().getAssignmentId() == assignmentId)
+            .collect(Collectors.toList());
+    }
+
+    private boolean isEventExportAllowed() {
+        if (!eventsOutputEnabled) {
+            return false;
+        }
+
+        return consentedParticipantsCount <= eventsOutputParticipantThreshold;
+    }
 }

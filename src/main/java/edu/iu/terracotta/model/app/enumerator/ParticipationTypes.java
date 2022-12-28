@@ -4,5 +4,6 @@ public enum ParticipationTypes {
     CONSENT,
     MANUAL,
     AUTO,
-    NOSET
+    NOSET,
+    CONSENTED_BUT_NOT_ASSIGNED
 }

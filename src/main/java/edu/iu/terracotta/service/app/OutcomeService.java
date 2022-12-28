@@ -10,6 +10,7 @@ import edu.iu.terracotta.model.app.dto.OutcomeDto;
 import edu.iu.terracotta.model.app.dto.OutcomePotentialDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -22,6 +23,8 @@ public interface OutcomeService {
     List<Outcome> findAllByExposureId(Long exposureId);
 
     List<Outcome> findAllByExperiment(long experimentId);
+
+    List<Outcome> findAllByExperiment(long experimentId, Pageable pageable);
 
     List<OutcomeDto> getOutcomes(Long exposureId);
 
