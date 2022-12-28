@@ -25,6 +25,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.JwsHeader;
 import io.jsonwebtoken.JwtParser;
+import io.jsonwebtoken.JwtParserBuilder;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SigningKeyResolverAdapter;
 import edu.iu.terracotta.model.LtiContextEntity;
@@ -254,7 +255,7 @@ public class LTI3Request {
         this.httpServletRequest = request;
         // extract the typical LTI data from the request
         String jwt = httpServletRequest.getParameter("id_token");
-        JwtParser parser = Jwts.parser();
+        JwtParserBuilder parser = Jwts.parserBuilder();
         parser.setSigningKeyResolver(new SigningKeyResolverAdapter() {
 
             // This is done because each state is signed with a different key based on the issuer... so
@@ -282,7 +283,7 @@ public class LTI3Request {
 
             }
         });
-        Jws<Claims> jws = parser.parseClaimsJws(jwt);
+        Jws<Claims> jws = parser.build().parseClaimsJws(jwt);
         //This is just for logging.
         Enumeration<String> sessionAttributes = httpServletRequest.getSession().getAttributeNames();
         log.debug("----------------------BEFORE---------------------------------------------------------------------------------");
