@@ -6,7 +6,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 import java.util.Optional;
 
+@SuppressWarnings({"squid:S100", "PMD.MethodNamingConventions"})
 public interface FileInfoRepository extends JpaRepository<FileInfo, String> {
+
     List<FileInfo> findByExperiment_ExperimentId(Long experimentId);
 
     Optional<FileInfo> findByFileId(String fileId);
@@ -14,4 +16,5 @@ public interface FileInfoRepository extends JpaRepository<FileInfo, String> {
     FileInfo findByExperiment_ExperimentIdAndFilename(Long experimentId, String filename);
 
     void deleteByFileId(String fileId);
+
 }

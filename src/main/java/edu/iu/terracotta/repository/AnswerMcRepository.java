@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 
+@SuppressWarnings({"squid:S100", "PMD.MethodNamingConventions"})
 public interface AnswerMcRepository extends JpaRepository<AnswerMc, Long> {
 
     List<AnswerMc> findByQuestion_QuestionId(Long questionId);
@@ -26,4 +27,5 @@ public interface AnswerMcRepository extends JpaRepository<AnswerMc, Long> {
 
     @Transactional
     void deleteByAnswerMcId(Long answerMcId);
+
 }

@@ -28,57 +28,62 @@ import javax.persistence.Table;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
 @Entity
 @Table(name = "lti_tool_deployment")
 public class ToolDeployment extends BaseEntity {
+
     @Id
+    @Column
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "deployment_id")
     private long deploymentId;
 
     @Basic
-    @Column(name = "lti_deployment_id", nullable = false)
+    @Column(nullable = false)
     private String ltiDeploymentId;
 
     @JsonIgnore
-    @JoinColumn(name = "key_id", nullable = false)
     @ManyToOne(optional = false)
+    @JoinColumn(name = "key_id", nullable = false)
     private PlatformDeployment platformDeployment;
 
     @JsonIgnore
     @OneToMany(mappedBy = "toolDeployment", fetch = FetchType.LAZY)
     private Set<LtiContextEntity> contexts;
 
-    public long getDeploymentId() {
-        return deploymentId;
-    }
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
 
-    public void setDeploymentId(long deploymentId) {
-        this.deploymentId = deploymentId;
-    }
+        if (obj == null) {
+            return false;
+        }
 
-    public String getLtiDeploymentId() {
-        return ltiDeploymentId;
-    }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
 
-    public void setLtiDeploymentId(String ltiDeploymentId) {
-        this.ltiDeploymentId = ltiDeploymentId;
-    }
+        ToolDeployment other = (ToolDeployment) obj;
 
-    public PlatformDeployment getPlatformDeployment() {
-        return platformDeployment;
-    }
+        if (deploymentId != other.deploymentId) {
+            return false;
+        }
 
-    public void setPlatformDeployment(PlatformDeployment platformDeployment) {
-        this.platformDeployment = platformDeployment;
-    }
+        if (ltiDeploymentId == null) {
+            if (other.ltiDeploymentId != null) {
+                return false;
+            }
+        } else if (!ltiDeploymentId.equals(other.ltiDeploymentId)) {
+            return false;
+        }
 
-    public Set<LtiContextEntity> getContexts() {
-        return contexts;
-    }
-
-    public void setContexts(Set<LtiContextEntity> contexts) {
-        this.contexts = contexts;
+        return true;
     }
 
     @Override
@@ -87,26 +92,8 @@ public class ToolDeployment extends BaseEntity {
         int result = 1;
         result = prime * result + (int) (deploymentId ^ (deploymentId >>> 32));
         result = prime * result + ((ltiDeploymentId == null) ? 0 : ltiDeploymentId.hashCode());
-        return result;
-    }
 
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj)
-            return true;
-        if (obj == null)
-            return false;
-        if (getClass() != obj.getClass())
-            return false;
-        ToolDeployment other = (ToolDeployment) obj;
-        if (deploymentId != other.deploymentId)
-            return false;
-        if (ltiDeploymentId == null) {
-            if (other.ltiDeploymentId != null)
-                return false;
-        } else if (!ltiDeploymentId.equals(other.ltiDeploymentId))
-            return false;
-        return true;
+        return result;
     }
 
 }

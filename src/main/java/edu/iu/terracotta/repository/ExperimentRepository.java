@@ -2,13 +2,12 @@ package edu.iu.terracotta.repository;
 
 import edu.iu.terracotta.model.app.Experiment;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Modifying;
-import org.springframework.data.jpa.repository.Query;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
 
+@SuppressWarnings({"squid:S100", "PMD.MethodNamingConventions"})
 public interface ExperimentRepository extends JpaRepository<Experiment, Long> {
 
     List<Experiment> findByPlatformDeployment_KeyIdAndLtiContextEntity_ContextIdAndCreatedBy_UserKey(long keyId, long contextId, String userKey);
@@ -24,8 +23,6 @@ public interface ExperimentRepository extends JpaRepository<Experiment, Long> {
     boolean existsByTitleAndLtiContextEntity_ContextIdAndExperimentIdIsNot(String title, long contextId, Long experimentId);
 
     @Transactional
-    @Modifying
-    @Query("delete from Experiment e where e.experimentId = ?1")
     void deleteByExperimentId(Long experimentId);
 
 }
