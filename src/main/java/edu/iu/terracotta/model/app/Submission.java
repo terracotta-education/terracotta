@@ -14,38 +14,44 @@ import javax.persistence.Table;
 import java.sql.Timestamp;
 import java.util.List;
 
-@Table(name = "terr_submission")
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
 @Entity
+@Table(name = "terr_submission")
 public class Submission extends BaseEntity {
-    @Column(name = "submission_id", nullable = false)
+
     @Id
+    @Column(nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long submissionId;
 
-    @JoinColumn(name = "participant_participant_id", nullable = false)
     @ManyToOne(optional = false)
+    @JoinColumn(name = "participant_participant_id", nullable = false)
     private Participant participant;
 
-    @JoinColumn(name = "assessment_assessment_id", nullable = false)
     @ManyToOne(optional = false)
+    @JoinColumn(name = "assessment_assessment_id", nullable = false)
     private Assessment assessment;
 
-    //grade calculated by points
-    @Column(name = "calculated_grade")
+    // grade calculated by points
+    @Column
     private Float calculatedGrade;
 
-    //calculated grade altered by instructor (i.e. for partial credit)
-    @Column(name = "altered_calculated_grade")
+    // calculated grade altered by instructor (i.e. for partial credit)
+    @Column
     private Float alteredCalculatedGrade;
 
-    //manual total altered grade (i.e. 0 for cheating)
-    @Column(name = "total_altered_grade")
+    // manual total altered grade (i.e. 0 for cheating)
+    @Column
     private Float totalAlteredGrade;
 
-    @Column(name = "date_submitted")
+    @Column
     private Timestamp dateSubmitted;
 
-    @Column(name = "late_submission")
+    @Column
     private boolean lateSubmission;
 
     @OneToMany(mappedBy = "submission", orphanRemoval = true)
@@ -54,44 +60,4 @@ public class Submission extends BaseEntity {
     @OneToMany(mappedBy = "submission", orphanRemoval = true)
     private List<SubmissionComment> submissionComments;
 
-
-    public Long getSubmissionId() { return submissionId; }
-
-    public void setSubmissionId(Long submissionId) { this.submissionId = submissionId; }
-
-    public Participant getParticipant() { return participant; }
-
-    public void setParticipant(Participant participant) { this.participant = participant; }
-
-    public Assessment getAssessment() { return assessment; }
-
-    public void setAssessment(Assessment assessment) { this.assessment = assessment; }
-
-    public Float getCalculatedGrade() { return calculatedGrade; }
-
-    public void setCalculatedGrade(Float calculatedGrade) { this.calculatedGrade = calculatedGrade; }
-
-    public Float getAlteredCalculatedGrade() { return alteredCalculatedGrade; }
-
-    public void setAlteredCalculatedGrade(Float alteredCalculatedGrade) { this.alteredCalculatedGrade = alteredCalculatedGrade; }
-
-    public Float getTotalAlteredGrade() { return totalAlteredGrade; }
-
-    public void setTotalAlteredGrade(Float totalAlteredGrade) { this.totalAlteredGrade = totalAlteredGrade; }
-
-    public Timestamp getDateSubmitted() { return dateSubmitted; }
-
-    public void setDateSubmitted(Timestamp dateSubmitted) { this.dateSubmitted = dateSubmitted; }
-
-    public boolean getLateSubmission() { return lateSubmission; }
-
-    public void setLateSubmission(boolean lateSubmission) { this.lateSubmission = lateSubmission; }
-
-    public List<QuestionSubmission> getQuestionSubmissions() { return questionSubmissions; }
-
-    public void setQuestionSubmissions(List<QuestionSubmission> questionSubmissions) { this.questionSubmissions = questionSubmissions; }
-
-    public List<SubmissionComment> getSubmissionComments() { return submissionComments; }
-
-    public void setSubmissionComments(List<SubmissionComment> submissionComments) { this.submissionComments = submissionComments; }
 }

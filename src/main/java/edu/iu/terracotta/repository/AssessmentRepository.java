@@ -6,6 +6,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+@SuppressWarnings({"squid:S100", "PMD.MethodNamingConventions"})
 public interface AssessmentRepository extends JpaRepository<Assessment, Long> {
 
     List<Assessment> findByTreatment_TreatmentId(Long treatmentId);
@@ -18,4 +19,5 @@ public interface AssessmentRepository extends JpaRepository<Assessment, Long> {
 
     @Transactional
     void deleteByAssessmentId(Long assessmentId);
+
 }

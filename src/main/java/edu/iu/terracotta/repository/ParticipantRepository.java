@@ -5,45 +5,37 @@ import edu.iu.terracotta.model.app.Participant;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Modifying;
-import org.springframework.data.jpa.repository.Query;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
 
+@SuppressWarnings({"squid:S100", "PMD.MethodNamingConventions"})
 public interface ParticipantRepository extends JpaRepository<Participant, Long> {
-  List<Participant> findByExperiment_ExperimentId(Long experimentId);
 
-  long countByExperiment_ExperimentId(Long experimentId);
+    long countByExperiment_ExperimentId(Long experimentId);
 
-  Page<Participant> findByExperiment_ExperimentId(Long experimentId, Pageable pageable);
+    Page<Participant> findByExperiment_ExperimentId(Long experimentId, Pageable pageable);
 
-  Optional<Participant> findByParticipantIdAndExperiment_ExperimentId(Long participantId, Long experimentId);
+    List<Participant> findByExperiment_ExperimentId(Long experimentId);
 
-  List<Participant> findByExperiment_ExperimentIdAndGroup_GroupId(Long experimentId, Long groupId);
+    Optional<Participant> findByParticipantIdAndExperiment_ExperimentId(Long participantId, Long experimentId);
 
-  Participant findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(Long experimentId, String userKey);
+    List<Participant> findByExperiment_ExperimentIdAndGroup_GroupId(Long experimentId, Long groupId);
 
-  Participant findByParticipantId(Long participantId);
+    Participant findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(Long experimentId, String userKey);
 
-  boolean existsByExperiment_ExperimentIdAndParticipantId(Long experimentId, Long participantId);
+    Participant findByParticipantId(Long participantId);
 
-  List<Participant> findByGroup_GroupId(Long groupId);
+    boolean existsByExperiment_ExperimentIdAndParticipantId(Long experimentId, Long participantId);
 
-  long countDistinctByGroup_GroupId(Long groupId);
+    List<Participant> findByGroup_GroupId(Long groupId);
 
+    long countDistinctByGroup_GroupId(Long groupId);
 
+    @Transactional
+    void deleteByParticipantId(Long participantId);
 
-
-
-  @Transactional
-  @Modifying
-  @Query("delete from Participant s where s.participantId = ?1")
-  void deleteByParticipantId(Long participantId);
-
-  long countByGroup_GroupId(Long groupId);
-
-
+    long countByGroup_GroupId(Long groupId);
 
 }

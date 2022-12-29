@@ -2,6 +2,11 @@ package edu.iu.terracotta.model.app.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class AnswerDto {
 
@@ -12,28 +17,4 @@ public class AnswerDto {
     private Boolean correct;
     private Integer answerOrder;
 
-
-    public Long getAnswerId() { return answerId; }
-
-    public void setAnswerId(Long answerId) { this.answerId = answerId; }
-
-    public String getAnswerType() { return answerType; }
-
-    public void setAnswerType(String answerType) { this.answerType = answerType; }
-
-    public String getHtml() { return html; }
-
-    public void setHtml(String html) { this.html = html; }
-
-    public Boolean getCorrect() { return correct; }
-
-    public void setCorrect(Boolean correct) { this.correct = correct; }
-
-    public Long getQuestionId() { return questionId; }
-
-    public void setQuestionId(Long questionId) { this.questionId = questionId; }
-
-    public Integer getAnswerOrder() { return answerOrder; }
-
-    public void setAnswerOrder(Integer answerOrder) { this.answerOrder = answerOrder; }
 }

@@ -18,89 +18,36 @@ import java.util.Map;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Score {
-    @JsonProperty("userId")
+
+    @JsonProperty
     private String userId;
-    @JsonProperty("scoreMaximum")
+
+    @JsonProperty
     private String scoreMaximum;
-    @JsonProperty("scoreGiven")
+
+    @JsonProperty
     private String scoreGiven;
-    @JsonProperty("comment")
+
+    @JsonProperty
     private String comment;
-    @JsonProperty("activityProgress")
+
+    @JsonProperty
     private String activityProgress;
-    @JsonProperty("gradingProgress")
+
+    @JsonProperty
     private String gradingProgress;
-    @JsonProperty("timestamp")
+
+    @JsonProperty
     private String timestamp;
+
     @JsonProperty("https://canvas.instructure.com/lti/submission")
     private Map<String, Object> canvasSubmissionExtension = new HashMap<>();
 
-    public Score() { //Empty on purpose
-    }
-
-    public String getUserId() {
-        return userId;
-    }
-
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
-
-    public String getScoreMaximum() {
-        return scoreMaximum;
-    }
-
-    public void setScoreMaximum(String scoreMaximum) {
-        this.scoreMaximum = scoreMaximum;
-    }
-
-    public String getScoreGiven() {
-        return scoreGiven;
-    }
-
-    public void setScoreGiven(String scoreGiven) {
-        this.scoreGiven = scoreGiven;
-    }
-
-    public String getComment() {
-        return comment;
-    }
-
-    public void setComment(String comment) {
-        this.comment = comment;
-    }
-
-    public String getActivityProgress() {
-        return activityProgress;
-    }
-
-    public void setActivityProgress(String activityProgress) {
-        this.activityProgress = activityProgress;
-    }
-
-    public String getGradingProgress() {
-        return gradingProgress;
-    }
-
-    public void setGradingProgress(String gradingProgress) {
-        this.gradingProgress = gradingProgress;
-    }
-
-    public String getTimestamp() {
-        return timestamp;
-    }
-
-    public void setTimestamp(String timestamp) {
-        this.timestamp = timestamp;
-    }
-
-    public Map<String, Object> getCanvasSubmissionExtension() {
-        return canvasSubmissionExtension;
-    }
-
-    public void setCanvasSubmissionExtension(Map<String, Object> canvasSubmissionExtension) {
-        this.canvasSubmissionExtension = canvasSubmissionExtension;
-    }
 }

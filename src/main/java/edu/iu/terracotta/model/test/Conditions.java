@@ -5,17 +5,13 @@ import edu.iu.terracotta.model.app.Condition;
 import java.util.ArrayList;
 import java.util.List;
 
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
 public class Conditions {
 
-    private List<Condition> conditions = new ArrayList<>();
+    private List<Condition> conditionList = new ArrayList<>();
 
-    public Conditions() {}
-
-    public List<Condition> getConditions() {
-        return conditions;
-    }
-
-    public void setConditions(List<Condition> conditions) {
-        this.conditions = conditions;
-    }
 }

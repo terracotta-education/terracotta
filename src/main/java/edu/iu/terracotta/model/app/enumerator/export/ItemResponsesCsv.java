@@ -2,6 +2,9 @@ package edu.iu.terracotta.model.app.enumerator.export;
 
 import java.util.Arrays;
 
+import lombok.AllArgsConstructor;
+
+@AllArgsConstructor
 public enum ItemResponsesCsv {
 
     // NOTE: order is important!
@@ -25,10 +28,6 @@ public enum ItemResponsesCsv {
     public static final String FILENAME = "item_responses.csv";
 
     private String header;
-
-    ItemResponsesCsv(String header) {
-        this.header = header;
-    }
 
     @Override
     public String toString() {

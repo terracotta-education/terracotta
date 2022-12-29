@@ -280,7 +280,7 @@ public class FileStorageServiceImpl implements FileStorageService {
         Experiment experiment = experimentService.getExperiment(experimentId);
         ConsentDocument consentDocument = experiment.getConsentDocument();
         LtiUserEntity instructorUser = allRepositories.ltiUserRepository.findByUserKey(instructorUserId);
-        String canvasCourseId = org.apache.commons.lang3.StringUtils.substringBetween(experiment.getLtiContextEntity().getContext_memberships_url(), "courses/", "/names");
+        String canvasCourseId = org.apache.commons.lang3.StringUtils.substringBetween(experiment.getLtiContextEntity().getContextMembershipsUrl(), "courses/", "/names");
         if (consentDocument == null){
             consentDocument = new ConsentDocument();
             consentDocument.setFilePointer(consentUploaded.getUrl());
