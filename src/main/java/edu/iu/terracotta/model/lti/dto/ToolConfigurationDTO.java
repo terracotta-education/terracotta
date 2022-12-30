@@ -15,11 +15,6 @@ package edu.iu.terracotta.model.lti.dto;
 import java.util.List;
 import java.util.Map;
 
-import lombok.Getter;
-import lombok.Setter;
-
-@Getter
-@Setter
 public class ToolConfigurationDTO {
 
     private String domain;
@@ -31,4 +26,71 @@ public class ToolConfigurationDTO {
     private List<ToolMessagesSupportedDTO> messages_supported;
     private List<String> claims;
 
+
+    public ToolConfigurationDTO() {//Empty on purpose
+    }
+
+    public String getDomain() {
+        return domain;
+    }
+
+    public void setDomain(String domain) {
+        this.domain = domain;
+    }
+
+    public List<String> getSecondary_domains() {
+        return secondary_domains;
+    }
+
+    public String getDeployment_id() {
+        return deployment_id;
+    }
+
+    public void setDeployment_id(String deployment_id) {
+        this.deployment_id = deployment_id;
+    }
+
+    public void setSecondary_domains(List<String> secondary_domains) {
+        this.secondary_domains = secondary_domains;
+    }
+
+    public String getTarget_link_uri() {
+        return target_link_uri;
+    }
+
+    public void setTarget_link_uri(String target_link_uri) {
+        this.target_link_uri = target_link_uri;
+    }
+
+    public Map<String, String> getCustom_parameters() {
+        return custom_parameters;
+    }
+
+    public void setCustom_parameters(Map<String, String> custom_parameters) {
+        this.custom_parameters = custom_parameters;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public List<ToolMessagesSupportedDTO> getMessages_supported() {
+        return messages_supported;
+    }
+
+    public void setMessages_supported(List<ToolMessagesSupportedDTO> messages_supported) {
+        this.messages_supported = messages_supported;
+    }
+
+    public List<String> getClaims() {
+        return claims;
+    }
+
+    public void setClaims(List<String> claims) {
+        this.claims = claims;
+    }
 }

@@ -26,4 +26,5 @@ public interface LtiLinkRepository extends JpaRepository<LtiLinkEntity, Long> {
 
     List<LtiLinkEntity> findByLinkKeyAndContext(String linkKey, LtiContextEntity context);
 
+
 }

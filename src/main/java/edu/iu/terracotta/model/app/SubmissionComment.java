@@ -12,29 +12,39 @@ import javax.persistence.Lob;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 
-import lombok.Getter;
-import lombok.Setter;
-
-@Getter
-@Setter
-@Entity
 @Table(name = "terr_submission_comment")
+@Entity
 public class SubmissionComment extends BaseEntity {
-
+    @Column(name = "submission_comment_id", nullable = false)
     @Id
-    @Column(nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long submissionCommentId;
 
-    @ManyToOne(optional = false)
     @JoinColumn(name = "submission_submission_id", nullable = false)
+    @ManyToOne(optional = false)
     private Submission submission;
 
+    @Column(name = "comment")
     @Lob
-    @Column
     private String comment;
 
-    @Column
+    @Column(name = "creator")
     private String creator;
 
+
+    public Long getSubmissionCommentId() { return submissionCommentId; }
+
+    public void setSubmissionCommentId(Long submissionCommentId) { this.submissionCommentId = submissionCommentId; }
+
+    public Submission getSubmission() { return submission; }
+
+    public void setSubmission(Submission submission) { this.submission = submission; }
+
+    public String getComment() { return comment; }
+
+    public void setComment(String comment) { this.comment = comment; }
+
+    public String getCreator() { return creator; }
+
+    public void setCreator(String creator) { this.creator = creator; }
 }

@@ -278,7 +278,7 @@ public class ExperimentServiceImpl implements ExperimentService {
         //TEST and check if nulls behave correctly
         Experiment experiment = new Experiment();
         experiment.setExperimentId(experimentDto.getExperimentId());
-        Optional<LtiContextEntity> ltiContextEntity = allRepositories.ltiContextRepository.findById(experimentDto.getContextId());
+        Optional<LtiContextEntity> ltiContextEntity = allRepositories.contexts.findById(experimentDto.getContextId());
         if (ltiContextEntity.isPresent()) {
             experiment.setLtiContextEntity(ltiContextEntity.get());
         } else {
@@ -297,7 +297,7 @@ public class ExperimentServiceImpl implements ExperimentService {
         experiment.setDistributionType(EnumUtils.getEnum(DistributionTypes.class, experimentDto.getDistributionType(), DistributionTypes.NOSET));
         experiment.setStarted(experimentDto.getStarted());
         experiment.setClosed(experimentDto.getClosed());
-        LtiUserEntity user = allRepositories.ltiUserRepository.findByUserIdAndPlatformDeployment_KeyId(experimentDto.getCreatedBy(),platformDeployment.get().getKeyId());
+        LtiUserEntity user = allRepositories.users.findByUserIdAndPlatformDeployment_KeyId(experimentDto.getCreatedBy(),platformDeployment.get().getKeyId());
         if (user!=null){
             experiment.setCreatedBy(user);
         } else {
@@ -339,7 +339,7 @@ public class ExperimentServiceImpl implements ExperimentService {
         //than the one in the token.
         experimentDto.setContextId(securedInfo.getContextId());
         experimentDto.setPlatformDeploymentId(securedInfo.getPlatformDeploymentId());
-        LtiUserEntity user = allRepositories.ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
+        LtiUserEntity user = allRepositories.users.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
         if (user!=null){
             experimentDto.setCreatedBy(user.getUserId());
         }

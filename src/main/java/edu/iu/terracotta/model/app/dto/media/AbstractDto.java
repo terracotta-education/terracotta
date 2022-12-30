@@ -1,12 +1,13 @@
 package edu.iu.terracotta.model.app.dto.media;
 
-import lombok.Getter;
-import lombok.Setter;
-
-@Getter
-@Setter
 public class AbstractDto {
-
     private String id;
 
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
 }

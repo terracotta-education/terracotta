@@ -69,7 +69,7 @@ public class AdvantageMembershipServiceImpl implements AdvantageMembershipServic
             HttpEntity request = advantageConnectorHelper.createTokenizedRequestEntity(LTIToken);
             //The URL to get the course contents is stored in the context (in our database) because it came
             // from the platform when we created the link to the context, and we saved it then.
-            final String GET_MEMBERSHIP = context.getContextMembershipsUrl();
+            final String GET_MEMBERSHIP = context.getContext_memberships_url();
             log.debug("GET_MEMBERSHIP -  " + GET_MEMBERSHIP);
             ResponseEntity<CourseUsers> membershipGetResponse = restTemplate.
                     exchange(GET_MEMBERSHIP, HttpMethod.GET, request, CourseUsers.class);

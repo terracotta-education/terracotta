@@ -22,9 +22,7 @@ import java.util.Date;
 public interface ApiOneUseTokenRepository extends JpaRepository<ApiOneUseToken, String> {
 
     ApiOneUseToken findByToken(String token);
-
-    // TODO decide when we want to delete those.
+    //TODO, decide when we want to delete those.
     @Transactional
     void deleteByCreatedAtBefore(Date expiryDate);
-
 }

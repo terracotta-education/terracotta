@@ -1,44 +1,61 @@
 package edu.iu.terracotta.model.app;
 
 import edu.iu.terracotta.model.BaseEntity;
-import lombok.Getter;
-import lombok.Setter;
-
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
-import javax.persistence.Table;
-
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
-@Getter
-@Setter
-@Entity
+import javax.persistence.*;
+
 @Table(name = "terr_condition")
+@Entity
 public class Condition extends BaseEntity {
 
+    // condition_id
+    @Column(name = "condition_id", nullable = false)
     @Id
-    @Column(nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long conditionId;
 
-    @Column
+    // name
+    @Column(name = "name")
     private String name;
 
-    @Column
+    // default_condition
+    @Column(name = "default_condition")
     private Boolean defaultCondition;
 
-    @Column
+    // distribution_pct
+    @Column(name = "distribution_pct")
     private Float distributionPct;
 
+    @JoinColumn(name = "experiment_experiment_id", nullable = false)
     @ManyToOne(optional = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
-    @JoinColumn(name = "experiment_experiment_id", nullable = false)
     private Experiment experiment;
 
+
+    //methods
+    public Long getConditionId() { return conditionId; }
+
+    public void setConditionId(Long id) { this.conditionId = id; }
+
+    public Experiment getExperiment() {
+        return experiment;
+    }
+
+    public void setExperiment(Experiment experiment) {
+        this.experiment = experiment;
+    }
+
+    public String getName() { return name; }
+
+    public void setName(String name) { this.name = name; }
+
+    public Boolean getDefaultCondition() { return defaultCondition; }
+
+    public void setDefaultCondition(Boolean defaultCondition) { this.defaultCondition = defaultCondition; }
+
+    public Float getDistributionPct() { return distributionPct; }
+
+    public void setDistributionPct(Float distributionPct) { this.distributionPct = distributionPct; }
 }

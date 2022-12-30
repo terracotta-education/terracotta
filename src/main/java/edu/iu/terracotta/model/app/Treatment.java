@@ -1,7 +1,6 @@
 package edu.iu.terracotta.model.app;
 
 import edu.iu.terracotta.model.BaseEntity;
-
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
@@ -15,32 +14,46 @@ import javax.persistence.ManyToOne;
 import javax.persistence.OneToOne;
 import javax.persistence.Table;
 
-import lombok.Getter;
-import lombok.Setter;
-
-@Getter
-@Setter
-@Entity
 @Table(name = "terr_treatment")
+@Entity
 public class Treatment extends BaseEntity {
-
+    @Column(name = "treatment_id", nullable = false)
     @Id
-    @Column(nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long treatmentId;
 
+    @JoinColumn(name = "condition_condition_id", nullable = false)
     @ManyToOne(optional = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
-    @JoinColumn(name = "condition_condition_id", nullable = false)
     private Condition condition;
 
-    @OneToOne
     @JoinColumn(name = "assessment_assessment_id")
+    @OneToOne
     private Assessment assessment;
 
+    @JoinColumn(name = "assignment_assignment_id", nullable = false)
     @ManyToOne(optional = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
-    @JoinColumn(name = "assignment_assignment_id", nullable = false)
     private Assignment assignment;
+
+    public Assignment getAssignment() {
+        return assignment;
+    }
+
+    public void setAssignment(Assignment assignment) {
+        this.assignment = assignment;
+    }
+
+    public Long getTreatmentId() { return treatmentId; }
+
+    public void setTreatmentId(Long treatmentId) { this.treatmentId = treatmentId; }
+
+    public Assessment getAssessment() { return assessment; }
+
+    public void setAssessment(Assessment assessment) { this.assessment = assessment; }
+
+    public Condition getCondition() { return condition; }
+
+    public void setCondition(Condition condition) { this.condition = condition; }
 
 }

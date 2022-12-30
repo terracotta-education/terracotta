@@ -20,15 +20,10 @@ import org.springframework.transaction.annotation.Transactional;
 import edu.iu.terracotta.model.ToolDeployment;
 
 @Transactional
-@SuppressWarnings({"squid:S100", "PMD.MethodNamingConventions"})
 public interface ToolDeploymentRepository extends JpaRepository<ToolDeployment, Long> {
 
     List<ToolDeployment> findByPlatformDeployment_Iss(String iss);
-
     List<ToolDeployment> findByPlatformDeployment_IssAndLtiDeploymentId(String iss, String ltiDeploymentId);
-
     List<ToolDeployment> findByPlatformDeployment_IssAndPlatformDeployment_ClientId(String iss, String clientId);
-
     List<ToolDeployment> findByPlatformDeployment_IssAndPlatformDeployment_ClientIdAndLtiDeploymentId(String iss, String clientId, String ltiDeploymentId);
-
 }

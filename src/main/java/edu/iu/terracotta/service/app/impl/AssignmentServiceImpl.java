@@ -524,7 +524,7 @@ public class AssignmentServiceImpl implements AssignmentService {
             throws CanvasApiException {
         LtiUserEntity instructorUser = ltiUserRepository.findByUserKey(instructorUserId);
         String canvasCourseId = StringUtils.substringBetween(
-                assignment.getExposure().getExperiment().getLtiContextEntity().getContextMembershipsUrl(), "courses/",
+                assignment.getExposure().getExperiment().getLtiContextEntity().getContext_memberships_url(), "courses/",
                 "/names");
         return canvasAPIClient.checkAssignmentExists(instructorUser, Integer.parseInt(assignment.getLmsAssignmentId()),
                 canvasCourseId).isPresent();
@@ -546,7 +546,7 @@ public class AssignmentServiceImpl implements AssignmentService {
         canvasAssignment.setGradingType("percent");
         canvasAssignment.setPointsPossible(100.0);
         canvasAssignment.setSubmissionTypes(Collections.singletonList("external_tool"));
-        String canvasCourseId = StringUtils.substringBetween(assignment.getExposure().getExperiment().getLtiContextEntity().getContextMembershipsUrl(), "courses/", "/names");
+        String canvasCourseId = StringUtils.substringBetween(assignment.getExposure().getExperiment().getLtiContextEntity().getContext_memberships_url(), "courses/", "/names");
 
         Optional<AssignmentExtended> canvasAssignmentReturned = canvasAPIClient.createCanvasAssignment(
                 assignment.getExposure().getExperiment().getCreatedBy(), canvasAssignment, canvasCourseId);
