@@ -171,7 +171,7 @@ public class SubmissionCommentController {
             }
             SubmissionComment submissionComment = submissionCommentService.getSubmissionComment(submissionCommentId);
             LtiUserEntity user = submissionCommentService.findByUserKey(securedInfo.getUserId());
-            if(!user.getDisplayname().equals(submissionComment.getCreator())){
+            if(!user.getDisplayName().equals(submissionComment.getCreator())){
                 return new ResponseEntity("Error 122: Only the creator of a comment can edit their own comment.", HttpStatus.UNAUTHORIZED);
             }
             submissionCommentService.updateSubmissionComment(submissionComment, submissionCommentDto);

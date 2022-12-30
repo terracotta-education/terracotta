@@ -14,14 +14,12 @@ package edu.iu.terracotta.model.oauth2;
 
 import com.google.common.collect.ImmutableList;
 import edu.iu.terracotta.utils.LtiStrings;
-import lombok.experimental.UtilityClass;
 
 import java.util.List;
 
 // do this as a class instead of an enum so its easier to reuse values
 // in annotations, should it ever come to that (as is typical in controller-based auth)
-@UtilityClass
-public class Roles {
+public abstract class Roles {
 
     public static final String GENERAL = LtiStrings.LTI_ROLE_GENERAL;
     public static final String LEARNER = LtiStrings.LTI_ROLE_LEARNER;

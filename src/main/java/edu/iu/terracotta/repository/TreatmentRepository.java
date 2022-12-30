@@ -2,11 +2,12 @@ package edu.iu.terracotta.repository;
 
 import edu.iu.terracotta.model.app.Treatment;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-@SuppressWarnings({"squid:S100", "PMD.MethodNamingConventions"})
 public interface TreatmentRepository extends JpaRepository<Treatment, Long> {
 
     List<Treatment> findByCondition_ConditionId(Long conditionId);
@@ -23,7 +24,9 @@ public interface TreatmentRepository extends JpaRepository<Treatment, Long> {
 
     boolean existsByAssignment_AssignmentIdAndCondition_ConditionId(Long assignmentId, Long conditionId);
 
-    @Transactional
-    void deleteByTreatmentId(Long treatmentId);
 
+    @Transactional
+    @Modifying
+    @Query("delete from Treatment s where s.treatmentId = ?1")
+    void deleteByTreatmentId(Long treatmentId);
 }

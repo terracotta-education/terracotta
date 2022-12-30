@@ -2,11 +2,6 @@ package edu.iu.terracotta.model.app.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
-import lombok.Getter;
-import lombok.Setter;
-
-@Getter
-@Setter
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ConditionDto {
 
@@ -16,4 +11,25 @@ public class ConditionDto {
     private Boolean defaultCondition;
     private float distributionPct;
 
+    public ConditionDto() {}
+
+    public Long getConditionId() { return conditionId; }
+
+    public void setConditionId(Long conditionId) { this.conditionId = conditionId; }
+
+    public Long getExperimentId() { return experimentId; }
+
+    public void setExperimentId(Long experimentId) { this.experimentId = experimentId; }
+
+    public String getName() { return name; }
+
+    public void setName(String name) { this.name = name; }
+
+    public Boolean getDefaultCondition() { return defaultCondition; }
+
+    public void setDefaultCondition(Boolean defaultCondition) { this.defaultCondition = defaultCondition; }
+
+    public float getDistributionPct() { return distributionPct; }
+
+    public void setDistributionPct(float pct) { this.distributionPct = pct; }
 }

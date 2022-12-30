@@ -53,7 +53,7 @@ public class QuestionSubmissionCommentServiceImpl implements QuestionSubmissionC
 
         questionSubmissionCommentDto.setQuestionSubmissionId(questionSubmissionId);
         LtiUserEntity user = findByUserKey(userId);
-        questionSubmissionCommentDto.setCreator(user.getDisplayname());
+        questionSubmissionCommentDto.setCreator(user.getDisplayName());
         QuestionSubmissionComment questionSubmissionComment;
         try {
             questionSubmissionComment = fromDto(questionSubmissionCommentDto);
@@ -67,7 +67,7 @@ public class QuestionSubmissionCommentServiceImpl implements QuestionSubmissionC
     public void updateQuestionSubmissionComment(QuestionSubmissionCommentDto questionSubmissionCommentDto, long questionSubmissionCommentId, long experimentId, long submissionId, String userId) throws DataServiceException {
         QuestionSubmissionComment questionSubmissionComment = getQuestionSubmissionComment(questionSubmissionCommentId);
         LtiUserEntity user = findByUserKey(userId);
-        if(!user.getDisplayname().equals(questionSubmissionComment.getCreator())){
+        if(!user.getDisplayName().equals(questionSubmissionComment.getCreator())){
             throw new DataServiceException("Error 122: Only the creator of a comment can edit their own comment.");
         }
         questionSubmissionComment.setComment(questionSubmissionCommentDto.getComment());

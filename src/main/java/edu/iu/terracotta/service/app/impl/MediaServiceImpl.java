@@ -73,16 +73,16 @@ public class MediaServiceImpl implements MediaService {
         SessionDto sessionDto = new SessionDto();
 
         mediaEventDto.setContext(mediaEvent.getLtiContextId());
-        mediaEventDto.setType(EventType.valueOf(mediaEvent.getEventType()));
-        mediaEventDto.setAction(Action.valueOf(mediaEvent.getEventAction()));
-        mediaEventDto.setProfile(mediaEvent.getEventProfile());
+        mediaEventDto.setType(EventType.valueOf(mediaEvent.getType()));
+        mediaEventDto.setAction(Action.valueOf(mediaEvent.getAction()));
+        mediaEventDto.setProfile(mediaEvent.getProfile());
         mediaEventDto.setId(mediaEvent.getCaliperId());
 
         personDto.setType(EntityType.valueOf(mediaEvent.getActorType()));
         personDto.setId(mediaEvent.getActorId());
         mediaEventDto.setActor(personDto);
 
-        groupDto.setId(mediaEvent.getEventGroup());
+        groupDto.setId(mediaEvent.getGroup());
         mediaEventDto.setGroup(groupDto);
 
         mediaObjectDto.setId(mediaEvent.getObjectId());
@@ -143,8 +143,8 @@ public class MediaServiceImpl implements MediaService {
     }
 
     @Override
-    public List<Event> findAllByEventType(String eventType) {
-        return allRepositories.eventRepository.findByEventType(eventType);
+    public List<Event> findAllByType(String type) {
+        return allRepositories.eventRepository.findByType(type);
     }
 
     @Override

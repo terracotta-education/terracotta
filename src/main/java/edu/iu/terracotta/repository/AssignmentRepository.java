@@ -10,7 +10,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-@SuppressWarnings({"squid:S100", "PMD.MethodNamingConventions"})
 public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
 
     Assignment findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(Long experimentId, String lmsAssignmentId);

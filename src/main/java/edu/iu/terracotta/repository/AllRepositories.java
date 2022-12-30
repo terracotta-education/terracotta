@@ -15,9 +15,6 @@ package edu.iu.terracotta.repository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
-
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 
@@ -27,27 +24,27 @@ import javax.persistence.PersistenceContext;
  * This is just here to make it a little easier to get access to the full set of repositories instead of always injecting
  * the lot of them (reduces code duplication)
  */
+@SuppressWarnings("SpringJavaAutowiringInspection")
 @Component
-@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class AllRepositories {
 
     @Autowired
-    public ConfigRepository configRepository;
+    public ConfigRepository configs;
 
     @Autowired
-    public LtiContextRepository ltiContextRepository;
+    public LtiContextRepository contexts;
 
     @Autowired
-    public LtiLinkRepository ltiLinkRepository;
+    public LtiLinkRepository links;
 
     @Autowired
-    public LtiMembershipRepository ltiMembershipRepository;
+    public LtiMembershipRepository members;
 
     @Autowired
-    public LtiResultRepository ltiResultRepository;
+    public LtiResultRepository results;
 
     @Autowired
-    public LtiUserRepository ltiUserRepository;
+    public LtiUserRepository users;
 
     @Autowired
     public PlatformDeploymentRepository platformDeploymentRepository;
@@ -110,6 +107,9 @@ public class AllRepositories {
     public SubmissionCommentRepository submissionCommentRepository;
 
     @Autowired
+    public LtiUserRepository ltiUserRepository;
+
+    @Autowired
     public QuestionSubmissionCommentRepository questionSubmissionCommentRepository;
 
     @Autowired
@@ -130,7 +130,14 @@ public class AllRepositories {
     @Autowired
     public EventRepository eventRepository;
 
+
     @PersistenceContext
     public EntityManager entityManager;
+
+    /**
+     * Do NOT construct this class manually
+     */
+    protected AllRepositories() {
+    }
 
 }

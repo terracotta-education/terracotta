@@ -14,8 +14,6 @@ package edu.iu.terracotta.model;
 
 import org.apache.commons.lang3.StringUtils;
 
-import lombok.NoArgsConstructor;
-
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
@@ -24,48 +22,50 @@ import javax.persistence.Id;
 import javax.persistence.Table;
 import java.util.Objects;
 
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.Setter;
-
-@Getter
-@Setter
 @Entity
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "api_one_use_token")
 public class ApiOneUseToken extends BaseEntity {
 
     @Id
-    @Column(nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "token_id", nullable = false)
     private long tokenId;
 
-    @Column(nullable = false, length = 4096)
+    @Column(name = "token", nullable = false, length = 4096)
     private String token;
+
+    protected ApiOneUseToken() {
+    }
 
     /**
      * @param token the one use token
      */
     public ApiOneUseToken(String token) {
-        if (StringUtils.isBlank(token)) {
-            throw new AssertionError();
-        }
+        if (!StringUtils.isNotBlank(token)) throw new AssertionError();
+        this.token = token;
+    }
 
+    public long getTokenId() {
+        return tokenId;
+    }
+
+    public void setTokenId(long tokenId) {
+        this.tokenId = tokenId;
+    }
+
+    public String getToken() {
+        return token;
+    }
+
+    public void setToken(String token) {
         this.token = token;
     }
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
         ApiOneUseToken that = (ApiOneUseToken) o;
-
         return Objects.equals(token, that.token);
     }
 

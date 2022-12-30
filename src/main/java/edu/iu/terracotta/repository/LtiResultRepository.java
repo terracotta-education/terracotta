@@ -27,5 +27,4 @@ public interface LtiResultRepository extends JpaRepository<LtiResultEntity, Long
      * @return the LtiResultEntity OR null if there is no entity matching this key
      */
     LtiResultEntity findByResultId(Long resultId);
-
 }
