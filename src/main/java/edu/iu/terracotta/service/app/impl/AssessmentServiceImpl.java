@@ -192,7 +192,7 @@ public class AssessmentServiceImpl implements AssessmentService {
         assessmentDto.setAssessmentId(assessment.getAssessmentId());
         assessmentDto.setHtml(fileStorageService.parseHTMLFiles(assessment.getHtml()));
         assessmentDto.setTitle(assessment.getTitle());
-        assessmentDto.setAutoSubmit(assessment.isAutoSubmit());
+        assessmentDto.setAutoSubmit(assessment.getAutoSubmit());
         assessmentDto.setNumOfSubmissions(assessment.getNumOfSubmissions());
         assessmentDto.setHoursBetweenSubmissions(assessment.getHoursBetweenSubmissions());
         assessmentDto.setMultipleSubmissionScoringScheme(assessment.getMultipleSubmissionScoringScheme().name());
@@ -274,7 +274,7 @@ public class AssessmentServiceImpl implements AssessmentService {
         assessment.setAssessmentId(assessmentDto.getAssessmentId());
         assessment.setHtml(assessmentDto.getHtml());
         assessment.setTitle(assessmentDto.getTitle());
-        assessment.setAutoSubmit(assessmentDto.isAutoSubmit());
+        assessment.setAutoSubmit(assessmentDto.getAutoSubmit());
         assessment.setNumOfSubmissions(assessmentDto.getNumOfSubmissions());
         assessment.setHoursBetweenSubmissions(assessmentDto.getHoursBetweenSubmissions());
         assessment.setMultipleSubmissionScoringScheme(
@@ -344,7 +344,7 @@ public class AssessmentServiceImpl implements AssessmentService {
         assessment.setStudentViewCorrectAnswersBefore(assessmentDto.getStudentViewCorrectAnswersBefore());
         assessment.setHtml(assessmentDto.getHtml());
         assessment.setTitle(assessmentDto.getTitle());
-        assessment.setAutoSubmit(assessmentDto.isAutoSubmit());
+        assessment.setAutoSubmit(assessmentDto.getAutoSubmit());
         assessment.setNumOfSubmissions(assessmentDto.getNumOfSubmissions());
         assessment.setHoursBetweenSubmissions(assessmentDto.getHoursBetweenSubmissions());
         MultipleSubmissionScoringScheme multipleSubmissionScoringScheme = MultipleSubmissionScoringScheme

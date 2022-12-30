@@ -18,19 +18,19 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.ArrayList;
 import java.util.List;
 
-import lombok.Getter;
-import lombok.Setter;
-
-@Getter
-@Setter
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class CourseUsers {
-
     private List<CourseUser> courseUserList = new ArrayList<>();
+
+    public CourseUsers() {//Empty on purpose
+    }
 
     @JsonProperty("members")
     public List<CourseUser> getCourseUserList() {
         return courseUserList;
     }
 
+    public void setCourseUserList(List<CourseUser> courseUserList) {
+        this.courseUserList = courseUserList;
+    }
 }

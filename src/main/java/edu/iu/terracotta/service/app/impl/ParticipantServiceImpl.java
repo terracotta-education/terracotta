@@ -149,7 +149,7 @@ public class ParticipantServiceImpl implements ParticipantService {
         UserDto userDto = new UserDto();
         userDto.setUserId(user.getUserId());
         userDto.setUserKey(user.getUserKey());
-        userDto.setDisplayName(user.getDisplayname());
+        userDto.setDisplayName(user.getDisplayName());
         return userDto;
     }
 
@@ -173,7 +173,7 @@ public class ParticipantServiceImpl implements ParticipantService {
             throw new DataServiceException("The experiment for the participant does not exist");
         }
         try {
-            Optional<LtiUserEntity> userEntity = allRepositories.ltiUserRepository.findById(participantDto.getUser().getUserId());
+            Optional<LtiUserEntity> userEntity = allRepositories.users.findById(participantDto.getUser().getUserId());
             if (userEntity.isPresent()) {
                 participant.setLtiUserEntity(userEntity.get());
             } else {
@@ -234,7 +234,6 @@ public class ParticipantServiceImpl implements ParticipantService {
             for (CourseUser courseUser : courseUsers.getCourseUserList()) {
                 if (courseUser.getRoles().contains(Roles.LEARNER) || courseUser.getRoles().contains(Roles.MEMBERSHIP_LEARNER)) {
                     Participant participant = participantsToBeDropped.remove(courseUser.getUserId());
-
                     if (participant != null) {
                         resetParticipantConsentIfExperimentNotStarted(experiment, participant);
                         // If participant is marked as dropped, mark it as not dropped
@@ -360,7 +359,7 @@ public class ParticipantServiceImpl implements ParticipantService {
             // or waiting for the user to access. BUT we just need this to send the grades
             // with the API...
             // so if the user never accessed... we can't send them until we use LTI.
-            newLtiUserEntity.setDisplayname(courseUser.getName());
+            newLtiUserEntity.setDisplayName(courseUser.getName());
             // By default it adds a value in the constructor, but if we are generating it,
             // it means that the user has never logged in
             newLtiUserEntity.setLoginAt(null);

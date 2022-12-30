@@ -12,32 +12,46 @@ import javax.persistence.Lob;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 
-import lombok.Getter;
-import lombok.Setter;
-
-@Getter
-@Setter
-@Entity
 @Table(name = "terr_answer_mc")
+@Entity
 public class AnswerMc extends BaseEntity {
-
-    @Id
     @Column(name = "answer_id", nullable = false)
+    @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long answerMcId;
 
+    @Column(name = "html")
     @Lob
-    @Column
     private String html;
 
-    @Column
+    @Column(name = "correct")
     private Boolean correct;
 
-    @ManyToOne
     @JoinColumn(name = "question_question_id")
+    @ManyToOne
     private Question question;
 
-    @Column
+    @Column(name = "answer_order")
     private Integer answerOrder;
 
+
+    public Long getAnswerMcId() { return answerMcId; }
+
+    public void setAnswerMcId(Long answerMcId) { this.answerMcId = answerMcId; }
+
+    public String getHtml() { return html; }
+
+    public void setHtml(String html) { this.html = html; }
+
+    public Boolean getCorrect() { return correct; }
+
+    public void setCorrect(Boolean correct) { this.correct = correct; }
+
+    public Question getQuestion() { return question; }
+
+    public void setQuestion(Question question) { this.question = question; }
+
+    public Integer getAnswerOrder() { return answerOrder; }
+
+    public void setAnswerOrder(Integer answerOrder) { this.answerOrder = answerOrder; }
 }

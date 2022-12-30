@@ -111,7 +111,7 @@ public class DatabasePreloadTest {
 
         Set<Conditions> conditions = conditionResourceService.getResources(Conditions.class);
         for(Conditions conditionList : conditions){
-            for(Condition condition : conditionList.getConditionList()){
+            for(Condition condition : conditionList.getConditions()){
                 log.info("Storing : " + condition.getName());
                 allRepositories.conditionRepository.saveAndFlush(condition);
             }
