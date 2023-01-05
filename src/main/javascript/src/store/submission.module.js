@@ -97,6 +97,14 @@ const actions = {
 
     return Promise.resolve([]);
   },
+
+  async downloadAnswerFileSubmission(...payload) {
+    try {
+      return await submissionService.downloadAnswerFileSubmission(...payload);
+    } catch (error) {
+      console.error("downloadAnswerFileSubmission catch", { error, state });
+    }
+  },
 };
 
 const mutations = {
