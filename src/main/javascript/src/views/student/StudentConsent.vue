@@ -20,6 +20,7 @@
           // pagemode=none hides thumbnails on Firefox, toolbar=0 works for other browsers
           '#pagemode=none&toolbar=0'
       "
+      title="Consent PDF"
     ></iframe>
     <form @submit.prevent="updateConsent(answer || false)">
       <v-card class="mt-5">

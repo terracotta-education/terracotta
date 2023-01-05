@@ -180,6 +180,17 @@
                       "
                     />
                   </template>
+                  <template v-else-if="question.questionType === 'FILE'">
+                    <file-upload-response-editor
+                      :fileResponses="getFileResponses(question)"
+                      :readonly="readonly"
+                      v-model="
+                        questionValues.find(
+                          ({ questionId }) => questionId === question.questionId
+                        ).response
+                      "
+                    />
+                  </template>
                 </v-card-text>
               </v-card>
             </div>
@@ -223,6 +234,7 @@ import MultipleChoiceResponseEditor from "./MultipleChoiceResponseEditor.vue";
 import YoutubeEventCapture from "./YoutubeEventCapture.vue";
 import moment from 'moment';
 import SubmissionSelector from '../assignment/SubmissionSelector.vue';
+import FileUploadResponseEditor from "@/views/student/FileUploadResponseEditor";
 
 Vue.filter('formatDate', (value) => {
   if (value) {
@@ -234,6 +246,7 @@ export default {
   name: "StudentQuiz",
   props: ["experimentId", "assignmentId"],
   components: {
+    FileUploadResponseEditor,
     EssayResponseEditor,
     MultipleChoiceResponseEditor,
     YoutubeEventCapture,
@@ -586,6 +599,12 @@ export default {
       if (!questionSubmissionDto) { return null; }
       return questionSubmissionDto.answerSubmissionDtoList.find(a => a.questionSubmissionId === questionSubmissionDto.questionSubmissionId);
     },
+    getFileResponses(question) {
+      if (!this.readonly) { return null; }
+      const questionSubmissionDto = this.questionSubmissions?.find(s => s.questionId === question.questionId);
+      if (!questionSubmissionDto) { return null; }
+      return questionSubmissionDto.answerSubmissionDtoList;
+    },
     errorFooter() {
       return `<div class="text--secondary body-2">
                   <div>Timestamp: ${new Date().toString()}</div>
@@ -608,6 +627,11 @@ export default {
           if (answer === null || answer.trim() === "") {
             return false;
           }
+        } else if (question.questionType === "FILE") {
+          const answer = this.questionValues.find(
+              ({ questionId }) => questionId === question.questionId
+          ).response;
+          return answer !== null
         } else {
           console.log(
             "Unexpected question type",

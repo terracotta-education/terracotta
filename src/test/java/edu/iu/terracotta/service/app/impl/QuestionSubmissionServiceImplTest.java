@@ -126,7 +126,7 @@ public class QuestionSubmissionServiceImplTest {
     }
 
     @Test
-    public void testGetQuestionSubmissionsIsStudent() throws AssessmentNotMatchingException {
+    public void testGetQuestionSubmissionsIsStudent() throws AssessmentNotMatchingException, IOException {
         List<QuestionSubmissionDto> questionSubmissions = questionSubmissionService.getQuestionSubmissions(1l, true, true, 1l, true);
 
         assertNotNull(questionSubmissions);
@@ -137,7 +137,7 @@ public class QuestionSubmissionServiceImplTest {
     }
 
     @Test
-    public void testGetQuestionSubmissionsIsNotStudent() throws AssessmentNotMatchingException {
+    public void testGetQuestionSubmissionsIsNotStudent() throws AssessmentNotMatchingException, IOException {
         List<QuestionSubmissionDto> questionSubmissions = questionSubmissionService.getQuestionSubmissions(1l, true, true, 1l, false);
 
         assertNotNull(questionSubmissions);
@@ -148,7 +148,7 @@ public class QuestionSubmissionServiceImplTest {
     }
 
     @Test
-    public void testGetQuestionSubmissionsIsStudentCannotViewResponses() throws AssessmentNotMatchingException {
+    public void testGetQuestionSubmissionsIsStudentCannotViewResponses() throws AssessmentNotMatchingException, IOException {
         when(assessment.canViewResponses()).thenReturn(false);
         // The submission has been submitted (dateSubmitted != null)
         when(submission.getDateSubmitted()).thenReturn(new Timestamp(System.currentTimeMillis()));
@@ -162,7 +162,7 @@ public class QuestionSubmissionServiceImplTest {
     }
 
     @Test
-    public void testGetQuestionSubmissionsIsStudentCannotViewResponsesButSubmissionIsNotSubmitted() throws AssessmentNotMatchingException {
+    public void testGetQuestionSubmissionsIsStudentCannotViewResponsesButSubmissionIsNotSubmitted() throws AssessmentNotMatchingException, IOException {
         when(assessment.canViewResponses()).thenReturn(false);
         // The submission has NOT been submitted (dateSubmitted == null)
         when(submission.getDateSubmitted()).thenReturn(null);
@@ -179,7 +179,7 @@ public class QuestionSubmissionServiceImplTest {
     }
 
     @Test
-    public void testGetQuestionSubmissionsIsStudentCannotViewCorrectAnswers() throws AssessmentNotMatchingException {
+    public void testGetQuestionSubmissionsIsStudentCannotViewCorrectAnswers() throws AssessmentNotMatchingException, IOException {
         when(assessment.canViewCorrectAnswers()).thenReturn(false);
         List<QuestionSubmissionDto> questionSubmissions = questionSubmissionService.getQuestionSubmissions(1l, true, true, 1l, true);
 

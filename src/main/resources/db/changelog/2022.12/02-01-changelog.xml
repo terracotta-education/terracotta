@@ -1,0 +1,40 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext" xmlns:pro="http://www.liquibase.org/xml/ns/pro" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd http://www.liquibase.org/xml/ns/pro http://www.liquibase.org/xml/ns/pro/liquibase-pro-latest.xsd http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+    <changeSet author="rlong (generated)" id="1670002313994-4">
+        <createTable tableName="terr_answer_file_submission">
+            <column autoIncrement="true" name="answer_file_submission_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true"/>
+            </column>
+            <column defaultValueComputed="CURRENT_TIMESTAMP" name="created_at" type="timestamp">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="datetime"/>
+            <column name="entity_version" type="INT"/>
+            <column name="file_content" type="LONGTEXT"/>
+            <column name="file_name" type="VARCHAR(255)"/>
+            <column name="file_uri" type="VARCHAR(255)"/>
+            <column name="mime_type" type="VARCHAR(255)"/>
+            <column name="quest_sub_quest_sub_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+    <changeSet author="rlong (generated)" id="1670002313994-5">
+        <createIndex indexName="FK61btlyf74hrkeycr4j1tcjvml" tableName="terr_answer_file_submission">
+            <column name="quest_sub_quest_sub_id"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="rlong (generated)" id="1670002313994-6">
+        <addForeignKeyConstraint
+            baseColumnNames="quest_sub_quest_sub_id"
+            baseTableName="terr_answer_file_submission"
+            constraintName="FK61btlyf74hrkeycr4j1tcjvml"
+            deferrable="false"
+            initiallyDeferred="false"
+            onDelete="RESTRICT"
+            onUpdate="RESTRICT"
+            referencedColumnNames="question_submission_id"
+            referencedTableName="terr_question_submission"
+            validate="true"/>
+    </changeSet>
+</databaseChangeLog>

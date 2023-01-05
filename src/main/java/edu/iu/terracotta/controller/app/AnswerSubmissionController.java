@@ -16,23 +16,43 @@ import edu.iu.terracotta.model.app.dto.AnswerSubmissionDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.AnswerSubmissionService;
+import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.utils.TextConstants;
+
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.util.UriComponentsBuilder;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 
 @Controller
@@ -41,21 +61,23 @@ import java.util.List;
 public class AnswerSubmissionController {
 
     /**
-     This controller was built to support the addition of answer submission types.
+     * This controller was built to support the addition of answer submission types.
      */
 
-    static final String REQUEST_ROOT = "api/experiments";
-    static final Logger log = LoggerFactory.getLogger(AnswerSubmissionController.class);
+    public static final String REQUEST_ROOT = "api/experiments";
+    private static final Logger log = LoggerFactory.getLogger(AnswerSubmissionController.class);
 
     @Autowired
-    AnswerSubmissionService answerSubmissionService;
+    private AnswerSubmissionService answerSubmissionService;
 
     @Autowired
-    SubmissionService submissionService;
+    private SubmissionService submissionService;
 
     @Autowired
-    APIJWTService apijwtService;
+    private APIJWTService apijwtService;
 
+    @Autowired
+    private FileStorageService fileStorageService;
 
     @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}/question_submissions/{question_submission_id}/answer_submissions",
                     method = RequestMethod.GET, produces = "application/json;")
@@ -67,7 +89,7 @@ public class AnswerSubmissionController {
                                                                                       @PathVariable("submission_id") Long submissionId,
                                                                                       @PathVariable("question_submission_id") Long questionSubmissionId,
                                                                                       HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, BadTokenException, InvalidUserException, DataServiceException {
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, BadTokenException, InvalidUserException, DataServiceException, IOException {
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -101,7 +123,7 @@ public class AnswerSubmissionController {
                                                                    @PathVariable("question_submission_id") Long questionSubmissionId,
                                                                    @PathVariable("answer_submission_id") Long answerSubmissionId,
                                                                    HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, AnswerSubmissionNotMatchingException, BadTokenException, InvalidUserException, DataServiceException {
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, AnswerSubmissionNotMatchingException, BadTokenException, InvalidUserException, DataServiceException, IOException {
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -134,7 +156,7 @@ public class AnswerSubmissionController {
             HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException,
             QuestionSubmissionNotMatchingException, BadTokenException, InvalidUserException, IdInPostException,
-            TypeNotSupportedException, DataServiceException, IdMissingException, ExceedingLimitException {
+            TypeNotSupportedException, DataServiceException, IdMissingException, ExceedingLimitException, IOException {
 
         log.info("Creating answer submissions: {}", answerSubmissionDtoList);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
@@ -229,4 +251,78 @@ public class AnswerSubmissionController {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
     }
+
+    @PostMapping(value = "/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}/submissions/{submissionId}/answer_submissions/file",
+            consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
+    public ResponseEntity<List<AnswerSubmissionDto>> postFileAnswerSubmission(@PathVariable long experimentId,
+                                                                        @PathVariable long conditionId,
+                                                                        @PathVariable long treatmentId,
+                                                                        @PathVariable long assessmentId,
+                                                                        @PathVariable long submissionId,
+                                                                        @RequestParam("answer_dto") String answerSubmissionDtoStr,
+                                                                        UriComponentsBuilder ucBuilder,
+                                                                        @RequestPart("file") MultipartFile file,
+                                                                        HttpServletRequest req)
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, BadTokenException, InvalidUserException, TypeNotSupportedException, DataServiceException, IdInPostException, IOException {
+
+        if (file.isEmpty()) {
+            log.error("Invalid file ");
+            return new ResponseEntity(TextConstants.FILE_MISSING, HttpStatus.BAD_REQUEST);
+        }
+
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
+
+        AnswerSubmissionDto answerSubmissionDto = new ObjectMapper().readValue(answerSubmissionDtoStr, AnswerSubmissionDto.class);
+        apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, answerSubmissionDto.getQuestionSubmissionId());
+
+        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
+            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
+        }
+
+        log.info("Creating answer submission: {}", answerSubmissionDto);
+
+        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
+            submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
+        }
+
+        AnswerSubmissionDto returnedDto = answerSubmissionService.handleFileAnswerSubmission(answerSubmissionDto, file);
+        HttpHeaders headers = answerSubmissionService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, submissionId,
+            answerSubmissionDto.getQuestionSubmissionId(), returnedDto.getAnswerSubmissionId());
+        List<AnswerSubmissionDto> answerSubmissionDtoList = new ArrayList<>();
+        answerSubmissionDtoList.add(returnedDto);
+
+        return new ResponseEntity<>(answerSubmissionDtoList, headers, HttpStatus.OK);
+    }
+
+    @GetMapping(value = "/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}/submissions/{submissionId}/question_submissions/{questionSubmissionId}/answer_submissions/{answerSubmissionId}/file",
+            produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
+    public ResponseEntity<String> downloadFileAnswerSubmission(@PathVariable long experimentId,
+                                                                        @PathVariable long conditionId,
+                                                                        @PathVariable long treatmentId,
+                                                                        @PathVariable long assessmentId,
+                                                                        @PathVariable long submissionId,
+                                                                        @PathVariable long questionSubmissionId,
+                                                                        @PathVariable long answerSubmissionId,
+                                                                        HttpServletRequest req)
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, BadTokenException, AnswerSubmissionNotMatchingException, IOException {
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
+        apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, questionSubmissionId);
+        String answerType = answerSubmissionService.getAnswerType(questionSubmissionId);
+        apijwtService.answerSubmissionAllowed(securedInfo, questionSubmissionId, answerType, answerSubmissionId);
+
+        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
+            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
+        }
+
+        AnswerSubmissionDto answerSubmissionDto = answerSubmissionService.getAnswerFileSubmissionDto(answerSubmissionId);
+
+        return ResponseEntity.ok().contentType(MediaType.parseMediaType(answerSubmissionDto.getMimeType()))
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + answerSubmissionDto.getFileName() + "\"")
+                    .body(answerSubmissionDto.getFileContent());
+    }
+
 }

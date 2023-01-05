@@ -144,6 +144,7 @@ export default {
     for (const treatment of this.assignment.treatments) {
       for (const submission of treatment.assessmentDto.submissions) {
         // Create a clone of each submission that can be mutated
+        console.log(submission.submissionId)
         submissions[submission.submissionId] = clone(submission);
       }
     }

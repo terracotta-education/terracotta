@@ -10,11 +10,23 @@ export function initHeader() {
         return {};
     }
 }
+
 export function authHeader() {
     if (store.state.api?.api_token) {
         return {
             'Authorization': 'Bearer ' + store.state.api.api_token,
             'Content-Type': 'application/json'
+        };
+    } else {
+        return {};
+    }
+}
+
+export function fileAuthHeader() {
+    if (store.state.api?.api_token) {
+        return {
+            'Authorization': 'Bearer ' + store.state.api.api_token,
+            // 'Content-Type': 'multipart/form-data'
         };
     } else {
         return {};

@@ -18,6 +18,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -178,7 +179,7 @@ public class SubmissionServiceImplTest {
     // test toDto when questionSubmissions is true and not submitted, calls
     // QuestionSubmissionService with answerSubmissions=true
     @Test
-    public void testToDtoWithQuestionSubmissionsWhenSubmissionNotSubmitted() {
+    public void testToDtoWithQuestionSubmissionsWhenSubmissionNotSubmitted() throws IOException {
 
         when(submission.getDateSubmitted()).thenReturn(null);
 
@@ -199,7 +200,7 @@ public class SubmissionServiceImplTest {
     // test toDto when questionSubmissions is true and submitted, calls
     // QuestionSubmissionService with answerSubmissions=false
     @Test
-    public void testToDtoWithQuestionSubmissionsWhenSubmissionIsSubmitted() {
+    public void testToDtoWithQuestionSubmissionsWhenSubmissionIsSubmitted() throws IOException {
 
         when(submission.getDateSubmitted()).thenReturn(new Timestamp(System.currentTimeMillis()));
 

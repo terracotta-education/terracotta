@@ -6,6 +6,7 @@ import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.app.FileStorageException;
 import edu.iu.terracotta.exceptions.app.MyFileNotFoundException;
 import edu.iu.terracotta.model.LtiUserEntity;
+import edu.iu.terracotta.model.app.AnswerFileSubmission;
 import edu.iu.terracotta.model.app.ConsentDocument;
 import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.FileInfo;
@@ -18,12 +19,12 @@ import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.service.canvas.CanvasAPIClient;
 import edu.ksu.canvas.model.assignment.Assignment;
+import lombok.extern.slf4j.Slf4j;
+
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.UrlResource;
@@ -34,23 +35,25 @@ import org.springframework.core.io.Resource;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import javax.annotation.PostConstruct;
+
+import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.nio.file.attribute.FileAttribute;
 import java.security.GeneralSecurityException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+@Slf4j
 @Service
 public class FileStorageServiceImpl implements FileStorageService {
 
@@ -60,24 +63,26 @@ public class FileStorageServiceImpl implements FileStorageService {
     @Value("${application.url}")
     private String applicationUrl;
 
-    final static Logger log = LoggerFactory.getLogger(FileStorageServiceImpl.class);
+    @Value("${upload.submissions.local.path.root}")
+    private String uploadSubmissionsLocalPathRoot;
 
     @Autowired
-    ExperimentService experimentService;
+    private ExperimentService experimentService;
 
     @Autowired
-    CanvasAPIClient canvasAPIClient;
+    private CanvasAPIClient canvasAPIClient;
 
     @Autowired
-    APIJWTService apijwtService;
+    private APIJWTService apijwtService;
 
     @Autowired
-    AllRepositories allRepositories;
+    private AllRepositories allRepositories;
 
     @PostConstruct
     public void init() {
         try {
             Files.createDirectories(Paths.get(uploadDir));
+            Files.createDirectories(Paths.get(uploadSubmissionsLocalPathRoot));
         }catch (IOException e) {
             throw new RuntimeException("Error 138: Could not create upload folder!");
         }
@@ -388,4 +393,53 @@ public class FileStorageServiceImpl implements FileStorageService {
         }
     }
 
+    @Override
+    public String saveFileSubmissionLocal(MultipartFile file) {
+        if (file == null) {
+            throw new FileStorageException("Error 140: File cannot be null.");
+        }
+
+        String path = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy/MM/dd/HH"));
+        String filename = file.getOriginalFilename() != null ? StringUtils.cleanPath(file.getOriginalFilename()) : "";
+
+        if (filename.contains("..")) {
+            throw new FileStorageException(String.format("Error 139: filename contains invalid path sequence: '%s'", filename));
+        }
+
+        try {
+            // create the upload directory
+            Files.createDirectories(Paths.get(String.format("%s/%s", uploadSubmissionsLocalPathRoot, path)));
+            // assign random UUID as file name
+            String filePath = String.format("%s/%s", path, UUID.randomUUID().toString());
+
+            while (Files.exists(Paths.get(filePath))) {
+                // ensure no file name clashes
+                filePath = String.format("%s/%s", path, UUID.randomUUID().toString());
+            }
+
+            // copy the file to the directory
+            Files.copy(
+                file.getInputStream(),
+                Paths.get(String.format("%s/%s", uploadSubmissionsLocalPathRoot, filePath)),
+                StandardCopyOption.REPLACE_EXISTING
+            );
+
+            return filePath;
+        } catch (IOException ex) {
+            throw new FileStorageException(String.format("Error 140: Could not store file '%s'. Please try again.", filename), ex);
+        }
+    }
+
+    @Override
+    public File getFileSubmissionLocal(long id) {
+        Optional<AnswerFileSubmission> answerFileSubmission = allRepositories.answerFileSubmissionRepository.findById(id);
+
+        if (!answerFileSubmission.isPresent()) {
+            return null;
+        }
+
+        String uri = String.format("%s/%s", uploadSubmissionsLocalPathRoot, answerFileSubmission.get().getFileUri());
+
+        return new File(uri);
+    }
 }
