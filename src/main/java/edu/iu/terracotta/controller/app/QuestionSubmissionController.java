@@ -317,4 +317,45 @@ public class QuestionSubmissionController {
         return new ResponseEntity<>(returnedDtoList, headers, HttpStatus.CREATED);
     }
 
+    @PutMapping(value = "/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}/submissions/{submissionId}/question_submissions/{questionSubmissionId}/file",
+            consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
+    public ResponseEntity<List<QuestionSubmissionDto>> putFileQuestionSubmission(@PathVariable long experimentId,
+                                                                                  @PathVariable long conditionId,
+                                                                                  @PathVariable long treatmentId,
+                                                                                  @PathVariable long assessmentId,
+                                                                                  @PathVariable long submissionId,
+                                                                                  @PathVariable long questionSubmissionId,
+                                                                                  @RequestParam("question_dto") String questionSubmissionDtoStr,
+                                                                                  UriComponentsBuilder ucBuilder,
+                                                                                  @RequestPart("file") MultipartFile file,
+                                                                                  HttpServletRequest req)
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, BadTokenException, InvalidUserException, TypeNotSupportedException, DataServiceException, IdInPostException, IOException, SubmissionNotMatchingException, NoSubmissionsException, CanvasApiException, IdMissingException, ExceedingLimitException, AnswerNotMatchingException, DuplicateQuestionException, AnswerSubmissionNotMatchingException, AssignmentAttemptException, QuestionSubmissionNotMatchingException {
+
+        if (file.isEmpty()) {
+            log.error("File cannot be empty.");
+            return new ResponseEntity(TextConstants.FILE_MISSING, HttpStatus.BAD_REQUEST);
+        }
+
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
+        apijwtService.submissionAllowed(securedInfo, assessmentId, submissionId);
+
+        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+
+        boolean student = false;
+
+        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
+            submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
+            student = true;
+        }
+
+        List<QuestionSubmissionDto> returnedDtoList = questionSubmissionService.handleFileQuestionSubmissionUpdate(file, questionSubmissionDtoStr, experimentId, assessmentId, submissionId, questionSubmissionId, student, securedInfo);
+        HttpHeaders headers = questionSubmissionService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, submissionId);
+
+        return new ResponseEntity<>(returnedDtoList, headers, HttpStatus.CREATED);
+    }
+
 }

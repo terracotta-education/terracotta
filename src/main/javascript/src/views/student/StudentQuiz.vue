@@ -182,7 +182,9 @@
                   </template>
                   <template v-else-if="question.questionType === 'FILE'">
                     <file-upload-response-editor
+                      :selectedSubmission="selectedSubmission"
                       :fileResponses="getFileResponses(question)"
+                      @download-file-response="downloadFileResponse"
                       :readonly="readonly"
                       v-model="
                         questionValues.find(
@@ -268,6 +270,7 @@ export default {
       answers: [],
       loading: false,
       submissions: [],
+      answerSubmissionId: null,
     };
   },
   watch: {
@@ -383,6 +386,7 @@ export default {
       createQuestionSubmissions: "submissions/createQuestionSubmissions",
       createAnswerSubmissions: "submissions/createAnswerSubmissions",
       updateAnswerSubmission: "submissions/updateAnswerSubmission",
+      downloadAnswerFileSubmission: "submissions/downloadAnswerFileSubmission",
     }),
     async handleTryAgain() {
       this.attempt();
@@ -563,6 +567,19 @@ export default {
         submissionId,
       ]);
     },
+    downloadFileResponse({ conditionId, treatmentId, assessmentId, submissionId, questionSubmissionId, answerSubmissionId, mimeType, fileName }) {
+      this.downloadAnswerFileSubmission([
+        this.experimentId,
+        conditionId,
+        treatmentId,
+        assessmentId,
+        submissionId,
+        questionSubmissionId,
+        answerSubmissionId,
+        mimeType,
+        fileName
+      ]);
+    },
     async getQuestions(experimentId, conditionId, assessmentId, treatmentId, submissionId) {
       this.questionValues = [];
 
@@ -576,7 +593,8 @@ export default {
     },
     getQuestionSubmissionValue(question) {
       const value = this.questionSubmissions?.find(({ questionId }) => questionId === question.questionId);
-      return value?.calculatedPoints;
+      const score = value?.alteredGrade != null ? value?.alteredGrade : value?.calculatedPoints;
+      return score != null ? score : 0;
     },
     getQuestionAnswers(question) {
       if (!this.readonly) { return question.answers; }

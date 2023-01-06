@@ -12,7 +12,7 @@
                 width="100%"
                 height="100%"
         >
-          <v-card-actions class="d-flex flex-column" dense align="center" justify="center">
+          <v-card-actions class="d-flex flex-column btn-upload-card-action" dense align="center" justify="center">
             <v-row class="d-flex flex-column" dense align="center" justify="center">
               <v-btn color="primary" dark class="upload-button" align="center" :loading="isSelecting" @click="handleFileImport">
                 Upload File
@@ -26,9 +26,9 @@
             >
             <v-spacer></v-spacer>
           </v-card-actions>
-          <v-card-text>
+          <v-card-text class="drag-drop-card-text">
             <v-row class="d-flex flex-column" dense align="center" justify="center">
-              <p>or drag and drop here</p>
+              <p class="drag-drop-text">or drag and drop here</p>
             </v-row>
           </v-card-text>
         </v-card>
@@ -87,7 +87,7 @@
     </template>
     <template v-if="readonly">
       <response-row>
-        <v-card width="100%" height="100%">
+        <v-card class="uploaded-file-card">
           <v-card-text>
             <v-row class="d-flex flex-column" dense align="center" justify="center">
               <h2>File submitted:</h2>
@@ -116,39 +116,6 @@
           </v-card-text>
         </v-card>
       </response-row>
-      <!-- v-row>
-        <v-col>
-          <v-card>
-            <v-card-title>
-              <v-row class="submitted-file-row">
-                <v-col v-for="fileResponse in fileResponses" :key="fileResponse.answerSubmissionId">
-                  <v-row class="btn-file-response-download-row">
-                    <v-btn
-                      class="ma-2 btn-file-response-download"
-                      outlined
-                      @click="handleFileDownload(fileResponse)"
-                      target="_blank">
-                      {{fileResponse.fileName}}
-                      <v-icon>mdi-file-download-outline</v-icon>
-                    </v-btn>
-                  </v-row>
-                  <v-row>
-                    <iframe
-                      :src="
-                        'data:' + fileMimeType(fileResponse) + ';base64, ' +
-                          encodeURI(fileResponse.fileContent) +
-                          // pagemode=none hides thumbnails on Firefox, toolbar=0 works for other browsers
-                          '#pagemode=none&toolbar=0'
-                      "
-                      :title="fileName(fileResponse)"
-                    ></iframe>
-                  </v-row>
-                </v-col>
-              </v-row>
-            </v-card-title>
-          </v-card>
-        </v-col>
-      </v-row -->
     </template>
   </div>
 </template>
@@ -157,7 +124,12 @@
 import ResponseRow from "./ResponseRow.vue";
 
 export default {
-  props: ["value", "readonly", "fileResponses"],
+  props: [
+    "value",
+    "readonly",
+    "fileResponses",
+    "selectedSubmission"
+  ],
   components: {ResponseRow},
   data() {
     return {
@@ -212,7 +184,7 @@ export default {
     loadFile(file) {
       this.uploadBarProgress = 50;
       if (file.size > 10 * 1024 * 1024) {
-        alert('File cannot exceed 10MB)');
+        alert('File cannot exceed 10MB');
         this.uploadedFiles = [];
         this.uploading = false
         this.uploaded = false
@@ -240,14 +212,21 @@ export default {
       return fileResponse.fileName;
     },
     handleFileDownload(fileResponse) {
-      const element = document.createElement('a');
-      element.setAttribute('href', 'data:' + this.fileMimeType(fileResponse) + ';base64, ' + encodeURI(fileResponse.fileContent));
-      element.setAttribute('download', fileResponse.fileName);
-      element.style.display = 'none';
-      document.body.appendChild(element);
-      element.click();
-      document.body.removeChild(element);
-    }
+      console.log("handleFileDownload:: ", this.selectedSubmission.conditionId, this.selectedSubmission.treatmentId, this.selectedSubmission.assessmentId, this.selectedSubmission.submissionId, fileResponse);
+      this.$emit(
+        "download-file-response",
+        {
+          conditionId: this.selectedSubmission.conditionId,
+          treatmentId: this.selectedSubmission.treatmentId,
+          assessmentId: this.selectedSubmission.assessmentId,
+          submissionId: this.selectedSubmission.submissionId,
+          questionSubmissionId: fileResponse.questionSubmissionId,
+          answerSubmissionId: fileResponse.answerSubmissionId,
+          mimeType: fileResponse.mimeType,
+          fileName: fileResponse.fileName
+        }
+      );
+    },
   },
   computed: {
     isUploading: function () {
@@ -295,5 +274,20 @@ iframe {
 }
 .btn-uploaded-file-icon {
   color: rgba(0,0,0,.54) !important;
+}
+.btn-upload-card-action {
+  padding-top: 16px;
+}
+.drag-drop-card-text {
+  padding-bottom: 0;
+  line-height: .5rem;
+}
+p.drag-drop-text {
+  margin-bottom: 0;
+}
+.uploaded-file-card {
+  width: 100%;
+  height: 100%;
+  box-shadow: none !important;
 }
 </style>

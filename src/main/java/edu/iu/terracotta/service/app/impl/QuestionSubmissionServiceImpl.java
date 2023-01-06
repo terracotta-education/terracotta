@@ -12,6 +12,7 @@ import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.IdMissingException;
 import edu.iu.terracotta.exceptions.InvalidUserException;
 import edu.iu.terracotta.exceptions.QuestionSubmissionNotMatchingException;
+import edu.iu.terracotta.exceptions.SubmissionNotMatchingException;
 import edu.iu.terracotta.exceptions.TypeNotSupportedException;
 import edu.iu.terracotta.model.LtiUserEntity;
 import edu.iu.terracotta.model.app.AnswerEssaySubmission;
@@ -41,6 +42,7 @@ import edu.iu.terracotta.service.canvas.CanvasAPIClient;
 import edu.iu.terracotta.utils.TextConstants;
 import lombok.extern.slf4j.Slf4j;
 
+import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
@@ -53,7 +55,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -471,6 +475,65 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
         validateAndPrepareQuestionSubmissionList(questionSubmissionDtoList, assessmentId, submissionId, student);
 
         return postQuestionSubmissions(questionSubmissionDtoList, assessmentId, submissionId, student);
+    }
+
+    public List<QuestionSubmissionDto> handleFileQuestionSubmissionUpdate(MultipartFile file, String questionSubmissionDtoStr, long experimentId, long assessmentId, long submissionId, long questionSubmissionId, boolean student, SecuredInfo securedInfo)
+            throws IOException, CanvasApiException, AssignmentAttemptException, IdInPostException, DataServiceException, DuplicateQuestionException, InvalidUserException, IdMissingException,
+                AnswerSubmissionNotMatchingException, AnswerNotMatchingException, ExceedingLimitException, TypeNotSupportedException, QuestionSubmissionNotMatchingException {
+        QuestionSubmissionDto questionSubmissionDto = objectMapper.readValue(questionSubmissionDtoStr, QuestionSubmissionDto.class);
+        QuestionSubmission questionSubmission = allRepositories.questionSubmissionRepository.findByQuestionSubmissionId(questionSubmissionId);
+
+        if (questionSubmission == null) {
+            throw new QuestionSubmissionNotMatchingException(TextConstants.QUESTION_SUBMISSION_NOT_MATCHING);
+        }
+
+        List<AnswerFileSubmission> answerFileSubmissions = allRepositories.answerFileSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmissionId);
+
+        CollectionUtils.emptyIfNull(answerFileSubmissions).stream()
+            .forEach(
+                answerFileSubmission -> {
+                    // remove file from file system
+                    File existingFileSubmission = fileStorageService.getFileSubmissionLocal(answerFileSubmission.getAnswerFileSubmissionId());
+
+                    try {
+                        if (Files.deleteIfExists(existingFileSubmission.toPath())) {
+                            log.info("File submission deleted: file name: '{}', answer submission ID: '{}'", answerFileSubmission.getFileName(), answerFileSubmission.getAnswerFileSubmissionId());
+                        } else {
+                            log.info("File submission NOT deleted: file name: '{}', answer submission ID: '{}'", answerFileSubmission.getFileName(), answerFileSubmission.getAnswerFileSubmissionId());
+                        }
+                    } catch (Exception e) {
+                        log.error("File submission NOT deleted: file name: '{}', answer submission ID: '{}'", answerFileSubmission.getFileName(), answerFileSubmission.getAnswerFileSubmissionId(), e);
+                    }
+
+                    // remove row from database
+                    allRepositories.answerFileSubmissionRepository.delete(answerFileSubmission);
+                }
+            );
+
+        String fileName = file.getResource().getFilename();
+        File tempFile = getFile(file, file.getName());
+
+        String uri = fileStorageService.saveFileSubmissionLocal(file);
+
+        AnswerSubmissionDto answerSubmissionDto = new AnswerSubmissionDto();
+        answerSubmissionDto.setFileName(fileName);
+        answerSubmissionDto.setMimeType(file.getContentType());
+        answerSubmissionDto.setFile(tempFile);
+        answerSubmissionDto.setFileUri(uri);
+
+        List<AnswerSubmissionDto> answerSubmissionDtoList = new ArrayList<>();
+        answerSubmissionDtoList.add(answerSubmissionDto);
+        questionSubmissionDto.setAnswerSubmissionDtoList(answerSubmissionDtoList);
+
+        List<QuestionSubmissionDto> questionSubmissionDtoList = new ArrayList<>();
+        questionSubmissionDtoList.add(questionSubmissionDto);
+
+        canSubmit(securedInfo, experimentId);
+        validateAndPrepareQuestionSubmissionList(questionSubmissionDtoList, assessmentId, submissionId, student);
+
+        updateQuestionSubmissions(Collections.singletonMap(questionSubmission, questionSubmissionDto), student);
+
+        return questionSubmissionDtoList;
     }
 
     private File getFile(MultipartFile multipartFile, String fileName) {

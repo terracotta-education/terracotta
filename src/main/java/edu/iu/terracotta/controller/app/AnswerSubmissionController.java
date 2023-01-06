@@ -13,18 +13,16 @@ import edu.iu.terracotta.exceptions.InvalidUserException;
 import edu.iu.terracotta.exceptions.QuestionSubmissionNotMatchingException;
 import edu.iu.terracotta.exceptions.TypeNotSupportedException;
 import edu.iu.terracotta.model.app.dto.AnswerSubmissionDto;
+import edu.iu.terracotta.model.app.dto.FileResponseDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.AnswerSubmissionService;
-import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.utils.TextConstants;
+import lombok.extern.slf4j.Slf4j;
 
-import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.io.FileUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -34,6 +32,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -48,13 +47,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import javax.servlet.http.HttpServletRequest;
 import javax.transaction.Transactional;
 
-import java.io.File;
-import java.io.FileOutputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
+@Slf4j
 @Controller
 @SuppressWarnings({"rawtypes", "unchecked"})
 @RequestMapping(value = AnswerSubmissionController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
@@ -65,7 +63,6 @@ public class AnswerSubmissionController {
      */
 
     public static final String REQUEST_ROOT = "api/experiments";
-    private static final Logger log = LoggerFactory.getLogger(AnswerSubmissionController.class);
 
     @Autowired
     private AnswerSubmissionService answerSubmissionService;
@@ -75,9 +72,6 @@ public class AnswerSubmissionController {
 
     @Autowired
     private APIJWTService apijwtService;
-
-    @Autowired
-    private FileStorageService fileStorageService;
 
     @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}/question_submissions/{question_submission_id}/answer_submissions",
                     method = RequestMethod.GET, produces = "application/json;")
@@ -296,9 +290,54 @@ public class AnswerSubmissionController {
         return new ResponseEntity<>(answerSubmissionDtoList, headers, HttpStatus.OK);
     }
 
-    @GetMapping(value = "/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}/submissions/{submissionId}/question_submissions/{questionSubmissionId}/answer_submissions/{answerSubmissionId}/file",
-            produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
-    public ResponseEntity<String> downloadFileAnswerSubmission(@PathVariable long experimentId,
+    @PutMapping(value = "/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}/submissions/{submissionId}/answer_submissions/{answerSubmissionId}/file",
+            consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
+    public ResponseEntity<List<AnswerSubmissionDto>> putFileAnswerSubmission(@PathVariable long experimentId,
+                                                                        @PathVariable long conditionId,
+                                                                        @PathVariable long treatmentId,
+                                                                        @PathVariable long assessmentId,
+                                                                        @PathVariable long submissionId,
+                                                                        @PathVariable long answerSubmissionId,
+                                                                        @RequestParam("answer_dto") String answerSubmissionDtoStr,
+                                                                        UriComponentsBuilder ucBuilder,
+                                                                        @RequestPart("file") MultipartFile file,
+                                                                        HttpServletRequest req)
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, BadTokenException, InvalidUserException, TypeNotSupportedException, DataServiceException, IdInPostException, IOException {
+
+        if (file.isEmpty()) {
+            log.error("Invalid file ");
+            return new ResponseEntity(TextConstants.FILE_MISSING, HttpStatus.BAD_REQUEST);
+        }
+
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
+
+        AnswerSubmissionDto answerSubmissionDto = new ObjectMapper().readValue(answerSubmissionDtoStr, AnswerSubmissionDto.class);
+        apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, answerSubmissionDto.getQuestionSubmissionId());
+
+        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
+            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
+        }
+
+        log.info("Creating answer submission: {}", answerSubmissionDto);
+
+        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
+            submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
+        }
+
+        AnswerSubmissionDto returnedDto = answerSubmissionService.handleFileAnswerSubmissionUpdate(answerSubmissionDto, file);
+        HttpHeaders headers = answerSubmissionService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, submissionId,
+            answerSubmissionDto.getQuestionSubmissionId(), returnedDto.getAnswerSubmissionId());
+        List<AnswerSubmissionDto> answerSubmissionDtoList = new ArrayList<>();
+        answerSubmissionDtoList.add(returnedDto);
+
+        return new ResponseEntity<>(answerSubmissionDtoList, headers, HttpStatus.OK);
+    }
+
+    @ResponseBody
+    @GetMapping("/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}/submissions/{submissionId}/question_submissions/{questionSubmissionId}/answer_submissions/{answerSubmissionId}/file")
+    public ResponseEntity<Resource> downloadFileAnswerSubmission(@PathVariable long experimentId,
                                                                         @PathVariable long conditionId,
                                                                         @PathVariable long treatmentId,
                                                                         @PathVariable long assessmentId,
@@ -318,11 +357,13 @@ public class AnswerSubmissionController {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
-        AnswerSubmissionDto answerSubmissionDto = answerSubmissionService.getAnswerFileSubmissionDto(answerSubmissionId);
+        FileResponseDto fileResponseDto = answerSubmissionService.getFileResponseDto(answerSubmissionId);
 
-        return ResponseEntity.ok().contentType(MediaType.parseMediaType(answerSubmissionDto.getMimeType()))
-                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + answerSubmissionDto.getFileName() + "\"")
-                    .body(answerSubmissionDto.getFileContent());
+        return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType(fileResponseDto.getMimeType()))
+                    .contentLength(fileResponseDto.getFile().length())
+                    .header(HttpHeaders.CONTENT_DISPOSITION, String.format("attachment; filename=%s", fileResponseDto.getFileName()))
+                    .body(new InputStreamResource(new FileInputStream(fileResponseDto.getFile())));
     }
 
 }

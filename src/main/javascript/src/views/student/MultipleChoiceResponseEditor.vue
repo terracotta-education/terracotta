@@ -1,7 +1,7 @@
 <template>
   <div>
-    <template v-for="answer in answers">
-      <response-row :key="answer.answerId" :correct="getColor(answer)">
+    <template>
+      <response-row v-for="answer in answers" :key="answer.answerId" :correct="getColor(answer)">
         <div class="d-flex justify-space-between align-center w-100">
           <div class="question-input">
             <template v-if="!readonly">
