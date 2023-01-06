@@ -64,8 +64,8 @@
     </v-card>
 
     <template v-if="this.selectedSubmissionId">
-      <template v-for="questionPage in questionPages">
-        <div :key="questionPage.key">
+      <template>
+        <div v-for="questionPage in questionPages" :key="questionPage.key">
           <!-- Individual Question -->
           <v-card
             class="mt-5 mb-2"
@@ -204,35 +204,41 @@
                     </v-col>
                   </v-row>
                 </template>
+                <template v-else-if="question.questionType === 'FILE'">
+                  <v-card width="100%" height="100%">
+                    <v-card-text>
+                      <v-row class="d-flex flex-column" dense align="center" justify="center">
+                        <h2>File submitted:</h2>
+                        <div
+                          v-for="fileResponse in studentSubmittedFileResponse(question.questionId)" :key="fileResponse.answerSubmissionId"
+                          class="v-btn uploaded-file-row"
+                          outlined
+                        >
+                          {{fileResponse.fileName}}
+                          <v-tooltip top>
+                            <template v-slot:activator="{on, attrs}">
+                              <v-btn
+                                v-bind="attrs"
+                                v-on="on"
+                                @click="handleFileDownload(fileResponse)"
+                                class="btn-uploaded-file"
+                                target="_blank"
+                              >
+                                <v-icon class="btn-uploaded-file-icon">mdi-file-download-outline</v-icon>
+                              </v-btn>
+                            </template>
+                            <span>Download file</span>
+                          </v-tooltip>
+                        </div>
+                      </v-row>
+                    </v-card-text>
+                  </v-card>
+                </template>
               </div>
             </v-card-title>
           </v-card>
         </div>
       </template>
-    </template>
-    <template v-else-if="question.questionType === 'FILE'">
-      <v-row>
-        <v-col cols="6">
-          <v-card>
-            <v-card-title>
-              <v-row>
-                <v-col cols="1">
-                </v-col>
-                <v-col cols="5">
-                  <v-btn class="ma-2"
-                         outlined
-                         :href="studentSubmittedAnswers[question.questionId].url"
-                         target="_blank">
-                    {{studentSubmittedAnswers[question.questionId].fileName}}
-                  </v-btn>
-                </v-col>
-              </v-row>
-
-            </v-card-title>
-
-          </v-card>
-        </v-col>
-      </v-row>
     </template>
   </div>
 </template>
@@ -406,9 +412,32 @@ export default {
       if (!answerSubmissionDtoList || answerSubmissionDtoList.length === 0) {
         return null;
       } else {
-        let file ={'fileName':answerSubmissionDtoList[0].fileName,'url':answerSubmissionDtoList[0].response}
-        return file;
+        // let file ={'fileName':answerSubmissionDtoList[0].fileName,'url':answerSubmissionDtoList[0].response}
+        return [{
+          'fileName':answerSubmissionDtoList[0].fileName,
+          'fileContent':answerSubmissionDtoList[0].fileContent,
+          'mimeType':answerSubmissionDtoList[0].mimeType,
+          'answerSubmissionId':answerSubmissionDtoList[0].answerSubmissionId
+        }];
       }
+    },
+
+    handleFileDownload(fileResponse) {
+      const element = document.createElement('a');
+      element.setAttribute('href', 'data:' + this.fileMimeType(fileResponse) + ';base64, ' + encodeURI(fileResponse.fileContent));
+      element.setAttribute('download', fileResponse.fileName);
+      element.style.display = 'none';
+      document.body.appendChild(element);
+      element.click();
+      document.body.removeChild(element);
+    },
+
+    fileMimeType(fileResponse) {
+      return fileResponse.mimeType;
+    },
+
+    fileName(fileResponse) {
+      return fileResponse.fileName;
     },
 
     async saveExit() {
@@ -632,5 +661,26 @@ export default {
 }
 .ungraded-essay-question-chip__icon {
   margin-right: 10px;
+}
+.uploaded-file-row {
+  min-width: 200px !important;
+  min-height: 42px !important;
+  padding: 0 4px 0 16px !important;
+  cursor: inherit;
+  background-color: transparent !important;
+  border-radius: 4px;
+  border: 1px solid lightgrey;
+  justify-content: space-between;
+}
+.btn-uploaded-file {
+  padding: 0 !important;
+  margin-left: 20px;
+  min-width: fit-content !important;
+  max-height: 28px;
+  border-color: lightgrey;
+  background-color: transparent !important;
+}
+.btn-uploaded-file-icon {
+  color: rgba(0,0,0,.54) !important;
 }
 </style>
