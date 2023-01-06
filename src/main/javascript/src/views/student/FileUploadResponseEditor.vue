@@ -28,55 +28,94 @@
           </v-card-actions>
           <v-card-text>
             <v-row class="d-flex flex-column" dense align="center" justify="center">
-              <p>
-                or drag and drop here
-              </p>
+              <p>or drag and drop here</p>
             </v-row>
           </v-card-text>
         </v-card>
         <v-card v-if="!isIdle" width="100%" height="100%">
           <v-card-text>
             <v-row class="d-flex flex-column" dense align="center" justify="center">
-              <p v-if="isUploading">
-                Uploading...
-              </p>
-              <h2 v-if="isUploaded">
-                Selected File
-              </h2>
-            </v-row>
-            <v-row class="d-flex flex-column" dense align="center" justify="center">
-              <p>
-                <strong>{{this.uploadedFiles[0].name}}</strong>
-                <v-btn @click="deleteFile" icon>
-                  <v-icon id="close-button">mdi-trash-can</v-icon>
-                </v-btn>
-              </p>
+              <h2 v-if="isUploading">Uploading...</h2>
+              <h2 v-if="!isUploading">Selected file:</h2>
+              <div v-if="isUploading">
+                <v-progress-linear
+                  v-model="uploadBarProgress"
+                  height="5"
+                >
+                </v-progress-linear>
+                <v-tooltip top>
+                  <template v-slot:activator="{on, attrs}">
+                    <v-btn
+                      v-bind="attrs"
+                      v-on="on"
+                      @click="deleteFile"
+                      class="btn-uploaded-file"
+                    >
+                      <v-icon class="btn-uploaded-file-icon">mdi-close-outine</v-icon>
+                    </v-btn>
+                  </template>
+                  <span>Cancel upload</span>
+                </v-tooltip>
+              </div>
+              <div
+                v-if="!isUploading"
+                class="v-btn uploaded-file-row"
+                outlined
+              >
+                {{this.uploadedFiles[0].name}}
+                <v-tooltip top>
+                  <template v-slot:activator="{on, attrs}">
+                    <v-btn
+                      v-bind="attrs"
+                      v-on="on"
+                      @click="deleteFile"
+                      class="btn-uploaded-file"
+                    >
+                      <v-icon class="btn-uploaded-file-icon">mdi-trash-can-outline</v-icon>
+                    </v-btn>
+                  </template>
+                  <span>Delete file</span>
+                </v-tooltip>
+              </div>
             </v-row>
           </v-card-text>
         </v-card>
       </response-row>
       <v-row v-if="isIdle" class="d-flex flex-column" dense align="center" justify="center">
-        <p>
-          Uploaded files cannot be larger than 10MB
-        </p>
+        <p>Uploaded files cannot be larger than 10MB</p>
       </v-row>
     </template>
     <template v-if="readonly">
-      <v-row>
-        <v-col cols="1"></v-col>
-        <v-col class="files-submitted">
-          <h2 class="label-files-submitted">File submitted:</h2>
-          <v-btn
-            v-for="fileResponse in fileResponses" :key="fileResponse.answerSubmissionId"
-            class="ma-2 btn-file-response-download"
-            outlined
-            @click="handleFileDownload(fileResponse)"
-            target="_blank">
-            {{fileResponse.fileName}}
-            <v-icon>mdi-file-download-outline</v-icon>
-          </v-btn>
-        </v-col>
-      </v-row>
+      <response-row>
+        <v-card width="100%" height="100%">
+          <v-card-text>
+            <v-row class="d-flex flex-column" dense align="center" justify="center">
+              <h2>File submitted:</h2>
+              <div
+                v-for="fileResponse in fileResponses" :key="fileResponse.answerSubmissionId"
+                class="v-btn uploaded-file-row"
+                outlined
+              >
+                {{fileResponse.fileName}}
+                <v-tooltip top>
+                  <template v-slot:activator="{on, attrs}">
+                    <v-btn
+                      v-bind="attrs"
+                      v-on="on"
+                      @click="handleFileDownload(fileResponse)"
+                      class="btn-uploaded-file"
+                      target="_blank"
+                    >
+                      <v-icon class="btn-uploaded-file-icon">mdi-file-download-outline</v-icon>
+                    </v-btn>
+                  </template>
+                  <span>Download file</span>
+                </v-tooltip>
+              </div>
+            </v-row>
+          </v-card-text>
+        </v-card>
+      </response-row>
       <!-- v-row>
         <v-col>
           <v-card>
@@ -171,26 +210,26 @@ export default {
       this.loadFile(e.target.files[0])
     },
     loadFile(file) {
-      this.uploadBarProgress=50;
+      this.uploadBarProgress = 50;
       if (file.size > 10 * 1024 * 1024) {
         alert('File cannot exceed 10MB)');
         this.uploadedFiles = [];
-        this.uploading=false
-        this.uploaded=false
+        this.uploading = false
+        this.uploaded = false
         this.response = null;
         return;
       }
-      this.uploadBarProgress=50;
-      this.uploading=false
-      this.uploaded=true
-      this.response=file;
+      this.uploadBarProgress = 50;
+      this.uploading = false
+      this.uploaded = true
+      this.response = file;
       this.emitValueChanged();
     },
     deleteFile() {
       this.uploadedFiles = [];
-      this.uploadBarProgress=0;
-      this.uploading=false
-      this.uploaded=false
+      this.uploadBarProgress = 0;
+      this.uploading = false
+      this.uploaded = false
       this.response = null;
       this.emitValueChanged();
     },
@@ -230,30 +269,31 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.counter {
-  font-size: 16px;
-  line-height: 16px;
-  font-weight: 400;
-}
-.div-1 {
-  margin-left: 40%;
-}
 iframe {
   margin: 0 auto;
   min-height: 600px;
   min-width: 600px;
   border: none;
 }
-.btn-file-response-download-row, .submitted-file-row {
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  align-items: center;
+.uploaded-file-row {
+  min-width: 200px !important;
+  min-height: 42px !important;
+  padding: 0 4px 0 16px !important;
+  cursor: inherit;
+  background-color: transparent !important;
+  border-radius: 4px;
+  border: 1px solid lightgrey;
+  justify-content: space-between;
 }
-.label-files-submitted {
-  display: inline;
+.btn-uploaded-file {
+  padding: 0 !important;
+  margin-left: 20px;
+  min-width: fit-content !important;
+  max-height: 28px;
+  border-color: lightgrey;
+  background-color: transparent !important;
 }
-.files-submitted > * {
-  vertical-align: middle;
+.btn-uploaded-file-icon {
+  color: rgba(0,0,0,.54) !important;
 }
 </style>
