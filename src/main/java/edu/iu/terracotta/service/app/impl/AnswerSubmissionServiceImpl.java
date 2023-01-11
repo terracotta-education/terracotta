@@ -12,6 +12,7 @@ import edu.iu.terracotta.model.app.AnswerMc;
 import edu.iu.terracotta.model.app.AnswerMcSubmission;
 import edu.iu.terracotta.model.app.QuestionSubmission;
 import edu.iu.terracotta.model.app.dto.AnswerSubmissionDto;
+import edu.iu.terracotta.model.app.dto.FileResponseDto;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.AnswerSubmissionService;
 import edu.iu.terracotta.service.app.FileStorageService;
@@ -20,6 +21,7 @@ import edu.iu.terracotta.utils.TextConstants;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,6 +35,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -358,15 +361,21 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
 
     @Override
     public AnswerSubmissionDto toDtoFile(AnswerFileSubmission answerFileSubmission) throws IOException {
+        return toDtoFile(answerFileSubmission, false);
+    }
+
+    private AnswerSubmissionDto toDtoFile(AnswerFileSubmission answerFileSubmission, boolean includeFileContent) throws IOException {
         AnswerSubmissionDto answerSubmissionDto = new AnswerSubmissionDto();
         answerSubmissionDto.setAnswerSubmissionId(answerFileSubmission.getAnswerFileSubmissionId());
         answerSubmissionDto.setQuestionSubmissionId(answerFileSubmission.getQuestionSubmission().getQuestionSubmissionId());
         answerSubmissionDto.setMimeType(answerFileSubmission.getMimeType());
         answerSubmissionDto.setFileName(answerFileSubmission.getFileName());
 
-        byte[] encoded = Base64.encodeBase64(FileUtils.readFileToByteArray(fileStorageService.getFileSubmissionLocal(answerFileSubmission.getAnswerFileSubmissionId())));
-        String fileContent = new String(encoded, StandardCharsets.UTF_8);
-        answerSubmissionDto.setFileContent(fileContent);
+        if (includeFileContent) {
+            byte[] encoded = Base64.encodeBase64(FileUtils.readFileToByteArray(fileStorageService.getFileSubmissionLocal(answerFileSubmission.getAnswerFileSubmissionId())));
+            String fileContent = new String(encoded, StandardCharsets.UTF_8);
+            answerSubmissionDto.setFileContent(fileContent);
+        }
 
         return answerSubmissionDto;
     }
@@ -421,10 +430,15 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
     }
 
     @Override
-    public AnswerSubmissionDto getAnswerFileSubmissionDto(long answerSubmissionId) throws IOException {
+    public FileResponseDto getFileResponseDto(long answerSubmissionId) throws IOException {
         AnswerFileSubmission answerFileSubmission = allRepositories.answerFileSubmissionRepository.findByAnswerFileSubmissionId(answerSubmissionId);
 
-        return toDtoFile(answerFileSubmission);
+        FileResponseDto fileResponseDto = new FileResponseDto();
+        fileResponseDto.setFileName(answerFileSubmission.getFileName());
+        fileResponseDto.setMimeType(answerFileSubmission.getMimeType());
+        fileResponseDto.setFile(fileStorageService.getFileSubmissionLocal(answerFileSubmission.getAnswerFileSubmissionId()));
+
+        return fileResponseDto;
     }
 
     @Override
@@ -451,18 +465,43 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
     }
 
     public AnswerSubmissionDto handleFileAnswerSubmission(AnswerSubmissionDto answerSubmissionDto, MultipartFile file) throws IdInPostException, DataServiceException, TypeNotSupportedException, IOException {
-        String uri = fileStorageService.saveFileSubmissionLocal(file);
-        File tempFile = getFile(file, file.getName());
-        String fileName = file.getResource().getFilename();
-        String mimeType = file.getContentType();
-        // byte[] encoded = Base64.encodeBase64(FileUtils.readFileToByteArray(tempFile));
-        // String fileContent = new String(encoded, StandardCharsets.US_ASCII);
+        answerSubmissionDto.setFileName(file.getResource().getFilename());
+        answerSubmissionDto.setMimeType(file.getContentType());
+        answerSubmissionDto.setFileUri(fileStorageService.saveFileSubmissionLocal(file));
+        answerSubmissionDto.setFile(getFile(file, file.getName()));
 
-        // answerSubmissionDto.setFileContent(fileContent);
-        answerSubmissionDto.setFileName(fileName);
-        answerSubmissionDto.setMimeType(mimeType);
-        answerSubmissionDto.setFileUri(uri);
-        answerSubmissionDto.setFile(tempFile);
+        return postAnswerSubmission(answerSubmissionDto, answerSubmissionDto.getQuestionSubmissionId());
+    }
+
+    public AnswerSubmissionDto handleFileAnswerSubmissionUpdate(AnswerSubmissionDto answerSubmissionDto, MultipartFile file) throws IdInPostException, DataServiceException, TypeNotSupportedException, IOException {
+        List<AnswerFileSubmission> answerFileSubmissions = allRepositories.answerFileSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(answerSubmissionDto.getQuestionSubmissionId());
+
+        CollectionUtils.emptyIfNull(answerFileSubmissions).stream()
+            .forEach(
+                answerFileSubmission -> {
+                    // remove file from file system
+                    File existingFileSubmission = fileStorageService.getFileSubmissionLocal(answerFileSubmission.getAnswerFileSubmissionId());
+
+                    try {
+                        if (Files.deleteIfExists(existingFileSubmission.toPath())) {
+                            log.info("File submission deleted: file name: '{}', answer submission ID: '{}'", answerFileSubmission.getFileName(), answerFileSubmission.getAnswerFileSubmissionId());
+                        } else {
+                            log.info("File submission NOT deleted: file name: '{}', answer submission ID: '{}'", answerFileSubmission.getFileName(), answerFileSubmission.getAnswerFileSubmissionId());
+                        }
+                    } catch (Exception e) {
+                        log.error("File submission NOT deleted: file name: '{}', answer submission ID: '{}'", answerFileSubmission.getFileName(), answerFileSubmission.getAnswerFileSubmissionId(), e);
+                    }
+
+                    // remove row from database
+                    allRepositories.answerFileSubmissionRepository.delete(answerFileSubmission);
+                }
+            );
+
+        answerSubmissionDto.setAnswerSubmissionId(null);
+        answerSubmissionDto.setFileName(file.getResource().getFilename());
+        answerSubmissionDto.setMimeType(file.getContentType());
+        answerSubmissionDto.setFileUri(fileStorageService.saveFileSubmissionLocal(file));
+        answerSubmissionDto.setFile(getFile(file, file.getName()));
 
         return postAnswerSubmission(answerSubmissionDto, answerSubmissionDto.getQuestionSubmissionId());
     }

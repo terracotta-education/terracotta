@@ -220,7 +220,7 @@
                               <v-btn
                                 v-bind="attrs"
                                 v-on="on"
-                                @click="handleFileDownload(fileResponse)"
+                                @click="downloadFileResponse(fileResponse)"
                                 class="btn-uploaded-file"
                                 target="_blank"
                               >
@@ -366,6 +366,7 @@ export default {
       updateQuestionSubmissions: "submissions/updateQuestionSubmissions",
       updateSubmission: "submissions/updateSubmission",
       reportStep: "api/reportStep",
+      downloadAnswerFileSubmission: "submissions/downloadAnswerFileSubmission",
     }),
     participantName() {
       return this.participants.filter(
@@ -412,32 +413,27 @@ export default {
       if (!answerSubmissionDtoList || answerSubmissionDtoList.length === 0) {
         return null;
       } else {
-        // let file ={'fileName':answerSubmissionDtoList[0].fileName,'url':answerSubmissionDtoList[0].response}
         return [{
           'fileName':answerSubmissionDtoList[0].fileName,
-          'fileContent':answerSubmissionDtoList[0].fileContent,
           'mimeType':answerSubmissionDtoList[0].mimeType,
-          'answerSubmissionId':answerSubmissionDtoList[0].answerSubmissionId
+          'answerSubmissionId':answerSubmissionDtoList[0].answerSubmissionId,
+          'questionSubmissionId':answerSubmissionDtoList[0].questionSubmissionId
         }];
       }
     },
 
-    handleFileDownload(fileResponse) {
-      const element = document.createElement('a');
-      element.setAttribute('href', 'data:' + this.fileMimeType(fileResponse) + ';base64, ' + encodeURI(fileResponse.fileContent));
-      element.setAttribute('download', fileResponse.fileName);
-      element.style.display = 'none';
-      document.body.appendChild(element);
-      element.click();
-      document.body.removeChild(element);
-    },
-
-    fileMimeType(fileResponse) {
-      return fileResponse.mimeType;
-    },
-
-    fileName(fileResponse) {
-      return fileResponse.fileName;
+    downloadFileResponse(fileResponse) {
+      this.downloadAnswerFileSubmission([
+        this.experiment_id,
+        this.selectedSubmission.conditionId,
+        this.selectedSubmission.treatmentId,
+        this.selectedSubmission.assessmentId,
+        this.selectedSubmission.submissionId,
+        fileResponse.questionSubmissionId,
+        fileResponse.answerSubmissionId,
+        fileResponse.mimeType,
+        fileResponse.fileName
+      ]);
     },
 
     async saveExit() {

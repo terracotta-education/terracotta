@@ -98,9 +98,11 @@ const actions = {
     return Promise.resolve([]);
   },
 
-  async downloadAnswerFileSubmission(...payload) {
+  downloadAnswerFileSubmission({ state }, payload) {
+    // payload = experimentId, conditionId, treatmentId, assessmentId, submissionId, questionSubmissionId, answerSubmissionId, mimeType, fileName
+
     try {
-      return await submissionService.downloadAnswerFileSubmission(...payload);
+      return submissionService.downloadAnswerFileSubmission(...payload);
     } catch (error) {
       console.error("downloadAnswerFileSubmission catch", { error, state });
     }

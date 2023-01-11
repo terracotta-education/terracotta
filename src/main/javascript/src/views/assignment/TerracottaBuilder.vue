@@ -36,8 +36,8 @@
           </div>
 
           <template v-if="questionPages && questionPages.length > 0">
-            <template v-for="questionPage in questionPages">
-              <div :key="questionPage.key">
+            <template>
+              <div v-for="questionPage in questionPages" :key="questionPage.key">
                 <v-expansion-panels
                   flat
                   accordion
@@ -115,7 +115,7 @@
               </v-list-item>
               <v-list-item @click="handleAddQuestion('FILE')">
                 <v-list-item-title>
-                  <v-icon class="mr-1">mdi-radiobox-marked</v-icon>
+                  <v-icon class="mr-1">mdi-file-upload-outline</v-icon>
                     File upload
                   </v-list-item-title>
               </v-list-item>
@@ -159,8 +159,9 @@
                       </v-list-item>
                     </template>
                     <v-list>
-                      <template v-for="treatment in assignment.treatments">
+                      <template>
                         <v-list-item
+                          v-for="treatment in assignment.treatments"
                           :key="treatment.treatmentId"
                           @click="duplicate(treatment)"
                         >
