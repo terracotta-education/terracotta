@@ -94,7 +94,7 @@
                   <template>
                     <td>{{outcome.title}}</td>
                   </template>
-                  
+
                   <template v-if="!outcome.external">
                     <td>Manual Entry</td>
                   </template>
@@ -265,7 +265,7 @@ export default {
       }
     }
   },
-  async created() {
+  async mounted() {
     // reset assignments to get a clean list
     await this.resetAssignments()
     // update assignments on load

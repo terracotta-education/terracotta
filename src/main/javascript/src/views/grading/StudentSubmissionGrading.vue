@@ -538,7 +538,7 @@ export default {
       this.maxPoints = sum;
     }
   },
-  async created() {
+  async mounted() {
     this.fetchAssessment([
       this.experiment.experimentId,
       this.condition_id,
