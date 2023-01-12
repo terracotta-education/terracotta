@@ -136,6 +136,19 @@ async function createQuestionSubmissions(
     } catch (error) {
         console.log("createQuestionSubmissions | catch", error);
     }
+
+    Promise.all(requests)
+        .then(
+            function() {
+                const unsuccessful = responses.filter((r) => !r.ok);
+
+                if (unsuccessful.length > 0) {
+                    return handleResponse(unsuccessful[0]);
+                }
+
+                return handleResponse(responses[0]);
+            }
+        )
 }
     /**
      * Update Question Submissions
