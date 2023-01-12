@@ -11,6 +11,7 @@ import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExceedingLimitException;
+import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.ExposureNotMatchingException;
 import edu.iu.terracotta.exceptions.GroupNotMatchingException;
 import edu.iu.terracotta.exceptions.IdInPostException;
@@ -431,7 +432,7 @@ public class AssignmentServiceImpl implements AssignmentService {
     public ResponseEntity<Object> launchAssignment(Long experimentId, SecuredInfo securedInfo) throws
             AssessmentNotMatchingException, ParticipantNotUpdatedException, AssignmentDatesException,
             DataServiceException, CanvasApiException, IOException, GroupNotMatchingException,
-            ParticipantNotMatchingException, ConnectionException, AssignmentAttemptException, AssignmentNotMatchingException {
+            ParticipantNotMatchingException, ConnectionException, AssignmentAttemptException, AssignmentNotMatchingException, ExperimentNotMatchingException {
         Optional<Experiment> experiment = experimentService.findById(experimentId);
         if (experiment.isPresent()) {
             Participant participant = participantService.handleExperimentParticipant(experiment.get(), securedInfo);

@@ -11,6 +11,7 @@ import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExceedingLimitException;
+import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.ExposureNotMatchingException;
 import edu.iu.terracotta.exceptions.GroupNotMatchingException;
 import edu.iu.terracotta.exceptions.IdInPostException;
@@ -107,7 +108,7 @@ public interface AssignmentService {
 
     ResponseEntity<Object> launchAssignment(Long experimentId, SecuredInfo securedInfo)
             throws AssessmentNotMatchingException, ParticipantNotUpdatedException, AssignmentDatesException, DataServiceException, CanvasApiException,
-                    IOException, GroupNotMatchingException, ParticipantNotMatchingException, ConnectionException, AssignmentAttemptException, AssignmentNotMatchingException;
+                    IOException, GroupNotMatchingException, ParticipantNotMatchingException, ConnectionException, AssignmentAttemptException, AssignmentNotMatchingException, ExperimentNotMatchingException;
 
     void checkAndRestoreAllAssignmentsInCanvas() throws CanvasApiException, DataServiceException, ConnectionException, IOException;
 

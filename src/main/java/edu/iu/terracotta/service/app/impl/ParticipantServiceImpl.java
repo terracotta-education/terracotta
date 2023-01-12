@@ -1,6 +1,16 @@
 package edu.iu.terracotta.service.app.impl;
 
-import edu.iu.terracotta.exceptions.*;
+import edu.iu.terracotta.exceptions.AssignmentNotMatchingException;
+import edu.iu.terracotta.exceptions.CanvasApiException;
+import edu.iu.terracotta.exceptions.ConnectionException;
+import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.exceptions.GroupNotMatchingException;
+import edu.iu.terracotta.exceptions.IdInPostException;
+import edu.iu.terracotta.exceptions.InvalidUserException;
+import edu.iu.terracotta.exceptions.ParticipantAlreadyStartedException;
+import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
+import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.model.LtiMembershipEntity;
 import edu.iu.terracotta.model.LtiUserEntity;
 import edu.iu.terracotta.model.PlatformDeployment;
@@ -32,7 +42,9 @@ import edu.iu.terracotta.service.lti.LTIDataService;
 import edu.iu.terracotta.utils.LtiStrings;
 import edu.iu.terracotta.utils.TextConstants;
 
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,6 +59,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 
 @Service
+@SuppressWarnings({"PMD.UselessParentheses", "PMD.GuardLogStatement", "PMD.PreserveStackTrace", "squid:S112", "squid:S1066"})
 public class ParticipantServiceImpl implements ParticipantService {
 
     private static final Logger logger = LoggerFactory.getLogger(ParticipantServiceImpl.class);
@@ -83,18 +96,21 @@ public class ParticipantServiceImpl implements ParticipantService {
     @Override
     public List<ParticipantDto> getParticipants(List<Participant> participants, long experimentId, String userId, boolean student) {
         List<ParticipantDto> participantDtoList = new ArrayList<>();
+
         if (!student) {
             for (Participant participant : participants) {
                 participantDtoList.add(toDto(participant));
             }
             return participantDtoList;
         }
+
         try {
             participantDtoList.add(toDto(allRepositories.participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, userId)));
         } catch (NullPointerException ex) {
             //A null pointer means that there is no participant for this experiment with that userId. We will return an empty list.
             return participantDtoList;
         }
+
         return participantDtoList;
     }
 
@@ -105,6 +121,7 @@ public class ParticipantServiceImpl implements ParticipantService {
         }
 
         Participant participant = allRepositories.participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, userId);
+
         if (participant.getParticipantId().equals(participantId)) {
             return allRepositories.participantRepository.findByParticipantId(participantId);
         } else {
@@ -117,13 +134,16 @@ public class ParticipantServiceImpl implements ParticipantService {
         if (participantDto.getParticipantId() != null) {
             throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
         }
+
         Participant participant;
         participantDto.setExperimentId(experimentId);
+
         try {
             participant = fromDto(participantDto);
         } catch (DataServiceException e) {
             throw new DataServiceException("Error 105: Unable to create the participant:" + e.getMessage());
         }
+
         return toDto(save(participant));
     }
 
@@ -138,10 +158,13 @@ public class ParticipantServiceImpl implements ParticipantService {
         participantDto.setDateRevoked(participant.getDateRevoked());
         participantDto.setSource(participant.getSource().name());
         participantDto.setDropped(participant.getDropped());
+
         if (participant.getGroup() != null) {
             participantDto.setGroupId(participant.getGroup().getGroupId());
         }
+
         participantDto.setStarted(hasStarted(participant));
+
         return participantDto;
     }
 
@@ -150,6 +173,7 @@ public class ParticipantServiceImpl implements ParticipantService {
         userDto.setUserId(user.getUserId());
         userDto.setUserKey(user.getUserKey());
         userDto.setDisplayName(user.getDisplayName());
+
         return userDto;
     }
 
@@ -167,13 +191,16 @@ public class ParticipantServiceImpl implements ParticipantService {
     public Participant fromDto(ParticipantDto participantDto) throws DataServiceException {
         Participant participant = new Participant();
         Optional<Experiment> experiment = allRepositories.experimentRepository.findById(participantDto.getExperimentId());
+
         if (experiment.isPresent()) {
             participant.setExperiment(experiment.get());
         } else {
             throw new DataServiceException("The experiment for the participant does not exist");
         }
+
         try {
             Optional<LtiUserEntity> userEntity = allRepositories.users.findById(participantDto.getUser().getUserId());
+
             if (userEntity.isPresent()) {
                 participant.setLtiUserEntity(userEntity.get());
             } else {
@@ -182,15 +209,18 @@ public class ParticipantServiceImpl implements ParticipantService {
         } catch (Exception e) {
             throw new DataServiceException("The user for the participant is not valid");
         }
+
         if (participantDto.getGroupId() != null && allRepositories.groupRepository.existsByExperiment_ExperimentIdAndGroupId(experiment.get().getExperimentId(), participantDto.getGroupId())) {
-            participant.setGroup(allRepositories.groupRepository.getOne(participantDto.getGroupId()));
+            participant.setGroup(allRepositories.groupRepository.getReferenceById(participantDto.getGroupId()));
         }
+
         participant.setParticipantId(participant.getParticipantId());
         participant.setConsent(participantDto.getConsent());
         participant.setDateGiven(participantDto.getDateGiven());
         participant.setDateRevoked(participantDto.getDateRevoked());
         participant.setDropped(participantDto.getDropped());
         participant.setSource(experiment.get().getParticipationType());
+
         return participant;
     }
 
@@ -212,8 +242,7 @@ public class ParticipantServiceImpl implements ParticipantService {
     @Override
     @Transactional
     public List<Participant> refreshParticipants(long experimentId, List<Participant> currentParticipantList)
-            throws ParticipantNotUpdatedException {
-
+            throws ParticipantNotUpdatedException, ExperimentNotMatchingException {
         long startTime = System.currentTimeMillis();
 
         // We don't want to delete participants if they drop the course, so... we
@@ -222,31 +251,41 @@ public class ParticipantServiceImpl implements ParticipantService {
         // hash table of all current participants and remove them as we find them
         // in the course roster. Any left over need to be marked as dropped.
         Map<String, Participant> participantsToBeDropped = new HashMap<>();
+
         for (Participant participant : currentParticipantList) {
             participantsToBeDropped.put(participant.getLtiUserEntity().getUserKey(), participant);
         }
+
         List<Participant> newParticipantList = new ArrayList<>(currentParticipantList);
+
         try {
-            Experiment experiment = allRepositories.experimentRepository.findById(experimentId).get();
-            LTIToken ltiToken = advantageMembershipService.getToken(experiment.getPlatformDeployment());
-            CourseUsers courseUsers = advantageMembershipService.callMembershipService(ltiToken, experiment.getLtiContextEntity());
+            Optional<Experiment> experiment = allRepositories.experimentRepository.findById(experimentId);
+
+            if (!experiment.isPresent()) {
+                throw new ExperimentNotMatchingException(TextConstants.EXPERIMENT_NOT_MATCHING);
+            }
+
+            LTIToken ltiToken = advantageMembershipService.getToken(experiment.get().getPlatformDeployment());
+            CourseUsers courseUsers = advantageMembershipService.callMembershipService(ltiToken, experiment.get().getLtiContextEntity());
 
             for (CourseUser courseUser : courseUsers.getCourseUserList()) {
                 if (courseUser.getRoles().contains(Roles.LEARNER) || courseUser.getRoles().contains(Roles.MEMBERSHIP_LEARNER)) {
                     Participant participant = participantsToBeDropped.remove(courseUser.getUserId());
                     if (participant != null) {
-                        resetParticipantConsentIfExperimentNotStarted(experiment, participant);
+                        resetParticipantConsentIfExperimentNotStarted(experiment.get(), participant);
+
                         // If participant is marked as dropped, mark it as not dropped
                         if (BooleanUtils.isTrue(participant.getDropped())) {
                             participant.setDropped(false);
                             allRepositories.participantRepository.save(participant);
                         }
                     } else {
-                        Participant newParticipant = createNewParticipant(courseUser, experiment);
+                        Participant newParticipant = createNewParticipant(courseUser, experiment.get());
                         newParticipantList.add(newParticipant);
                     }
                 }
             }
+
             // Mark as dropped any participants not found in course roster
             for (Participant participantToDrop : participantsToBeDropped.values()) {
                 participantToDrop.setDropped(true);
@@ -255,10 +294,12 @@ public class ParticipantServiceImpl implements ParticipantService {
         } catch (ConnectionException | NoSuchElementException e) {
             throw new ParticipantNotUpdatedException(e.getMessage());
         }
+
         allRepositories.participantRepository.flush();
 
         logger.debug("Refreshing participants for experiment {} took {}s", experimentId,
                 (System.currentTimeMillis() - startTime) / 1000f);
+
         return newParticipantList;
     }
 
@@ -270,7 +311,6 @@ public class ParticipantServiceImpl implements ParticipantService {
      * @param participant
      */
     private void resetParticipantConsentIfExperimentNotStarted(Experiment experiment, Participant participant) {
-
         if (experiment.getStarted() == null && experiment.getParticipationType() != participant.getSource()) {
             switch (participant.getSource()) {
                 case NOSET:
@@ -341,13 +381,13 @@ public class ParticipantServiceImpl implements ParticipantService {
                     break;
                 default:
             }
+
             participant.setSource(experiment.getParticipationType());
             allRepositories.participantRepository.save(participant);
         }
     }
 
     private Participant createNewParticipant(CourseUser courseUser, Experiment experiment) {
-
         LtiUserEntity ltiUserEntity = ltiDataService.findByUserKeyAndPlatformDeployment(courseUser.getUserId(),
                 experiment.getPlatformDeployment());
 
@@ -366,8 +406,9 @@ public class ParticipantServiceImpl implements ParticipantService {
             ltiUserEntity = ltiDataService.saveLtiUserEntity(newLtiUserEntity);
 
         }
-        LtiMembershipEntity ltiMembershipEntity = ltiDataService.findByUserAndContext(ltiUserEntity,
-                experiment.getLtiContextEntity());
+
+        LtiMembershipEntity ltiMembershipEntity = ltiDataService.findByUserAndContext(ltiUserEntity, experiment.getLtiContextEntity());
+
         if (ltiMembershipEntity == null) {
             ltiMembershipEntity = new LtiMembershipEntity(experiment.getLtiContextEntity(), ltiUserEntity,
                     LtiStrings.ROLE_STUDENT);
@@ -380,6 +421,7 @@ public class ParticipantServiceImpl implements ParticipantService {
         newParticipant.setLtiMembershipEntity(ltiMembershipEntity);
         newParticipant.setDropped(false);
         newParticipant.setSource(experiment.getParticipationType());
+
         switch (experiment.getParticipationType()) {
             case MANUAL:
                 newParticipant.setConsent(null);
@@ -393,7 +435,9 @@ public class ParticipantServiceImpl implements ParticipantService {
                 break;
             default:
         }
+
         newParticipant = allRepositories.participantRepository.save(newParticipant);
+
         return newParticipant;
     }
 
@@ -404,10 +448,8 @@ public class ParticipantServiceImpl implements ParticipantService {
 
     @Override
     @Transactional
-    public void prepareParticipation(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException {
-
-        List<Participant> currentParticipantList =
-                findAllByExperimentId(experimentId);
+    public void prepareParticipation(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException, ExperimentNotMatchingException {
+        List<Participant> currentParticipantList = findAllByExperimentId(experimentId);
         refreshParticipants(experimentId, currentParticipantList);
     }
 
@@ -418,40 +460,54 @@ public class ParticipantServiceImpl implements ParticipantService {
             Participant participantToChange = entry.getKey();
             ParticipantDto participantDto = entry.getValue();
             Experiment experiment = experimentService.getExperiment(experimentId);
-            if (experiment.getParticipationType().equals(ParticipationTypes.CONSENT)) {
-                if ((experiment.getStarted() == null)
-                        && ((participantToChange.getConsent() == null || (!participantToChange.getConsent() && participantToChange.getDateRevoked() == null))
-                        && participantDto.getConsent() != null)) {
+
+            if (ParticipationTypes.CONSENT.equals(experiment.getParticipationType())) {
+                if (experiment.getStarted() == null
+                        && (participantToChange.getConsent() == null
+                            || (BooleanUtils.isFalse(participantToChange.getConsent()) && participantToChange.getDateRevoked() == null))
+                        && participantDto.getConsent() != null) {
                     experiment.setStarted(Timestamp.valueOf(LocalDateTime.now()));
                     experimentService.save(experiment);
                 }
             }
-            //If they had consent, and now they don't have, we change the dateRevoked to now.
-            //In any other case, we leave the date as it is. Ignoring any value in the PUT
-            if (participantToChange.getConsent() != null &&
-                    (participantToChange.getConsent() || (!participantToChange.getConsent() && participantToChange.getDateRevoked() == null)) &&
-                    (participantDto.getConsent() == null || !participantDto.getConsent())) {
+
+            // If they had consent, and now they don't have, we change the dateRevoked to now.
+            // In any other case, we leave the date as it is. Ignoring any value in the PUT
+            if (participantToChange.getConsent() != null
+                    && (BooleanUtils.isTrue(participantToChange.getConsent())
+                        || (BooleanUtils.isFalse(participantToChange.getConsent()) && participantToChange.getDateRevoked() == null))
+                    && BooleanUtils.isNotTrue(participantDto.getConsent())) {
                 participantToChange.setDateRevoked(Timestamp.valueOf(LocalDateTime.now()));
+                participantToChange.setSource(ParticipationTypes.REVOKED);
             }
-            if ((participantToChange.getConsent() == null || !participantToChange.getConsent()) &&
-                    (participantDto.getConsent() != null && participantDto.getConsent())) {
+
+            if (BooleanUtils.isNotTrue(participantToChange.getConsent())
+                    && BooleanUtils.isTrue(participantDto.getConsent())) {
                 participantToChange.setDateGiven(Timestamp.valueOf(LocalDateTime.now()));
                 participantToChange.setDateRevoked(null);
+                participantToChange.setSource(ParticipationTypes.CONSENT);
             }
-            participantToChange.setConsent((participantDto.getConsent()));
 
-            //NOTE: we do this... but this will be updated in the next GET participants with the real data and dropped will be overwritten.
+            participantToChange.setConsent(participantDto.getConsent());
+
+            // NOTE: we do this... but this will be updated in the next GET participants with the real data and dropped will be overwritten.
             if (participantDto.getDropped() != null) {
                 participantToChange.setDropped(participantDto.getDropped());
             }
-            if (!hasStarted(participantToChange)) { //We don't allow changing the group (manually) once the experiment has started.
-                if (participantDto.getGroupId() != null && groupService.existsByExperiment_ExperimentIdAndGroupId(experiment.getExperimentId(), participantDto.getGroupId())) {
+
+            // We don't allow changing the group (manually) once the experiment has started.
+            if (!hasStarted(participantToChange)) {
+                if (participantDto.getGroupId() != null
+                        && groupService.existsByExperiment_ExperimentIdAndGroupId(experiment.getExperimentId(), participantDto.getGroupId())) {
                     participantToChange.setGroup(groupService.getGroup(participantDto.getGroupId()));
                 } else {
                     participantToChange.setGroup(null);
                 }
             }
-            participantToChange.setSource(experiment.getParticipationType());
+
+            if (participantToChange.getSource() == null) {
+                participantToChange.setSource(experiment.getParticipationType());
+            }
 
             save(participantToChange);
         }
@@ -460,49 +516,53 @@ public class ParticipantServiceImpl implements ParticipantService {
     @Override
     @Transactional
     public boolean changeConsent(ParticipantDto participantDto, SecuredInfo securedInfo, Long experimentId) throws ParticipantAlreadyStartedException {
-
         Participant participant = allRepositories.participantRepository.findByParticipantId(participantDto.getParticipantId());
+
         if (participant == null
-                || !participant.getLtiUserEntity().getUserKey().equals(securedInfo.getUserId())
-                || securedInfo.getConsent() == null || !securedInfo.getConsent()) {
+                || !StringUtils.equals(participant.getLtiUserEntity().getUserKey(), securedInfo.getUserId())
+                || securedInfo.getConsent() == null
+                || BooleanUtils.isFalse(securedInfo.getConsent())) {
             return false;
         }
 
+        if (BooleanUtils.isTrue(participant.getConsent()) && BooleanUtils.isFalse(participantDto.getConsent())) {
+            // user is changing consent from true to false, set source = REVOKED
+            participant.setSource(ParticipationTypes.REVOKED);
+        }
+
         // Don't allow changing consent to consent=true if started and not consenting
-        if (hasStarted(participant) && participant.getConsent() != null && !participant.getConsent()
-                && participantDto.getConsent() != null && participantDto.getConsent()) {
+        if (hasStarted(participant)
+                && BooleanUtils.isFalse(participant.getConsent())
+                && BooleanUtils.isTrue(participantDto.getConsent())) {
             throw new ParticipantAlreadyStartedException("Participant has already started experiment, consent cannot be changed to given");
         }
-        //We only edit the consent here.
+
+        // We only edit the consent here.
         participantDto.setDropped(participant.getDropped());
+
         if (participant.getGroup() == null) {
             participantDto.setGroupId(null);
         } else {
             participantDto.setGroupId(participant.getGroup().getGroupId());
         }
-        Map<Participant, ParticipantDto> map = new HashMap<>();
-        map.put(participant, participantDto);
-        changeParticipant(map, experimentId);
+
+        changeParticipant(Collections.singletonMap(participant, participantDto), experimentId);
 
         return true;
-
-
     }
 
 
     @Override
     public Participant findParticipant(List<Participant> participants, String userId) {
-        for (Participant participant : participants) {
-            if (participant.getLtiUserEntity().getUserKey().equals(userId)) {
-                return participant;
-            }
-        }
-        return null;
+        return participants.stream()
+            .filter(participant -> StringUtils.equals(participant.getLtiUserEntity().getUserKey(), userId))
+            .findFirst()
+            .orElse(null);
     }
 
     private boolean hasStarted(Participant participant) {
-        //to know if he has started we need to find at least one submission.
-        return !allRepositories.submissionRepository.findByParticipant_ParticipantId(participant.getParticipantId()).isEmpty();
+        // to know if the participant has started we need to find at least one submission
+        return CollectionUtils.isNotEmpty(allRepositories.submissionRepository.findByParticipant_ParticipantId(participant.getParticipantId()));
     }
 
     @Override
@@ -515,83 +575,87 @@ public class ParticipantServiceImpl implements ParticipantService {
 
     @Override
     @Transactional
-    public void setAllToNull(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException {
+    public void setAllToNull(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException, ExperimentNotMatchingException {
         List<Participant> participants = allRepositories.participantRepository.findByExperiment_ExperimentId(experimentId);
         refreshParticipants(experimentId, participants);
+
         for (Participant participant : participants) {
             participant.setConsent(null);
             participant.setDateGiven(null);
         }
+
         allRepositories.participantRepository.saveAll(participants);
     }
 
     @Override
     @Transactional
-    public void setAllToTrue(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException {
+    public void setAllToTrue(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException, ExperimentNotMatchingException {
         List<Participant> participants = allRepositories.participantRepository.findByExperiment_ExperimentId(experimentId);
         refreshParticipants(experimentId, participants);
+
         for (Participant participant : participants) {
             participant.setConsent(true);
             participant.setDateGiven(new Timestamp(System.currentTimeMillis()));
         }
+
         allRepositories.participantRepository.saveAll(participants);
     }
 
     @Override
     @Transactional
-    public void setAllToFalse(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException {
+    public void setAllToFalse(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException, ExperimentNotMatchingException {
         List<Participant> participants = allRepositories.participantRepository.findByExperiment_ExperimentId(experimentId);
         refreshParticipants(experimentId, participants);
+
         for (Participant participant : participants) {
             participant.setConsent(false);
             participant.setDateGiven(new Timestamp(System.currentTimeMillis()));
         }
-        allRepositories.participantRepository.saveAll(participants);
 
+        allRepositories.participantRepository.saveAll(participants);
     }
 
     @Override
     public void postConsentSubmission(Participant participant, SecuredInfo securedInfo) throws ConnectionException, DataServiceException {
-        //We need, the assignment, and the iss configuration...
+        // need the assignment and the iss configuration
         PlatformDeployment platformDeployment = participant.getExperiment().getPlatformDeployment();
         Experiment experiment = participant.getExperiment();
         LTIToken ltiTokenScore = advantageAGSService.getToken("scores", platformDeployment);
         LTIToken ltiTokenResults = advantageAGSService.getToken("results", platformDeployment);
-        //find the right id to pass based on the assignment
+        // find the right id to pass based on the assignment
         LTIToken ltiToken = advantageAGSService.getToken("lineitems", experiment.getPlatformDeployment());
-        //find the right id to pass based on the assignment
+        // find the right id to pass based on the assignment
         LineItems lineItems = advantageAGSService.getLineItems(ltiToken, experiment.getLtiContextEntity());
 
-        Optional<LineItem> lineItem = lineItems.getLineItemList().stream().filter(li -> li.getResourceLinkId()
-                .equals(participant.getExperiment().getConsentDocument().getResourceLinkId())).findFirst();
+        Optional<LineItem> lineItem = lineItems.getLineItemList().stream()
+            .filter(li -> StringUtils.equals(li.getResourceLinkId(), participant.getExperiment().getConsentDocument().getResourceLinkId()))
+            .findFirst();
 
         if (!lineItem.isPresent()) {
             // if we couldn't find lineitem, try to get the resource link id anew
             // (This is needed because the resourceLinkId for a consent assignment
             // wasn't accurately assigned previously. Eventually this can be removed.)
-            lineItem = fixConsentAssignmentResourceLinkId(securedInfo, platformDeployment, experiment, lineItems,
-                    lineItem);
+            lineItem = fixConsentAssignmentResourceLinkId(securedInfo, experiment, lineItems, lineItem);
         }
 
-        if (lineItem.isPresent()) {
-            Score score = new Score();
-            score.setUserId(participant.getLtiUserEntity().getUserKey());
-            // Score the consent submission as 100% and let the platform scale
-            // the grade to the max number of points.
-            score.setScoreGiven("1.0");
-            score.setScoreMaximum("1.0");
-            score.setActivityProgress("Completed");
-            score.setGradingProgress("FullyGraded");
-
-            Date date = new Date();
-            SimpleDateFormat dt = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-            String strDate = dt.format(date);
-            score.setTimestamp(strDate);
-            advantageAGSService.postScore(ltiTokenScore, ltiTokenResults,
-                    experiment.getLtiContextEntity(), lineItem.get().getId(), score);
-        } else {
+        if (!lineItem.isPresent()) {
             throw new DataServiceException("Error 136: The assignment is not linked to any Canvas assignment");
         }
+
+        Score score = new Score();
+        score.setUserId(participant.getLtiUserEntity().getUserKey());
+        // Score the consent submission as 100% and let the platform scale the grade to the max number of points.
+        score.setScoreGiven("1.0");
+        score.setScoreMaximum("1.0");
+        score.setActivityProgress("Completed");
+        score.setGradingProgress("FullyGraded");
+
+        Date date = new Date();
+        SimpleDateFormat dt = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+        String strDate = dt.format(date);
+        score.setTimestamp(strDate);
+        advantageAGSService.postScore(ltiTokenScore, ltiTokenResults,
+                experiment.getLtiContextEntity(), lineItem.get().getId(), score);
     }
 
     /**
@@ -607,10 +671,10 @@ public class ParticipantServiceImpl implements ParticipantService {
      * @return
      * @throws DataServiceException
      */
-    private Optional<LineItem> fixConsentAssignmentResourceLinkId(SecuredInfo securedInfo,
-            PlatformDeployment platformDeployment,
-            Experiment experiment, LineItems lineItems, Optional<LineItem> lineItem) throws DataServiceException {
+    private Optional<LineItem> fixConsentAssignmentResourceLinkId(SecuredInfo securedInfo, Experiment experiment, LineItems lineItems, Optional<LineItem> lineItem)
+            throws DataServiceException {
         int assignmentId = Integer.parseInt(experiment.getConsentDocument().getLmsAssignmentId());
+
         try {
             logger.warn(
                     "Could not find line item for experiment {} consent assignment. Going to use "
@@ -619,14 +683,15 @@ public class ParticipantServiceImpl implements ParticipantService {
                             + "should NEVER happen with new experiments.",
                     experiment.getExperimentId());
             LtiUserEntity instructorUser = experiment.getCreatedBy();
-            Optional<AssignmentExtended> consentAssignment = canvasAPIClient
-                    .listAssignment(instructorUser, securedInfo.getCanvasCourseId(), assignmentId);
+            Optional<AssignmentExtended> consentAssignment = canvasAPIClient.listAssignment(instructorUser, securedInfo.getCanvasCourseId(), assignmentId);
+
             if (consentAssignment.isPresent()) {
                 String jwtTokenAssignment = consentAssignment.get().getSecureParams();
                 String resourceLinkId = apijwtService.unsecureToken(jwtTokenAssignment).getBody()
                         .get("lti_assignment_id").toString();
                 lineItem = lineItems.getLineItemList().stream().filter(li -> li.getResourceLinkId()
                         .equals(resourceLinkId)).findFirst();
+
                 // If we now have a lineitem, save it with the consent document
                 if (lineItem.isPresent()) {
                     logger.info("Updating the resourceLinkId to {} for the consent assignment of experiment {}",
@@ -638,13 +703,15 @@ public class ParticipantServiceImpl implements ParticipantService {
         } catch (CanvasApiException e) {
             throw new DataServiceException("Error 136: The assignment is not linked to any Canvas assignment");
         }
+
         return lineItem;
     }
 
     @Override
     @Transactional
-    public Participant handleExperimentParticipant(Experiment experiment, SecuredInfo securedInfo) throws GroupNotMatchingException, ParticipantNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException {
-
+    public Participant handleExperimentParticipant(Experiment experiment, SecuredInfo securedInfo)
+            throws GroupNotMatchingException, ParticipantNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException,
+                    ExperimentNotMatchingException {
         Participant participant = allRepositories.participantRepository
                 .findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experiment.getExperimentId(),
                         securedInfo.getUserId());
@@ -685,13 +752,12 @@ public class ParticipantServiceImpl implements ParticipantService {
 
     private void handleConsent(Experiment experiment, Participant participant) {
         if (participant.getConsent() == null || (!participant.getConsent() && participant.getDateRevoked() == null)) {
-            if (experiment.getParticipationType().equals(ParticipationTypes.AUTO)) {
+            if (ParticipationTypes.AUTO.equals(experiment.getParticipationType())) {
                 participant.setConsent(true);
                 participant.setDateGiven(new Timestamp(System.currentTimeMillis()));
             } else {
                 participant.setConsent(false);
                 participant.setDateRevoked(new Timestamp(System.currentTimeMillis()));
-
             }
         }
     }

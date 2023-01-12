@@ -7,6 +7,8 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.opencsv.CSVWriter;
 
 import edu.iu.terracotta.exceptions.CanvasApiException;
+import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.exceptions.OutcomeNotMatchingException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.model.app.AnswerEssaySubmission;
 import edu.iu.terracotta.model.app.AnswerMc;
@@ -110,7 +112,8 @@ public class ExportServiceImpl implements ExportService {
     private List<Treatment> treatments;
 
     @Override
-    public Map<String, String> getFiles(long experimentId, SecuredInfo securedInfo) throws CanvasApiException, ParticipantNotUpdatedException, IOException {
+    public Map<String, String> getFiles(long experimentId, SecuredInfo securedInfo)
+            throws CanvasApiException, ParticipantNotUpdatedException, IOException, ExperimentNotMatchingException, OutcomeNotMatchingException {
         /*
          * Prepare the datasets that will be utilized multiple times
          */
@@ -192,7 +195,8 @@ public class ExportServiceImpl implements ExportService {
         }
     }
 
-    private void handleOutcomesCsv(long experimentId,  SecuredInfo securedInfo, Map<String, String> files) throws CanvasApiException, IOException, ParticipantNotUpdatedException {
+    private void handleOutcomesCsv(long experimentId,  SecuredInfo securedInfo, Map<String, String> files)
+            throws CanvasApiException, IOException, ParticipantNotUpdatedException, ExperimentNotMatchingException, OutcomeNotMatchingException {
         int outcomesPage = 0;
         List<Outcome> outcomes = outcomeService.findAllByExperiment(experimentId, PageRequest.of(outcomesPage, exportBatchSize));
 
@@ -275,7 +279,7 @@ public class ExportServiceImpl implements ExportService {
             }
 
             CollectionUtils.emptyIfNull(participants).stream()
-                .filter(participant -> participant.getConsent() != null && participant.getConsent() && participant.getGroup() != null)
+                .filter(participant -> BooleanUtils.isTrue(participant.getConsent()) && participant.getGroup() != null)
                 .forEach(participant ->
                     CollectionUtils.emptyIfNull(findExposureGroupConditionByGroupId(participant.getGroup().getGroupId())).stream()
                         .forEach(egc ->
@@ -348,7 +352,7 @@ public class ExportServiceImpl implements ExportService {
             }
 
             CollectionUtils.emptyIfNull(participants).stream()
-                .filter(participant -> participant.getConsent() != null && participant.getConsent())
+                .filter(participant -> BooleanUtils.isTrue(participant.getConsent()))
                 .forEach(participant ->
                     writer.writeNext(new String[] {
                         participant.getParticipantId().toString(),

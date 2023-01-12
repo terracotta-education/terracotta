@@ -212,7 +212,6 @@ export default {
       return fileResponse.fileName;
     },
     handleFileDownload(fileResponse) {
-      console.log("handleFileDownload:: ", this.selectedSubmission.conditionId, this.selectedSubmission.treatmentId, this.selectedSubmission.assessmentId, this.selectedSubmission.submissionId, fileResponse);
       this.$emit(
         "download-file-response",
         {

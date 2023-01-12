@@ -128,7 +128,7 @@ public class AssessmentServiceImplTest {
 
     @BeforeEach
     public void beforeEach() throws DataServiceException, AssessmentNotMatchingException, GroupNotMatchingException, ParticipantNotMatchingException,
-            ParticipantNotUpdatedException, AssignmentNotMatchingException, IdInPostException, NoSuchMethodException, SecurityException, QuestionNotMatchingException, MultipleChoiceLimitReachedException {
+            ParticipantNotUpdatedException, AssignmentNotMatchingException, IdInPostException, NoSuchMethodException, SecurityException, QuestionNotMatchingException, MultipleChoiceLimitReachedException, ExperimentNotMatchingException {
         MockitoAnnotations.openMocks(this);
 
         clearInvocations(questionService);
