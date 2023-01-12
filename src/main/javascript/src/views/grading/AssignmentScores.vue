@@ -1,10 +1,8 @@
 <template>
   <div v-if="experiment && assignment && submissions">
     <h1 class="mb-6">{{ assignment.title }}</h1>
-    <template
-      v-for="(selectedTreatment, index) in selectedAssignmentTreatments"
-    >
-      <div :key="selectedTreatment.treatmentId" class="mt-6">
+    <template>
+      <div v-for="(selectedTreatment, index) in selectedAssignmentTreatments" :key="selectedTreatment.treatmentId" class="mt-6">
         <h3>
           {{ selectedTreatment.assessmentDto.title }}
         </h3>
@@ -132,7 +130,7 @@ export default {
       }
     },
   },
-  async created() {
+  async mounted() {
     await this.fetchAssignment([
       this.experiment_id,
       this.exposure_id,

@@ -575,7 +575,7 @@ export default {
     },
   },
 
-  async created() {
+  async mounted() {
     this.tab = this.$router.currentRoute.name === "ExperimentSummary" ? 3 : 0;
 
     await this.fetchExposures(this.experiment.experimentId);

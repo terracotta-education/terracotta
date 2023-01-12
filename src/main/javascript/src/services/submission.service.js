@@ -79,7 +79,6 @@ async function createQuestionSubmissions(
     const nonFileSubmissions = questions.filter(q => !(q.answerSubmissionDtoList[0].response instanceof File));
 
     const requests = [];
-    const responses = [];
 
     if (fileSubmissions.length > 0) {
         for (const file of fileSubmissions) {
@@ -102,12 +101,8 @@ async function createQuestionSubmissions(
                     fetch(
                         `${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/submissions/${submission_id}/question_submissions/file`,
                         requestOptions
-                    ).then((response) => responses.push(response))
+                    )
                 )
-                /*return fetch(
-                    `${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/submissions/${submission_id}/question_submissions/file`,
-                    requestOptions
-                ).then(handleResponse);*/
             }
         }
     }
@@ -123,13 +118,23 @@ async function createQuestionSubmissions(
             fetch(
                 `${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/submissions/${submission_id}/question_submissions`,
                 requestOptions
-            ).then((response) => responses.push(response))
+            )
         )
+    }
 
-        /*return fetch(
-            `${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/submissions/${submission_id}/question_submissions`,
-            requestOptions
-        ).then(handleResponse);*/
+    const allRequests = Promise.all(requests);
+
+    try {
+        const responses = await allRequests;
+        const unsuccessful = responses.filter((r) => !r.ok);
+
+        if (unsuccessful.length > 0) {
+            return handleResponse(unsuccessful[0]);
+        }
+
+        return handleResponse(responses[0]);
+    } catch (error) {
+        console.log("createQuestionSubmissions | catch", error);
     }
 
     Promise.all(requests)
@@ -244,6 +249,7 @@ async function createQuestionSubmissions(
     ) {
         const file_submissions = [];
         const non_file_submission = [];
+
         for (const x of answerSubmissions) {
             if (x.type === 'FILE') {
                 delete x.type;
@@ -254,6 +260,9 @@ async function createQuestionSubmissions(
             }
 
         }
+
+        const requests = [];
+
         if (file_submissions.length > 0) {
             for (const file of file_submissions) {
                 const bodyFormData = new FormData();
@@ -270,25 +279,43 @@ async function createQuestionSubmissions(
                     body: bodyFormData,
                 };
 
-                return fetch(
-                    `${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/submissions/${submission_id}/answer_submissions/file`,
-                    requestOptions
-                ).then(handleResponse);
+                requests.push(
+                    fetch(
+                        `${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/submissions/${submission_id}/answer_submissions/file`,
+                        requestOptions
+                    )
+                )
             }
         }
 
         if (non_file_submission.length > 0) {
-
             const requestOptions = {
                 method: "POST",
                 headers: authHeader(),
                 body: JSON.stringify(answerSubmissions),
             };
 
-            return fetch(
-                `${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/submissions/${submission_id}/answer_submissions`,
-                requestOptions
-            ).then(handleResponse);
+            requests.push(
+                fetch(
+                    `${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/submissions/${submission_id}/answer_submissions`,
+                    requestOptions
+                )
+            )
+        }
+
+        const allRequests = Promise.all(requests);
+
+        try {
+            const responses = await allRequests;
+            const unsuccessful = responses.filter((r) => !r.ok);
+
+            if (unsuccessful.length > 0) {
+                return handleResponse(unsuccessful[0]);
+            }
+
+            return handleResponse(responses[0]);
+        } catch (error) {
+            console.log("createAnswerSubmissions | catch", error);
         }
     }
 
@@ -375,7 +402,6 @@ async function createQuestionSubmissions(
 
             link.click();
             link.remove();
-            // window.URL.revokeObjectURL(url);
         });
     }
 
