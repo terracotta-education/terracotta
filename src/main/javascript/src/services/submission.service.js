@@ -357,7 +357,7 @@ async function createQuestionSubmissions(
     /**
      * GET download student submission file
      * */
-    function downloadAnswerFileSubmission(
+    async function downloadAnswerFileSubmission(
         experimentId,
         conditionId,
         treatmentId,
@@ -389,6 +389,12 @@ async function createQuestionSubmissions(
 
             link.click();
             link.remove();
+
+            return new Promise(resolve => {
+                setTimeout(() => {
+                  resolve();
+                }, 1000);
+              });
         });
     }
 

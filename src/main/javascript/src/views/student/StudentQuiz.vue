@@ -184,6 +184,7 @@
                     <file-upload-response-editor
                       :selectedSubmission="selectedSubmission"
                       :fileResponses="getFileResponses(question)"
+                      :selectedDownloadId="selectedDownloadId"
                       @download-file-response="downloadFileResponse"
                       :readonly="readonly"
                       v-model="
@@ -271,6 +272,7 @@ export default {
       loading: false,
       submissions: [],
       answerSubmissionId: null,
+      downloadId: null
     };
   },
   watch: {
@@ -377,6 +379,9 @@ export default {
     selectedSubmissionConditionId() {
       return this.selectedSubmission?.conditionId;
     },
+    selectedDownloadId() {
+      return this.downloadId;
+    }
   },
   methods: {
     ...mapActions({
@@ -567,18 +572,27 @@ export default {
         submissionId,
       ]);
     },
-    downloadFileResponse({ conditionId, treatmentId, assessmentId, submissionId, questionSubmissionId, answerSubmissionId, mimeType, fileName }) {
-      this.downloadAnswerFileSubmission([
-        this.experimentId,
-        conditionId,
-        treatmentId,
-        assessmentId,
-        submissionId,
-        questionSubmissionId,
-        answerSubmissionId,
-        mimeType,
-        fileName
-      ]);
+    async downloadFileResponse({ conditionId, treatmentId, assessmentId, submissionId, questionSubmissionId, answerSubmissionId, mimeType, fileName }) {
+      this.downloadId = answerSubmissionId;
+
+      try {
+        await this.downloadAnswerFileSubmission([
+          this.experimentId,
+          conditionId,
+          treatmentId,
+          assessmentId,
+          submissionId,
+          questionSubmissionId,
+          answerSubmissionId,
+          mimeType,
+          fileName
+        ]);
+
+        this.downloadId = null;
+      } catch (error) {
+          console.log("downloadFileResponse | catch", error);
+          this.downloadId = null;
+      }
     },
     async getQuestions(experimentId, conditionId, assessmentId, treatmentId, submissionId) {
       this.questionValues = [];

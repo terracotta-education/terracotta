@@ -30,7 +30,7 @@
       <v-col :cols="6">
         <div class="d-flex align-center">
           <submission-selector
-            :submissions="assessment.submissions"
+            :submissions="participantSubmissions"
             @select="(id) => selectedSubmissionId = id" />
           <span :style="{visibility: `${ touched ? 'visible' : 'hidden' }`}"  class="red--text">
             <v-icon class="red--text">mdi-alert-circle-outline</v-icon>
@@ -215,7 +215,10 @@
                           outlined
                         >
                           {{fileResponse.fileName}}
-                          <v-tooltip top>
+                          <v-tooltip
+                            v-if="!isDownloading"
+                            top
+                          >
                             <template v-slot:activator="{on, attrs}">
                               <v-btn
                                 v-bind="attrs"
@@ -229,6 +232,11 @@
                             </template>
                             <span>Download file</span>
                           </v-tooltip>
+                          <span v-if="isDownloading">
+                            <svg class="spinner" width="28px" height="28px" viewBox="0 0 66 66" xmlns="http://www.w3.org/2000/svg">
+                              <circle class="path" fill="none" stroke-width="6" stroke-linecap="round" cx="33" cy="33" r="30"></circle>
+                            </svg>
+                          </span>
                         </div>
                       </v-row>
                     </v-card-text>
@@ -340,6 +348,10 @@ export default {
     },
     selectedSubmission() {
       return this.assessment.submissions.find(s => s.submissionId === this.selectedSubmissionId);
+    },
+    participantSubmissions() {
+      // return only this participant's submissions
+      return this.assessment.submissions.filter(s => s.participantId == this.participant_id);
     }
   },
   watch: {
@@ -356,7 +368,8 @@ export default {
       updatedSubmissions: {},
       maxPoints: 0,
       selectedSubmissionId: null,
-      touched: false
+      touched: false,
+      isDownloading: false
     };
   },
   methods: {
@@ -422,18 +435,27 @@ export default {
       }
     },
 
-    downloadFileResponse(fileResponse) {
-      this.downloadAnswerFileSubmission([
-        this.experiment_id,
-        this.selectedSubmission.conditionId,
-        this.selectedSubmission.treatmentId,
-        this.selectedSubmission.assessmentId,
-        this.selectedSubmission.submissionId,
-        fileResponse.questionSubmissionId,
-        fileResponse.answerSubmissionId,
-        fileResponse.mimeType,
-        fileResponse.fileName
-      ]);
+    async downloadFileResponse(fileResponse) {
+      this.isDownloading = true;
+
+      try {
+        await this.downloadAnswerFileSubmission([
+          this.experiment_id,
+          this.selectedSubmission.conditionId,
+          this.selectedSubmission.treatmentId,
+          this.selectedSubmission.assessmentId,
+          this.selectedSubmission.submissionId,
+          fileResponse.questionSubmissionId,
+          fileResponse.answerSubmissionId,
+          fileResponse.mimeType,
+          fileResponse.fileName
+        ]);
+
+        this.isDownloading = false;
+      } catch (error) {
+          console.log("downloadFileResponse | catch", error);
+          this.isDownloading = false;
+      }
     },
 
     async saveExit() {
@@ -538,7 +560,7 @@ export default {
       this.maxPoints = sum;
     }
   },
-  async mounted() {
+  async created() {
     this.fetchAssessment([
       this.experiment.experimentId,
       this.condition_id,
@@ -678,5 +700,36 @@ export default {
 }
 .btn-uploaded-file-icon {
   color: rgba(0,0,0,.54) !important;
+}
+$offset: 187;
+$duration: 0.75s;
+.spinner {
+  animation: rotator $duration linear infinite;
+}
+@keyframes rotator {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(270deg); }
+}
+.path {
+  stroke-dasharray: $offset;
+  stroke-dashoffset: 0;
+  transform-origin: center;
+  animation:
+    dash $duration ease-in-out infinite,
+    colors ($duration*4) ease-in-out infinite;
+}
+@keyframes colors {
+	0% { stroke: lightgrey; }
+}
+@keyframes dash {
+ 0% { stroke-dashoffset: $offset; }
+ 50% {
+   stroke-dashoffset: $offset/4;
+   transform:rotate(135deg);
+ }
+ 100% {
+   stroke-dashoffset: $offset;
+   transform:rotate(450deg);
+ }
 }
 </style>

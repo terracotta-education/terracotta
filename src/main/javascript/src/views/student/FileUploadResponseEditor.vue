@@ -97,7 +97,10 @@
                 outlined
               >
                 {{fileResponse.fileName}}
-                <v-tooltip top>
+                <v-tooltip
+                  v-if="!isDownloading"
+                  top
+                >
                   <template v-slot:activator="{on, attrs}">
                     <v-btn
                       v-bind="attrs"
@@ -111,6 +114,11 @@
                   </template>
                   <span>Download file</span>
                 </v-tooltip>
+                <span v-if="isDownloading">
+                  <svg class="spinner" width="28px" height="28px" viewBox="0 0 66 66" xmlns="http://www.w3.org/2000/svg">
+                    <circle class="path" fill="none" stroke-width="6" stroke-linecap="round" cx="33" cy="33" r="30"></circle>
+                  </svg>
+                </span>
               </div>
             </v-row>
           </v-card-text>
@@ -128,7 +136,8 @@ export default {
     "value",
     "readonly",
     "fileResponses",
-    "selectedSubmission"
+    "selectedSubmission",
+    "selectedDownloadId"
   ],
   components: {ResponseRow},
   data() {
@@ -140,7 +149,7 @@ export default {
       uploadedFiles: [],
       uploading: false,
       uploadBarProgress: 10,
-      uploaded:false
+      uploaded:false,
     };
   },
   methods: {
@@ -176,26 +185,28 @@ export default {
         );
     },
     onFileChanged(e) {
-      this.uploadedFiles = [];
-      this.uploading = true;
-      this.uploadedFiles.push(e.target.files[0])
-      this.loadFile(e.target.files[0])
+      if (e.target.files.length) {
+        this.uploadedFiles = [];
+        this.uploading = true;
+        this.uploadedFiles.push(e.target.files[0])
+        this.loadFile(e.target.files[0])
+      }
     },
     loadFile(file) {
       this.uploadBarProgress = 50;
       if (file.size > 10 * 1024 * 1024) {
-        alert('File cannot exceed 10MB');
         this.uploadedFiles = [];
         this.uploading = false
         this.uploaded = false
         this.response = null;
-        return;
+        alert('File cannot exceed 10MB');
+      } else {
+        this.uploadBarProgress = 50;
+        this.uploading = false
+        this.uploaded = true
+        this.response = file;
+        this.emitValueChanged();
       }
-      this.uploadBarProgress = 50;
-      this.uploading = false
-      this.uploaded = true
-      this.response = file;
-      this.emitValueChanged();
     },
     deleteFile() {
       this.uploadedFiles = [];
@@ -212,7 +223,7 @@ export default {
       return fileResponse.fileName;
     },
     handleFileDownload(fileResponse) {
-      this.$emit(
+     this.$emit(
         "download-file-response",
         {
           conditionId: this.selectedSubmission.conditionId,
@@ -237,6 +248,9 @@ export default {
     isUploaded: function () {
       return (!this.uploading && this.uploaded);
     },
+    isDownloading() {
+      return this.selectedDownloadId == this.fileResponses[0].answerSubmissionId;
+    }
   },
   watch: {
     value() {
@@ -288,5 +302,36 @@ p.drag-drop-text {
   width: 100%;
   height: 100%;
   box-shadow: none !important;
+}
+$offset: 187;
+$duration: 0.75s;
+.spinner {
+  animation: rotator $duration linear infinite;
+}
+@keyframes rotator {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(270deg); }
+}
+.path {
+  stroke-dasharray: $offset;
+  stroke-dashoffset: 0;
+  transform-origin: center;
+  animation:
+    dash $duration ease-in-out infinite,
+    colors ($duration*4) ease-in-out infinite;
+}
+@keyframes colors {
+	0% { stroke: lightgrey; }
+}
+@keyframes dash {
+ 0% { stroke-dashoffset: $offset; }
+ 50% {
+   stroke-dashoffset: $offset/4;
+   transform:rotate(135deg);
+ }
+ 100% {
+   stroke-dashoffset: $offset;
+   transform:rotate(450deg);
+ }
 }
 </style>
