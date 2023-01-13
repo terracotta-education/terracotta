@@ -2,7 +2,9 @@ package edu.iu.terracotta.service.app;
 
 import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.IdInPostException;
+import edu.iu.terracotta.exceptions.OutcomeNotMatchingException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.model.app.Outcome;
@@ -51,7 +53,7 @@ public interface OutcomeService {
     List<OutcomePotentialDto> potentialOutcomes(Long experimentId, String instructorUserId)
             throws DataServiceException, CanvasApiException;
 
-    void updateOutcomeGrades(Long outcomeId, SecuredInfo securedInfo) throws CanvasApiException, IOException, ParticipantNotUpdatedException;
+    void updateOutcomeGrades(Long outcomeId, SecuredInfo securedInfo) throws CanvasApiException, IOException, ParticipantNotUpdatedException, ExperimentNotMatchingException, OutcomeNotMatchingException;
 
     void defaultOutcome(OutcomeDto outcomeDto) throws TitleValidationException;
 

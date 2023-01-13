@@ -1,6 +1,15 @@
 package edu.iu.terracotta.service.app;
 
-import edu.iu.terracotta.exceptions.*;
+import edu.iu.terracotta.exceptions.AssignmentNotMatchingException;
+import edu.iu.terracotta.exceptions.ConnectionException;
+import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.exceptions.GroupNotMatchingException;
+import edu.iu.terracotta.exceptions.IdInPostException;
+import edu.iu.terracotta.exceptions.InvalidUserException;
+import edu.iu.terracotta.exceptions.ParticipantAlreadyStartedException;
+import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
+import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.dto.ParticipantDto;
@@ -13,6 +22,7 @@ import java.util.Map;
 import java.util.Optional;
 
 public interface ParticipantService {
+
     List<Participant> findAllByExperimentId(long experimentId);
 
     List<ParticipantDto> getParticipants(List<Participant> participants, long experimentId, String userId, boolean student);
@@ -36,11 +46,11 @@ public interface ParticipantService {
     void deleteById(Long id);
 
     List<Participant> refreshParticipants(long experimentId, List<Participant> currentParticipantList)
-            throws ParticipantNotUpdatedException;
+        throws ParticipantNotUpdatedException, ExperimentNotMatchingException;
 
     boolean participantBelongsToExperiment(Long experimentId, Long participantId);
 
-    void prepareParticipation(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException;
+    void prepareParticipation(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException, ExperimentNotMatchingException;
 
     void changeParticipant(Map<Participant, ParticipantDto> map, Long experimentId);
 
@@ -48,17 +58,17 @@ public interface ParticipantService {
 
     HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, long experimentId, long participantId);
 
-    void setAllToNull(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException;
+    void setAllToNull(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException, ExperimentNotMatchingException;
 
-    void setAllToTrue(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException;
+    void setAllToTrue(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException, ExperimentNotMatchingException;
 
-    void setAllToFalse(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException;
+    void setAllToFalse(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException, ExperimentNotMatchingException;
 
     boolean changeConsent(ParticipantDto participantDto, SecuredInfo securedInfo, Long experimentId) throws ParticipantAlreadyStartedException;
 
     void postConsentSubmission(Participant participant, SecuredInfo securedInfo) throws ConnectionException, DataServiceException;
 
     Participant handleExperimentParticipant(Experiment experiment, SecuredInfo securedInfo)
-        throws GroupNotMatchingException, ParticipantNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException;
+        throws GroupNotMatchingException, ParticipantNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, ExperimentNotMatchingException;
 
 }

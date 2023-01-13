@@ -1,6 +1,8 @@
 package edu.iu.terracotta.service.app;
 
 import edu.iu.terracotta.exceptions.CanvasApiException;
+import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.exceptions.OutcomeNotMatchingException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 
@@ -9,6 +11,7 @@ import java.util.Map;
 
 public interface ExportService {
 
-    Map<String, String> getFiles(long experimentId, SecuredInfo securedInfo) throws CanvasApiException, ParticipantNotUpdatedException, IOException;
+    Map<String, String> getFiles(long experimentId, SecuredInfo securedInfo)
+            throws CanvasApiException, ParticipantNotUpdatedException, IOException, ExperimentNotMatchingException, OutcomeNotMatchingException;
 
 }

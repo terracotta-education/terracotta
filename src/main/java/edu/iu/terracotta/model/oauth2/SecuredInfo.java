@@ -3,6 +3,11 @@ package edu.iu.terracotta.model.oauth2;
 import java.sql.Timestamp;
 import java.util.List;
 
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
 public class SecuredInfo {
 
     long platformDeploymentId;
@@ -20,151 +25,14 @@ public class SecuredInfo {
     Timestamp unlockAt;
     String nonce;
     Boolean consent;
-    Integer allowedAttempts;
     Integer studentAttempts;
 
-    public SecuredInfo() {
-    }
-
-    public long getPlatformDeploymentId() {
-        return platformDeploymentId;
-    }
-
-    public void setPlatformDeploymentId(long platformDeploymentId) {
-        this.platformDeploymentId = platformDeploymentId;
-    }
-
-    public long getContextId() {
-        return contextId;
-    }
-
-    public void setContextId(long contextId) {
-        this.contextId = contextId;
-    }
-
-    public String getUserId() {
-        return userId;
-    }
-
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
-
-    public List<String> getRoles() {
-        return roles;
-    }
-
-    public void setRoles(List<String> roles) {
-        this.roles = roles;
-    }
-
-    public String getCanvasUserId() {
-        return canvasUserId;
-    }
-
-    public void setCanvasUserId(String canvasUserId) {
-        this.canvasUserId = canvasUserId;
-    }
-
-    public String getCanvasUserGlobalId() {
-        return canvasUserGlobalId;
-    }
-
-    public void setCanvasUserGlobalId(String canvasUserGlobalId) {
-        this.canvasUserGlobalId = canvasUserGlobalId;
-    }
-
-    public String getCanvasLoginId() {
-        return canvasLoginId;
-    }
-
-    public void setCanvasLoginId(String canvasLoginId) {
-        this.canvasLoginId = canvasLoginId;
-    }
-
-    public String getCanvasUserName() {
-        return canvasUserName;
-    }
-
-    public void setCanvasUserName(String canvasUserName) {
-        this.canvasUserName = canvasUserName;
-    }
-
-    public String getCanvasCourseId() {
-        return canvasCourseId;
-    }
-
-    public void setCanvasCourseId(String canvasCourseId) {
-        this.canvasCourseId = canvasCourseId;
-    }
-
-    public String getCanvasAssignmentId() {
-        return canvasAssignmentId;
-    }
-
-    public void setCanvasAssignmentId(String canvasAssignmentId) {
-        this.canvasAssignmentId = canvasAssignmentId;
-    }
-
-    public Timestamp getDueAt() {
-        return dueAt;
-    }
-
-    public void setDueAt(Timestamp dueAt) {
-        this.dueAt = dueAt;
-    }
-
-    public Timestamp getLockAt() {
-        return lockAt;
-    }
-
-    public void setLockAt(Timestamp lockAt) {
-        this.lockAt = lockAt;
-    }
-
-    public Timestamp getUnlockAt() {
-        return unlockAt;
-    }
-
-    public void setUnlockAt(Timestamp unlockAt) {
-        this.unlockAt = unlockAt;
-    }
-
-    public String getNonce() {
-        return nonce;
-    }
-
-    public void setNonce(String nonce) {
-        this.nonce = nonce;
-    }
-
-    public Boolean getConsent() {
-        return consent;
-    }
-
-    public void setConsent(Boolean consent) {
-        this.consent = consent;
-    }
-
     /**
-     * Return number of allowed attempts for assignment. The value is only populated
+     * Number of allowed attempts for assignment. The value is only populated
      * when Terracotta tool is launched as an assignment.
      *
      * @return the number of allowed attempts, or -1 if attempts are unlimited
      */
-    public Integer getAllowedAttempts() {
-        return allowedAttempts;
-    }
+    Integer allowedAttempts;
 
-    public void setAllowedAttempts(Integer allowedAttempts) {
-        this.allowedAttempts = allowedAttempts;
-    }
-
-    public Integer getStudentAttempts() {
-        return studentAttempts;
-    }
-
-    public void setStudentAttempts(Integer studentAttempts) {
-        this.studentAttempts = studentAttempts;
-    }
 }
