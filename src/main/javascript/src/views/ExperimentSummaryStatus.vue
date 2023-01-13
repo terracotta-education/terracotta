@@ -265,7 +265,7 @@ export default {
       }
     }
   },
-  async mounted() {
+  async created() {
     // reset assignments to get a clean list
     await this.resetAssignments()
     // update assignments on load
