@@ -216,7 +216,7 @@
                         >
                           {{fileResponse.fileName}}
                           <v-tooltip
-                            v-if="!isDownloading"
+                            v-if="fileResponse.answerSubmissionId != downloadId"
                             top
                           >
                             <template v-slot:activator="{on, attrs}">
@@ -232,7 +232,7 @@
                             </template>
                             <span>Download file</span>
                           </v-tooltip>
-                          <span v-if="isDownloading">
+                          <span v-if="fileResponse.answerSubmissionId === downloadId">
                             <svg class="spinner" width="28px" height="28px" viewBox="0 0 66 66" xmlns="http://www.w3.org/2000/svg">
                               <circle class="path" fill="none" stroke-width="6" stroke-linecap="round" cx="33" cy="33" r="30"></circle>
                             </svg>
@@ -369,7 +369,7 @@ export default {
       maxPoints: 0,
       selectedSubmissionId: null,
       touched: false,
-      isDownloading: false
+      downloadId: null
     };
   },
   methods: {
@@ -436,7 +436,7 @@ export default {
     },
 
     async downloadFileResponse(fileResponse) {
-      this.isDownloading = true;
+      this.downloadId = fileResponse.answerSubmissionId;
 
       try {
         await this.downloadAnswerFileSubmission([
@@ -451,10 +451,10 @@ export default {
           fileResponse.fileName
         ]);
 
-        this.isDownloading = false;
+        this.downloadId = null;
       } catch (error) {
           console.log("downloadFileResponse | catch", error);
-          this.isDownloading = false;
+          this.downloadId = null;
       }
     },
 
