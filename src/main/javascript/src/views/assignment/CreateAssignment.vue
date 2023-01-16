@@ -23,15 +23,6 @@
             <assignment-settings />
         </v-tab-item>
     </v-tabs-items>
-    <v-btn
-      :disabled="contDisabled"
-      elevation="0"
-      color="primary"
-      class="mr-4"
-      @click="handleSaveAssignment('AssignmentTreatmentSelect')"
-    >
-      Continue
-    </v-btn>
   </div>
 </template>
 
@@ -63,6 +54,9 @@ export default {
     condition_id() {
       return parseInt(this.$route.params.condition_id);
     },
+    conditionIds() {
+      return JSON.parse(this.$route.params.conditionIds);
+    },
     contDisabled() {
       return (
         !this.assignment.title
@@ -70,25 +64,31 @@ export default {
     },
   },
   methods: {
-    saveExit() {
-      this.$router.push({name:'Home'})
+    async saveExit() {
+      this.handleSaveAssignment();
     },
     ...mapActions({
-      createAssignment: 'assignment/createAssignment'
+      createAssignment: 'assignment/createAssignment',
+      createTreatment: 'treatment/createTreatment',
+      createAssessment: 'assessment/createAssessment'
     }),
     ...mapMutations({
       setAssignment: "assignment/setAssignment",
     }),
-    async handleSaveAssignment(path) {
+    async handleSaveAssignment() {
       // POST ASSESSMENT TITLE & HTML (description) & SETTINGS
       try {
-        const response = await this.createAssignment([this.experiment_id, this.exposure_id, this.assignment, 1])
+        const response = await this.createAssignment([this.experiment_id, this.exposure_id, this.assignment, 1]);
+        await this.handleCreateTreatmentsForAssignment(this.experiment_id, response.data.assignmentId);
 
         if (response?.status === 201) {
-          this.$router.push({name: path, params:{
+          this.$router.push({
+            name: 'ExperimentSummary',
+            params: {
               experiment_id: this.experiment_id,
               assignment_id: response.data.assignmentId
-            }})
+            }
+          })
         } else {
           this.$swal(`${response}`)
         }
@@ -97,6 +97,46 @@ export default {
         this.$swal('There was an error creating the assignment.')
       }
     },
+    async handleCreateTreatmentsForAssignment(experimentId, assignmentId) {
+      // create a treatment for each condition
+      const treatmentRequests = [];
+
+      this.conditionIds.forEach(conditionId => {
+        treatmentRequests.push(this.createTreatment([experimentId, conditionId, assignmentId]));
+      });
+
+      const allTreatmentCreateRequests = Promise.all(treatmentRequests);
+
+      try {
+        const treatments = await allTreatmentCreateRequests;
+
+        const assessmentRequests = [];
+
+        treatments.forEach(treatment => {
+          assessmentRequests.push(this.createAssessmentForTreatment(treatment.data.conditionId, treatment.data.treatmentId));
+        });
+
+        const allAssessmentCreateRequests = Promise.all(assessmentRequests);
+
+        await allAssessmentCreateRequests;
+      } catch (error) {
+          console.log("CreateAssignment.handleCreateTreatmentsForAssignment | catch", error);
+      }
+
+
+    },
+    async createAssessmentForTreatment(conditionId, treatmentId) {
+      // POST ASSESSMENT TITLE & HTML (description)
+      try {
+        return await this.createAssessment([
+          this.experiment_id,
+          conditionId,
+          treatmentId,
+        ]);
+      } catch (error) {
+        console.error("handleCreateAssessment | catch", { error });
+      }
+    }
   },
   async created () {
     this.setAssignment({

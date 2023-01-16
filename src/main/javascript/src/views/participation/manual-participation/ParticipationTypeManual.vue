@@ -36,13 +36,28 @@
 </template>
 
 <script>
-export default {
-  name: "ParticipationTypeManual",
-  props: ["experiment"],
-  methods: {
-    saveExit() {
-      this.$router.push({name:'Home', params:{experiment: this.experiment.experimentId}})
+  import { mapGetters } from 'vuex'
+
+  export default {
+    name: "ParticipationTypeManual",
+    props: ["experiment"],
+    computed: {
+      ...mapGetters({
+        editMode: 'navigation/editMode'
+      }),
+      getSaveExitPage() {
+        return this.editMode?.callerPage?.name || 'Home';
+      }
+    },
+    methods: {
+      saveExit() {
+        this.$router.push({
+          name: this.getSaveExitPage,
+          params: {
+            experiment: this.experiment.experimentId
+          }
+        })
+      }
     }
-  }
-};
+  };
 </script>

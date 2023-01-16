@@ -39,7 +39,11 @@ export default {
   computed: {
     ...mapGetters({
       consent: "consent/consent",
+      editMode: 'navigation/editMode'
     }),
+    getSaveExitPage() {
+      return this.editMode?.callerPage?.name || 'Home';
+    },
     consentExist() {
       return this.experiment?.consent?.title || "";
     },
@@ -67,7 +71,7 @@ export default {
       }
     },
     saveExit() {
-      this.saveConsent("Home");
+      this.saveConsent(this.getSaveExitPage);
     },
   },
   components: {

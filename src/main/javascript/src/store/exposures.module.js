@@ -15,6 +15,9 @@ const actions = {
         console.log('fetchExposures | catch', { response })
       });
   },
+  resetExposures({state}) {
+    state.exposures = [];
+  },
 }
 
 const mutations = {

@@ -57,7 +57,6 @@ async function createAssessment(experiment_id, condition_id, treatment_id, title
     method: 'POST',
     headers: {...authHeader(), 'Content-Type': 'application/json'},
     body: JSON.stringify({
-      title,
       "html": body
     })
   }
@@ -73,7 +72,6 @@ async function updateAssessment(
   condition_id,
   treatment_id,
   assessment_id,
-  title,
   body,
   allowStudentViewResponses,
   studentViewResponsesAfter,
@@ -90,7 +88,6 @@ async function updateAssessment(
     method: 'PUT',
     headers: {...authHeader(), 'Content-Type': 'application/json'},
     body: JSON.stringify({
-      title,
       "html": body,
       allowStudentViewResponses,
       studentViewResponsesAfter,

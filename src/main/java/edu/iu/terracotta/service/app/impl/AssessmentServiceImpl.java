@@ -111,7 +111,6 @@ public class AssessmentServiceImpl implements AssessmentService {
             throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
         }
 
-        validateTitle(assessmentDto.getTitle());
         // treatment level settings are ignored in the DTO when creating an
         // assessment and will be copied from the Treatment's Assignment. These
         // settings can be updated for an assessment by calling
@@ -191,7 +190,6 @@ public class AssessmentServiceImpl implements AssessmentService {
         AssessmentDto assessmentDto = new AssessmentDto();
         assessmentDto.setAssessmentId(assessment.getAssessmentId());
         assessmentDto.setHtml(fileStorageService.parseHTMLFiles(assessment.getHtml()));
-        assessmentDto.setTitle(assessment.getTitle());
         assessmentDto.setAutoSubmit(assessment.getAutoSubmit());
         assessmentDto.setNumOfSubmissions(assessment.getNumOfSubmissions());
         assessmentDto.setHoursBetweenSubmissions(assessment.getHoursBetweenSubmissions());
@@ -273,8 +271,7 @@ public class AssessmentServiceImpl implements AssessmentService {
         Assessment assessment = new Assessment();
         assessment.setAssessmentId(assessmentDto.getAssessmentId());
         assessment.setHtml(assessmentDto.getHtml());
-        assessment.setTitle(assessmentDto.getTitle());
-        assessment.setAutoSubmit(assessmentDto.getAutoSubmit());
+        assessment.setAutoSubmit(assessmentDto.isAutoSubmit());
         assessment.setNumOfSubmissions(assessmentDto.getNumOfSubmissions());
         assessment.setHoursBetweenSubmissions(assessmentDto.getHoursBetweenSubmissions());
         assessment.setMultipleSubmissionScoringScheme(
@@ -329,12 +326,7 @@ public class AssessmentServiceImpl implements AssessmentService {
             throw new AssessmentNotMatchingException(TextConstants.ASSESSMENT_NOT_MATCHING);
         }
 
-        if (StringUtils.isAllBlank(assessmentDto.getTitle(), assessment.getTitle())) {
-            throw new TitleValidationException("Error 100: Please give the assessment a title.");
-        }
-
         validateMultipleAttemptsSettings(assessmentDto);
-        validateTitle(assessmentDto.getTitle());
         validateRevealAssignmentResponsesSettings(assessmentDto);
         assessment.setAllowStudentViewResponses(assessmentDto.isAllowStudentViewResponses());
         assessment.setStudentViewResponsesAfter(assessmentDto.getStudentViewResponsesAfter());
@@ -343,8 +335,7 @@ public class AssessmentServiceImpl implements AssessmentService {
         assessment.setStudentViewCorrectAnswersAfter(assessmentDto.getStudentViewCorrectAnswersAfter());
         assessment.setStudentViewCorrectAnswersBefore(assessmentDto.getStudentViewCorrectAnswersBefore());
         assessment.setHtml(assessmentDto.getHtml());
-        assessment.setTitle(assessmentDto.getTitle());
-        assessment.setAutoSubmit(assessmentDto.getAutoSubmit());
+        assessment.setAutoSubmit(assessmentDto.isAutoSubmit());
         assessment.setNumOfSubmissions(assessmentDto.getNumOfSubmissions());
         assessment.setHoursBetweenSubmissions(assessmentDto.getHoursBetweenSubmissions());
         MultipleSubmissionScoringScheme multipleSubmissionScoringScheme = MultipleSubmissionScoringScheme
@@ -427,13 +418,6 @@ public class AssessmentServiceImpl implements AssessmentService {
             score = score + question.getPoints();
         }
         return score;
-    }
-
-    @Override
-    public void validateTitle(String title) throws TitleValidationException {
-        if (!StringUtils.isAllBlank(title) && title.length() > TITLE_MAX_LENGTH) {
-            throw new TitleValidationException(String.format("Error 101: Assessment title must be %s characters or less.", TITLE_MAX_LENGTH));
-        }
     }
 
     private void validateMultipleAttemptsSettings(AssessmentDto assessmentDto)

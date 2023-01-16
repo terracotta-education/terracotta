@@ -572,6 +572,14 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+.v-tooltip__content {
+  max-width: 400px;
+  opacity: 1.0 !important;
+  background-color: rgba(55,61,63, 1.0) !important;
+  a {
+    color: #afdcff;
+  }
+}
 .questionSection {
   display: flex;
   flex-direction: column;
@@ -719,17 +727,19 @@ $duration: 0.75s;
     colors ($duration*4) ease-in-out infinite;
 }
 @keyframes colors {
-	0% { stroke: lightgrey; }
+  0% { stroke: lightgrey; }
 }
 @keyframes dash {
- 0% { stroke-dashoffset: $offset; }
- 50% {
-   stroke-dashoffset: $offset/4;
-   transform:rotate(135deg);
- }
- 100% {
-   stroke-dashoffset: $offset;
-   transform:rotate(450deg);
- }
+  0% {
+    stroke-dashoffset: $offset;
+  }
+  50% {
+    stroke-dashoffset: $offset/4;
+    transform:rotate(135deg);
+  }
+  100% {
+    stroke-dashoffset: $offset;
+    transform:rotate(450deg);
+  }
 }
 </style>

@@ -45,7 +45,6 @@
 </template>
 
 <script>
-// import store from "@/store";
 
 export default {
   name: "Steps",
@@ -93,7 +92,7 @@ export default {
             key: "select_participants",
             name: "Select Participants",
           })
-      } 
+      }
 
       if (
         selectionType === "any" ||
@@ -141,25 +140,11 @@ export default {
           name: "Section 2: Participation",
           steps: this.generateSteps(),
         },
-        {
-          key: "assignments",
-          name: "Section 3: Assignments",
-          steps: [
-            {
-              key: "assignment_intro",
-              name: "Introduction",
-            },
-            {
-              key: "your_assignments",
-              name: "Your Assignments",
-            },
-          ],
-        },
       ],
       completedSections: {
         'design': [],
         'participation': ['design'],
-        'assignments': ['design', 'participation']
+        'assignments': []
       }
     };
   },

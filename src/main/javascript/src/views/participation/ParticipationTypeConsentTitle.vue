@@ -39,7 +39,7 @@
 </template>
 
 <script>
-import {mapGetters} from 'vuex';
+import { mapGetters } from 'vuex';
 
 export default {
   name: 'ParticipationTypeConsentTitle',
@@ -47,7 +47,11 @@ export default {
   computed: {
     ...mapGetters({
       consent: 'consent/consent',
+      editMode: 'navigation/editMode'
     }),
+    getSaveExitPage() {
+        return this.editMode?.callerPage?.name || 'Home';
+    },
     title: {
       get() {
         return this.titleProxy === '' ? this.experiment?.consent?.title || this.consent?.title : this.titleProxy
@@ -70,7 +74,7 @@ export default {
       this.$router.push({name: path, params: {experiment: this.experiment.experimentId}})
     },
     saveExit() {
-      this.saveTitle('Home')
+      this.saveTitle(this.getSaveExitPage)
     }
   },
 }

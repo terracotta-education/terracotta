@@ -295,7 +295,7 @@ const routes = [
         component: () => import('../views/ExperimentSteps.vue'),
         meta: {
           currentSection: 'assignments',
-          previousStep: 'ParticipationSummary'
+          previousStep: 'Home'
         },
         children: [
           // Experiment | Assignments Steps paths
@@ -336,7 +336,7 @@ const routes = [
             meta: {
               currentSection: 'assignments',
               currentStep: 'your_assignments',
-              previousStep: 'AssignmentExposureSets'
+              previousStep: 'ExperimentSummary'
             }
           },
           {
@@ -346,7 +346,7 @@ const routes = [
             meta: {
               currentSection: 'assignments',
               currentStep: 'your_assignments',
-              previousStep: 'AssignmentExposureSets'
+              previousStep: 'ExperimentSummary'
             }
           },
           {
@@ -366,7 +366,7 @@ const routes = [
             meta: {
               currentSection: 'assignments',
               currentStep: 'your_assignments',
-              previousStep: 'AssignmentTreatmentSelect'
+              previousStep: 'ExperimentSummary'
             }
           },
           {

@@ -95,6 +95,11 @@ export default {
   color: rgba(0, 0, 0, 0.87) !important;
 }
 .v-tooltip__content {
-  opacity: 1 !important;
+  max-width: 400px;
+  opacity: 1.0 !important;
+  background-color: rgba(55,61,63, 1.0) !important;
+  a {
+    color: #afdcff;
+  }
 }
 </style>

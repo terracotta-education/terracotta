@@ -2,18 +2,33 @@
     <div>
         <template v-if="experiment">
             <div class="experiment-steps">
-                <aside class="experiment-steps__sidebar">
-                    <steps :current-section="currentSection" :current-step="currentStep" :participationType="experiment.participationType"/>
+                <aside
+                    v-if="!this.noSidebar.includes(this.$router.currentRoute.name)"
+                    class="experiment-steps__sidebar">
+                    <steps
+                        :current-section="currentSection"
+                        :current-step="currentStep"
+                        :participationType="experiment.participationType"
+                    />
                 </aside>
                 <nav>
                     <router-link
-                        v-if="this.$router.currentRoute.meta.previousStep"
-                        :to="{ name: this.$router.currentRoute.meta.previousStep }">
+                        v-if="this.editModePage"
+                        :to="{
+                            name: this.editModePage,
+                        }"
+                    >
                         <v-icon>mdi-chevron-left</v-icon> Back
                     </router-link>
-                    <v-btn v-show="this.$router.currentRoute.name!=='ExperimentDesignIntro'" 
-                        color="primary" elevation="0" class="saveButton" @click="$refs.childComponent.saveExit()">
+                    <v-btn
+                        v-show="this.$router.currentRoute.name !== 'ExperimentDesignIntro'"
+                        color="primary"
+                        elevation="0"
+                        class="saveButton"
+                        @click="$refs.childComponent.saveExit()"
+                    >
                         <span v-if="this.$router.currentRoute.meta.stepActionText">{{ this.$router.currentRoute.meta.stepActionText }}</span>
+                        <span v-else-if="editMode">SAVE & CLOSE</span>
                         <span v-else>SAVE & EXIT</span>
                     </v-btn>
                 </nav>
@@ -21,7 +36,12 @@
                     <v-container>
                         <v-row justify="center">
                             <v-col md="6">
-                                <router-view :key="$route.fullPath" ref="childComponent" :experiment="experiment"></router-view>
+                                <router-view
+                                    :key="$route.fullPath"
+                                    ref="childComponent"
+                                    :experiment="experiment"
+                                >
+                                </router-view>
                             </v-col>
                         </v-row>
                     </v-container>
@@ -50,7 +70,7 @@
 <script>
     import Steps from '../components/Steps'
     import store from '@/store'
-  import {mapActions, mapGetters} from "vuex";
+    import {mapActions, mapGetters} from "vuex";
 
     export default {
         name: 'ExperimentSteps',
@@ -58,18 +78,30 @@
         data: () => ({}),
 
         computed: {
-      ...mapGetters({
-        experiment: 'experiment/experiment',
-      }),
+            ...mapGetters({
+                experiment: 'experiment/experiment',
+                editMode: 'navigation/editMode'
+            }),
             currentSection() {
                 return this.$router.currentRoute.meta.currentSection
             },
             currentStep() {
                 return this.$router.currentRoute.meta.currentStep
             },
-      routeExperimentId() {
-        return this.$route.params.experiment_id
-      }
+            routeExperimentId() {
+                return this.$route.params.experiment_id
+            },
+            noSidebar() {
+                // these pages should not show the sidebar
+                return ['TerracottaBuilder', 'AssignmentCreateAssignment'];
+            },
+            editModePage() {
+                if (this.editMode?.initialPage === this.$router.currentRoute.name) {
+                    // this page is where we initially began, return to the caller page on exit
+                    return this.editMode.callerPage.name;
+                }
+                return this.$router.currentRoute.meta.previousStep;
+            }
         },
 
         beforeRouteEnter (to, from, next) {
@@ -85,7 +117,7 @@
 
         methods: {
             ...mapActions({
-                fetchExperimentById: 'experiment/fetchExperimentById',
+                fetchExperimentById: 'experiment/fetchExperimentById'
             }),
         },
 
@@ -142,8 +174,6 @@
         &__sidebar {
             background: map-get($grey, 'lighten-4');
             padding: 30px 45px;
-        }
-        &__body {
         }
     }
 </style>

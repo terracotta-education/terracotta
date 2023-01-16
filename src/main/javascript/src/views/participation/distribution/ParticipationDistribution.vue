@@ -38,12 +38,19 @@
 </template>
 
 <script>
-import { mapActions } from 'vuex';
+import { mapActions, mapGetters } from 'vuex';
 
 export default {
   name: 'ParticipationDistribution',
   props: ['experiment'],
-  computed: {},
+  computed: {
+    ...mapGetters({
+      editMode: 'navigation/editMode'
+    }),
+    getSaveExitPage() {
+      return this.editMode?.callerPage?.name || 'Home';
+    }
+  },
   methods: {
     ...mapActions({
       reportStep: 'api/reportStep',
@@ -76,13 +83,19 @@ export default {
           } else {
             this.$swal('There was an error saving your experiment.')
           }
-        })
+        }
+        )
         .catch(response => {
           console.log('updateExperiment | catch', {response})
         })
     },
     saveExit() {
-      this.$router.push({name:'Home', params:{experiment: this.experiment.experimentId}})
+      this.$router.push({
+        name: this.getSaveExitPage,
+        params: {
+          experiment: this.experiment.experimentId
+        }
+      })
     }
   }
 }

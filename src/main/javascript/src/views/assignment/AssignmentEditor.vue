@@ -21,6 +21,7 @@
         </v-tab-item>
     </v-tabs-items>
     <v-btn
+      v-if="!this.editMode"
       :disabled="contDisabled"
       elevation="0"
       color="primary"
@@ -47,6 +48,7 @@ export default {
   computed: {
     ...mapGetters({
       assignment: "assignment/assignment",
+      editMode: "navigation/editMode"
     }),
     experiment_id() {
       return parseInt(this.$route.params.experiment_id);
@@ -65,13 +67,21 @@ export default {
         !this.assignment.title
       );
     },
+    getSaveExitPage() {
+      return this.editMode?.callerPage?.name || 'Home';
+    }
   },
   methods: {
     async saveExit() {
       if (!this.contDisabled) {
         const savedAssignment = await this.handleSaveAssignment();
         if (savedAssignment) {
-          this.$router.push({name:'Home'});
+          this.$router.push({
+            name: this.getSaveExitPage,
+            params: {
+              experiment: this.experiment.experimentId
+            }
+          });
         }
       }
     },
@@ -84,13 +94,15 @@ export default {
       if (savedAssignment) {
         this.$router.push({
           name: routeName,
-          params: { exposure_id: isNaN(this.exposure_id) ? this.$route.params.exposure_id : this.exposure_id },
+          params: {
+            experiment: this.experiment.experimentId,
+            exposure_id: isNaN(this.exposure_id) ? this.$route.params.exposure_id : this.exposure_id
+          }
         });
       }
     },
     async handleSaveAssignment() {
       // PUT ASSESSMENT TITLE & HTML (description) & SETTINGS
-
       const response = await this.updateAssignment([
         this.experiment_id,
         this.exposure_id,
@@ -111,13 +123,13 @@ export default {
   },
   async created() {
     console.log(this.experiment.experimentId,
-          this.exposure_id,
-          this.assignment_id,)
-      await this.fetchAssignment([
-          this.experiment.experimentId,
-          this.exposure_id,
-          this.assignment_id,
-      ]);
+      this.exposure_id,
+      this.assignment_id,)
+    await this.fetchAssignment([
+      this.experiment.experimentId,
+      this.exposure_id,
+      this.assignment_id,
+    ]);
   },
   components: {
     AssignmentSettings,
