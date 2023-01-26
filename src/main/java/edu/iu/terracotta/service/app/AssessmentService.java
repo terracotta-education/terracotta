@@ -73,8 +73,6 @@ public interface AssessmentService {
 
     Float calculateMaxScore(Assessment assessment);
 
-    void validateTitle(String title) throws TitleValidationException;
-
     AssessmentDto defaultAssessment(AssessmentDto assessmentDto, Long treatmentId);
 
     void updateTreatment(Long treatmentId, Assessment assessment);

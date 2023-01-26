@@ -152,7 +152,7 @@ export default {
       // loop conditions and build condition/treatment manifest
       // (templates don't like async methods for conditions)
       for (let c of this.conditions) {
-        const t = await this.checkTreatment([this.experiment.experimentId, c.conditionId, this.assignment_id])
+        const t = await this.checkTreatment([this.experiment.experimentId, c.conditionId])
 
         if (t?.data?.find(o=>parseInt(o.assignmentId)===this.assignment_id)) {
           const ctObj = {

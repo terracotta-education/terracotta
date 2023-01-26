@@ -1,9 +1,19 @@
 <template>
   <div class="terracotta-builder" v-if="experiment && assessment">
-    <h1>
-      Add your treatment for
-      {{ assignment.title }}'s condition: <strong>{{ condition.name }}</strong>
-    </h1>
+    <div class="header-container">
+      <h1>
+        {{ this.assignment_title }}
+      </h1>
+      <div>
+        <h4 class="label-treatment">Treatment</h4>
+        <v-chip
+          label
+          :color="condition_color"
+        >
+        <h4 class="label-condition-name">{{ this.condition_name }}</h4>
+        </v-chip>
+      </div>
+    </div>
     <v-tabs v-model="tab" class="tabs">
       <v-tab>Treatment</v-tab>
       <v-tab>Settings</v-tab>
@@ -14,15 +24,6 @@
           @submit.prevent="saveAll('AssignmentYourAssignments')"
           class="my-5"
         >
-          <v-text-field
-            v-model="title"
-            :rules="rules"
-            label="Treatment name"
-            placeholder="e.g. Lorem ipsum"
-            autofocus
-            outlined
-            required
-          ></v-text-field>
           <v-textarea
             v-model="html"
             label="Instructions or description (optional)"
@@ -199,15 +200,6 @@
         <treatment-settings />
       </v-tab-item>
     </v-tabs-items>
-    <v-btn
-      :disabled="contDisabled"
-      elevation="0"
-      color="primary"
-      class="mr-4"
-      @click="saveAll('AssignmentYourAssignments')"
-    >
-      Continue
-    </v-btn>
   </div>
 </template>
 
@@ -226,8 +218,14 @@ export default {
   name: "TerracottaBuilder",
   props: ["experiment"],
   computed: {
+    currentAssignment() {
+      return JSON.parse(this.$route.params.current_assignment);
+    },
     assignment_id() {
-      return parseInt(this.$route.params.assignment_id);
+      return this.currentAssignment.assignmentId;
+    },
+    assignment_title() {
+      return this.currentAssignment.title;
     },
     exposure_id() {
       return parseInt(this.$route.params.exposure_id);
@@ -240,6 +238,12 @@ export default {
     },
     condition_id() {
       return parseInt(this.$route.params.condition_id);
+    },
+    condition_name() {
+      return this.condition.name;
+    },
+    condition_color() {
+      return this.conditionColorMapping[this.condition_name];
     },
     condition() {
       return this.experiment.conditions.find(
@@ -263,10 +267,7 @@ export default {
       return (
         !this.questions ||
         this.questions.length < 1 ||
-        this.questions.some((q) => q.html.trim() === "<p></p>") ||
-        !this.assessment.title ||
-        !this.assessment.title.trim() ||
-        this.assessment.title.length > 255
+        this.questions.some((q) => q.html.trim() === "<p></p>")
       );
     },
     questionTypeComponents() {
@@ -275,15 +276,6 @@ export default {
         ESSAY: QuestionEditor,
         FILE: FileUploadQuestionEditor,
       };
-    },
-    title: {
-      // two-way computed property
-      get() {
-        return this.assessment.title;
-      },
-      set(value) {
-        this.setAssessment({ ...this.assessment, title: value });
-      },
     },
     html: {
       // two-way computed property
@@ -393,7 +385,6 @@ export default {
         this.condition.conditionId,
         this.treatment_id,
         this.assessment_id,
-        this.assessment.title,
         this.assessment.html,
         this.assessment.allowStudentViewResponses,
         this.assessment.studentViewResponsesAfter,
@@ -531,7 +522,7 @@ export default {
       }
     },
     saveExit() {
-      this.saveAll("home");
+      this.saveAll("ExperimentSummary");
     },
     textOnly(htmlString) {
       const parser = new DOMParser();
@@ -565,7 +556,6 @@ v-expansion-panels {
   &, & > div {
     width: 100%;
   }
-
 }
 .terracotta-builder {
   .v-expansion-panel-header {
@@ -592,6 +582,17 @@ v-expansion-panels {
   .tabs {
     border-top: 1px solid map-get($grey, "lighten-2");
     border-bottom: 1px solid map-get($grey, "lighten-2");
+  }
+  .header-container {
+    width: 100%;
+    min-height: fit-content;
+    padding-bottom: 10px;
+  }
+  h4.label-treatment,
+  h4.label-condition-name {
+    display: inline;
+    padding-right: 5px;
+    padding-bottom: 0;
   }
 }
 </style>

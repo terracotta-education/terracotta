@@ -63,7 +63,7 @@ const actions = {
     }
   },
   async checkTreatment({state}, payload) {
-    // payload = experiment_id, condition_id, assignment_id
+    // payload = experiment_id, condition_id
     try {
       const response = await treatmentService.fetchTreatment(...payload)
       if (response) {
@@ -75,6 +75,10 @@ const actions = {
     } catch (error) {
       console.error('checkTreatment catch', {error, state})
     }
+  },
+  resetTreatments({state}) {
+    state.treatments = [];
+    state.treatment = null;
   },
 }
 const mutations = {

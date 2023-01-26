@@ -11,11 +11,11 @@
         :rules="rules"
         label="Experiment title"
         placeholder="e.g. Lorem ipsum"
-        autofocus
         outlined
         required
       ></v-text-field>
       <v-btn
+        v-if="!this.editMode"
         :disabled="!experiment.title || !experiment.title.trim()"
         elevation="0"
         color="primary"
@@ -36,7 +36,7 @@
 </template>
 
 <script>
-import {mapActions} from "vuex"
+import {mapActions, mapGetters} from "vuex"
 
 export default {
   name: 'DesignTitle',
@@ -47,6 +47,14 @@ export default {
       v => (v || '').length <= 255 || 'A maximum of 255 characters is allowed'
     ],
   }),
+  computed: {
+    ...mapGetters({
+      editMode: 'navigation/editMode'
+    }),
+    getSaveExitPage() {
+      return this.editMode?.callerPage?.name || 'Home';
+    }
+  },
   methods: {
     ...mapActions({
       updateExperiment: 'experiment/updateExperiment',
@@ -58,7 +66,12 @@ export default {
       this.updateExperiment(e)
         .then(response => {
           if (typeof response?.status !== "undefined" && response?.status === 200) {
-            this.$router.push({name: path, params:{experiment: this.experiment.experiment_id}})
+            this.$router.push({
+              name: path,
+              params: {
+                experiment: this.experiment.experiment_id
+              }
+            })
           } else if (response?.message) {
             this.$swal(`Error: ${response.message}`)
           } else {
@@ -71,7 +84,7 @@ export default {
         })
     },
     saveExit()  {
-      this.saveTitle('Home')
+      this.saveTitle(this.getSaveExitPage)
     }
 
   }

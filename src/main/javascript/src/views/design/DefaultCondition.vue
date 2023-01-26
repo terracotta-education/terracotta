@@ -14,19 +14,20 @@
                :for="`condition-${condition.conditionId}`">
           <span>{{ condition.name }}</span>
           <span class="radio-check">
-						<input type="radio" name="selectedDefault" v-model="selectedDefault" :value="condition.conditionId"
+            <input type="radio" name="selectedDefault" v-model="selectedDefault" :value="condition.conditionId"
                    :id="`condition-${condition.conditionId}`" @change="saveConditions" required/>
-						<span class="rounded-pill px-3 py-1">
-							<v-icon v-show="selectedDefault === condition.conditionId">mdi-check</v-icon>
-							<span>Default</span>
-						</span>
-					</span>
+            <span class="rounded-pill px-3 py-1">
+              <v-icon v-show="selectedDefault === condition.conditionId">mdi-check</v-icon>
+              <span>Default</span>
+            </span>
+          </span>
         </label>
       </fieldset>
 
       <v-btn
+        v-if="!editMode"
         :disabled="!selectedDefault"
-        :to="{name: 'ExperimentDesignSummary', params:{experiment: experiment.experimentId}}"
+        :to="{name: this.getNextPage, params:{ experiment: experiment.experimentId }}"
         elevation="0"
         color="primary"
         class="mr-4"
@@ -49,7 +50,7 @@
 </template>
 
 <script>
-import {mapActions} from "vuex";
+import {mapActions, mapGetters} from "vuex";
 
 export default {
   name: 'DefaultCondition',
@@ -60,6 +61,9 @@ export default {
     }
   },
   computed: {
+    ...mapGetters({
+      editMode: 'navigation/editMode'
+    }),
     selectedDefault: {
       get() {
         const defaultCondition = this.experiment?.conditions.find(condition => condition.defaultCondition === true)
@@ -74,25 +78,36 @@ export default {
       },
       set(val) {
         this.inputConditionId = val
-      }
+      },
+    },
+    getNextPage() {
+      return this.editMode?.callerPage?.name || 'ExperimentDesignSummary';
+    },
+    getSaveExitPage() {
+      return this.editMode?.callerPage?.name || 'Home';
     }
   },
   methods: {
     ...mapActions({
       setDefaultCondition: 'condition/setDefaultCondition',
     }),
-    saveConditions() {
+    async saveConditions() {
       const conditions = this.experiment.conditions
       const defaultConditionId = this.selectedDefault
 
-      this.setDefaultCondition({conditions, defaultConditionId})
+      await this.setDefaultCondition({conditions, defaultConditionId})
           .catch(response => {
             console.log("catch", {response})
           })
     },
-    saveExit() {
-      this.saveConditions()
-      this.$router.push({name:'Home', params:{experiment: this.experiment.experimentId}})
+    async saveExit() {
+      await this.saveConditions();
+      this.$router.push({
+        name: this.getSaveExitPage,
+        params: {
+          experiment: this.experiment.experimentId
+        }
+      })
     }
   }
 }

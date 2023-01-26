@@ -13,7 +13,10 @@ const actions = {
         }
       })
       .catch(response => console.log('fetchExportData | catch', {response}))
-  }
+  },
+  resetExportData({state}) {
+    state.file = null;
+  },
 }
 
 const mutations = {

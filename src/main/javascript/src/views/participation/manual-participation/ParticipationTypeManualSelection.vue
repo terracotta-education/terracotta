@@ -77,20 +77,20 @@ export default {
   computed: {
     ...mapGetters({
       participants: "participants/participants",
+      editMode: 'navigation/editMode'
     }),
-
+    getSaveExitPage() {
+      return this.editMode?.callerPage?.name || 'Home';
+    },
     experimentId() {
       return this.experiment.experimentId;
     },
-
     participating() {
       return this.groupParticipants(true);
     },
-
     notParticipating() {
       return this.groupParticipants(false);
     },
-
     unassigned() {
       return this.groupParticipants(null);
     },
@@ -101,17 +101,14 @@ export default {
       setParticipantsGroup: "participants/setParticipantsGroup",
       updateParticipants: "participants/updateParticipants",
     }),
-
     groupParticipants(value) {
       return this.participants.filter(
         (participant) => participant.consent === value
       );
     },
-
     getParticipantIds(participants) {
       return participants.map((participant) => participant.user.userId);
     },
-
     updateParticipantConsent(selectedIds, value) {
       return this.participants.map((participant) => {
         if (selectedIds.includes(participant.user.userId)) {
@@ -120,11 +117,10 @@ export default {
         return participant;
       });
     },
-
     moveToHandler(option, tempSelected) {
       const selectedIds = this.getParticipantIds(tempSelected);
       let updatedParticipants = [];
-      
+
       if (option === "Participating") {
         updatedParticipants = this.updateParticipantConsent(selectedIds, true);
       }
@@ -141,7 +137,6 @@ export default {
       }
       this.setParticipantsGroup(updatedParticipants);
     },
-
     submitParticipants(path) {
       const _this = this;
 
@@ -162,7 +157,7 @@ export default {
         });
     },
     saveExit() {
-      this.submitParticipants('Home')
+      this.submitParticipants(this.getSaveExitPage)
     }
   },
   beforeRouteEnter(to, from, next) {

@@ -123,7 +123,19 @@ export default {
       createExperiment: 'experiment/createExperiment',
       deleteExperiment: 'experiment/deleteExperiment',
       resetConsent: 'consent/resetConsent',
-      getZip: 'exportdata/fetchExportData'
+      getZip: 'exportdata/fetchExportData',
+      resetAssessments: 'assessments/resetAssessments',
+      resetAssignment: 'assignments/resetAssignment',
+      resetAssignments: 'assignments/resetAssignments',
+      resetConditions: 'conditions/resetConditions',
+      resetExportData: 'exportData/resetExportData',
+      resetExposures: 'exposures/resetExposures',
+      resetOutcome: 'outcomes/resetOutcome',
+      resetOutcomePotentials: 'outcomes/resetOutcomePotentials',
+      resetParticipants: 'participants/resetParticipants',
+      resetSubmissions: 'submissions/resetSubmissions',
+      resetTreatments: 'treatments/resetTreatments',
+      deleteEditMode: 'navigation/deleteEditMode'
     }),
     async handleExport(item) {
       await this.getZip(item.experimentId)
@@ -184,6 +196,20 @@ export default {
 
     // reset consent data when loading the dashboard
     await this.resetConsent()
+
+    // reset data in state
+    this.resetAssessments();
+    this.resetAssignments();
+    this.resetAssignment();
+    this.resetConditions();
+    this.resetExportData();
+    this.resetExposures();
+    this.resetOutcome();
+    this.resetOutcomePotentials();
+    this.resetParticipants();
+    this.resetSubmissions();
+    this.resetTreatments();
+    this.deleteEditMode();
   },
 }
 </script>

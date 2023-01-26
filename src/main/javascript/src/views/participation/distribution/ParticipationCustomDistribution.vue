@@ -56,7 +56,7 @@
 </template>
 
 <script>
-import { mapActions } from "vuex";
+import { mapActions, mapGetters } from "vuex";
 
 export default {
   name: "ParticipationCustomDistribution",
@@ -71,6 +71,12 @@ export default {
   },
 
   computed: {
+    ...mapGetters({
+      editMode: 'navigation/editMode'
+    }),
+    getSaveExitPage() {
+      return this.editMode?.callerPage?.name || 'Home';
+    },
     conditions() {
       return this.experiment.conditions;
     },
@@ -123,9 +129,14 @@ export default {
     },
     saveExit() {
        if (this.isDisabled()) {
-          this.$router.push({name:'Home', params:{experiment: this.experiment.experimentId}})
+          this.$router.push({
+            name: this.getSaveExitPage,
+            params: {
+              experiment: this.experiment.experimentId
+            }
+          });
         } else {
-          this.updateDistribution('Home')
+          this.updateDistribution(this.getSaveExitPage);
         }
     }
   },

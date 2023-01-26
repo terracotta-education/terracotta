@@ -27,7 +27,7 @@ const actions = {
     }
   },
   async createAssessment ({commit}, payload) {
-    // payload = experiment_id, condition_id, treatment_id, title, body
+    // payload = experiment_id, condition_id, treatment_id, body
     // create the assessment, commit an update mutation, and return the status/data response
     try {
       // check if assessment exist before creating a new one
@@ -58,7 +58,7 @@ const actions = {
   },
   async updateAssessment(context, payload) {
     // payload = experiment_id, condition_id, treatment_id, assessment_id,
-    //           title, body, allowStudentViewResponses, studentViewResponsesAfter,
+    //           body, allowStudentViewResponses, studentViewResponsesAfter,
     //           studentViewResponsesBefore, allowStudentViewCorrectAnswers,
     //           studentViewCorrectAnswersAfter, studentViewCorrectAnswersBefore
     // update the assessment, and return the status/data response
@@ -206,6 +206,10 @@ const actions = {
       console.log('deleteAnswer catch', {error})
     }
   },
+  resetAssessments({state}) {
+    state.assessments = [];
+    state.assessment = null;
+  }
 }
 const mutations = {
   setAssessment(state, assessment) {

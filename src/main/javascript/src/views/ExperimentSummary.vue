@@ -15,15 +15,19 @@
           </p>
         </v-col>
         <div class="header ma-0 pa-0">
-          <v-btn color="primary" elevation="0" @click="exportData()"
-            >Export Data</v-btn
+          <v-btn
+            color="primary"
+            elevation="0"
+            @click="exportData()"
           >
+            Export Data
+          </v-btn>
           <v-btn
             color="primary"
             elevation="0"
             class="saveButton ml-4"
             @click="saveExit()"
-            >SAVE & CLOSE</v-btn
+            >SAVE & EXIT</v-btn
           >
         </div>
       </v-row>
@@ -31,7 +35,10 @@
         <v-col cols="12">
           <v-divider></v-divider>
           <v-tabs v-model="tab" elevation="0">
-            <v-tab v-for="item in setupTabs" :key="item.tab">
+            <v-tab
+              v-for="item in setupTabs"
+              :key="item.tab"
+            >
               {{ item.tab }}
             </v-tab>
           </v-tabs>
@@ -46,6 +53,7 @@
               <div class="tab-heading">
                 <!-- Setup Panel -->
                 <v-card
+                  v-if="hasPublishedAssignment"
                   class="pt-5 px-5 mx-auto blue lighten-5 rounded-lg"
                   outlined
                   :key="item.title"
@@ -62,19 +70,18 @@
                       <v-img
                         v-if="item.image"
                         :src="item.image"
-                        class="mr-6"
+                        class="icon-section-summary mr-6"
                         :alt="item.title"
-                        min-height="55"
-                        min-width="50"
+                        style="margin-top: 2px !important; margin-right: 8px !important;"
                       />
                     </div>
                     <div
                       class="panelInformation d-flex flex-column justify-center"
                     >
                       <h2 class="mb-0">{{ item.title }}</h2>
-                      <span v-if="item.description">{{
-                        item.description
-                      }}</span>
+                      <span v-if="item.description">
+                        {{ item.description }}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -82,18 +89,19 @@
                   <experiment-summary-status :experiment="experiment" />
                 </template>
                 <template v-if="item.tab === 'assignment'">
-                  <div class="px-5">
-                    <!--<pre>{{ experiment }}</pre>-->
-                    <p class="pb-0" v-if="exposures">
+                  <div class="section-exposure-sets px-5">
+                    <p
+                      v-if="exposures"
+                      class="pb-0"
+                      style="margin-bottom: 40px !important;"
+                    >
                       Because you have <strong>{{ conditionCount }}</strong> (<a
-                        @click="handleEdit('ExperimentDesignConditions')"
+                        @click="handleEdit('ExperimentDesignConditions', item.tab)"
                         >edit</a
                       >) and would like your students to be
-                      <strong>{{
-                        exposureText[experiment.exposureType]
-                      }}</strong>
+                      <strong>{{ exposureText[experiment.exposureType] }}</strong>
                       ({{ exposureType[experiment.exposureType] }}) (<a
-                        @click="handleEdit('ExperimentDesignConditions')"
+                        @click="handleEdit('ExperimentDesignConditions', item.tab)"
                         >edit</a
                       >), we set you up with {{ exposures.length }} exposure
                       sets.
@@ -112,7 +120,7 @@
                           change conditions between exposure sets, and the order
                           of conditions across exposure sets will be randomly
                           assigned to different students (<a
-                            @click="handleEdit('ExperimentDesignConditions')"
+                            @click="handleEdit('ExperimentDesignConditions', item.tab)"
                             >edit</a
                           >). An exposure set contains one or more assignments,
                           and there must be an equal number of assignments in
@@ -129,12 +137,15 @@
                       <span
                         >Your exposure sets are currently:
                         <v-chip label outlined class="mr-2">
-                          <span class="red--text" v-if="!balanced"
-                            ><v-icon>mdi-scale-unbalanced</v-icon>
-                            Unbalanced</span
+                          <span
+                            v-if="!balanced"
+                            class="label-unbalanced"
                           >
-                          <span v-if="balanced"
-                            ><v-icon>mdi-scale-balance</v-icon>
+                            <v-icon>mdi-scale-unbalanced</v-icon>
+                            Unbalanced
+                          </span>
+                          <span v-if="balanced">
+                            <v-icon>mdi-scale-balance</v-icon>
                             Balanced
                           </span>
                         </v-chip>
@@ -165,13 +176,18 @@
                         </v-tooltip>
                       </span>
                     </div>
-                    <experiment-assignments :experiment="experiment" :balanced="balanced" />
+                    <experiment-assignments
+                      :experiment="experiment"
+                      :balanced="balanced"
+                      :loaded="loaded"
+                      :activeExposureSet="exposureSet"
+                    />
                   </div>
                 </template>
                 <template
                   v-if="item.tab !== 'status' && item.tab !== 'assignment'"
                 >
-                  <table class="">
+                  <table>
                     <tr
                       v-for="section in sectionValuesMap[item.title]"
                       :key="section.title"
@@ -181,7 +197,7 @@
                         <template>
                           <div class="detail">
                             <span class="heading">{{ section.title }}</span>
-                            <a @click="handleEdit(section.editSection)">EDIT</a>
+                            <a @click="handleEdit(section.editSection, item.tab)">EDIT</a>
                           </div>
                         </template>
                       </td>
@@ -327,6 +343,7 @@ export default {
       consent: "consent/consent",
       exportdata: "exportdata/exportData",
       conditionColorMapping: "condition/conditionColorMapping",
+      editMode: "navigation/editMode"
     }),
     // Higher Level Section Values
     sectionValuesMap() {
@@ -412,6 +429,20 @@ export default {
         },
       ];
     },
+    hasPublishedAssignment() {
+      return this.assignments?.filter((a) => a.published).length;
+    },
+    activeTab() {
+      // if active tab was previously selected, return it, otherwise default to assignment tab
+      return this.editMode?.callerPage?.tab || 'assignment';
+    },
+    activeExposureSet() {
+      // if active tab was previously selected, return it, otherwise default to assignment tab
+      return this.editMode?.callerPage?.exposureSet || 0;
+    },
+    loaded() {
+      return !this.isLoading;
+    }
   },
 
   data: () => ({
@@ -441,11 +472,18 @@ export default {
       {
         title: "Assignments",
         tab: "assignment",
+        description: `Terracotta populates Canvas assignments with learning activities and
+                      materials that change depending on who's looking at them, automatically
+                      managing experimental variation within the treatments. Just create different
+                      treatments within each assignment. To your students, it will look like
+                      they're completing assignments as usual within Canvas.`,
         image: require("@/assets/assignments_summary.svg"),
       },
     ],
     conditionTreatments: {},
     conditionColors: [""],
+    isLoading: true,
+    exposureSet: 0
   }),
   methods: {
     ...mapActions({
@@ -456,6 +494,9 @@ export default {
       createAssessment: "assessment/createAssessment",
       getConsentFile: "consent/getConsentFile",
       getZip: "exportdata/fetchExportData",
+      resetAssignments: "assignment/resetAssignments",
+      saveEditMode: "navigation/saveEditMode",
+      deleteEditMode: "navigation/deleteEditMode"
     }),
     saveExit() {
       this.$router.push({ name: "Home" });
@@ -468,8 +509,17 @@ export default {
       );
     },
     // Navigate to EDIT section
-    handleEdit(componentName) {
-      this.$router.push({ name: componentName });
+    async handleEdit(componentName, currentTab) {
+      await this.saveEditMode({
+        initialPage: componentName,
+        callerPage: {
+          name: 'ExperimentSummary',
+          tab: currentTab
+        }
+      });
+      this.$router.push({
+        name: componentName
+      });
     },
     openPDF() {
       // Second Parameter intentionally left blank
@@ -576,7 +626,10 @@ export default {
   },
 
   async mounted() {
-    this.tab = this.$router.currentRoute.name === "ExperimentSummary" ? 3 : 0;
+    await this.resetAssignments();
+    this.tab = this.setupTabs.findIndex((s) => s.tab === this.activeTab);
+    this.exposureSet = this.activeExposureSet;
+    await this.saveEditMode(null);
 
     await this.fetchExposures(this.experiment.experimentId);
     for (const e of this.exposures) {
@@ -591,8 +644,7 @@ export default {
     for (let c of this.conditions) {
       const t = await this.checkTreatment([
         this.experiment.experimentId,
-        c.conditionId,
-        this.assignments[0].assignmentId,
+        c.conditionId
       ]);
       this.conditionTreatments[c.conditionId] = t?.data;
     }
@@ -601,7 +653,7 @@ export default {
     if (this.experiment.participationType === "CONSENT") {
       await this.getConsentFile(this.experiment.experimentId);
     }
-    // }
+    this.isLoading = false;
   },
   beforeRouteEnter(to, from, next) {
     return store
@@ -644,7 +696,8 @@ export default {
 
 .v-tooltip__content {
   max-width: 400px;
-  opacity: 1 !important;
+  opacity: 1.0 !important;
+  background-color: rgba(55,61,63, 1.0) !important;
   a {
     color: #afdcff;
   }
@@ -719,5 +772,10 @@ table {
       text-align: left;
     }
   }
+}
+.label-unbalanced {
+  text-transform: none !important;
+  opacity: 0.87 !important;
+  color: #E06766 !important;
 }
 </style>

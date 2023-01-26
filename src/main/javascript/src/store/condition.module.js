@@ -95,7 +95,11 @@ const actions = {
             .catch(response => {
               console.log('setCondition | catch', {response})
             })
-  }
+  },
+  resetCondtions({state}) {
+    state.conditions = [];
+    state.condition = null;
+  },
 }
 
 const mutations = {}

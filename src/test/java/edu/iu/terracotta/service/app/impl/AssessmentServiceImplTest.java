@@ -179,7 +179,7 @@ public class AssessmentServiceImplTest {
         when(assignment.getExposure()).thenReturn(exposure);
         when(assessmentDto.getMultipleSubmissionScoringScheme()).thenReturn(MultipleSubmissionScoringScheme.MOST_RECENT.toString());
         when(assessmentDto.getQuestions()).thenReturn(Collections.singletonList(questionDto));
-        when(assessmentDto.getTitle()).thenReturn("title");
+        // when(assessmentDto.getTitle()).thenReturn("title");
         when(condition.getConditionId()).thenReturn(1L);
         when(condition.getDefaultCondition()).thenReturn(true);
         when(exposure.getExposureId()).thenReturn(1L);

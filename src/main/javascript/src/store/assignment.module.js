@@ -116,6 +116,15 @@ const actions = {
     } catch (error) {
       console.error('updateAssignment catch', {error})
     }
+  },
+  async setCurrentAssignment({commit}, assignment) {
+    commit('setAssignment', assignment);
+  },
+  async resetAssignments({commit}) {
+    commit('setAssignments', []);
+  },
+  async resetAssignment({commit}) {
+    commit('setAssignment',  null);
   }
 }
 const mutations = {
@@ -128,9 +137,6 @@ const mutations = {
     } else if (!state.assignments && assignments?.length > 0) {
       state.assignments = [...assignments]
     }
-  },
-  resetAssignments(state) {
-    state.assignments = []
   },
   setAssignments(state, assignments) {
     state.assignments = assignments

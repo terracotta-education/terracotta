@@ -7,9 +7,12 @@
           <v-tabs v-model="tab" elevation="0" show-arrows>
             <v-tab v-for="(exposure, eidx) in exposures" :key="eidx">
               <div class="d-flex flex-column align-start py-1">
-                <div class="">Set {{ eidx + 1 }}</div>
-                <div class="d-block mt-4" :class="balanced ? '' : 'red--text'">
-                  {{ getAssignmentsForExposure(exposure).length }} assignments
+                <div class="section-tab-set">Set {{ eidx + 1 }}</div>
+                <div
+                  class="d-block mt-4"
+                  :class="balanced ? 'section-tab-assignments-balanced' : 'section-tab-assignments-unbalanced'"
+                >
+                  {{ getAssignmentsForExposure(exposure).length }} Assignment{{ getAssignmentsForExposure(exposure).length === 1 ? '': 's' }}
                 </div>
               </div>
             </v-tab>
@@ -17,21 +20,58 @@
           <v-divider></v-divider>
           <v-tabs-items v-model="tab">
             <v-tab-item
-              class="py-3 px-3"
+              class="section-assignments py-3 px-3"
               v-for="(exposure, eidx) in exposures"
               :key="eidx"
             >
               <div class="d-flex justify-space-between">
                 <h3>Assignments</h3>
                 <v-btn
-                  color="primary"
-                  elevation="0"
-                  :to="{name: 'AssignmentCreateAssignment', params: {exposure_id: exposure.exposureId }}"
-                  >Add Assignment</v-btn
-                >
+                    v-if="getAssignmentsForExposure(exposure).length"
+                    color="primary"
+                    elevation="0"
+                    @click="
+                      handleCreateAssignment(
+                        exposure.exposureId,
+                        JSON.stringify(exposure.groupConditionList.map(a => a.conditionId)),
+                      )
+                    "
+                  >
+                    Add Assignment
+                  </v-btn>
               </div>
-              <template>
+              <template v-if="!loaded">
+                <div class="spinner-container">
+                  <svg class="spinner" width="28px" height="28px" viewBox="0 0 66 66" xmlns="http://www.w3.org/2000/svg">
+                    <circle class="path" fill="none" stroke-width="6" stroke-linecap="round" cx="33" cy="33" r="30"></circle>
+                  </svg>
+                </div>
+              </template>
+              <template v-if="loaded">
+                <v-card
+                  v-if="!getAssignmentsForExposure(exposure).length"
+                  class="no-assignments-yet d-flex flex-column px-5 py-5 rounded-lg mx-3 mb-5 d-inline-block"
+                  outlined
+                  justify="center"
+                >
+                  <div class="no-assignments-yet-container">
+                    <h4>You don't have any assignments yet</h4>
+                    <v-btn
+                      class="btn-create-first-assignment"
+                      elevation="0"
+                      @click="
+                        handleCreateAssignment(
+                          exposure.exposureId,
+                          JSON.stringify(exposure.groupConditionList.map(a => a.conditionId))
+                        )
+                      "
+                    >
+                      Create your first assignment
+                    </v-btn>
+                  </div>
+                </v-card>
                 <v-data-table
+                  v-if="getAssignmentsForExposure(exposure).length"
                   :headers="assignmentHeaders"
                   :items="getAssignmentsForExposure(exposure)"
                   :single-expand="singleExpand"
@@ -48,7 +88,7 @@
                   "
                   item-key="assignmentId"
                   show-expand
-                  class="mx-3 mb-5 mt-3"
+                  class="data-table-assignments mx-3 mb-5 mt-3"
                 >
                   <template v-slot:expanded-item="{ item }">
                     <td
@@ -65,7 +105,25 @@
                       >
                         <!-- eslint-disable-next-line -->
                         <template v-slot:item.title="{ item }">
-                          Treatment
+                          <v-tooltip
+                            v-if="!(item.assessmentDto && item.assessmentDto.questions.length)"
+                            top
+                          >
+                            <template  #activator="{ on }">
+                              <v-icon
+                                class="icon-treatment-incomplete"
+                                v-on="on"
+                              >
+                                  mdi-alert-circle-outline
+                              </v-icon>
+                            </template>
+                            <span>Please add content to this treatment.</span>
+                          </v-tooltip>
+                          <span
+                            :class="!(item.assessmentDto && item.assessmentDto.questions.length) ? 'label-treatment-incomplete' : 'label-treatment-complete'"
+                          >
+                            Treatment
+                          </span>
                           <v-chip
                             label
                             :color="
@@ -76,13 +134,14 @@
                                 ).conditionName
                               ]
                             "
-                            >{{
+                          >
+                            {{
                               conditionForTreatment(
                                 exposure.groupConditionList,
                                 item.conditionId
                               ).conditionName
-                            }}</v-chip
-                          >
+                            }}
+                          </v-chip>
                         </template>
                         <!-- eslint-disable-next-line -->
                         <template v-slot:item.actions="{ item }">
@@ -90,12 +149,11 @@
                             <v-btn
                               text
                               tile
-                              @click="
-                                goToBuilder(item.conditionId, item.assignmentId)
-                              "
+                              @click="goToBuilder(item.conditionId, item.assignmentId)"
+                              class="btn-treatment-edit"
                             >
                               <v-icon>mdi-pencil</v-icon>
-                              Edit
+                              <span class="btn-edit">Edit</span>
                             </v-btn>
                           </template>
                         </template>
@@ -104,9 +162,25 @@
                   </template>
                   <!-- eslint-disable-next-line -->
                   <template v-slot:item.treatments="{ item }">
-                    <span :class="item.treatments.length !== conditions.length ? 'red--text' : ''">
-                    {{ item.treatments.length }} / {{ conditions.length }}
-                    <v-icon v-if="item.treatments.length !== conditions.length" class="red--text">mdi-alert-circle-outline</v-icon>
+                    <!-- red text if treatment count != condition count or a treatment not having an assessment -->
+                    <span
+                      :class="item.treatments.length !== conditions.length || item.treatments.filter(treatment => !treatment.assessmentDto || !treatment.assessmentDto.questions || !treatment.assessmentDto.questions.length).length ? 'label-treatment-incomplete' : 'label-treatment-complete'"
+                    >
+                      {{ item.treatments.length }} / {{ conditions.length }}
+                      <v-tooltip
+                        v-if="item.treatments.length !== conditions.length || item.treatments.filter(treatment => !treatment.assessmentDto || !treatment.assessmentDto.questions || !treatment.assessmentDto.questions.length).length"
+                        top
+                      >
+                        <template #activator="{ on }">
+                          <v-icon
+                            class="label-treatment-incomplete"
+                            v-on="on"
+                          >
+                            mdi-alert-circle-outline
+                          </v-icon>
+                        </template>
+                        <span>Set up your assignment by creating treatments.</span>
+                      </v-tooltip>
                     </span>
                   </template>
                   <!-- eslint-disable-next-line -->
@@ -115,21 +189,21 @@
                   </template>
                   <!-- eslint-disable-next-line -->
                   <template v-slot:item.published="{ item }">
-                    <span :class="item.published ? '' : 'red--text'">{{
-                      item.published ? "Published" : "Unpublished"
-                    }}</span>
+                    <span :class="item.published ? 'label-treatment-complete' : 'label-treatment-incomplete'">
+                      {{ item.published ? "Published" : "Unpublished" }}
+                    </span>
                   </template>
                   <!-- eslint-disable-next-line -->
                   <template v-slot:item.dueDate="{ item }">
-                    {{ item.dueDate }}
+                    {{ dueDate(item) }}
                   </template>
                   <!-- eslint-disable-next-line -->
                   <template v-slot:item.actions="{ item }">
                     <v-btn
                       text
                       tile
-                      @click="handleEdit('AssignmentEditor', item.assignmentId, exposure.exposureId)"
-                      class="text--lighten-5 text--grey"
+                      @click="handleEdit(item, exposure.exposureId)"
+                      class="btn-edit text--lighten-5 text--grey"
                     >
                       <v-icon>mdi-pencil</v-icon>
                       Edit
@@ -151,7 +225,7 @@
                             <v-list-item v-bind="attrs" v-on="on">
                               <v-list-item-title
                                 ><v-icon>mdi-arrow-right-top</v-icon
-                                >Move 
+                                >Move
                                 </v-list-item-title
                               >
                               <v-list-item-action class="justify-end">
@@ -200,7 +274,7 @@
               </template>
               <h3 class="my-4">Design</h3>
               <v-card
-                class="px-5 py-5 rounded-lg mx-3 mb-5 d-inline-block"
+                class="data-table-design px-5 py-5 rounded-lg mx-3 mb-5 d-inline-block"
                 outlined
               >
                 <div
@@ -229,7 +303,11 @@
                     }}</v-chip
                   >
                 </div>
-                <a @click="designExpanded = !designExpanded" class="text--blue" v-if="sortedGroups(exposure.groupConditionList).length > maxDesignGroups">
+                <a
+                  v-if="sortedGroups(exposure.groupConditionList).length > maxDesignGroups"
+                  @click="designExpanded = !designExpanded"
+                  class="text--blue"
+                >
                   <v-icon v-if="!designExpanded" color="blue">mdi-plus</v-icon>
                   <v-icon v-if="designExpanded" color="blue">mdi-minus</v-icon>
                   <span v-if="!designExpanded">More</span>
@@ -247,10 +325,11 @@
 <script>
 import { mapGetters, mapActions } from "vuex";
 import Sortable from "sortablejs";
+import moment from "moment";
 
 export default {
   name: "ExperimentAssignments",
-  props: ["experiment", "balanced"],
+  props: ["experiment", "balanced", "loaded", "activeExposureSet"],
   directives: {
     sortableDataTable: {
       bind(el, binding, vnode) {
@@ -270,6 +349,7 @@ export default {
       conditions: "experiment/conditions",
       exposures: "exposures/exposures",
       assignments: "assignment/assignments",
+      assignment: "assignment/assignment",
       consent: "consent/consent",
       exportdata: "exportdata/exportData",
       conditionColorMapping: "condition/conditionColorMapping",
@@ -346,6 +426,8 @@ export default {
       getConsentFile: "consent/getConsentFile",
       getZip: "exportdata/fetchExportData",
       moveAssignment: "assignment/moveAssignment",
+      setCurrentAssignment: 'assignments/setCurrentAssignment',
+      saveEditMode: "navigation/saveEditMode",
     }),
     saveOrder(event, assignments, exposure) {
       const movedItem = assignments.splice(event.oldIndex, 1)[0];
@@ -385,18 +467,45 @@ export default {
       }
     },
     getAssignmentsForExposure(exp) {
-      // console.log(this.assignments);
       return this.assignments
         .filter((a) => a.exposureId === exp.exposureId)
         .sort((a, b) => a.assignmentOrder - b.assignmentOrder);
     },
+    async handleCreateAssignment(exposureId, conditionIds) {
+      await this.saveEditMode({
+        initialPage: 'AssignmentCreateAssignment',
+        callerPage: {
+          name: 'ExperimentSummary',
+          tab: 'assignment',
+          exposureSet: this.tab
+        }
+      });
+      this.$router.push(
+        {
+          name: 'AssignmentCreateAssignment',
+          params: {
+            exposure_id: exposureId,
+            conditionIds: conditionIds
+          }
+        }
+      )
+    },
     // Navigate to EDIT section
-    handleEdit(componentName, assignment_id, exposure_id) {
+    async handleEdit(assignment, exposure_id) {
+      await this.setCurrentAssignment(assignment);
+      await this.saveEditMode({
+        initialPage: 'AssignmentEditor',
+        callerPage: {
+          name: 'ExperimentSummary',
+          tab: 'assignment',
+          exposureSet: this.tab
+        }
+      });
       this.$router.push({
-        name: componentName,
+        name: 'AssignmentEditor',
         params: {
-          assignment_id,
-          exposure_id
+          assignment_id: assignment.assignmentId,
+          exposure_id: exposure_id
         }
       });
     },
@@ -482,6 +591,14 @@ export default {
       }
     },
     async goToBuilder(conditionId, assignmentId) {
+      await this.saveEditMode({
+        initialPage: 'TerracottaBuilder',
+        callerPage: {
+          name: 'ExperimentSummary',
+          tab: 'assignment',
+          exposureSet: this.tab
+        }
+      });
       // create the treatment
       const treatment = await this.handleCreateTreatment(
         conditionId,
@@ -516,6 +633,7 @@ export default {
           condition_id: conditionId,
           treatment_id: treatment?.data?.treatmentId,
           assessment_id: assessment?.data?.assessmentId,
+          current_assignment: JSON.stringify(this.assignments.find((a) => a.assignmentId === assignmentId))
         },
       });
     },
@@ -536,7 +654,13 @@ export default {
       const newGroups = groupConditionList?.map((group) => group.groupName);
       return newGroups?.sort().filter((g, i) => limit ? i < limit : true);
     },
+    dueDate(item) {
+      return item.dueDate != null ? moment(item.dueDate).format('MMM D, YYYY hh:mma') : "";
+    }
   },
+  async mounted() {
+    this.tab = parseInt(this.activeExposureSet);
+  }
 };
 </script>
 
@@ -560,6 +684,143 @@ export default {
       border: none;
       border-radius: 0;
     }
+  }
+}
+.v-tooltip__content {
+  max-width: 400px;
+  opacity: 1.0 !important;
+  background-color: rgba(55,61,63, 1.0) !important;
+  a {
+    color: #afdcff;
+  }
+}
+.no-assignments-yet {
+  width: 100%;
+  min-height: 100px;
+  background-color: #fffcf7 !important;
+  border-color: #ffe0b2 !important;
+}
+.no-assignments-yet-container {
+  width: fit-content;
+  margin: 0 auto;
+}
+.no-assignments-yet-container > h4 {
+  width: fit-content;
+  margin: 0 auto;
+}
+.btn-create-first-assignment {
+  border-radius: 24px;
+  width: fit-content;
+  min-height: 48px;
+  background-color: white !important;
+  border: 1px solid;
+}
+.section-tab-set {
+  color: black;
+  opacity: 0.74;
+}
+.label-treatment-complete,
+.label-treatment-incomplete {
+  padding-right: 10px;
+}
+button.btn-treatment-edit {
+  margin-right: 76px !important;
+}
+.btn-edit,
+.label-treatment-complete,
+.icon-treatment-incomplete,
+.label-treatment-incomplete,
+.section-tab-assignments-balanced,
+.section-tab-assignments-unbalanced {
+  text-transform: none !important;
+  opacity: 0.87 !important;
+}
+.btn-edit,
+.label-treatment-complete,
+.section-tab-assignments-balanced {
+  color: black !important;
+}
+.icon-treatment-incomplete,
+.label-treatment-incomplete,
+.section-tab-assignments-unbalanced {
+  color: #E06766 !important;
+}
+div.section-assignments.py-3.px-3 {
+  padding-top: 40px !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+div.no-assignments-yet.px-5.py-5.mx-3.mb-5,
+div.data-table-assignments.mx-3.mb-5.mt-3,
+div.data-table-design.px-5.py-5.rounded-lg.mx-3.mb-5.d-inline-block {
+  margin-left: 0 !important;
+}
+div.data-table-assignments.mx-3.mb-5.mt-3 {
+  margin-right: 0 !important;
+  margin-bottom: 40px !important;
+}
+td.treatments-table-container td,
+td.treatments-table-container td span,
+div.data-table-assignments.mx-3.mb-5.mt-3 td,
+div.data-table-assignments.mx-3.mb-5.mt-3 th,
+div.data-table-assignments.mx-3.mb-5.mt-3 th span {
+  min-width: fit-content;
+  white-space: nowrap;
+}
+td.treatments-table-container td,
+td.treatments-table-container td span {
+  white-space: normal;
+}
+div.spinner-container {
+  width: 100%;
+  height: 100px;
+  padding: 0;
+  margin-top: 12px !important;
+  margin-left: 0 !important;
+  list-style: none;
+  display: -webkit-box;
+  display: -moz-box;
+  display: -ms-flexbox;
+  display: -webkit-flex;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: thin solid rgba(0,0,0,.12) !important;
+  border-radius: 8px !important;
+}
+$offset: 187;
+$duration: 0.75s;
+.spinner {
+  animation: rotator $duration linear infinite;
+}
+@keyframes rotator {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(270deg); }
+}
+.path {
+  stroke-dasharray: $offset;
+  stroke-dashoffset: 0;
+  transform-origin: center;
+  animation:
+    dash $duration ease-in-out infinite,
+    colors ($duration*4) ease-in-out infinite;
+}
+@keyframes colors {
+  0% {
+    stroke: lightgrey;
+  }
+}
+@keyframes dash {
+  0% {
+    stroke-dashoffset: $offset;
+  }
+  50% {
+    stroke-dashoffset: $offset/4;
+    transform:rotate(135deg);
+  }
+  100% {
+    stroke-dashoffset: $offset;
+    transform:rotate(450deg);
   }
 }
 </style>

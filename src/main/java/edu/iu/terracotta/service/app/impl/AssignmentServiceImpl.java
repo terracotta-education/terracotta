@@ -513,10 +513,13 @@ public class AssignmentServiceImpl implements AssignmentService {
     public void checkAndRestoreAssignmentsInCanvasByContext(Long contextId, String instructorUserId)
             throws CanvasApiException, DataServiceException, ConnectionException, IOException {
         List<Assignment> assignmentsToCheck = allRepositories.assignmentRepository.findAssignmentsToCheckByContext(contextId);
-        for (Assignment assignment:assignmentsToCheck){
-            if (!checkCanvasAssignmentExists(assignment, instructorUserId)) {
-                restoreAssignmentInCanvas(assignment);
+
+        for (Assignment assignment : assignmentsToCheck) {
+            if (checkCanvasAssignmentExists(assignment, instructorUserId)) {
+                continue;
             }
+
+            restoreAssignmentInCanvas(assignment);
         }
     }
 

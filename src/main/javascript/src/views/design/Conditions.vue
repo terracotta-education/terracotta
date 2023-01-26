@@ -53,14 +53,15 @@
         </v-row>
       </v-container>
 
-      <div>
+      <div v-if="!this.editMode">
         <v-btn
             @click="createCondition({name:'',experiment_experiment_id:experiment.experimentId})"
             color="blue"
             class="add_condition px-0 mb-10"
             text
             v-if="experiment.conditions.length < 16"
-        >Add another condition
+        >
+          Add another condition
         </v-btn>
         <v-alert type="error" v-else>
           You have reached the maximum number of conditions (16) allowed by the
@@ -88,7 +89,7 @@
 </template>
 
 <script>
-import {mapActions} from 'vuex';
+import {mapActions, mapGetters} from 'vuex';
 import store from '@/store';
 import {hasDuplicateValues} from '@/mixins/hasDuplicateValues'
 
@@ -102,6 +103,14 @@ export default {
       v => (v || '').length <= 255 || 'A maximum of 255 characters is allowed'
     ]
   }),
+  computed: {
+    ...mapGetters({
+      editMode: 'navigation/editMode'
+    }),
+    getSaveExitPage() {
+      return this.editMode?.callerPage?.name || 'Home';
+    }
+  },
   methods: {
     ...mapActions({
       createCondition: 'condition/createCondition',
@@ -132,7 +141,7 @@ export default {
       } else {
         if (condition?.conditionId) {
           const reallyDelete = await this.$swal({
-            icon: 'qesution',
+            icon: 'question',
             text: `Do you really want to delete "${condition.name}"?`,
             showCancelButton: true,
             confirmButtonText: 'Yes, delete it',
@@ -152,7 +161,17 @@ export default {
       }
     },
     async saveExit() {
-      this.saveConditions('Home')
+      if (this.experiment.conditions.filter((c) => !c.name).length) {
+        // not all names were entered, just return...
+        this.$router.push({
+          name: this.getSaveExitPage,
+          params: {
+            experiment: this.experiment.experimentId
+          }
+        })
+      } else {
+        this.saveConditions(this.getSaveExitPage)
+      }
     }
   },
   beforeRouteEnter(to, from, next) {

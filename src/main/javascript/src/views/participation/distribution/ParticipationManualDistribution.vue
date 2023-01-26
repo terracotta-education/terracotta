@@ -70,7 +70,7 @@ export default {
         // All the participant will go to 'Unparticipate' section
         const participatingStudents = this.participants.filter(({consent}) => consent === true)
         const conditionGroupIDMap = this.getConditionGroupIDMap()
-       
+
         // This will only required when the page is loaded
         const newArray = []
         for (let i = 0; i < this.conditions.length; i++) {
@@ -87,12 +87,14 @@ export default {
     ...mapGetters({
       participants: 'participants/participants',
       exposures: 'exposures/exposures',
+      editMode: 'navigation/editMode'
     }),
-
+    getSaveExitPage() {
+      return this.editMode?.callerPage?.name || 'Home';
+    },
     conditions() {
       return this.experiment.conditions
     },
-
     getConditionNames() {
       return [
         ...this.experiment.conditions.map((condition) => condition.name),
@@ -198,7 +200,7 @@ export default {
       this.arrayData = filteredParticipants
     },
     saveExit() {
-      this.submitDistribution('Home')
+      this.submitDistribution(this.getSaveExitPage)
     }
   },
   beforeRouteEnter(to, from, next) {

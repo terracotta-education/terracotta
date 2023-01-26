@@ -65,6 +65,10 @@ const actions = {
         console.log('fetchParticipants | catch', { response })
       })
   },
+  resetParticipants({state}) {
+    state.participants = [];
+    state.participant = null;
+  },
 }
 
 const mutations = {

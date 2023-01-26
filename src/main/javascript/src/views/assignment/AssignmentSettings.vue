@@ -27,18 +27,12 @@ export default {
       get() {
         return this.assignment
           ? {
-              allowStudentViewResponses: this.assignment
-                .allowStudentViewResponses,
-              studentViewResponsesAfter: this.assignment
-                .studentViewResponsesAfter,
-              studentViewResponsesBefore: this.assignment
-                .studentViewResponsesBefore,
-              allowStudentViewCorrectAnswers: this.assignment
-                .allowStudentViewCorrectAnswers,
-              studentViewCorrectAnswersAfter: this.assignment
-                .studentViewCorrectAnswersAfter,
-              studentViewCorrectAnswersBefore: this.assignment
-                .studentViewCorrectAnswersBefore,
+              allowStudentViewResponses: this.assignment.allowStudentViewResponses,
+              studentViewResponsesAfter: this.assignment.studentViewResponsesAfter,
+              studentViewResponsesBefore: this.assignment.studentViewResponsesBefore,
+              allowStudentViewCorrectAnswers: this.assignment.allowStudentViewCorrectAnswers,
+              studentViewCorrectAnswersAfter: this.assignment.studentViewCorrectAnswersAfter,
+              studentViewCorrectAnswersBefore: this.assignment.studentViewCorrectAnswersBefore
             }
           : null;
       },
@@ -51,16 +45,11 @@ export default {
       get() {
         return this.assignment
           ? {
-              allowMultipleAttempts: this.assignment
-                .allowMultipleAttempts,
-              numOfSubmissions: this.assignment
-                .numOfSubmissions,
-              hoursBetweenSubmissions: this.assignment
-                .hoursBetweenSubmissions,
-              multipleSubmissionScoringScheme: this.assignment
-                .multipleSubmissionScoringScheme,
-              cumulativeScoringInitialPercentage: this.assignment
-                .cumulativeScoringInitialPercentage,
+              allowMultipleAttempts: this.assignment.allowMultipleAttempts,
+              numOfSubmissions: this.assignment.numOfSubmissions,
+              hoursBetweenSubmissions: this.assignment.hoursBetweenSubmissions,
+              multipleSubmissionScoringScheme: this.assignment.multipleSubmissionScoringScheme,
+              cumulativeScoringInitialPercentage: this.assignment.cumulativeScoringInitialPercentage
             }
           : null;
       },
