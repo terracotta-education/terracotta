@@ -39,7 +39,7 @@
               ></v-text-field>
             </v-col>
             <v-col
-              v-if="!this.editMode"
+              v-if="!editMode"
               class="py-0"
               cols="4"
               sm="2"
@@ -58,7 +58,7 @@
         </v-row>
       </v-container>
 
-      <div v-if="!this.editMode">
+      <div v-if="!editMode">
         <v-btn
             @click="createCondition({name:'',experiment_experiment_id:experiment.experimentId})"
             color="blue"
