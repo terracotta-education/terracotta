@@ -64,21 +64,21 @@
                     available to avoid disrupting the experiment.
                   </p>
                 </v-card>
-                <div class="px-5">
+                <div class="container-section-summary px-5">
                   <div class="panel-overview py-6">
-                    <div class="a1">
-                      <v-img
-                        v-if="item.image"
-                        :src="item.image"
-                        class="icon-section-summary mr-6"
-                        :alt="item.title"
-                        style="margin-top: 2px !important; margin-right: 8px !important;"
-                      />
-                    </div>
                     <div
                       class="panelInformation d-flex flex-column justify-center"
                     >
-                      <h2 class="mb-0">{{ item.title }}</h2>
+                      <div>
+                        <v-img
+                          v-if="item.image"
+                          :src="item.image"
+                          class="icon-section-summary mr-6"
+                          :alt="item.title"
+                          style="margin-top: 2px !important; margin-right: 8px !important;"
+                        />
+                        <h2 class="header-section-summary mb-0">{{ item.title }}</h2>
+                      </div>
                       <span v-if="item.description">
                         {{ item.description }}
                       </span>
@@ -90,50 +90,49 @@
                 </template>
                 <template v-if="item.tab === 'assignment'">
                   <div class="section-exposure-sets px-5">
-                    <p
-                      v-if="exposures"
-                      class="pb-0"
-                      style="margin-bottom: 40px !important;"
-                    >
-                      Because you have <strong>{{ conditionCount }}</strong> (<a
-                        @click="handleEdit('ExperimentDesignConditions', item.tab)"
-                        >edit</a
-                      >) and would like your students to be
-                      <strong>{{ exposureText[experiment.exposureType] }}</strong>
-                      ({{ exposureType[experiment.exposureType] }}) (<a
-                        @click="handleEdit('ExperimentDesignConditions', item.tab)"
-                        >edit</a
-                      >), we set you up with {{ exposures.length }} exposure
-                      sets.
-                      <v-tooltip top>
-                        <template v-slot:activator="{ on, attrs }">
-                          <a v-bind="attrs" v-on="on">
-                            What is an exposure set?
-                          </a>
-                        </template>
-                        <span>
-                          <strong class="d-block"
-                            >What is an exposure set?</strong
-                          >
-                          An "exposure set" exposes a student to a specific
-                          condition during a specific time period. Students will
-                          change conditions between exposure sets, and the order
-                          of conditions across exposure sets will be randomly
-                          assigned to different students (<a
-                            @click="handleEdit('ExperimentDesignConditions', item.tab)"
-                            >edit</a
-                          >). An exposure set contains one or more assignments,
-                          and there must be an equal number of assignments in
-                          each exposure set in order to balance the experiment.
-                          For more details about exposure sets, see our blog
-                          post here.</span
-                        >
-                      </v-tooltip>
-                    </p>
                     <div
                       class="panelInformation d-flex flex-column justify-center"
                     >
                       <h3 class="mb-0">Exposure Sets</h3>
+                      <p
+                        v-if="exposures"
+                        class="pb-0"
+                      >
+                        Because you have <strong>{{ conditionCount }}</strong> (<a
+                          @click="handleEdit('ExperimentDesignConditions', item.tab)"
+                          >edit</a
+                        >) and would like your students to be
+                        <strong>{{ exposureText[experiment.exposureType] }}</strong>
+                        ({{ exposureType[experiment.exposureType] }}) (<a
+                          @click="handleEdit('ExperimentDesignConditions', item.tab)"
+                          >edit</a
+                        >), we set you up with {{ exposures.length }} exposure
+                        sets.
+                        <v-tooltip top>
+                          <template v-slot:activator="{ on, attrs }">
+                            <a v-bind="attrs" v-on="on">
+                              What is an exposure set?
+                            </a>
+                          </template>
+                          <span>
+                            <strong class="d-block"
+                              >What is an exposure set?</strong
+                            >
+                            An "exposure set" exposes a student to a specific
+                            condition during a specific time period. Students will
+                            change conditions between exposure sets, and the order
+                            of conditions across exposure sets will be randomly
+                            assigned to different students (<a
+                              @click="handleEdit('ExperimentDesignConditions', item.tab)"
+                              >edit</a
+                            >). An exposure set contains one or more assignments,
+                            and there must be an equal number of assignments in
+                            each exposure set in order to balance the experiment.
+                            For more details about exposure sets, see our blog
+                            post here.</span
+                          >
+                        </v-tooltip>
+                      </p>
                       <span
                         >Your exposure sets are currently:
                         <v-chip label outlined class="mr-2">
@@ -772,6 +771,21 @@ table {
       text-align: left;
     }
   }
+}
+div.container-section-summary {
+  padding-bottom: 40px;
+}
+div.container-section-summary div.panel-overview {
+  padding-bottom: 0 !important;
+}
+div.icon-section-summary,
+h2.header-section-summary {
+  display: inline !important;
+  float: left;
+}
+div.icon-section-summary {
+  width: 24px;
+  height: 24px;
 }
 .label-unbalanced {
   text-transform: none !important;
