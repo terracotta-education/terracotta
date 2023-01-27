@@ -93,7 +93,7 @@
             },
             noSidebar() {
                 // these pages should not show the sidebar
-                return ['TerracottaBuilder', 'AssignmentCreateAssignment'];
+                return ['TerracottaBuilder', 'AssignmentCreateAssignment', 'AssignmentEditor'];
             },
             editModePage() {
                 if (this.editMode?.initialPage === this.$router.currentRoute.name) {
