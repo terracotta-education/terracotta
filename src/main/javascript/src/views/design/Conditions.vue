@@ -38,7 +38,12 @@
                   required
               ></v-text-field>
             </v-col>
-            <v-col class="py-0" cols="4" sm="2">
+            <v-col
+              v-if="!this.editMode"
+              class="py-0"
+              cols="4"
+              sm="2"
+            >
               <v-btn
                   icon
                   outlined
