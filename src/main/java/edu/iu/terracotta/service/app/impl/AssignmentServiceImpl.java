@@ -77,12 +77,19 @@ import java.io.IOException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Component
-@SuppressWarnings({"rawtypes", "unchecked"})
+@SuppressWarnings(
+    {
+        "rawtypes", "unchecked", "PMD.GuardLogStatement", "PMD.PreserveStackTrace",
+        "squid:S125", "squid:S2229", "squid:S2629", "squid:S1192", "squid:S1612"
+    }
+)
 public class AssignmentServiceImpl implements AssignmentService {
 
     @Autowired
@@ -514,15 +521,59 @@ public class AssignmentServiceImpl implements AssignmentService {
             throws CanvasApiException, DataServiceException, ConnectionException, IOException {
         List<Assignment> assignmentsToCheck = allRepositories.assignmentRepository.findAssignmentsToCheckByContext(contextId);
 
-        for (Assignment assignment : assignmentsToCheck) {
-            if (checkCanvasAssignmentExists(assignment, instructorUserId)) {
-                continue;
-            }
-
-            restoreAssignmentInCanvas(assignment);
+        if (CollectionUtils.isEmpty(assignmentsToCheck)) {
+            log.info("No assignments exist in Terracotta for context ID: '{}' to check in Canvas. Aborting.", contextId);
+            return;
         }
+
+        log.info("Checking Terracotta assignment IDs for context ID: '{}' in Canvas: {}",
+            contextId,
+            Arrays.toString(assignmentsToCheck.stream().map(Assignment::getLmsAssignmentId).toArray())
+        );
+
+        String canvasCourseId = StringUtils.substringBetween(
+            assignmentsToCheck.get(0).getExposure().getExperiment().getLtiContextEntity().getContext_memberships_url(),
+            "courses/",
+            "/names"
+        );
+
+        List<AssignmentExtended> canvasAssignments = getAllAssignmentsForCanvasCourse(canvasCourseId, instructorUserId);
+        List<Integer> canvasAssignmentIds = canvasAssignments.stream()
+            .map(AssignmentExtended::getId)
+            .toList();
+
+        List<Long> assignmentsRecreated = assignmentsToCheck.stream()
+            .filter(assignmentToCheck -> !canvasAssignmentIds.contains(Integer.parseInt(assignmentToCheck.getLmsAssignmentId())))
+            .map(
+                assignmentToCreate -> {
+                    log.info("Creating assignment in Canvas: {}", assignmentToCreate.getAssignmentId());
+
+                    try {
+                        restoreAssignmentInCanvas(assignmentToCreate);
+                    } catch (CanvasApiException | DataServiceException | ConnectionException | IOException e) {
+                        log.error("Error restoring assignments in Canvas");
+                    }
+
+                    return assignmentToCreate.getAssignmentId();
+                }
+            )
+            .toList();
+
+        log.info("Checking Terracotta assignments for context ID: '{}' in Canvas COMPLETE. Assignments recreated: {}",
+            contextId,
+            CollectionUtils.isNotEmpty(assignmentsRecreated) ?
+                assignmentsRecreated.stream()
+                    .map(l -> { return Long.toString(l); })
+                    .collect(Collectors.joining(", ")) :
+                "N/A"
+        );
     }
 
+    private List<AssignmentExtended> getAllAssignmentsForCanvasCourse(String canvasCourseId, String instructorUserId) throws CanvasApiException {
+        LtiUserEntity instructorUser = ltiUserRepository.findByUserKey(instructorUserId);
+
+        return canvasAPIClient.listAssignments(instructorUser, canvasCourseId);
+    }
     @Override
     public boolean checkCanvasAssignmentExists(Assignment assignment, String instructorUserId)
             throws CanvasApiException {
@@ -716,7 +767,7 @@ public class AssignmentServiceImpl implements AssignmentService {
         Optional<AssignmentExtended> assignmentExtendedOptional = canvasAPIClient.listAssignment(instructorUser,
                 canvasCourseId, assignmentId);
         if (!assignmentExtendedOptional.isPresent()){
-            log.warn("The assignment " + assignment.getTitle() + " (canvas id:" + assignment.getLmsAssignmentId() + ") was already deleted");
+            log.warn("The assignment '{}' (canvas id: '{}') was already deleted", assignment.getTitle(), assignment.getLmsAssignmentId());
             return;
         }
         AssignmentExtended assignmentExtended = assignmentExtendedOptional.get();
