@@ -5,6 +5,7 @@ import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentLockedException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.exceptions.ExperimentStartedException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.OutcomeNotMatchingException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
@@ -15,6 +16,7 @@ import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.ExportService;
+import edu.iu.terracotta.service.app.ExposureService;
 import edu.iu.terracotta.utils.TextConstants;
 import edu.iu.terracotta.utils.ZipUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -52,13 +54,16 @@ public class ExperimentController {
     static final String REQUEST_ROOT = "api/experiments";
 
     @Autowired
-    ExperimentService experimentService;
+    private ExperimentService experimentService;
 
     @Autowired
-    ExportService exportService;
+    private ExportService exportService;
 
     @Autowired
-    APIJWTService apijwtService;
+    private ExposureService exposureService;
+
+    @Autowired
+    private APIJWTService apijwtService;
 
 
     /**
@@ -146,9 +151,11 @@ public class ExperimentController {
 
     @PutMapping("/{id}")
     public ResponseEntity<Void> updateExperiment(@PathVariable long id,
+                                                 @RequestParam(name = "updateExposures", defaultValue = "false") boolean updateExposures,
                                                  @RequestBody ExperimentDto experimentDto,
                                                  HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, WrongValueException, TitleValidationException, ParticipantNotUpdatedException {
+            throws ExperimentNotMatchingException, BadTokenException, WrongValueException, TitleValidationException, ParticipantNotUpdatedException,
+                    DataServiceException, ExperimentStartedException {
         log.debug("Updating Experiment with id {}", id);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, id);
@@ -158,6 +165,10 @@ public class ExperimentController {
         }
 
         experimentService.updateExperiment(id, securedInfo.getContextId(), experimentDto, securedInfo);
+
+        if (updateExposures) {
+            exposureService.createExposures(id);
+        }
 
         return new ResponseEntity<>(HttpStatus.OK);
     }
