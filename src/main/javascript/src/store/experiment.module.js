@@ -47,6 +47,16 @@ const actions = {
       })
       .catch(response => console.log('updateExperiment | catch', {response}))
   },
+  updateExperimentAndExposures: ({commit}, experiment) => {
+    return experimentService.updateExperimentAndExposures(experiment)
+      .then(response => {
+        if (response.status === 200) {
+          commit('setExperiment', experiment)
+        }
+        return response
+      })
+      .catch(response => console.log('updateExperiment | catch', {response}))
+  },
   deleteExperiment: ({commit}, experimentId) => {
     return experimentService.delete(experimentId)
       .then(response => {
