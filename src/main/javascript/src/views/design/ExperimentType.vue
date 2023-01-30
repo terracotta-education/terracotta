@@ -60,6 +60,11 @@ import { mapActions, mapGetters } from "vuex";
 export default {
     name: 'ExperimentType',
     props: ['experiment'],
+    data() {
+        return {
+            initialExperimentType: null
+        }
+    },
     computed: {
         ...mapGetters({
             editMode: 'navigation/editMode'
@@ -77,7 +82,8 @@ export default {
     methods: {
         ...mapActions({
             reportStep: 'api/reportStep',
-            updateExperiment: 'experiment/updateExperiment'
+            updateExperiment: 'experiment/updateExperiment',
+            updateExperimentAndExposures: 'experiment/updateExperimentAndExposures'
         }),
         async saveType(type) {
             const e = this.experiment
@@ -86,7 +92,10 @@ export default {
             const experimentId = e.experimentId
             const step = "exposure_type"
 
-            this.updateExperiment(e)
+            // if experiment type changed, update exposures as well
+            const update = this.initialExperimentType === type ? this.updateExperiment : this.updateExperimentAndExposures;
+
+            update(e)
                 .then(
                     async response => {
                         if (typeof response?.status !== "undefined" && response?.status === 200) {
@@ -126,6 +135,9 @@ export default {
                 }
             });
         }
+    },
+    async mounted() {
+        this.initialExperimentType = this.experiment?.experimentType;
     }
 }
 </script>
