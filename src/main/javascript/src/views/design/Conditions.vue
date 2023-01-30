@@ -39,7 +39,7 @@
               ></v-text-field>
             </v-col>
             <v-col
-              v-if="!editMode"
+              v-if="deleteAllowed"
               class="py-0"
               cols="4"
               sm="2"
@@ -58,7 +58,7 @@
         </v-row>
       </v-container>
 
-      <div v-if="!editMode">
+      <div v-if="addAllowed">
         <v-btn
             @click="createCondition({name:'',experiment_experiment_id:experiment.experimentId})"
             color="blue"
@@ -114,6 +114,12 @@ export default {
     }),
     getSaveExitPage() {
       return this.editMode?.callerPage?.name || 'Home';
+    },
+    addAllowed() {
+      return this.experiment.exposureType === 'NOSET';
+    },
+    deleteAllowed() {
+      return this.experiment.exposureType === 'NOSET';
     }
   },
   methods: {
