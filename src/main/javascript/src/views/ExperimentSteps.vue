@@ -141,11 +141,16 @@
             "aside article";
 
         > nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            height: 50px;
             grid-area: nav;
             padding: 30px;
-
             display: flex;
             justify-content: space-between;
+            z-index: 100;
+            background: white;
             a {
                 text-decoration: none;
 
@@ -169,6 +174,7 @@
         > article {
             grid-area: article;
             padding: 0;
+            padding-top: 100px !important;
         }
 
         &__sidebar {

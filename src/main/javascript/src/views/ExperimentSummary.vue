@@ -1,7 +1,7 @@
 <template>
   <div>
     <v-container v-if="experiment">
-      <v-row class="my-1" justify="space-between">
+      <v-row class="sticky my-1" justify="space-between">
         <v-col cols="8">
           <p class="header ma-0 pa-0">
             <v-img
@@ -791,5 +791,19 @@ div.icon-section-summary {
   text-transform: none !important;
   opacity: 0.87 !important;
   color: #E06766 !important;
+}
+.sticky {
+  position: sticky;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100px;
+    padding: 30px 0;
+    z-index: 100;
+    background: white;
+    margin-top: 0 !important;
+}
+div.container {
+  padding-top: 0 !important;
 }
 </style>
