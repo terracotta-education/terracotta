@@ -794,14 +794,15 @@ div.icon-section-summary {
 }
 .sticky {
   position: sticky;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100px;
-    padding: 30px 0;
-    z-index: 100;
-    background: white;
-    margin-top: 0 !important;
+  position: -webkit-sticky;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100px;
+  padding: 30px 0;
+  z-index: 100;
+  background: white;
+  margin-top: 0 !important;
 }
 div.container {
   padding-top: 0 !important;

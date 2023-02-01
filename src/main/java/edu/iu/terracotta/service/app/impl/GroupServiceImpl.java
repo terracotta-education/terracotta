@@ -156,51 +156,61 @@ public class GroupServiceImpl implements GroupService {
     @Transactional
     public void createAndAssignGroupsToConditionsAndExposures(Long experimentId, SecuredInfo securedInfo, boolean isCustom) throws DataServiceException {
         Optional<Experiment> experiment = allRepositories.experimentRepository.findById(experimentId);
-        if(experiment.isPresent()) {
-            int numberOfGroups = experiment.get().getConditions().size();
-            List<Group> groups = allRepositories.groupRepository.findByExperiment_ExperimentId(experimentId);
-            if (groups.isEmpty()){
-                //We create the groups but we don't assign people to them
-                groups = createGroups(numberOfGroups, experiment.get());
-            } else {
-                if (groups.size() != experiment.get().getConditions().size()){
-                    if (experimentService.experimentStarted(experiment.get())){
-                        //This should never happen, but... just in case
-                        throw new DataServiceException("Error 110: The experiment has started but there is an error with the group amount");
-                    } else {
-                        //RESET THE PARTICIPANT GROUPS
-                        for (Participant participant:experiment.get().getParticipants()){
-                            participant.setGroup(null);
-                            participantService.save(participant);
-                        }
-                        //DELETE THE GROUPS
-                        allRepositories.exposureGroupConditionRepository.deleteByExposure_Experiment_ExperimentId(experimentId);
-                        allRepositories.groupRepository.deleteByExperiment_ExperimentId(experimentId);
-                        //CREATE THEM AGAIN
-                        groups = createGroups(numberOfGroups, experiment.get());
-                    }
-                }
-            }
-            //We assign the groups to the conditions and exposures
-            List<ExposureGroupCondition> exposureGroupConditionList =
-                    allRepositories.exposureGroupConditionRepository.findByCondition_Experiment_ExperimentId(experimentId);
-            if (exposureGroupConditionList.isEmpty()) {
-                assignGroups(groups, experiment.get());
-            } else {
-                if (exposureGroupConditionList.size()!=experiment.get().getConditions().size()*experiment.get().getExposures().size()) {
-                    if (experimentService.experimentStarted(experiment.get())) {
-                        throw new DataServiceException("Error 110: The experiment has started but there is an error with the " +
-                                "group/exposure/condition associations amount");
-                    } else {
-                        allRepositories.exposureGroupConditionRepository.deleteByExposure_Experiment_ExperimentId(experimentId);
-                        assignGroups(groups, experiment.get());
-                    }
-                }
-            }
-            //WE WILL ASSIGN PEOPLE TO THE GROUPS LATER.
-        } else {
+
+        if (!experiment.isPresent()) {
             throw new DataServiceException("The experiment for the group does not exist");
         }
+
+        int numberOfGroups = experiment.get().getConditions().size();
+        List<Group> groups = allRepositories.groupRepository.findByExperiment_ExperimentId(experimentId);
+
+        if (groups.isEmpty()){
+            //We create the groups but we don't assign people to them
+            groups = createGroups(numberOfGroups, experiment.get());
+        } else {
+            if (groups.size() != experiment.get().getConditions().size()){
+                if (experimentService.experimentStarted(experiment.get())){
+                    //This should never happen, but... just in case
+                    throw new DataServiceException("Error 110: The experiment has started but there is an error with the group amount");
+                }
+
+                //RESET THE PARTICIPANT GROUPS
+                for (Participant participant:experiment.get().getParticipants()){
+                    participant.setGroup(null);
+                    participantService.save(participant);
+                }
+
+                //DELETE THE GROUPS
+                allRepositories.exposureGroupConditionRepository.deleteByExposure_Experiment_ExperimentId(experimentId);
+                allRepositories.groupRepository.deleteByExperiment_ExperimentId(experimentId);
+                //CREATE THEM AGAIN
+                groups = createGroups(numberOfGroups, experiment.get());
+            }
+        }
+
+        //We assign the groups to the conditions and exposures
+        List<ExposureGroupCondition> exposureGroupConditionList = allRepositories.exposureGroupConditionRepository.findByCondition_Experiment_ExperimentId(experimentId);
+        experiment = allRepositories.experimentRepository.findById(experimentId);
+
+        if (!experiment.isPresent()) {
+            throw new DataServiceException("The experiment for the group does not exist");
+        }
+
+        if (exposureGroupConditionList.isEmpty()) {
+            assignGroups(groups, experiment.get());
+            return;
+        }
+
+        if (exposureGroupConditionList.size() != experiment.get().getConditions().size() * experiment.get().getExposures().size()) {
+            if (experimentService.experimentStarted(experiment.get())) {
+                throw new DataServiceException("Error 110: The experiment has started but there is an error with the " +
+                        "group/exposure/condition associations amount");
+            }
+
+            allRepositories.exposureGroupConditionRepository.deleteByExposure_Experiment_ExperimentId(experimentId);
+            assignGroups(groups, experiment.get());
+        }
+        //WE WILL ASSIGN PEOPLE TO THE GROUPS LATER.
     }
 
     @Override
@@ -208,21 +218,36 @@ public class GroupServiceImpl implements GroupService {
         return allRepositories.groupRepository.existsByExperiment_ExperimentIdAndGroupId(experimentId,groupId);
     }
 
-    //A little weird code but it assigns the right Experiments, Groups and Conditions without repetition.
+    // A little weird code but it assigns the right Experiments, Groups and Conditions without repetition.
     private void assignGroups(List<Group> groups, Experiment experiment) {
+        List<ExposureGroupCondition> existingExposureGroupConditions = allRepositories.exposureGroupConditionRepository.findByCondition_Experiment_ExperimentId(experiment.getExperimentId());
         List<ExposureGroupCondition> exposureGroupConditionList = new ArrayList<>();
-        for (Exposure exposure: experiment.getExposures()){
-            for (Condition condition:experiment.getConditions()){
+
+        for (Exposure exposure : experiment.getExposures()) {
+            for (Condition condition : experiment.getConditions()) {
+                boolean exists = existingExposureGroupConditions.stream()
+                    .anyMatch(
+                        existingExposureGroupCondition ->
+                            condition.getConditionId().equals(existingExposureGroupCondition.getCondition().getConditionId())
+                            && exposure.getExposureId().equals(existingExposureGroupCondition.getExposure().getExposureId())
+                        );
+
+                if (exists) {
+                    // exists for the given exposure and condition; skip this one
+                    continue;
+                }
+
                 ExposureGroupCondition exposureGroupCondition = new ExposureGroupCondition();
                 exposureGroupCondition.setExposure(exposure);
                 exposureGroupCondition.setCondition(condition);
                 exposureGroupConditionList.add(exposureGroupCondition);
             }
         }
-        for (int loop_number=0;loop_number<experiment.getExposures().size();loop_number++){
-            for (int i=0; i<groups.size();i++){
-                int groupIndex = (i+loop_number)%groups.size();
-                int exposureGroupConditionIndex = loop_number*groups.size() + i;
+
+        for (int loopNum = 0; loopNum < experiment.getExposures().size(); loopNum++){
+            for (int i = 0; i < groups.size(); i++){
+                int groupIndex = (i + loopNum) % groups.size();
+                int exposureGroupConditionIndex = loopNum*groups.size() + i;
                     exposureGroupConditionList.get(exposureGroupConditionIndex).setGroup(groups.get(groupIndex));
                     saveExposureGroupCondition(exposureGroupConditionList.get(exposureGroupConditionIndex));
             }
