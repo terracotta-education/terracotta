@@ -15,6 +15,13 @@ const actions = {
         console.log('fetchExposures | catch', { response })
       });
   },
+  async createExposures ({state}, experimentId) {
+    return await exposuresService
+      .createExposures(experimentId)
+      .catch((response) => {
+        console.log('createExposures | catch', { response, state })
+      });
+  },
   resetExposures({state}) {
     state.exposures = [];
   },

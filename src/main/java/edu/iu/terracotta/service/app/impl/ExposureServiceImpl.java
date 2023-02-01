@@ -16,6 +16,8 @@ import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.ExposureService;
 import edu.iu.terracotta.utils.TextConstants;
+
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -112,36 +114,38 @@ public class ExposureServiceImpl implements ExposureService {
     @Transactional
     public void createExposures(Long experimentId) throws DataServiceException, ExperimentStartedException {
         Optional<Experiment> experiment = allRepositories.experimentRepository.findById(experimentId);
-        if (experiment.isPresent()) {
-            Experiment experiment1 = experiment.get();
-            int exposuresToCreate = 0;
-            if (experiment1.getExposureType().equals(ExposureTypes.WITHIN)) {
-                exposuresToCreate = experiment1.getConditions().size();
-            } else if (experiment1.getExposureType().equals(ExposureTypes.BETWEEN)) {
-                exposuresToCreate = 1;
-            }
-            List<Exposure> exposures = experiment1.getExposures();
-            if (exposures!=null && !exposures.isEmpty()){
-                if (exposures.size()==exposuresToCreate){
-                    return;
-                } else {
-                    if (experimentService.experimentStarted(experiment1)){
-                        throw new ExperimentStartedException("Error 110: The experiment has already started. We can't modify it");
-                    } else{
-                        //delete the existing exposures. That means delete the exposureGroupConditions too.
-                        allRepositories.exposureGroupConditionRepository.deleteByExposure_Experiment_ExperimentId(experimentId);
-                        allRepositories.exposureRepository.deleteByExperiment_ExperimentId(experimentId);
-                    }
-                }
-            }
-            for (int order = 1; order <= exposuresToCreate; order++) {
-                Exposure exposure = new Exposure();
-                exposure.setExperiment(experiment.get());
-                exposure.setTitle("Exposure " + order);
-                save(exposure);
-            }
-        } else {
+
+        if (!experiment.isPresent()) {
             throw new DataServiceException("The experiment for the exposure does not exist");
+        }
+
+        int exposuresToCreate = 1;
+
+        if (ExposureTypes.WITHIN.equals(experiment.get().getExposureType())) {
+            exposuresToCreate = experiment.get().getConditions().size();
+        }
+
+        List<Exposure> exposures = experiment.get().getExposures();
+
+        if (CollectionUtils.isNotEmpty(exposures)) {
+            if (exposures.size() == exposuresToCreate) {
+                return;
+            }
+
+            if (experimentService.experimentStarted(experiment.get())){
+                throw new ExperimentStartedException("Error 110: The experiment has already started. We can't modify it");
+            } else{
+                // delete the existing exposures. That means delete the exposureGroupConditions too.
+                allRepositories.exposureGroupConditionRepository.deleteByExposure_Experiment_ExperimentId(experimentId);
+                allRepositories.exposureRepository.deleteByExperiment_ExperimentId(experimentId);
+            }
+        }
+
+        for (int order = 1; order <= exposuresToCreate; order++) {
+            Exposure exposure = new Exposure();
+            exposure.setExperiment(experiment.get());
+            exposure.setTitle("Exposure " + order);
+            save(exposure);
         }
     }
 

@@ -57,15 +57,13 @@ export default {
   },
   data() {
     return {
-      arrayDataProxy: [],
+      arrayDataProxy: []
     };
   },
   watch: {
     participants: {
-      // Watcher is required for keeping track of changes
-      // made in Participants
+      // Watcher is required for keeping track of changes made in Participants
       deep: true,
-      immediate: true,
       handler() {
         // All the participant will go to 'Unparticipate' section
         const participatingStudents = this.participants.filter(({consent}) => consent === true)
@@ -101,7 +99,6 @@ export default {
         'Unassigned',
       ]
     },
-
     arrayData: {
       get: function() {
         const newArray = []
@@ -119,28 +116,28 @@ export default {
   },
   methods: {
     ...mapActions({
-      fetchExposures: 'exposures/fetchExposures'
+      fetchExposures: 'exposures/fetchExposures',
+      fetchParticipants: 'participants/fetchParticipants'
     }),
 
     getExposure() {
-      this.fetchExposures(this.experiment.experimentId)
+      this.fetchExposures(this.experiment.experimentId);
     },
 
     getConditionGroupIDMap() {
-      const conditionGroupIDMap = {}
+      const conditionGroupIDMap = {};
 
-      this.getExposure()
       const firstExposureId = this.exposures
         .map((expo) => expo.exposureId)
-        .sort((a, b) => a - b)[0]
+        .sort((a, b) => a - b)[0];
 
       const firstExposure = this.exposures.filter(
         (expo) => expo.exposureId === firstExposureId
-      )[0]
+      )[0];
 
       firstExposure.groupConditionList.map(
         ({ groupId }, index) => (conditionGroupIDMap[index] = groupId)
-      )
+      );
 
       return conditionGroupIDMap;
     },
@@ -202,6 +199,10 @@ export default {
     saveExit() {
       this.submitDistribution(this.getSaveExitPage)
     }
+  },
+  async created() {
+    await this.fetchExposures(this.experiment.experimentId);
+    await this.fetchParticipants(this.experiment.experimentId);
   },
   beforeRouteEnter(to, from, next) {
     //  load participant data before selection screen

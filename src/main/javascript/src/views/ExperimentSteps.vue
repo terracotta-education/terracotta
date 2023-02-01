@@ -141,7 +141,8 @@
             "aside article";
 
         > nav {
-            position: fixed;
+            position: sticky;
+            position: -webkit-sticky;
             top: 0;
             width: 100%;
             height: 50px;
@@ -169,6 +170,10 @@
             }
         }
         > aside {
+            position: sticky;
+            position: -webkit-sticky;
+            top: 0;
+            height: 100vh;
             grid-area: aside;
         }
         > article {
