@@ -1,5 +1,8 @@
 <template>
-  <div class="mt-4" v-if="listOfParticipants.length > 0">
+  <div
+    v-if="participantsList.length > 0"
+    class="mt-4"
+  >
     <v-row class="mx-3">
       <v-row align="center" class="mx-3">
         <v-checkbox
@@ -41,26 +44,31 @@
     <!-- List of available participants -->
     <v-list class="mt-5" outlined rounded>
       <v-list-item-group v-model="tempSelectedInAGroup" multiple>
-        <template v-for="(participant, index) in listOfParticipants">
-          <v-list-item :key="participant.userId" :value="participant">
-            <v-list-item-action>
-              <v-checkbox
-                color="primary"
-                :input-value="tempSelectedInAGroup.includes(participant)"
-              ></v-checkbox>
-            </v-list-item-action>
-
-            <v-list-item-content>
-              <v-list-item-title>
-                {{ participant.user.displayName }}
-              </v-list-item-title>
-            </v-list-item-content>
-          </v-list-item>
-          <v-divider
-            v-if="index !== listOfParticipants.length - 1"
-            class="mx-4"
+        <template>
+          <div
+            v-for="(participant, index) in participantsList"
             :key="participant.userId"
-          />
+          >
+            <v-list-item :value="participant">
+              <v-list-item-action>
+                <v-checkbox
+                  color="primary"
+                  :input-value="tempSelectedInAGroup.includes(participant)"
+                ></v-checkbox>
+              </v-list-item-action>
+
+              <v-list-item-content>
+                <v-list-item-title>
+                  {{ participant.user.displayName }}
+                </v-list-item-title>
+              </v-list-item-content>
+            </v-list-item>
+            <v-divider
+              v-if="index !== participantsList.length - 1"
+              class="mx-4"
+              :key="participant.userId"
+            />
+          </div>
         </template>
       </v-list-item-group>
     </v-list>
@@ -78,7 +86,13 @@ export default {
   data() {
     return {
       tempSelectedInAGroup: [],
+      participantsList: []
     };
+  },
+  watch: {
+    listOfParticipants: function () {
+      this.participantsList = this.listOfParticipants;
+    },
   },
   methods: {
     moveToHandlerComponent(option, tempSelectedInAGroup) {
@@ -86,18 +100,19 @@ export default {
 
       this.moveToHandler(option, tempSelectedInAGroup);
     },
-        handleOnChange(value) {
-          this.tempSelectedInAGroup = (value === 0) ? 
-          this.listOfParticipants : []
+    handleOnChange(value) {
+      this.tempSelectedInAGroup = (value === 0) ?
+      this.listOfParticipants : []
     },
   },
+  async mounted() {
+    this.participantsList = this.listOfParticipants;
+  }
 };
 </script>
 
 <style lang="scss" scoped>
-// Edge Case - When Selecting and Unselecting All options button,
-//             and then when a participant is selected, Minus sign
-//             is displaying in different color
+// Edge Case - When Selecting and Unselecting All options button, and then when a participant is selected, minus sign is displaying in different color
 .mdi-minus-box {
   color: map-get($blue, "base") !important;
 }

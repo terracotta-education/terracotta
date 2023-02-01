@@ -83,7 +83,8 @@ export default {
         ...mapActions({
             reportStep: 'api/reportStep',
             updateExperiment: 'experiment/updateExperiment',
-            updateExperimentAndExposures: 'experiment/updateExperimentAndExposures'
+            createExposures: 'exposures/createExposures',
+            createAndAssignGroups: 'groups/createAndAssignGroups'
         }),
         async saveType(type) {
             const e = this.experiment
@@ -92,16 +93,18 @@ export default {
             const experimentId = e.experimentId
             const step = "exposure_type"
 
-            // if experiment type changed, update exposures as well
-            const update = this.initialExperimentType === type ? this.updateExperiment : this.updateExperimentAndExposures;
-
-            update(e)
+            await this.updateExperiment(e)
                 .then(
                     async response => {
                         if (typeof response?.status !== "undefined" && response?.status === 200) {
                             if (!this.editMode) {
                                 // report the current step
                                 await this.reportStep({experimentId, step})
+                            }
+                            if (this.initialExperimentType !== type) {
+                                // experiment type has change; update exposures and groups
+                                await this.createExposures(this.experiment.experimentId);
+                                await this.createAndAssignGroups(this.experiment.experimentId);
                             }
                             if (this.getExposureTypes.includes(this.experiment.exposureType)) {
                                 this.$router.push({

@@ -4,53 +4,21 @@ import store from '@/store/index.js'
 // /**
 //  * Register methods
 //  */
-export const exposuresService = {
-  getAll,
-  getById,
-  createExposures
+export const groupsService = {
+  createAndAssignGroups
 }
 
 /**
- * Get all Exposures
+ * Create and Assign Groups for Exposures in Experiment
  */
-async function getAll(experiment_id) {
-  const requestOptions = {
-    method: 'GET',
-    headers: authHeader(),
-  }
-
-  return fetch(
-    `${store.getters['api/aud']}/api/experiments/${experiment_id}/exposures`,
-    requestOptions
-  ).then(handleResponse)
-}
-
-/**
- * Get individual Exposure
- */
-function getById(experiment_id, exposure_id) {
-  const requestOptions = {
-    method: 'GET',
-    headers: authHeader(),
-  }
-
-  return fetch(
-    `${store.getters['api/aud']}/api/experiments/${experiment_id}/exposures/${exposure_id}`,
-    requestOptions
-  ).then(handleResponse)
-}
-
-/**
- * Create Exposures for Experiment
- */
-async function createExposures(experimentId) {
+async function createAndAssignGroups(experimentId) {
   const requestOptions = {
     method: 'POST',
     headers: authHeader(),
   }
 
   return fetch(
-    `${store.getters['api/aud']}/api/experiments/${experimentId}/exposures/create`,
+    `${store.getters['api/aud']}/api/experiments/${experimentId}/groups/create`,
     requestOptions
   ).then(handleResponse)
 }

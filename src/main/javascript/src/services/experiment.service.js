@@ -9,7 +9,6 @@ export const experimentService = {
   getById,
   create,
   update,
-  updateExperimentAndExposures,
   delete: _delete
 }
 
@@ -61,19 +60,6 @@ function update(experiment) {
   }
 
   return fetch(`${store.getters['api/aud']}/api/experiments/${experiment.experimentId}`, requestOptions).then(handleResponse)
-}
-
-/**
- * Update Experiment and Exposures
- */
-function updateExperimentAndExposures(experiment) {
-  const requestOptions = {
-    method: 'PUT',
-    headers: {...authHeader()},
-    body: JSON.stringify(experiment)
-  }
-
-  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment.experimentId}?updateExposures=true`, requestOptions).then(handleResponse)
 }
 
 /**

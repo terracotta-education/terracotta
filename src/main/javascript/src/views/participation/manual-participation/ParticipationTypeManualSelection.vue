@@ -160,11 +160,8 @@ export default {
       this.submitParticipants(this.getSaveExitPage)
     }
   },
-  beforeRouteEnter(to, from, next) {
-    // don't load new data after participant selection screen
-    return store
-      .dispatch("participants/fetchParticipants", to.params.experiment_id)
-      .then(next, next);
+  async created() {
+    await this.fetchParticipants(this.experiment.experimentId);
   },
   beforeRouteUpdate(to, from, next) {
     // don't load new data after participant selection screen

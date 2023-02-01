@@ -16,7 +16,6 @@ import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.ExportService;
-import edu.iu.terracotta.service.app.ExposureService;
 import edu.iu.terracotta.utils.TextConstants;
 import edu.iu.terracotta.utils.ZipUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -60,9 +59,6 @@ public class ExperimentController {
     private ExportService exportService;
 
     @Autowired
-    private ExposureService exposureService;
-
-    @Autowired
     private APIJWTService apijwtService;
 
 
@@ -70,7 +66,6 @@ public class ExperimentController {
      * To show the experiment in a course (context) in a platform deployment.
      */
     @GetMapping
-    @ResponseBody
     public ResponseEntity<List<ExperimentDto>> allExperimentsByCourse(HttpServletRequest req) throws BadTokenException {
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
 
@@ -95,7 +90,6 @@ public class ExperimentController {
      * To show the an specific experiment.
      */
     @GetMapping("/{id}")
-    @ResponseBody
     public ResponseEntity<ExperimentDto> getExperiment(@PathVariable long id,
                                                        @RequestParam(name = "conditions", defaultValue = "false") boolean conditions,
                                                        @RequestParam(name = "exposures", defaultValue = "false") boolean exposures,
@@ -151,7 +145,6 @@ public class ExperimentController {
 
     @PutMapping("/{id}")
     public ResponseEntity<Void> updateExperiment(@PathVariable long id,
-                                                 @RequestParam(name = "updateExposures", defaultValue = "false") boolean updateExposures,
                                                  @RequestBody ExperimentDto experimentDto,
                                                  HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, WrongValueException, TitleValidationException, ParticipantNotUpdatedException,
@@ -165,10 +158,6 @@ public class ExperimentController {
         }
 
         experimentService.updateExperiment(id, securedInfo.getContextId(), experimentDto, securedInfo);
-
-        if (updateExposures) {
-            exposureService.createExposures(id);
-        }
 
         return new ResponseEntity<>(HttpStatus.OK);
     }

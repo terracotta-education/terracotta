@@ -12,11 +12,11 @@
         :key="condition.conditionId"
       >
         <v-expansion-panel-header>
-          {{ condition.name }} ({{ arrayDataProxy[index].length }})
+          {{ condition.name }} ({{ arrayDataProxy[index] ? arrayDataProxy[index].length : 0 }})
         </v-expansion-panel-header>
         <v-expansion-panel-content>
           <ListParticipants
-            :listOfParticipants="arrayDataProxy[index]"
+            :listOfParticipants="arrayDataProxy[index] ? arrayDataProxy[index] : []"
             :moveToOptions="getConditionNames"
             :moveToHandler="moveToHandler"
             :selectedOption="'' + index"
@@ -27,7 +27,7 @@
 
     <!-- Unassigned -->
     <ListParticipants
-      :listOfParticipants="arrayDataProxy[this.getConditionNames.length - 1]"
+      :listOfParticipants="arrayDataProxy[this.getConditionNames.length - 1] ? arrayDataProxy[this.getConditionNames.length - 1] : []"
       :moveToOptions="getConditionNames"
       :moveToHandler="moveToHandler"
       :selectedOption="'' + (this.getConditionNames.length - 1)"
@@ -57,15 +57,13 @@ export default {
   },
   data() {
     return {
-      arrayDataProxy: [],
+      arrayDataProxy: []
     };
   },
   watch: {
     participants: {
-      // Watcher is required for keeping track of changes
-      // made in Participants
+      // Watcher is required for keeping track of changes made in Participants
       deep: true,
-      immediate: true,
       handler() {
         // All the participant will go to 'Unparticipate' section
         const participatingStudents = this.participants.filter(({consent}) => consent === true)
@@ -101,7 +99,6 @@ export default {
         'Unassigned',
       ]
     },
-
     arrayData: {
       get: function() {
         const newArray = []
@@ -119,28 +116,28 @@ export default {
   },
   methods: {
     ...mapActions({
-      fetchExposures: 'exposures/fetchExposures'
+      fetchExposures: 'exposures/fetchExposures',
+      fetchParticipants: 'participants/fetchParticipants'
     }),
 
     getExposure() {
-      this.fetchExposures(this.experiment.experimentId)
+      this.fetchExposures(this.experiment.experimentId);
     },
 
     getConditionGroupIDMap() {
-      const conditionGroupIDMap = {}
+      const conditionGroupIDMap = {};
 
-      this.getExposure()
       const firstExposureId = this.exposures
         .map((expo) => expo.exposureId)
-        .sort((a, b) => a - b)[0]
+        .sort((a, b) => a - b)[0];
 
       const firstExposure = this.exposures.filter(
         (expo) => expo.exposureId === firstExposureId
-      )[0]
+      )[0];
 
       firstExposure.groupConditionList.map(
         ({ groupId }, index) => (conditionGroupIDMap[index] = groupId)
-      )
+      );
 
       return conditionGroupIDMap;
     },
@@ -203,13 +200,9 @@ export default {
       this.submitDistribution(this.getSaveExitPage)
     }
   },
-  beforeRouteEnter(to, from, next) {
-    //  load participant data before selection screen
-    return (
-      store
-        .dispatch("participants/fetchParticipants", to.params.experiment_id)
-        .then(next, next)
-    );
+  async created() {
+    await this.fetchExposures(this.experiment.experimentId);
+    await this.fetchParticipants(this.experiment.experimentId);
   },
   beforeRouteUpdate(to, from, next) {
     //  load participant data before selection screen

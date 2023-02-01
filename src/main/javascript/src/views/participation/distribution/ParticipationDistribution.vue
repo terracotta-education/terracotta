@@ -66,15 +66,32 @@ export default {
       this.updateExperiment(e)
         .then(async response => {
           if (typeof response?.status !== 'undefined' && response?.status === 200) {
-            // report the current step
-            await this.reportStep({experimentId, step})
+            if (!this.editMode) {
+              // report the current step
+              await this.reportStep({experimentId, step});
+            }
             // forward to correct path after selection
-            if (this.experiment.distributionType==='EVEN') {
-              this.$router.push({name:'ParticipationSummary', params:{experiment: experimentId}})
-            } else if(this.experiment.distributionType==='CUSTOM') {
-              this.$router.push({name:'ParticipationCustomDistribution', params:{experiment: experimentId}})
-            }  else if(this.experiment.distributionType==='MANUAL') {
-              this.$router.push({name:'ParticipationManualDistribution', params:{experiment: experimentId}})
+            if (this.experiment.distributionType === 'EVEN') {
+              this.$router.push({
+                name: 'ParticipationSummary',
+                params: {
+                  experiment: experimentId
+                }
+              });
+            } else if (this.experiment.distributionType === 'CUSTOM') {
+              this.$router.push({
+                name: 'ParticipationCustomDistribution',
+                params: {
+                  experiment: experimentId
+                }
+              });
+            }  else if (this.experiment.distributionType === 'MANUAL') {
+              this.$router.push({
+                name: 'ParticipationManualDistribution',
+                params: {
+                  experiment: experimentId
+                }
+              });
             } else {
               this.$swal('Select a distribution type')
             }

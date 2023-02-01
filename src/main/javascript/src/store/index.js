@@ -17,6 +17,7 @@ import { exportdata } from './exportdata.module';
 import { submissions } from './submission.module';
 import { mediaevents } from "./mediaevents.module";
 import { navigation } from "./navigation.module";
+import { groups } from "./groups.module";
 
 Vue.use(Vuex)
 
@@ -40,6 +41,7 @@ const store = new Vuex.Store({
         submissions,
         mediaevents,
         navigation,
+        groups,
     },
     strict: process.env.NODE_ENV !== 'production',
 })
