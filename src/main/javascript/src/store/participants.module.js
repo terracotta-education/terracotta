@@ -7,7 +7,7 @@ const state = {
 }
 
 const actions = {
-  fetchParticipants: ({ commit }, experimentId) => {
+  async fetchParticipants({ commit }, experimentId) {
     return participantService
       .getAll(experimentId)
       .then((data) => {
@@ -22,7 +22,7 @@ const actions = {
     commit('setParticipantsGroup', participantsList)
   },
 
-  updateParticipants: ({ state }, experimentId) => {
+  async updateParticipants({ state }, experimentId) {
     const requestBody = []
     state.participants.map((participant) => {
       const participantDetail = {

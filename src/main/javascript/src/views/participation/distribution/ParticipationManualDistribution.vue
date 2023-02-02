@@ -12,11 +12,11 @@
         :key="condition.conditionId"
       >
         <v-expansion-panel-header>
-          {{ condition.name }} ({{ arrayDataProxy[index].length }})
+          {{ condition.name }} ({{ arrayDataProxy[index] ? arrayDataProxy[index].length : 0 }})
         </v-expansion-panel-header>
         <v-expansion-panel-content>
           <ListParticipants
-            :listOfParticipants="arrayDataProxy[index]"
+            :listOfParticipants="arrayDataProxy[index] ? arrayDataProxy[index] : []"
             :moveToOptions="getConditionNames"
             :moveToHandler="moveToHandler"
             :selectedOption="'' + index"
@@ -27,7 +27,7 @@
 
     <!-- Unassigned -->
     <ListParticipants
-      :listOfParticipants="arrayDataProxy[this.getConditionNames.length - 1]"
+      :listOfParticipants="arrayDataProxy[this.getConditionNames.length - 1] ? arrayDataProxy[this.getConditionNames.length - 1] : []"
       :moveToOptions="getConditionNames"
       :moveToHandler="moveToHandler"
       :selectedOption="'' + (this.getConditionNames.length - 1)"
@@ -203,14 +203,6 @@ export default {
   async created() {
     await this.fetchExposures(this.experiment.experimentId);
     await this.fetchParticipants(this.experiment.experimentId);
-  },
-  beforeRouteEnter(to, from, next) {
-    //  load participant data before selection screen
-    return (
-      store
-        .dispatch("participants/fetchParticipants", to.params.experiment_id)
-        .then(next, next)
-    );
   },
   beforeRouteUpdate(to, from, next) {
     //  load participant data before selection screen
