@@ -76,6 +76,7 @@
                   :items="getAssignmentsForExposure(exposure)"
                   :single-expand="singleExpand"
                   :sort-by="['assignmentOrder']"
+                  :mobile-breakpoint="mobileBreakpoint"
                   hide-default-footer
                   v-sortable-data-table
                   @sorted="
@@ -109,7 +110,7 @@
                             v-if="!(item.assessmentDto && item.assessmentDto.questions.length)"
                             top
                           >
-                            <template  #activator="{ on }">
+                            <template #activator="{ on }">
                               <v-icon
                                 class="icon-treatment-incomplete"
                                 v-on="on"
@@ -142,20 +143,15 @@
                               ).conditionName
                             }}
                           </v-chip>
-                        </template>
-                        <!-- eslint-disable-next-line -->
-                        <template v-slot:item.actions="{ item }">
-                          <template>
-                            <v-btn
+                          <v-btn
                               text
                               tile
-                              @click="goToBuilder(item.conditionId, item.assignmentId)"
                               class="btn-treatment-edit"
+                              @click="goToBuilder(item.conditionId, item.assignmentId)"
                             >
                               <v-icon>mdi-pencil</v-icon>
                               <span class="btn-edit">Edit</span>
                             </v-btn>
-                          </template>
                         </template>
                       </v-data-table>
                     </td>
@@ -199,15 +195,6 @@
                   </template>
                   <!-- eslint-disable-next-line -->
                   <template v-slot:item.actions="{ item }">
-                    <v-btn
-                      text
-                      tile
-                      @click="handleEdit(item, exposure.exposureId)"
-                      class="btn-edit text--lighten-5 text--grey"
-                    >
-                      <v-icon>mdi-pencil</v-icon>
-                      Edit
-                    </v-btn>
                     <v-menu offset-y>
                       <template v-slot:activator="{ on, attrs }">
                         <v-btn icon text tile v-bind="attrs" v-on="on">
@@ -247,25 +234,23 @@
                             </template>
                           </v-list>
                         </v-menu>
-                        <v-list-item
-                          @click="
-                            handleDuplicateAssignment(exposure.exposureId, item)
-                          "
-                        >
-                          <v-list-item-title
-                            ><v-icon>mdi-content-duplicate</v-icon
-                            >Duplicate</v-list-item-title
-                          >
+                        <v-list-item  @click="handleEdit(item, exposure.exposureId)">
+                          <v-list-item-title>
+                            <v-icon>mdi-pencil</v-icon>
+                            Edit
+                          </v-list-item-title>
                         </v-list-item>
-                        <v-list-item
-                          @click="
-                            handleDeleteAssignment(exposure.exposureId, item)
-                          "
-                        >
-                          <v-list-item-title
-                            ><v-icon>mdi-delete</v-icon
-                            >Delete</v-list-item-title
-                          >
+                        <v-list-item @click="handleDuplicateAssignment(exposure.exposureId, item)">
+                          <v-list-item-title>
+                            <v-icon>mdi-content-duplicate</v-icon>
+                            Duplicate
+                          </v-list-item-title>
+                        </v-list-item>
+                        <v-list-item @click="handleDeleteAssignment(exposure.exposureId, item)">
+                          <v-list-item-title>
+                            <v-icon>mdi-delete</v-icon>
+                            Delete
+                          </v-list-item-title>
                         </v-list-item>
                       </v-list>
                     </v-menu>
@@ -367,6 +352,7 @@ export default {
     conditionColors: [""],
     singleExpand: true,
     designExpanded: false,
+    mobileBreakpoint: 636,
     assignmentHeaders: [
       {
         text: "",
@@ -382,22 +368,30 @@ export default {
       },
       {
         text: "Treatments",
+        sortable: false,
         value: "treatments",
       },
       {
         text: "Due Date",
+        sortable: false,
         value: "dueDate",
       },
       {
         text: "Status",
+        sortable: false,
         value: "published",
       },
       {
         text: "Actions",
+        align: "center",
+        sortable: false,
         value: "actions",
-        align: "end",
       },
-      { text: "", value: "data-table-expand" },
+      {
+        text: "",
+        sortable: false,
+        value: "data-table-expand"
+      },
     ],
     treatmentHeaders: [
       {
@@ -405,12 +399,7 @@ export default {
         align: "start",
         sortable: false,
         value: "title",
-      },
-      {
-        text: "Actions",
-        align: "end",
-        value: "actions",
-      },
+      }
     ],
   }),
   methods: {
@@ -723,9 +712,6 @@ export default {
 .label-treatment-incomplete {
   padding-right: 10px;
 }
-button.btn-treatment-edit {
-  margin-right: 76px !important;
-}
 .btn-edit,
 .label-treatment-complete,
 .icon-treatment-incomplete,
@@ -822,5 +808,24 @@ $duration: 0.75s;
     stroke-dashoffset: $offset;
     transform:rotate(450deg);
   }
+}
+.v-application--is-ltr .v-data-table > .v-data-table__wrapper > table > tbody > tr > th,
+.v-application--is-ltr .v-data-table > .v-data-table__wrapper > table > tfoot > tr > th,
+.v-application--is-ltr .v-data-table > .v-data-table__wrapper > table > thead > tr > th,
+div.data-table-assignments > .v-data-table__wrapper > table > tbody > tr > td:not(.treatments-table-container)  {
+  padding: 4px !important;
+}
+div.data-table-assignments > .v-data-table__wrapper > table > tbody > tr > td:not(.treatments-table-container),
+div.data-table-design > div.groupNames > span.v-chip.v-chip--label > span.v-chip__content {
+  white-space: normal !important;
+}
+button.btn-treatment-edit {
+  float: right;
+}
+span.v-chip.v-chip--label,
+span.v-chip.v-chip--label > span.v-chip__content {
+  min-height: fit-content !important;
+  height: unset !important;
+  max-width: 400px !important;
 }
 </style>

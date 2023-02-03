@@ -2,7 +2,10 @@
   <div>
     <v-container v-if="experiment">
       <v-row class="sticky my-1" justify="space-between">
-        <v-col cols="8">
+        <v-col
+        class="col-experiment-title"
+          cols="8"
+        >
           <p class="header ma-0 pa-0">
             <v-img
               src="../../public/terracotta_logo_mark.svg"
@@ -806,5 +809,9 @@ div.icon-section-summary {
 }
 div.container {
   padding-top: 0 !important;
+}
+div.col-experiment-title,
+div.col-experiment-title > p {
+  max-width: fit-content;
 }
 </style>
