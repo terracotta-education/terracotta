@@ -18,5 +18,7 @@ public class AnswerSubmissionDto {
     private String mimeType;
     private String fileUri;
     private File file;
+    private String encryptionPhrase;
+    private String encryptionMethod;
 
 }

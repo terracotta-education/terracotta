@@ -10,6 +10,7 @@ import edu.iu.terracotta.model.app.AnswerEssaySubmission;
 import edu.iu.terracotta.model.app.AnswerFileSubmission;
 import edu.iu.terracotta.model.app.AnswerMc;
 import edu.iu.terracotta.model.app.AnswerMcSubmission;
+import edu.iu.terracotta.model.app.FileSubmissionLocal;
 import edu.iu.terracotta.model.app.QuestionSubmission;
 import edu.iu.terracotta.model.app.dto.AnswerSubmissionDto;
 import edu.iu.terracotta.model.app.dto.FileResponseDto;
@@ -42,6 +43,7 @@ import java.util.Optional;
 
 @Slf4j
 @Component
+@SuppressWarnings({"squid:S1192", "PMD.GuardLogStatement", "PMD.PreserveStackTrace"})
 public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
 
     @Autowired
@@ -97,7 +99,7 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
                 } catch (DataServiceException ex) {
                     throw new DataServiceException("Error 105: Unable to create answer submission: " + ex.getMessage());
                 }
-                return (toDtoMC(saveMC(answerMcSubmission)));
+                return toDtoMC(saveMC(answerMcSubmission));
             case "ESSAY":
                 AnswerEssaySubmission answerEssaySubmission;
                 try{
@@ -105,7 +107,7 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
                 } catch (DataServiceException ex) {
                     throw new DataServiceException("Error 105: Unable to create answer submission: " + ex.getMessage());
                 }
-                return (toDtoEssay(saveEssay(answerEssaySubmission)));
+                return toDtoEssay(saveEssay(answerEssaySubmission));
             case "FILE":
                 AnswerFileSubmission answerFileSubmission;
 
@@ -388,6 +390,8 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
         answerFileSubmission.setFileName(answerSubmissionDto.getFileName());
         answerFileSubmission.setMimeType(answerSubmissionDto.getMimeType());
         answerFileSubmission.setFileUri(answerSubmissionDto.getFileUri());
+        answerFileSubmission.setEncryptionMethod(answerSubmissionDto.getEncryptionMethod());
+        answerFileSubmission.setEncryptionPhrase(answerSubmissionDto.getEncryptionPhrase());
         Optional<QuestionSubmission> questionSubmission = questionSubmissionService.findById(answerSubmissionDto.getQuestionSubmissionId());
 
         if(!questionSubmission.isPresent()){
@@ -465,10 +469,16 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
     }
 
     public AnswerSubmissionDto handleFileAnswerSubmission(AnswerSubmissionDto answerSubmissionDto, MultipartFile file) throws IdInPostException, DataServiceException, TypeNotSupportedException, IOException {
+        FileSubmissionLocal fileSubmissionLocal = fileStorageService.saveFileSubmissionLocal(file);
         answerSubmissionDto.setFileName(file.getResource().getFilename());
         answerSubmissionDto.setMimeType(file.getContentType());
-        answerSubmissionDto.setFileUri(fileStorageService.saveFileSubmissionLocal(file));
+        answerSubmissionDto.setFileUri(fileSubmissionLocal.getFilePath());
         answerSubmissionDto.setFile(getFile(file, file.getName()));
+
+        if (fileSubmissionLocal.isCompressed()) {
+            answerSubmissionDto.setEncryptionPhrase(fileSubmissionLocal.getEncryptionPhrase());
+            answerSubmissionDto.setEncryptionMethod(fileSubmissionLocal.getEncryptionMethod());
+        }
 
         return postAnswerSubmission(answerSubmissionDto, answerSubmissionDto.getQuestionSubmissionId());
     }
@@ -497,11 +507,17 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
                 }
             );
 
+        FileSubmissionLocal fileSubmissionLocal = fileStorageService.saveFileSubmissionLocal(file);
         answerSubmissionDto.setAnswerSubmissionId(null);
         answerSubmissionDto.setFileName(file.getResource().getFilename());
         answerSubmissionDto.setMimeType(file.getContentType());
-        answerSubmissionDto.setFileUri(fileStorageService.saveFileSubmissionLocal(file));
+        answerSubmissionDto.setFileUri(fileSubmissionLocal.getFilePath());
         answerSubmissionDto.setFile(getFile(file, file.getName()));
+
+        if (fileSubmissionLocal.isCompressed()) {
+            answerSubmissionDto.setEncryptionPhrase(fileSubmissionLocal.getEncryptionPhrase());
+            answerSubmissionDto.setEncryptionMethod(fileSubmissionLocal.getEncryptionMethod());
+        }
 
         return postAnswerSubmission(answerSubmissionDto, answerSubmissionDto.getQuestionSubmissionId());
     }

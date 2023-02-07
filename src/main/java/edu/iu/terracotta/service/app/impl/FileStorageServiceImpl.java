@@ -2,6 +2,7 @@ package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.exceptions.AssignmentNotCreatedException;
 import edu.iu.terracotta.exceptions.AssignmentNotEditedException;
+import edu.iu.terracotta.exceptions.AssignmentNotMatchingException;
 import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.app.FileStorageException;
 import edu.iu.terracotta.exceptions.app.MyFileNotFoundException;
@@ -10,6 +11,7 @@ import edu.iu.terracotta.model.app.AnswerFileSubmission;
 import edu.iu.terracotta.model.app.ConsentDocument;
 import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.FileInfo;
+import edu.iu.terracotta.model.app.FileSubmissionLocal;
 import edu.iu.terracotta.model.app.dto.FileInfoDto;
 import edu.iu.terracotta.model.canvas.AssignmentExtended;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
@@ -18,8 +20,13 @@ import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.service.canvas.CanvasAPIClient;
+import edu.iu.terracotta.utils.TextConstants;
 import edu.ksu.canvas.model.assignment.Assignment;
 import lombok.extern.slf4j.Slf4j;
+import net.lingala.zip4j.ZipFile;
+import net.lingala.zip4j.model.ZipParameters;
+import net.lingala.zip4j.model.enums.CompressionLevel;
+import net.lingala.zip4j.model.enums.EncryptionMethod;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -55,6 +62,10 @@ import java.util.UUID;
 
 @Slf4j
 @Service
+@SuppressWarnings({
+    "squid:S1192", "squid:S112", "squid:S125", "squid:S2737", "squid:S4449", "squid:S1075",
+    "PMD.GuardLogStatement", "PMD.PreserveStackTrace"
+})
 public class FileStorageServiceImpl implements FileStorageService {
 
     @Value("${upload.path}")
@@ -62,6 +73,9 @@ public class FileStorageServiceImpl implements FileStorageService {
 
     @Value("${application.url}")
     private String applicationUrl;
+
+    @Value("${upload.submissions.local.path}")
+    private String uploadSubmissionsLocalPath;
 
     @Value("${upload.submissions.local.path.root}")
     private String uploadSubmissionsLocalPathRoot;
@@ -78,11 +92,14 @@ public class FileStorageServiceImpl implements FileStorageService {
     @Autowired
     private AllRepositories allRepositories;
 
+    private Path decompressedFileTempDirectory;
+
     @PostConstruct
     public void init() {
         try {
             Files.createDirectories(Paths.get(uploadDir));
             Files.createDirectories(Paths.get(uploadSubmissionsLocalPathRoot));
+            this.decompressedFileTempDirectory = Files.createTempDirectory(Paths.get(uploadSubmissionsLocalPath).toString() + ".");
         }catch (IOException e) {
             throw new RuntimeException("Error 138: Could not create upload folder!");
         }
@@ -171,20 +188,21 @@ public class FileStorageServiceImpl implements FileStorageService {
     @Override
     public boolean deleteFile(String fileName, String extraPath) {
         try {
-
             String finalPath = uploadDir;
+
             if (StringUtils.hasText(extraPath)){
                 finalPath = finalPath + extraPath;
             }
 
             Path filePath = Paths.get(finalPath).resolve(fileName).normalize();
             Resource resource = new UrlResource(filePath.toUri());
+
             if(resource.exists()) {
-                return filePath.toFile().delete();
-            }else {
-                throw new MyFileNotFoundException("Error 126: File not found " + fileName);
+                return Files.deleteIfExists(filePath);
             }
-        } catch (MalformedURLException ex) {
+
+            throw new MyFileNotFoundException("Error 126: File not found " + fileName);
+        } catch (IOException ex) {
             throw new MyFileNotFoundException("Error 126: File not found.", ex);
         }
     }
@@ -199,14 +217,14 @@ public class FileStorageServiceImpl implements FileStorageService {
                 Resource resource = new UrlResource(filePath.toUri());
                 if (resource.exists()) {
                     allRepositories.fileInfoRepository.deleteByFileId(fileId);
-                    return filePath.toFile().delete();
+                    return Files.deleteIfExists(filePath);
                 } else {
                     throw new MyFileNotFoundException("Error 126: File not found.");
                 }
             } else {
                 throw new MyFileNotFoundException("Error 126: File not found.");
             }
-        } catch (MalformedURLException ex){
+        } catch (IOException ex){
             throw new MyFileNotFoundException("Error 126: File Not found.", ex);
         }
     }
@@ -281,7 +299,7 @@ public class FileStorageServiceImpl implements FileStorageService {
 
     @Override
     public void uploadConsent(long experimentId, String title, FileInfoDto consentUploaded, String instructorUserId)
-            throws AssignmentNotCreatedException, CanvasApiException, AssignmentNotEditedException {
+            throws AssignmentNotCreatedException, CanvasApiException, AssignmentNotEditedException, AssignmentNotMatchingException {
         Experiment experiment = experimentService.getExperiment(experimentId);
         ConsentDocument consentDocument = experiment.getConsentDocument();
         LtiUserEntity instructorUser = allRepositories.ltiUserRepository.findByUserKey(instructorUserId);
@@ -311,6 +329,10 @@ public class FileStorageServiceImpl implements FileStorageService {
             try {
                 Optional<AssignmentExtended> assignment = canvasAPIClient.createCanvasAssignment(instructorUser,
                         canvasAssignment, canvasCourseId);
+
+                if (!assignment.isPresent()) {
+                    throw new AssignmentNotMatchingException(TextConstants.ASSIGNMENT_NOT_MATCHING);
+                }
                 consentDocument.setLmsAssignmentId(Integer.toString(assignment.get().getId()));
                 // consentDocument.setResourceLinkId(assignment.get().getExternalToolTagAttributes().getResourceLinkId());
                 // log.debug("getExternalToolTagAttributes().getResourceLinkId()={}", assignment.get().getExternalToolTagAttributes().getResourceLinkId());
@@ -394,7 +416,7 @@ public class FileStorageServiceImpl implements FileStorageService {
     }
 
     @Override
-    public String saveFileSubmissionLocal(MultipartFile file) {
+    public FileSubmissionLocal saveFileSubmissionLocal(MultipartFile file) {
         if (file == null) {
             throw new FileStorageException("Error 140: File cannot be null.");
         }
@@ -424,7 +446,27 @@ public class FileStorageServiceImpl implements FileStorageService {
                 StandardCopyOption.REPLACE_EXISTING
             );
 
-            return filePath;
+            String encryptionPhrase = UUID.randomUUID().toString();
+
+            FileSubmissionLocal fileSubmissionLocal =  new FileSubmissionLocal(
+                filePath,
+                compressFile(
+                    Paths.get(String.format("%s/%s", uploadSubmissionsLocalPathRoot, filePath)).toString(),
+                    encryptionPhrase
+                ),
+                EncryptionMethod.AES.toString(),
+                encryptionPhrase
+            );
+
+            if (!fileSubmissionLocal.isCompressed()) {
+                // file was not compressed; return
+                return fileSubmissionLocal;
+            }
+
+            // delete the original file
+            Files.deleteIfExists(Paths.get(String.format("%s/%s", uploadSubmissionsLocalPathRoot, filePath)));
+
+            return fileSubmissionLocal;
         } catch (IOException ex) {
             throw new FileStorageException(String.format("Error 140: Could not store file '%s'. Please try again.", filename), ex);
         }
@@ -438,8 +480,48 @@ public class FileStorageServiceImpl implements FileStorageService {
             return null;
         }
 
-        String uri = String.format("%s/%s", uploadSubmissionsLocalPathRoot, answerFileSubmission.get().getFileUri());
+        if (!answerFileSubmission.get().isCompressed()) {
+            // file is not compressed; return it as-is
+            return new File(String.format("%s/%s", uploadSubmissionsLocalPathRoot, answerFileSubmission.get().getFileUri()));
+        }
 
-        return new File(uri);
+        // file is compressed; decompress and then return it
+        try {
+            decompressFile(
+                Paths.get(
+                    String.format("%s/%s", uploadSubmissionsLocalPathRoot, answerFileSubmission.get().getEncryptedFileUri())
+                ).toString(),
+                answerFileSubmission.get().getEncryptionPhrase()
+            );
+
+            return new File(String.format("%s/%s", decompressedFileTempDirectory, answerFileSubmission.get().getEncodedFileName()));
+        } catch (FileStorageException e) {
+            throw e;
+        }
     }
+
+    private boolean compressFile(String filePathToCompress, String encryptionPhrase) {
+        ZipParameters zipParameters = new ZipParameters();
+        zipParameters.setEncryptFiles(true);
+        zipParameters.setCompressionLevel(CompressionLevel.ULTRA);
+        zipParameters.setEncryptionMethod(EncryptionMethod.AES);
+
+        try (ZipFile zipFile = new ZipFile(filePathToCompress + AnswerFileSubmission.COMPRESSED_FILE_EXTENSION, encryptionPhrase.toCharArray())) {
+            zipFile.addFile(new File(filePathToCompress), zipParameters);
+        } catch (IOException e) {
+            log.error("Error zipping file: {}", filePathToCompress, e);
+            return false;
+        }
+
+        return true;
+    }
+
+    private void decompressFile(String filePathToDecompress, String encryptionPhrase) throws FileStorageException {
+        try (ZipFile zipFile = new ZipFile(filePathToDecompress, encryptionPhrase.toCharArray())) {
+            zipFile.extractAll(decompressedFileTempDirectory.toString());
+        } catch (IOException e) {
+            throw new FileStorageException(String.format("Error: Could not decompress file '%s'. Please try again.", filePathToDecompress), e);
+        }
+    }
+
 }

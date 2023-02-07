@@ -665,7 +665,7 @@ public class ExportServiceImpl implements ExportService {
     }
 
     private Path createTempFile() throws IOException {
-        return Files.createTempFile(UUID.randomUUID().toString(), null);
+        return Files.createTempFile("export." + UUID.randomUUID().toString(), null);
     }
 
     private CSVWriter createCsvFileWriter(Path path) throws IOException {
