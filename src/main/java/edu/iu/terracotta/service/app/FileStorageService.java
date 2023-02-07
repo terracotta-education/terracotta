@@ -2,16 +2,16 @@ package edu.iu.terracotta.service.app;
 
 import edu.iu.terracotta.exceptions.AssignmentNotCreatedException;
 import edu.iu.terracotta.exceptions.AssignmentNotEditedException;
+import edu.iu.terracotta.exceptions.AssignmentNotMatchingException;
 import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.model.app.FileInfo;
 import edu.iu.terracotta.model.app.dto.FileInfoDto;
+import edu.iu.terracotta.model.app.FileSubmissionLocal;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.core.io.Resource;
 
-import java.io.IOException;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.security.GeneralSecurityException;
 import java.util.List;
 import java.util.Optional;
@@ -47,13 +47,13 @@ public interface FileStorageService {
     FileInfoDto uploadFile(MultipartFile multipartFile, String prefix, String extraPath, long experimentId, boolean consent);
 
     void uploadConsent(long experimentId, String title, FileInfoDto fileInfoDto, String instructorUserId)
-            throws AssignmentNotCreatedException, CanvasApiException, AssignmentNotEditedException;
+            throws AssignmentNotCreatedException, CanvasApiException, AssignmentNotEditedException, AssignmentNotMatchingException;
 
     void deleteConsentAssignment(long experimentId, SecuredInfo securedInfo) throws AssignmentNotEditedException, CanvasApiException;
 
     String parseHTMLFiles (String html);
 
-    String saveFileSubmissionLocal(MultipartFile file);
+    FileSubmissionLocal saveFileSubmissionLocal(MultipartFile file);
 
     File getFileSubmissionLocal(long id);
 

@@ -42,7 +42,6 @@ import edu.iu.terracotta.utils.TextConstants;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.BooleanUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
@@ -65,6 +64,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Component
+@SuppressWarnings({"PMD.PreserveStackTrace"})
 public class AssessmentServiceImpl implements AssessmentService {
 
     public static final int TITLE_MAX_LENGTH = 255;

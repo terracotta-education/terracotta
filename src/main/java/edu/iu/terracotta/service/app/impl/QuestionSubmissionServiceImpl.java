@@ -12,7 +12,6 @@ import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.IdMissingException;
 import edu.iu.terracotta.exceptions.InvalidUserException;
 import edu.iu.terracotta.exceptions.QuestionSubmissionNotMatchingException;
-import edu.iu.terracotta.exceptions.SubmissionNotMatchingException;
 import edu.iu.terracotta.exceptions.TypeNotSupportedException;
 import edu.iu.terracotta.model.LtiUserEntity;
 import edu.iu.terracotta.model.app.AnswerEssaySubmission;
@@ -21,6 +20,7 @@ import edu.iu.terracotta.model.app.AnswerMc;
 import edu.iu.terracotta.model.app.AnswerMcSubmission;
 import edu.iu.terracotta.model.app.Assessment;
 import edu.iu.terracotta.model.app.Assignment;
+import edu.iu.terracotta.model.app.FileSubmissionLocal;
 import edu.iu.terracotta.model.app.Question;
 import edu.iu.terracotta.model.app.QuestionSubmission;
 import edu.iu.terracotta.model.app.QuestionSubmissionComment;
@@ -64,6 +64,7 @@ import java.util.Optional;
 
 @Slf4j
 @Component
+@SuppressWarnings({"squid:S2229", "PMD.PreserveStackTrace", "PMD.GuardLogStatement"})
 public class QuestionSubmissionServiceImpl implements QuestionSubmissionService {
 
     @Autowired
@@ -130,7 +131,7 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
 
     @Override
     @Transactional
-    //TODO this method isn't technically fully transactional. The dto is validated beforehand.
+    // TODO this method isn't technically fully transactional. The dto is validated beforehand.
     public void updateQuestionSubmissions(Map<QuestionSubmission, QuestionSubmissionDto> map, boolean student) throws InvalidUserException, DataServiceException, IdMissingException, QuestionSubmissionNotMatchingException, AnswerSubmissionNotMatchingException, AnswerNotMatchingException {
         for (Map.Entry<QuestionSubmission, QuestionSubmissionDto> entry : map.entrySet()) {
             QuestionSubmission questionSubmission = entry.getKey();
@@ -153,7 +154,7 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
 
     @Override
     @Transactional
-    //TODO this method isn't technically fully transactional. The dto is validated beforehand.
+    // TODO this method isn't technically fully transactional. The dto is validated beforehand.
     public List<QuestionSubmissionDto> postQuestionSubmissions(List<QuestionSubmissionDto> questionSubmissionDtoList, long assessmentId, long submissionId, boolean student) throws DataServiceException {
         List<QuestionSubmissionDto> returnedDtoList = new ArrayList<>();
         try {
@@ -330,7 +331,7 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
                     if (questionSubmissionDto.getAnswerSubmissionDtoList() != null) {
                         if (questionSubmissionDto.getAnswerSubmissionDtoList().size() > 1) {
                             throw new ExceedingLimitException("Error 145: Multiple choice and essay questions can only have one answer submission.");
-                        } else if (questionSubmissionDto.getAnswerSubmissionDtoList().size() == 0) {
+                        } else if (CollectionUtils.isEmpty(questionSubmissionDto.getAnswerSubmissionDtoList())) {
                             questionSubmissionDto.getAnswerSubmissionDtoList().add(new AnswerSubmissionDto());
                         }
                     } else {
@@ -380,6 +381,8 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
                         if (!answerEssaySubmission.isPresent()) {
                             throw new AnswerSubmissionNotMatchingException(TextConstants.ANSWER_SUBMISSION_NOT_MATCHING);
                         }
+                        break;
+                    default:
                         break;
                 }
             }
@@ -454,7 +457,7 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
         String fileName = file.getResource().getFilename();
         File tempFile = getFile(file, file.getName());
 
-        String uri = fileStorageService.saveFileSubmissionLocal(file);
+        FileSubmissionLocal fileSubmissionLocal = fileStorageService.saveFileSubmissionLocal(file);
 
         QuestionSubmissionDto questionSubmissionDto = objectMapper.readValue(questionSubmissionDtoStr, QuestionSubmissionDto.class);
 
@@ -462,7 +465,12 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
         answerSubmissionDto.setFileName(fileName);
         answerSubmissionDto.setMimeType(file.getContentType());
         answerSubmissionDto.setFile(tempFile);
-        answerSubmissionDto.setFileUri(uri);
+        answerSubmissionDto.setFileUri(fileSubmissionLocal.getFilePath());
+
+        if (fileSubmissionLocal.isCompressed()) {
+            answerSubmissionDto.setEncryptionPhrase(fileSubmissionLocal.getEncryptionPhrase());
+            answerSubmissionDto.setEncryptionMethod(fileSubmissionLocal.getEncryptionMethod());
+        }
 
         List<AnswerSubmissionDto> answerSubmissionDtoList = new ArrayList<>();
         answerSubmissionDtoList.add(answerSubmissionDto);
@@ -513,13 +521,18 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
         String fileName = file.getResource().getFilename();
         File tempFile = getFile(file, file.getName());
 
-        String uri = fileStorageService.saveFileSubmissionLocal(file);
+        FileSubmissionLocal fileSubmissionLocal = fileStorageService.saveFileSubmissionLocal(file);
 
         AnswerSubmissionDto answerSubmissionDto = new AnswerSubmissionDto();
         answerSubmissionDto.setFileName(fileName);
         answerSubmissionDto.setMimeType(file.getContentType());
         answerSubmissionDto.setFile(tempFile);
-        answerSubmissionDto.setFileUri(uri);
+        answerSubmissionDto.setFileUri(fileSubmissionLocal.getFilePath());
+
+        if (fileSubmissionLocal.isCompressed()) {
+            answerSubmissionDto.setEncryptionPhrase(fileSubmissionLocal.getEncryptionPhrase());
+            answerSubmissionDto.setEncryptionMethod(fileSubmissionLocal.getEncryptionMethod());
+        }
 
         List<AnswerSubmissionDto> answerSubmissionDtoList = new ArrayList<>();
         answerSubmissionDtoList.add(answerSubmissionDto);
