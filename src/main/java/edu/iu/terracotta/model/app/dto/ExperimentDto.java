@@ -3,9 +3,14 @@ package edu.iu.terracotta.model.app.dto;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import java.sql.Timestamp;
 import java.util.List;
 
+@Getter
+@Setter
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ExperimentDto {
 
@@ -18,177 +23,28 @@ public class ExperimentDto {
     private String participationType;
     private String distributionType;
     private Timestamp started;
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    private Timestamp createdAt;
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    private Timestamp updatedAt;
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    private List<ConditionDto> conditions;
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    private List<ExposureDto> exposures;
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    private List<ParticipantDto> participants;
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    private ConsentDto consent;
     private Long createdBy;
     private Timestamp closed;
     private Integer potentialParticipants;
     private Integer acceptedParticipants;
     private Integer rejectedParticipants;
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private Timestamp createdAt;
 
-    public ExperimentDto() {
-    }
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private Timestamp updatedAt;
 
-    public Long getExperimentId() {
-        return experimentId;
-    }
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private List<ConditionDto> conditions;
 
-    public void setExperimentId(Long experimentId) {
-        this.experimentId = experimentId;
-    }
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private List<ExposureDto> exposures;
 
-    public Long getContextId() {
-        return contextId;
-    }
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private List<ParticipantDto> participants;
 
-    public void setContextId(Long contextId) {
-        this.contextId = contextId;
-    }
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private ConsentDto consent;
 
-    public String getTitle() {
-        return title;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public String getExposureType() {
-        return exposureType;
-    }
-
-    public void setExposureType(String exposureType) {
-        this.exposureType = exposureType;
-    }
-
-    public String getParticipationType() {
-        return participationType;
-    }
-
-    public void setParticipationType(String participationType) {
-        this.participationType = participationType;
-    }
-
-    public String getDistributionType() {
-        return distributionType;
-    }
-
-    public void setDistributionType(String distributionType) {
-        this.distributionType = distributionType;
-    }
-
-    public Timestamp getStarted() {
-        return started;
-    }
-
-    public void setStarted(Timestamp started) {
-        this.started = started;
-    }
-
-    public Timestamp getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(Timestamp createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public Timestamp getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(Timestamp updatedAt) {
-        this.updatedAt = updatedAt;
-    }
-
-    public Long getPlatformDeploymentId() {
-        return platformDeploymentId;
-    }
-
-    public void setPlatformDeploymentId(Long platformDeploymentId) {
-        this.platformDeploymentId = platformDeploymentId;
-    }
-
-    public List<ConditionDto> getConditions() {
-        return conditions;
-    }
-
-    public void setConditions(List<ConditionDto> conditions) {
-        this.conditions = conditions;
-    }
-
-    public List<ExposureDto> getExposures() {return exposures;}
-
-    public void setExposures(List<ExposureDto> exposures) { this.exposures = exposures; }
-
-    public List<ParticipantDto> getParticipants() { return participants; }
-
-    public void setParticipants(List<ParticipantDto> participants) { this.participants = participants; }
-
-    public Long getCreatedBy() {
-        return createdBy;
-    }
-
-    public void setCreatedBy(Long createdBy) {
-        this.createdBy = createdBy;
-    }
-
-    public Timestamp getClosed() {
-        return closed;
-    }
-
-    public void setClosed(Timestamp closed) {
-        this.closed = closed;
-    }
-
-    public ConsentDto getConsent() {
-        return consent;
-    }
-
-    public void setConsent(ConsentDto consent) {
-        this.consent = consent;
-    }
-
-    public Integer getPotentialParticipants() {
-        return potentialParticipants;
-    }
-
-    public void setPotentialParticipants(Integer potentialParticipants) {
-        this.potentialParticipants = potentialParticipants;
-    }
-
-    public Integer getAcceptedParticipants() {
-        return acceptedParticipants;
-    }
-
-    public void setAcceptedParticipants(Integer acceptedParticipants) {
-        this.acceptedParticipants = acceptedParticipants;
-    }
-
-    public Integer getRejectedParticipants() {
-        return rejectedParticipants;
-    }
-
-    public void setRejectedParticipants(Integer rejectedParticipants) {
-        this.rejectedParticipants = rejectedParticipants;
-    }
 }
