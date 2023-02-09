@@ -474,18 +474,17 @@ public class ParticipantServiceImpl implements ParticipantService {
             // If they had consent, and now they don't have, we change the dateRevoked to now.
             // In any other case, we leave the date as it is. Ignoring any value in the PUT
             if (participantToChange.getConsent() != null
-                    && (BooleanUtils.isTrue(participantToChange.getConsent())
-                        || (BooleanUtils.isFalse(participantToChange.getConsent()) && participantToChange.getDateRevoked() == null))
+                    && (BooleanUtils.isTrue(participantToChange.getConsent()) || (BooleanUtils.isFalse(participantToChange.getConsent()) && participantToChange.getDateRevoked() == null))
                     && BooleanUtils.isNotTrue(participantDto.getConsent())) {
                 participantToChange.setDateRevoked(Timestamp.valueOf(LocalDateTime.now()));
                 participantToChange.setSource(ParticipationTypes.REVOKED);
             }
 
-            if (BooleanUtils.isNotTrue(participantToChange.getConsent())
-                    && BooleanUtils.isTrue(participantDto.getConsent())) {
+            // update non-consented to consented; reset revoked date; set source to experiment type
+            if (BooleanUtils.isNotTrue(participantToChange.getConsent()) && BooleanUtils.isTrue(participantDto.getConsent())) {
                 participantToChange.setDateGiven(Timestamp.valueOf(LocalDateTime.now()));
                 participantToChange.setDateRevoked(null);
-                participantToChange.setSource(ParticipationTypes.CONSENT);
+                participantToChange.setSource(experiment.getParticipationType());
             }
 
             participantToChange.setConsent(participantDto.getConsent());
