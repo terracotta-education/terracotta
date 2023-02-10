@@ -641,11 +641,13 @@ export default {
       ]);
     }
     for (let c of this.conditions) {
-      const t = await this.checkTreatment([
-        this.experiment.experimentId,
-        c.conditionId
-      ]);
-      this.conditionTreatments[c.conditionId] = t?.data;
+      // find treatment for this condition
+      for (let a of this.assignments) {
+        this.conditionTreatments[c.conditionId] = a.treatments.find((t) => t.conditionId === c.conditionId);
+        if (this.conditionTreatments[c.conditionId]) {
+          break;
+        }
+      }
     }
     this.getAssignmentDetails();
     await this.getZip(this.experiment.experimentId);
