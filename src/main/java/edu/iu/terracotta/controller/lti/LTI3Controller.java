@@ -188,8 +188,21 @@ public class LTI3Controller {
                     } else {
                         // if no redirect url then we must already have a token so we proceed with
                         // checking and restoring assignments
-                        assignmentService.checkAndRestoreAssignmentsInCanvasByContext(
-                                lti3Request.getContext().getContextId(), lti3Request.getUser().getUserKey());
+                        Thread thread = new Thread(
+                            () ->
+                                {
+                                    try {
+                                        log.info("Starting new thread to sync assignments for context: {}", lti3Request.getContext().getContextId());
+                                        assignmentService.checkAndRestoreAssignmentsInCanvasByContext(
+                                            lti3Request.getContext().getContextId(),
+                                            lti3Request.getUser().getUserKey()
+                                        );
+                                    } catch (CanvasApiException | DataServiceException | ConnectionException | IOException e) {
+                                        log.error("Error syncing assignments with Canvas.", e);
+                                    }
+                                }
+                            );
+                        thread.start();
                     }
                 }
 
