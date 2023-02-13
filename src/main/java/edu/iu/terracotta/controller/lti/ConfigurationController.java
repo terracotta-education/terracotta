@@ -121,7 +121,7 @@ public class ConfigurationController {
                     HttpStatus.NOT_FOUND);
         }
         PlatformDeployment platformDeploymentToChange = platformDeploymentSearchResult.get();
-        platformDeploymentToChange.setoAuth2TokenUrl(platformDeployment.getoAuth2TokenUrl());
+        platformDeploymentToChange.setOAuth2TokenUrl(platformDeployment.getOAuth2TokenUrl());
         platformDeploymentToChange.setClientId(platformDeployment.getClientId());
         platformDeploymentToChange.setIss(platformDeployment.getIss());
         platformDeploymentToChange.setOidcEndpoint(platformDeployment.getOidcEndpoint());

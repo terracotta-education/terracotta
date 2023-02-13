@@ -17,16 +17,15 @@ import edu.iu.terracotta.exceptions.helper.ExceptionMessageGenerator;
 import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.model.ags.LineItem;
 import edu.iu.terracotta.model.ags.LineItems;
-import edu.iu.terracotta.model.ags.Score;
 import edu.iu.terracotta.model.oauth2.LTIToken;
 import edu.iu.terracotta.service.lti.AdvantageConnectorHelper;
 import edu.iu.terracotta.service.lti.LTIJWTService;
 import edu.iu.terracotta.utils.TextConstants;
+import lombok.extern.slf4j.Slf4j;
+
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONObject;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -46,55 +45,59 @@ import java.net.URLDecoder;
 import java.security.GeneralSecurityException;
 import java.util.List;
 
+@Slf4j
 @Service
+@SuppressWarnings({"PMD.GuardLogStatement"})
 public class AdvantageConnectorHelperImpl implements AdvantageConnectorHelper {
 
     @Autowired
-    LTIJWTService ltijwtService;
+    private LTIJWTService ltijwtService;
 
     @Autowired
     private ExceptionMessageGenerator exceptionMessageGenerator;
-
-    static final Logger log = LoggerFactory.getLogger(AdvantageConnectorHelperImpl.class);
-
 
     @Override
     public HttpEntity createRequestEntity(String apiKey) {
         HttpHeaders headers = new HttpHeaders();
         headers.set(HttpHeaders.AUTHORIZATION, TextConstants.BEARER + apiKey);
+
         return new HttpEntity<>(headers);
     }
 
     // We put the token in the Authorization as a simple Bearer one.
     @Override
-    public HttpEntity createTokenizedRequestEntity(LTIToken LTIToken) {
+    public HttpEntity createTokenizedRequestEntity(LTIToken ltiToken) {
         HttpHeaders headers = new HttpHeaders();
-        headers.set(HttpHeaders.AUTHORIZATION, TextConstants.BEARER + LTIToken.getAccess_token());
+        headers.set(HttpHeaders.AUTHORIZATION, TextConstants.BEARER + ltiToken.getAccess_token());
+
         return new HttpEntity<>(headers);
     }
 
     // We put the token in the Authorization as a simple Bearer one.
     @Override
-    public HttpEntity<LineItem> createTokenizedRequestEntity(LTIToken LTIToken, LineItem lineItem) {
+    public HttpEntity<LineItem> createTokenizedRequestEntity(LTIToken ltiToken, LineItem lineItem) {
         HttpHeaders headers = new HttpHeaders();
-        headers.set(HttpHeaders.AUTHORIZATION, TextConstants.BEARER + LTIToken.getAccess_token());
+        headers.set(HttpHeaders.AUTHORIZATION, TextConstants.BEARER + ltiToken.getAccess_token());
+
         return new HttpEntity<>(lineItem, headers);
     }
 
     // We put the token in the Authorization as a simple Bearer one.
     @Override
-    public HttpEntity<LineItems> createTokenizedRequestEntity(LTIToken LTIToken, LineItems lineItems) {
+    public HttpEntity<LineItems> createTokenizedRequestEntity(LTIToken ltiToken, LineItems lineItems) {
         HttpHeaders headers = new HttpHeaders();
-        headers.set(HttpHeaders.AUTHORIZATION, TextConstants.BEARER + LTIToken.getAccess_token());
+        headers.set(HttpHeaders.AUTHORIZATION, TextConstants.BEARER + ltiToken.getAccess_token());
+
         return new HttpEntity<>(lineItems, headers);
     }
 
     // We put the token in the Authorization as a simple Bearer one.
     @Override
-    public HttpEntity<String> createTokenizedRequestEntity(LTIToken LTIToken, String score) {
+    public HttpEntity<String> createTokenizedRequestEntity(LTIToken ltiToken, String score) {
         HttpHeaders headers = new HttpHeaders();
-        headers.set(HttpHeaders.AUTHORIZATION, TextConstants.BEARER + LTIToken.getAccess_token());
+        headers.set(HttpHeaders.AUTHORIZATION, TextConstants.BEARER + ltiToken.getAccess_token());
         headers.set(HttpHeaders.CONTENT_TYPE, "application/vnd.ims.lis.v1.score+json");
+
         return new HttpEntity<>(score, headers);
     }
 
@@ -102,26 +105,28 @@ public class AdvantageConnectorHelperImpl implements AdvantageConnectorHelper {
     //The platformDeployment has the URL to ask for the token.
     @Override
     public LTIToken getToken(PlatformDeployment platformDeployment, String scope) throws ConnectionException {
-        LTIToken LTIToken = null;
+        LTIToken ltiToken = null;
         try {
 
             // We need an specific request for the token.
             HttpEntity request = createTokenRequest(scope, platformDeployment);
-            final String POST_TOKEN_URL = platformDeployment.getoAuth2TokenUrl();
-            log.debug("POST_TOKEN_URL -  " + POST_TOKEN_URL);
-            ResponseEntity<LTIToken> reportPostResponse = postEntity(POST_TOKEN_URL, request, platformDeployment, scope);
-            if (reportPostResponse != null) {
-                HttpStatus status = reportPostResponse.getStatusCode();
-                if (status.is2xxSuccessful()) {
-                    LTIToken = reportPostResponse.getBody();
-                } else {
-                    String exceptionMsg = "Can't get the token: " + status.getReasonPhrase();
-                    log.error(exceptionMsg);
-                    throw new ConnectionException(exceptionMsg);
-                }
-            } else {
+            final String postTokenUrl = platformDeployment.getOAuth2TokenUrl();
+            log.debug("POST_TOKEN_URL -  " + postTokenUrl);
+            ResponseEntity<LTIToken> reportPostResponse = postEntity(postTokenUrl, request, platformDeployment, scope);
+
+            if (reportPostResponse == null) {
                 log.warn("Problem getting the token");
             }
+
+            HttpStatus status = reportPostResponse.getStatusCode();
+
+            if (!status.is2xxSuccessful()) {
+                String exceptionMsg = "Can't get the token: " + status.getReasonPhrase();
+                log.error(exceptionMsg);
+                throw new ConnectionException(exceptionMsg);
+            }
+
+            ltiToken = reportPostResponse.getBody();
         } catch (Exception e) {
             log.error("ERROR GETTING THE TOKEN", e);
             StringBuilder exceptionMsg = new StringBuilder();
@@ -129,23 +134,23 @@ public class AdvantageConnectorHelperImpl implements AdvantageConnectorHelper {
             log.error(exceptionMsg.toString());
             throw new ConnectionException(exceptionMessageGenerator.exceptionMessage(exceptionMsg.toString(), e));
         }
-        return LTIToken;
+
+        return ltiToken;
     }
 
-
-    private ResponseEntity<LTIToken> postEntity(String POST_TOKEN_URL, HttpEntity request, PlatformDeployment platformDeployment, String scope) throws GeneralSecurityException, IOException {
+    private ResponseEntity<LTIToken> postEntity(String postTokenUrl, HttpEntity request, PlatformDeployment platformDeployment, String scope) throws GeneralSecurityException, IOException {
         ResponseEntity<LTIToken> reportPostResponse;
         RestTemplate restTemplate = createRestTemplate();
+
         try {
-            reportPostResponse = restTemplate.
-                    postForEntity(POST_TOKEN_URL, request, LTIToken.class);
+            reportPostResponse = restTemplate.postForEntity(postTokenUrl, request, LTIToken.class);
         } catch (Exception ex) {
             log.error("ERROR GETTING THE TOKEN", ex);
             log.error("Can't get the token. Exception. We will try again with a JSON Payload");
             HttpEntity request2 = createTokenRequestJSON(scope, platformDeployment);
-            reportPostResponse = restTemplate.
-                    postForEntity(POST_TOKEN_URL, request2, LTIToken.class);
+            reportPostResponse = restTemplate.postForEntity(postTokenUrl, request2, LTIToken.class);
         }
+
         return reportPostResponse;
     }
 
@@ -161,6 +166,7 @@ public class AdvantageConnectorHelperImpl implements AdvantageConnectorHelper {
         map.add("client_assertion", ltijwtService.generateTokenRequestJWT(platformDeployment));
         //We need to pass the scope of the token, meaning, the service we want to allow with this token.
         map.add("scope", scope);
+
         return new HttpEntity<>(map, headers);
     }
 
@@ -177,22 +183,24 @@ public class AdvantageConnectorHelperImpl implements AdvantageConnectorHelper {
         parameterJson.put("client_assertion", ltijwtService.generateTokenRequestJWT(platformDeployment));
         //We need to pass the scope of the token, meaning, the service we want to allow with this token.
         parameterJson.put("scope", scope);
+
         return new HttpEntity<>(parameterJson.toString(), headers);
     }
 
     @Override
     public RestTemplate createRestTemplate() {
-        return new RestTemplate(
-                new BufferingClientHttpRequestFactory(new SimpleClientHttpRequestFactory()));
+        return new RestTemplate(new BufferingClientHttpRequestFactory(new SimpleClientHttpRequestFactory()));
     }
 
     @Override
     public String nextPage(HttpHeaders headers) {
         List<String> links = headers.get("link");
+
         if (CollectionUtils.isNotEmpty(links)) {
             String link = links.get(0);
             String[] tokens = StringUtils.split(link, ",");
             String url = indexOf(tokens);
+
             if (StringUtils.isNotEmpty(url)) {
                 try {
                     return URLDecoder.decode(url, "UTF-8");
@@ -201,6 +209,7 @@ public class AdvantageConnectorHelperImpl implements AdvantageConnectorHelper {
                 }
             }
         }
+
         return null;
     }
 
@@ -210,6 +219,8 @@ public class AdvantageConnectorHelperImpl implements AdvantageConnectorHelper {
                 return StringUtils.substring(token, token.indexOf("<") + 1, token.indexOf(">"));
             }
         }
+
         return null;
     }
+
 }

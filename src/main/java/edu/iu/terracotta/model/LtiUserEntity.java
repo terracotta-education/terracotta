@@ -14,7 +14,10 @@ package edu.iu.terracotta.model;
 
 import org.apache.commons.lang3.StringUtils;
 
-import javax.persistence.Basic;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
@@ -34,43 +37,50 @@ import java.util.Objects;
 import java.util.Set;
 
 @Entity
-@Table(name = "lti_user", uniqueConstraints = {
-        @UniqueConstraint(columnNames = { "user_key", "key_id" }),
-})
+@Getter
+@Setter
+@NoArgsConstructor
+@Table(
+    name = "lti_user",
+    uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"user_key", "key_id"}),
+    }
+)
 public class LtiUserEntity extends BaseEntity {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "user_id", nullable = false)
     private long userId;
 
-    @Basic
     // per LTI 1.3 and OIDC specifications, the 'sub' claim must not be more than
     // 255 characters in length.
     @Column(name = "user_key", nullable = false, length = 255)
     private String userKey;
-    @Basic
+
     @Column(name = "lms_user_id")
     private String lmsUserId;
-    @Basic
+
     @Column(name = "displayname", length = 4096)
     private String displayName;
+
     /**
      * Actual max for emails is 254 chars
      */
-    @Basic
-    @Column(name = "email")
+    @Column
     private String email;
-    @Basic
+
     @Column(name = "locale", length = 63)
     private String locale;
-    @Basic
-    @Column(name = "subscribe")
+
+    @Column
     private Short subscribe;
+
     @Lob
-    @Column(name = "json")
+    @Column
     private String json;
-    @Basic
-    @Column(name = "login_at")
+
+    @Column
     private Timestamp loginAt;
 
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
@@ -80,122 +90,47 @@ public class LtiUserEntity extends BaseEntity {
     @JoinColumn(name = "key_id", referencedColumnName = "key_id")
     private PlatformDeployment platformDeployment;
 
-    protected LtiUserEntity() {
-    }
-
     /**
      * @param userKey user identifier
      * @param loginAt date of user login
      */
     public LtiUserEntity(String userKey, Date loginAt, PlatformDeployment platformDeployment1) {
-        if (!StringUtils.isNotBlank(userKey)) throw new AssertionError();
+        if (!StringUtils.isNotBlank(userKey)) {
+            throw new AssertionError();
+        }
+
         if (loginAt == null) {
             loginAt = new Date();
         }
+
         if (platformDeployment1 != null) {
             this.platformDeployment = platformDeployment1;
         }
+
         this.userKey = userKey;
         this.loginAt = new Timestamp(loginAt.getTime());
     }
 
-    public long getUserId() {
-        return userId;
-    }
-
-    public void setUserId(long userId) {
-        this.userId = userId;
-    }
-
-    public String getLmsUserId() {
-        return lmsUserId;
-    }
-
-    public void setLmsUserId(String lmsUserId) {
-        this.lmsUserId = lmsUserId;
-    }
-
-    public String getUserKey() {
-        return userKey;
-    }
-
-    public void setUserKey(String userKey) {
-        this.userKey = userKey;
-    }
-
-    public String getDisplayName() {
-        return displayName;
-    }
-
-    public void setDisplayName(String displayName) {
-        this.displayName = displayName;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public String getLocale() {
-        return locale;
-    }
-
-    public void setLocale(String locale) {
-        this.locale = locale;
-    }
-
-    public Short getSubscribe() {
-        return subscribe;
-    }
-
-    public void setSubscribe(Short subscribe) {
-        this.subscribe = subscribe;
-    }
-
-    public String getJson() {
-        return json;
-    }
-
-    public void setJson(String json) {
-        this.json = json;
-    }
-
-    public Timestamp getLoginAt() {
-        return loginAt;
-    }
-
-    public void setLoginAt(Timestamp loginAt) {
-        this.loginAt = loginAt;
-    }
-
-    public Set<LtiResultEntity> getResults() {
-        return results;
-    }
-
-    public void setResults(Set<LtiResultEntity> results) {
-        this.results = results;
-    }
-
-    public PlatformDeployment getPlatformDeployment() {
-        return platformDeployment;
-    }
-
-    public void setPlatformDeployment(PlatformDeployment platformDeployment) {
-        this.platformDeployment = platformDeployment;
-    }
-
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         LtiUserEntity that = (LtiUserEntity) o;
 
-        if (userId != that.userId) return false;
-        if (!Objects.equals(email, that.email)) return false;
+        if (userId != that.userId) {
+            return false;
+        }
+
+        if (!Objects.equals(email, that.email)) {
+            return false;
+        }
+
         return Objects.equals(userKey, that.userKey);
     }
 
@@ -204,6 +139,7 @@ public class LtiUserEntity extends BaseEntity {
         int result = (int) userId;
         result = 31 * result + (userKey != null ? userKey.hashCode() : 0);
         result = 31 * result + (email != null ? email.hashCode() : 0);
+
         return result;
     }
 

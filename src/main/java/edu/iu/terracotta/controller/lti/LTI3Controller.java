@@ -17,7 +17,6 @@ import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.LMSOAuthException;
-import edu.iu.terracotta.repository.LtiContextRepository;
 import edu.iu.terracotta.repository.LtiLinkRepository;
 import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.caliper.CaliperService;
@@ -25,7 +24,8 @@ import edu.iu.terracotta.service.common.LMSOAuthService;
 import edu.iu.terracotta.service.common.LMSOAuthServiceManager;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
-import io.jsonwebtoken.SignatureException;
+import io.jsonwebtoken.security.SignatureException;
+import lombok.extern.slf4j.Slf4j;
 import edu.iu.terracotta.model.LtiLinkEntity;
 import edu.iu.terracotta.model.LtiUserEntity;
 import edu.iu.terracotta.model.PlatformDeployment;
@@ -35,11 +35,11 @@ import edu.iu.terracotta.service.lti.LTIJWTService;
 import edu.iu.terracotta.utils.LtiStrings;
 import edu.iu.terracotta.utils.TextConstants;
 import edu.iu.terracotta.utils.lti.LTI3Request;
+
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.utils.URIBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Controller;
@@ -60,54 +60,53 @@ import java.util.Optional;
  * This LTI 3 redirect controller will retrieve the LTI3 requests and redirect them to the right page.
  * Everything that arrives here is filtered first by the LTI3OAuthProviderProcessingFilter
  */
+@Slf4j
 @Controller
 @Scope("session")
 @RequestMapping("/lti3")
+@SuppressWarnings({"PMD.GuardLogStatement"})
 public class LTI3Controller {
 
-    static final Logger log = LoggerFactory.getLogger(LTI3Controller.class);
+    @Autowired
+    private LTIJWTService ltijwtService;
 
     @Autowired
-    LTIJWTService ltijwtService;
+    private APIJWTService apiJWTService;
 
     @Autowired
-    APIJWTService apiJWTService;
+    private LtiLinkRepository ltiLinkRepository;
 
     @Autowired
-    LtiLinkRepository ltiLinkRepository;
+    private LTIDataService ltiDataService;
 
     @Autowired
-    LTIDataService ltiDataService;
+    private AssignmentService assignmentService;
 
     @Autowired
-    AssignmentService assignmentService;
+    private CaliperService caliperService;
 
     @Autowired
-    CaliperService caliperService;
-
-    @Autowired
-    LtiContextRepository ltiContextRepository;
-
-    @Autowired
-    LMSOAuthServiceManager lmsoAuthServiceManager;
+    private LMSOAuthServiceManager lmsoAuthServiceManager;
 
     @RequestMapping({"", "/"})
-    public String home(HttpServletRequest req, Principal principal, Model model)
-            throws DataServiceException, CanvasApiException, ConnectionException, LMSOAuthException {
-
-        //First we will get the state, validate it
+    public String home(HttpServletRequest req, Principal principal, Model model) throws DataServiceException, CanvasApiException, ConnectionException, LMSOAuthException {
+        // First we will get the state, validate it
         String state = req.getParameter("state");
-        //We will use this link to find the content to display.
+        // We will use this link to find the content to display.
         String link = req.getParameter("link");
+
         try {
             Jws<Claims> claims = ltijwtService.validateState(state);
             LTI3Request lti3Request = LTI3Request.getInstance(link);
+
             // This is just an extra check that we have added, but it is not necessary.
             // Checking that the clientId in the status matches the one coming with the ltiRequest.
             if (!claims.getBody().get("clientId").equals(lti3Request.getAud())) {
                 model.addAttribute(TextConstants.ERROR, " Bad Client Id");
+
                 return TextConstants.LTI3ERROR;
             }
+
             // This is just an extra check that we have added, but it is not necessary.
             // Checking that the deploymentId in the status matches the one coming with the ltiRequest.
             // Note: there may not be an ltiDeploymentId claim if
@@ -116,119 +115,122 @@ public class LTI3Controller {
             if (claims.getBody().containsKey("ltiDeploymentId") && claims.getBody().get("ltiDeploymentId") != null
                     && !claims.getBody().get("ltiDeploymentId").equals(lti3Request.getLtiDeploymentId())) {
                 model.addAttribute(TextConstants.ERROR, " Bad Deployment Id");
+
                 return TextConstants.LTI3ERROR;
             }
-            //We add the request to the model so it can be displayed. But, in a real application, we would start
-            // processing it here to generate the right answer.
+
+            // We add the request to the model so it can be displayed. But, in a real application, we would start processing it here to generate the right answer.
             if (ltiDataService.getDemoMode()) {
                 model.addAttribute("lTI3Request", lti3Request);
+
                 if (link == null) {
                     link = lti3Request.getLtiTargetLinkUrl().substring(lti3Request.getLtiTargetLinkUrl().lastIndexOf("?link=") + 6);
                 }
+
                 if (StringUtils.isNotBlank(link)) {
                     List<LtiLinkEntity> linkEntity = ltiLinkRepository.findByLinkKeyAndContext(link, lti3Request.getContext());
                     log.debug("Searching for link " + link + " in the context Key " + lti3Request.getContext().getContextKey() + " And id " + lti3Request.getContext().getContextId());
-                    if (linkEntity.size() > 0) {
+
+                    if (CollectionUtils.isNotEmpty(linkEntity)) {
                         model.addAttribute(TextConstants.HTML_CONTENT, linkEntity.get(0).createHtmlFromLink());
                     } else {
-                        model.addAttribute(TextConstants.HTML_CONTENT, "<b> No element was found for that context and linkKey</b>");
+                        model.addAttribute(TextConstants.HTML_CONTENT, "<b>No element was found for that context and linkKey</b>");
                     }
                 } else {
-                    model.addAttribute(TextConstants.HTML_CONTENT, "<b> No element was requested or it doesn't exists </b>");
+                    model.addAttribute(TextConstants.HTML_CONTENT, "<b>No element was requested or it doesn't exists</b>");
                 }
-                if (lti3Request.getLtiMessageType().equals(LtiStrings.LTI_MESSAGE_TYPE_DEEP_LINKING)) {
-                    //Let's create the LtiLinkEntity's in our database
-                    //This should be done AFTER the user selects the link in the content selector, and we are doing it before
-                    //just to keep it simple. The ideal process would be, the user selects a link, sends it to the platform and
+
+                if (LtiStrings.LTI_MESSAGE_TYPE_DEEP_LINKING.equals(lti3Request.getLtiMessageType())) {
+                    // Let's create the LtiLinkEntity's in our database
+                    // This should be done AFTER the user selects the link in the content selector, and we are doing it before
+                    // just to keep it simple. The ideal process would be, the user selects a link, sends it to the platform and
                     // we create the LtiLinkEntity in our code after that.
                     LtiLinkEntity ltiLinkEntity = new LtiLinkEntity("1234", lti3Request.getContext(), "My Test Link");
+
                     if (ltiLinkRepository.findByLinkKeyAndContext(ltiLinkEntity.getLinkKey(), ltiLinkEntity.getContext()).size() == 0) {
                         ltiLinkRepository.save(ltiLinkEntity);
                     }
+
                     LtiLinkEntity ltiLinkEntity2 = new LtiLinkEntity("4567", lti3Request.getContext(), "Another Link");
+
                     if (ltiLinkRepository.findByLinkKeyAndContext(ltiLinkEntity2.getLinkKey(), ltiLinkEntity2.getContext()).size() == 0) {
                         ltiLinkRepository.save(ltiLinkEntity2);
                     }
+
                     return "lti3DeepLink";
                 }
+
                 return "lti3Result";
-            } else {
-                String oneTimeToken = apiJWTService.buildJwt(
-                        true,
-                        lti3Request);
-                caliperService.sendToolUseEvent(
-                        lti3Request.getMembership(),
-                        lti3Request.getLtiCustom().getOrDefault("canvas_user_global_id", "Anonymous").toString(),
-                        lti3Request.getLtiCustom().getOrDefault("canvas_course_id", "UnknownCourse").toString(),
-                        lti3Request.getLtiCustom().getOrDefault("canvas_user_id", "Anonymous").toString(),
-                        lti3Request.getLtiCustom().getOrDefault("canvas_login_id", "Anonymous").toString(),
-                        lti3Request.getLtiRoles(),
-                        lti3Request.getLtiCustom().getOrDefault("canvas_user_name", "Anonymous").toString());
-
-                // Check for platform_redirect_url to determine if this is a first-party interaction request
-                try {
-                    List<NameValuePair> targetLinkQueryParams = new URIBuilder(lti3Request.getLtiTargetLinkUrl()).getQueryParams();
-                    Optional<NameValuePair> platformRedirectUrl = targetLinkQueryParams.stream()
-                            .filter(nv -> "platform_redirect_url".equals(nv.getName())).findFirst();
-                    if (platformRedirectUrl.isPresent()) {
-                        model.addAttribute("targetLinkUri", lti3Request.getLtiTargetLinkUrl());
-                        return "redirect:/app/firstParty.html";
-                    }
-                } catch (URISyntaxException ex) {
-                    model.addAttribute(TextConstants.ERROR, ex.getMessage());
-                    return TextConstants.LTI3ERROR;
-                }
-
-                // Check if we need to get API token from instructor to use LMS API
-                if (lti3Request.isRoleInstructor()) {
-                    String oauth2APITokenRedirectURL = getOAuth2APITokenRedirectURL(req, lti3Request.getKey(),
-                            lti3Request.getUser(), lti3Request);
-                    if (oauth2APITokenRedirectURL != null) {
-                        model.addAttribute("lms_api_oauth_url", oauth2APITokenRedirectURL);
-                    } else {
-                        // if no redirect url then we must already have a token so we proceed with
-                        // checking and restoring assignments
-                        Thread thread = new Thread(
-                            () ->
-                                {
-                                    try {
-                                        log.info("Starting new thread to sync assignments for context: {}", lti3Request.getContext().getContextId());
-                                        assignmentService.checkAndRestoreAssignmentsInCanvasByContext(
-                                            lti3Request.getContext().getContextId(),
-                                            lti3Request.getUser().getUserKey()
-                                        );
-                                    } catch (CanvasApiException | DataServiceException | ConnectionException | IOException e) {
-                                        log.error("Error syncing assignments with Canvas.", e);
-                                    }
-                                }
-                            );
-                        thread.start();
-                    }
-                }
-
-                return "redirect:/app/app.html?token=" + oneTimeToken;
             }
-        } catch (SignatureException ex) {
-            model.addAttribute(TextConstants.ERROR, ex.getMessage());
-            return TextConstants.LTI3ERROR;
-        } catch (GeneralSecurityException e) {
-            model.addAttribute(TextConstants.ERROR, e.getMessage());
-            return TextConstants.LTI3ERROR;
-        } catch (IOException e) {
+
+            String oneTimeToken = apiJWTService.buildJwt(true, lti3Request);
+            caliperService.sendToolUseEvent(
+                lti3Request.getMembership(),
+                lti3Request.getLtiCustom().getOrDefault("canvas_user_global_id", "Anonymous").toString(),
+                lti3Request.getLtiCustom().getOrDefault("canvas_course_id", "UnknownCourse").toString(),
+                lti3Request.getLtiCustom().getOrDefault("canvas_user_id", "Anonymous").toString(),
+                lti3Request.getLtiCustom().getOrDefault("canvas_login_id", "Anonymous").toString(),
+                lti3Request.getLtiRoles(),
+                lti3Request.getLtiCustom().getOrDefault("canvas_user_name", "Anonymous").toString()
+            );
+
+            // Check for platform_redirect_url to determine if this is a first-party interaction request
+            try {
+                List<NameValuePair> targetLinkQueryParams = new URIBuilder(lti3Request.getLtiTargetLinkUrl()).getQueryParams();
+                Optional<NameValuePair> platformRedirectUrl = targetLinkQueryParams.stream()
+                    .filter(nv -> "platform_redirect_url".equals(nv.getName()))
+                    .findFirst();
+
+                if (platformRedirectUrl.isPresent()) {
+                    model.addAttribute("targetLinkUri", lti3Request.getLtiTargetLinkUrl());
+                    return "redirect:/app/firstParty.html";
+                }
+            } catch (URISyntaxException ex) {
+                model.addAttribute(TextConstants.ERROR, ex.getMessage());
+                return TextConstants.LTI3ERROR;
+            }
+
+            // Check if we need to get API token from instructor to use LMS API
+            if (lti3Request.isRoleInstructor()) {
+                String oauth2APITokenRedirectURL = getOAuth2APITokenRedirectURL(req, lti3Request.getKey(), lti3Request.getUser(), lti3Request);
+
+                if (oauth2APITokenRedirectURL != null) {
+                    model.addAttribute("lms_api_oauth_url", oauth2APITokenRedirectURL);
+                } else {
+                    // if no redirect url then we must already have a token so we proceed with checking and restoring assignments
+                    Thread thread = new Thread(
+                        () ->
+                            {
+                                try {
+                                    assignmentService.checkAndRestoreAssignmentsInCanvasByContext(
+                                        lti3Request.getContext().getContextId(),
+                                        lti3Request.getUser().getUserKey()
+                                    );
+                                } catch (CanvasApiException | DataServiceException | ConnectionException | IOException e) {
+                                    log.error("Error syncing assignments with Canvas. Context ID: '{}'", lti3Request.getContext().getContextId(), e);
+                                }
+                            }
+                        );
+                    thread.start();
+                }
+            }
+
+            return "redirect:/app/app.html?token=" + oneTimeToken;
+        } catch (SignatureException | GeneralSecurityException | IOException e) {
             model.addAttribute(TextConstants.ERROR, e.getMessage());
             return TextConstants.LTI3ERROR;
         }
     }
 
-    private String getOAuth2APITokenRedirectURL(HttpServletRequest req, PlatformDeployment platformDeployment,
-            LtiUserEntity user,
-            LTI3Request lti3Request) throws GeneralSecurityException, IOException, LMSOAuthException {
-
+    private String getOAuth2APITokenRedirectURL(HttpServletRequest req, PlatformDeployment platformDeployment, LtiUserEntity user, LTI3Request lti3Request)
+            throws GeneralSecurityException, IOException, LMSOAuthException {
         // check if API Token settings exist for this PlatformDeployment
         LMSOAuthService<?> lmsOAuthService = lmsoAuthServiceManager.getLMSOAuthService(platformDeployment);
+
         if (lmsOAuthService == null) {
             return null;
         }
+
         if (lmsOAuthService.isAccessTokenAvailable(user)) {
             return null;
         }
