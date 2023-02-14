@@ -31,7 +31,6 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.HttpServletRequest;
@@ -56,7 +55,6 @@ public class ParticipantController {
     private APIJWTService apijwtService;
 
     @GetMapping
-    @ResponseBody
     public ResponseEntity<List<ParticipantDto>> allParticipantsByExperiment(@PathVariable long experimentId,
                                                                             @RequestParam(name = "refresh", defaultValue = "true") boolean refresh,
                                                                             HttpServletRequest req)
@@ -82,7 +80,6 @@ public class ParticipantController {
         return new ResponseEntity<>(participantService.getParticipants(currentParticipantList, experimentId, securedInfo.getUserId(), !apijwtService.isInstructorOrHigher(securedInfo)), HttpStatus.OK);
     }
 
-    @ResponseBody
     @GetMapping("/{participantId}")
     public ResponseEntity<ParticipantDto> getParticipant(@PathVariable long experimentId,
                                                         @PathVariable long participantId,
@@ -183,13 +180,13 @@ public class ParticipantController {
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
 
-        if(!apijwtService.isInstructorOrHigher(securedInfo)){
+        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
         Map<Participant, ParticipantDto> participantMap = new HashMap<>();
 
-        for(ParticipantDto participantDto : participantDtoList) {
+        for (ParticipantDto participantDto : participantDtoList) {
             apijwtService.participantAllowed(securedInfo, experimentId, participantDto.getParticipantId());
             Participant participant = participantService.getParticipant(participantDto.getParticipantId(), experimentId, securedInfo.getUserId(), false);
             log.debug("Updating participant with id: {}", participant.getParticipantId());
@@ -198,6 +195,7 @@ public class ParticipantController {
 
         try{
             participantService.changeParticipant(participantMap, experimentId);
+
             return new ResponseEntity<>(HttpStatus.OK);
         }catch (Exception ex) {
             throw new DataServiceException("Error 105: There was an error updating the participant list. No participants were updated.");

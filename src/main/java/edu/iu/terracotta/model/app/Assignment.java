@@ -23,11 +23,12 @@ import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 import javax.persistence.Transient;
 
+@Entity
 @Getter
 @Setter
 @Table(name = "terr_assignment")
-@Entity
 public class Assignment extends BaseEntity {
+
     @Id
     @Column(name = "assignment_id", nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -61,8 +62,8 @@ public class Assignment extends BaseEntity {
     @Column
     private Float hoursBetweenSubmissions;
 
-    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
     private MultipleSubmissionScoringScheme multipleSubmissionScoringScheme = MultipleSubmissionScoringScheme.MOST_RECENT;
 
     @Column
@@ -71,10 +72,10 @@ public class Assignment extends BaseEntity {
     @Column(nullable = false)
     private boolean allowStudentViewResponses = false;
 
-    @Column(nullable = true)
+    @Column
     private Timestamp studentViewResponsesAfter;
 
-    @Column(nullable = true)
+    @Column
     private Timestamp studentViewResponsesBefore;
 
     @Column(nullable = false)

@@ -1,61 +1,37 @@
 package edu.iu.terracotta.model.app;
 
 import edu.iu.terracotta.model.BaseEntity;
+import lombok.Getter;
+import lombok.Setter;
+
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
 import javax.persistence.*;
 
-@Table(name = "terr_condition")
 @Entity
+@Getter
+@Setter
+@Table(name = "terr_condition")
 public class Condition extends BaseEntity {
 
-    // condition_id
-    @Column(name = "condition_id", nullable = false)
     @Id
+    @Column(name = "condition_id", nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long conditionId;
 
-    // name
-    @Column(name = "name")
+    @Column
     private String name;
 
-    // default_condition
-    @Column(name = "default_condition")
+    @Column
     private Boolean defaultCondition;
 
-    // distribution_pct
-    @Column(name = "distribution_pct")
+    @Column
     private Float distributionPct;
 
-    @JoinColumn(name = "experiment_experiment_id", nullable = false)
     @ManyToOne(optional = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
+    @JoinColumn(name = "experiment_experiment_id", nullable = false)
     private Experiment experiment;
 
-
-    //methods
-    public Long getConditionId() { return conditionId; }
-
-    public void setConditionId(Long id) { this.conditionId = id; }
-
-    public Experiment getExperiment() {
-        return experiment;
-    }
-
-    public void setExperiment(Experiment experiment) {
-        this.experiment = experiment;
-    }
-
-    public String getName() { return name; }
-
-    public void setName(String name) { this.name = name; }
-
-    public Boolean getDefaultCondition() { return defaultCondition; }
-
-    public void setDefaultCondition(Boolean defaultCondition) { this.defaultCondition = defaultCondition; }
-
-    public Float getDistributionPct() { return distributionPct; }
-
-    public void setDistributionPct(Float distributionPct) { this.distributionPct = distributionPct; }
 }
