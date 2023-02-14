@@ -84,7 +84,7 @@ public class PlatformDeployment extends BaseEntity {
     private String caliperHost;
 
     @Column
-    private Integer caliperSocketTimeOut;
+    private Integer caliperSocketTimeout;
 
     @Column(nullable = false)
     private Boolean enableAutomaticDeployments = false;
