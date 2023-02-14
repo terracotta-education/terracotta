@@ -517,7 +517,7 @@ public class FileStorageServiceImpl implements FileStorageService {
     }
 
     private void decompressFile(String filePathToDecompress, String encryptionPhrase) throws FileStorageException {
-        try (ZipFile zipFile = new ZipFile(filePathToDecompress, encryptionPhrase.toCharArray())) {
+        try (ZipFile zipFile = new ZipFile(String.format("%s%s", filePathToDecompress, encryptionPhrase.toCharArray()))) {
             zipFile.extractAll(decompressedFileTempDirectory.toString());
         } catch (IOException e) {
             throw new FileStorageException(String.format("Error: Could not decompress file '%s'. Please try again.", filePathToDecompress), e);

@@ -23,7 +23,7 @@ import lombok.Setter;
 @Table(name = "terr_answer_file_submission")
 public class AnswerFileSubmission extends BaseEntity {
 
-    public static final String COMPRESSED_FILE_EXTENSION = "zip";
+    public static final String COMPRESSED_FILE_EXTENSION = ".zip";
 
     @Id
     @Column(nullable = false)
@@ -65,7 +65,7 @@ public class AnswerFileSubmission extends BaseEntity {
 
     @Transient
     public String getEncryptedFileUri() {
-        return String.format("%s.%s", fileUri, COMPRESSED_FILE_EXTENSION);
+        return String.format("%s%s", fileUri, COMPRESSED_FILE_EXTENSION);
     }
 
 }
