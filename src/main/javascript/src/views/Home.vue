@@ -35,9 +35,11 @@
           :items="experiments"
         >
           <template v-slot:item.title="{ item }">
-            <button v-if="item"
-                         class="v-data-table__link"
-                         @click="handleNavigate(item.experimentId)">
+            <button
+              v-if="item"
+              class="v-data-table__link"
+              @click="handleNavigate(item.experimentId)"
+            >
               <template v-if="item.title">
                 {{ item.title }}
               </template>
@@ -56,6 +58,7 @@
                   color="black"
                   v-bind="attrs"
                   v-on="on"
+                  :aria-label="`actions for experiment ${item.title}`"
                 >
                   mdi-dots-horizontal
                 </v-icon>
@@ -63,16 +66,18 @@
               <v-list dense>
                 <v-list-item
                     @click="handleExport(item)"
+                    :aria-label="`export experiment ${item.title}`"
                 >
-                <v-list-item-icon class="mr-3">
-                <v-icon color="black">mdi-download</v-icon>
-                </v-list-item-icon>
-                <v-list-item-content>
-                <v-list-item-title>Export</v-list-item-title>
-                </v-list-item-content>
+                  <v-list-item-icon class="mr-3">
+                    <v-icon color="black">mdi-download</v-icon>
+                  </v-list-item-icon>
+                  <v-list-item-content>
+                    <v-list-item-title>Export</v-list-item-title>
+                  </v-list-item-content>
                 </v-list-item>
                 <v-list-item
                   @click="handleDelete(item)"
+                  :aria-label="`delete experiment ${item.title}`"
                 >
                   <v-list-item-icon class="mr-3">
                     <v-icon color="black">mdi-delete</v-icon>
