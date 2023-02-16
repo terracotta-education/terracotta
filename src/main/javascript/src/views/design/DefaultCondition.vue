@@ -1,22 +1,37 @@
 <template>
   <div>
     <h1>Select the default condition for your experiment</h1>
-    <p>This is the condition students will receive if they do not consent to participate in the experiment or you mark
-      them to be excluded.</p>
+    <p>This is the condition students will receive if they do not consent to participate in the experiment or you mark them to be excluded.</p>
 
     <form
       @submit.prevent="saveConditions"
       class="my-5"
       v-if="experiment"
     >
-      <fieldset class="rounded-lg p-5 mb-7" v-if="experiment.conditions">
-        <label v-for="condition in experiment.conditions" :key="condition.conditionId"
-               :for="`condition-${condition.conditionId}`">
+      <fieldset
+        class="rounded-lg p-5 mb-7"
+        v-if="experiment.conditions"
+      >
+        <label
+          v-for="condition in experiment.conditions"
+          :key="condition.conditionId"
+          :for="`condition-${condition.conditionId}`"
+        >
           <span>{{ condition.name }}</span>
           <span class="radio-check">
-            <input type="radio" name="selectedDefault" v-model="selectedDefault" :value="condition.conditionId"
-                   :id="`condition-${condition.conditionId}`" @change="saveConditions" required/>
-            <span class="rounded-pill px-3 py-1">
+            <input
+              type="radio"
+              name="selectedDefault"
+              v-model="selectedDefault"
+              class="radio-default-condition"
+              :value="condition.conditionId"
+              :id="`condition-${condition.conditionId}`"
+              @change="saveConditions"
+              required
+            />
+            <span
+              class="rounded-pill px-3 py-1"
+            >
               <v-icon v-show="selectedDefault === condition.conditionId">mdi-check</v-icon>
               <span>Default</span>
             </span>
@@ -40,11 +55,13 @@
       class="mt-15 pt-5 px-5 mx-auto blue lighten-5 rounded-lg"
       outlined
     >
-      <p><strong>Note:</strong> It's important to specify a default condition so
-      that we know which version of assignments students not participating in
-      the experiment should receive. This condition should be the one closest to
-      the sort of assignment students would complete during the normal conduct
-      of the course.</p>
+      <p>
+        <strong>Note:</strong> It's important to specify a default condition so
+        that we know which version of assignments students not participating in
+        the experiment should receive. This condition should be the one closest to
+        the sort of assignment students would complete during the normal conduct
+        of the course.
+      </p>
     </v-card>
   </div>
 </template>
@@ -142,7 +159,9 @@ fieldset {
   cursor: pointer;
 
   input[type="radio"] {
-    display: none;
+    opacity: 0;
+    filter: alpha(opacity=0);
+    position: absolute;
 
     + span {
       display: block;
@@ -161,6 +180,12 @@ fieldset {
           font-size: 18px;
           vertical-align: text-bottom;
         }
+      }
+    }
+
+    &:focus-visible {
+      + span {
+        border: 1px solid orangered;
       }
     }
   }
