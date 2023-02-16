@@ -197,32 +197,45 @@
                   <template v-slot:item.actions="{ item }">
                     <v-menu offset-y>
                       <template v-slot:activator="{ on, attrs }">
-                        <v-btn icon text tile v-bind="attrs" v-on="on">
+                        <v-btn
+                          icon
+                          text
+                          tile
+                          v-bind="attrs"
+                          v-on="on"
+                          aria-label="assignment actions"
+                        >
                           <v-icon>mdi-dots-horizontal</v-icon>
                         </v-btn>
                       </template>
                       <v-list>
                         <v-menu
+                          v-if="exposures.length > 1"
                           offset-x
                           :key="exposure.exposureId"
                           open-on-hover
                           transition="slide-x-transition"
                         >
                           <template v-slot:activator="{ on, attrs }">
-                            <v-list-item v-bind="attrs" v-on="on">
-                              <v-list-item-title
-                                ><v-icon>mdi-arrow-right-top</v-icon
-                                >Move
-                                </v-list-item-title
-                              >
+                            <v-list-item
+                              v-bind="attrs"
+                              v-on="on"
+                              aria-label="assignment move to exposure set"
+                            >
+                              <v-list-item-title>
+                                <v-icon>mdi-arrow-right-top</v-icon> Move
+                              </v-list-item-title
+                            >
                               <v-list-item-action class="justify-end">
-                                  <v-icon>mdi-menu-right</v-icon>
-                                </v-list-item-action>
+                                <v-icon>mdi-menu-right</v-icon>
+                              </v-list-item-action>
                             </v-list-item>
                           </template>
                           <v-list>
                             <template v-for="(exposure, idx) in exposures">
-                              <v-list-item v-if="exposure.exposureId !== item.exposureId" :key="exposure.exposureId"
+                              <v-list-item
+                                v-if="exposure.exposureId !== item.exposureId" :key="exposure.exposureId"
+                                :aria-label="`Exposure set ${idx + 1}`"
                                 @click="
                                   handleMoveAssignment(exposure.exposureId, item)
                                 "
@@ -234,19 +247,25 @@
                             </template>
                           </v-list>
                         </v-menu>
-                        <v-list-item  @click="handleEdit(item, exposure.exposureId)">
+                        <v-list-item
+                          aria-label="edit assignment"
+                          @click="handleEdit(item, exposure.exposureId)">
                           <v-list-item-title>
                             <v-icon>mdi-pencil</v-icon>
                             Edit
                           </v-list-item-title>
                         </v-list-item>
-                        <v-list-item @click="handleDuplicateAssignment(exposure.exposureId, item)">
+                        <v-list-item
+                          aria-label="duplicate assignment"
+                          @click="handleDuplicateAssignment(exposure.exposureId, item)">
                           <v-list-item-title>
                             <v-icon>mdi-content-duplicate</v-icon>
                             Duplicate
                           </v-list-item-title>
                         </v-list-item>
-                        <v-list-item @click="handleDeleteAssignment(exposure.exposureId, item)">
+                        <v-list-item
+                          aria-label="delete assignment"
+                          @click="handleDeleteAssignment(exposure.exposureId, item)">
                           <v-list-item-title>
                             <v-icon>mdi-delete</v-icon>
                             Delete
