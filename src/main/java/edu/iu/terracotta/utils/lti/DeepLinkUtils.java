@@ -62,7 +62,7 @@ public final class DeepLinkUtils {
                 .claim(LtiStrings.LTI_DEPLOYMENT_ID, lti3Request.getLtiDeploymentId())
                 .claim(LtiStrings.LTI_MESSAGE_TYPE, LtiStrings.LTI_MESSAGE_TYPE_DEEP_LINKING_RESPONSE)
                 .claim(LtiStrings.LTI_VERSION, LtiStrings.LTI_VERSION_3)
-                .claim(LtiStrings.LTI_DATA, lti3Request.deepLinkData)
+                .claim(LtiStrings.LTI_DATA, lti3Request.getDeepLinkData())
                 .claim(LtiStrings.LTI_CONTENT_ITEMS, new HashMap<String, Object>())
                 .signWith(toolPrivateKey, SignatureAlgorithm.RS256)  //We sign it
                 .compact();
@@ -84,7 +84,7 @@ public final class DeepLinkUtils {
                 .claim(LtiStrings.LTI_DEPLOYMENT_ID, lti3Request.getLtiDeploymentId())
                 .claim(LtiStrings.LTI_MESSAGE_TYPE, LtiStrings.LTI_MESSAGE_TYPE_DEEP_LINKING_RESPONSE)
                 .claim(LtiStrings.LTI_VERSION, LtiStrings.LTI_VERSION_3)
-                .claim(LtiStrings.LTI_DATA, lti3Request.deepLinkData)
+                .claim(LtiStrings.LTI_DATA, lti3Request.getDeepLinkData())
                 .claim(LtiStrings.LTI_CONTENT_ITEMS, oneDeepLink)
                 .signWith(toolPrivateKey, SignatureAlgorithm.RS256)  //We sign it
                 .compact();
@@ -107,7 +107,7 @@ public final class DeepLinkUtils {
                 .claim(LtiStrings.LTI_DEPLOYMENT_ID, lti3Request.getLtiDeploymentId())
                 .claim(LtiStrings.LTI_MESSAGE_TYPE, LtiStrings.LTI_MESSAGE_TYPE_DEEP_LINKING_RESPONSE)
                 .claim(LtiStrings.LTI_VERSION, LtiStrings.LTI_VERSION_3)
-                .claim(LtiStrings.LTI_DATA, lti3Request.deepLinkData)
+                .claim(LtiStrings.LTI_DATA, lti3Request.getDeepLinkData())
                 .claim(LtiStrings.LTI_CONTENT_ITEMS, oneDeepLinkNoLti)
                 .signWith(toolPrivateKey, SignatureAlgorithm.RS256)  //We sign it
                 .compact();
@@ -130,7 +130,7 @@ public final class DeepLinkUtils {
                 .claim(LtiStrings.LTI_DEPLOYMENT_ID, lti3Request.getLtiDeploymentId())
                 .claim(LtiStrings.LTI_MESSAGE_TYPE, LtiStrings.LTI_MESSAGE_TYPE_DEEP_LINKING_RESPONSE)
                 .claim(LtiStrings.LTI_VERSION, LtiStrings.LTI_VERSION_3)
-                .claim(LtiStrings.LTI_DATA, lti3Request.deepLinkData)
+                .claim(LtiStrings.LTI_DATA, lti3Request.getDeepLinkData())
                 .claim(LtiStrings.LTI_CONTENT_ITEMS, multipleDeepLink)
                 .signWith(toolPrivateKey, SignatureAlgorithm.RS256)  //We sign it
                 .compact();
@@ -153,7 +153,7 @@ public final class DeepLinkUtils {
                 .claim(LtiStrings.LTI_DEPLOYMENT_ID, lti3Request.getLtiDeploymentId())
                 .claim(LtiStrings.LTI_MESSAGE_TYPE, LtiStrings.LTI_MESSAGE_TYPE_DEEP_LINKING_RESPONSE)
                 .claim(LtiStrings.LTI_VERSION, LtiStrings.LTI_VERSION_3)
-                .claim(LtiStrings.LTI_DATA, lti3Request.deepLinkData)
+                .claim(LtiStrings.LTI_DATA, lti3Request.getDeepLinkData())
                 .claim(LtiStrings.LTI_CONTENT_ITEMS, multipleDeepLinkOnlyLti)
                 .signWith(toolPrivateKey, SignatureAlgorithm.RS256)  //We sign it
                 .compact();

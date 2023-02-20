@@ -23,8 +23,9 @@ import edu.iu.terracotta.model.ToolDeployment;
 import edu.iu.terracotta.service.lti.LTIDataService;
 import edu.iu.terracotta.utils.LtiStrings;
 import edu.iu.terracotta.utils.lti.LTI3Request;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
+
+import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -37,13 +38,13 @@ import java.util.List;
  * This manages all the data processing for the LTIRequest (and for LTI in general)
  * Necessary to get appropriate TX handling and service management
  */
+@Slf4j
 @Service
+@SuppressWarnings({"PMD.GuardLogStatement"})
 public class LTIDataServiceImpl implements LTIDataService {
 
-    static final Logger log = LoggerFactory.getLogger(LTIDataServiceImpl.class);
-
     @Autowired
-    AllRepositories repos;
+    private AllRepositories repos;
 
     //This will be used to create the deep links. Needs to be in the application properties.
     @Value("${application.url}")
@@ -58,9 +59,9 @@ public class LTIDataServiceImpl implements LTIDataService {
     @Value("${lti13.demoMode:false}")
     private boolean demoMode;
 
-
     /**
      * Allows convenient access to the DAO repositories which manage the stored LTI data
+     *
      * @return the repositories access service
      */
     @Override
@@ -102,29 +103,46 @@ public class LTIDataServiceImpl implements LTIDataService {
 
         @SuppressWarnings("unchecked")
         List<Object[]> rows = qDeployment.getResultList();
-        if (rows == null || rows.isEmpty()) {
-            log.debug("LTIload: No lti.results found for client_id: " + lti.getAud() + " and  deployment_id:" + lti.getLtiDeploymentId());
-        } else {
-            //If there is a result, then we load the data in the LTI request.
-            // k, c, l, m, u, t
-            Object[] row = rows.get(0);
-            if (row.length > 0) {
-                lti.setKey((PlatformDeployment) row[0]);
-            }
-            if (row.length > 1) lti.setContext((LtiContextEntity) row[1]);
-            if (row.length > 2) lti.setLink((LtiLinkEntity) row[2]);
-            if (row.length > 3) lti.setMembership((LtiMembershipEntity) row[3]);
-            if (row.length > 4) lti.setUser((LtiUserEntity) row[4]);
-            if (row.length > 5) lti.setToolDeployment((ToolDeployment) row[5]);
 
-            // check if the loading lti.resulted in a complete set of LTI data
-            lti.checkCompleteLTIRequest();
-            lti.setLoaded(true);
-            //log.info("User " + lti.getUser().getUserKey() + " connected to the context " + lti.getLtiContextId() + " from " + lti.getKey().getBaseUrl() +
-            //        ", with the client id " + lti.getAud() + " and deploymentId " + lti.getLtiDeploymentId());
-            log.debug("LTIload: loaded data for clientid= " + lti.getAud() + " deploymentid=" + lti.getLtiDeploymentId()
-                    + " and context=" + lti.getLtiContextId() + ", complete=" + lti.isComplete());
+        if (CollectionUtils.isEmpty(rows)) {
+            log.debug("LTIload: No lti.results found for client_id: " + lti.getAud() + " and  deployment_id:" + lti.getLtiDeploymentId());
+            return lti.isLoaded();
         }
+
+        //If there is a result, then we load the data in the LTI request.
+        // k, c, l, m, u, t
+        Object[] row = rows.get(0);
+
+        if (row.length > 0) {
+            lti.setKey((PlatformDeployment) row[0]);
+        }
+
+        if (row.length > 1) {
+            lti.setContext((LtiContextEntity) row[1]);
+        }
+
+        if (row.length > 2) {
+            lti.setLink((LtiLinkEntity) row[2]);
+        }
+
+        if (row.length > 3) {
+            lti.setMembership((LtiMembershipEntity) row[3]);
+        }
+
+        if (row.length > 4) {
+            lti.setUser((LtiUserEntity) row[4]);
+        }
+
+        if (row.length > 5) {
+            lti.setToolDeployment((ToolDeployment) row[5]);
+        }
+
+        // check if the loading lti.resulted in a complete set of LTI data
+        lti.checkCompleteLTIRequest();
+        lti.setLoaded(true);
+        log.debug("LTIload: loaded data for clientid: '{}'' deploymentid: '{}' and context: '{}', complete: '{}'",
+            lti.getAud(), lti.getLtiDeploymentId(), lti.getLtiContextId(), lti.isComplete());
+
         return lti.isLoaded();
     }
 
@@ -135,14 +153,19 @@ public class LTIDataServiceImpl implements LTIDataService {
         if (repos == null) {
             throw new DataServiceException("access to the repos is required");
         }
-        if (toolDeployment == null)
+
+        if (toolDeployment == null) {
             throw new DataServiceException("ToolDeployment data must not be null to update data");
+        }
+
         if (lti.getToolDeployment() == null) {
             lti.setToolDeployment(toolDeployment);
         }
+
         if (link == null) {
             link = lti.getLtiTargetLinkUrl().substring(lti.getLtiTargetLinkUrl().lastIndexOf("?link=") + 6);
         }
+
         // For the next elements, we will check if we have it already in the lti object, and if not
         // we check if it exists in the database or not.
         // if exists we get it, if not we create it.
@@ -180,31 +203,34 @@ public class LTIDataServiceImpl implements LTIDataService {
         if (lti.getLink() == null && lti.getLtiLinkId() != null) {
             //Link is not in the lti request at this moment. Let's see if it exists:
             List<LtiLinkEntity> ltiLinkEntityList = repos.links.findByLinkKeyAndContext(link, lti.getContext());
-            if (ltiLinkEntityList.size() == 0) {
+
+            if (CollectionUtils.isEmpty(ltiLinkEntityList)) {
                 //START HARDCODING VALUES
                 //This is hardcoded because our database is not persistent
                 //In a normal case, we would had it created previously and this code wouldn't be needed.
                 String title = lti.getLtiLinkTitle();
-                if (link.equals("1234")) {
+
+                if ("1234".equals(link)) {
                     title = "My Test Link";
-                } else if (link.equals("4567")) {
+                } else if ("4567".equals(link)) {
                     title = "Another Link";
                 }
+
                 //END HARDCODING VALUES
                 LtiLinkEntity newLink = new LtiLinkEntity(link, lti.getContext(), title);
                 lti.setLink(repos.links.save(newLink));
                 inserts++;
-                log.debug("LTIupdate: Inserted link id=" + link);
+                log.debug("LTIupdate: Inserted link id: '{}'", link);
             } else {
                 lti.setLink(ltiLinkEntityList.get(0));
                 repos.entityManager.merge(lti.getLink()); // reconnect object for this transaction
                 lti.setLtiLinkId(lti.getLink().getLinkKey());
-                log.debug("LTIupdate: Reconnected existing link id=" + link);
+                log.debug("LTIupdate: Reconnected existing link id: '{}'", link);
             }
         } else if (lti.getLink() != null) {
             lti.setLink(repos.entityManager.merge(lti.getLink())); // reconnect object for this transaction
             lti.setLtiLinkId(lti.getLink().getLinkKey());
-            log.debug("LTIupdate: Reconnected existing link id=" + link);
+            log.debug("LTIupdate: Reconnected existing link id: '{}'", link);
         }
 
         if (lti.getUser() == null && lti.getSub() != null) {
@@ -239,6 +265,7 @@ public class LTIDataServiceImpl implements LTIDataService {
 
         if (lti.getMembership() == null && lti.getContext() != null && lti.getUser() != null) {
             LtiMembershipEntity ltiMembershipEntity = repos.members.findByUserAndContext(lti.getUser(), lti.getContext());
+
             if (ltiMembershipEntity == null) {
                 int roleNum = lti.makeUserRoleNum(lti.getLtiRoles()); // NOTE: do not use userRoleNumber here, it may have been overridden
                 LtiMembershipEntity newMember = new LtiMembershipEntity(lti.getContext(), lti.getUser(), roleNum);
@@ -262,6 +289,7 @@ public class LTIDataServiceImpl implements LTIDataService {
 
         // Next we handle updates to context_title, link_title, user_displayname, user_email, or role
         LtiContextEntity context = lti.getContext();
+
         if (lti.getLtiContextTitle() != null && context != null && !lti.getLtiContextTitle().equals(lti.getContext().getTitle())) {
 
             context.setTitle(lti.getLtiContextTitle());
@@ -269,7 +297,9 @@ public class LTIDataServiceImpl implements LTIDataService {
             updates++;
             log.debug("LTIupdate: Updated context (id=" + lti.getContext().getContextId() + ") title=" + lti.getLtiContextTitle());
         }
+
         LtiLinkEntity ltiLink = lti.getLink();
+
         if (lti.getLtiLinkTitle() != null && ltiLink != null && !lti.getLtiLinkTitle().equals(ltiLink.getTitle())) {
             ltiLink.setTitle(lti.getLtiLinkTitle());
             lti.setLink(repos.links.save(ltiLink));
@@ -279,14 +309,17 @@ public class LTIDataServiceImpl implements LTIDataService {
 
         boolean userChanged = false;
         LtiUserEntity user = lti.getUser();
+
         if (lti.getLtiName() != null && user != null && !lti.getLtiName().equals(user.getDisplayName())) {
             user.setDisplayName(lti.getLtiName());
             userChanged = true;
         }
+
         if (lti.getLtiEmail() != null && user != null && !lti.getLtiEmail().equals(user.getEmail())) {
             user.setEmail(lti.getLtiEmail());
             userChanged = true;
         }
+
         if (lti.getLtiCustom().containsKey("canvas_user_id") && lti.getLtiCustom().get("canvas_user_id")!= null && user != null && !lti.getLtiCustom().get("canvas_user_id").toString().equals(user.getLmsUserId())) {
             user.setLmsUserId(lti.getLtiCustom().get("canvas_user_id").toString());
             userChanged = true;
@@ -299,6 +332,7 @@ public class LTIDataServiceImpl implements LTIDataService {
         }
 
         LtiMembershipEntity membership = lti.getMembership();
+
         if (lti.getLtiRoles() != null && lti.getUserRoleNumber() != membership.getRole()) {
             membership.setRole(lti.getUserRoleNumber());
             lti.setMembership(repos.members.save(membership));
@@ -309,17 +343,21 @@ public class LTIDataServiceImpl implements LTIDataService {
 
         // need to recheck and see if we are complete now
         String complete;
-        if (lti.getLtiMessageType().equals(LtiStrings.LTI_MESSAGE_TYPE_RESOURCE_LINK)) {
+
+        if (LtiStrings.LTI_MESSAGE_TYPE_RESOURCE_LINK.equals(lti.getLtiMessageType())) {
             complete = lti.checkCompleteLTIRequest();
         } else {
             complete = lti.checkCompleteDeepLinkingRequest();
         }
-        if (!complete.equals("true")) {
+
+        if (!"true".equals(complete)) {
             throw new DataServiceException("LTI object is incomplete: " + complete);
         }
+
         lti.setLoadingUpdates(inserts + updates);
         lti.setUpdated(true);
         log.debug("LTIupdate: changes=" + lti.getLoadingUpdates() + ", inserts=" + inserts + ", updates=" + updates);
+
         return lti.getLoadingUpdates();
     }
 
@@ -347,14 +385,15 @@ public class LTIDataServiceImpl implements LTIDataService {
     public ToolDeployment findOrCreateToolDeployment(String iss, String clientId, String ltiDeploymentId) {
         ToolDeployment toolDeployment = null;
         List<ToolDeployment> toolDeployments = repos.toolDeploymentRepository
-                .findByPlatformDeployment_IssAndPlatformDeployment_ClientIdAndLtiDeploymentId(iss, clientId,
-                        ltiDeploymentId);
+            .findByPlatformDeployment_IssAndPlatformDeployment_ClientIdAndLtiDeploymentId(iss, clientId, ltiDeploymentId);
         if (toolDeployments.isEmpty()) {
             // if missing, look for platformDeployment by iss and clientId
             List<PlatformDeployment> platformDeployments = repos.platformDeploymentRepository.findByIssAndClientId(iss, clientId);
-            if (!platformDeployments.isEmpty()) {
+
+            if (CollectionUtils.isNotEmpty(platformDeployments)) {
                 // if enableAutomaticDeployments is true then add this ltiDeploymentId as a new ToolDeployment
                 PlatformDeployment platformDeployment = platformDeployments.get(0);
+
                 if (platformDeployment.getEnableAutomaticDeployments() != null && platformDeployment.getEnableAutomaticDeployments()) {
                     log.info("Automatically creating tool deployment for {}, adding "
                             + "it to platform deployment key_id: {} matching iss: {} and clientId: {}",
@@ -368,6 +407,7 @@ public class LTIDataServiceImpl implements LTIDataService {
         } else {
             toolDeployment = toolDeployments.get(0);
         }
+
         return toolDeployment;
     }
 
@@ -410,4 +450,5 @@ public class LTIDataServiceImpl implements LTIDataService {
     public void setDemoMode(Boolean demoMode) {
         this.demoMode = demoMode;
     }
+
 }
