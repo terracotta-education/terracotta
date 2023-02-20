@@ -29,6 +29,7 @@ import javax.persistence.Lob;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
+import javax.persistence.Transient;
 import javax.persistence.UniqueConstraint;
 
 import java.sql.Timestamp;
@@ -47,6 +48,8 @@ import java.util.Set;
     }
 )
 public class LtiUserEntity extends BaseEntity {
+
+    public static final String TEST_STUDENT_DISPLAY_NAME = "Test Student";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -95,7 +98,7 @@ public class LtiUserEntity extends BaseEntity {
      * @param loginAt date of user login
      */
     public LtiUserEntity(String userKey, Date loginAt, PlatformDeployment platformDeployment1) {
-        if (!StringUtils.isNotBlank(userKey)) {
+        if (StringUtils.isBlank(userKey)) {
             throw new AssertionError();
         }
 
@@ -109,6 +112,11 @@ public class LtiUserEntity extends BaseEntity {
 
         this.userKey = userKey;
         this.loginAt = new Timestamp(loginAt.getTime());
+    }
+
+    @Transient
+    public boolean isTestStudent() {
+        return StringUtils.equalsIgnoreCase(displayName, TEST_STUDENT_DISPLAY_NAME);
     }
 
     @Override

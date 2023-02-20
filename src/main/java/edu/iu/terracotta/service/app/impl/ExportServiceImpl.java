@@ -125,11 +125,18 @@ public class ExportServiceImpl implements ExportService {
         Map<String, String> files = new HashMap<>();
 
         int page = 0;
+        long participantCount = 0;
         List<Participant> participants = allRepositories.participantRepository.findByExperiment_ExperimentId(experimentId, PageRequest.of(page, exportBatchSize)).getContent();
 
         while (CollectionUtils.isNotEmpty(participants)) {
+            // remove test students
+            participants = participants.stream()
+                .filter(participant -> !participant.isTestStudent())
+                .toList();
+            participantCount += participants.size();
+
             consentedParticipantsCount += CollectionUtils.emptyIfNull(participants).stream()
-                .filter(participant -> BooleanUtils.isNotFalse(participant.getConsent()))
+                .filter(participant -> BooleanUtils.isTrue(participant.getConsent()))
                 .count();
 
             // participant_treatment.csv
@@ -142,7 +149,7 @@ public class ExportServiceImpl implements ExportService {
         }
 
         // experiment.csv
-        handleExperimentCsv(experimentId, consentedParticipantsCount, files);
+        handleExperimentCsv(experimentId, participantCount, consentedParticipantsCount, files);
 
         // outcomes.csv
         handleOutcomesCsv(experimentId, securedInfo, files);
@@ -170,7 +177,7 @@ public class ExportServiceImpl implements ExportService {
         return files;
     }
 
-    private void handleExperimentCsv(long experimentId, long consentedParticipantsCount, Map<String, String> files) throws IOException {
+    private void handleExperimentCsv(long experimentId, long participantCount, long consentedParticipantsCount, Map<String, String> files) throws IOException {
         Path path = createTempFile();
         files.put(ExperimentCsv.FILENAME, path.toString());
 
@@ -188,7 +195,7 @@ public class ExportServiceImpl implements ExportService {
                 experiment.getParticipationType().toString(),
                 experiment.getDistributionType().toString(),
                 Timestamp.valueOf(LocalDateTime.now()).toString(),
-                String.valueOf(allRepositories.participantRepository.countByExperiment_ExperimentId(experimentId)),
+                String.valueOf(participantCount),
                 String.valueOf(consentedParticipantsCount),
                 String.valueOf(allRepositories.conditionRepository.countByExperiment_ExperimentId(experimentId))
             });
