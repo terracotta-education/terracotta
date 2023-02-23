@@ -21,6 +21,7 @@ import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToOne;
 import javax.persistence.Table;
+import javax.persistence.Transient;
 import javax.persistence.UniqueConstraint;
 
 import java.sql.Timestamp;
@@ -36,6 +37,7 @@ import java.sql.Timestamp;
     }
 )
 public class Participant extends BaseEntity {
+
     @Id
     @Column(nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -72,8 +74,17 @@ public class Participant extends BaseEntity {
     @Column
     private Boolean dropped;
 
-    @JoinColumn(name = "group_group_id")
     @OneToOne
+    @JoinColumn(name = "group_group_id")
     private Group group;
+
+    @Transient
+    public boolean isTestStudent() {
+        if (ltiUserEntity == null) {
+            return false;
+        }
+
+        return ltiUserEntity.isTestStudent();
+    }
 
 }

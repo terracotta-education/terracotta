@@ -1,6 +1,9 @@
 package edu.iu.terracotta.model.app;
 
 import edu.iu.terracotta.model.BaseEntity;
+import lombok.Getter;
+import lombok.Setter;
+
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
@@ -15,44 +18,26 @@ import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import java.util.List;
 
-@Table(name = "terr_exposure")
 @Entity
+@Getter
+@Setter
+@Table(name = "terr_exposure")
 public class Exposure extends BaseEntity {
 
-    // ID
-    @Column(name = "exposure_id", nullable = false)
     @Id
+    @Column(name = "exposure_id", nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long exposureId;
 
-    // Experiment ID
-    @JoinColumn(name = "experiment_experiment_id", nullable = false)
     @ManyToOne(optional = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
+    @JoinColumn(name = "experiment_experiment_id", nullable = false)
     private Experiment experiment;
 
-    // Title
-    @Column(name = "title")
+    @Column
     private String title;
 
     @OneToMany(mappedBy = "exposure")
     private List<Outcome> outcomes;
 
-
-    //methods
-    public Long getExposureId() { return exposureId; }
-
-    public void setExposureId(Long exposureId) { this.exposureId = exposureId; }
-
-    public Experiment getExperiment() { return experiment; }
-
-    public void setExperiment(Experiment experiment) { this.experiment = experiment; }
-
-    public String getTitle() { return title; }
-
-    public void setTitle(String title) { this.title = title; }
-
-    public List<Outcome> getOutcomes() { return outcomes; }
-
-    public void setOutcomes(List<Outcome> outcomes) { this.outcomes = outcomes; }
 }

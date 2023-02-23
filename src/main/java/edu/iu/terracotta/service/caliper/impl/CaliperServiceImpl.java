@@ -797,7 +797,7 @@ public class CaliperServiceImpl implements CaliperService {
                         .connectionTimeout(platformDeployment.getCaliperConnectionTimeout())
                         .contentType(platformDeployment.getCaliperContentType())
                         .host(platformDeployment.getCaliperHost())
-                        .socketTimeout(platformDeployment.getCaliperSocketTimeOut())
+                        .socketTimeout(platformDeployment.getCaliperSocketTimeout())
                         .build();
                 HttpClient httpClient = HttpClient.create(platformDeployment.getClientId(), httpClientOptions);
                 sensor.registerClient(httpClient);

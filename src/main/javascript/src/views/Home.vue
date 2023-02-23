@@ -1,93 +1,107 @@
 <template>
-  <v-container v-if="!experiments || experiments.length<1">
-    <div class="terracotta-appbg"/>
-    <v-row justify="center" class="text-center">
-      <v-col md="6" class="mt-15 ">
-        <v-img src="@/assets/terracotta_logo.svg" alt="Terracotta Logo" class="mb-13 mx-auto" max-width="400"/>
-        <h1>Experimental research in the LMS</h1>
+  <div>
+    <v-container v-show="!hasExperiments">
+      <div class="terracotta-appbg"/>
+      <v-row justify="center" class="text-center">
+        <v-col md="6" class="mt-15 ">
+          <v-img src="@/assets/terracotta_logo.svg" alt="Terracotta Logo" class="mb-13 mx-auto" max-width="400"/>
+          <h1>Experimental research in the LMS</h1>
 
-        <p class="mb-10">
-          Welcome to Terracotta, the platform that supports teachers' and researchers' abilities to easily
-          run experiments in live classes. <br>
-          New to Terracotta?
-          <a href="https://terracotta.education/terracotta-overview" target="_blank">Read an overview of the tool</a>.
-        </p>
+          <p class="mb-10">
+            Welcome to Terracotta, the platform that supports teachers' and researchers' abilities to easily
+            run experiments in live classes. <br>
+            New to Terracotta?
+            <a href="https://terracotta.education/terracotta-overview" target="_blank">Read an overview of the tool</a>.
+          </p>
 
-        <p class="mb-0">Ready to get started?</p>
-        <v-btn @click="startExperiment" color="primary" elevation="0">Create your first experiment</v-btn>
-      </v-col>
-    </v-row>
-  </v-container>
-  <v-container v-else>
-    <v-row class="mb-5" justify="space-between">
-      <v-col cols="6">
-        <v-img src="@/assets/terracotta_logo.svg" alt="Terracotta Logo" max-width="138"/>
-      </v-col>
-      <v-col cols="6" class="text-right">
-        <v-btn @click="startExperiment" color="primary" elevation="0">New Experiment</v-btn>
-      </v-col>
-    </v-row>
-    <v-row>
-      <v-col cols="12">
-        <h1 class="pl-4 mb-3">Experiments</h1>
-        <v-data-table
-          :headers="headers"
-          :items="experiments"
-        >
-          <template v-slot:item.title="{ item }">
-            <button v-if="item"
-                         class="v-data-table__link"
-                         @click="handleNavigate(item.experimentId)">
-              <template v-if="item.title">
-                {{ item.title }}
-              </template>
-              <template v-else>
-                <em>No Title</em>
-              </template>
-            </button>
-          </template>
-          <template v-slot:item.createdAt="{ item }">
-            <span v-if="item.createdAt">{{ item.createdAt | formatDate }}</span>
-          </template>
-          <template v-slot:item.actions="{ item }">
-            <v-menu offset-y>
-              <template v-slot:activator="{ on, attrs }">
-                <v-icon
-                  color="black"
-                  v-bind="attrs"
-                  v-on="on"
-                >
-                  mdi-dots-horizontal
-                </v-icon>
-              </template>
-              <v-list dense>
-                <v-list-item
-                    @click="handleExport(item)"
-                >
-                <v-list-item-icon class="mr-3">
-                <v-icon color="black">mdi-download</v-icon>
-                </v-list-item-icon>
-                <v-list-item-content>
-                <v-list-item-title>Export</v-list-item-title>
-                </v-list-item-content>
-                </v-list-item>
-                <v-list-item
-                  @click="handleDelete(item)"
-                >
-                  <v-list-item-icon class="mr-3">
-                    <v-icon color="black">mdi-delete</v-icon>
-                  </v-list-item-icon>
-                  <v-list-item-content>
-                    <v-list-item-title>Delete</v-list-item-title>
-                  </v-list-item-content>
-                </v-list-item>
-              </v-list>
-            </v-menu>
-          </template>
-        </v-data-table>
-      </v-col>
-    </v-row>
-  </v-container>
+          <p class="mb-0">Ready to get started?</p>
+          <v-btn @click="startExperiment" color="primary" elevation="0">Create your first experiment</v-btn>
+        </v-col>
+      </v-row>
+    </v-container>
+    <v-container v-show="hasExperiments">
+      <v-row class="mb-5" justify="space-between">
+        <v-col cols="6">
+          <v-img src="@/assets/terracotta_logo.svg" alt="Terracotta Logo" max-width="138"/>
+        </v-col>
+        <v-col cols="6" class="text-right">
+          <v-btn
+            @click="startExperiment"
+            color="primary"
+            elevation="0"
+          >
+            New Experiment
+          </v-btn>
+        </v-col>
+      </v-row>
+      <v-row>
+        <v-col cols="12">
+          <h1 class="pl-4 mb-3">Experiments</h1>
+          <v-data-table
+            :headers="headers"
+            :items="experiments || []"
+            class="table-experiments"
+          >
+            <template v-slot:item.title="{ item }">
+              <button
+                v-if="item"
+                class="v-data-table__link"
+                @click="handleNavigate(item.experimentId)"
+              >
+                <template v-if="item.title">
+                  {{ item.title }}
+                </template>
+                <template v-else>
+                  <em>No Title</em>
+                </template>
+              </button>
+            </template>
+            <template v-slot:item.createdAt="{ item }">
+              <span v-if="item.createdAt">{{ item.createdAt | formatDate }}</span>
+            </template>
+            <template v-slot:item.actions="{ item }">
+              <v-menu offset-y>
+                <template v-slot:activator="{ on, attrs }">
+                  <v-icon
+                    color="black"
+                    v-bind="attrs"
+                    v-on="on"
+                    :aria-label="`actions for experiment ${item.title}`"
+                  >
+                    mdi-dots-horizontal
+                  </v-icon>
+                </template>
+                <v-list dense>
+                  <v-list-item
+                      @click="handleExport(item)"
+                      :aria-label="`export experiment ${item.title}`"
+                  >
+                    <v-list-item-icon class="mr-3">
+                      <v-icon color="black">mdi-download</v-icon>
+                    </v-list-item-icon>
+                    <v-list-item-content>
+                      <v-list-item-title>Export</v-list-item-title>
+                    </v-list-item-content>
+                  </v-list-item>
+                  <v-list-item
+                    @click="handleDelete(item)"
+                    :aria-label="`delete experiment ${item.title}`"
+                  >
+                    <v-list-item-icon class="mr-3">
+                      <v-icon color="black">mdi-delete</v-icon>
+                    </v-list-item-icon>
+                    <v-list-item-content>
+                      <v-list-item-title>Delete</v-list-item-title>
+                    </v-list-item-content>
+                  </v-list-item>
+                </v-list>
+              </v-menu>
+            </template>
+          </v-data-table>
+        </v-col>
+      </v-row>
+    </v-container>
+  </div>
 </template>
 
 <script>
@@ -115,7 +129,44 @@ export default {
     ...mapGetters({
       experiments: 'experiment/experiments',
       exportdata: 'exportdata/exportData'
-    })
+    }),
+    hasExperiments() {
+      return this.experiments && this.experiments.length > 0;
+    }
+  },
+  watch: {
+    // this is necessary, as vuejs doesn't allow tabbing + keyboard selection of column sorting
+    hasExperiments: {
+      handler() {
+        if (!this.hasExperiments) {
+          return;
+        }
+
+        const table = this.$el.querySelector(".table-experiments");
+
+        if (!table) {
+          return;
+        }
+
+        const sortableColumns = table.querySelectorAll('th.sortable > span:not(.v-icon)');
+
+        sortableColumns.forEach(
+          col => {
+            col.setAttribute('tabindex', '0');
+            col.addEventListener(
+              'keyup',
+              (event) => {
+                if (event.key !== 'Enter') {
+                  return;
+                }
+
+                event.target.click();
+              }
+            );
+          }
+        )
+      }
+    }
   },
   methods: {
     ...mapActions({
@@ -210,7 +261,7 @@ export default {
     this.resetSubmissions();
     this.resetTreatments();
     this.deleteEditMode();
-  },
+  }
 }
 </script>
 
