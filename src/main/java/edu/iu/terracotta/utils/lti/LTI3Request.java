@@ -84,7 +84,7 @@ import java.util.Map;
 @Slf4j
 @Getter
 @Setter
-@SuppressWarnings({ "PMD.GuardLogStatement", "ConstantConditions" })
+@SuppressWarnings({ "PMD.GuardLogStatement", "ConstantConditions", "PMD.SingletonClassReturningNewInstance", "unchecked", "rawtypes" })
 public class LTI3Request {
 
     private HttpServletRequest httpServletRequest;
@@ -504,8 +504,11 @@ public class LTI3Request {
 
             // NOTE: This is just to hardcode some demo information.
             try {
-                deepLinkJwts = DeepLinkUtils.generateDeepLinkJWT(ltiDataService, ltiDataService.getRepos().platformDeploymentRepository.findByToolDeployments_LtiDeploymentId(ltiDeploymentId).get(0),
-                        this, ltiDataService.getLocalUrl());
+                deepLinkJwts = DeepLinkUtils.generateDeepLinkJWT(
+                    ltiDataService,
+                    ltiDataService.getRepos().platformDeploymentRepository.findByToolDeployments_LtiDeploymentId(ltiDeploymentId).get(0),
+                    this,
+                    toolDeployment.getPlatformDeployment().getLocalUrl());
             } catch (GeneralSecurityException | IOException | NullPointerException ex) {
                 log.error("Error creating the DeepLinking Response", ex);
             }
@@ -672,7 +675,6 @@ public class LTI3Request {
      */
 
     public String checkCompleteDeepLinkingRequest() {
-
         String completeStr = "";
 
         if (StringUtils.isEmpty(ltiDeploymentId)) {
@@ -709,9 +711,9 @@ public class LTI3Request {
 
         if (StringUtils.isBlank(completeStr)) {
             return "true";
-        } else {
-            return completeStr;
         }
+
+        return completeStr;
     }
 
     /**
@@ -721,12 +723,8 @@ public class LTI3Request {
      */
     //TODO update this to check the really complete conditions...!
     private String checkCorrectLTIRequest() {
-
-
         //TODO check things as:
         // Roles are correct roles
-        //
-
         return "true";
     }
 
@@ -737,12 +735,7 @@ public class LTI3Request {
      */
     //TODO update this to check the really complete conditions...!
     private String checkCorrectDeepLinkingRequest() {
-
-
         //TODO check anything needed to check if the request is valid:
-        //
-        //
-
         return "true";
     }
 
@@ -751,20 +744,21 @@ public class LTI3Request {
      * @return true if this is a valid LTI request
      */
     public String checkNonce(Jws<Claims> jws) {
-
         //We get all the nonces from the session, and compare.
         List<String> ltiNonce = (List) httpServletRequest.getSession().getAttribute("lti_nonce");
         List<String> ltiNonceNew = new ArrayList<>();
         boolean found = false;
         String nonceToCheck = jws.getBody().get(LtiStrings.LTI_NONCE, String.class);
+
         if (nonceToCheck == null || ListUtils.isEmpty(ltiNonce)) {
             return "Nonce = null in the JWT or in the session.";
         } else {
             // Really, we send the hash of the nonce to the platform.
             for (String nonceStored : ltiNonce) {
                 String nonceHash = Hashing.sha256()
-                        .hashString(nonceStored, StandardCharsets.UTF_8)
-                        .toString();
+                    .hashString(nonceStored, StandardCharsets.UTF_8)
+                    .toString();
+
                 if (nonceToCheck.equals(nonceHash)) {
                     found = true;
                 } else { //If not found, we add it to another list... so we keep the unused nonces.
@@ -777,7 +771,6 @@ public class LTI3Request {
             } else {
                 return "Unknown or already used nounce.";
             }
-
         }
     }
 
@@ -786,28 +779,36 @@ public class LTI3Request {
      * @return true if this is a valid LTI request
      */
     public static String isLTI3Request(Jws<Claims> jws) {
-
         String errorDetail = "";
         boolean valid = false;
         String ltiVersion = jws.getBody().get(LtiStrings.LTI_VERSION, String.class);
+
         if (ltiVersion == null) {
             errorDetail = "LTI Version = null. ";
         }
+
         String ltiMessageType = jws.getBody().get(LtiStrings.LTI_MESSAGE_TYPE, String.class);
+
         if (ltiMessageType == null) {
             errorDetail += "LTI Message Type = null. ";
         }
+
         if (ltiMessageType != null && ltiVersion != null) {
             boolean goodMessageType = LtiStrings.LTI_MESSAGE_TYPE_RESOURCE_LINK.equals(ltiMessageType) || LtiStrings.LTI_MESSAGE_TYPE_DEEP_LINKING.equals(ltiMessageType);
+
             if (!goodMessageType) {
                 errorDetail = "LTI Message Type is not right: " + ltiMessageType + ". ";
             }
+
             boolean goodLTIVersion = LtiStrings.LTI_VERSION_3.equals(ltiVersion);
+
             if (!goodLTIVersion) {
                 errorDetail += "LTI Version is not right: " + ltiVersion;
             }
+
             valid = goodMessageType && goodLTIVersion;
         }
+
         if (valid && LtiStrings.LTI_MESSAGE_TYPE_RESOURCE_LINK.equals(ltiMessageType)) {
             return LtiStrings.LTI_MESSAGE_TYPE_RESOURCE_LINK;
         } else if (valid && LtiStrings.LTI_MESSAGE_TYPE_DEEP_LINKING.equals(ltiMessageType)) {
@@ -816,7 +817,6 @@ public class LTI3Request {
             return errorDetail;
         }
     }
-
 
     public boolean isRoleAdministrator() {
         return ltiRoles != null && userRoleNumber >= 2;
@@ -830,13 +830,13 @@ public class LTI3Request {
         return ltiRoles != null && ltiRoles.contains(LtiStrings.LTI_ROLE_MEMBERSHIP_LEARNER);
     }
 
-
     /**
      * @param rawUserRoles the raw roles string (this could also only be part of the string assuming it is the highest one)
      * @return the number that represents the role (higher is more access)
      */
     public int makeUserRoleNum(List<String> rawUserRoles) {
         int roleNum = 0;
+
         if (rawUserRoles != null) {
             if (rawUserRoles.contains(LtiStrings.LTI_ROLE_MEMBERSHIP_ADMIN)) {
                 roleNum = 2;
@@ -844,6 +844,7 @@ public class LTI3Request {
                 roleNum = 1;
             }
         }
+
         return roleNum;
     }
 

@@ -14,9 +14,13 @@ package edu.iu.terracotta.model.lti.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import java.util.List;
 
-
+@Getter
+@Setter
 public class ToolRegistrationDTO {
 
     private String application_type;
@@ -32,131 +36,9 @@ public class ToolRegistrationDTO {
     private String client_uri;
     private String tos_uri;
     private String policy_uri;
-    @JsonProperty("https://purl.imsglobal.org/spec/lti-tool-configuration")
-    private ToolConfigurationDTO toolConfiguration;
     private List<String> scope;
 
+    @JsonProperty("https://purl.imsglobal.org/spec/lti-tool-configuration")
+    private ToolConfigurationDTO toolConfiguration;
 
-    public ToolRegistrationDTO() {//Empty on purpose
-    }
-
-    public String getApplication_type() {
-        return application_type;
-    }
-
-    public void setApplication_type(String application_type) {
-        this.application_type = application_type;
-    }
-
-    public List<String> getGrant_types() {
-        return grant_types;
-    }
-
-    public void setGrant_types(List<String> grant_types) {
-        this.grant_types = grant_types;
-    }
-
-    public List<String> getResponse_types() {
-        return response_types;
-    }
-
-    public void setResponse_types(List<String> response_types) {
-        this.response_types = response_types;
-    }
-
-    public List<String> getRedirect_uris() {
-        return redirect_uris;
-    }
-
-    public void setRedirect_uris(List<String> redirect_uris) {
-        this.redirect_uris = redirect_uris;
-    }
-
-    public String getInitiate_login_uri() {
-        return initiate_login_uri;
-    }
-
-    public void setInitiate_login_uri(String initiate_login_uri) {
-        this.initiate_login_uri = initiate_login_uri;
-    }
-
-    public String getClient_name() {
-        return client_name;
-    }
-
-    public void setClient_name(String client_name) {
-        this.client_name = client_name;
-    }
-
-    public String getJwks_uri() {
-        return jwks_uri;
-    }
-
-    public void setJwks_uri(String jwks_uri) {
-        this.jwks_uri = jwks_uri;
-    }
-
-    public String getLogo_uri() {
-        return logo_uri;
-    }
-
-    public void setLogo_uri(String logo_uri) {
-        this.logo_uri = logo_uri;
-    }
-
-    public String getToken_endpoint_auth_method() {
-        return token_endpoint_auth_method;
-    }
-
-    public void setToken_endpoint_auth_method(String token_endpoint_auth_method) {
-        this.token_endpoint_auth_method = token_endpoint_auth_method;
-    }
-
-    public List<String> getContacts() {
-        return contacts;
-    }
-
-    public void setContacts(List<String> contacts) {
-        this.contacts = contacts;
-    }
-
-    public String getClient_uri() {
-        return client_uri;
-    }
-
-    public void setClient_uri(String client_uri) {
-        this.client_uri = client_uri;
-    }
-
-    public String getTos_uri() {
-        return tos_uri;
-    }
-
-    public void setTos_uri(String tos_uri) {
-        this.tos_uri = tos_uri;
-    }
-
-    public String getPolicy_uri() {
-        return policy_uri;
-    }
-
-    public void setPolicy_uri(String policy_uri) {
-        this.policy_uri = policy_uri;
-    }
-
-    public ToolConfigurationDTO getToolConfiguration() {
-        return toolConfiguration;
-    }
-
-    public void setToolConfiguration(ToolConfigurationDTO toolConfiguration) {
-        this.toolConfiguration = toolConfiguration;
-    }
-
-    public List<String> getScope() {
-        return scope;
-    }
-
-    public void setScope(List<String> scope) {
-        this.scope = scope;
-    }
 }

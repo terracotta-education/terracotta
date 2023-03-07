@@ -16,8 +16,8 @@ import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.helper.ExceptionMessageGenerator;
 import edu.iu.terracotta.model.lti.dto.ToolRegistrationDTO;
 import edu.iu.terracotta.service.lti.RegistrationService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -33,13 +33,13 @@ import org.springframework.web.client.RestTemplate;
  * This manages the Registration call
  * Necessary to get appropriate TX handling and service management
  */
+@Slf4j
 @Service
+@SuppressWarnings({"rawtypes", "PMD.GuardLogStatement"})
 public class RegistrationServiceImpl implements RegistrationService {
 
     @Autowired
     private ExceptionMessageGenerator exceptionMessageGenerator;
-
-    static final Logger log = LoggerFactory.getLogger(RegistrationServiceImpl.class);
 
     //Calling the membership service and getting a paginated result of users.
     @Override

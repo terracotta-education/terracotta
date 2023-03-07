@@ -16,26 +16,31 @@ import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
 import edu.iu.terracotta.model.app.Participant;
+import lombok.Getter;
+import lombok.Setter;
 
-@Table(name = "terr_event")
 @Entity
+@Getter
+@Setter
+@Table(name = "terr_event")
 public class Event {
-    @Column(name = "event_id", nullable = false)
+
     @Id
+    @Column(name = "event_id", nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long eventId;
 
-    @Column(name = "caliper_id")
+    @Column
     private String caliperId;
 
-    @Column(name = "actor_id")
+    @Column
     private String actorId;
 
-    @Column(name = "actor_type")
+    @Column
     private String actorType;
 
-    @Column(name = "platform_deployment")
-    private String platform_deployment ;
+    @Column
+    private String platform_deployment;
 
     @Column(name = "event_type")
     private String type;
@@ -49,54 +54,53 @@ public class Event {
     @Column(name = "event_group")
     private String group;
 
-    @Column(name = "event_time")
+    @Column
     private Timestamp eventTime;
 
-    @Column(name = "object_id")
+    @Column
     private String objectId;
 
-    @Column(name = "objectType")
+    @Column
     private String objectType;
 
-    @Column(name = "generated_id")
+    @Column
     private String generatedId;
 
-    @Column(name = "generated_type")
+    @Column
     private String generatedType;
 
-    @Column(name = "referrer_id")
+    @Column
     private String referrerId;
 
-    @Column(name = "referred_type")
+    @Column
     private String referredType;
 
-    @Column(name = "target_id")
+    @Column
     private String targetId;
 
-    @Column(name = "target_type")
+    @Column
     private String targetType;
 
-    @Column(name = "federated_session")
+    @Column
     private String federatedSession;
 
-    @Column(name = "membership_id")
+    @Column
     private String membershipId;
 
-    @Column(name = "membership_roles")
+    @Column
     private String membershipRoles;
 
-    @Column(name = "lti_context_id")
+    @Column
     private String ltiContextId;
 
-    @Column(name = "json")
     @Lob
+    @Column
     private String json;
 
-    @JoinColumn(name = "participant_participant_id", nullable = true)
     @ManyToOne(optional = true)
     @OnDelete(action = OnDeleteAction.CASCADE)
+    @JoinColumn(name = "participant_participant_id", nullable = true)
     private Participant participant;
-
 
     // The profile/action
         //AssessmentEvent.Started  <-- When the user starts and assignment and creates a new submission
@@ -108,197 +112,4 @@ public class Event {
         //ViewEvent.Viewed <-- If the student views the grading.
         //ToolUseEvent.Used  <-- Every time a student launches the tool (dashboard or assignment, does not matters)
 
-
-    public Long getEventId() {
-        return eventId;
-    }
-
-    public void setEventId(Long eventId) {
-        this.eventId = eventId;
-    }
-
-    public String getCaliperId() {
-        return caliperId;
-    }
-
-    public void setCaliperId(String caliperId) {
-        this.caliperId = caliperId;
-    }
-
-    public String getActorId() {
-        return actorId;
-    }
-
-    public void setActorId(String actorId) {
-        this.actorId = actorId;
-    }
-
-    public String getActorType() {
-        return actorType;
-    }
-
-    public void setActorType(String actorType) {
-        this.actorType = actorType;
-    }
-
-    public String getPlatform_deployment() {
-        return platform_deployment;
-    }
-
-    public void setPlatform_deployment(String platform_deployment) {
-        this.platform_deployment = platform_deployment;
-    }
-
-    public String getType() {
-        return type;
-    }
-
-    public void setType(String type) {
-        this.type = type;
-    }
-
-    public String getProfile() {
-        return profile;
-    }
-
-    public void setProfile(String profile) {
-        this.profile = profile;
-    }
-
-    public String getAction() {
-        return action;
-    }
-
-    public void setAction(String action) {
-        this.action = action;
-    }
-
-    public String getGroup() {
-        return group;
-    }
-
-    public void setGroup(String group) {
-        this.group = group;
-    }
-
-    public Timestamp getEventTime() {
-        return eventTime;
-    }
-
-    public void setEventTime(Timestamp eventTime) {
-        this.eventTime = eventTime;
-    }
-
-    public String getObjectId() {
-        return objectId;
-    }
-
-    public void setObjectId(String objectId) {
-        this.objectId = objectId;
-    }
-
-    public String getObjectType() {
-        return objectType;
-    }
-
-    public void setObjectType(String objectType) {
-        this.objectType = objectType;
-    }
-
-    public String getGeneratedId() {
-        return generatedId;
-    }
-
-    public void setGeneratedId(String generatedId) {
-        this.generatedId = generatedId;
-    }
-
-    public String getGeneratedType() {
-        return generatedType;
-    }
-
-    public void setGeneratedType(String generatedType) {
-        this.generatedType = generatedType;
-    }
-
-    public String getTargetId() {
-        return targetId;
-    }
-
-    public void setTargetId(String targetId) {
-        this.targetId = targetId;
-    }
-
-    public String getTargetType() {
-        return targetType;
-    }
-
-    public void setTargetType(String targetType) {
-        this.targetType = targetType;
-    }
-
-    public String getFederatedSession() {
-        return federatedSession;
-    }
-
-    public void setFederatedSession(String federatedSession) {
-        this.federatedSession = federatedSession;
-    }
-
-    public String getMembershipId() {
-        return membershipId;
-    }
-
-    public void setMembershipId(String membershipId) {
-        this.membershipId = membershipId;
-    }
-
-    public String getMembershipRoles() {
-        return membershipRoles;
-    }
-
-    public void setMembershipRoles(String membershipRoles) {
-        this.membershipRoles = membershipRoles;
-    }
-
-    public String getReferrerId() {
-        return referrerId;
-    }
-
-    public void setReferrerId(String referrerId) {
-        this.referrerId = referrerId;
-    }
-
-    public String getReferredType() {
-        return referredType;
-    }
-
-    public void setReferredType(String referredType) {
-        this.referredType = referredType;
-    }
-
-    public String getLtiContextId() {
-        return ltiContextId;
-    }
-
-    public void setLtiContextId(String ltiContextId) {
-        this.ltiContextId = ltiContextId;
-    }
-
-    public String getJson() {
-        return json;
-    }
-
-    public void setJson(String json) {
-        this.json = json;
-    }
-
-
-    public Participant getParticipant() {
-        return participant;
-    }
-
-    public void setParticipant(Participant participant) {
-        this.participant = participant;
-    }
 }

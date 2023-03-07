@@ -36,7 +36,6 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.HttpServletRequest;
@@ -50,7 +49,7 @@ import java.util.List;
 @RequestMapping(value = ExperimentController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
 public class ExperimentController {
 
-    static final String REQUEST_ROOT = "api/experiments";
+    public static final String REQUEST_ROOT = "api/experiments";
 
     @Autowired
     private ExperimentService experimentService;
@@ -61,7 +60,6 @@ public class ExperimentController {
     @Autowired
     private APIJWTService apijwtService;
 
-
     /**
      * To show the experiment in a course (context) in a platform deployment.
      */
@@ -69,7 +67,7 @@ public class ExperimentController {
     public ResponseEntity<List<ExperimentDto>> allExperimentsByCourse(HttpServletRequest req) throws BadTokenException {
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
 
-        if (securedInfo ==null){
+        if (securedInfo == null){
             throw new BadTokenException(TextConstants.BAD_TOKEN);
         }
 
@@ -77,7 +75,7 @@ public class ExperimentController {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
 
-        List<ExperimentDto> experimentList = experimentService.getExperiments(securedInfo.getPlatformDeploymentId(), securedInfo.getContextId());
+        List<ExperimentDto> experimentList = experimentService.getExperiments(securedInfo, true);
 
         if (experimentList.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);

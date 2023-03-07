@@ -1,6 +1,25 @@
 package edu.iu.terracotta.service.app;
 
-import edu.iu.terracotta.exceptions.*;
+import edu.iu.terracotta.exceptions.AnswerNotMatchingException;
+import edu.iu.terracotta.exceptions.AnswerSubmissionNotMatchingException;
+import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
+import edu.iu.terracotta.exceptions.AssignmentNotMatchingException;
+import edu.iu.terracotta.exceptions.BadTokenException;
+import edu.iu.terracotta.exceptions.ConditionNotMatchingException;
+import edu.iu.terracotta.exceptions.ConditionsLockedException;
+import edu.iu.terracotta.exceptions.ExperimentLockedException;
+import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.exceptions.ExposureNotMatchingException;
+import edu.iu.terracotta.exceptions.GroupNotMatchingException;
+import edu.iu.terracotta.exceptions.OutcomeNotMatchingException;
+import edu.iu.terracotta.exceptions.OutcomeScoreNotMatchingException;
+import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
+import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
+import edu.iu.terracotta.exceptions.QuestionSubmissionCommentNotMatchingException;
+import edu.iu.terracotta.exceptions.QuestionSubmissionNotMatchingException;
+import edu.iu.terracotta.exceptions.SubmissionCommentNotMatchingException;
+import edu.iu.terracotta.exceptions.SubmissionNotMatchingException;
+import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.utils.lti.LTI3Request;
 import io.jsonwebtoken.Claims;
@@ -14,9 +33,10 @@ import java.security.GeneralSecurityException;
 import java.util.List;
 import java.util.Optional;
 
+@SuppressWarnings({"rawtypes"})
 public interface APIJWTService {
 
-    public static final String ISSUER_TERRACOTTA_API = "TERRACOTTA";
+    String ISSUER_TERRACOTTA_API = "TERRACOTTA";
 
     //Here we could add other checks like expiration of the state (not implemented)
     Jws<Claims> validateToken(String token);
@@ -120,9 +140,10 @@ public interface APIJWTService {
 
     void outcomeScoreAllowed(SecuredInfo securedInfo, Long outcomeId, Long outcomeScoreId) throws OutcomeScoreNotMatchingException;
 
-    void answerSubmissionAllowed(SecuredInfo securedInfo, Long QuestionSubmissionId, String answerType, Long answerSubmissionId) throws AnswerSubmissionNotMatchingException;
+    void answerSubmissionAllowed(SecuredInfo securedInfo, Long questionSubmissionId, String answerType, Long answerSubmissionId) throws AnswerSubmissionNotMatchingException;
 
     boolean validateFileToken(String token, String fileId);
 
-    String buildFileToken(String fileId) throws GeneralSecurityException;
+    String buildFileToken(String fileId, String localUrl) throws GeneralSecurityException;
+
 }

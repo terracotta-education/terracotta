@@ -10,22 +10,22 @@ import lombok.Setter;
 @Setter
 public class SecuredInfo {
 
-    long platformDeploymentId;
-    long contextId;
-    String userId;
-    List<String> roles;
-    String canvasUserId;
-    String canvasUserGlobalId;
-    String canvasLoginId;
-    String canvasUserName;
-    String canvasCourseId;
-    String canvasAssignmentId;
-    Timestamp dueAt;
-    Timestamp lockAt;
-    Timestamp unlockAt;
-    String nonce;
-    Boolean consent;
-    Integer studentAttempts;
+    private long platformDeploymentId;
+    private long contextId;
+    private String userId;
+    private List<String> roles;
+    private String canvasUserId;
+    private String canvasUserGlobalId;
+    private String canvasLoginId;
+    private String canvasUserName;
+    private String canvasCourseId;
+    private String canvasAssignmentId;
+    private Timestamp dueAt;
+    private Timestamp lockAt;
+    private Timestamp unlockAt;
+    private String nonce;
+    private Boolean consent;
+    private Integer studentAttempts;
 
     /**
      * Number of allowed attempts for assignment. The value is only populated
@@ -33,6 +33,6 @@ public class SecuredInfo {
      *
      * @return the number of allowed attempts, or -1 if attempts are unlimited
      */
-    Integer allowedAttempts;
+    private Integer allowedAttempts;
 
 }

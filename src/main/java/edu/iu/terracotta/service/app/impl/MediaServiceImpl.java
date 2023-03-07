@@ -4,7 +4,13 @@ import edu.iu.terracotta.exceptions.NoSubmissionsException;
 import edu.iu.terracotta.exceptions.ParameterMissingException;
 import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.Submission;
-import edu.iu.terracotta.model.app.dto.media.*;
+import edu.iu.terracotta.model.app.dto.media.GroupDto;
+import edu.iu.terracotta.model.app.dto.media.MediaEventDto;
+import edu.iu.terracotta.model.app.dto.media.MediaLocationDto;
+import edu.iu.terracotta.model.app.dto.media.MediaObjectDto;
+import edu.iu.terracotta.model.app.dto.media.MembershipDto;
+import edu.iu.terracotta.model.app.dto.media.PersonDto;
+import edu.iu.terracotta.model.app.dto.media.SessionDto;
 import edu.iu.terracotta.model.events.Event;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.AllRepositories;
@@ -12,17 +18,10 @@ import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.MediaService;
 import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.service.caliper.impl.CaliperServiceImpl;
-import edu.iu.terracotta.service.common.Utils;
 import org.imsglobal.caliper.actions.Action;
-import org.imsglobal.caliper.context.JsonldContext;
-import org.imsglobal.caliper.context.JsonldStringContext;
 import org.imsglobal.caliper.entities.EntityType;
-import org.imsglobal.caliper.entities.agent.SoftwareApplication;
 import org.imsglobal.caliper.events.EventType;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -30,8 +29,6 @@ import java.util.Optional;
 
 @Component
 public class MediaServiceImpl implements MediaService {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(MediaServiceImpl.class);
 
     public static final String DATA_VERSION = "http://purl.imsglobal.org/ctx/caliper/v1p2";
 
@@ -46,21 +43,6 @@ public class MediaServiceImpl implements MediaService {
 
     @Autowired
     private CaliperServiceImpl caliperService;
-
-
-    private String applicationName;
-    private String applicationUrl;
-    private final SoftwareApplication softwareApplication;
-    private final JsonldContext context;
-
-    @Autowired
-    public MediaServiceImpl(@Value("${application.name}") final String applicationNameAttribute,
-                            @Value("${application.url}") final String applicationUrlAttribute) {
-        applicationName = applicationNameAttribute;
-        applicationUrl = applicationUrlAttribute;
-        context = JsonldStringContext.create(DATA_VERSION);
-        softwareApplication = Utils.prepareSoftwareApplication(applicationName, applicationUrl);
-    }
 
     @Override
     public MediaEventDto toDto(Event mediaEvent) {
@@ -104,10 +86,8 @@ public class MediaServiceImpl implements MediaService {
     }
 
     @Override
-    public void fromDto(MediaEventDto mediaEventDto, SecuredInfo securedInfo,
-                        Long experimentId, Long submissionId, Long questionId) throws ParameterMissingException, NoSubmissionsException {
-        edu.iu.terracotta.model.events.Event event = new edu.iu.terracotta.model.events.Event();
-
+    public void fromDto(MediaEventDto mediaEventDto, SecuredInfo securedInfo, Long experimentId, Long submissionId, Long questionId)
+            throws ParameterMissingException, NoSubmissionsException {
         if (mediaEventDto.getEventTime() == null) {
             throw new ParameterMissingException("Event time is empty");
         }
@@ -120,6 +100,7 @@ public class MediaServiceImpl implements MediaService {
         if (mediaEventDto.getObject() == null) {
             throw new ParameterMissingException("MediaEvent Object not found");
         }
+
         boolean student = !apijwtService.isInstructorOrHigher(securedInfo);
         Submission submission = submissionService.getSubmission(experimentId, securedInfo.getUserId(), submissionId, student);
         Participant participant = submission.getParticipant();
@@ -128,8 +109,7 @@ public class MediaServiceImpl implements MediaService {
 
     @Override
     public Event save(Event mediaEvent) {
-        allRepositories.eventRepository.save(mediaEvent);
-        return mediaEvent;
+        return allRepositories.eventRepository.save(mediaEvent);
     }
 
     @Override
@@ -151,6 +131,5 @@ public class MediaServiceImpl implements MediaService {
     public void deleteById(Long id) {
         allRepositories.eventRepository.deleteById(id);
     }
-
 
 }

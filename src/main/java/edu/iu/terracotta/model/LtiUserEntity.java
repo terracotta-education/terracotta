@@ -52,8 +52,8 @@ public class LtiUserEntity extends BaseEntity {
     public static final String TEST_STUDENT_DISPLAY_NAME = "Test Student";
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "user_id", nullable = false)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long userId;
 
     // per LTI 1.3 and OIDC specifications, the 'sub' claim must not be more than
@@ -61,7 +61,7 @@ public class LtiUserEntity extends BaseEntity {
     @Column(name = "user_key", nullable = false, length = 255)
     private String userKey;
 
-    @Column(name = "lms_user_id")
+    @Column
     private String lmsUserId;
 
     @Column(name = "displayname", length = 4096)
@@ -73,7 +73,7 @@ public class LtiUserEntity extends BaseEntity {
     @Column
     private String email;
 
-    @Column(name = "locale", length = 63)
+    @Column(length = 63)
     private String locale;
 
     @Column

@@ -19,16 +19,11 @@ public class AssessmentDto {
     private Long assessmentId;
     private String html;
     private Long treatmentId;
-    // private String title;
     private boolean autoSubmit;
     private Integer numOfSubmissions;
     private Float hoursBetweenSubmissions;
     private String multipleSubmissionScoringScheme = MultipleSubmissionScoringScheme.MOST_RECENT.name();
     private Float cumulativeScoringInitialPercentage;
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    private List<SubmissionDto> submissions;
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    private List<QuestionDto> questions;
     private Float maxPoints;
     private boolean started;
     private Long submissionsExpected;
@@ -41,5 +36,11 @@ public class AssessmentDto {
     private Timestamp studentViewCorrectAnswersAfter;
     private Timestamp studentViewCorrectAnswersBefore;
     private RetakeDetails retakeDetails;
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private List<SubmissionDto> submissions;
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private List<QuestionDto> questions;
 
 }

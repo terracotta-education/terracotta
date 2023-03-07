@@ -1,5 +1,10 @@
 package edu.iu.terracotta.model.app.dto;
 
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
 public class TreatmentDto {
 
     private Long treatmentId;
@@ -7,34 +12,5 @@ public class TreatmentDto {
     private AssignmentDto assignmentDto;
     private Long conditionId;
     private Long assignmentId;
-
-
-    public Long getTreatmentId() { return treatmentId; }
-
-    public void setTreatmentId(Long treatmentId) { this.treatmentId = treatmentId; }
-
-    public AssessmentDto getAssessmentDto() { return assessmentDto; }
-
-    public void setAssessmentDto(AssessmentDto assessmentDto) { this.assessmentDto = assessmentDto; }
-
-    public Long getConditionId() { return conditionId; }
-
-    public void setConditionId(Long conditionId) { this.conditionId = conditionId; }
-
-    public Long getAssignmentId() {
-        return assignmentId;
-    }
-
-    public void setAssignmentId(Long assignmentId) {
-        this.assignmentId = assignmentId;
-    }
-
-    public AssignmentDto getAssignmentDto() {
-        return assignmentDto;
-    }
-
-    public void setAssignmentDto(AssignmentDto assignmentDto) {
-        this.assignmentDto = assignmentDto;
-    }
 
 }

@@ -15,89 +15,36 @@ package edu.iu.terracotta.model.ags;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class LineItem {
+
     @JsonProperty("id")
     private String id;
+
     @JsonProperty("scoreMaximum")
     private String scoreMaximum;
+
     @JsonProperty("label")
     private String label;
+
     @JsonProperty("resourceId")
     private String resourceId;
+
     @JsonProperty("tag")
     private String tag;
+
     @JsonProperty("resourceLinkId")
     private String resourceLinkId;
+
     @JsonProperty("startDateTime")
     private String startDateTime;
+
     @JsonProperty("endDateTime")
     private String endDateTime;
 
-    public LineItem() { //Empty on purpose
-    }
-
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
-    }
-
-    public String getScoreMaximum() {
-        return scoreMaximum;
-    }
-
-    public void setScoreMaximum(String scoreMaximum) {
-        this.scoreMaximum = scoreMaximum;
-    }
-
-    public String getLabel() {
-        return label;
-    }
-
-    public void setLabel(String label) {
-        this.label = label;
-    }
-
-    public String getResourceId() {
-        return resourceId;
-    }
-
-    public void setResourceId(String resourceId) {
-        this.resourceId = resourceId;
-    }
-
-    public String getTag() {
-        return tag;
-    }
-
-    public void setTag(String tag) {
-        this.tag = tag;
-    }
-
-    public String getResourceLinkId() {
-        return resourceLinkId;
-    }
-
-    public void setResourceLinkId(String resourceLinkId) {
-        this.resourceLinkId = resourceLinkId;
-    }
-
-    public String getStartDateTime() {
-        return startDateTime;
-    }
-
-    public void setStartDateTime(String startDateTime) {
-        this.startDateTime = startDateTime;
-    }
-
-    public String getEndDateTime() {
-        return endDateTime;
-    }
-
-    public void setEndDateTime(String endDateTime) {
-        this.endDateTime = endDateTime;
-    }
 }

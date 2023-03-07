@@ -16,12 +16,11 @@ import edu.iu.terracotta.exceptions.DataServiceException;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jws;
-import io.jsonwebtoken.SignatureException;
+import io.jsonwebtoken.security.SecurityException;
+import lombok.extern.slf4j.Slf4j;
 import edu.iu.terracotta.service.lti.LTIDataService;
 import edu.iu.terracotta.service.lti.LTIJWTService;
 import edu.iu.terracotta.utils.lti.LTI3Request;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.GenericFilterBean;
@@ -40,21 +39,29 @@ import java.util.List;
 /**
  * LTI3 Redirect calls will be filtered on this class. We will check if the JWT is valid and then extract all the needed data.
  */
+@Slf4j
+@SuppressWarnings({"unchecked", "PMD.GuardLogStatement"})
 public class LTI3OAuthProviderProcessingFilter extends GenericFilterBean {
 
-    LTIDataService ltiDataService;
-    LTIJWTService ltijwtService;
-
-    static final Logger log = LoggerFactory.getLogger(LTI3OAuthProviderProcessingFilter.class);
+    private LTIDataService ltiDataService;
+    private LTIJWTService ltijwtService;
 
     /**
      * We need to load the data service to find the iss configurations and extract the keys.
      */
     public LTI3OAuthProviderProcessingFilter(LTIDataService ltiDataService, LTIJWTService ltijwtService) {
         super();
-        if (ltiDataService == null) throw new AssertionError();
+
+        if (ltiDataService == null) {
+            throw new AssertionError();
+        }
+
         this.ltiDataService = ltiDataService;
-        if (ltijwtService == null) throw new AssertionError();
+
+        if (ltijwtService == null) {
+            throw new AssertionError();
+        }
+
         this.ltijwtService = ltijwtService;
     }
 
@@ -71,16 +78,17 @@ public class LTI3OAuthProviderProcessingFilter extends GenericFilterBean {
         }
 
         try {
-
             // This is just for logging.
             HttpServletRequest httpServletRequest = (HttpServletRequest) servletRequest;
             Enumeration<String> sessionAttributes = httpServletRequest.getSession().getAttributeNames();
             log.debug("-------------------------------------------------------------------------------------------------------");
+
             while (sessionAttributes.hasMoreElements()) {
                 String attName = sessionAttributes.nextElement();
                 log.debug(attName + " : " + httpServletRequest.getSession().getAttribute(attName));
 
             }
+
             log.debug("-------------------------------------------------------------------------------------------------------");
 
             // First we validate that the state is a good state.
@@ -88,14 +96,18 @@ public class LTI3OAuthProviderProcessingFilter extends GenericFilterBean {
             //First, we make sure that the query has an state
             String state = httpServletRequest.getParameter("state");
             String link = httpServletRequest.getParameter("link");
+
             if (httpServletRequest.getSession().getAttribute("lti_state") == null) {
                 throw new IllegalStateException("LTI request doesn't contains the expected state");
             }
+
             //Second, as the state is something that we have created, it should be in our list of states.
             List<String> ltiState = (List<String>) httpServletRequest.getSession().getAttribute("lti_state");
+
             if (!ltiState.contains(state)) {
                 throw new IllegalStateException("LTI request doesn't contains the expected state");
             }
+
             //Third, we validate the state to be sure that is correct
             Jws<Claims> stateClaims = ltijwtService.validateState(state);
 
@@ -108,6 +120,7 @@ public class LTI3OAuthProviderProcessingFilter extends GenericFilterBean {
             // The state provides us the way to find that key in our repo. This is not a requirement in LTI, it is just a way to do it that we've implemented, but each one can use the
             // state in a different way.
             String jwt = httpServletRequest.getParameter("id_token");
+
             if (StringUtils.hasText(jwt)) {
                 //Now we validate the JWT token
                 Jws<Claims> jws = ltijwtService.validateJWT(jwt, stateClaims.getBody().getAudience());
@@ -132,7 +145,7 @@ public class LTI3OAuthProviderProcessingFilter extends GenericFilterBean {
             log.warn("Security exception for user {} - {}", eje.getClaims().getSubject(), eje.getMessage());
             ((HttpServletResponse) servletResponse).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             log.debug("Exception " + eje.getMessage(), eje);
-        } catch (SignatureException ex) {
+        } catch (SecurityException ex) {
             log.warn("Invalid JWT signature: {0}", ex.getMessage());
             log.debug("Exception " + ex.getMessage(), ex);
             ((HttpServletResponse) servletResponse).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
@@ -143,14 +156,16 @@ public class LTI3OAuthProviderProcessingFilter extends GenericFilterBean {
 
     private void createFirstPartyInteractionCookieIfMissing(ServletResponse servletResponse, HttpServletRequest httpServletRequest) {
         boolean hasFirstPartyInteractionCookie = false;
+
         if (httpServletRequest.getCookies() != null) {
             for (Cookie cookie : httpServletRequest.getCookies()) {
-                if (cookie.getName().equals("first-party-interaction")) {
+                if ("first-party-interaction".equals(cookie.getName())) {
                     hasFirstPartyInteractionCookie = true;
                     break;
                 }
             }
         }
+
         if (!hasFirstPartyInteractionCookie) {
             // A permanent first-party cookie is needed by Safari in order to be
             // able to set cookies like the JSESSIONID in a third-party (iFrame) context
@@ -166,6 +181,5 @@ public class LTI3OAuthProviderProcessingFilter extends GenericFilterBean {
     private void resetAuthenticationAfterRequest() {
         SecurityContextHolder.getContext().setAuthentication(null);
     }
-
 
 }

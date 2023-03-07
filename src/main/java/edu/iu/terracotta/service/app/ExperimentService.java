@@ -19,7 +19,7 @@ import java.util.Optional;
 public interface ExperimentService {
     List<Experiment> findAllByDeploymentIdAndCourseId(long deploymentId, long contextId);
 
-    List<ExperimentDto> getExperiments(long deploymentId, long contextId);
+    List<ExperimentDto> getExperiments(SecuredInfo securedInfo, boolean syncWithCanvas);
 
     Experiment getExperiment(long experimentId);
 
@@ -50,8 +50,6 @@ public interface ExperimentService {
     void deleteConsentDocument(ConsentDocument consentDocument);
 
     ExperimentDto getEmptyExperiment(SecuredInfo securedInfo, ExperimentDto experimentDto);
-
-    boolean experimentStarted(Experiment experiment);
 
     boolean titleAlreadyExists(String title, Long contextId, Long experimentId);
 

@@ -77,7 +77,7 @@ public class FileController {
         }
 
         FileInfoDto consentUploaded = fileStorageService.uploadFile(file, "/" + experimentId + "/consent", "", experimentId,true);
-        fileStorageService.uploadConsent(experimentId, title, consentUploaded, securedInfo.getUserId());
+        fileStorageService.uploadConsent(experimentId, title, consentUploaded, securedInfo);
 
         return new ResponseEntity<>(consentUploaded, HttpStatus.OK);
     }

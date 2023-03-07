@@ -26,8 +26,8 @@ import edu.iu.terracotta.model.oauth2.LTIToken;
 import edu.iu.terracotta.service.lti.AdvantageAGSService;
 import edu.iu.terracotta.service.lti.AdvantageConnectorHelper;
 import edu.iu.terracotta.utils.TextConstants;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
@@ -45,62 +45,66 @@ import java.util.Objects;
  * This manages all the Membership call for the LTIRequest (and for LTI in general)
  * Necessary to get appropriate TX handling and service management
  */
+@Slf4j
 @Service
+@SuppressWarnings({"rawtypes", "PMD.GuardLogStatement"})
 public class AdvantageAGSServiceImpl implements AdvantageAGSService {
 
     @Autowired
-    AdvantageConnectorHelper advantageConnectorHelper;
+    private AdvantageConnectorHelper advantageConnectorHelper;
 
     @Autowired
     private ExceptionMessageGenerator exceptionMessageGenerator;
 
-    static final Logger log = LoggerFactory.getLogger(AdvantageAGSServiceImpl.class);
-
     //Asking for a token with the right scope.
     @Override
     public LTIToken getToken(String type, PlatformDeployment platformDeployment) throws ConnectionException {
-
         String scope = "https://purl.imsglobal.org/spec/lti-ags/scope/lineitem";
-        if (type.equals("results")) {
+
+        if ("results".equals(type)) {
             scope = "https://purl.imsglobal.org/spec/lti-ags/scope/result.readonly";
         }
-        if (type.equals("scores")) {
+
+        if ("scores".equals(type)) {
             scope = "https://purl.imsglobal.org/spec/lti-ags/scope/score";
         }
+
         return advantageConnectorHelper.getToken(platformDeployment, scope);
     }
 
     //Calling the AGS service and getting a paginated result of lineitems.
     @Override
-    public LineItems getLineItems(LTIToken LTIToken, LtiContextEntity context) throws ConnectionException {
+    public LineItems getLineItems(LTIToken ltiToken, LtiContextEntity context) throws ConnectionException {
         LineItems lineItems = new LineItems();
-        log.debug(TextConstants.TOKEN + LTIToken.getAccess_token());
+        log.debug(TextConstants.TOKEN + ltiToken.getAccess_token());
+
         try {
             RestTemplate restTemplate = advantageConnectorHelper.createRestTemplate();
             //We add the token in the request with this.
-            HttpEntity request = advantageConnectorHelper.createTokenizedRequestEntity(LTIToken);
+            HttpEntity request = advantageConnectorHelper.createTokenizedRequestEntity(ltiToken);
             //The URL to get the course contents is stored in the context (in our database) because it came
             // from the platform when we created the link to the context, and we saved it then.
-            final String GET_LINEITEMS = context.getLineitems();
-            log.debug("GET_LINEITEMS -  " + GET_LINEITEMS);
-            ResponseEntity<LineItem[]> lineItemsGetResponse = restTemplate.
-                    exchange(GET_LINEITEMS, HttpMethod.GET, request, LineItem[].class);
+            final String getLineItems = context.getLineitems();
+            log.debug("GET_LINEITEMS -  " + getLineItems);
+            ResponseEntity<LineItem[]> lineItemsGetResponse = restTemplate.exchange(getLineItems, HttpMethod.GET, request, LineItem[].class);
             HttpStatus status = lineItemsGetResponse.getStatusCode();
+
             if (status.is2xxSuccessful()) {
                 List<LineItem> lineItemsList = new ArrayList<>(Arrays.asList(Objects.requireNonNull(lineItemsGetResponse.getBody())));
                 //We deal here with pagination
                 log.debug("We have {} lineItems", lineItems.getLineItemList().size());
                 String nextPage = advantageConnectorHelper.nextPage(lineItemsGetResponse.getHeaders());
                 log.debug("We have next page: " + nextPage);
+
                 while (nextPage != null) {
-                    ResponseEntity<LineItem[]> responseForNextPage = restTemplate.exchange(nextPage, HttpMethod.GET,
-                            request, LineItem[].class);
+                    ResponseEntity<LineItem[]> responseForNextPage = restTemplate.exchange(nextPage, HttpMethod.GET, request, LineItem[].class);
                     LineItem[] nextLineItemsList = responseForNextPage.getBody();
                     //List<LineItem> nextLineItems = nextLineItemsList.getLineItemList();
                     log.debug("We have {} lineitems in the next page", nextLineItemsList.length);
                     lineItemsList.addAll(Arrays.asList(nextLineItemsList));
                     nextPage = advantageConnectorHelper.nextPage(responseForNextPage.getHeaders());
                 }
+
                 lineItems.getLineItemList().addAll(lineItemsList);
             } else {
                 String exceptionMsg = "Can't get the AGS";
@@ -113,30 +117,33 @@ public class AdvantageAGSServiceImpl implements AdvantageAGSService {
             log.error(exceptionMsg.toString(), e);
             throw new ConnectionException(exceptionMessageGenerator.exceptionMessage(exceptionMsg.toString(), e));
         }
+
         return lineItems;
     }
 
     @Override
-    public boolean deleteLineItem(LTIToken LTIToken, LtiContextEntity context, String id) throws ConnectionException {
-        log.debug(TextConstants.TOKEN + LTIToken.getAccess_token());
+    public boolean deleteLineItem(LTIToken ltiToken, LtiContextEntity context, String id) throws ConnectionException {
+        log.debug(TextConstants.TOKEN + ltiToken.getAccess_token());
+
         try {
             RestTemplate restTemplate = advantageConnectorHelper.createRestTemplate();
             //We add the token in the request with this.
-            HttpEntity request = advantageConnectorHelper.createTokenizedRequestEntity(LTIToken);
+            HttpEntity request = advantageConnectorHelper.createTokenizedRequestEntity(ltiToken);
             //The URL to get the course contents is stored in the context (in our database) because it came
             // from the platform when we created the link to the context, and we saved it then.
-            final String DELETE_LINEITEM = context.getLineitems() + "/" + id;
-            log.debug("DELETE_LINEITEM -  " + DELETE_LINEITEM);
+            final String deleteLineItem = context.getLineitems() + "/" + id;
+            log.debug("DELETE_LINEITEM -  " + deleteLineItem);
             ResponseEntity<String> lineItemsGetResponse = restTemplate.
-                    exchange(DELETE_LINEITEM, HttpMethod.DELETE, request, String.class);
+                    exchange(deleteLineItem, HttpMethod.DELETE, request, String.class);
             HttpStatus status = lineItemsGetResponse.getStatusCode();
+
             if (status.is2xxSuccessful()) {
                 return true;
-            } else {
-                String exceptionMsg = "Can't delete the lineitem with id: " + id;
-                log.error(exceptionMsg);
-                throw new ConnectionException(exceptionMsg);
             }
+
+            String exceptionMsg = "Can't delete the lineitem with id: " + id;
+            log.error(exceptionMsg);
+            throw new ConnectionException(exceptionMsg);
         } catch (Exception e) {
             StringBuilder exceptionMsg = new StringBuilder();
             exceptionMsg.append("Can't delete the lineitem with id").append(id);
@@ -146,20 +153,22 @@ public class AdvantageAGSServiceImpl implements AdvantageAGSService {
     }
 
     @Override
-    public LineItem putLineItem(LTIToken LTIToken, LtiContextEntity context, LineItem lineItem) throws ConnectionException {
-        log.debug(TextConstants.TOKEN + LTIToken.getAccess_token());
+    public LineItem putLineItem(LTIToken ltiToken, LtiContextEntity context, LineItem lineItem) throws ConnectionException {
+        log.debug(TextConstants.TOKEN + ltiToken.getAccess_token());
         LineItem resultlineItem;
+
         try {
             RestTemplate restTemplate = advantageConnectorHelper.createRestTemplate();
             //We add the token in the request with this.
-            HttpEntity<LineItem> request = advantageConnectorHelper.createTokenizedRequestEntity(LTIToken, lineItem);
+            HttpEntity<LineItem> request = advantageConnectorHelper.createTokenizedRequestEntity(ltiToken, lineItem);
             //The URL to get the course contents is stored in the context (in our database) because it came
             // from the platform when we created the link to the context, and we saved it then.
-            final String PUT_LINEITEM = context.getLineitems() + "/" + lineItem.getId();
-            log.debug("PUT_LINEITEM -  " + PUT_LINEITEM);
+            final String putLineItem = context.getLineitems() + "/" + lineItem.getId();
+            log.debug("PUT_LINEITEM -  " + putLineItem);
             ResponseEntity<LineItem> lineItemsGetResponse = restTemplate.
-                    exchange(PUT_LINEITEM, HttpMethod.PUT, request, LineItem.class);
+                    exchange(putLineItem, HttpMethod.PUT, request, LineItem.class);
             HttpStatus status = lineItemsGetResponse.getStatusCode();
+
             if (status.is2xxSuccessful()) {
                 resultlineItem = lineItemsGetResponse.getBody();
                 //We deal here with pagination
@@ -174,24 +183,27 @@ public class AdvantageAGSServiceImpl implements AdvantageAGSService {
             log.error(exceptionMsg.toString(), e);
             throw new ConnectionException(exceptionMessageGenerator.exceptionMessage(exceptionMsg.toString(), e));
         }
+
         return resultlineItem;
     }
 
     @Override
-    public LineItem getLineItem(LTIToken LTIToken, LtiContextEntity context, String id) throws ConnectionException {
+    public LineItem getLineItem(LTIToken ltiToken, LtiContextEntity context, String id) throws ConnectionException {
         LineItem lineItem;
-        log.debug(TextConstants.TOKEN + LTIToken.getAccess_token());
+        log.debug(TextConstants.TOKEN + ltiToken.getAccess_token());
+
         try {
             RestTemplate restTemplate = advantageConnectorHelper.createRestTemplate();
             //We add the token in the request with this.
-            HttpEntity request = advantageConnectorHelper.createTokenizedRequestEntity(LTIToken);
+            HttpEntity request = advantageConnectorHelper.createTokenizedRequestEntity(ltiToken);
             //The URL to get the course contents is stored in the context (in our database) because it came
             // from the platform when we created the link to the context, and we saved it then.
-            final String GET_LINEITEM = context.getLineitems() + "/" + id;
-            log.debug("GET_LINEITEMS -  " + GET_LINEITEM);
+            final String getLineItem = context.getLineitems() + "/" + id;
+            log.debug("GET_LINEITEMS -  " + getLineItem);
             ResponseEntity<LineItem> lineItemsGetResponse = restTemplate.
-                    exchange(GET_LINEITEM, HttpMethod.GET, request, LineItem.class);
+                    exchange(getLineItem, HttpMethod.GET, request, LineItem.class);
             HttpStatus status = lineItemsGetResponse.getStatusCode();
+
             if (status.is2xxSuccessful()) {
                 lineItem = lineItemsGetResponse.getBody();
                 //We deal here with pagination
@@ -206,40 +218,43 @@ public class AdvantageAGSServiceImpl implements AdvantageAGSService {
             log.error(exceptionMsg.toString(), e);
             throw new ConnectionException(exceptionMessageGenerator.exceptionMessage(exceptionMsg.toString(), e));
         }
+
         return lineItem;
     }
 
     @Override
-    public LineItems postLineItems(LTIToken LTIToken, LtiContextEntity context, LineItems lineItems) throws ConnectionException {
-
+    public LineItems postLineItems(LTIToken ltiToken, LtiContextEntity context, LineItems lineItems) throws ConnectionException {
         LineItems resultLineItems = new LineItems();
-        log.debug(TextConstants.TOKEN + LTIToken.getAccess_token());
+        log.debug(TextConstants.TOKEN + ltiToken.getAccess_token());
+
         try {
             RestTemplate restTemplate = advantageConnectorHelper.createRestTemplate();
             //We add the token in the request with this.
-            HttpEntity<LineItems> request = advantageConnectorHelper.createTokenizedRequestEntity(LTIToken, lineItems);
+            HttpEntity<LineItems> request = advantageConnectorHelper.createTokenizedRequestEntity(ltiToken, lineItems);
             //The URL to get the course contents is stored in the context (in our database) because it came
             // from the platform when we created the link to the context, and we saved it then.
-            final String POST_LINEITEMS = context.getLineitems();
-            log.debug("POST_LINEITEMS -  " + POST_LINEITEMS);
+            final String postLineItems = context.getLineitems();
+            log.debug("POST_LINEITEMS -  " + postLineItems);
             ResponseEntity<LineItem[]> lineItemsGetResponse = restTemplate.
-                    exchange(POST_LINEITEMS, HttpMethod.POST, request, LineItem[].class);
+                    exchange(postLineItems, HttpMethod.POST, request, LineItem[].class);
             HttpStatus status = lineItemsGetResponse.getStatusCode();
+
             if (status.is2xxSuccessful()) {
                 List<LineItem> lineItemsList = new ArrayList<>(Arrays.asList(Objects.requireNonNull(lineItemsGetResponse.getBody())));
                 //We deal here with pagination
                 log.debug("We have {} lineItems", lineItems.getLineItemList().size());
                 String nextPage = advantageConnectorHelper.nextPage(lineItemsGetResponse.getHeaders());
                 log.debug("We have next page: " + nextPage);
+
                 while (nextPage != null) {
-                    ResponseEntity<LineItems> responseForNextPage = restTemplate.exchange(nextPage, HttpMethod.GET,
-                            request, LineItems.class);
+                    ResponseEntity<LineItems> responseForNextPage = restTemplate.exchange(nextPage, HttpMethod.GET, request, LineItems.class);
                     LineItems nextLineItemsList = responseForNextPage.getBody();
                     List<LineItem> nextLineItems = Objects.requireNonNull(nextLineItemsList).getLineItemList();
                     log.debug("We have {} lineitems in the next page", nextLineItemsList.getLineItemList().size());
                     lineItemsList.addAll(nextLineItems);
                     nextPage = advantageConnectorHelper.nextPage(responseForNextPage.getHeaders());
                 }
+
                 resultLineItems.getLineItemList().addAll(lineItemsList);
             } else {
                 String exceptionMsg = "Can't post lineitems";
@@ -252,30 +267,33 @@ public class AdvantageAGSServiceImpl implements AdvantageAGSService {
             log.error(exceptionMsg.toString(), e);
             throw new ConnectionException(exceptionMessageGenerator.exceptionMessage(exceptionMsg.toString(), e));
         }
+
         return resultLineItems;
     }
 
     @Override
-    public Results getResults(LTIToken LTITokenResults, LtiContextEntity context, String lineItemId) throws ConnectionException {
+    public Results getResults(LTIToken ltiTokenResults, LtiContextEntity context, String lineItemId) throws ConnectionException {
         Results results = new Results();
-        log.debug(TextConstants.TOKEN + LTITokenResults.getAccess_token());
+        log.debug(TextConstants.TOKEN + ltiTokenResults.getAccess_token());
+
         try {
             RestTemplate restTemplate = advantageConnectorHelper.createRestTemplate();
             //We add the token in the request with this.
-            HttpEntity request = advantageConnectorHelper.createTokenizedRequestEntity(LTITokenResults);
+            HttpEntity request = advantageConnectorHelper.createTokenizedRequestEntity(ltiTokenResults);
             //The URL to get the course contents is stored in the context (in our database) because it came
             // from the platform when we created the link to the context, and we saved it then.
-            final String GET_RESULTS = lineItemId + "/results";
-            log.debug("GET_RESULTS -  " + GET_RESULTS  + "/" + lineItemId + "/results");
-            ResponseEntity<Result[]> resultsGetResponse = restTemplate.
-                    exchange(GET_RESULTS, HttpMethod.GET, request, Result[].class);
+            final String getResults = lineItemId + "/results";
+            log.debug("GET_RESULTS -  " + getResults  + "/" + lineItemId + "/results");
+            ResponseEntity<Result[]> resultsGetResponse = restTemplate.exchange(getResults, HttpMethod.GET, request, Result[].class);
             HttpStatus status = resultsGetResponse.getStatusCode();
+
             if (status.is2xxSuccessful()) {
                 List<Result> resultList = new ArrayList<>(Arrays.asList(Objects.requireNonNull(resultsGetResponse.getBody())));
                 //We deal here with pagination
                 log.debug("We have {} results", results.getResultList().size());
                 String nextPage = advantageConnectorHelper.nextPage(resultsGetResponse.getHeaders());
                 log.debug("We have next page: " + nextPage);
+
                 while (nextPage != null) {
                     ResponseEntity<Result[]> responseForNextPage = restTemplate.exchange(nextPage, HttpMethod.GET,
                             request, Result[].class);
@@ -297,34 +315,35 @@ public class AdvantageAGSServiceImpl implements AdvantageAGSService {
             log.error(exceptionMsg.toString(), e);
             throw new ConnectionException(exceptionMessageGenerator.exceptionMessage(exceptionMsg.toString(), e));
         }
+
         return results;
     }
 
     @Override
-    public void postScore(LTIToken lTITokenScores, LTIToken lTITokenResults,
-                             LtiContextEntity context, String lineItemId, Score score) throws ConnectionException {
+    public void postScore(LTIToken lTITokenScores, LTIToken lTITokenResults, LtiContextEntity context, String lineItemId, Score score) throws ConnectionException {
         log.debug(TextConstants.TOKEN + lTITokenScores.getAccess_token());
         try {
             RestTemplate restTemplate = advantageConnectorHelper.createRestTemplate();
-            //We add the token in the request with this.
-//            HttpEntity<Score> request = advantageConnectorHelper.createTokenizedRequestEntity(lTITokenScores, score);
-            //The URL to get the course contents is stored in the context (in our database) because it came
+            // We add the token in the request with this.
+            // HttpEntity<Score> request = advantageConnectorHelper.createTokenizedRequestEntity(lTITokenScores, score);
+            // The URL to get the course contents is stored in the context (in our database) because it came
             // from the platform when we created the link to the context, and we saved it then.
-            ObjectMapper Obj = new ObjectMapper();
-            String jsonStr = Obj.writeValueAsString(score);
+            ObjectMapper objectMapper = new ObjectMapper();
+            String jsonStr = objectMapper.writeValueAsString(score);
             HttpEntity<String> request = advantageConnectorHelper.createTokenizedRequestEntity(lTITokenScores, jsonStr);
-            final String POST_SCORES = lineItemId + "/scores";
-            log.debug("POST_SCORES -  " + POST_SCORES);
-            ResponseEntity<Void> scoreGetResponse = restTemplate.exchange(POST_SCORES, HttpMethod.POST, request, Void.class);
+            final String postScores = lineItemId + "/scores";
+            log.debug("POST_SCORES -  " + postScores);
+            ResponseEntity<Void> scoreGetResponse = restTemplate.exchange(postScores, HttpMethod.POST, request, Void.class);
             HttpStatus status = scoreGetResponse.getStatusCode();
+
             if (status.is2xxSuccessful()) {
                 // return getResults(lTITokenResults, context, lineItemId);
                 return;
-            } else {
-                String exceptionMsg = "Can't post scores";
-                log.error(exceptionMsg);
-                throw new ConnectionException(exceptionMsg);
             }
+
+            String exceptionMsg = "Can't post scores";
+            log.error(exceptionMsg);
+            throw new ConnectionException(exceptionMsg);
         } catch (Exception e) {
             StringBuilder exceptionMsg = new StringBuilder();
             exceptionMsg.append("Can't post scores");
@@ -332,6 +351,5 @@ public class AdvantageAGSServiceImpl implements AdvantageAGSService {
             throw new ConnectionException(exceptionMessageGenerator.exceptionMessage(exceptionMsg.toString(), e));
         }
     }
-
 
 }

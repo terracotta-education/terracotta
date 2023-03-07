@@ -48,6 +48,7 @@ import java.util.UUID;
  * Necessary to get appropriate TX handling and service management
  */
 @Service
+@SuppressWarnings({"rawtypes"})
 public class LTIJWTServiceImpl implements LTIJWTService {
 
     static final Logger log = LoggerFactory.getLogger(LTIJWTServiceImpl.class);

@@ -14,27 +14,14 @@ package edu.iu.terracotta.model.lti.dto;
 
 import java.util.List;
 
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
 public class MessagesSupportedDTO {
-    String type;
-    List<String> placements;
 
+    private String type;
+    private List<String> placements;
 
-    public MessagesSupportedDTO() {//Empty on purpose
-    }
-
-    public String getType() {
-        return type;
-    }
-
-    public void setType(String type) {
-        this.type = type;
-    }
-
-    public List<String> getPlacements() {
-        return placements;
-    }
-
-    public void setPlacements(List<String> placements) {
-        this.placements = placements;
-    }
 }

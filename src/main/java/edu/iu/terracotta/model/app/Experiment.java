@@ -25,6 +25,8 @@ import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
 import javax.persistence.Table;
+import javax.persistence.Transient;
+
 import java.sql.Timestamp;
 import java.util.List;
 
@@ -93,5 +95,10 @@ public class Experiment extends BaseEntity {
 
     @Column
     private Timestamp closed;
+
+    @Transient
+    public boolean isStarted() {
+        return started != null;
+    }
 
 }

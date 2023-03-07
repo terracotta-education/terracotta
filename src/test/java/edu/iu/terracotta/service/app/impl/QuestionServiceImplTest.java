@@ -72,7 +72,7 @@ public class QuestionServiceImplTest {
 
         when(answerService.duplicateAnswersForQuestion(anyLong(), any(Question.class))).thenReturn(Collections.emptyList());
         when(answerService.postAnswerMC(any(AnswerDto.class), anyLong())).thenReturn(answerDto);
-        when(fileStorageService.parseHTMLFiles(anyString())).thenReturn(StringUtils.EMPTY);
+        when(fileStorageService.parseHTMLFiles(anyString(), anyString())).thenReturn(StringUtils.EMPTY);
 
         when(assessment.getAssessmentId()).thenReturn(1L);
         when(assessment.getQuestions()).thenReturn(Collections.singletonList(question));

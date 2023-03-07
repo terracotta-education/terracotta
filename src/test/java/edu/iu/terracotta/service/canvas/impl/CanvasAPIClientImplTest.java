@@ -3,7 +3,6 @@ package edu.iu.terracotta.service.canvas.impl;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
@@ -31,6 +30,7 @@ import edu.iu.terracotta.model.canvas.CanvasAPITokenEntity;
 import edu.iu.terracotta.service.canvas.AssignmentWriterExtended;
 import edu.ksu.canvas.exception.InvalidOauthTokenException;
 
+@SuppressWarnings({"PMD.EmptyCatchBlock"})
 public class CanvasAPIClientImplTest {
 
     @Spy

@@ -14,6 +14,10 @@ package edu.iu.terracotta.model;
 
 import org.apache.commons.lang3.StringUtils;
 
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
@@ -23,49 +27,43 @@ import javax.persistence.Table;
 import java.util.Objects;
 
 @Entity
+@Getter
+@Setter
+@NoArgsConstructor
 @Table(name = "api_one_use_token")
 public class ApiOneUseToken extends BaseEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "token_id", nullable = false)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long tokenId;
 
-    @Column(name = "token", nullable = false, length = 4096)
+    @Column(nullable = false, length = 4096)
     private String token;
-
-    protected ApiOneUseToken() {
-    }
 
     /**
      * @param token the one use token
      */
     public ApiOneUseToken(String token) {
-        if (!StringUtils.isNotBlank(token)) throw new AssertionError();
-        this.token = token;
-    }
+        if (StringUtils.isBlank(token)) {
+            throw new AssertionError();
+        }
 
-    public long getTokenId() {
-        return tokenId;
-    }
-
-    public void setTokenId(long tokenId) {
-        this.tokenId = tokenId;
-    }
-
-    public String getToken() {
-        return token;
-    }
-
-    public void setToken(String token) {
         this.token = token;
     }
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+
         ApiOneUseToken that = (ApiOneUseToken) o;
+
         return Objects.equals(token, that.token);
     }
 

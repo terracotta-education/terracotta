@@ -16,45 +16,50 @@ package edu.iu.terracotta.controller.app;
 import edu.iu.terracotta.exceptions.BadTokenException;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
+import lombok.extern.slf4j.Slf4j;
 import edu.iu.terracotta.service.app.APIJWTService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.List;
 
+@Slf4j
 @Controller
+@SuppressWarnings({"unchecked", "rawtypes", "PMD.GuardLogStatement"})
 @RequestMapping(value = "/api/oauth", produces = MediaType.APPLICATION_JSON_VALUE)
 public class TokenController {
 
     @Autowired
-    APIJWTService apijwtService;
+    private APIJWTService apijwtService;
 
-    @SuppressWarnings("rawtypes")
-    @RequestMapping(method = RequestMethod.POST, value = "/trade")
+    @PostMapping("/trade")
     public ResponseEntity getTimedToken(HttpServletRequest req) {
-
-        //TODO, surely we want to do something more complicated here. Like read the previous token values and make the token similar
         String token = apijwtService.extractJwtStringValue(req, true);
         Jws<Claims> claims = apijwtService.validateToken(token);
-        if ((Boolean)claims.getBody().get("oneUse")) {
+
+        if ((Boolean) claims.getBody().get("oneUse")) {
             try {
-                //ExperimentId and assignmentId are optionals so I need to check the null.
+                // experimentId and assignmentId are optionals so check the null.
                 Long assignmentId = null;
+
                 if (claims.getBody().get("assignmentId")!=null){
                     assignmentId = Long.parseLong(claims.getBody().get("assignmentId").toString());
                 }
+
                 Long experimentId = null;
+
                 if (claims.getBody().get("experimentId")!=null){
                     experimentId = Long.parseLong(claims.getBody().get("experimentId").toString());
                 }
+
                 return new ResponseEntity<>(apijwtService.buildJwt(false,
                         (List<String>)claims.getBody().get("roles"),
                         Long.parseLong(claims.getBody().get("contextId").toString()),
@@ -84,20 +89,19 @@ public class TokenController {
         }
     }
 
-    @SuppressWarnings("rawtypes")
-    @RequestMapping(method = RequestMethod.POST, value = "/refresh")
+    @PostMapping("/refresh")
     public ResponseEntity refreshToken(HttpServletRequest req) {
-
         String token = apijwtService.extractJwtStringValue(req, true);
+
         try {
             return new ResponseEntity<>(apijwtService.refreshToken(token), HttpStatus.OK);
-        } catch (GeneralSecurityException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (GeneralSecurityException | IOException e) {
+            log.error(e.getMessage(), e);
         } catch (BadTokenException e) {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
+
         return new ResponseEntity<>("Error generating token", HttpStatus.INTERNAL_SERVER_ERROR);
     }
+
 }

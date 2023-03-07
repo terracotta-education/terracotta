@@ -1,6 +1,8 @@
 package edu.iu.terracotta.model.app;
 
 import edu.iu.terracotta.model.BaseEntity;
+import lombok.Getter;
+import lombok.Setter;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -11,31 +13,23 @@ import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 
-@Table(name = "terr_answer_mc_submission")
 @Entity
+@Getter
+@Setter
+@Table(name = "terr_answer_mc_submission")
 public class AnswerMcSubmission extends BaseEntity {
-    @Column(name = "answer_mc_sub_id", nullable = false)
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "answer_mc_sub_id", nullable = false)
     private Long answerMcSubId;
 
-    @JoinColumn(name = "quest_sub_quest_sub_id", nullable = false)
     @ManyToOne(optional = false)
+    @JoinColumn(name = "quest_sub_quest_sub_id", nullable = false)
     private QuestionSubmission questionSubmission;
 
-    @JoinColumn(name = "answer_mc_answer_id")
     @ManyToOne
+    @JoinColumn(name = "answer_mc_answer_id")
     private AnswerMc answerMc;
 
-    public Long getAnswerMcSubId() { return answerMcSubId; }
-
-    public void setAnswerMcSubId(Long answerMcSubId) { this.answerMcSubId = answerMcSubId; }
-
-    public QuestionSubmission getQuestionSubmission() { return questionSubmission; }
-
-    public void setQuestionSubmission(QuestionSubmission questionSubmission) { this.questionSubmission = questionSubmission; }
-
-    public AnswerMc getAnswerMc() { return answerMc; }
-
-    public void setAnswerMc(AnswerMc answerMc) { this.answerMc = answerMc; }
 }

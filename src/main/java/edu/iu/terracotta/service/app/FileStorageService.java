@@ -46,12 +46,12 @@ public interface FileStorageService {
 
     FileInfoDto uploadFile(MultipartFile multipartFile, String prefix, String extraPath, long experimentId, boolean consent);
 
-    void uploadConsent(long experimentId, String title, FileInfoDto fileInfoDto, String instructorUserId)
+    void uploadConsent(long experimentId, String title, FileInfoDto fileInfoDto, SecuredInfo securedInfo)
             throws AssignmentNotCreatedException, CanvasApiException, AssignmentNotEditedException, AssignmentNotMatchingException;
 
     void deleteConsentAssignment(long experimentId, SecuredInfo securedInfo) throws AssignmentNotEditedException, CanvasApiException;
 
-    String parseHTMLFiles (String html);
+    String parseHTMLFiles (String html, String localUrl);
 
     FileSubmissionLocal saveFileSubmissionLocal(MultipartFile file);
 

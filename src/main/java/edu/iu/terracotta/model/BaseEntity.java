@@ -31,10 +31,10 @@ import java.sql.Timestamp;
 @MappedSuperclass
 public class BaseEntity {
 
-    @Column(name = "created_at", columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+    @Column(columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
     Timestamp createdAt;
 
-    @Column(name = "updated_at")
+    @Column
     Timestamp updatedAt;
 
     @Version

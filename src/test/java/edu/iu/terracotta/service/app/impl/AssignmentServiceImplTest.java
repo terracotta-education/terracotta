@@ -94,8 +94,7 @@ public class AssignmentServiceImplTest {
     @Mock private CanvasAPIClient canvasAPIClient;
     @Mock ExposureService exposureService;
     @Mock private TreatmentService treatmentService;
-    @Mock
-    private LtiUserRepository ltiUserRepository;
+    @Mock private LtiUserRepository ltiUserRepository;
 
     @Mock private Assessment assessment;
     @Mock private Assignment assignment;
@@ -104,9 +103,9 @@ public class AssignmentServiceImplTest {
     @Mock private EntityManager entityManager;
     @Mock private Experiment experiment;
     @Mock private Exposure exposure;
-    @Mock
-    private LtiUserEntity instructorUser;
+    @Mock private LtiUserEntity instructorUser;
     @Mock private PlatformDeployment platformDeployment;
+    @Mock private SecuredInfo securedInfo;
     @Mock private Treatment treatment;
     @Mock private TreatmentDto treatmentDto;
 
@@ -125,17 +124,17 @@ public class AssignmentServiceImplTest {
         allRepositories.submissionRepository = submissionRepository;
         allRepositories.treatmentRepository = treatmentRepository;
 
-        when(assignmentRepository.getOne(anyLong())).thenReturn(assignment);
+        when(assignmentRepository.getReferenceById(anyLong())).thenReturn(assignment);
         when(assessmentRepository.findByTreatment_Assignment_AssignmentId(anyLong())).thenReturn(Collections.singletonList(assessment));
         when(assignmentRepository.findByAssignmentId(anyLong())).thenReturn(assignment);
         when(assignmentRepository.findByExposure_ExposureIdAndSoftDeleted(anyLong(), anyBoolean())).thenReturn(Collections.singletonList(assignment));
         when(assignmentRepository.save(any(Assignment.class))).thenReturn(assignment);
         when(assignmentRepository.saveAndFlush(any(Assignment.class))).thenReturn(assignment);
         when(exposureRepository.findById(anyLong())).thenReturn(Optional.of(exposure));
-        when(platformDeploymentRepository.getOne(anyLong())).thenReturn(platformDeployment);
+        when(platformDeploymentRepository.getReferenceById(anyLong())).thenReturn(platformDeployment);
         when(submissionRepository.countByAssessment_Treatment_Assignment_AssignmentId(anyLong())).thenReturn(0L);
         when(treatmentRepository.findByAssignment_AssignmentId(anyLong())).thenReturn(Collections.emptyList());
-        when(ltiUserRepository.findByUserKey(anyString())).thenReturn(instructorUser);
+        when(ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(anyString(), anyLong())).thenReturn(instructorUser);
 
         when(assessmentService.getAssessmentForParticipant(any(Participant.class), any(SecuredInfo.class))).thenReturn(assessment);
 
@@ -143,7 +142,7 @@ public class AssignmentServiceImplTest {
         doNothing().when(assessmentService).verifySubmissionWaitTime(anyFloat(), anyList());
         when(canvasAPIClient.listAssignment(eq(instructorUser), anyString(), anyInt())).thenReturn(Optional.empty());
         when(exposureService.getExposure(anyLong())).thenReturn(exposure);
-        when(treatmentService.duplicateTreatment(anyLong(), any(Assignment.class), anyString(), anyString()))
+        when(treatmentService.duplicateTreatment(anyLong(), any(Assignment.class), any(SecuredInfo.class)))
                 .thenReturn(treatmentDto);
 
         when(assignment.getAssignmentId()).thenReturn(1l);
@@ -166,7 +165,7 @@ public class AssignmentServiceImplTest {
     @Test
     public void duplicateAssignmentTest() throws DataServiceException, IdInPostException, TitleValidationException, AssessmentNotMatchingException,
                                                 AssignmentNotCreatedException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, NumberFormatException, CanvasApiException, ExceedingLimitException, TreatmentNotMatchingException, QuestionNotMatchingException {
-        AssignmentDto assignmentDto = assignmentService.duplicateAssignment(0L, "0", "0");
+        AssignmentDto assignmentDto = assignmentService.duplicateAssignment(0L, securedInfo);
 
         assertNotNull(assignmentDto);
         verify(assignmentRepository).save(any(Assignment.class));
@@ -176,7 +175,7 @@ public class AssignmentServiceImplTest {
     public void duplicateAssignmentTestWithTreatments() throws DataServiceException, IdInPostException, TitleValidationException, AssessmentNotMatchingException,
                                                 AssignmentNotCreatedException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, NumberFormatException, CanvasApiException, ExceedingLimitException, TreatmentNotMatchingException, QuestionNotMatchingException {
         when(treatmentRepository.findByAssignment_AssignmentId(anyLong())).thenReturn(Collections.singletonList(treatment));
-        AssignmentDto assignmentDto = assignmentService.duplicateAssignment(0L, "0", "0");
+        AssignmentDto assignmentDto = assignmentService.duplicateAssignment(0L, securedInfo);
 
         assertNotNull(assignmentDto);
         assertEquals(1l, assignmentDto.getAssignmentId());
@@ -187,14 +186,14 @@ public class AssignmentServiceImplTest {
     public void testDuplicateAssessmentNotFound() throws IdInPostException, AssessmentNotMatchingException {
         when(assignmentRepository.findByAssignmentId(anyLong())).thenReturn(null);
 
-        Exception exception = assertThrows(DataServiceException.class, () -> { assignmentService.duplicateAssignment(1L, "0", "0"); });
+        Exception exception = assertThrows(DataServiceException.class, () -> { assignmentService.duplicateAssignment(1L, securedInfo); });
 
         assertEquals("The assignment with the given ID does not exist", exception.getMessage());
     }
 
     @Test
     public void testGetAssignments() throws AssessmentNotMatchingException, CanvasApiException {
-        List<AssignmentDto> assignmentDtos = assignmentService.getAssignments(0L, "0", false, false, "0");
+        List<AssignmentDto> assignmentDtos = assignmentService.getAssignments(0L, false, false, securedInfo);
 
         assertNotNull(assignmentDtos);
         assertEquals(1, assignmentDtos.size());
@@ -205,7 +204,7 @@ public class AssignmentServiceImplTest {
     @Test
     public void testGetAssignmentsNoCanvasAssignmentFound() throws AssessmentNotMatchingException, CanvasApiException {
         when(canvasAPIClient.listAssignment(eq(instructorUser),anyString(), anyInt() )).thenReturn(Optional.empty());
-        List<AssignmentDto> assignmentDtos = assignmentService.getAssignments(0L, "0", false, false, "0");
+        List<AssignmentDto> assignmentDtos = assignmentService.getAssignments(0L, false, false, securedInfo);
 
         assertNotNull(assignmentDtos);
         assertEquals(1, assignmentDtos.size());
@@ -215,7 +214,7 @@ public class AssignmentServiceImplTest {
     @Test
     public void testGetAssignmentsNoAssignmentsFound() throws AssessmentNotMatchingException, CanvasApiException {
         when(assignmentRepository.findByExposure_ExposureIdAndSoftDeleted(anyLong(), anyBoolean())).thenReturn(Collections.emptyList());
-        List<AssignmentDto> assignmentDtos = assignmentService.getAssignments(0L, "0", false, false, "0");
+        List<AssignmentDto> assignmentDtos = assignmentService.getAssignments(0L, false, false, securedInfo);
 
         assertNotNull(assignmentDtos);
         assertEquals(0, assignmentDtos.size());
@@ -223,7 +222,7 @@ public class AssignmentServiceImplTest {
 
     @Test
     public void testDeleteAssignmentHard() throws EmptyResultDataAccessException, CanvasApiException, AssignmentNotEditedException {
-        assignmentService.deleteById(1L, "canvasId", "0");
+        assignmentService.deleteById(1L, securedInfo);
 
         verify(assignmentRepository).deleteByAssignmentId(anyLong());
         verify(assignmentRepository, never()).saveAndFlush(any(Assignment.class));
@@ -233,7 +232,7 @@ public class AssignmentServiceImplTest {
     public void testDeleteAssignmentSoft() throws EmptyResultDataAccessException, CanvasApiException, AssignmentNotEditedException {
         when(submissionRepository.countByAssessment_Treatment_Assignment_AssignmentId(anyLong())).thenReturn(1L);
 
-        assignmentService.deleteById(1L, "canvasId", "0");
+        assignmentService.deleteById(1L, securedInfo);
 
         verify(assignmentRepository, never()).deleteByAssignmentId(anyLong());
         verify(assignmentRepository).saveAndFlush(any(Assignment.class));
@@ -245,7 +244,7 @@ public class AssignmentServiceImplTest {
             ExceedingLimitException, TreatmentNotMatchingException, ExposureNotMatchingException, AssignmentMoveException, AssignmentNotEditedException, QuestionNotMatchingException {
         when(assignmentDto.getAssignmentId()).thenReturn(null);
 
-        AssignmentDto newAssignmentDto = assignmentService.moveAssignment(2l, assignmentDto, 1L, 2l, "1", "3");
+        AssignmentDto newAssignmentDto = assignmentService.moveAssignment(2l, assignmentDto, 1L, 2l, securedInfo);
 
         assertNotNull(newAssignmentDto);
         verify(assignmentRepository).save(any(Assignment.class));
@@ -255,7 +254,7 @@ public class AssignmentServiceImplTest {
     @Test
     public void testMoveAssignmentExposuresMatch() throws IdInPostException, AssessmentNotMatchingException {
         Exception exception = assertThrows(AssignmentMoveException.class, () -> {
-            assignmentService.moveAssignment(2l, assignmentDto, 1L, 1l, "1", "1");
+            assignmentService.moveAssignment(2l, assignmentDto, 1L, 1l, securedInfo);
         });
 
         assertEquals(TextConstants.UNABLE_TO_MOVE_ASSIGNMENT_EXPOSURE_SAME, exception.getMessage());
@@ -264,7 +263,7 @@ public class AssignmentServiceImplTest {
     @Test
     public void testMoveAssignmentNoTargetExposureMatch() throws IdInPostException, AssessmentNotMatchingException {
         when(exposureService.getExposure(anyLong())).thenReturn(null);
-        Exception exception = assertThrows(ExposureNotMatchingException.class, () -> { assignmentService.moveAssignment(2l, assignmentDto, 1L, 2l, "1", "1"); });
+        Exception exception = assertThrows(ExposureNotMatchingException.class, () -> { assignmentService.moveAssignment(2l, assignmentDto, 1L, 2l, securedInfo); });
 
         assertEquals(TextConstants.EXPOSURE_NOT_MATCHING, exception.getMessage());
     }

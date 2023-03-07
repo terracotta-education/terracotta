@@ -2,9 +2,10 @@ package edu.iu.terracotta.service.app;
 
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.IdInPostException;
-import edu.iu.terracotta.model.LtiUserEntity;
 import edu.iu.terracotta.model.app.SubmissionComment;
 import edu.iu.terracotta.model.app.dto.SubmissionCommentDto;
+import edu.iu.terracotta.model.oauth2.SecuredInfo;
+
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -20,7 +21,7 @@ public interface SubmissionCommentService {
 
     SubmissionComment getSubmissionComment(Long id);
 
-    SubmissionCommentDto postSubmissionComment(SubmissionCommentDto submissionCommentDto, long submissionId, String userId) throws IdInPostException, DataServiceException;
+    SubmissionCommentDto postSubmissionComment(SubmissionCommentDto submissionCommentDto, long submissionId, SecuredInfo securedInfo) throws IdInPostException, DataServiceException;
 
     void updateSubmissionComment(SubmissionComment submissionComment, SubmissionCommentDto submissionCommentDto);
 
@@ -33,8 +34,6 @@ public interface SubmissionCommentService {
     Optional<SubmissionComment> findById(Long id);
 
     Optional<SubmissionComment> findBySubmissionIdAndSubmissionCommentId(Long submissionId, Long submissionCommentId);
-
-    LtiUserEntity findByUserKey(String key);
 
     void saveAndFlush(SubmissionComment submissionCommentToChange);
 

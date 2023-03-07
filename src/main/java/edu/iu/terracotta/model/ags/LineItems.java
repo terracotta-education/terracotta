@@ -14,22 +14,17 @@ package edu.iu.terracotta.model.ags;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import java.util.ArrayList;
 import java.util.List;
 
+@Getter
+@Setter
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class LineItems {
+
     private List<LineItem> lineItemList = new ArrayList<>();
 
-    public LineItems() {//Empty on purpose
-    }
-
-    //@JsonProperty("members")
-    public List<LineItem> getLineItemList() {
-        return lineItemList;
-    }
-
-    public void setLineItemList(List<LineItem> lineItemList) {
-        this.lineItemList = lineItemList;
-    }
 }
