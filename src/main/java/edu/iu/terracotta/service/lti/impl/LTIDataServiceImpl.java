@@ -389,7 +389,7 @@ public class LTIDataServiceImpl implements LTIDataService {
             .findByPlatformDeployment_IssAndPlatformDeployment_ClientIdAndLtiDeploymentId(iss, clientId, ltiDeploymentId);
 
         if (CollectionUtils.isNotEmpty(toolDeployments)) {
-            toolDeployment = toolDeployments.get(0);
+            return toolDeployments.get(0);
         }
 
         // if missing, look for platformDeployment by iss and clientId
