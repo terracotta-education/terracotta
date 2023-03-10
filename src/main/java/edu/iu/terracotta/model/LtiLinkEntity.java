@@ -46,8 +46,8 @@ import java.util.Set;
 public class LtiLinkEntity extends BaseEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "link_id", nullable = false)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long linkId;
 
     // per LTI 1.3, the resource link 'id' claim must not be more than 255

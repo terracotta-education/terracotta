@@ -1,6 +1,5 @@
 package edu.iu.terracotta.service.aws.impl;
 
-import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.auth.InstanceProfileCredentialsProvider;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
@@ -20,23 +19,21 @@ public class AWSServiceImpl implements AWSService {
     @Value("${aws.region}")
     private String region;
 
-
     private AmazonS3 amazonS3;
 
-
     @PostConstruct
-    private void initializeAmazon() {
+    protected void initializeAmazon() {
         this.amazonS3 = AmazonS3ClientBuilder.standard()
-                .withCredentials(new InstanceProfileCredentialsProvider(false))
-                .withRegion(Regions.valueOf(region))
-                .build();
+            .withCredentials(new InstanceProfileCredentialsProvider(false))
+            .withRegion(Regions.valueOf(region))
+            .build();
     }
-
 
     @Override
     public InputStream readFileFromS3Bucket(String bucketName, String key) {
         S3Object s3Object = this.amazonS3.getObject(new GetObjectRequest(bucketName, key));
-        InputStream inputStream = s3Object.getObjectContent();
-        return inputStream;
+
+        return s3Object.getObjectContent();
     }
+
 }

@@ -15,11 +15,10 @@ package edu.iu.terracotta.security.app;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jws;
-import io.jsonwebtoken.SignatureException;
+import io.jsonwebtoken.security.SecurityException;
+import lombok.extern.slf4j.Slf4j;
 import edu.iu.terracotta.service.app.APIDataService;
 import edu.iu.terracotta.service.app.APIJWTService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.StringUtils;
@@ -32,22 +31,22 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.Locale;
 
 /**
  * LTI3 Redirect calls will be filtered on this class. We will check if the JWT is valid and then extract all the needed data.
  */
+@Slf4j
+@SuppressWarnings({"PMD.GuardLogStatement"})
 public class APIOAuthProviderProcessingFilter extends GenericFilterBean {
 
-    APIJWTService apiJwtService;
-    APIDataService apiDataService;
+    private APIJWTService apiJwtService;
+    private APIDataService apiDataService;
 
     private static final String JWT_REQUEST_HEADER_NAME = "Authorization";
     private static final String JWT_BEARER_TYPE = "Bearer";
     private static final String QUERY_PARAM_NAME = "token";
     private final boolean allowQueryParam;
-
-    static final Logger log = LoggerFactory.getLogger(APIOAuthProviderProcessingFilter.class);
-
 
     public APIOAuthProviderProcessingFilter(APIJWTService apiJwtService, APIDataService apiDataService) {
         this(apiJwtService, apiDataService, false);
@@ -59,9 +58,17 @@ public class APIOAuthProviderProcessingFilter extends GenericFilterBean {
     public APIOAuthProviderProcessingFilter(APIJWTService apiJwtService, APIDataService apiDataService, boolean allowQueryParam) {
         super();
         this.allowQueryParam = allowQueryParam;
-        if (apiJwtService == null) throw new AssertionError();
+
+        if (apiJwtService == null) {
+            throw new AssertionError();
+        }
+
         this.apiJwtService = apiJwtService;
-        if (apiDataService == null) throw new AssertionError();
+
+        if (apiDataService == null) {
+            throw new AssertionError();
+        }
+
         this.apiDataService = apiDataService;
     }
 
@@ -69,42 +76,46 @@ public class APIOAuthProviderProcessingFilter extends GenericFilterBean {
      * We filter all the API queries received on this endpoint.
      */
     @Override
-    public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) throws IOException,
-            ServletException {
-
+    public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) throws IOException, ServletException {
         if (!(servletRequest instanceof HttpServletRequest)) {
             throw new IllegalStateException("API requests MUST be an HttpServletRequest (cannot only be a ServletRequest)");
         }
 
         try {
             String token = extractJwtStringValue((HttpServletRequest) servletRequest);
+
             if (token == null) {
                 throw new AuthenticationCredentialsNotFoundException("Missing JWT token");
             }
+
             //Second, as the state is something that we have created, it should be in our list of states.
 
             if (StringUtils.hasText(token)) {
                 Jws<Claims> tokenClaims = apiJwtService.validateToken(token);
                 if (tokenClaims != null) {
-                    if (!tokenClaims.getBody().getIssuer().equals("TERRACOTTA")){
+                    if (!"TERRACOTTA".equals(tokenClaims.getBody().getIssuer())){
                         throw new IllegalStateException("API token is invalid");
                     }
+
                     //TODO add here any other checks we want to perform.
-                    if ((Boolean)tokenClaims.getBody().get("oneUse")){
+
+                    if ((Boolean) tokenClaims.getBody().get("oneUse")){
                         boolean exists = apiDataService.findAndDeleteOneUseToken(token);
+
                         if (!exists){
                             throw new IllegalStateException("OneUse token does not exists or has been already used");
                         }
                     }
                 }
             }
+
             filterChain.doFilter(servletRequest, servletResponse);
             this.resetAuthenticationAfterRequest();
         } catch (ExpiredJwtException eje) {
             log.warn("Security exception for user {} - {}", eje.getClaims().getSubject(), eje.getMessage());
             ((HttpServletResponse) servletResponse).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             log.debug("Exception " + eje.getMessage(), eje);
-        } catch (SignatureException ex) {
+        } catch (SecurityException ex) {
             log.warn("Invalid JWT signature: {0}", ex.getMessage());
             log.debug("Exception " + ex.getMessage(), ex);
             ((HttpServletResponse) servletResponse).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
@@ -117,22 +128,26 @@ public class APIOAuthProviderProcessingFilter extends GenericFilterBean {
 
     private String extractJwtStringValue(HttpServletRequest request) {
         String rawHeaderValue = StringUtils.trimAllWhitespace(request.getHeader(JWT_REQUEST_HEADER_NAME));
-        if (rawHeaderValue == null) {
-            if (allowQueryParam) {
-                return StringUtils.trimAllWhitespace(request.getParameter(QUERY_PARAM_NAME));
-            }
+
+        if (rawHeaderValue == null && allowQueryParam) {
+            return StringUtils.trimAllWhitespace(request.getParameter(QUERY_PARAM_NAME));
         }
+
         if (rawHeaderValue == null) {
           return null;
         }
+
         // very similar to BearerTokenExtractor.java in Spring spring-security-oauth2
+
         if (isBearerToken(rawHeaderValue)) {
             return rawHeaderValue.substring(JWT_BEARER_TYPE.length()).trim();
         }
+
         return null;
     }
 
     private boolean isBearerToken(String rawHeaderValue) {
-        return rawHeaderValue.toLowerCase().startsWith(JWT_BEARER_TYPE.toLowerCase());
+        return rawHeaderValue.toLowerCase(Locale.US).startsWith(JWT_BEARER_TYPE.toLowerCase(Locale.US));
     }
+
 }

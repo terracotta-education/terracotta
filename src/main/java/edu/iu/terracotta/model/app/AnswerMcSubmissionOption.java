@@ -13,58 +13,30 @@ import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
 import edu.iu.terracotta.model.BaseEntity;
+import lombok.Getter;
+import lombok.Setter;
 
-@Table(name = "terr_answer_mc_submission_option")
 @Entity
+@Getter
+@Setter
+@Table(name = "terr_answer_mc_submission_option")
 public class AnswerMcSubmissionOption extends BaseEntity {
 
-    @Column(name = "answer_mc_sub_option_id", nullable = false)
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "answer_mc_sub_option_id", nullable = false)
     private long answerMcSubOptionId;
 
-    @JoinColumn(name = "quest_sub_quest_sub_id", nullable = false)
     @ManyToOne(optional = false)
+    @JoinColumn(name = "quest_sub_quest_sub_id", nullable = false)
     private QuestionSubmission questionSubmission;
 
-    @JoinColumn(name = "answer_mc_answer_id", nullable = false)
     @ManyToOne
     @OnDelete(action = OnDeleteAction.CASCADE)
+    @JoinColumn(name = "answer_mc_answer_id", nullable = false)
     private AnswerMc answerMc;
 
-    @Column(name = "answer_order")
+    @Column
     private int answerOrder;
-
-    public long getAnswerMcSubOptionId() {
-        return answerMcSubOptionId;
-    }
-
-    public void setAnswerMcSubOptionId(long answerMcSubOptionId) {
-        this.answerMcSubOptionId = answerMcSubOptionId;
-    }
-
-    public QuestionSubmission getQuestionSubmission() {
-        return questionSubmission;
-    }
-
-    public void setQuestionSubmission(QuestionSubmission questionSubmission) {
-        this.questionSubmission = questionSubmission;
-    }
-
-    public AnswerMc getAnswerMc() {
-        return answerMc;
-    }
-
-    public void setAnswerMc(AnswerMc answerMc) {
-        this.answerMc = answerMc;
-    }
-
-    public Integer getAnswerOrder() {
-        return answerOrder;
-    }
-
-    public void setAnswerOrder(Integer answerOrder) {
-        this.answerOrder = answerOrder;
-    }
 
 }

@@ -8,6 +8,7 @@ import edu.iu.terracotta.exceptions.OutcomeNotMatchingException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.model.LtiUserEntity;
+import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.model.app.Assignment;
 import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.Exposure;
@@ -30,11 +31,11 @@ import edu.iu.terracotta.service.canvas.CanvasAPIClient;
 import edu.iu.terracotta.utils.TextConstants;
 import edu.ksu.canvas.model.assignment.Submission;
 
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.EnumUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
@@ -69,9 +70,6 @@ public class OutcomeServiceImpl implements OutcomeService {
     @Autowired
     private CanvasAPIClient canvasAPIClient;
 
-    @Value("${application.url}")
-    private String localUrl;
-
     @Override
     public List<Outcome> findAllByExposureId(Long exposureId) {
         return allRepositories.outcomeRepository.findByExposure_ExposureId(exposureId);
@@ -89,14 +87,7 @@ public class OutcomeServiceImpl implements OutcomeService {
 
     @Override
     public List<OutcomeDto> getOutcomes(Long exposureId) {
-        List<Outcome> outcomes = findAllByExposureId(exposureId);
-        List<OutcomeDto> outcomeDtoList = new ArrayList<>();
-
-        for (Outcome outcome : outcomes) {
-            outcomeDtoList.add(toDto(outcome, false));
-        }
-
-        return outcomeDtoList;
+        return CollectionUtils.emptyIfNull(findAllByExposureId(exposureId)).stream().map(outcome -> toDto(outcome, false)).toList();
     }
 
     @Override
@@ -225,9 +216,9 @@ public class OutcomeServiceImpl implements OutcomeService {
     }
 
     @Override
-    public List<OutcomePotentialDto> potentialOutcomes(Long experimentId, String instructorUserId) throws DataServiceException, CanvasApiException {
+    public List<OutcomePotentialDto> potentialOutcomes(Long experimentId, SecuredInfo securedInfo) throws DataServiceException, CanvasApiException {
         Optional<Experiment> experiment = experimentService.findById(experimentId);
-        LtiUserEntity instructorUser = allRepositories.ltiUserRepository.findByUserKey(instructorUserId);
+        LtiUserEntity instructorUser = allRepositories.ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
         List<Assignment> assignmentList = allRepositories.assignmentRepository.findByExposure_Experiment_ExperimentId(experimentId);
         List<OutcomePotentialDto> outcomePotentialDtos = new ArrayList<>();
 
@@ -245,20 +236,22 @@ public class OutcomeServiceImpl implements OutcomeService {
             if (matched.isEmpty()
                     && !(experiment.get().getConsentDocument() != null
                     && assignmentExtended.getId().intValue() == Integer.parseInt(experiment.get().getConsentDocument().getLmsAssignmentId()))) {
-                outcomePotentialDtos.add(assignmentExtendedToOutcomePotentialDto(assignmentExtended));
+                outcomePotentialDtos.add(assignmentExtendedToOutcomePotentialDto(assignmentExtended, securedInfo));
             }
         }
 
         return outcomePotentialDtos;
     }
 
-    private OutcomePotentialDto assignmentExtendedToOutcomePotentialDto(AssignmentExtended assignmentExtended) {
+    private OutcomePotentialDto assignmentExtendedToOutcomePotentialDto(AssignmentExtended assignmentExtended, SecuredInfo securedInfo) {
         OutcomePotentialDto potentialDto = new OutcomePotentialDto();
         potentialDto.setAssignmentId(assignmentExtended.getId());
         potentialDto.setName(assignmentExtended.getName());
         potentialDto.setType(assignmentExtended.getSubmissionTypes().get(0));
         potentialDto.setPointsPossible(assignmentExtended.getPointsPossible());
-        potentialDto.setTerracotta(assignmentExtended.getSubmissionTypes().contains("external_tool") && assignmentExtended.getExternalToolTagAttributes().getUrl().contains(localUrl));
+
+        Optional<PlatformDeployment> platformDeployment = allRepositories.platformDeploymentRepository.findById(securedInfo.getPlatformDeploymentId());
+        potentialDto.setTerracotta(assignmentExtended.getSubmissionTypes().contains("external_tool") && assignmentExtended.getExternalToolTagAttributes().getUrl().contains(platformDeployment.get().getLocalUrl()));
 
         return potentialDto;
     }
@@ -282,7 +275,7 @@ public class OutcomeServiceImpl implements OutcomeService {
         participantService.refreshParticipants(outcome.getExposure().getExperiment().getExperimentId(), outcome.getExposure().getExperiment().getParticipants());
         List<OutcomeScore> newScores = new ArrayList<>();
         String canvasCourseId = StringUtils.substringBetween(outcome.getExposure().getExperiment().getLtiContextEntity().getContext_memberships_url(), "courses/", "/names");
-        LtiUserEntity instructorUser = allRepositories.ltiUserRepository.findByUserKey(securedInfo.getUserId());
+        LtiUserEntity instructorUser = allRepositories.ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
         List<Submission> submissions = canvasAPIClient.listSubmissions(instructorUser, Integer.parseInt(outcome.getLmsOutcomeId()), canvasCourseId);
 
         for (Submission submission : submissions) {

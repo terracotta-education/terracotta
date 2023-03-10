@@ -40,16 +40,17 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Component
+@SuppressWarnings({"PMD.PreserveStackTrace"})
 public class QuestionServiceImpl implements QuestionService {
 
     @Autowired
-    AllRepositories allRepositories;
+    private AllRepositories allRepositories;
 
     @Autowired
-    AnswerService answerService;
+    private AnswerService answerService;
 
     @Autowired
-    FileStorageService fileStorageService;
+    private FileStorageService fileStorageService;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -64,16 +65,18 @@ public class QuestionServiceImpl implements QuestionService {
         List<Question> questions = findAllByAssessmentId(assessmentId);
 
         return CollectionUtils.emptyIfNull(questions).stream()
-                    .map(question -> toDto(question, false, false))
-                    .collect(Collectors.toList());
+            .map(question -> toDto(question, false, false))
+            .collect(Collectors.toList());
     }
 
     @Override
-    public Question getQuestion(Long id){ return allRepositories.questionRepository.findByQuestionId(id); }
+    public Question getQuestion(Long id) {
+        return allRepositories.questionRepository.findByQuestionId(id);
+    }
 
     @Override
     public QuestionDto postQuestion(QuestionDto questionDto, long assessmentId, boolean answers) throws IdInPostException, DataServiceException, MultipleChoiceLimitReachedException {
-        if(questionDto.getQuestionId() != null) {
+        if (questionDto.getQuestionId() != null) {
             throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
         }
 
@@ -105,7 +108,7 @@ public class QuestionServiceImpl implements QuestionService {
     public QuestionDto toDto(Question question, Long submissionId, boolean answers, boolean showCorrectAnswer) {
         QuestionDto questionDto = new QuestionDto();
         questionDto.setQuestionId(question.getQuestionId());
-        questionDto.setHtml(fileStorageService.parseHTMLFiles(question.getHtml()));
+        questionDto.setHtml(fileStorageService.parseHTMLFiles(question.getHtml(), question.getAssessment().getTreatment().getAssignment().getExposure().getExperiment().getPlatformDeployment().getLocalUrl()));
         questionDto.setQuestionOrder(question.getQuestionOrder());
         questionDto.setPoints(question.getPoints());
         questionDto.setAssessmentId(question.getAssessment().getAssessmentId());
@@ -116,8 +119,7 @@ public class QuestionServiceImpl implements QuestionService {
                 Optional<QuestionSubmission> questionSubmission = Optional.empty();
 
                 if (submissionId != null) {
-                    questionSubmission = this.allRepositories.questionSubmissionRepository
-                            .findByQuestion_QuestionIdAndSubmission_SubmissionId(question.getQuestionId(), submissionId);
+                    questionSubmission = this.allRepositories.questionSubmissionRepository.findByQuestion_QuestionIdAndSubmission_SubmissionId(question.getQuestionId(), submissionId);
                 }
 
                 if (questionSubmission.isPresent()) {
@@ -136,9 +138,9 @@ public class QuestionServiceImpl implements QuestionService {
 
     @Override
     public Question fromDto(QuestionDto questionDto) throws DataServiceException, NegativePointsException {
-
         Question question;
         QuestionTypes questionType = QuestionTypes.valueOf(questionDto.getQuestionType());
+
         if (questionType == QuestionTypes.MC) {
             QuestionMc questionMc = new QuestionMc();
             questionMc.setRandomizeAnswers(questionDto.isRandomizeAnswers());
@@ -146,29 +148,38 @@ public class QuestionServiceImpl implements QuestionService {
         } else {
             question = new Question();
         }
+
         question.setQuestionId(questionDto.getQuestionId());
         question.setHtml(questionDto.getHtml());
-        if(questionDto.getPoints() >= 0){
+
+        if (questionDto.getPoints() >= 0){
             question.setPoints(questionDto.getPoints());
         } else {
             throw new NegativePointsException("Error 142: The point value cannot be negative.");
         }
+
         question.setQuestionOrder(questionDto.getQuestionOrder());
         question.setQuestionType(questionType);
         Optional<Assessment> assessment = allRepositories.assessmentRepository.findById(questionDto.getAssessmentId());
-        if(assessment.isPresent()) {
+
+        if (assessment.isPresent()) {
             question.setAssessment(assessment.get());
         } else {
             throw new DataServiceException("The assessment for the question does not exist");
         }
+
         return question;
     }
 
     @Override
-    public Question save(Question question) { return allRepositories.questionRepository.save(question); }
+    public Question save(Question question) {
+        return allRepositories.questionRepository.save(question);
+    }
 
     @Override
-    public Optional<Question> findById(Long id) { return allRepositories.questionRepository.findById(id); }
+    public Optional<Question> findById(Long id) {
+        return allRepositories.questionRepository.findById(id);
+    }
 
     @Override
     @Transactional
@@ -178,20 +189,25 @@ public class QuestionServiceImpl implements QuestionService {
             QuestionDto questionDto = entry.getValue();
             question.setHtml(questionDto.getHtml());
             question.setQuestionOrder(questionDto.getQuestionOrder());
-            if(questionDto.getPoints() >= 0){
-                question.setPoints(questionDto.getPoints());
-            } else {
+
+            if (questionDto.getPoints() < 0){
                 throw new NegativePointsException("Error 142: The point value cannot be negative.");
             }
-            if(question.getQuestionType() == QuestionTypes.MC) {
+
+            question.setPoints(questionDto.getPoints());
+
+            if (question.getQuestionType() == QuestionTypes.MC) {
                 ((QuestionMc)question).setRandomizeAnswers(questionDto.isRandomizeAnswers());
             }
+
             save(question);
         }
     }
 
     @Override
-    public Question saveAndFlush(Question questionToChange) { return allRepositories.questionRepository.saveAndFlush(questionToChange); }
+    public Question saveAndFlush(Question questionToChange) {
+        return allRepositories.questionRepository.saveAndFlush(questionToChange);
+    }
 
     @Override
     public void deleteById(Long id) throws EmptyResultDataAccessException {
@@ -218,10 +234,11 @@ public class QuestionServiceImpl implements QuestionService {
 
     @Override
     public void validateQuestionType(QuestionDto questionDto) throws InvalidQuestionTypeException {
-        if(questionDto.getQuestionType() == null){
+        if (questionDto.getQuestionType() == null){
             throw new InvalidQuestionTypeException("Error 119: Must include a question type in the post.");
         }
-        if(!EnumUtils.isValidEnum(QuestionTypes.class, questionDto.getQuestionType())){
+
+        if (!EnumUtils.isValidEnum(QuestionTypes.class, questionDto.getQuestionType())){
             throw new InvalidQuestionTypeException("Error 103: Please use a supported question type.");
         }
     }

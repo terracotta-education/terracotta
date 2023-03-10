@@ -2,7 +2,6 @@ package edu.iu.terracotta.service.app.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
@@ -25,6 +24,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Header;
 import io.jsonwebtoken.Jwt;
 
+@SuppressWarnings({"rawtypes"})
 public class APIJWTServiceImplTest {
 
     @InjectMocks

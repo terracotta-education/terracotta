@@ -71,9 +71,6 @@ public class FileStorageServiceImpl implements FileStorageService {
     @Value("${upload.path}")
     private String uploadDir;
 
-    @Value("${application.url}")
-    private String applicationUrl;
-
     @Value("${upload.submissions.local.path}")
     private String uploadSubmissionsLocalPath;
 
@@ -252,7 +249,7 @@ public class FileStorageServiceImpl implements FileStorageService {
         fileInfoDto.setSize(fileInfo.getSize());
         fileInfoDto.setUrl(ServletUriComponentsBuilder.fromCurrentContextPath().path("/api/experiments/" + fileInfoDto.getExperimentId() + "/files/" + fileInfo.getFileId()).build().toUriString());
         try {
-            fileInfoDto.setTempToken(apijwtService.buildFileToken(fileInfo.getFileId()));
+            fileInfoDto.setTempToken(apijwtService.buildFileToken(fileInfo.getFileId(), fileInfo.getExperiment().getPlatformDeployment().getLocalUrl()));
         } catch (GeneralSecurityException ex) {
             //This shouldn't happen, but if it happens we just want a  warning in the log
             log.warn("Error generating the file token: " + fileInfo.getFileId() + " : " + ex.getMessage());
@@ -298,13 +295,14 @@ public class FileStorageServiceImpl implements FileStorageService {
     }
 
     @Override
-    public void uploadConsent(long experimentId, String title, FileInfoDto consentUploaded, String instructorUserId)
+    public void uploadConsent(long experimentId, String title, FileInfoDto consentUploaded, SecuredInfo securedInfo)
             throws AssignmentNotCreatedException, CanvasApiException, AssignmentNotEditedException, AssignmentNotMatchingException {
         Experiment experiment = experimentService.getExperiment(experimentId);
         ConsentDocument consentDocument = experiment.getConsentDocument();
-        LtiUserEntity instructorUser = allRepositories.ltiUserRepository.findByUserKey(instructorUserId);
+        LtiUserEntity instructorUser = allRepositories.ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
         String canvasCourseId = org.apache.commons.lang3.StringUtils.substringBetween(experiment.getLtiContextEntity().getContext_memberships_url(), "courses/", "/names");
-        if (consentDocument == null){
+
+        if (consentDocument == null) {
             consentDocument = new ConsentDocument();
             consentDocument.setFilePointer(consentUploaded.getUrl());
             consentDocument.setExperiment(experiment);
@@ -312,8 +310,9 @@ public class FileStorageServiceImpl implements FileStorageService {
         } else {
             consentDocument.setFilePointer(consentUploaded.getUrl());
         }
+
         //Let's see if we have the assignment generated in Canvas
-        if (consentDocument.getLmsAssignmentId()==null){
+        if (consentDocument.getLmsAssignmentId() == null) {
             AssignmentExtended canvasAssignment = new AssignmentExtended();
             Assignment.ExternalToolTagAttribute canvasExternalToolTagAttributes = canvasAssignment.new ExternalToolTagAttribute();
             canvasExternalToolTagAttributes.setUrl(ServletUriComponentsBuilder.fromCurrentContextPath().path("/lti3?consent=true&experiment=" + experimentId).build().toUriString());
@@ -326,6 +325,7 @@ public class FileStorageServiceImpl implements FileStorageService {
             canvasAssignment.setGradingType("points");
             canvasAssignment.setPointsPossible(1.0);
             canvasAssignment.setSubmissionTypes(Collections.singletonList("external_tool"));
+
             try {
                 Optional<AssignmentExtended> assignment = canvasAPIClient.createCanvasAssignment(instructorUser,
                         canvasAssignment, canvasCourseId);
@@ -333,6 +333,7 @@ public class FileStorageServiceImpl implements FileStorageService {
                 if (!assignment.isPresent()) {
                     throw new AssignmentNotMatchingException(TextConstants.ASSIGNMENT_NOT_MATCHING);
                 }
+
                 consentDocument.setLmsAssignmentId(Integer.toString(assignment.get().getId()));
                 // consentDocument.setResourceLinkId(assignment.get().getExternalToolTagAttributes().getResourceLinkId());
                 // log.debug("getExternalToolTagAttributes().getResourceLinkId()={}", assignment.get().getExternalToolTagAttributes().getResourceLinkId());
@@ -342,22 +343,23 @@ public class FileStorageServiceImpl implements FileStorageService {
                 log.debug("jwtTokenAssignment lti_assignment_id = {}", resourceLinkId);
                 consentDocument.setResourceLinkId(resourceLinkId);
             } catch (CanvasApiException e) {
-                log.error("Create the assignment failed");
-                e.printStackTrace();
+                log.error("Create the assignment failed " + e.getMessage());
                 throw new AssignmentNotCreatedException("Error 137: The assignment was not created.");
             }
         } else {
             String lmsId = consentDocument.getLmsAssignmentId();
-            Optional<AssignmentExtended> assignmentExtendedOptional = canvasAPIClient.listAssignment(instructorUser,
-                    canvasCourseId, Integer.parseInt(lmsId));
-            if (!assignmentExtendedOptional.isPresent()){
+            Optional<AssignmentExtended> assignmentExtendedOptional = canvasAPIClient.listAssignment(instructorUser, canvasCourseId, Integer.parseInt(lmsId));
+
+            if (!assignmentExtendedOptional.isPresent()) {
                 throw new AssignmentNotEditedException("Error 136: The assignment is not linked to any Canvas assignment");
             }
+
             AssignmentExtended assignmentExtended = assignmentExtendedOptional.get();
             assignmentExtended.setName(title);
             canvasAPIClient.editAssignment(instructorUser, assignmentExtended, canvasCourseId);
             consentDocument.setTitle(title);
         }
+
         consentDocument = experimentService.saveConsentDocument(consentDocument);
         experiment.setConsentDocument(consentDocument);
         experimentService.saveAndFlush(experiment);
@@ -366,12 +368,14 @@ public class FileStorageServiceImpl implements FileStorageService {
     @Override
     public void deleteConsentAssignment(long experimentId, SecuredInfo securedInfo) throws AssignmentNotEditedException, CanvasApiException {
         Experiment experiment = experimentService.getExperiment(experimentId);
-        LtiUserEntity instructorUser = allRepositories.ltiUserRepository.findByUserKey(securedInfo.getUserId());
+        LtiUserEntity instructorUser = allRepositories.ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
         ConsentDocument consentDocument = experiment.getConsentDocument();
+
         if (consentDocument!=null) {
             String lmsId = consentDocument.getLmsAssignmentId();
             Optional<AssignmentExtended> assignmentExtendedOptional = canvasAPIClient.listAssignment(instructorUser,
                     securedInfo.getCanvasCourseId(), Integer.parseInt(lmsId));
+
             if (assignmentExtendedOptional.isPresent()) {
                 AssignmentExtended assignmentExtended = assignmentExtendedOptional.get();
                 canvasAPIClient.deleteAssignment(instructorUser, assignmentExtended, securedInfo.getCanvasCourseId());
@@ -380,22 +384,21 @@ public class FileStorageServiceImpl implements FileStorageService {
     }
 
     @Override
-    public String parseHTMLFiles (String html) {
+    public String parseHTMLFiles (String html, String localUrl) {
 
         if (org.apache.commons.lang3.StringUtils.isNotBlank(html)) {
             Document doc = Jsoup.parse(html);
-            parseAndUpdateElements(doc, "src", "/files/", "?token=", true);
-            parseAndUpdateElements(doc, "href", "/files/", "?token=", true);
-            parseAndUpdateElements(doc, "src", "/api/experiments/", "/files/", false);
-            parseAndUpdateElements(doc, "href", "/api/experiments/", "/files/", false);
+            parseAndUpdateElements(doc, "src", "/files/", "?token=", true, localUrl);
+            parseAndUpdateElements(doc, "href", "/files/", "?token=", true, localUrl);
+            parseAndUpdateElements(doc, "src", "/api/experiments/", "/files/", false, localUrl);
+            parseAndUpdateElements(doc, "href", "/api/experiments/", "/files/", false, localUrl);
             return doc.body().html();
         }
         return html;
     }
 
-    private void parseAndUpdateElements(Document doc, String attribute, String prefixToSearch, String stringToSearch, boolean alreadyToken) {
-
-        Elements elements = doc.getElementsByAttributeValueStarting(attribute, applicationUrl + prefixToSearch);
+    private void parseAndUpdateElements(Document doc, String attribute, String prefixToSearch, String stringToSearch, boolean alreadyToken, String localUrl) {
+        Elements elements = doc.getElementsByAttributeValueStarting(attribute, localUrl + prefixToSearch);
         for (Element element:elements){
             String originalLink = element.attr(attribute);
             if (originalLink.contains(stringToSearch)){
@@ -404,8 +407,8 @@ public class FileStorageServiceImpl implements FileStorageService {
                     fileId = org.apache.commons.lang3.StringUtils.substringBefore(fileId,"?token=");
                 }
                 try {
-                    String token = apijwtService.buildFileToken(fileId);
-                    String fileDownloadUrl = applicationUrl + "/files/" + fileId + "?token=" + token;
+                    String token = apijwtService.buildFileToken(fileId, localUrl);
+                    String fileDownloadUrl = localUrl + "/files/" + fileId + "?token=" + token;
                     element.attr(attribute, fileDownloadUrl);
                 } catch (GeneralSecurityException gs){
                     //In case of problem we don't modify anything but it won't fail

@@ -86,6 +86,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+@SuppressWarnings({"PMD.AvoidAccessibilityAlteration"})
 public class AssessmentServiceImplTest {
 
     @Spy
@@ -158,7 +159,7 @@ public class AssessmentServiceImplTest {
         when(treatmentRepository.findByTreatmentId(anyLong())).thenReturn(treatment);
         when(treatmentRepository.saveAndFlush(any(Treatment.class))).thenReturn(treatment);
 
-        when(fileStorageService.parseHTMLFiles(anyString())).thenReturn(StringUtils.EMPTY);
+        when(fileStorageService.parseHTMLFiles(anyString(), anyString())).thenReturn(StringUtils.EMPTY);
         when(participantService.handleExperimentParticipant(any(Experiment.class), any(SecuredInfo.class))).thenReturn(participant);
         when(questionService.duplicateQuestionsForAssessment(anyLong(), any(Assessment.class))).thenReturn(Collections.singletonList(question));
         when(questionService.findAllByAssessmentId(anyLong())).thenReturn(Collections.singletonList(question));

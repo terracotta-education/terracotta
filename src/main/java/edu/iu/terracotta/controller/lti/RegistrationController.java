@@ -13,17 +13,19 @@
 package edu.iu.terracotta.controller.lti;
 
 import edu.iu.terracotta.exceptions.ConnectionException;
-import edu.iu.terracotta.repository.PlatformDeploymentRepository;
+import edu.iu.terracotta.repository.AllRepositories;
+import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.model.lti.dto.PlatformRegistrationDTO;
 import edu.iu.terracotta.model.lti.dto.ToolConfigurationDTO;
 import edu.iu.terracotta.model.lti.dto.ToolMessagesSupportedDTO;
 import edu.iu.terracotta.model.lti.dto.ToolRegistrationDTO;
-import edu.iu.terracotta.service.lti.LTIDataService;
+import edu.iu.terracotta.model.oauth2.SecuredInfo;
+import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.lti.RegistrationService;
 import edu.iu.terracotta.utils.LtiStrings;
 import edu.iu.terracotta.utils.TextConstants;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Scope;
@@ -36,8 +38,9 @@ import org.springframework.http.client.BufferingClientHttpRequestFactory;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.client.RestTemplate;
 
@@ -48,39 +51,33 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * This LTI controller should be protected by OAuth 1.0a (on the /oauth path)
  * This will handle LTI 1 and 2 (many of the paths ONLY make sense for LTI2 though)
  * Sample Key "key" and secret "secret"
  */
-@SuppressWarnings("ALL")
+@Slf4j
 @Controller
 @Scope("session")
 @RequestMapping("/registration")
 public class RegistrationController {
 
-    static final Logger log = LoggerFactory.getLogger(RegistrationController.class);
+    @Autowired
+    private AllRepositories allRepositories;
 
     @Autowired
-    PlatformDeploymentRepository platformDeploymentRepository;
+    private APIJWTService apijwtService;
 
     @Autowired
-    LTIDataService ltiDataService;
-
-    @Autowired
-    RegistrationService registrationService;
-
-    @Value("${application.url}")
-    private String localUrl;
-
+    private RegistrationService registrationService;
 
     @Value("${application.name}")
     private String clientName;
 
     @Value("${application.description}")
     private String description;
-
 
     /**
      * This will receive the request to start the dynamic registration process and prepare the answer.
@@ -94,30 +91,32 @@ public class RegistrationController {
      * @param model
      * @return
      */
-    @RequestMapping(value = "/", method = RequestMethod.GET)
+    @GetMapping("/")
     public String registration(@RequestParam("openid_configuration") String openidConfiguration, @RequestParam(LtiStrings.REGISTRATION_TOKEN) String registrationToken, HttpServletRequest req, Model model) {
-
         // We need to call the configuration endpoint recevied in the registration inititaion message and
         // call it to get all the information about the platform
         HttpSession session = req.getSession();
         model.addAttribute("openid_configuration", openidConfiguration);
         session.setAttribute(LtiStrings.REGISTRATION_TOKEN, registrationToken);
         model.addAttribute(LtiStrings.REGISTRATION_TOKEN, registrationToken);
-        model.addAttribute("own_redirect_post_endpoint", localUrl + "/registration/");
+
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        Optional<PlatformDeployment> platformDeployment = allRepositories.platformDeploymentRepository.findById(securedInfo.getPlatformDeploymentId());
+        model.addAttribute("own_redirect_post_endpoint", platformDeployment.get().getLocalUrl() + "/registration/");
 
         try {
             // We are going to create the call the openidconfiguration endpoint,
-            RestTemplate restTemplate = new RestTemplate(
-                    new BufferingClientHttpRequestFactory(new SimpleClientHttpRequestFactory()));
+            RestTemplate restTemplate = new RestTemplate(new BufferingClientHttpRequestFactory(new SimpleClientHttpRequestFactory()));
 
             //The URL to get the course contents is stored in the context (in our database) because it came
             // from the platform when we created the link to the context, and we saved it then.
 
-            ResponseEntity<PlatformRegistrationDTO> platformConfiguration = restTemplate.
-                    exchange(openidConfiguration, HttpMethod.GET, new HttpEntity<>(new HttpHeaders()), PlatformRegistrationDTO.class);
+            ResponseEntity<PlatformRegistrationDTO> platformConfiguration = restTemplate.exchange(openidConfiguration, HttpMethod.GET, new HttpEntity<>(new HttpHeaders()), PlatformRegistrationDTO.class);
             PlatformRegistrationDTO platformRegistrationDTO = null;
+
             if (platformConfiguration != null) {
                 HttpStatus status = platformConfiguration.getStatusCode();
+
                 if (status.is2xxSuccessful()) {
                     platformRegistrationDTO = platformConfiguration.getBody();
                 } else {
@@ -128,11 +127,10 @@ public class RegistrationController {
             } else {
                 log.warn("Problem getting the membership");
             }
+
             model.addAttribute(LtiStrings.PLATFORM_CONFIGURATION, platformRegistrationDTO);
-
-
             session.setAttribute(LtiStrings.PLATFORM_CONFIGURATION, platformRegistrationDTO);
-            ToolRegistrationDTO toolRegistrationDTO = generateToolConfiguration();
+            ToolRegistrationDTO toolRegistrationDTO = generateToolConfiguration(req);
             // We add that information so the thymeleaf template can display it (and prepare the links)
             model.addAttribute(LtiStrings.TOOL_CONFIGURATION, toolRegistrationDTO);
             session.setAttribute(LtiStrings.TOOL_CONFIGURATION, toolRegistrationDTO);
@@ -145,38 +143,41 @@ public class RegistrationController {
         }
     }
 
-    @RequestMapping(value = "/", method = RequestMethod.POST)
-    public String registrationPOST(HttpServletRequest req,
-                                   Model model) {
+    @PostMapping("/")
+    public String registrationPOST(HttpServletRequest req, Model model) {
         HttpSession session = req.getSession();
         String token = (String) session.getAttribute(LtiStrings.REGISTRATION_TOKEN);
         PlatformRegistrationDTO platformRegistrationDTO = (PlatformRegistrationDTO) session.getAttribute(LtiStrings.PLATFORM_CONFIGURATION);
         ToolRegistrationDTO toolRegistrationDTO = (ToolRegistrationDTO) session.getAttribute(LtiStrings.TOOL_CONFIGURATION);
-
         String answer = "Error during the registration";
+
         try {
             answer = registrationService.callDynamicRegistration(token, toolRegistrationDTO, platformRegistrationDTO.getRegistration_endpoint());
         } catch (ConnectionException e) {
             e.printStackTrace();
         }
+
         model.addAttribute("registration_confirmation", answer);
+
         try {
             model.addAttribute("issuer", java.net.URLDecoder.decode(platformRegistrationDTO.getIssuer(), StandardCharsets.UTF_8.name()));
         } catch (UnsupportedEncodingException e) {
             log.error("Error decoding the issuer as URL", e);
         }
+
         return "registrationConfirmation";
     }
-
 
     /**
      * This generates a JsonNode with all the information that we need to send to the Registration Authorization endpoint in the Platform.
      * In this case, we will put this in the model to be used by the thymeleaf template.
+     *
      * @param platformRegistrationDTO
      * @return
      */
-    private ToolRegistrationDTO generateToolConfiguration() {
-
+    private ToolRegistrationDTO generateToolConfiguration(HttpServletRequest req) {
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        Optional<PlatformDeployment> platformDeployment = allRepositories.platformDeploymentRepository.findById(securedInfo.getPlatformDeploymentId());
         ToolRegistrationDTO toolRegistrationDTO = new ToolRegistrationDTO();
         toolRegistrationDTO.setApplication_type("web");
         List<String> grantTypes = new ArrayList<>();
@@ -184,10 +185,10 @@ public class RegistrationController {
         grantTypes.add("client_credentials");
         toolRegistrationDTO.setGrant_types(grantTypes);
         toolRegistrationDTO.setResponse_types(Collections.singletonList("id_token"));
-        toolRegistrationDTO.setRedirect_uris(Collections.singletonList(localUrl + TextConstants.LTI3_SUFFIX));
-        toolRegistrationDTO.setInitiate_login_uri(localUrl + "/oidc/login_initiations");
+        toolRegistrationDTO.setRedirect_uris(Collections.singletonList(platformDeployment.get().getLocalUrl() + TextConstants.LTI3_SUFFIX));
+        toolRegistrationDTO.setInitiate_login_uri(platformDeployment.get().getLocalUrl() + "/oidc/login_initiations");
         toolRegistrationDTO.setClient_name(clientName);
-        toolRegistrationDTO.setJwks_uri(localUrl + "/jwks/jwk");
+        toolRegistrationDTO.setJwks_uri(platformDeployment.get().getLocalUrl() + "/jwks/jwk");
         //OPTIONAL -->setLogo_uri
         toolRegistrationDTO.setToken_endpoint_auth_method("private_key_jwt");
         //OPTIONAL -->setContacts
@@ -195,23 +196,23 @@ public class RegistrationController {
         //OPTIONAL -->setTos_uri
         //OPTIONAL -->setPolicy_uri
         ToolConfigurationDTO toolConfigurationDTO = new ToolConfigurationDTO();
-        toolConfigurationDTO.setDomain(localUrl.substring(localUrl.indexOf("//") + 2));
+        toolConfigurationDTO.setDomain(platformDeployment.get().getLocalUrl().substring(platformDeployment.get().getLocalUrl().indexOf("//") + 2));
         //OPTIONAL -->setSecondary_domains --> Collections.singletonList
         //OPTIONAL -->setDeployment_id
-        toolConfigurationDTO.setTarget_link_uri(localUrl + TextConstants.LTI3_SUFFIX);
+        toolConfigurationDTO.setTarget_link_uri(platformDeployment.get().getLocalUrl() + TextConstants.LTI3_SUFFIX);
         //OPTIONAL -->setCustom_parameters --> Map
         toolConfigurationDTO.setDescription(description);
         List<ToolMessagesSupportedDTO> messages = new ArrayList<>();
         ToolMessagesSupportedDTO message1 = new ToolMessagesSupportedDTO();
         message1.setType("LtiDeepLinkingRequest");
-        message1.setTarget_link_uri(localUrl + TextConstants.LTI3_SUFFIX);
+        message1.setTarget_link_uri(platformDeployment.get().getLocalUrl() + TextConstants.LTI3_SUFFIX);
         //OPTIONAL: --> message1 --> setLabel
         //OPTIONAL: --> message1 --> setIcon_uri
         //OPTIONAL: --> message1 --> setCustom_parameters
         messages.add(message1);
         ToolMessagesSupportedDTO message2 = new ToolMessagesSupportedDTO();
         message2.setType("LtiResourceLinkRequest");
-        message2.setTarget_link_uri(localUrl + TextConstants.LTI3_SUFFIX);
+        message2.setTarget_link_uri(platformDeployment.get().getLocalUrl() + TextConstants.LTI3_SUFFIX);
         messages.add(message2);
         toolConfigurationDTO.setMessages_supported(messages);
         //TODO, fill this correctly based on the claims received.

@@ -2,6 +2,7 @@ package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.exceptions.AssignmentNotEditedException;
 import edu.iu.terracotta.exceptions.CanvasApiException;
+import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
@@ -30,44 +31,43 @@ import edu.iu.terracotta.service.app.ConditionService;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.ExposureService;
 import edu.iu.terracotta.service.app.ParticipantService;
+import lombok.extern.slf4j.Slf4j;
+
 import org.apache.commons.lang3.EnumUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+@Slf4j
 @Service
+@SuppressWarnings({"PMD.GuardLogStatement"})
 public class ExperimentServiceImpl implements ExperimentService {
 
+    @Autowired
+    private AllRepositories allRepositories;
 
     @Autowired
-    AllRepositories allRepositories;
+    private ConditionService conditionService;
 
     @Autowired
-    ConditionService conditionService;
+    private ExposureService exposureService;
 
     @Autowired
-    ExposureService exposureService;
+    private ParticipantService participantService;
 
     @Autowired
-    ParticipantService participantService;
+    private AssignmentService assignmentService;
 
     @Autowired
-    AssignmentService assignmentService;
-
-    @Autowired
-    FileStorageServiceImpl fileStorageService;
-
-    static final Logger log = LoggerFactory.getLogger(ExperimentServiceImpl.class);
-
+    private FileStorageServiceImpl fileStorageService;
 
     @Override
     public List<Experiment> findAllByDeploymentIdAndCourseId(long deploymentId, long contextId) {
@@ -75,17 +75,36 @@ public class ExperimentServiceImpl implements ExperimentService {
     }
 
     @Override
-    public List<ExperimentDto> getExperiments(long deploymentId, long contextId){
-        List<Experiment> experiments = findAllByDeploymentIdAndCourseId(deploymentId, contextId);
+    public List<ExperimentDto> getExperiments(SecuredInfo securedInfo, boolean syncWithCanvas) {
+        List<Experiment> experiments = findAllByDeploymentIdAndCourseId(securedInfo.getPlatformDeploymentId(), securedInfo.getContextId());
         List<ExperimentDto> experimentDtoList = new ArrayList<>();
-        for(Experiment experiment : experiments){
+
+        for (Experiment experiment : experiments) {
             experimentDtoList.add(toDto(experiment, false, false,  false));
         }
+
+        // sync assignments with Canvas, if configured
+        if (syncWithCanvas) {
+            Thread thread = new Thread(
+                () ->
+                    {
+                        try {
+                            assignmentService.checkAndRestoreAssignmentsInCanvasByContext(securedInfo);
+                        } catch (CanvasApiException | DataServiceException | ConnectionException | IOException e) {
+                            log.error("Error syncing assignments with Canvas. Context ID: '{}'", securedInfo.getContextId(), e);
+                        }
+                    }
+            );
+            thread.start();
+        }
+
         return experimentDtoList;
     }
 
     @Override
-    public Experiment getExperiment(long experimentId){ return allRepositories.experimentRepository.findByExperimentId(experimentId); }
+    public Experiment getExperiment(long experimentId) {
+        return allRepositories.experimentRepository.findByExperimentId(experimentId);
+    }
 
     @Override
     public ExperimentDto postExperiment(ExperimentDto experimentDto, SecuredInfo securedInfo) throws DataServiceException, TitleValidationException {
@@ -93,90 +112,100 @@ public class ExperimentServiceImpl implements ExperimentService {
 
         Experiment experiment;
         experimentDto = fillContextInfo(experimentDto, securedInfo);
+
         try {
             experiment = fromDto(experimentDto);
         } catch (DataServiceException e) {
-            throw new DataServiceException("Error 105: Unable to create the experiment:" + e.getMessage());
+            throw new DataServiceException("Error 105: Unable to create the experiment:" + e.getMessage(), e);
         }
+
         return toDto(save(experiment), false, false, false);
     }
 
     @Override
     public void updateExperiment(long experimentId, long contextId, ExperimentDto experimentDto, SecuredInfo securedInfo) throws TitleValidationException, WrongValueException, ParticipantNotUpdatedException, ExperimentNotMatchingException {
         Experiment experimentToChange = getExperiment(experimentId);
-        if(StringUtils.isAllBlank(experimentDto.getTitle()) && StringUtils.isAllBlank(experimentToChange.getTitle())){
+
+        if (StringUtils.isAllBlank(experimentDto.getTitle(), experimentToChange.getTitle())) {
             throw new TitleValidationException("Error 100: Please give the experiment a title.");
         }
-        if(!StringUtils.isBlank(experimentDto.getTitle())){
-            if(experimentDto.getTitle().length() > 255){
+
+        if (StringUtils.isNotBlank(experimentDto.getTitle())) {
+            if (experimentDto.getTitle().length() > 255) {
                 throw new TitleValidationException("Error 101: Experiment title must be 255 characters or less.");
             }
-            if(titleAlreadyExists(experimentDto.getTitle(), contextId, experimentId)){
+
+            if (titleAlreadyExists(experimentDto.getTitle(), contextId, experimentId)) {
                 throw new TitleValidationException("Error 102: Unable to create the experiment. An experiment with title \"" + experimentDto.getTitle() + "\" already exists in this course.");
             }
         }
+
         experimentToChange.setTitle(experimentDto.getTitle());
         experimentToChange.setDescription(experimentDto.getDescription());
-        if (experimentToChange.getStarted()!=null
-                && (!experimentDto.getExposureType().equals(experimentToChange.getExposureType().name()))){
+
+        if (experimentToChange.isStarted() && !experimentDto.getExposureType().equals(experimentToChange.getExposureType().name())) {
             throw new WrongValueException("Error 110: The experiment has started. The Exposure Type can't be changed");
         }
-        if (experimentToChange.getStarted()!=null
-                && (!experimentDto.getDistributionType().equals(experimentToChange.getDistributionType().name()))){
+
+        if (experimentToChange.isStarted() && !experimentDto.getDistributionType().equals(experimentToChange.getDistributionType().name())) {
             throw new WrongValueException("Error 110: The experiment has started. The Distribution Type can't be changed");
         }
-        if (experimentToChange.getStarted()!=null
-                && (!experimentDto.getParticipationType().equals(experimentToChange.getParticipationType().name()))
-                && experimentToChange.getParticipationType().equals(ParticipationTypes.CONSENT)){
+
+        if (experimentToChange.isStarted()
+                && !experimentDto.getParticipationType().equals(experimentToChange.getParticipationType().name())
+                && experimentToChange.getParticipationType().equals(ParticipationTypes.CONSENT)) {
             throw new WrongValueException("Error 110: The experiment has started. The Participation Type can't be changed from 'Consent' to " + experimentDto.getParticipationType());
         }
+
         if (experimentDto.getExposureType() != null) {
             if (EnumUtils.isValidEnum(ExposureTypes.class, experimentDto.getExposureType())) {
-                experimentToChange.setExposureType(
-                        EnumUtils.getEnum(ExposureTypes.class, experimentDto.getExposureType()));
+                experimentToChange.setExposureType(EnumUtils.getEnum(ExposureTypes.class, experimentDto.getExposureType()));
             } else {
                 throw new WrongValueException("Error 134: " + experimentDto.getExposureType() + " is not a valid Exposure value");
             }
         }
+
         if (experimentDto.getDistributionType() != null) {
             if (EnumUtils.isValidEnum(DistributionTypes.class, experimentDto.getDistributionType())) {
-                experimentToChange.setDistributionType(
-                        EnumUtils.getEnum(DistributionTypes.class, experimentDto.getDistributionType()));
+                experimentToChange.setDistributionType(EnumUtils.getEnum(DistributionTypes.class, experimentDto.getDistributionType()));
             } else {
                 throw new WrongValueException("Error 134: " + experimentDto.getDistributionType() + " is not a valid Distribution value");
             }
         }
+
         if (experimentDto.getParticipationType() != null) {
-            if (EnumUtils.isValidEnum(ParticipationTypes.class, experimentDto.getParticipationType())) {
-                if (!experimentToChange.getParticipationType().name().equals(experimentDto.getParticipationType())) {
-                    if (experimentToChange.getParticipationType().equals(ParticipationTypes.CONSENT)) {
-                        try {
-                            fileStorageService.deleteConsentAssignment(experimentId, securedInfo);
-                            if (experimentToChange.getConsentDocument()!=null) {
-                                allRepositories.consentDocumentRepository.delete(experimentToChange.getConsentDocument());
-                                experimentToChange.setConsentDocument(null);
-                            }
-                        } catch (CanvasApiException | AssignmentNotEditedException e) {
-                            log.warn("Consent from experiment {} was not deleted", experimentId);
-                        }
-                    }
-                    changeParticipantionType(experimentDto.getParticipationType(),experimentId, securedInfo);
-                    experimentToChange.setParticipationType(
-                            EnumUtils.getEnum(ParticipationTypes.class, experimentDto.getParticipationType()));
-                }
-            } else {
+            if (!EnumUtils.isValidEnum(ParticipationTypes.class, experimentDto.getParticipationType())) {
                 throw new WrongValueException("Error 134: " + experimentDto.getParticipationType() + " is not a valid Participation value");
             }
+
+            if (!experimentToChange.getParticipationType().name().equals(experimentDto.getParticipationType())) {
+                if (ParticipationTypes.CONSENT.equals(experimentToChange.getParticipationType())) {
+                    try {
+                        fileStorageService.deleteConsentAssignment(experimentId, securedInfo);
+
+                        if (experimentToChange.getConsentDocument()!=null) {
+                            allRepositories.consentDocumentRepository.delete(experimentToChange.getConsentDocument());
+                            experimentToChange.setConsentDocument(null);
+                        }
+                    } catch (CanvasApiException | AssignmentNotEditedException e) {
+                        log.warn("Consent from experiment {} was not deleted", experimentId);
+                    }
+                }
+
+                changeParticipantionType(experimentDto.getParticipationType(),experimentId, securedInfo);
+                experimentToChange.setParticipationType(EnumUtils.getEnum(ParticipationTypes.class, experimentDto.getParticipationType()));
+            }
         }
+
         experimentToChange.setClosed(experimentDto.getClosed());
         experimentToChange.setStarted(experimentDto.getStarted());
         save(experimentToChange);
     }
 
     private void changeParticipantionType(String toPT, Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException, ExperimentNotMatchingException {
-        if (toPT.equals(ParticipationTypes.CONSENT.name()) || toPT.equals(ParticipationTypes.NOSET.name())){
+        if (toPT.equals(ParticipationTypes.CONSENT.name()) || toPT.equals(ParticipationTypes.NOSET.name())) {
             participantService.setAllToNull(experimentId, securedInfo);
-        } else if (toPT.equals(ParticipationTypes.AUTO.name())){
+        } else if (toPT.equals(ParticipationTypes.AUTO.name())) {
             participantService.setAllToTrue(experimentId, securedInfo);
         } else if (toPT.equals(ParticipationTypes.MANUAL.name())) {
             participantService.setAllToFalse(experimentId, securedInfo);
@@ -186,12 +215,10 @@ public class ExperimentServiceImpl implements ExperimentService {
     @Override
     public Optional<Experiment> findOneByDeploymentIdAndCourseIdAndExperimentId(long deploymentId, long contextId, long id) {
         return allRepositories.experimentRepository.findByPlatformDeployment_KeyIdAndLtiContextEntity_ContextIdAndExperimentId(deploymentId,contextId, id);
-
     }
 
     @Override
     public ExperimentDto toDto(Experiment experiment, boolean conditions, boolean exposures, boolean participants) {
-
         ExperimentDto experimentDto = new ExperimentDto();
         experimentDto.setExperimentId(experiment.getExperimentId());
         experimentDto.setContextId(experiment.getLtiContextEntity().getContextId());
@@ -207,21 +234,24 @@ public class ExperimentServiceImpl implements ExperimentService {
         experimentDto.setUpdatedAt(experiment.getUpdatedAt());
         experimentDto.setCreatedBy(experiment.getCreatedBy().getUserId());
         List<ConditionDto> conditionDtoList = new ArrayList<>();
-        if (conditions){
-            //TODO, add sort if needed
+
+        if (conditions) {
             List<Condition> conditionList = allRepositories.conditionRepository.findByExperiment_ExperimentId(experiment.getExperimentId());
-            for (Condition condition:conditionList){
+
+            for (Condition condition:conditionList) {
                 ConditionDto conditionDto = conditionService.toDto(condition);
                 conditionDtoList.add(conditionDto);
             }
         }
+
         experimentDto.setConditions(conditionDtoList);
 
         List<ExposureDto> exposureDtoList = new ArrayList<>();
-        if(exposures){
-            //TODO add sort if needed
+
+        if (exposures) {
             List<Exposure> exposureList = allRepositories.exposureRepository.findByExperiment_ExperimentId(experiment.getExperimentId());
-            for(Exposure exposure : exposureList) {
+
+            for (Exposure exposure : exposureList) {
                 ExposureDto exposureDto = exposureService.toDto(exposure);
                 exposureDtoList.add(exposureDto);
             }
@@ -229,42 +259,48 @@ public class ExperimentServiceImpl implements ExperimentService {
         experimentDto.setExposures(exposureDtoList);
 
         List<ParticipantDto> participantDtoList = new ArrayList<>();
-        if (participants){
-            //TODO, add sort if needed
+
+        if (participants) {
             List<Participant> participantList = allRepositories.participantRepository.findByExperiment_ExperimentId(experiment.getExperimentId());
-            for (Participant participant : participantList){
+
+            for (Participant participant : participantList) {
                 ParticipantDto participantDto = participantService.toDto(participant);
                 participantDtoList.add(participantDto);
             }
         }
+
         experimentDto.setParticipants(participantDtoList);
         int countAnswered = 0;
         int countAccepted = 0;
         int countRejected = 0;
-        if (experiment.getParticipants()!=null) {
+
+        if (experiment.getParticipants() != null) {
             experimentDto.setPotentialParticipants(experiment.getParticipants().size());
 
             for (Participant participant : experiment.getParticipants()) {
-                if (participant.getDateGiven()!=null || participant.getDateRevoked()!=null) {
-                    countAnswered = countAnswered + 1;
+                if (participant.getDateGiven() != null || participant.getDateRevoked() != null) {
+                    countAnswered++;
+
                     if (participant.getConsent()) {
-                        countAccepted = countAccepted + 1;
+                        countAccepted++;
                     } else {
-                        countRejected = countRejected + 1;
+                        countRejected++;
                     }
                 }
             }
         }
+
         experimentDto.setAcceptedParticipants(countAccepted);
         experimentDto.setRejectedParticipants(countRejected);
 
         ConsentDocument consentDocument = experiment.getConsentDocument();
-        if (consentDocument !=null){
+
+        if (consentDocument != null) {
             ConsentDto consentDto = new ConsentDto();
             consentDto.setConsentDocumentId(consentDocument.getConsentDocumentId());
             consentDto.setFilePointer(consentDocument.getFilePointer());
             consentDto.setTitle(consentDocument.getTitle());
-            consentDto.setHtml(fileStorageService.parseHTMLFiles(consentDocument.getHtml()));
+            consentDto.setHtml(fileStorageService.parseHTMLFiles(consentDocument.getHtml(), experiment.getPlatformDeployment().getLocalUrl()));
             consentDto.setExpectedConsent(experiment.getParticipants().size());
             consentDto.setAnsweredConsentCount(countAnswered);
             experimentDto.setConsent(consentDto);
@@ -274,23 +310,27 @@ public class ExperimentServiceImpl implements ExperimentService {
     }
 
     @Override
-    public Experiment fromDto(ExperimentDto experimentDto) throws DataServiceException { //TODO add booleans to add extra elements
-
-        //TEST and check if nulls behave correctly
+    public Experiment fromDto(ExperimentDto experimentDto) throws DataServiceException {
+        // TODO add booleans to add extra elements
+        // TEST and check if nulls behave correctly
         Experiment experiment = new Experiment();
         experiment.setExperimentId(experimentDto.getExperimentId());
         Optional<LtiContextEntity> ltiContextEntity = allRepositories.contexts.findById(experimentDto.getContextId());
+
         if (ltiContextEntity.isPresent()) {
             experiment.setLtiContextEntity(ltiContextEntity.get());
         } else {
             throw new DataServiceException("The course defined in the experiment dto does not exist");
         }
+
         Optional<PlatformDeployment> platformDeployment = allRepositories.platformDeploymentRepository.findById(experimentDto.getPlatformDeploymentId());
+
         if (platformDeployment.isPresent()) {
             experiment.setPlatformDeployment(platformDeployment.get());
-        }else {
+        } else {
             throw new DataServiceException("The platform deployment defined in the experiment dto does not exist");
         }
+
         experiment.setTitle(experimentDto.getTitle());
         experiment.setDescription(experimentDto.getDescription());
         experiment.setExposureType(EnumUtils.getEnum(ExposureTypes.class, experimentDto.getExposureType(), ExposureTypes.NOSET));
@@ -299,7 +339,8 @@ public class ExperimentServiceImpl implements ExperimentService {
         experiment.setStarted(experimentDto.getStarted());
         experiment.setClosed(experimentDto.getClosed());
         LtiUserEntity user = allRepositories.users.findByUserIdAndPlatformDeployment_KeyId(experimentDto.getCreatedBy(),platformDeployment.get().getKeyId());
-        if (user!=null){
+
+        if (user != null) {
             experiment.setCreatedBy(user);
         } else {
             throw new DataServiceException("The user specified to create the experiment does not exist or does not belong to this course");
@@ -326,11 +367,13 @@ public class ExperimentServiceImpl implements ExperimentService {
     @Override
     public void deleteById(Long id, SecuredInfo securedInfo) throws EmptyResultDataAccessException {
         assignmentService.deleteAllFromExperiment(id, securedInfo);
+
         try {
             fileStorageService.deleteConsentAssignment(id, securedInfo);
         } catch (CanvasApiException | AssignmentNotEditedException e) {
             log.warn("Consent from experiment {} was not deleted", id);
         }
+
         allRepositories.experimentRepository.deleteByExperimentId(id);
     }
 
@@ -341,14 +384,16 @@ public class ExperimentServiceImpl implements ExperimentService {
         experimentDto.setContextId(securedInfo.getContextId());
         experimentDto.setPlatformDeploymentId(securedInfo.getPlatformDeploymentId());
         LtiUserEntity user = allRepositories.users.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
-        if (user!=null){
+
+        if (user != null) {
             experimentDto.setCreatedBy(user.getUserId());
         }
+
         return experimentDto;
     }
 
     @Override
-    public boolean experimentBelongsToDeploymentAndCourse(Long experimentId, Long platformDeploymentId, Long contextId){
+    public boolean experimentBelongsToDeploymentAndCourse(Long experimentId, Long platformDeploymentId, Long contextId) {
         return allRepositories.experimentRepository.existsByExperimentIdAndPlatformDeployment_KeyIdAndLtiContextEntity_ContextId(experimentId, platformDeploymentId, contextId);
     }
 
@@ -364,30 +409,28 @@ public class ExperimentServiceImpl implements ExperimentService {
 
     @Override
     public ExperimentDto getEmptyExperiment(SecuredInfo securedInfo, ExperimentDto experimentDto) {
-        if (!StringUtils.isBlank(experimentDto.getTitle())){
+        if (StringUtils.isNotBlank(experimentDto.getTitle())) {
             return null;
         }
+
         List<Experiment> experimentList = allRepositories.experimentRepository.findByPlatformDeployment_KeyIdAndLtiContextEntity_ContextIdAndCreatedBy_UserKey(securedInfo.getPlatformDeploymentId(), securedInfo.getContextId(), securedInfo.getUserId());
-        for (Experiment experiment:experimentList){
+
+        for (Experiment experiment : experimentList) {
             if (StringUtils.isBlank(experiment.getTitle())) {
                 return toDto(experiment, false, false, false);
             }
         }
+
         return null;
     }
 
     @Override
-    public boolean experimentStarted(Experiment experiment){
-        // TODO add the condition to consider the experiment started
-        return false;
+    public boolean titleAlreadyExists(String title, Long contextId, Long experimentId) {
+        return allRepositories.experimentRepository.existsByTitleAndLtiContextEntity_ContextIdAndExperimentIdIsNot(title, contextId, experimentId);
     }
 
     @Override
-    public boolean titleAlreadyExists(String title, Long contextId, Long experimentId){
-        return allRepositories.experimentRepository.existsByTitleAndLtiContextEntity_ContextIdAndExperimentIdIsNot(title, contextId, experimentId);
-    }
-    @Override
-    public void copyDto(ExperimentDto existingEmpty, ExperimentDto experimentDto){
+    public void copyDto(ExperimentDto existingEmpty, ExperimentDto experimentDto) {
         existingEmpty.setDescription(experimentDto.getDescription());
         existingEmpty.setDistributionType(experimentDto.getDistributionType());
         existingEmpty.setParticipationType(experimentDto.getParticipationType());
@@ -397,7 +440,7 @@ public class ExperimentServiceImpl implements ExperimentService {
     }
 
     @Override
-    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, long experimentId){
+    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, long experimentId) {
         HttpHeaders headers = new HttpHeaders();
         headers.setLocation(ucBuilder.path("/api/experiment/{id}").buildAndExpand(experimentId).toUri());
         return headers;
@@ -405,13 +448,15 @@ public class ExperimentServiceImpl implements ExperimentService {
 
     @Override
     public void validateTitle(String title, long contextId) throws TitleValidationException {
-        if(!StringUtils.isBlank(title)){
-            if(title.length() > 255){
+        if (StringUtils.isNotBlank(title)) {
+            if (title.length() > 255) {
                 throw new TitleValidationException("Error 101: Experiment title must be 255 characters or less.");
             }
-            if(titleAlreadyExists(title, contextId, 0L)){
+
+            if (titleAlreadyExists(title, contextId, 0L)) {
                 throw new TitleValidationException("Error 102: Unable to create the experiment. An experiment with title \"" + title + "\" already exists in this course.");
             }
         }
     }
+
 }

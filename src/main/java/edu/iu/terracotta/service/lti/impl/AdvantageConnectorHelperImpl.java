@@ -47,7 +47,7 @@ import java.util.List;
 
 @Slf4j
 @Service
-@SuppressWarnings({"PMD.GuardLogStatement"})
+@SuppressWarnings({"PMD.GuardLogStatement", "rawtypes"})
 public class AdvantageConnectorHelperImpl implements AdvantageConnectorHelper {
 
     @Autowired

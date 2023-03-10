@@ -1,6 +1,7 @@
 package edu.iu.terracotta.model.app.enumerator;
 
 public enum LmsType {
+
     online_quiz,
     none,
     on_paper,
@@ -11,4 +12,5 @@ public enum LmsType {
     online_url,
     media_recording,
     student_annotation
+
 }

@@ -1,6 +1,8 @@
 package edu.iu.terracotta.model.app;
 
 import edu.iu.terracotta.model.BaseEntity;
+import lombok.Getter;
+import lombok.Setter;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -12,46 +14,29 @@ import javax.persistence.Lob;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 
-@Table(name = "terr_answer_mc")
 @Entity
+@Getter
+@Setter
+@Table(name = "terr_answer_mc")
 public class AnswerMc extends BaseEntity {
-    @Column(name = "answer_id", nullable = false)
+
     @Id
+    @Column(name = "answer_id", nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long answerMcId;
 
-    @Column(name = "html")
     @Lob
+    @Column
     private String html;
 
-    @Column(name = "correct")
+    @Column
     private Boolean correct;
 
-    @JoinColumn(name = "question_question_id")
     @ManyToOne
+    @JoinColumn(name = "question_question_id")
     private Question question;
 
-    @Column(name = "answer_order")
+    @Column
     private Integer answerOrder;
 
-
-    public Long getAnswerMcId() { return answerMcId; }
-
-    public void setAnswerMcId(Long answerMcId) { this.answerMcId = answerMcId; }
-
-    public String getHtml() { return html; }
-
-    public void setHtml(String html) { this.html = html; }
-
-    public Boolean getCorrect() { return correct; }
-
-    public void setCorrect(Boolean correct) { this.correct = correct; }
-
-    public Question getQuestion() { return question; }
-
-    public void setQuestion(Question question) { this.question = question; }
-
-    public Integer getAnswerOrder() { return answerOrder; }
-
-    public void setAnswerOrder(Integer answerOrder) { this.answerOrder = answerOrder; }
 }

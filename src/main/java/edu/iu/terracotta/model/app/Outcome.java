@@ -2,6 +2,9 @@ package edu.iu.terracotta.model.app;
 
 import edu.iu.terracotta.model.BaseEntity;
 import edu.iu.terracotta.model.app.enumerator.LmsType;
+import lombok.Getter;
+import lombok.Setter;
+
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
@@ -18,68 +21,39 @@ import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import java.util.List;
 
-@Table(name = "terr_outcome")
 @Entity
+@Getter
+@Setter
+@Table(name = "terr_outcome")
 public class Outcome extends BaseEntity {
-    @Column(name = "outcome_id", nullable = false)
+
     @Id
+    @Column(name = "outcome_id", nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long outcomeId;
 
-    @JoinColumn(name = "exposure_exposure_id", nullable = false)
     @ManyToOne(optional = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
+    @JoinColumn(name = "exposure_exposure_id", nullable = false)
     private Exposure exposure;
 
-    @Column(name = "title")
+    @Column
     private String title;
 
+    @Column
     @Enumerated(EnumType.STRING)
-    @Column(name = "lms_type")
     private LmsType lmsType;
 
-    @Column(name = "external")
+    @Column
     private Boolean external;
 
-    @Column(name = "lms_outcome_id")
+    @Column
     private String lmsOutcomeId;
 
-    @Column(name = "max_points")
+    @Column
     private Float maxPoints;
 
     @OneToMany(mappedBy = "outcome")
     private List<OutcomeScore> outcomeScores;
 
-
-    public Exposure getExposure() { return exposure; }
-
-    public void setExposure(Exposure exposure) { this.exposure = exposure; }
-
-    public Long getOutcomeId() { return outcomeId; }
-
-    public void setOutcomeId(Long outcomeId) { this.outcomeId = outcomeId; }
-
-    public String getTitle() { return title; }
-
-    public void setTitle(String title) { this.title = title; }
-
-    public LmsType getLmsType() { return lmsType; }
-
-    public void setLmsType(LmsType lmsType) { this.lmsType = lmsType; }
-
-    public Boolean getExternal() { return external; }
-
-    public void setExternal(Boolean external) { this.external = external; }
-
-    public String getLmsOutcomeId() { return lmsOutcomeId; }
-
-    public void setLmsOutcomeId(String lmsOutcomeId) { this.lmsOutcomeId = lmsOutcomeId; }
-
-    public Float getMaxPoints() { return maxPoints; }
-
-    public void setMaxPoints(Float maxPoints) { this.maxPoints = maxPoints; }
-
-    public List<OutcomeScore> getOutcomeScores() { return outcomeScores; }
-
-    public void setOutcomeScores(List<OutcomeScore> outcomeScores) { this.outcomeScores = outcomeScores; }
 }

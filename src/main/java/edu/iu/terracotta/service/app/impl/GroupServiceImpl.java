@@ -15,7 +15,6 @@ import edu.iu.terracotta.model.app.dto.GroupDto;
 import edu.iu.terracotta.model.app.enumerator.DistributionTypes;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.AllRepositories;
-import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.GroupService;
 import edu.iu.terracotta.service.app.ParticipantService;
 import edu.iu.terracotta.utils.TextConstants;
@@ -47,9 +46,6 @@ public class GroupServiceImpl implements GroupService {
     @Autowired
     private ParticipantService participantService;
 
-    @Autowired
-    private ExperimentService experimentService;
-
     private Random random = new Random();
 
     @Override
@@ -58,7 +54,7 @@ public class GroupServiceImpl implements GroupService {
     }
 
     @Override
-    public List<GroupDto> getGroups(Long experimentId){
+    public List<GroupDto> getGroups(Long experimentId) {
         return  CollectionUtils.emptyIfNull(findAllByExperimentId(experimentId)).stream()
             .map(this::toDto)
             .toList();
@@ -92,12 +88,10 @@ public class GroupServiceImpl implements GroupService {
         groupDto.setName(group.getName());
 
         groupDto.setParticipants(
-            CollectionUtils.emptyIfNull(
-                allRepositories.participantRepository.findByExperiment_ExperimentIdAndGroup_GroupId(groupDto.getExperimentId(), group.getGroupId())
-            )
-            .stream()
-            .map(participant -> participantService.toDto(participant))
-            .toList()
+            CollectionUtils.emptyIfNull(allRepositories.participantRepository.findByExperiment_ExperimentIdAndGroup_GroupId(groupDto.getExperimentId(), group.getGroupId()))
+                .stream()
+                .map(participant -> participantService.toDto(participant))
+                .toList()
         );
 
         return groupDto;
@@ -106,7 +100,6 @@ public class GroupServiceImpl implements GroupService {
     @Override
     public Group fromDto(GroupDto groupDto) throws DataServiceException {
         Group group = new Group();
-        // test if nulls behave correctly?
         group.setGroupId(groupDto.getGroupId());
         Optional<Experiment> experiment = allRepositories.experimentRepository.findById(groupDto.getExperimentId());
 
@@ -139,11 +132,11 @@ public class GroupServiceImpl implements GroupService {
     public void updateGroup(Long groupId, GroupDto groupDto) throws TitleValidationException {
         Group group = getGroup(groupId);
 
-        if(StringUtils.isAnyBlank(groupDto.getName(), group.getName())){
+        if (StringUtils.isAnyBlank(groupDto.getName(), group.getName())) {
             throw new TitleValidationException("Error 100: Please give the group a name.");
         }
 
-        if(StringUtils.isNotBlank(groupDto.getName()) && groupDto.getName().length() > 255){
+        if (StringUtils.isNotBlank(groupDto.getName()) && groupDto.getName().length() > 255) {
             throw new TitleValidationException("Error 101: The title must be 255 characters or less.");
         }
 
@@ -180,12 +173,12 @@ public class GroupServiceImpl implements GroupService {
         int numberOfGroups = experiment.get().getConditions().size();
         List<Group> groups = allRepositories.groupRepository.findByExperiment_ExperimentId(experimentId);
 
-        if (groups.isEmpty()){
+        if (groups.isEmpty()) {
             // create the groups don't assign people to them
             groups = createGroups(numberOfGroups, experiment.get());
         } else {
             if (groups.size() != experiment.get().getConditions().size()) {
-                if (experimentService.experimentStarted(experiment.get())) {
+                if (experiment.get().isStarted()) {
                     // should never happen, but... just in case
                     throw new DataServiceException("Error 110: The experiment has started but there is an error with the group amount");
                 }
@@ -222,7 +215,7 @@ public class GroupServiceImpl implements GroupService {
         }
 
         if (exposureGroupConditionList.size() != experiment.get().getConditions().size() * experiment.get().getExposures().size()) {
-            if (experimentService.experimentStarted(experiment.get())) {
+            if (experiment.get().isStarted()) {
                 throw new DataServiceException("Error 110: The experiment has started but there is an error with the group/exposure/condition associations amount");
             }
 
@@ -263,8 +256,8 @@ public class GroupServiceImpl implements GroupService {
             }
         }
 
-        for (int loopNum = 0; loopNum < experiment.getExposures().size(); loopNum++){
-            for (int i = 0; i < groups.size(); i++){
+        for (int loopNum = 0; loopNum < experiment.getExposures().size(); loopNum++) {
+            for (int i = 0; i < groups.size(); i++) {
                 int groupIndex = (i + loopNum) % groups.size();
                 int exposureGroupConditionIndex = loopNum * groups.size() + i;
                 exposureGroupConditionList.get(exposureGroupConditionIndex).setGroup(groups.get(groupIndex));
@@ -273,7 +266,7 @@ public class GroupServiceImpl implements GroupService {
         }
     }
 
-    private List<Group> createGroups(int numberOfGroups, Experiment experiment ){
+    private List<Group> createGroups(int numberOfGroups, Experiment experiment ) {
         List<Group> groups = new ArrayList<>(numberOfGroups);
 
         for (int i = 1; i <= numberOfGroups; i++) {
@@ -287,7 +280,7 @@ public class GroupServiceImpl implements GroupService {
     }
 
     @Override
-    public Group nextGroup(Experiment experiment){
+    public Group nextGroup(Experiment experiment) {
         AtomicLong totalParticipants = new AtomicLong(0);
 
         Map<Long, Long> count = CollectionUtils.emptyIfNull(allRepositories.groupRepository.findByExperiment_ExperimentId(experiment.getExperimentId()))
@@ -362,7 +355,7 @@ public class GroupServiceImpl implements GroupService {
     }
 
     @Override
-    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long groupId){
+    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long groupId) {
         HttpHeaders headers = new HttpHeaders();
         headers.setLocation(ucBuilder.path("/api/experiment/{experimentId}/groups/{id}").buildAndExpand(experimentId, groupId).toUri());
 
@@ -379,7 +372,7 @@ public class GroupServiceImpl implements GroupService {
 
         Optional<ExposureGroupCondition> exposureGroupCondition = allRepositories.exposureGroupConditionRepository.getByCondition_ConditionIdAndExposure_ExposureId(conditionId, assignment.getExposure().getExposureId());
 
-        if (!exposureGroupCondition.isPresent()){
+        if (!exposureGroupCondition.isPresent()) {
             throw new GroupNotMatchingException("Error 130: This assignment does not have a condition assigned for the participant group.");
         }
 

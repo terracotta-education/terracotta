@@ -11,14 +11,29 @@ import edu.iu.terracotta.utils.lti.LTI3Request;
 import org.springframework.transaction.annotation.Transactional;
 
 public interface LTIDataService {
+
     AllRepositories getRepos();
 
+    /**
+     * Check if the information about this link in the database.
+     *
+     * @param lti
+     * @param link
+     * @return
+     */
     @Transactional
-        //We check if we already have the information about this link in the database.
     boolean loadLTIDataFromDB(LTI3Request lti, String link);
 
+    /**
+     * Update the information for the context, user, membership, link (if received), etc...  with new information on the LTI Request.
+     *
+     * @param lti
+     * @param toolDeployment
+     * @param link
+     * @return
+     * @throws DataServiceException
+     */
     @Transactional
-        // We update the information for the context, user, membership, link (if received), etc...  with new information on the LTI Request.
     int upsertLTIDataInDB(LTI3Request lti, ToolDeployment toolDeployment, String link) throws DataServiceException;
 
     LtiUserEntity findByUserKeyAndPlatformDeployment(String userKey, PlatformDeployment platformDeployment);
@@ -31,16 +46,13 @@ public interface LTIDataService {
 
     /**
      * Find or if possible create a ToolDeployment instance.
+     *
      * @param iss
      * @param clientId
      * @param ltiDeploymentId
      * @return {@link ToolDeployment} instance or null if not found and could not be created automatically
      */
     ToolDeployment findOrCreateToolDeployment(String iss, String clientId, String ltiDeploymentId);
-
-    String getLocalUrl();
-
-    void setLocalUrl(String localUrl);
 
     String getOwnPrivateKey();
 
@@ -53,4 +65,5 @@ public interface LTIDataService {
     Boolean getDemoMode();
 
     void setDemoMode(Boolean demoMode);
+
 }

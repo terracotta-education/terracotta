@@ -189,8 +189,8 @@ public class AssessmentServiceImpl implements AssessmentService {
         Long submissionsInProgressCount = null;
         AssessmentDto assessmentDto = new AssessmentDto();
         assessmentDto.setAssessmentId(assessment.getAssessmentId());
-        assessmentDto.setHtml(fileStorageService.parseHTMLFiles(assessment.getHtml()));
-        assessmentDto.setAutoSubmit(assessment.getAutoSubmit());
+        assessmentDto.setHtml(fileStorageService.parseHTMLFiles(assessment.getHtml(), assessment.getTreatment().getAssignment().getExposure().getExperiment().getPlatformDeployment().getLocalUrl()));
+        assessmentDto.setAutoSubmit(assessment.isAutoSubmit());
         assessmentDto.setNumOfSubmissions(assessment.getNumOfSubmissions());
         assessmentDto.setHoursBetweenSubmissions(assessment.getHoursBetweenSubmissions());
         assessmentDto.setMultipleSubmissionScoringScheme(assessment.getMultipleSubmissionScoringScheme().name());

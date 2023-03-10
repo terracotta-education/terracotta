@@ -4,7 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import edu.iu.terracotta.model.PlatformDeployment;
-import edu.iu.terracotta.repository.PlatformDeploymentRepository;
+import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.canvas.impl.CanvasOAuthServiceImpl;
 import edu.iu.terracotta.service.common.LMSOAuthService;
 import edu.iu.terracotta.service.common.LMSOAuthServiceManager;
@@ -13,22 +13,24 @@ import edu.iu.terracotta.service.common.LMSOAuthServiceManager;
 public class LMSOAuthServiceManagerImpl implements LMSOAuthServiceManager {
 
     @Autowired
-    CanvasOAuthServiceImpl canvasOAuthService;
+    private CanvasOAuthServiceImpl canvasOAuthService;
 
     @Autowired
-    PlatformDeploymentRepository platformDeploymentRepository;
+    AllRepositories allRepositories;
 
     @Override
     public LMSOAuthService<?> getLMSOAuthService(PlatformDeployment platformDeployment) {
         if (canvasOAuthService.isConfigured(platformDeployment)) {
             return canvasOAuthService;
         }
+
         return null;
     }
 
     @Override
     public LMSOAuthService<?> getLMSOAuthService(long platformDeploymentId) {
-        PlatformDeployment platformDeployment = platformDeploymentRepository.getOne(platformDeploymentId);
+        PlatformDeployment platformDeployment = allRepositories.platformDeploymentRepository.getReferenceById(platformDeploymentId);
+
         return getLMSOAuthService(platformDeployment);
     }
 

@@ -59,7 +59,7 @@ public class AnswerServiceImplTest {
         when(answerMcRepository.findByQuestion_QuestionId(anyLong())).thenReturn(Collections.singletonList(answerMc));
         when(answerMcRepository.save(any(AnswerMc.class))).thenReturn(answerMc);
 
-        when(fileStorageService.parseHTMLFiles(anyString())).thenReturn("html");
+        when(fileStorageService.parseHTMLFiles(anyString(), anyString())).thenReturn("html");
 
         when(answerMc.getQuestion()).thenReturn(question);
         when(question.getQuestionId()).thenReturn(1L);

@@ -21,6 +21,8 @@ import javax.persistence.Id;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
 
+import org.apache.commons.lang3.StringUtils;
+
 import lombok.Getter;
 import lombok.Setter;
 
@@ -33,15 +35,17 @@ import java.util.Set;
 @Table(name = "iss_configuration")
 public class PlatformDeployment extends BaseEntity {
 
+    public static final String LOCAL_URL = "https://test.terracotta.education";
+
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "key_id")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long keyId;
 
     @Column(nullable = false)
     private String iss;  //The value we receive in the issuer from the platform. We will use it to know where this come from.
 
-    @Column( nullable = false)
+    @Column(nullable = false)
     private String clientId;  //A tool MUST thus allow multiple deployments on a given platform to share the same client_id
 
     @Column(nullable = false)
@@ -89,8 +93,19 @@ public class PlatformDeployment extends BaseEntity {
     @Column(nullable = false)
     private Boolean enableAutomaticDeployments = false;
 
+    @Column
+    private String localUrl;
+
     @OneToMany(mappedBy = "platformDeployment", fetch = FetchType.LAZY)
     private Set<ToolDeployment> toolDeployments;
+
+    public String getLocalUrl() {
+        if (StringUtils.isBlank(localUrl)) {
+            return LOCAL_URL;
+        }
+
+        return localUrl;
+    }
 
     @Override
     public boolean equals(Object o) {
@@ -121,9 +136,7 @@ public class PlatformDeployment extends BaseEntity {
         result = 31 * result + (iss != null ? iss.hashCode() : 0);
         result = 31 * result + (clientId != null ? clientId.hashCode() : 0);
         result = 31 * result + (oidcEndpoint != null ? oidcEndpoint.hashCode() : 0);
-        result = 31 * result + (oAuth2TokenUrl != null ? oAuth2TokenUrl.hashCode() : 0);
-
-        return result;
+        return 31 * result + (oAuth2TokenUrl != null ? oAuth2TokenUrl.hashCode() : 0);
     }
 
 }

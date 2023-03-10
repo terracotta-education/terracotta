@@ -1,7 +1,11 @@
 package edu.iu.terracotta.model.app;
 
 import edu.iu.terracotta.utils.TextConstants;
+import lombok.Getter;
+import lombok.Setter;
 
+@Getter
+@Setter
 public class RetakeDetails {
 
     private boolean retakeAllowed = false;
@@ -9,46 +13,6 @@ public class RetakeDetails {
     private Integer submissionAttemptsCount;
     private String retakeNotAllowedReason;
     private Float lastAttemptScore;
-
-    public boolean isRetakeAllowed() {
-        return retakeAllowed;
-    }
-
-    public void setRetakeAllowed(boolean retakeAllowed) {
-        this.retakeAllowed = retakeAllowed;
-    }
-
-    public Float getKeptScore() {
-        return keptScore;
-    }
-
-    public void setKeptScore(Float keptScore) {
-        this.keptScore = keptScore;
-    }
-
-    public Integer getSubmissionAttemptsCount() {
-        return submissionAttemptsCount;
-    }
-
-    public void setSubmissionAttemptsCount(Integer submissionAttemptsCount) {
-        this.submissionAttemptsCount = submissionAttemptsCount;
-    }
-
-    public String getRetakeNotAllowedReason() {
-        return retakeNotAllowedReason;
-    }
-
-    public void setRetakeNotAllowedReason(String retakeNotAllowedReason) {
-        this.retakeNotAllowedReason = retakeNotAllowedReason;
-    }
-
-    public Float getLastAttemptScore() {
-        return lastAttemptScore;
-    }
-
-    public void setLastAttemptScore(Float lastAttemptScore) {
-        this.lastAttemptScore = lastAttemptScore;
-    }
 
     public enum RetakeNotAllowedReason {
 

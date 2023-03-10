@@ -43,6 +43,7 @@ import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
 import edu.iu.terracotta.exceptions.RevealResponsesSettingValidationException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
+import edu.iu.terracotta.model.LtiUserEntity;
 import edu.iu.terracotta.model.app.Assessment;
 import edu.iu.terracotta.model.app.Assignment;
 import edu.iu.terracotta.model.app.Condition;
@@ -78,6 +79,7 @@ public class TreatmentServiceImplTest {
     @Mock private Assignment assignment;
     @Mock private AssignmentDto assignmentDto;
     @Mock private Condition condition;
+    @Mock private LtiUserEntity ltiUserEntity;
     @Mock private SecuredInfo securedInfo;
     @Mock private Treatment treatment;
     @Mock private TreatmentDto treatmentDtoToUpdate;
@@ -113,12 +115,11 @@ public class TreatmentServiceImplTest {
         when(treatmentDtoToUpdate.getAssessmentDto()).thenReturn(assessmentDto);
         when(treatmentDtoToUpdate.getAssignmentDto()).thenReturn(assignmentDto);
         when(treatmentDtoToUpdate.getTreatmentId()).thenReturn(1L);
-
     }
 
     @Test
     public void testDuplicateTreatment() throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, NumberFormatException, CanvasApiException, TreatmentNotMatchingException, QuestionNotMatchingException {
-        TreatmentDto treatmentDto = treatmentService.duplicateTreatment(1L, "0", "0");
+        TreatmentDto treatmentDto = treatmentService.duplicateTreatment(1L, assignment, securedInfo);
 
         assertNotNull(treatmentDto);
         assertEquals(1L, treatmentDto.getTreatmentId());
@@ -127,7 +128,7 @@ public class TreatmentServiceImplTest {
     @Test
     public void testDuplicateTreatmentNoAssessmentFound() throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, NumberFormatException, CanvasApiException, TreatmentNotMatchingException, QuestionNotMatchingException {
         when(treatment.getAssessment()).thenReturn(null);
-        TreatmentDto treatmentDto = treatmentService.duplicateTreatment(1L, "0", "0");
+        TreatmentDto treatmentDto = treatmentService.duplicateTreatment(1L, assignment, securedInfo);
 
         assertNotNull(treatmentDto);
         assertEquals(1L, treatmentDto.getTreatmentId());
@@ -138,29 +139,28 @@ public class TreatmentServiceImplTest {
     public void testDuplicateTreatmentNotFound() throws IdInPostException, ExceedingLimitException, AssessmentNotMatchingException {
         when(allRepositories.treatmentRepository.findByTreatmentId(anyLong())).thenReturn(null);
 
-        Exception exception = assertThrows(DataServiceException.class, () -> { treatmentService.duplicateTreatment(1L, "0", "0"); });
+        Exception exception = assertThrows(DataServiceException.class, () -> { treatmentService.duplicateTreatment(1L, assignment, securedInfo); });
 
         assertEquals("The treatment with the given ID does not exist", exception.getMessage());
     }
 
     @Test
     public void testGetTreatments() throws NumberFormatException, AssessmentNotMatchingException, CanvasApiException {
-        List<TreatmentDto> treatmentDtos = treatmentService.getTreatments(0L, "0", false, "0");
+        List<TreatmentDto> treatmentDtos = treatmentService.getTreatments(0L, false, securedInfo);
 
         assertNotNull(treatmentDtos);
         assertEquals(1, treatmentDtos.size());
-        verify(assignmentService).setAssignmentDtoAttrs(any(Assignment.class), anyString(), anyString());
+        verify(assignmentService).setAssignmentDtoAttrs(any(Assignment.class), anyString(), ltiUserEntity);
     }
 
     @Test
     public void testGetTreatmentsAsStudentUser()
             throws NumberFormatException, AssessmentNotMatchingException, CanvasApiException {
-        String instructorUserId = null; // null when the authenticating user is a student
-        List<TreatmentDto> treatmentDtos = treatmentService.getTreatments(0L, "0", false, instructorUserId);
+        List<TreatmentDto> treatmentDtos = treatmentService.getTreatments(0L, false, securedInfo);
 
         assertNotNull(treatmentDtos);
         assertEquals(1, treatmentDtos.size());
-        verify(assignmentService, never()).setAssignmentDtoAttrs(any(Assignment.class), anyString(), anyString());
+        verify(assignmentService, never()).setAssignmentDtoAttrs(any(Assignment.class), anyString(), any(LtiUserEntity.class));
     }
 
     @Test

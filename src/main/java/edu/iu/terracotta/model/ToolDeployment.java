@@ -14,7 +14,6 @@ package edu.iu.terracotta.model;
 
 import java.util.Set;
 
-import javax.persistence.Basic;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
@@ -28,84 +27,68 @@ import javax.persistence.Table;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import lombok.Getter;
+import lombok.Setter;
+
 @Entity
+@Getter
+@Setter
 @Table(name = "lti_tool_deployment")
 public class ToolDeployment extends BaseEntity {
+
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "deployment_id")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long deploymentId;
 
-    @Basic
-    @Column(name = "lti_deployment_id", nullable = false)
+    @Column(nullable = false)
     private String ltiDeploymentId;
 
     @JsonIgnore
-    @JoinColumn(name = "key_id", nullable = false)
     @ManyToOne(optional = false)
+    @JoinColumn(name = "key_id", nullable = false)
     private PlatformDeployment platformDeployment;
 
     @JsonIgnore
     @OneToMany(mappedBy = "toolDeployment", fetch = FetchType.LAZY)
     private Set<LtiContextEntity> contexts;
 
-    public long getDeploymentId() {
-        return deploymentId;
-    }
-
-    public void setDeploymentId(long deploymentId) {
-        this.deploymentId = deploymentId;
-    }
-
-    public String getLtiDeploymentId() {
-        return ltiDeploymentId;
-    }
-
-    public void setLtiDeploymentId(String ltiDeploymentId) {
-        this.ltiDeploymentId = ltiDeploymentId;
-    }
-
-    public PlatformDeployment getPlatformDeployment() {
-        return platformDeployment;
-    }
-
-    public void setPlatformDeployment(PlatformDeployment platformDeployment) {
-        this.platformDeployment = platformDeployment;
-    }
-
-    public Set<LtiContextEntity> getContexts() {
-        return contexts;
-    }
-
-    public void setContexts(Set<LtiContextEntity> contexts) {
-        this.contexts = contexts;
-    }
-
     @Override
     public int hashCode() {
         final int prime = 31;
         int result = 1;
         result = prime * result + (int) (deploymentId ^ (deploymentId >>> 32));
-        result = prime * result + ((ltiDeploymentId == null) ? 0 : ltiDeploymentId.hashCode());
-        return result;
+        return prime * result + ((ltiDeploymentId == null) ? 0 : ltiDeploymentId.hashCode());
     }
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj)
+        if (this == obj) {
             return true;
-        if (obj == null)
+        }
+
+        if (obj == null) {
             return false;
-        if (getClass() != obj.getClass())
+        }
+
+        if (getClass() != obj.getClass()) {
             return false;
+        }
+
         ToolDeployment other = (ToolDeployment) obj;
-        if (deploymentId != other.deploymentId)
+
+        if (deploymentId != other.deploymentId) {
             return false;
+        }
+
         if (ltiDeploymentId == null) {
-            if (other.ltiDeploymentId != null)
+            if (other.ltiDeploymentId != null) {
                 return false;
-        } else if (!ltiDeploymentId.equals(other.ltiDeploymentId))
+            }
+        } else if (!ltiDeploymentId.equals(other.ltiDeploymentId)) {
             return false;
+        }
+
         return true;
     }
 

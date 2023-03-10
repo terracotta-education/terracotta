@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+@SuppressWarnings({"PMD.GuardLogStatement"})
 public class AssignmentExtendedImpl  extends BaseImpl<AssignmentExtended, AssignmentReaderExtended, AssignmentWriterExtended> implements AssignmentReaderExtended, AssignmentWriterExtended {
     private static final Logger LOG = LoggerFactory.getLogger(AssignmentReader.class);
 
@@ -58,7 +59,7 @@ public class AssignmentExtendedImpl  extends BaseImpl<AssignmentExtended, Assign
     }
 
     public Optional<AssignmentExtended> deleteAssignment(String courseId, Integer assignmentId) throws IOException {
-        Map<String, List<String>> postParams = new HashMap();
+        Map<String, List<String>> postParams = new HashMap<>();
         postParams.put("event", Collections.singletonList("delete"));
         String createdUrl = this.buildCanvasUrl("courses/" + courseId + "/assignments/" + assignmentId, Collections.emptyMap());
         Response response = this.canvasMessenger.deleteFromCanvas(this.oauthToken, createdUrl, postParams);
@@ -86,4 +87,3 @@ public class AssignmentExtendedImpl  extends BaseImpl<AssignmentExtended, Assign
         return AssignmentExtended.class;
     }
 }
-

@@ -1,5 +1,7 @@
 package edu.iu.terracotta.service.common;
 
+import org.springframework.web.client.RestTemplate;
+
 import edu.iu.terracotta.exceptions.LMSOAuthException;
 import edu.iu.terracotta.model.LtiUserEntity;
 import edu.iu.terracotta.model.PlatformDeployment;
@@ -18,7 +20,7 @@ public interface LMSOAuthService<T extends APIToken> {
      * @param platformDeployment
      * @return
      */
-    public boolean isConfigured(PlatformDeployment platformDeployment);
+    boolean isConfigured(PlatformDeployment platformDeployment);
 
     /**
      * Return the authorization request URI that user agent will be redirect to to
@@ -30,8 +32,7 @@ public interface LMSOAuthService<T extends APIToken> {
      * @throws LMSOAuthException if not configured or is missing configuration for
      *                           OAuth2 API tokens
      */
-    public String getAuthorizationRequestURI(PlatformDeployment platformDeployment, String state)
-            throws LMSOAuthException;
+    String getAuthorizationRequestURI(PlatformDeployment platformDeployment, String state) throws LMSOAuthException;
 
     /**
      * Exchange the code for an access token and refresh token. Save and return the
@@ -42,7 +43,7 @@ public interface LMSOAuthService<T extends APIToken> {
      * @return
      * @throws LMSOAuthException if fails to fetch access token from LMS
      */
-    public T fetchAndSaveAccessToken(LtiUserEntity user, String code) throws LMSOAuthException;
+    T fetchAndSaveAccessToken(LtiUserEntity user, String code) throws LMSOAuthException;
 
     /**
      * Get the access token that is saved for this user. Or, if the access token is
@@ -53,15 +54,18 @@ public interface LMSOAuthService<T extends APIToken> {
      * @throws LMSOAuthException if user has not saved access token or if refreshing
      *                           the token fails
      */
-    public T getAccessToken(LtiUserEntity user) throws LMSOAuthException;
+    T getAccessToken(LtiUserEntity user) throws LMSOAuthException;
 
     /**
      * Return true if the user has an access token. This method should verify that
      * the token hasn't been revoked, for example, by refreshing the token (even if
      * the token is not expired).
-     * 
+     *
      * @param user
      * @return
      */
-    public boolean isAccessTokenAvailable(LtiUserEntity user);
+    boolean isAccessTokenAvailable(LtiUserEntity user);
+
+    RestTemplate createRestTemplate();
+
 }

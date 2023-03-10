@@ -10,7 +10,21 @@ import edu.iu.terracotta.exceptions.NoSubmissionsException;
 import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
 import edu.iu.terracotta.exceptions.SubmissionNotMatchingException;
 import edu.iu.terracotta.model.ags.Score;
-import edu.iu.terracotta.model.app.*;
+import edu.iu.terracotta.model.app.AnswerMc;
+import edu.iu.terracotta.model.app.AnswerMcSubmission;
+import edu.iu.terracotta.model.app.AnswerMcSubmissionOption;
+import edu.iu.terracotta.model.app.Assessment;
+import edu.iu.terracotta.model.app.Assignment;
+import edu.iu.terracotta.model.app.Condition;
+import edu.iu.terracotta.model.app.Experiment;
+import edu.iu.terracotta.model.app.ExposureGroupCondition;
+import edu.iu.terracotta.model.app.Group;
+import edu.iu.terracotta.model.app.Participant;
+import edu.iu.terracotta.model.app.QuestionMc;
+import edu.iu.terracotta.model.app.QuestionSubmission;
+import edu.iu.terracotta.model.app.Submission;
+import edu.iu.terracotta.model.app.SubmissionComment;
+import edu.iu.terracotta.model.app.Treatment;
 import edu.iu.terracotta.model.app.dto.QuestionSubmissionDto;
 import edu.iu.terracotta.model.app.dto.SubmissionCommentDto;
 import edu.iu.terracotta.model.app.dto.SubmissionDto;
@@ -18,15 +32,20 @@ import edu.iu.terracotta.model.app.enumerator.QuestionTypes;
 import edu.iu.terracotta.model.oauth2.LTIToken;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.AllRepositories;
-import edu.iu.terracotta.service.app.*;
+import edu.iu.terracotta.service.app.APIJWTService;
+import edu.iu.terracotta.service.app.AnswerSubmissionService;
+import edu.iu.terracotta.service.app.AssessmentService;
+import edu.iu.terracotta.service.app.AssignmentService;
+import edu.iu.terracotta.service.app.QuestionSubmissionService;
+import edu.iu.terracotta.service.app.SubmissionCommentService;
+import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.service.caliper.CaliperService;
-import edu.iu.terracotta.service.canvas.CanvasAPIClient;
 import edu.iu.terracotta.service.lti.AdvantageAGSService;
 import edu.iu.terracotta.utils.TextConstants;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
@@ -48,37 +67,32 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Component
+@SuppressWarnings({"PMD.PreserveStackTrace"})
 public class SubmissionServiceImpl implements SubmissionService {
 
-    @Value("${application.url}")
-    private String localUrl;
+    @Autowired
+    private AllRepositories allRepositories;
 
     @Autowired
-    AllRepositories allRepositories;
+    private QuestionSubmissionService questionSubmissionService;
 
     @Autowired
-    QuestionSubmissionService questionSubmissionService;
+    private SubmissionCommentService submissionCommentService;
 
     @Autowired
-    SubmissionCommentService submissionCommentService;
+    private AssignmentService assignmentService;
 
     @Autowired
-    AssignmentService assignmentService;
+    private AssessmentService assessmentService;
 
     @Autowired
-    AssessmentService assessmentService;
+    private AnswerSubmissionService answerSubmissionService;
 
     @Autowired
-    AnswerSubmissionService answerSubmissionService;
+    private AdvantageAGSService advantageAGSService;
 
     @Autowired
-    AdvantageAGSService advantageAGSService;
-
-    @Autowired
-    CaliperService caliperService;
-
-    @Autowired
-    CanvasAPIClient canvasAPIClient;
+    private CaliperService caliperService;
 
     @Autowired
     private APIJWTService apijwtService;
@@ -94,21 +108,28 @@ public class SubmissionServiceImpl implements SubmissionService {
         if (!student) {
             List<Submission> submissions = findAllByAssessmentId(assessmentId);
             List<SubmissionDto> submissionDtoList = new ArrayList<>();
+
             for (Submission submission : submissions) {
                 submissionDtoList.add(toDto(submission, false, false));
             }
+
             return submissionDtoList;
         }
+
         //for student
         Participant participant = findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, userId);
         List<Submission> submissions = findByParticipantId(participant.getParticipantId());
+
         if (submissions.isEmpty()) {
             throw new NoSubmissionsException("There are no existing submissions for current user.");
         }
+
         List<SubmissionDto> submissionDtoList = new ArrayList<>();
+
         for (Submission submission : submissions) {
             submissionDtoList.add(toDto(submission, false, false));
         }
+
         return submissionDtoList;
     }
 
@@ -118,12 +139,15 @@ public class SubmissionServiceImpl implements SubmissionService {
         if (!student) {
             return allRepositories.submissionRepository.findBySubmissionId(submissionId);
         }
+
         //for student
         Participant participant = findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, userId);
         Optional<Submission> submission = findByParticipantIdAndSubmissionId(participant.getParticipantId(), submissionId);
+
         if (!submission.isPresent()) {
             throw new NoSubmissionsException("A submission for participant " + participant.getParticipantId() + "  with id " + submissionId + " not found");
         }
+
         return submission.get();
     }
 
@@ -141,7 +165,7 @@ public class SubmissionServiceImpl implements SubmissionService {
         try {
             submission = fromDto(submissionDto, student);
         } catch (DataServiceException ex) {
-            throw new DataServiceException(String.format("Error 105: Unable to create Submission: %s", ex.getMessage()));
+            throw new DataServiceException(String.format("Error 105: Unable to create Submission: %s", ex.getMessage()), ex);
         }
 
         setAssignmentStart(submission.getAssessment().getTreatment().getAssignment(), securedInfo);
@@ -176,7 +200,7 @@ public class SubmissionServiceImpl implements SubmissionService {
         submissionDto.setAlteredCalculatedGrade(submission.getAlteredCalculatedGrade());
         submissionDto.setTotalAlteredGrade(submission.getTotalAlteredGrade());
         submissionDto.setDateSubmitted(submission.getDateSubmitted());
-        submissionDto.setLateSubmission(submission.getLateSubmission());
+        submissionDto.setLateSubmission(submission.isLateSubmission());
         submissionDto.setDateCreated(submission.getCreatedAt());
         submissionDto.setQuestionSubmissionDtoList(Collections.emptyList());
         submissionDto.setSubmissionCommentDtoList(Collections.emptyList());
@@ -209,7 +233,7 @@ public class SubmissionServiceImpl implements SubmissionService {
             submissionDto.setSubmissionCommentDtoList(submissionCommentDtoList);
         }
 
-        StringBuilder path = new StringBuilder(localUrl)
+        StringBuilder path = new StringBuilder(submission.getParticipant().getLtiUserEntity().getPlatformDeployment().getLocalUrl())
                 .append("/api/experiments/")
                 .append(submission.getAssessment().getTreatment().getCondition().getExperiment().getExperimentId())
                 .append("/conditions/")
@@ -225,28 +249,32 @@ public class SubmissionServiceImpl implements SubmissionService {
 
     @Override
     public Submission fromDto(SubmissionDto submissionDto, boolean student) throws DataServiceException {
-
         Submission submission = new Submission();
         submission.setSubmissionId(submissionDto.getSubmissionId());
+
         if (!student) {  //Students can't post a submissions and change the grades.
             submission.setCalculatedGrade(submissionDto.getCalculatedGrade());
             submission.setAlteredCalculatedGrade(submissionDto.getAlteredCalculatedGrade());
             submission.setTotalAlteredGrade(submissionDto.getTotalAlteredGrade());
         }
+
         submission.setDateSubmitted(submissionDto.getDateSubmitted());
-        submission.setLateSubmission(submissionDto.getLateSubmission());
+        submission.setLateSubmission(submissionDto.isLateSubmission());
         Optional<Participant> participant = allRepositories.participantRepository.findById(submissionDto.getParticipantId());
-        if (participant.isPresent()) {
-            submission.setParticipant(participant.get());
-        } else {
+
+        if (!participant.isPresent()) {
             throw new DataServiceException("The participant for the submission does not exist.");
         }
+
+        submission.setParticipant(participant.get());
+
         Optional<Assessment> assessment = allRepositories.assessmentRepository.findById(submissionDto.getAssessmentId());
-        if (assessment.isPresent()) {
-            submission.setAssessment(assessment.get());
-        } else {
+
+        if (!assessment.isPresent()) {
             throw new DataServiceException("The assessment for the submission does not exist.");
         }
+
+        submission.setAssessment(assessment.get());
 
         return submission;
     }
@@ -299,33 +327,33 @@ public class SubmissionServiceImpl implements SubmissionService {
     @Override
     @Transactional
     public void finalizeAndGrade(Long submissionId, SecuredInfo securedInfo, boolean student)
-            throws DataServiceException, AssignmentDatesException, CanvasApiException, IOException,
-            ConnectionException {
+            throws DataServiceException, AssignmentDatesException, CanvasApiException, IOException, ConnectionException {
         Optional<Submission> submissionOptional = allRepositories.submissionRepository.findById(submissionId);
-        if (submissionOptional.isPresent()) {
-            //We are not changing the submission date once it is set.
-            //^^^ maybe if we are allowing resubmissions we should allow this to change?
-            if (submissionOptional.get().getDateSubmitted() == null) {
-                if (securedInfo.getDueAt() != null && submissionOptional.get().getUpdatedAt().after(securedInfo.getDueAt())) {
-                    submissionOptional.get().setLateSubmission(true);
-                }
-                submissionOptional.get().setDateSubmitted(getLastUpdatedTimeForSubmission(submissionOptional.get()));
-            }
-            if (securedInfo.getLockAt() == null || submissionOptional.get().getDateSubmitted().after(securedInfo.getLockAt())) {
-                saveAndFlush(gradeSubmission(submissionOptional.get()));
-                caliperService.sendAssignmentSubmitted(submissionOptional.get(), securedInfo);
-                sendSubmissionGradeToCanvasWithLTI(submissionOptional.get(), student);
-            } else {
-                throw new AssignmentDatesException("Error 128: Canvas Assignment is locked, we can not generate/grade a submission with a date later than the lock date");
-            }
-        } else {
+
+        if (!submissionOptional.isPresent()) {
             throw new DataServiceException("Error 105: Submission not found");
+        }
+
+        //We are not changing the submission date once it is set.
+        //^^^ maybe if we are allowing resubmissions we should allow this to change?
+        if (submissionOptional.get().getDateSubmitted() == null) {
+            if (securedInfo.getDueAt() != null && submissionOptional.get().getUpdatedAt().after(securedInfo.getDueAt())) {
+                submissionOptional.get().setLateSubmission(true);
+            }
+            submissionOptional.get().setDateSubmitted(getLastUpdatedTimeForSubmission(submissionOptional.get()));
+        }
+
+        if (securedInfo.getLockAt() == null || submissionOptional.get().getDateSubmitted().after(securedInfo.getLockAt())) {
+            saveAndFlush(gradeSubmission(submissionOptional.get()));
+            caliperService.sendAssignmentSubmitted(submissionOptional.get(), securedInfo);
+            sendSubmissionGradeToCanvasWithLTI(submissionOptional.get(), student);
+        } else {
+            throw new AssignmentDatesException("Error 128: Canvas Assignment is locked, we can not generate/grade a submission with a date later than the lock date");
         }
     }
 
     @Override
     public boolean datesAllowed(Long experimentId, Long treatmentId, SecuredInfo securedInfo) {
-
         if (securedInfo.getUnlockAt() == null || securedInfo.getUnlockAt().before(new Date())) {
             return securedInfo.getLockAt() == null || securedInfo.getLockAt().after(new Date());
         } else {
@@ -379,13 +407,13 @@ public class SubmissionServiceImpl implements SubmissionService {
     @Transactional
     public void grade(Long submissionId, SecuredInfo securedInfo) throws DataServiceException {
         Optional<Submission> submissionOptional = allRepositories.submissionRepository.findById(submissionId);
-        if (submissionOptional.isPresent()) {
-            saveAndFlush(gradeSubmission(submissionOptional.get()));
-        } else {
+
+        if (!submissionOptional.isPresent()) {
             throw new DataServiceException("Error 105: Submission not found");
         }
-    }
 
+        saveAndFlush(gradeSubmission(submissionOptional.get()));
+    }
 
     @Override
     public Submission gradeSubmission(Submission submission) throws DataServiceException {
@@ -393,10 +421,12 @@ public class SubmissionServiceImpl implements SubmissionService {
         float automatic = Float.parseFloat("0");
         float manual = Float.parseFloat("0");
         boolean altered = this.isGradeAltered(submission);
+
         for (QuestionSubmission questionSubmission : submission.getQuestionSubmissions()) {
             //We need to grade the question first automatically it it was not graded before.
             //If multiple choice, we take the automatic score for automatic and the manual if any for manual, and if no manual, then the automatic for manual
             QuestionSubmission questionGraded = new QuestionSubmission();
+
             switch (questionSubmission.getQuestion().getQuestionType()) {
                 case MC:
                     List<AnswerMcSubmission> answerMcSubmissions = answerSubmissionService.findByQuestionSubmissionIdMC(questionSubmission.getQuestionSubmissionId());
@@ -415,9 +445,10 @@ public class SubmissionServiceImpl implements SubmissionService {
                     break;
                 default:
                     break;
-
             }
+
             automatic = automatic + questionGraded.getCalculatedPoints();
+
             if (questionGraded.getAlteredGrade() != null && !questionGraded.getAlteredGrade().isNaN()) {
                 manual = manual + questionSubmission.getAlteredGrade();
             } else {
@@ -427,15 +458,16 @@ public class SubmissionServiceImpl implements SubmissionService {
         }
         submission.setCalculatedGrade(automatic);
         submission.setAlteredCalculatedGrade(manual);
+
         if (!altered) {
             submission.setTotalAlteredGrade(manual);
         }
+
         return submission;
     }
 
     @Override
-    public void sendSubmissionGradeToCanvasWithLTI(Submission submission, boolean studentSubmission)
-            throws ConnectionException, DataServiceException {
+    public void sendSubmissionGradeToCanvasWithLTI(Submission submission, boolean studentSubmission) throws ConnectionException, DataServiceException {
         //We need, the assignment, and the iss configuration...
         Assessment assessment = submission.getAssessment();
         Assignment assignment = assessment.getTreatment().getAssignment();
@@ -448,16 +480,19 @@ public class SubmissionServiceImpl implements SubmissionService {
         if (lineitemId == null) {
             throw new DataServiceException("Error 136: The assignment is not linked to any Canvas assignment");
         }
+
         Score score = new Score();
         Participant participant = submission.getParticipant();
         score.setUserId(participant.getLtiUserEntity().getUserKey());
         boolean manualGradingNeeded = this.isManualGradingNeeded(submission);
-
         Float scoreGiven = getScoreFromMultipleSubmissions(participant, assessment);
+
         if (scoreGiven != null) {
             score.setScoreGiven(scoreGiven.toString());
         }
+
         Float maxTerracottaScore = assessmentService.calculateMaxScore(assessment);
+
         if (maxTerracottaScore == 0) {
             // zero point assignments full credit (1 point) is given for completion so the
             // maximum is 1 point
@@ -465,7 +500,9 @@ public class SubmissionServiceImpl implements SubmissionService {
         } else {
             score.setScoreMaximum(maxTerracottaScore.toString());
         }
+
         score.setActivityProgress("Completed");
+
         if (manualGradingNeeded) {
             score.setGradingProgress("PendingManual");
         } else {
@@ -523,21 +560,24 @@ public class SubmissionServiceImpl implements SubmissionService {
      */
     public Float getScoreFromMultipleSubmissions(Participant participant, Assessment assessment) {
         List<Submission> submissionList = allRepositories.submissionRepository
-                .findByParticipant_ParticipantIdAndAssessment_AssessmentIdAndDateSubmittedNotNullOrderByDateSubmitted(
-                        participant.getParticipantId(), assessment.getAssessmentId());
+            .findByParticipant_ParticipantIdAndAssessment_AssessmentIdAndDateSubmittedNotNullOrderByDateSubmitted(
+                participant.getParticipantId(), assessment.getAssessmentId());
 
         // Handle case where only one submission is allowed
         if (assessment.getNumOfSubmissions() != null && assessment.getNumOfSubmissions() == 1) {
             Submission soleSubmission = submissionList.get(0);
+
             if (!isManualGradingNeeded(soleSubmission)) {
                 return getSubmissionScore(soleSubmission);
-            } else {
-                return null;
             }
+
+            return null;
         }
+
         // Only submissions that are fully graded will be considered for calculating
         // score
         Float score = null;
+
         switch (assessment.getMultipleSubmissionScoringScheme()) {
             case MOST_RECENT:
                 // consider the most recently fully graded submission, if there is one
@@ -552,6 +592,7 @@ public class SubmissionServiceImpl implements SubmissionService {
             case AVERAGE:
                 // average all fully graded submissions
                 int count = 0;
+
                 for (Submission submission : submissionList) {
                     if (!isManualGradingNeeded(submission)) {
                         if (score == null) {
@@ -561,15 +602,18 @@ public class SubmissionServiceImpl implements SubmissionService {
                         count++;
                     }
                 }
+
                 if (score != null) {
                     score = score / count;
                 }
+
                 break;
             case HIGHEST:
                 // take the highest of the fully graded submissions
                 for (Submission submission : submissionList) {
                     if (!isManualGradingNeeded(submission)) {
                         Float submissionScore = getSubmissionScore(submission);
+
                         if (score == null || submissionScore > score) {
                             score = submissionScore;
                         }
@@ -581,77 +625,87 @@ public class SubmissionServiceImpl implements SubmissionService {
 
                 // The first submission's score contributes
                 // 'cumulativeScoringInitialPercentage' to the total score
-                if (submissionList.size() > 0) {
+                if (CollectionUtils.isNotEmpty(submissionList)) {
                     Submission submission = submissionList.get(0);
+
                     if (!isManualGradingNeeded(submission)) {
-                        score = getSubmissionScore(submission)
-                                * assessment.getCumulativeScoringInitialPercentage() / 100f;
+                        score = getSubmissionScore(submission) * assessment.getCumulativeScoringInitialPercentage() / 100f;
                     }
                 }
                 // All subsequent submission scores contribute an evenly distributed amount of
                 // the remaining percentage
                 if (submissionList.size() > 1) {
-                    float subsequentPercentage = (100f - assessment.getCumulativeScoringInitialPercentage())
-                            / 100f / (assessment.getNumOfSubmissions() - 1);
+                    float subsequentPercentage = (100f - assessment.getCumulativeScoringInitialPercentage()) / 100f / (assessment.getNumOfSubmissions() - 1);
+
                     for (Submission submission : submissionList.subList(1, submissionList.size())) {
                         if (!isManualGradingNeeded(submission)) {
                             if (score == null) {
                                 score = 0f;
                             }
+
                             score = score + getSubmissionScore(submission) * subsequentPercentage;
                         }
                     }
                 }
                 break;
+            default:
+                break;
         }
+
         return score;
     }
 
     @Override
     public Float getSubmissionScore(Submission submission) {
-
         Assessment assessment = submission.getAssessment();
         Float maxTerracottaScore = assessmentService.calculateMaxScore(assessment);
+
         // zero point assignments should be given full credit for completion
         if (maxTerracottaScore == 0) {
             return 1f;
         }
+
         if (submission.getTotalAlteredGrade() != null) {
             return submission.getTotalAlteredGrade();
-        } else {
-            return submission.getAlteredCalculatedGrade();
         }
+
+        return submission.getAlteredCalculatedGrade();
     }
 
     private boolean isGradeAltered(Submission submission) {
-
         Float totalAlteredGrade = submission.getTotalAlteredGrade();
-        return totalAlteredGrade != null && (!totalAlteredGrade.equals(submission.getAlteredCalculatedGrade()));
+
+        return totalAlteredGrade != null && !totalAlteredGrade.equals(submission.getAlteredCalculatedGrade());
     }
 
     private Timestamp getLastUpdatedTimeForSubmission(Submission submission) {
-
         Timestamp lastTimestamp = submission.getUpdatedAt();
+
         for (QuestionSubmission questionSubmission : submission.getQuestionSubmissions()) {
             if (questionSubmission.getUpdatedAt().after(lastTimestamp)) {
                 lastTimestamp = questionSubmission.getUpdatedAt();
             }
         }
+
         if (lastTimestamp.equals(submission.getCreatedAt())) {
             //We need to do this because the caliper event won't allow a submission time equals to the creation time,
             // so we add 1 ms. This is not a very elegant solution, but it is needed.
             lastTimestamp = new Timestamp(lastTimestamp.getTime() + 1);
         }
+
         return lastTimestamp;
     }
 
     @Override
     public void validateDto(Long experimentId, String userId, SubmissionDto submissionDto) throws InvalidUserException, ParticipantNotMatchingException {
         Participant participant = findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, userId);
+
         if (participant == null) {
             throw new ParticipantNotMatchingException(TextConstants.PARTICIPANT_NOT_MATCHING);
         }
+
         submissionDto.setParticipantId(participant.getParticipantId());
+
         if (submissionDto.getAlteredCalculatedGrade() != null || submissionDto.getTotalAlteredGrade() != null) {
             throw new InvalidUserException(TextConstants.NOT_ENOUGH_PERMISSIONS + " Students cannot alter the grades.");
         }
@@ -661,6 +715,7 @@ public class SubmissionServiceImpl implements SubmissionService {
     public void validateUser(Long experimentId, String userId, Long submissionId) throws InvalidUserException {
         Participant participant = allRepositories.participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, userId);
         Optional<Submission> submission = allRepositories.submissionRepository.findByParticipant_ParticipantIdAndSubmissionId(participant.getParticipantId(), submissionId);
+
         if (!submission.isPresent()) {
             throw new InvalidUserException("Error 121: Students can only access answer submissions from their own submissions. Submission with id "
                     + submissionId + " does not belong to participant with id " + participant.getParticipantId());
@@ -672,6 +727,7 @@ public class SubmissionServiceImpl implements SubmissionService {
         HttpHeaders headers = new HttpHeaders();
         headers.setLocation(ucBuilder.path("/api/experiments/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}")
                 .buildAndExpand(experimentId, conditionId, treatmentId, assessmentId, submissionId).toUri());
+
         return headers;
     }
 
@@ -679,10 +735,12 @@ public class SubmissionServiceImpl implements SubmissionService {
     public void allowedSubmission(Long submissionId, SecuredInfo securedInfo) throws SubmissionNotMatchingException {
         try {
             Optional<Submission> submissionOptional = allRepositories.submissionRepository.findById(submissionId);
+
             if (submissionOptional.isPresent()) {
                 if (!submissionOptional.get().getParticipant().getLtiUserEntity().getUserKey().equals(securedInfo.getUserId())) {
                     throw new SubmissionNotMatchingException("Submission don't belong to the user");
                 }
+
                 boolean consent = BooleanUtils.isTrue(submissionOptional.get().getParticipant().getConsent());
                 // Group is only used for determining treatment when participant
                 // has consented. Students that haven't given consent should
@@ -690,24 +748,27 @@ public class SubmissionServiceImpl implements SubmissionService {
                 Group group = consent ? submissionOptional.get().getParticipant().getGroup() : null;
                 Treatment treatment = submissionOptional.get().getAssessment().getTreatment();
                 Condition condition = treatment.getCondition();
+
                 if (group == null) {
                     if (condition.getDefaultCondition()) {
                         return;
-                    } else {
-                        throw new SubmissionNotMatchingException("Student not in a group, but not sending the default condition");
                     }
+
+                    throw new SubmissionNotMatchingException("Student not in a group, but not sending the default condition");
                 } else {
                     Optional<ExposureGroupCondition> exposureGroupCondition = allRepositories.exposureGroupConditionRepository.getByCondition_ConditionIdAndExposure_ExposureId(condition.getConditionId(), treatment.getAssignment().getExposure().getExposureId());
+
                     if (exposureGroupCondition.isPresent() && group == exposureGroupCondition.get().getGroup()) {
                         return;
-                    } else {
-                        throw new SubmissionNotMatchingException("Student sending an assessment that does not belongs to the expected treatment");
                     }
+
+                    throw new SubmissionNotMatchingException("Student sending an assessment that does not belongs to the expected treatment");
                 }
             }
         } catch (Exception ex) {
             throw new SubmissionNotMatchingException("Error 147: Not allowed to submit this submission: " + ex.getMessage());
         }
+
         throw new SubmissionNotMatchingException("Error 147: Not allowed to submit this submission");
     }
 

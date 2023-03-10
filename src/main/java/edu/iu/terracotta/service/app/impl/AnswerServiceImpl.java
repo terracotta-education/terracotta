@@ -36,6 +36,7 @@ import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 
 @Component
+@SuppressWarnings({"PMD.PreserveStackTrace"})
 public class AnswerServiceImpl implements AnswerService {
 
     @Autowired
@@ -125,7 +126,7 @@ public class AnswerServiceImpl implements AnswerService {
     public AnswerDto toDtoMC(AnswerMc answer, int answerOrder, boolean showCorrectAnswer) {
         AnswerDto answerDto = new AnswerDto();
         answerDto.setAnswerId(answer.getAnswerMcId());
-        answerDto.setHtml(fileStorageService.parseHTMLFiles(answer.getHtml()));
+        answerDto.setHtml(fileStorageService.parseHTMLFiles(answer.getHtml(), answer.getQuestion().getAssessment().getTreatment().getAssignment().getExposure().getExperiment().getPlatformDeployment().getLocalUrl()));
         answerDto.setAnswerOrder(answerOrder);
         answerDto.setQuestionId(answer.getQuestion().getQuestionId());
         answerDto.setAnswerType(QuestionTypes.MC.toString());

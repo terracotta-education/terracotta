@@ -82,6 +82,8 @@ public class CanvasOAuthServiceImplTest {
 
     private LtiUserEntity user;
 
+    private String localUrl = "https://dev.terracotta.education";
+
     @BeforeEach
     public void beforeEach() {
         MockitoAnnotations.openMocks(this);
@@ -105,6 +107,8 @@ public class CanvasOAuthServiceImplTest {
         tokenEntity.setAccessToken(token.getAccessToken());
         tokenEntity.setRefreshToken(token.getRefreshToken());
         tokenEntity.setUser(user);
+
+        when(platformDeployment.getLocalUrl()).thenReturn(localUrl);
     }
 
     @Test
@@ -125,9 +129,6 @@ public class CanvasOAuthServiceImplTest {
     public void testGetAuthorizationRequestURI() throws LMSOAuthException, MalformedURLException {
         when(canvasAPIOAuthSettingsRepository.findByPlatformDeployment(eq(platformDeployment)))
                 .thenReturn(Optional.of(canvasAPIOAuthSettings));
-
-        String localUrl = "https://dev.terracotta.education";
-        when(ltiDataService.getLocalUrl()).thenReturn(localUrl);
 
         String state = "abc123";
         String url = canvasOAuthService.getAuthorizationRequestURI(platformDeployment, state);

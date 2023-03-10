@@ -45,8 +45,7 @@ public interface TreatmentService {
      * @throws NumberFormatException
      * @throws CanvasApiException
      */
-    List<TreatmentDto> getTreatments(Long conditionId, String canvasCourseId, boolean submissions,
-            String instructorUserId)
+    List<TreatmentDto> getTreatments(Long conditionId, boolean submissions, SecuredInfo securedInfo)
                     throws AssessmentNotMatchingException, NumberFormatException, CanvasApiException;
 
     Treatment getTreatment(Long id);
@@ -55,12 +54,11 @@ public interface TreatmentService {
 
     TreatmentDto putTreatment(TreatmentDto treatmentDto, long treatmentId, SecuredInfo securedInfo, boolean questions) throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, IdMissingException, IdMismatchException, TreatmentNotMatchingException, TitleValidationException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, CanvasApiException, AssignmentNotEditedException, NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException;
 
-    TreatmentDto duplicateTreatment(long treatmentId, Assignment assignment, String canvasCourseId,
-            String instructorUserId)
+    TreatmentDto duplicateTreatment(long treatmentId, Assignment assignment, SecuredInfo securedInfo)
             throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException,
             NumberFormatException, CanvasApiException, TreatmentNotMatchingException, QuestionNotMatchingException;
 
-    TreatmentDto duplicateTreatment(long treatmentId, String canvasCourseId, String instructorUserId)
+    TreatmentDto duplicateTreatment(long treatmentId, SecuredInfo securedInfo)
             throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException,
             NumberFormatException, CanvasApiException, TreatmentNotMatchingException, QuestionNotMatchingException;
 

@@ -46,10 +46,6 @@ public class LTIDataServiceImpl implements LTIDataService {
     @Autowired
     private AllRepositories repos;
 
-    //This will be used to create the deep links. Needs to be in the application properties.
-    @Value("${application.url}")
-    private String localUrl;
-
     @Value("${oicd.privatekey}")
     private String ownPrivateKey;
 
@@ -75,11 +71,14 @@ public class LTIDataServiceImpl implements LTIDataService {
     public boolean loadLTIDataFromDB(LTI3Request lti, String link) {
         assert repos != null;
         lti.setLoaded(false);
+
         if (lti.getLtiDeploymentId() == null || lti.getAud() == null) {
             // don't even attempt this without the deployment Id, audience (client_id) or issuer, it's pointless
             log.debug("LTIload: No key to load lti.results for");
+
             return false;
         }
+
         if (link == null) {
             link = lti.getLtiTargetLinkUrl().substring(lti.getLtiTargetLinkUrl().lastIndexOf("?link=") + 6);
         }
@@ -172,9 +171,11 @@ public class LTIDataServiceImpl implements LTIDataService {
         repos.entityManager.merge(lti.getKey());
         int inserts = 0;
         int updates = 0;
+
         if (lti.getContext() == null && lti.getLtiDeploymentId() != null) {
             //Context is not in the lti request at this moment. Let's see if it exists:
             LtiContextEntity ltiContextEntity = repos.contexts.findByContextKeyAndToolDeployment(lti.getLtiContextId(), toolDeployment);
+
             if (ltiContextEntity == null) {
                 LtiContextEntity newContext = new LtiContextEntity(lti.getLtiContextId(), lti.getToolDeployment(), lti.getLtiContextTitle(), lti.getLtiNamesRoleServiceContextMembershipsUrl(), lti.getLtiEndpointLineItems(), null);
                 lti.setContext(repos.contexts.save(newContext));
@@ -240,9 +241,11 @@ public class LTIDataServiceImpl implements LTIDataService {
                 LtiUserEntity newUser = new LtiUserEntity(lti.getSub(), null, toolDeployment.getPlatformDeployment());
                 newUser.setDisplayName(lti.getLtiName());
                 newUser.setEmail(lti.getLtiEmail());
+
                 if (lti.getLtiCustom().containsKey("canvas_user_id")) {
                     newUser.setLmsUserId(lti.getLtiCustom().get("canvas_user_id").toString());
                 }
+
                 lti.setUser(repos.users.save(newUser));
                 inserts++;
                 log.debug("LTIupdate: Inserted user id=" + lti.getSub());
@@ -261,7 +264,6 @@ public class LTIDataServiceImpl implements LTIDataService {
             lti.setLtiEmail(lti.getUser().getEmail());
             log.debug("LTIupdate: Reconnected existing user id=" + lti.getSub());
         }
-
 
         if (lti.getMembership() == null && lti.getContext() != null && lti.getUser() != null) {
             LtiMembershipEntity ltiMembershipEntity = repos.members.findByUserAndContext(lti.getUser(), lti.getContext());
@@ -291,7 +293,6 @@ public class LTIDataServiceImpl implements LTIDataService {
         LtiContextEntity context = lti.getContext();
 
         if (lti.getLtiContextTitle() != null && context != null && !lti.getLtiContextTitle().equals(lti.getContext().getTitle())) {
-
             context.setTitle(lti.getLtiContextTitle());
             lti.setContext(repos.contexts.save(context));
             updates++;
@@ -386,39 +387,30 @@ public class LTIDataServiceImpl implements LTIDataService {
         ToolDeployment toolDeployment = null;
         List<ToolDeployment> toolDeployments = repos.toolDeploymentRepository
             .findByPlatformDeployment_IssAndPlatformDeployment_ClientIdAndLtiDeploymentId(iss, clientId, ltiDeploymentId);
-        if (toolDeployments.isEmpty()) {
-            // if missing, look for platformDeployment by iss and clientId
-            List<PlatformDeployment> platformDeployments = repos.platformDeploymentRepository.findByIssAndClientId(iss, clientId);
 
-            if (CollectionUtils.isNotEmpty(platformDeployments)) {
-                // if enableAutomaticDeployments is true then add this ltiDeploymentId as a new ToolDeployment
-                PlatformDeployment platformDeployment = platformDeployments.get(0);
-
-                if (platformDeployment.getEnableAutomaticDeployments() != null && platformDeployment.getEnableAutomaticDeployments()) {
-                    log.info("Automatically creating tool deployment for {}, adding "
-                            + "it to platform deployment key_id: {} matching iss: {} and clientId: {}",
-                            ltiDeploymentId, platformDeployment.getKeyId(), iss, clientId);
-                    toolDeployment = new ToolDeployment();
-                    toolDeployment.setLtiDeploymentId(ltiDeploymentId);
-                    toolDeployment.setPlatformDeployment(platformDeployment);
-                    toolDeployment = repos.toolDeploymentRepository.save(toolDeployment);
-                }
-            }
-        } else {
+        if (CollectionUtils.isNotEmpty(toolDeployments)) {
             toolDeployment = toolDeployments.get(0);
         }
 
+        // if missing, look for platformDeployment by iss and clientId
+        List<PlatformDeployment> platformDeployments = repos.platformDeploymentRepository.findByIssAndClientId(iss, clientId);
+
+        if (CollectionUtils.isNotEmpty(platformDeployments)) {
+            // if enableAutomaticDeployments is true then add this ltiDeploymentId as a new ToolDeployment
+            PlatformDeployment platformDeployment = platformDeployments.get(0);
+
+            if (platformDeployment.getEnableAutomaticDeployments() != null && platformDeployment.getEnableAutomaticDeployments()) {
+                log.info("Automatically creating tool deployment for {}, adding "
+                        + "it to platform deployment key_id: {} matching iss: {} and clientId: {}",
+                        ltiDeploymentId, platformDeployment.getKeyId(), iss, clientId);
+                toolDeployment = new ToolDeployment();
+                toolDeployment.setLtiDeploymentId(ltiDeploymentId);
+                toolDeployment.setPlatformDeployment(platformDeployment);
+                toolDeployment = repos.toolDeploymentRepository.save(toolDeployment);
+            }
+        }
+
         return toolDeployment;
-    }
-
-    @Override
-    public String getLocalUrl() {
-        return localUrl;
-    }
-
-    @Override
-    public void setLocalUrl(String localUrl) {
-        this.localUrl = localUrl;
     }
 
     @Override

@@ -13,7 +13,6 @@
 package edu.iu.terracotta.model;
 
 
-import javax.persistence.Basic;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
@@ -23,45 +22,52 @@ import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
+
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.sql.Timestamp;
 import java.util.Date;
 import java.util.Objects;
 
 @Entity
+@Getter
+@Setter
+@NoArgsConstructor
 @Table(name = "lti_result")
 public class LtiResultEntity extends BaseEntity {
+
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "result_id", nullable = false)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long resultId;
-    @Basic
-    @Column(name = "score_given")
+
+    @Column
     private Float scoreGiven;
-    @Basic
-    @Column(name = "score_maximum")
+
+    @Column
     private Float scoreMaximum;
-    @Basic
-    @Column(name = "comment", length = 4096)
+
+    @Column(length = 4096)
     private String comment;
-    @Basic
-    @Column(name = "activity_progress")
+
+    @Column
     private String activityProgress;
-    @Basic
-    @Column(name = "grading_progress")
+
+    @Column
     private String gradingProgress;
-    @Basic
-    @Column(name = "timestamp", nullable = false)
+
+    @Column(nullable = false)
     private Timestamp timestamp;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "link_id")
-    private LtiLinkEntity link;
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id")
-    private LtiUserEntity user;
+    private LtiLinkEntity link;
 
-    protected LtiResultEntity() {
-    }
+    @JoinColumn(name = "user_id")
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    private LtiUserEntity user;
 
     /**
      * @param user        the user for this grade result
@@ -70,8 +76,14 @@ public class LtiResultEntity extends BaseEntity {
      * @param scoreGiven       [OPTIONAL] the grade value
      */
     public LtiResultEntity(LtiUserEntity user, LtiLinkEntity link, Date retrievedAt, Float scoreGiven, Float scoreMaximum, String comment, String activityProgress, String gradingProgress) {
-        if (user == null) throw new AssertionError();
-        if (link == null) throw new AssertionError();
+        if (user == null) {
+            throw new AssertionError();
+        }
+
+        if (link == null) {
+            throw new AssertionError();
+        }
+
         if (retrievedAt == null) {
             retrievedAt = new Date();
         }
@@ -86,83 +98,15 @@ public class LtiResultEntity extends BaseEntity {
         this.comment = gradingProgress;
     }
 
-
-    public long getResultId() {
-        return resultId;
-    }
-
-    public void setResultId(long resultId) {
-        this.resultId = resultId;
-    }
-
-    public Float getScoreGiven() {
-        return scoreGiven;
-    }
-
-    public void setScoreGiven(Float scoreGiven) {
-        this.scoreGiven = scoreGiven;
-    }
-
-    public Float getScoreMaximum() {
-        return scoreMaximum;
-    }
-
-    public void setScoreMaximum(Float scoreMaximum) {
-        this.scoreMaximum = scoreMaximum;
-    }
-
-    public String getComment() {
-        return comment;
-    }
-
-    public void setComment(String comment) {
-        this.comment = comment;
-    }
-
-    public String getActivityProgress() {
-        return activityProgress;
-    }
-
-    public void setActivityProgress(String activityProgress) {
-        this.activityProgress = activityProgress;
-    }
-
-    public String getGradingProgress() {
-        return gradingProgress;
-    }
-
-    public void setGradingProgress(String gradingProgress) {
-        this.gradingProgress = gradingProgress;
-    }
-
-    public Timestamp getTimestamp() {
-        return timestamp;
-    }
-
-    public void setTimestamp(Timestamp timestamp) {
-        this.timestamp = timestamp;
-    }
-
-    public LtiLinkEntity getLink() {
-        return link;
-    }
-
-    public void setLink(LtiLinkEntity link) {
-        this.link = link;
-    }
-
-    public LtiUserEntity getUser() {
-        return user;
-    }
-
-    public void setUser(LtiUserEntity user) {
-        this.user = user;
-    }
-
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         LtiResultEntity that = (LtiResultEntity) o;
 
@@ -174,4 +118,5 @@ public class LtiResultEntity extends BaseEntity {
     public int hashCode() {
         return Objects.hash(resultId);
     }
+
 }

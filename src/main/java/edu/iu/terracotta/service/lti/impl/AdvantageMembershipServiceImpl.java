@@ -22,8 +22,8 @@ import edu.iu.terracotta.model.oauth2.LTIToken;
 import edu.iu.terracotta.service.lti.AdvantageConnectorHelper;
 import edu.iu.terracotta.service.lti.AdvantageMembershipService;
 import edu.iu.terracotta.utils.TextConstants;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
@@ -40,40 +40,40 @@ import java.util.Objects;
  * This manages all the Membership call for the LTIRequest (and for LTI in general)
  * Necessary to get appropriate TX handling and service management
  */
+@Slf4j
 @Service
+@SuppressWarnings({"rawtypes", "PMD.GuardLogStatement"})
 public class AdvantageMembershipServiceImpl implements AdvantageMembershipService {
 
     @Autowired
-    AdvantageConnectorHelper advantageConnectorHelper;
+    private AdvantageConnectorHelper advantageConnectorHelper;
 
     @Autowired
     private ExceptionMessageGenerator exceptionMessageGenerator;
 
-    static final Logger log = LoggerFactory.getLogger(AdvantageMembershipServiceImpl.class);
-
     //Asking for a token with the right scope.
     @Override
     public LTIToken getToken(PlatformDeployment platformDeployment) throws ConnectionException {
-        String scope = "https://purl.imsglobal.org/spec/lti-nrps/scope/contextmembership.readonly";
-        return advantageConnectorHelper.getToken(platformDeployment, scope);
+        return advantageConnectorHelper.getToken(platformDeployment, "https://purl.imsglobal.org/spec/lti-nrps/scope/contextmembership.readonly");
     }
 
     //Calling the membership service and getting a paginated result of users.
     @Override
-    public CourseUsers callMembershipService(LTIToken LTIToken, LtiContextEntity context) throws ConnectionException {
+    public CourseUsers callMembershipService(LTIToken ltiToken, LtiContextEntity context) throws ConnectionException {
         CourseUsers courseUsers;
-        log.debug(TextConstants.TOKEN + LTIToken.getAccess_token());
+        log.debug(TextConstants.TOKEN + ltiToken.getAccess_token());
+
         try {
             RestTemplate restTemplate = advantageConnectorHelper.createRestTemplate();
             //We add the token in the request with this.
-            HttpEntity request = advantageConnectorHelper.createTokenizedRequestEntity(LTIToken);
+            HttpEntity request = advantageConnectorHelper.createTokenizedRequestEntity(ltiToken);
             //The URL to get the course contents is stored in the context (in our database) because it came
             // from the platform when we created the link to the context, and we saved it then.
-            final String GET_MEMBERSHIP = context.getContext_memberships_url();
-            log.debug("GET_MEMBERSHIP -  " + GET_MEMBERSHIP);
-            ResponseEntity<CourseUsers> membershipGetResponse = restTemplate.
-                    exchange(GET_MEMBERSHIP, HttpMethod.GET, request, CourseUsers.class);
+            final String getMembership = context.getContext_memberships_url();
+            log.debug("GET_MEMBERSHIP -  " + getMembership);
+            ResponseEntity<CourseUsers> membershipGetResponse = restTemplate.exchange(getMembership, HttpMethod.GET, request, CourseUsers.class);
             HttpStatus status = membershipGetResponse.getStatusCode();
+
             if (status.is2xxSuccessful()) {
                 courseUsers = membershipGetResponse.getBody();
                 List<CourseUser> courseUserList = new ArrayList<>(Objects.requireNonNull(courseUsers).getCourseUserList());
@@ -81,16 +81,16 @@ public class AdvantageMembershipServiceImpl implements AdvantageMembershipServic
                 log.debug("We have {} users", courseUsers.getCourseUserList().size());
                 String nextPage = advantageConnectorHelper.nextPage(membershipGetResponse.getHeaders());
                 log.debug("We have next page: " + nextPage);
+
                 while (nextPage != null) {
-                    ResponseEntity<CourseUsers> responseForNextPage = restTemplate.exchange(nextPage, HttpMethod.GET,
-                            request, CourseUsers.class);
+                    ResponseEntity<CourseUsers> responseForNextPage = restTemplate.exchange(nextPage, HttpMethod.GET, request, CourseUsers.class);
                     CourseUsers nextCourseList = responseForNextPage.getBody();
-                    List<CourseUser> nextCourseUsersList = Objects.requireNonNull(nextCourseList)
-                            .getCourseUserList();
+                    List<CourseUser> nextCourseUsersList = Objects.requireNonNull(nextCourseList).getCourseUserList();
                     log.debug("We have {} users in the next page", nextCourseList.getCourseUserList().size());
                     courseUserList.addAll(nextCourseUsersList);
                     nextPage = advantageConnectorHelper.nextPage(responseForNextPage.getHeaders());
                 }
+
                 courseUsers = new CourseUsers();
                 courseUsers.getCourseUserList().addAll(courseUserList);
             } else {
@@ -104,8 +104,8 @@ public class AdvantageMembershipServiceImpl implements AdvantageMembershipServic
             log.error(exceptionMsg.toString(), e);
             throw new ConnectionException(exceptionMessageGenerator.exceptionMessage(exceptionMsg.toString(), e));
         }
+
         return courseUsers;
     }
-
 
 }

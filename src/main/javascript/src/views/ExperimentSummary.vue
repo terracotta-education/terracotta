@@ -809,7 +809,7 @@ div.icon-section-summary {
   padding: 30px 0;
   z-index: 100;
   background: white;
-  margin-top: 0 !important;
+  margin: 0 !important;
 }
 div.container {
   padding-top: 0 !important;

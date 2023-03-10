@@ -13,10 +13,15 @@
 package edu.iu.terracotta.model.oauth2;
 
 import io.jsonwebtoken.Claims;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.util.Collection;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
 
+@Getter
+@Setter
 public class JwtAuthenticationToken extends AbstractAuthenticationToken {
 
     private String token;
@@ -51,12 +56,4 @@ public class JwtAuthenticationToken extends AbstractAuthenticationToken {
         return this.principal;
     }
 
-    public String getToken() {
-        return token;
-    }
-
-    public Claims getClaims() {
-        return claims;
-    }
 }
-

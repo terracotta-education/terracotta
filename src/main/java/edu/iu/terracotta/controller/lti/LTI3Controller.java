@@ -18,7 +18,6 @@ import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.LMSOAuthException;
 import edu.iu.terracotta.repository.LtiLinkRepository;
-import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.caliper.CaliperService;
 import edu.iu.terracotta.service.common.LMSOAuthService;
 import edu.iu.terracotta.service.common.LMSOAuthServiceManager;
@@ -78,9 +77,6 @@ public class LTI3Controller {
 
     @Autowired
     private LTIDataService ltiDataService;
-
-    @Autowired
-    private AssignmentService assignmentService;
 
     @Autowired
     private CaliperService caliperService;
@@ -196,22 +192,6 @@ public class LTI3Controller {
 
                 if (oauth2APITokenRedirectURL != null) {
                     model.addAttribute("lms_api_oauth_url", oauth2APITokenRedirectURL);
-                } else {
-                    // if no redirect url then we must already have a token so we proceed with checking and restoring assignments
-                    Thread thread = new Thread(
-                        () ->
-                            {
-                                try {
-                                    assignmentService.checkAndRestoreAssignmentsInCanvasByContext(
-                                        lti3Request.getContext().getContextId(),
-                                        lti3Request.getUser().getUserKey()
-                                    );
-                                } catch (CanvasApiException | DataServiceException | ConnectionException | IOException e) {
-                                    log.error("Error syncing assignments with Canvas. Context ID: '{}'", lti3Request.getContext().getContextId(), e);
-                                }
-                            }
-                        );
-                    thread.start();
                 }
             }
 

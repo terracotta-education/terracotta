@@ -25,6 +25,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
+@SuppressWarnings({"PMD.PreserveStackTrace"})
 public class ConditionServiceImpl implements ConditionService {
 
     @Autowired
@@ -209,7 +210,7 @@ public class ConditionServiceImpl implements ConditionService {
                     findByNameAndExperiment_ExperimentIdAndConditionIdIsNot(condto.getName(), experimentId, condto.getConditionId());
             if (!conditions.isEmpty()) {
                 for (Condition con : conditions) {
-                    List duplicates = conditionDtoList.stream().filter(co -> {
+                    List<ConditionDto> duplicates = conditionDtoList.stream().filter(co -> {
                         if (co.getConditionId() == con.getConditionId() && co.getName().equals(con.getName())) {
                             return true;
                         }
