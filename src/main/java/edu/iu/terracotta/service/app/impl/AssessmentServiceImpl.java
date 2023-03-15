@@ -61,7 +61,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Component
 @SuppressWarnings({"PMD.PreserveStackTrace"})
@@ -134,15 +133,13 @@ public class AssessmentServiceImpl implements AssessmentService {
     private AssessmentDto toDto(Assessment assessment, Participant participant, boolean canViewSubmissions) throws AssessmentNotMatchingException {
         AssessmentDto assessmentDto = toDto(assessment, null, false, false, false, false);
 
-        List<Submission> participantSubmissions = submissionService.findByParticipantIdAndAssessmentId(participant.getParticipantId(), assessment.getAssessmentId());
-
-        List<Submission> participantAssessmentSubmissionsSubmitted = CollectionUtils.emptyIfNull(participantSubmissions).stream()
+        List<Submission> participantAssessmentSubmissionsSubmitted = CollectionUtils.emptyIfNull(submissionService.findByParticipantIdAndAssessmentId(participant.getParticipantId(), assessment.getAssessmentId())).stream()
             .filter(submission -> submission.getDateSubmitted() != null)
-            .collect(Collectors.toList());
+            .toList();
 
         List<SubmissionDto> submissionDtosSubmitted = CollectionUtils.emptyIfNull(participantAssessmentSubmissionsSubmitted).stream()
             .map(submission -> submissionService.toDto(submission, false, false))
-            .collect(Collectors.toList());
+            .toList();
 
         if (canViewSubmissions) {
             assessmentDto.setSubmissions(submissionDtosSubmitted);
@@ -206,14 +203,14 @@ public class AssessmentServiceImpl implements AssessmentService {
         List<SubmissionDto> submissionDtoList = new ArrayList<>();
         Long conditionId = assessment.getTreatment().getCondition().getConditionId();
         Long exposureId = assessment.getTreatment().getAssignment().getExposure().getExposureId();
-        Optional<ExposureGroupCondition> exposureGroupCondition =
-                allRepositories.exposureGroupConditionRepository.getByCondition_ConditionIdAndExposure_ExposureId(conditionId, exposureId);
+        Optional<ExposureGroupCondition> exposureGroupCondition = allRepositories.exposureGroupConditionRepository.getByCondition_ConditionIdAndExposure_ExposureId(conditionId, exposureId);
         Long groupId = null;
-        if (exposureGroupCondition.isPresent()) {
-            groupId = exposureGroupCondition.get().getGroup().getGroupId();
-        } else {
+
+        if (!exposureGroupCondition.isPresent()) {
             throw new AssessmentNotMatchingException("Error 124: Assessment " + assessment.getAssessmentId() + " is without a Group");
         }
+
+        groupId = exposureGroupCondition.get().getGroup().getGroupId();
         Map<Participant, Boolean> participantStatus = new HashMap<>();
 
         if (submissions) {
@@ -230,8 +227,10 @@ public class AssessmentServiceImpl implements AssessmentService {
                     }
                 }
             }
+
             submissionsCompletedCount = 0L;
             submissionsInProgressCount = 0L;
+
             for (Map.Entry<Participant, Boolean> status : participantStatus.entrySet()) {
                 if (status.getValue()) {
                     submissionsCompletedCount = submissionsCompletedCount + 1;
@@ -239,13 +238,16 @@ public class AssessmentServiceImpl implements AssessmentService {
                     submissionsInProgressCount = submissionsInProgressCount + 1;
                 }
             }
+
             assessmentDto.setSubmissionsExpected(allRepositories.participantRepository.countDistinctByGroup_GroupId(groupId));
             assessmentDto.setSubmissionsCompletedCount(submissionsCompletedCount);
             assessmentDto.setSubmissionsInProgressCount(submissionsInProgressCount);
         }
+
         if (assessment.getSubmissions() != null && !assessment.getSubmissions().isEmpty()) {
             assessmentDto.setStarted(true);
         }
+
         assessmentDto.setSubmissions(submissionDtoList);
         assessmentDto.setTreatmentId(assessment.getTreatment().getTreatmentId());
         assessmentDto.setMaxPoints(calculateMaxScore(assessment));
@@ -258,24 +260,20 @@ public class AssessmentServiceImpl implements AssessmentService {
             return Collections.emptyList();
         }
 
-        List<Question> questionList = allRepositories.questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(assessment.getAssessmentId());
-
-        return CollectionUtils.emptyIfNull(questionList).stream()
+        return CollectionUtils.emptyIfNull(allRepositories.questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(assessment.getAssessmentId())).stream()
             .map(question -> questionService.toDto(question, submissionId, showAnswers, !isStudent))
-            .collect(Collectors.toList());
+            .toList();
     }
 
     @Override
     public Assessment fromDto(AssessmentDto assessmentDto) throws DataServiceException {
-
         Assessment assessment = new Assessment();
         assessment.setAssessmentId(assessmentDto.getAssessmentId());
         assessment.setHtml(assessmentDto.getHtml());
         assessment.setAutoSubmit(assessmentDto.isAutoSubmit());
         assessment.setNumOfSubmissions(assessmentDto.getNumOfSubmissions());
         assessment.setHoursBetweenSubmissions(assessmentDto.getHoursBetweenSubmissions());
-        assessment.setMultipleSubmissionScoringScheme(
-                MultipleSubmissionScoringScheme.valueOf(assessmentDto.getMultipleSubmissionScoringScheme()));
+        assessment.setMultipleSubmissionScoringScheme(MultipleSubmissionScoringScheme.valueOf(assessmentDto.getMultipleSubmissionScoringScheme()));
         assessment.setCumulativeScoringInitialPercentage(assessmentDto.getCumulativeScoringInitialPercentage());
         assessment.setAllowStudentViewResponses(assessmentDto.isAllowStudentViewResponses());
         assessment.setStudentViewResponsesAfter(assessmentDto.getStudentViewResponsesAfter());
@@ -283,12 +281,15 @@ public class AssessmentServiceImpl implements AssessmentService {
         assessment.setAllowStudentViewCorrectAnswers(assessmentDto.isAllowStudentViewCorrectAnswers());
         assessment.setStudentViewCorrectAnswersAfter(assessmentDto.getStudentViewCorrectAnswersAfter());
         assessment.setStudentViewCorrectAnswersBefore(assessmentDto.getStudentViewCorrectAnswersBefore());
+
         Optional<Treatment> treatment = allRepositories.treatmentRepository.findById(assessmentDto.getTreatmentId());
-        if (treatment.isPresent()) {
-            assessment.setTreatment(treatment.get());
-        } else {
+
+        if (!treatment.isPresent()) {
             throw new DataServiceException("The treatment for the assessment does not exist");
         }
+
+        assessment.setTreatment(treatment.get());
+
         return assessment;
     }
 
@@ -338,9 +339,7 @@ public class AssessmentServiceImpl implements AssessmentService {
         assessment.setAutoSubmit(assessmentDto.isAutoSubmit());
         assessment.setNumOfSubmissions(assessmentDto.getNumOfSubmissions());
         assessment.setHoursBetweenSubmissions(assessmentDto.getHoursBetweenSubmissions());
-        MultipleSubmissionScoringScheme multipleSubmissionScoringScheme = MultipleSubmissionScoringScheme
-                .valueOf(assessmentDto.getMultipleSubmissionScoringScheme());
-        assessment.setMultipleSubmissionScoringScheme(multipleSubmissionScoringScheme);
+        assessment.setMultipleSubmissionScoringScheme(MultipleSubmissionScoringScheme.valueOf(assessmentDto.getMultipleSubmissionScoringScheme()));
         assessment.setCumulativeScoringInitialPercentage(assessmentDto.getCumulativeScoringInitialPercentage());
 
         if (processQuestions) {
@@ -352,10 +351,9 @@ public class AssessmentServiceImpl implements AssessmentService {
 
     private void processAssessmentQuestions(AssessmentDto assessmentDto) throws IdInPostException, DataServiceException, QuestionNotMatchingException, NegativePointsException, MultipleChoiceLimitReachedException {
         if (CollectionUtils.isNotEmpty(assessmentDto.getQuestions())) {
-            List<Question> questions = questionService.findAllByAssessmentId(assessmentDto.getAssessmentId());
-
-            List<Long> existingQuestionIds = CollectionUtils.emptyIfNull(questions).stream()
-                .map(Question::getQuestionId).collect(Collectors.toList());
+            List<Long> existingQuestionIds = CollectionUtils.emptyIfNull(questionService.findAllByAssessmentId(assessmentDto.getAssessmentId())).stream()
+                .map(Question::getQuestionId)
+                .toList();
 
             Map<Question, QuestionDto> questionMap = new HashMap<>();
 
@@ -414,78 +412,65 @@ public class AssessmentServiceImpl implements AssessmentService {
     @Override
     public Float calculateMaxScore(Assessment assessment) {
         float score = Float.parseFloat("0");
+
         for (Question question : assessment.getQuestions()) {
-            score = score + question.getPoints();
+            score += question.getPoints();
         }
+
         return score;
     }
 
-    private void validateMultipleAttemptsSettings(AssessmentDto assessmentDto)
-            throws MultipleAttemptsSettingsValidationException {
-        MultipleSubmissionScoringScheme multipleSubmissionScoringScheme = MultipleSubmissionScoringScheme
-                .valueOf(assessmentDto.getMultipleSubmissionScoringScheme());
-        // validate that if multipleSubmissionScoringScheme is CUMULATIVE, then
-        // cumulativeScoringInitialPercentage is not null
-        if (multipleSubmissionScoringScheme == MultipleSubmissionScoringScheme.CUMULATIVE && assessmentDto.getCumulativeScoringInitialPercentage() == null){
-            throw new MultipleAttemptsSettingsValidationException(
-                    "Error 156: Must set cumulative scoring initial percentage when scoring scheme is CUMULATIVE");
+    private void validateMultipleAttemptsSettings(AssessmentDto assessmentDto) throws MultipleAttemptsSettingsValidationException {
+        MultipleSubmissionScoringScheme multipleSubmissionScoringScheme = MultipleSubmissionScoringScheme.valueOf(assessmentDto.getMultipleSubmissionScoringScheme());
+
+        // validate that if multipleSubmissionScoringScheme is CUMULATIVE, then cumulativeScoringInitialPercentage is not null
+        if (multipleSubmissionScoringScheme == MultipleSubmissionScoringScheme.CUMULATIVE && assessmentDto.getCumulativeScoringInitialPercentage() == null) {
+            throw new MultipleAttemptsSettingsValidationException("Error 156: Must set cumulative scoring initial percentage when scoring scheme is CUMULATIVE");
         }
 
         // validate that if multipleSubmissionScoringScheme is CUMULATIVE, then
         // numOfSubmissions is not null and greater than 1
         if (multipleSubmissionScoringScheme == MultipleSubmissionScoringScheme.CUMULATIVE && (assessmentDto.getNumOfSubmissions() == null || assessmentDto.getNumOfSubmissions() <= 1)) {
-            throw new MultipleAttemptsSettingsValidationException(
-                    "Error 157: Number of submissions must be greater than 1, but not infinite, when scoring scheme is CUMULATIVE");
+            throw new MultipleAttemptsSettingsValidationException("Error 157: Number of submissions must be greater than 1, but not infinite, when scoring scheme is CUMULATIVE");
         }
     }
 
-    private void validateRevealAssignmentResponsesSettings(AssessmentDto assessmentDto)
-            throws RevealResponsesSettingValidationException {
-
-        // validate that if allowStudentViewCorrectAnswers then also
-        // allowStudentViewResponses must be true
+    private void validateRevealAssignmentResponsesSettings(AssessmentDto assessmentDto) throws RevealResponsesSettingValidationException {
+        // validate that if allowStudentViewCorrectAnswers then also allowStudentViewResponses must be true
         if (assessmentDto.isAllowStudentViewCorrectAnswers() && !assessmentDto.isAllowStudentViewResponses()) {
-            throw new RevealResponsesSettingValidationException(
-                    "Error 151: Cannot allow students to view correct answers if they are not allowed to view responses.");
+            throw new RevealResponsesSettingValidationException("Error 151: Cannot allow students to view correct answers if they are not allowed to view responses.");
         }
+
         // Validate that view responses 'after' date comes before the 'before' date
         if (assessmentDto.getStudentViewResponsesAfter() != null
                 && assessmentDto.getStudentViewResponsesBefore() != null
-                && !assessmentDto.getStudentViewResponsesAfter()
-                        .before(assessmentDto.getStudentViewResponsesBefore())) {
-            throw new RevealResponsesSettingValidationException(
-                    "Error 152: Start date of revealing student responses must come before end date.");
+                && !assessmentDto.getStudentViewResponsesAfter().before(assessmentDto.getStudentViewResponsesBefore())) {
+            throw new RevealResponsesSettingValidationException("Error 152: Start date of revealing student responses must come before end date.");
         }
-        // Validate that view correct answers 'after' date comes before the 'before'
-        // date
+
+        // Validate that view correct answers 'after' date comes before the 'before' date
         if (assessmentDto.getStudentViewCorrectAnswersAfter() != null
                 && assessmentDto.getStudentViewCorrectAnswersBefore() != null
-                && !assessmentDto.getStudentViewCorrectAnswersAfter()
-                        .before(assessmentDto.getStudentViewCorrectAnswersBefore())) {
-            throw new RevealResponsesSettingValidationException(
-                    "Error 153: Start date of revealing correct answers must come before end date.");
+                && !assessmentDto.getStudentViewCorrectAnswersAfter().before(assessmentDto.getStudentViewCorrectAnswersBefore())) {
+            throw new RevealResponsesSettingValidationException("Error 153: Start date of revealing correct answers must come before end date.");
         }
-        // Validate studentViewCorrectAnswersAfter is greater than or equal to
-        // studentViewResponsesAfter
+
+        // Validate studentViewCorrectAnswersAfter is greater than or equal to studentViewResponsesAfter
         if (assessmentDto.getStudentViewCorrectAnswersAfter() != null
-                && assessmentDto.getStudentViewResponsesAfter() != null && !(assessmentDto
-                        .getStudentViewCorrectAnswersAfter().equals(assessmentDto.getStudentViewResponsesAfter())
-                        || assessmentDto.getStudentViewCorrectAnswersAfter()
-                                .after(assessmentDto.getStudentViewResponsesAfter()))) {
+                && assessmentDto.getStudentViewResponsesAfter() != null
+                && !(assessmentDto.getStudentViewCorrectAnswersAfter().equals(assessmentDto.getStudentViewResponsesAfter())
+                        || assessmentDto.getStudentViewCorrectAnswersAfter().after(assessmentDto.getStudentViewResponsesAfter()))) {
 
-            throw new RevealResponsesSettingValidationException(
-                    "Error 154: Start date of revealing correct answers must equal or come after start date of revealing student responses.");
+            throw new RevealResponsesSettingValidationException("Error 154: Start date of revealing correct answers must equal or come after start date of revealing student responses.");
         }
-        // Validate studentViewCorrectAnswersBefore is less than or equal to
-        // studentViewResponsesBefore
-        if (assessmentDto.getStudentViewCorrectAnswersBefore() != null
-                && assessmentDto.getStudentViewResponsesBefore() != null && !(assessmentDto
-                        .getStudentViewCorrectAnswersBefore().equals(assessmentDto.getStudentViewResponsesBefore())
-                        || assessmentDto.getStudentViewCorrectAnswersBefore()
-                                .before(assessmentDto.getStudentViewResponsesBefore()))) {
 
-            throw new RevealResponsesSettingValidationException(
-                    "Error 155: End date of revealing correct answers must equal or come before end date of revealing student responses.");
+        // Validate studentViewCorrectAnswersBefore is less than or equal to studentViewResponsesBefore
+        if (assessmentDto.getStudentViewCorrectAnswersBefore() != null
+                && assessmentDto.getStudentViewResponsesBefore() != null
+                && !(assessmentDto.getStudentViewCorrectAnswersBefore().equals(assessmentDto.getStudentViewResponsesBefore())
+                        || assessmentDto.getStudentViewCorrectAnswersBefore().before(assessmentDto.getStudentViewResponsesBefore()))) {
+
+            throw new RevealResponsesSettingValidationException("Error 155: End date of revealing correct answers must equal or come before end date of revealing student responses.");
         }
     }
 
@@ -501,7 +486,6 @@ public class AssessmentServiceImpl implements AssessmentService {
         assessmentDto.setHoursBetweenSubmissions(assignment.getHoursBetweenSubmissions());
         assessmentDto.setMultipleSubmissionScoringScheme(assignment.getMultipleSubmissionScoringScheme().name());
         assessmentDto.setCumulativeScoringInitialPercentage(assignment.getCumulativeScoringInitialPercentage());
-
         assessmentDto.setAutoSubmit(true);
 
         // Default reveal treatment responses settings to assignment level settings.
@@ -525,8 +509,9 @@ public class AssessmentServiceImpl implements AssessmentService {
     @Override
     public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId) {
         HttpHeaders headers = new HttpHeaders();
-        headers.setLocation(ucBuilder.path("/api/experiments/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}")
+        headers.setLocation(ucBuilder.path("/api/experiments/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}")
                 .buildAndExpand(experimentId, conditionId, treatmentId, assessmentId).toUri());
+
         return headers;
     }
 
@@ -577,7 +562,7 @@ public class AssessmentServiceImpl implements AssessmentService {
         if (!participant.getConsent()) {
             //We need the default condition assessment
             for (Condition condition : participant.getExperiment().getConditions()) {
-                if (condition.getDefaultCondition()){
+                if (condition.getDefaultCondition()) {
                     assessment = getAssessmentByConditionId(participant.getExperiment().getExperimentId(), securedInfo.getCanvasAssignmentId(), condition.getConditionId());
                     break;
                 }
@@ -652,7 +637,6 @@ public class AssessmentServiceImpl implements AssessmentService {
         }
 
         Participant participant = participantService.handleExperimentParticipant(experiment.get(), securedInfo);
-
         Assessment assessment = null;
 
         if (BooleanUtils.isNotTrue(participant.getConsent())) {

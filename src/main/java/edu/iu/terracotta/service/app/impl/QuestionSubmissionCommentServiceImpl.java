@@ -10,18 +10,18 @@ import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.QuestionSubmissionCommentService;
 import edu.iu.terracotta.utils.TextConstants;
+
+import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 @Component
-@SuppressWarnings({"PMD.PreserveStackTrace"})
 public class QuestionSubmissionCommentServiceImpl implements QuestionSubmissionCommentService {
 
     @Autowired
@@ -34,14 +34,9 @@ public class QuestionSubmissionCommentServiceImpl implements QuestionSubmissionC
 
     @Override
     public List<QuestionSubmissionCommentDto> getQuestionSubmissionComments(Long questionSubmissionId) {
-        List<QuestionSubmissionComment> questionSubmissionComments= findAllByQuestionSubmissionId(questionSubmissionId);
-        List<QuestionSubmissionCommentDto> questionSubmissionCommentDtoList = new ArrayList<>();
-
-        for(QuestionSubmissionComment questionSubmissionComment : questionSubmissionComments) {
-            questionSubmissionCommentDtoList.add(toDto(questionSubmissionComment));
-        }
-
-        return questionSubmissionCommentDtoList;
+        return CollectionUtils.emptyIfNull(findAllByQuestionSubmissionId(questionSubmissionId)).stream()
+            .map(questionSubmissionComment -> toDto(questionSubmissionComment))
+            .toList();
     }
 
     @Override
@@ -63,7 +58,7 @@ public class QuestionSubmissionCommentServiceImpl implements QuestionSubmissionC
         try {
             questionSubmissionComment = fromDto(questionSubmissionCommentDto);
         } catch (DataServiceException ex) {
-            throw new DataServiceException("Error 105: Unable to create question submission comment: " + ex.getMessage());
+            throw new DataServiceException("Error 105: Unable to create question submission comment: " + ex.getMessage(), ex);
         }
 
         return toDto(save(questionSubmissionComment));
@@ -101,11 +96,11 @@ public class QuestionSubmissionCommentServiceImpl implements QuestionSubmissionC
         questionSubmissionComment.setCreator(questionSubmissionCommentDto.getCreator());
         Optional<QuestionSubmission> questionSubmission = allRepositories.questionSubmissionRepository.findById(questionSubmissionCommentDto.getQuestionSubmissionId());
 
-        if (questionSubmission.isPresent()) {
-            questionSubmissionComment.setQuestionSubmission(questionSubmission.get());
-        } else {
+        if (!questionSubmission.isPresent()) {
             throw new DataServiceException("The question submission for the question submission comment doesn't exist.");
         }
+
+        questionSubmissionComment.setQuestionSubmission(questionSubmission.get());
 
         return questionSubmissionComment;
     }

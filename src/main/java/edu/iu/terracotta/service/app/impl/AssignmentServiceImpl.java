@@ -249,7 +249,6 @@ public class AssignmentServiceImpl implements AssignmentService {
 
     @Override
     public Assignment fromDto(AssignmentDto assignmentDto) throws DataServiceException {
-
         //Note: we don't want to allow the dto to change the LmsAssignmentId or the ResourceLinkId
         Assignment assignment = new Assignment();
         assignment.setAssignmentId(assignmentDto.getAssignmentId());
@@ -277,13 +276,19 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     @Override
-    public Assignment save(Assignment assignment) { return allRepositories.assignmentRepository.save(assignment); }
+    public Assignment save(Assignment assignment) {
+        return allRepositories.assignmentRepository.save(assignment);
+    }
 
     @Override
-    public Optional<Assignment> findById(Long id) { return allRepositories.assignmentRepository.findById(id); }
+    public Optional<Assignment> findById(Long id) {
+        return allRepositories.assignmentRepository.findById(id);
+    }
 
     @Override
-    public Assignment getAssignment(Long id) { return allRepositories.assignmentRepository.findByAssignmentId(id); }
+    public Assignment getAssignment(Long id) {
+        return allRepositories.assignmentRepository.findByAssignmentId(id);
+    }
 
     @Override
     public List<AssignmentDto> updateAssignments(List<AssignmentDto> assignmentDtos, SecuredInfo securedInfo)
@@ -315,17 +320,20 @@ public class AssignmentServiceImpl implements AssignmentService {
             throw new AssignmentNotMatchingException(TextConstants.ASSIGNMENT_NOT_MATCHING);
         }
 
-        if (StringUtils.isAllBlank(assignmentDto.getTitle()) && StringUtils.isAllBlank(assignment.getTitle())) {
+        if (StringUtils.isAllBlank(assignmentDto.getTitle(), assignment.getTitle())) {
             throw new TitleValidationException("Error 100: Please give the assignment a name.");
         }
-        if (!StringUtils.isAllBlank(assignmentDto.getTitle()) && assignmentDto.getTitle().length() > 255) {
+
+        if (StringUtils.isNotBlank(assignmentDto.getTitle()) && assignmentDto.getTitle().length() > 255) {
             throw new TitleValidationException("Error 101: The title must be 255 characters or less.");
         }
+
         if (!assignment.getTitle().equals(assignmentDto.getTitle())) {
             assignment.setTitle(assignmentDto.getTitle());
             LtiUserEntity instructorUser = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
             editAssignmentNameInCanvas(assignment, securedInfo.getCanvasCourseId(), assignmentDto.getTitle(), instructorUser);
         }
+
         validateMultipleAttemptsSettings(assignmentDto);
         validateRevealAssignmentResponsesSettings(assignmentDto);
         assignment.setAssignmentOrder(assignmentDto.getAssignmentOrder());
@@ -338,15 +346,13 @@ public class AssignmentServiceImpl implements AssignmentService {
         assignment.setStudentViewCorrectAnswersBefore(assignmentDto.getStudentViewCorrectAnswersBefore());
         assignment.setNumOfSubmissions(assignmentDto.getNumOfSubmissions());
         assignment.setHoursBetweenSubmissions(assignmentDto.getHoursBetweenSubmissions());
-        MultipleSubmissionScoringScheme multipleSubmissionScoringScheme = MultipleSubmissionScoringScheme
-                .valueOf(assignmentDto.getMultipleSubmissionScoringScheme());
+        MultipleSubmissionScoringScheme multipleSubmissionScoringScheme = MultipleSubmissionScoringScheme.valueOf(assignmentDto.getMultipleSubmissionScoringScheme());
         assignment.setMultipleSubmissionScoringScheme(multipleSubmissionScoringScheme);
         assignment.setCumulativeScoringInitialPercentage(assignmentDto.getCumulativeScoringInitialPercentage());
         Assignment updatedAssignment = saveAndFlush(assignment);
 
         // update the same settings on all of this assignment's assessments
-        List<Assessment> assessments = allRepositories.assessmentRepository.findByTreatment_Assignment_AssignmentId(id);
-        for (Assessment assessment : assessments) {
+        for (Assessment assessment : allRepositories.assessmentRepository.findByTreatment_Assignment_AssignmentId(id)) {
             assessment.setAllowStudentViewResponses(assignmentDto.isAllowStudentViewResponses());
             assessment.setStudentViewResponsesAfter(assignmentDto.getStudentViewResponsesAfter());
             assessment.setStudentViewResponsesBefore(assignmentDto.getStudentViewResponsesBefore());
@@ -363,7 +369,9 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     @Override
-    public Assignment saveAndFlush(Assignment assignmentToChange) { return allRepositories.assignmentRepository.saveAndFlush(assignmentToChange); }
+    public Assignment saveAndFlush(Assignment assignmentToChange) {
+        return allRepositories.assignmentRepository.saveAndFlush(assignmentToChange);
+    }
 
     @Override
     public void deleteById(Long id, SecuredInfo securedInfo) throws EmptyResultDataAccessException, CanvasApiException, AssignmentNotEditedException {
@@ -404,7 +412,8 @@ public class AssignmentServiceImpl implements AssignmentService {
 
     @Override
     public boolean assignmentBelongsToExperiment(Long experimentId, Long assignmentId) {
-        return allRepositories.assignmentRepository.existsByExposure_Experiment_ExperimentIdAndAssignmentId(experimentId,assignmentId); }
+        return allRepositories.assignmentRepository.existsByExposure_Experiment_ExperimentIdAndAssignmentId(experimentId,assignmentId);
+    }
 
     @Override
     public String lineItemId(Assignment assignment) throws ConnectionException {
@@ -412,11 +421,13 @@ public class AssignmentServiceImpl implements AssignmentService {
         LTIToken ltiToken = advantageAGSService.getToken("lineitems", experiment.getPlatformDeployment());
         //find the right id to pass based on the assignment
         LineItems lineItems = advantageAGSService.getLineItems(ltiToken, experiment.getLtiContextEntity());
-        for (LineItem lineItem:lineItems.getLineItemList()) {
+
+        for (LineItem lineItem : lineItems.getLineItemList()) {
             if (lineItem.getResourceLinkId().equals(assignment.getResourceLinkId())) {
                 return lineItem.getId();
             }
         }
+
         return null;
     }
 
@@ -697,14 +708,14 @@ public class AssignmentServiceImpl implements AssignmentService {
     @Override
     public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, long experimentId, long exposureId, long assignmentId) {
         HttpHeaders headers = new HttpHeaders();
-        headers.setLocation(ucBuilder.path("/api/experiments/{experiment_id}/exposures/{exposure_id}/assignments/{assignment_id}")
+        headers.setLocation(ucBuilder.path("/api/experiments/{experimentId}/exposures/{exposureId}/assignments/{assignmentId}")
                 .buildAndExpand(experimentId, exposureId, assignmentId).toUri());
+
         return headers;
     }
 
     @Override
-    public void createAssignmentInCanvas(LtiUserEntity instructorUser, Assignment assignment, long experimentId,
-            String canvasCourseId) throws AssignmentNotCreatedException {
+    public void createAssignmentInCanvas(LtiUserEntity instructorUser, Assignment assignment, long experimentId, String canvasCourseId) throws AssignmentNotCreatedException {
         AssignmentExtended canvasAssignment = new AssignmentExtended();
         edu.ksu.canvas.model.assignment.Assignment.ExternalToolTagAttribute canvasExternalToolTagAttributes = canvasAssignment.new ExternalToolTagAttribute();
         canvasExternalToolTagAttributes.setUrl(ServletUriComponentsBuilder.fromCurrentContextPath().path("/lti3?experiment=" + experimentId + "&assignment=" + assignment.getAssignmentId()).build().toUriString());
@@ -715,9 +726,9 @@ public class AssignmentServiceImpl implements AssignmentService {
         canvasAssignment.setGradingType("percent");
         canvasAssignment.setPointsPossible(100.0);
         canvasAssignment.setSubmissionTypes(Collections.singletonList("external_tool"));
+
         try {
-            Optional<AssignmentExtended> canvasAssignmentReturned = canvasAPIClient.createCanvasAssignment(
-                    instructorUser, canvasAssignment, canvasCourseId);
+            Optional<AssignmentExtended> canvasAssignmentReturned = canvasAPIClient.createCanvasAssignment(instructorUser, canvasAssignment, canvasCourseId);
             assignment.setLmsAssignmentId(Integer.toString(canvasAssignmentReturned.get().getId()));
             String jwtTokenAssignment = canvasAssignmentReturned.get().getSecureParams();
             String resourceLinkId = apijwtService.unsecureToken(jwtTokenAssignment).getBody().get("lti_assignment_id").toString();
@@ -731,13 +742,15 @@ public class AssignmentServiceImpl implements AssignmentService {
     @Override
     public void editAssignmentNameInCanvas(Assignment assignment, String canvasCourseId, String newName, LtiUserEntity instructorUser) throws AssignmentNotEditedException, CanvasApiException {
         int assignmentId = Integer.parseInt(assignment.getLmsAssignmentId());
-        Optional<AssignmentExtended> assignmentExtendedOptional = canvasAPIClient.listAssignment(instructorUser,
-                canvasCourseId, assignmentId);
+        Optional<AssignmentExtended> assignmentExtendedOptional = canvasAPIClient.listAssignment(instructorUser, canvasCourseId, assignmentId);
+
         if (!assignmentExtendedOptional.isPresent()) {
             throw new AssignmentNotEditedException("Error 136: The assignment is not linked to any Canvas assignment");
         }
+
         AssignmentExtended assignmentExtended = assignmentExtendedOptional.get();
         assignmentExtended.setName(newName);
+
         try {
             canvasAPIClient.editAssignment(instructorUser, assignmentExtended, canvasCourseId);
         } catch (CanvasApiException e) {
@@ -747,18 +760,17 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     @Override
-    public void deleteAssignmentInCanvas(Assignment assignment, String canvasCourseId, LtiUserEntity instructorUser)
-            throws AssignmentNotEditedException, CanvasApiException {
+    public void deleteAssignmentInCanvas(Assignment assignment, String canvasCourseId, LtiUserEntity instructorUser) throws AssignmentNotEditedException, CanvasApiException {
         int assignmentId = Integer.parseInt(assignment.getLmsAssignmentId());
-        Optional<AssignmentExtended> assignmentExtendedOptional = canvasAPIClient.listAssignment(instructorUser,
-                canvasCourseId, assignmentId);
+        Optional<AssignmentExtended> assignmentExtendedOptional = canvasAPIClient.listAssignment(instructorUser, canvasCourseId, assignmentId);
+
         if (!assignmentExtendedOptional.isPresent()) {
             log.warn("The assignment '{}' (canvas id: '{}') was already deleted", assignment.getTitle(), assignment.getLmsAssignmentId());
             return;
         }
-        AssignmentExtended assignmentExtended = assignmentExtendedOptional.get();
+
         try {
-            canvasAPIClient.deleteAssignment(instructorUser, assignmentExtended, canvasCourseId);
+            canvasAPIClient.deleteAssignment(instructorUser, assignmentExtendedOptional.get(), canvasCourseId);
         } catch (CanvasApiException e) {
             log.error("Deleting the assignment failed", e);
             throw new AssignmentNotEditedException("Error 137: The assignment was not created.");
@@ -773,11 +785,13 @@ public class AssignmentServiceImpl implements AssignmentService {
             return;
         }
 
-        LtiUserEntity instructorUser = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
-
         for (Assignment assignment : assignmentList) {
             try {
-                deleteAssignmentInCanvas(assignment, securedInfo.getCanvasCourseId(), instructorUser);
+                deleteAssignmentInCanvas(
+                    assignment,
+                    securedInfo.getCanvasCourseId(),
+                    ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId())
+                );
             } catch (CanvasApiException | AssignmentNotEditedException e) {
                 log.warn("Assignment : {} was not deleted in canvas", assignment.getTitle());
             }
@@ -806,14 +820,11 @@ public class AssignmentServiceImpl implements AssignmentService {
         Assignment newAssignment = save(from);
 
         // duplicate treatments
-        List<Treatment> fromTreatments = allRepositories.treatmentRepository.findByAssignment_AssignmentId(assignmentId);
-
-        for (Treatment treatment : fromTreatments) {
+        for (Treatment treatment : allRepositories.treatmentRepository.findByAssignment_AssignmentId(assignmentId)) {
             treatmentService.duplicateTreatment(treatment.getTreatmentId(), newAssignment, securedInfo);
         }
 
-        LtiUserEntity instructorUser = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
-        setAssignmentDtoAttrs(newAssignment, securedInfo.getCanvasCourseId(), instructorUser);
+        setAssignmentDtoAttrs(newAssignment, securedInfo.getCanvasCourseId(), ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId()));
 
         return toDto(newAssignment, false, true);
     }
@@ -829,8 +840,7 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     @Override
-    public AssignmentDto moveAssignment(long originalAssignmentId, AssignmentDto targetAssignmentDto, long experimentId,
-            long originalExposureId, SecuredInfo securedInfo)
+    public AssignmentDto moveAssignment(long originalAssignmentId, AssignmentDto targetAssignmentDto, long experimentId, long originalExposureId, SecuredInfo securedInfo)
             throws DataServiceException, IdInPostException, TitleValidationException, AssessmentNotMatchingException,
                 AssignmentNotCreatedException, RevealResponsesSettingValidationException,
                 MultipleAttemptsSettingsValidationException, NumberFormatException, CanvasApiException,
@@ -855,9 +865,7 @@ public class AssignmentServiceImpl implements AssignmentService {
         setAssignmentDtoAttrs(newAssignment, securedInfo.getCanvasCourseId(), instructorUser);
 
         // duplicate treatments from original assignment
-        List<Treatment> fromTreatments = allRepositories.treatmentRepository.findByAssignment_AssignmentId(originalAssignmentId);
-
-        for (Treatment treatment : fromTreatments) {
+       for (Treatment treatment : allRepositories.treatmentRepository.findByAssignment_AssignmentId(originalAssignmentId)) {
             treatmentService.duplicateTreatment(treatment.getTreatmentId(), newAssignment, securedInfo);
         }
 

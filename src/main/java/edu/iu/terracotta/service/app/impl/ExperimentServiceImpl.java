@@ -158,19 +158,20 @@ public class ExperimentServiceImpl implements ExperimentService {
         }
 
         if (experimentDto.getExposureType() != null) {
-            if (EnumUtils.isValidEnum(ExposureTypes.class, experimentDto.getExposureType())) {
-                experimentToChange.setExposureType(EnumUtils.getEnum(ExposureTypes.class, experimentDto.getExposureType()));
-            } else {
+            if (!EnumUtils.isValidEnum(ExposureTypes.class, experimentDto.getExposureType())) {
                 throw new WrongValueException("Error 134: " + experimentDto.getExposureType() + " is not a valid Exposure value");
             }
+
+            experimentToChange.setExposureType(EnumUtils.getEnum(ExposureTypes.class, experimentDto.getExposureType()));
+
         }
 
         if (experimentDto.getDistributionType() != null) {
-            if (EnumUtils.isValidEnum(DistributionTypes.class, experimentDto.getDistributionType())) {
-                experimentToChange.setDistributionType(EnumUtils.getEnum(DistributionTypes.class, experimentDto.getDistributionType()));
-            } else {
+            if (!EnumUtils.isValidEnum(DistributionTypes.class, experimentDto.getDistributionType())) {
                 throw new WrongValueException("Error 134: " + experimentDto.getDistributionType() + " is not a valid Distribution value");
             }
+
+            experimentToChange.setDistributionType(EnumUtils.getEnum(DistributionTypes.class, experimentDto.getDistributionType()));
         }
 
         if (experimentDto.getParticipationType() != null) {
@@ -203,12 +204,19 @@ public class ExperimentServiceImpl implements ExperimentService {
     }
 
     private void changeParticipantionType(String toPT, Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException, ExperimentNotMatchingException {
-        if (toPT.equals(ParticipationTypes.CONSENT.name()) || toPT.equals(ParticipationTypes.NOSET.name())) {
-            participantService.setAllToNull(experimentId, securedInfo);
-        } else if (toPT.equals(ParticipationTypes.AUTO.name())) {
-            participantService.setAllToTrue(experimentId, securedInfo);
-        } else if (toPT.equals(ParticipationTypes.MANUAL.name())) {
-            participantService.setAllToFalse(experimentId, securedInfo);
+        switch (EnumUtils.getEnum(ParticipationTypes.class, toPT)) {
+            case CONSENT:
+            case NOSET:
+                participantService.setAllToNull(experimentId, securedInfo);
+                break;
+            case AUTO:
+                participantService.setAllToTrue(experimentId, securedInfo);
+                break;
+            case MANUAL:
+                participantService.setAllToFalse(experimentId, securedInfo);
+                break;
+            default:
+                break;
         }
     }
 
@@ -311,26 +319,22 @@ public class ExperimentServiceImpl implements ExperimentService {
 
     @Override
     public Experiment fromDto(ExperimentDto experimentDto) throws DataServiceException {
-        // TODO add booleans to add extra elements
-        // TEST and check if nulls behave correctly
         Experiment experiment = new Experiment();
         experiment.setExperimentId(experimentDto.getExperimentId());
         Optional<LtiContextEntity> ltiContextEntity = allRepositories.contexts.findById(experimentDto.getContextId());
 
-        if (ltiContextEntity.isPresent()) {
-            experiment.setLtiContextEntity(ltiContextEntity.get());
-        } else {
+        if (!ltiContextEntity.isPresent()) {
             throw new DataServiceException("The course defined in the experiment dto does not exist");
         }
 
+        experiment.setLtiContextEntity(ltiContextEntity.get());
         Optional<PlatformDeployment> platformDeployment = allRepositories.platformDeploymentRepository.findById(experimentDto.getPlatformDeploymentId());
 
         if (platformDeployment.isPresent()) {
-            experiment.setPlatformDeployment(platformDeployment.get());
-        } else {
             throw new DataServiceException("The platform deployment defined in the experiment dto does not exist");
         }
 
+        experiment.setPlatformDeployment(platformDeployment.get());
         experiment.setTitle(experimentDto.getTitle());
         experiment.setDescription(experimentDto.getDescription());
         experiment.setExposureType(EnumUtils.getEnum(ExposureTypes.class, experimentDto.getExposureType(), ExposureTypes.NOSET));
@@ -340,11 +344,11 @@ public class ExperimentServiceImpl implements ExperimentService {
         experiment.setClosed(experimentDto.getClosed());
         LtiUserEntity user = allRepositories.users.findByUserIdAndPlatformDeployment_KeyId(experimentDto.getCreatedBy(),platformDeployment.get().getKeyId());
 
-        if (user != null) {
-            experiment.setCreatedBy(user);
-        } else {
+        if (user == null) {
             throw new DataServiceException("The user specified to create the experiment does not exist or does not belong to this course");
         }
+
+        experiment.setCreatedBy(user);
 
         return experiment;
     }
@@ -443,6 +447,7 @@ public class ExperimentServiceImpl implements ExperimentService {
     public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, long experimentId) {
         HttpHeaders headers = new HttpHeaders();
         headers.setLocation(ucBuilder.path("/api/experiment/{id}").buildAndExpand(experimentId).toUri());
+
         return headers;
     }
 

@@ -23,10 +23,7 @@ import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.QuestionMc;
 import edu.iu.terracotta.model.app.QuestionSubmission;
 import edu.iu.terracotta.model.app.Submission;
-import edu.iu.terracotta.model.app.SubmissionComment;
 import edu.iu.terracotta.model.app.Treatment;
-import edu.iu.terracotta.model.app.dto.QuestionSubmissionDto;
-import edu.iu.terracotta.model.app.dto.SubmissionCommentDto;
 import edu.iu.terracotta.model.app.dto.SubmissionDto;
 import edu.iu.terracotta.model.app.enumerator.QuestionTypes;
 import edu.iu.terracotta.model.oauth2.LTIToken;
@@ -43,7 +40,7 @@ import edu.iu.terracotta.service.caliper.CaliperService;
 import edu.iu.terracotta.service.lti.AdvantageAGSService;
 import edu.iu.terracotta.utils.TextConstants;
 
-import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -64,7 +61,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
 @Component
 @SuppressWarnings({"PMD.PreserveStackTrace"})
@@ -212,7 +208,8 @@ public class SubmissionServiceImpl implements SubmissionService {
             // submissions (so the frontend can tell whether it needs to create or update
             // answer submissions)
             boolean hasSubmitted = submission.getDateSubmitted() != null;
-            List<QuestionSubmissionDto> questionSubmissionDtoList = questionSubmissionList.stream()
+            submissionDto.setQuestionSubmissionDtoList(
+                questionSubmissionList.stream()
                     .map(
                         questionSubmission -> {
                             try {
@@ -221,27 +218,27 @@ public class SubmissionServiceImpl implements SubmissionService {
                                 return null;
                             }
                         })
-                .collect(Collectors.toList());
-            submissionDto.setQuestionSubmissionDtoList(questionSubmissionDtoList);
+                    .toList()
+            );
         }
 
         if (submissionComments) {
-            List<SubmissionComment> submissionCommentList = allRepositories.submissionCommentRepository.findBySubmission_SubmissionId(submission.getSubmissionId());
-            List<SubmissionCommentDto> submissionCommentDtoList = submissionCommentList.stream()
-                .map(submissionComment -> submissionCommentService.toDto(submissionComment))
-                .collect(Collectors.toList());
-            submissionDto.setSubmissionCommentDtoList(submissionCommentDtoList);
+            submissionDto.setSubmissionCommentDtoList(
+                CollectionUtils.emptyIfNull(allRepositories.submissionCommentRepository.findBySubmission_SubmissionId(submission.getSubmissionId())).stream()
+                    .map(submissionComment -> submissionCommentService.toDto(submissionComment))
+                    .toList()
+            );
         }
 
         StringBuilder path = new StringBuilder(submission.getParticipant().getLtiUserEntity().getPlatformDeployment().getLocalUrl())
-                .append("/api/experiments/")
-                .append(submission.getAssessment().getTreatment().getCondition().getExperiment().getExperimentId())
-                .append("/conditions/")
-                .append(submission.getAssessment().getTreatment().getCondition().getConditionId())
-                .append("/treatments/")
-                .append(submission.getAssessment().getTreatment().getTreatmentId())
-                .append("/assessments/")
-                .append(submission.getAssessment().getAssessmentId());
+            .append("/api/experiments/")
+            .append(submission.getAssessment().getTreatment().getCondition().getExperiment().getExperimentId())
+            .append("/conditions/")
+            .append(submission.getAssessment().getTreatment().getCondition().getConditionId())
+            .append("/treatments/")
+            .append(submission.getAssessment().getTreatment().getTreatmentId())
+            .append("/assessments/")
+            .append(submission.getAssessment().getAssessmentId());
         submissionDto.setAssessmentLink(path.toString());
 
         return submissionDto;
@@ -340,6 +337,7 @@ public class SubmissionServiceImpl implements SubmissionService {
             if (securedInfo.getDueAt() != null && submissionOptional.get().getUpdatedAt().after(securedInfo.getDueAt())) {
                 submissionOptional.get().setLateSubmission(true);
             }
+
             submissionOptional.get().setDateSubmitted(getLastUpdatedTimeForSubmission(submissionOptional.get()));
         }
 
@@ -356,9 +354,9 @@ public class SubmissionServiceImpl implements SubmissionService {
     public boolean datesAllowed(Long experimentId, Long treatmentId, SecuredInfo securedInfo) {
         if (securedInfo.getUnlockAt() == null || securedInfo.getUnlockAt().before(new Date())) {
             return securedInfo.getLockAt() == null || securedInfo.getLockAt().after(new Date());
-        } else {
-            return false;
         }
+
+        return false;
     }
 
     @Override
@@ -406,13 +404,13 @@ public class SubmissionServiceImpl implements SubmissionService {
     @Override
     @Transactional
     public void grade(Long submissionId, SecuredInfo securedInfo) throws DataServiceException {
-        Optional<Submission> submissionOptional = allRepositories.submissionRepository.findById(submissionId);
+        Optional<Submission> submission = allRepositories.submissionRepository.findById(submissionId);
 
-        if (!submissionOptional.isPresent()) {
+        if (!submission.isPresent()) {
             throw new DataServiceException("Error 105: Submission not found");
         }
 
-        saveAndFlush(gradeSubmission(submissionOptional.get()));
+        saveAndFlush(gradeSubmission(submission.get()));
     }
 
     @Override
@@ -544,11 +542,11 @@ public class SubmissionServiceImpl implements SubmissionService {
         // If any of the ESSAY questions with positive max points have a null
         // alteredGrade, then the assessment still needs to be manually graded.
         return !this.isGradeAltered(submission)
-                && submission.getQuestionSubmissions().stream().anyMatch(qs -> {
-                    return qs.getQuestion().getQuestionType() == QuestionTypes.ESSAY
-                            && qs.getQuestion().getPoints() > 0
-                            && qs.getAlteredGrade() == null;
-                });
+            && submission.getQuestionSubmissions().stream().anyMatch(qs -> {
+                return qs.getQuestion().getQuestionType() == QuestionTypes.ESSAY
+                        && qs.getQuestion().getPoints() > 0
+                        && qs.getAlteredGrade() == null;
+            });
     }
 
     /**
@@ -559,8 +557,7 @@ public class SubmissionServiceImpl implements SubmissionService {
      * @return null if all submissions require manual grading
      */
     public Float getScoreFromMultipleSubmissions(Participant participant, Assessment assessment) {
-        List<Submission> submissionList = allRepositories.submissionRepository
-            .findByParticipant_ParticipantIdAndAssessment_AssessmentIdAndDateSubmittedNotNullOrderByDateSubmitted(
+        List<Submission> submissionList = allRepositories.submissionRepository.findByParticipant_ParticipantIdAndAssessment_AssessmentIdAndDateSubmittedNotNullOrderByDateSubmitted(
                 participant.getParticipantId(), assessment.getAssessmentId());
 
         // Handle case where only one submission is allowed
@@ -583,6 +580,7 @@ public class SubmissionServiceImpl implements SubmissionService {
                 // consider the most recently fully graded submission, if there is one
                 for (int i = submissionList.size() - 1; i >= 0; i--) {
                     Submission submission = submissionList.get(i);
+
                     if (!isManualGradingNeeded(submission)) {
                         score = getSubmissionScore(submission);
                         break;
@@ -598,6 +596,7 @@ public class SubmissionServiceImpl implements SubmissionService {
                         if (score == null) {
                             score = 0f;
                         }
+
                         score += getSubmissionScore(submission);
                         count++;
                     }

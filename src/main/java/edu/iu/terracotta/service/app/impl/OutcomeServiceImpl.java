@@ -46,10 +46,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Component
-@SuppressWarnings({"PMD.PreserveStackTrace"})
 public class OutcomeServiceImpl implements OutcomeService {
 
     @Autowired
@@ -108,7 +106,7 @@ public class OutcomeServiceImpl implements OutcomeService {
         try {
             outcome = fromDto(outcomeDto);
         } catch (DataServiceException ex) {
-            throw new DataServiceException("Error 105: Unable to create Outcome: " + ex.getMessage());
+            throw new DataServiceException("Error 105: Unable to create Outcome: " + ex.getMessage(), ex);
         }
 
         return toDto(save(outcome), false);
@@ -173,7 +171,7 @@ public class OutcomeServiceImpl implements OutcomeService {
     public void updateOutcome(Long outcomeId, OutcomeDto outcomeDto) throws TitleValidationException {
         Outcome outcome = getOutcome(outcomeId);
 
-        if (StringUtils.isAllBlank(outcomeDto.getTitle()) && StringUtils.isAllBlank(outcome.getTitle())) {
+        if (StringUtils.isAllBlank(outcomeDto.getTitle(), outcome.getTitle())) {
             throw new TitleValidationException("Error 100: Please give the outcome a title.");
         }
 
@@ -227,12 +225,15 @@ public class OutcomeServiceImpl implements OutcomeService {
         }
 
         String canvasCourseId = StringUtils.substringBetween(experiment.get().getLtiContextEntity().getContext_memberships_url(), "courses/", "/names");
-        List<AssignmentExtended> assignmentExtendedList = canvasAPIClient.listAssignments(instructorUser,
-                canvasCourseId);
+        List<AssignmentExtended> assignmentExtendedList = canvasAPIClient.listAssignments(instructorUser, canvasCourseId);
+
         for (AssignmentExtended assignmentExtended : assignmentExtendedList) {
-            List<Assignment> matched = assignmentList.stream().filter(x -> {
-                return assignmentExtended.getId().intValue() == Integer.parseInt(x.getLmsAssignmentId());
-            }).collect(Collectors.toList());
+            List<Assignment> matched = assignmentList.stream()
+                .filter(x -> {
+                    return assignmentExtended.getId().intValue() == Integer.parseInt(x.getLmsAssignmentId());
+                })
+                .toList();
+
             if (matched.isEmpty()
                     && !(experiment.get().getConsentDocument() != null
                     && assignmentExtended.getId().intValue() == Integer.parseInt(experiment.get().getConsentDocument().getLmsAssignmentId()))) {
@@ -285,10 +286,10 @@ public class OutcomeServiceImpl implements OutcomeService {
                 if (outcomeScore.getParticipant().getLtiUserEntity().getEmail() != null && outcomeScore.getParticipant().getLtiUserEntity().getEmail().equals(submission.getUser().getLoginId()) && outcomeScore.getParticipant().getLtiUserEntity().getDisplayName().equals(submission.getUser().getName())) {
                     found = true;
 
-                    if (submission.getScore() != null) {
-                        outcomeScore.setScoreNumeric(submission.getScore().floatValue());
-                    } else {
+                    if (submission.getScore() == null) {
                         outcomeScore.setScoreNumeric(null);
+                    } else {
+                        outcomeScore.setScoreNumeric(submission.getScore().floatValue());
                     }
 
                     break;
@@ -300,10 +301,10 @@ public class OutcomeServiceImpl implements OutcomeService {
                     if (outcomeScore.getParticipant().getLtiUserEntity().getDisplayName().equals(submission.getUser().getName())) {
                         found = true;
 
-                        if (submission.getScore() != null) {
-                            outcomeScore.setScoreNumeric(submission.getScore().floatValue());
-                        } else {
+                        if (submission.getScore() == null) {
                             outcomeScore.setScoreNumeric(null);
+                        } else {
+                            outcomeScore.setScoreNumeric(submission.getScore().floatValue());
                         }
 
                         break;
@@ -319,10 +320,10 @@ public class OutcomeServiceImpl implements OutcomeService {
                         outcomeScore.setOutcome(outcome);
                         outcomeScore.setParticipant(participant);
 
-                        if (submission.getScore() != null) {
-                            outcomeScore.setScoreNumeric(submission.getScore().floatValue());
-                        } else {
+                        if (submission.getScore() == null) {
                             outcomeScore.setScoreNumeric(null);
+                        } else {
+                            outcomeScore.setScoreNumeric(submission.getScore().floatValue());
                         }
 
                         newScores.add(outcomeScore);
@@ -338,10 +339,10 @@ public class OutcomeServiceImpl implements OutcomeService {
                         outcomeScore.setOutcome(outcome);
                         outcomeScore.setParticipant(participant);
 
-                        if (submission.getScore() != null) {
-                            outcomeScore.setScoreNumeric(submission.getScore().floatValue());
-                        } else {
+                        if (submission.getScore() == null) {
                             outcomeScore.setScoreNumeric(null);
+                        } else {
+                            outcomeScore.setScoreNumeric(submission.getScore().floatValue());
                         }
 
                         newScores.add(outcomeScore);
@@ -373,7 +374,7 @@ public class OutcomeServiceImpl implements OutcomeService {
     @Override
     public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long exposureId, Long outcomeId) {
         HttpHeaders headers = new HttpHeaders();
-        headers.setLocation(ucBuilder.path("/api/experiments/{experiment_id}/exposures/{exposure_id}/outcomes/{outcome_id}")
+        headers.setLocation(ucBuilder.path("/api/experiments/{experimentId}/exposures/{exposureId}/outcomes/{outcomeId}")
                 .buildAndExpand(experimentId, exposureId, outcomeId).toUri());
 
         return headers;

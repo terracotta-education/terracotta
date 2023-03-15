@@ -15,7 +15,9 @@ public enum ExperimentCsv {
     EXPORT_AT("export_at"),
     ENROLLMENT_CNT("enrollment_cnt"),
     PARTICIPATION_CNT("participant_cnt"),
-    CONDITION_CNT("condition_cnt");
+    CONDITION_CNT("condition_cnt"),
+    CREATED_AT("created_at"),
+    STARTED_AT("started_at");
 
     public static final String FILENAME = "experiment.csv";
 
