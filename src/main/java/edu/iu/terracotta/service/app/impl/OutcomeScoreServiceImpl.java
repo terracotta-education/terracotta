@@ -12,12 +12,13 @@ import edu.iu.terracotta.service.app.OutcomeScoreService;
 import edu.iu.terracotta.service.app.OutcomeService;
 import edu.iu.terracotta.service.app.ParticipantService;
 import edu.iu.terracotta.utils.TextConstants;
+
+import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -25,48 +26,50 @@ import java.util.Optional;
 public class OutcomeScoreServiceImpl implements OutcomeScoreService {
 
     @Autowired
-    AllRepositories allRepositories;
+    private AllRepositories allRepositories;
 
     @Autowired
-    OutcomeService outcomeService;
+    private OutcomeService outcomeService;
 
     @Autowired
-    ParticipantService participantService;
+    private ParticipantService participantService;
 
     @Override
     public List<OutcomeScore> findAllByOutcomeId(Long outcomeId) { return allRepositories.outcomeScoreRepository.findByOutcome_OutcomeId(outcomeId);}
 
     @Override
-    public List<OutcomeScoreDto> getOutcomeScores(Long outcomeId){
-        List<OutcomeScore> outcomeScores = findAllByOutcomeId(outcomeId);
-        List<OutcomeScoreDto> outcomeScoreDtoList = new ArrayList<>();
-        for(OutcomeScore outcomeScore : outcomeScores){
-            outcomeScoreDtoList.add(toDto(outcomeScore));
-        }
-        return outcomeScoreDtoList;
+    public List<OutcomeScoreDto> getOutcomeScores(Long outcomeId) {
+        return CollectionUtils.emptyIfNull(findAllByOutcomeId(outcomeId)).stream()
+            .map(outcomeScore -> toDto(outcomeScore))
+            .toList();
     }
 
     @Override
-    public OutcomeScore getOutcomeScore(Long id) { return allRepositories.outcomeScoreRepository.findByOutcomeScoreId(id); }
+    public OutcomeScore getOutcomeScore(Long id) {
+        return allRepositories.outcomeScoreRepository.findByOutcomeScoreId(id);
+    }
 
     @Override
     public OutcomeScoreDto postOutcomeScore(OutcomeScoreDto outcomeScoreDto, long experimentId, long outcomeId) throws IdInPostException, InvalidParticipantException, DataServiceException {
-        if(outcomeScoreDto.getOutcomeScoreId() != null) {
+        if (outcomeScoreDto.getOutcomeScoreId() != null) {
             throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
         }
+
         validateParticipant(outcomeScoreDto.getParticipantId(), experimentId);
         outcomeScoreDto.setOutcomeId(outcomeId);
         OutcomeScore outcomeScore;
+
         try{
             outcomeScore = fromDto(outcomeScoreDto);
         } catch (DataServiceException ex) {
-            throw new DataServiceException("Error 105: Unable to create outcome score: " + ex.getMessage());
+            throw new DataServiceException("Error 105: Unable to create outcome score: " + ex.getMessage(), ex);
         }
+
         return toDto(save(outcomeScore));
     }
 
     @Override
-    public OutcomeScoreDto toDto(OutcomeScore outcomeScore){
+    public OutcomeScoreDto toDto(OutcomeScore outcomeScore) {
         OutcomeScoreDto outcomeScoreDto = new OutcomeScoreDto();
         outcomeScoreDto.setOutcomeScoreId(outcomeScore.getOutcomeScoreId());
         outcomeScoreDto.setOutcomeId(outcomeScore.getOutcome().getOutcomeId());
@@ -82,38 +85,50 @@ public class OutcomeScoreServiceImpl implements OutcomeScoreService {
         outcomeScore.setOutcomeScoreId(outcomeScoreDto.getOutcomeScoreId());
         outcomeScore.setScoreNumeric(outcomeScoreDto.getScoreNumeric());
         Optional<Outcome> outcome =  outcomeService.findById(outcomeScoreDto.getOutcomeId());
-        if(outcome.isPresent()){
-            outcomeScore.setOutcome(outcome.get());
-        } else {
+
+        if (!outcome.isPresent()) {
             throw new DataServiceException("The outcome for the outcome score does not exist.");
         }
+
+        outcomeScore.setOutcome(outcome.get());
+
         Optional<Participant> participant = participantService.findById(outcomeScoreDto.getParticipantId());
-        if(participant.isPresent()){
-            outcomeScore.setParticipant(participant.get());
-        } else {
+
+        if (!participant.isPresent()) {
             throw new DataServiceException("The participant for the outcome score does not exist.");
         }
+
+        outcomeScore.setParticipant(participant.get());
+
         return outcomeScore;
     }
 
     @Override
-    public OutcomeScore save(OutcomeScore outcomeScore) { return allRepositories.outcomeScoreRepository.save(outcomeScore); }
+    public OutcomeScore save(OutcomeScore outcomeScore) {
+        return allRepositories.outcomeScoreRepository.save(outcomeScore);
+    }
 
     @Override
-    public Optional<OutcomeScore> findById(Long id) { return allRepositories.outcomeScoreRepository.findById(id); }
+    public Optional<OutcomeScore> findById(Long id) {
+        return allRepositories.outcomeScoreRepository.findById(id);
+    }
 
     @Override
-    public void updateOutcomeScore(Long outcomeScoreId, OutcomeScoreDto outcomeScoreDto){
+    public void updateOutcomeScore(Long outcomeScoreId, OutcomeScoreDto outcomeScoreDto) {
         OutcomeScore outcomeScore = getOutcomeScore(outcomeScoreId);
         outcomeScore.setScoreNumeric(outcomeScoreDto.getScoreNumeric());
         saveAndFlush(outcomeScore);
     }
 
     @Override
-    public void saveAndFlush(OutcomeScore outcomeScoreToChange) { allRepositories.outcomeScoreRepository.saveAndFlush(outcomeScoreToChange); }
+    public void saveAndFlush(OutcomeScore outcomeScoreToChange) {
+        allRepositories.outcomeScoreRepository.saveAndFlush(outcomeScoreToChange);
+    }
 
     @Override
-    public void deleteById(Long id) { allRepositories.outcomeScoreRepository.deleteByOutcomeScoreId(id); }
+    public void deleteById(Long id) {
+        allRepositories.outcomeScoreRepository.deleteByOutcomeScoreId(id);
+    }
 
     @Override
     public boolean outcomeScoreBelongsToOutcome(Long outcomeId, Long outcomeScoreId) {
@@ -122,20 +137,24 @@ public class OutcomeScoreServiceImpl implements OutcomeScoreService {
 
     @Override
     public void validateParticipant(Long participantId, Long experimentId) throws InvalidParticipantException {
-        if(participantId == null){
+        if (participantId == null) {
             throw new InvalidParticipantException("Error 105: Must include a valid participant id in the POST");
         }
+
         Optional<Participant> participant = participantService.findByParticipantIdAndExperimentId(participantId, experimentId);
-        if(!participant.isPresent()){
+
+        if (!participant.isPresent()) {
             throw new InvalidParticipantException("Error 109: The participant provided does not belong to this experiment.");
         }
     }
 
     @Override
-    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long exposureId, Long outcomeId, Long outcomeScoreId){
+    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long exposureId, Long outcomeId, Long outcomeScoreId) {
         HttpHeaders headers = new HttpHeaders();
-        headers.setLocation(ucBuilder.path("/api/experiments/{experiment_id}/exposures/{exposure_id}/outcomes/{outcome_id}/outcome_scores/{outcome_score_id}")
+        headers.setLocation(ucBuilder.path("/api/experiments/{experimentId}/exposures/{exposureId}/outcomes/{outcomeId}/outcome_scores/{outcomeScoreId}")
                 .buildAndExpand(experimentId, exposureId, outcomeId, outcomeScoreId).toUri());
+
         return headers;
     }
+
 }

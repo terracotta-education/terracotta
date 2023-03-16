@@ -43,13 +43,12 @@ import edu.iu.terracotta.service.app.ExportService;
 import edu.iu.terracotta.service.app.OutcomeService;
 import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.service.aws.AWSService;
+import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
@@ -75,12 +74,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class ExportServiceImpl implements ExportService {
-
-    static final Logger log = LoggerFactory.getLogger(ExportServiceImpl.class);
 
     @Autowired
     private AllRepositories allRepositories;
@@ -197,7 +194,9 @@ public class ExportServiceImpl implements ExportService {
                 Timestamp.valueOf(LocalDateTime.now()).toString(),
                 String.valueOf(participantCount),
                 String.valueOf(consentedParticipantsCount),
-                String.valueOf(allRepositories.conditionRepository.countByExperiment_ExperimentId(experimentId))
+                String.valueOf(allRepositories.conditionRepository.countByExperiment_ExperimentId(experimentId)),
+                String.valueOf(experiment.getCreatedAt().getTime()),
+                experiment.isStarted() ? String.valueOf(experiment.getStarted().getTime()) : ""
             });
         }
     }
@@ -616,7 +615,7 @@ public class ExportServiceImpl implements ExportService {
             answerMcSubmissionOptions.sort(Comparator.comparingInt(AnswerMcSubmissionOption::getAnswerOrder));
             answerList = answerMcSubmissionOptions.stream()
                 .map(AnswerMcSubmissionOption::getAnswerMc)
-                .collect(Collectors.toList());
+                .toList();
         } else {
             answerList = allRepositories.answerMcRepository.findByQuestion_QuestionId(questionId);
             answerList.sort(Comparator.comparingLong(AnswerMc::getAnswerOrder));
@@ -627,6 +626,7 @@ public class ExportServiceImpl implements ExportService {
         for (AnswerMc answerMc : answerList) {
             if (answerMc.getAnswerMcId().equals(answerId)) {
                 position = (char) ('A' + answerList.indexOf(answerMc));
+
                 return position;
             }
         }
@@ -693,7 +693,7 @@ public class ExportServiceImpl implements ExportService {
     private List<ExposureGroupCondition> findExposureGroupConditionByGroupId(long groupId) {
         return exposureGroupConditions.stream()
             .filter(exposureGroupCondition -> exposureGroupCondition.getGroup().getGroupId() == groupId)
-            .collect(Collectors.toList());
+            .toList();
     }
 
     private Optional<ExposureGroupCondition> findExposureGroupConditionByGroupIdAndExposureId(long groupId, long exposureId) {
@@ -707,14 +707,14 @@ public class ExportServiceImpl implements ExportService {
         return assignments.stream()
             .filter(assignment -> BooleanUtils.isNotTrue(assignment.getSoftDeleted()))
             .filter(assignment -> assignment.getExposure().getExposureId() == exposureId)
-            .collect(Collectors.toList());
+            .toList();
     }
 
     private List<Treatment> findTreatmentByConditionIdAndAssignmentId(long conditionId, long assignmentId) {
         return treatments.stream()
             .filter(treatment -> treatment.getCondition().getConditionId() == conditionId)
             .filter(treatment -> treatment.getAssignment().getAssignmentId() == assignmentId)
-            .collect(Collectors.toList());
+            .toList();
     }
 
     private boolean isEventExportAllowed() {
@@ -724,4 +724,5 @@ public class ExportServiceImpl implements ExportService {
 
         return consentedParticipantsCount <= eventsOutputParticipantThreshold;
     }
+
 }

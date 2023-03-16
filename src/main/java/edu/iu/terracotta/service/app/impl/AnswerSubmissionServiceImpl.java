@@ -60,53 +60,60 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
      */
     @Override
     public List<AnswerSubmissionDto> getAnswerSubmissions(long questionSubmissionId, String answerType) throws DataServiceException, IOException {
-        switch(answerType){
+        switch(answerType) {
             case "MC":
                 return getAnswerMcSubmissions(questionSubmissionId);
             case "ESSAY":
                 return getAnswerEssaySubmissions(questionSubmissionId);
             case "FILE":
                 return getAnswerFileSubmissions(questionSubmissionId);
-            default: throw new DataServiceException("Error 103: Answer type not supported.");
+            default:
+                throw new DataServiceException("Error 103: Answer type not supported.");
         }
     }
 
     @Override
     public AnswerSubmissionDto getAnswerSubmission(long answerSubmissionId, String answerType) throws DataServiceException, IOException {
-        switch(answerType){
+        switch(answerType) {
             case "MC":
                 return toDtoMC(getAnswerMcSubmission(answerSubmissionId));
             case "ESSAY":
                 return toDtoEssay(getAnswerEssaySubmission(answerSubmissionId));
             case "FILE":
                 return toDtoFile(getAnswerFileSubmission(answerSubmissionId));
-            default: throw new DataServiceException("Error 103: Answer type not supported.");
+            default:
+                throw new DataServiceException("Error 103: Answer type not supported.");
         }
     }
 
     @Override
     public AnswerSubmissionDto postAnswerSubmission(AnswerSubmissionDto answerSubmissionDto, long questionSubmissionId) throws IdInPostException, DataServiceException, TypeNotSupportedException, IOException {
-        if(answerSubmissionDto.getAnswerSubmissionId() != null){
+        if (answerSubmissionDto.getAnswerSubmissionId() != null) {
             throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
         }
+
         answerSubmissionDto.setQuestionSubmissionId(questionSubmissionId);
-        String answerType = getAnswerType(questionSubmissionId);
-        switch(answerType){
+
+        switch(getAnswerType(questionSubmissionId)) {
             case "MC":
                 AnswerMcSubmission answerMcSubmission;
+
                 try {
                     answerMcSubmission = fromDtoMC(answerSubmissionDto);
                 } catch (DataServiceException ex) {
                     throw new DataServiceException("Error 105: Unable to create answer submission: " + ex.getMessage());
                 }
+
                 return toDtoMC(saveMC(answerMcSubmission));
             case "ESSAY":
                 AnswerEssaySubmission answerEssaySubmission;
+
                 try{
                     answerEssaySubmission = fromDtoEssay(answerSubmissionDto);
                 } catch (DataServiceException ex) {
                     throw new DataServiceException("Error 105: Unable to create answer submission: " + ex.getMessage());
                 }
+
                 return toDtoEssay(saveEssay(answerEssaySubmission));
             case "FILE":
                 AnswerFileSubmission answerFileSubmission;
@@ -118,42 +125,36 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
                 }
 
                 return toDtoFile(saveFile(answerFileSubmission));
-            default: throw new TypeNotSupportedException("Error 103: Answer type not supported.");
+            default:
+                throw new TypeNotSupportedException("Error 103: Answer type not supported.");
         }
     }
 
     public List<AnswerSubmissionDto> postAnswerSubmissions(List<AnswerSubmissionDto> answerSubmissionDtoList)
-            throws IdMissingException, ExceedingLimitException, TypeNotSupportedException, IdInPostException,
-            DataServiceException, IOException {
-
+            throws IdMissingException, ExceedingLimitException, TypeNotSupportedException, IdInPostException, DataServiceException, IOException {
         List<AnswerSubmissionDto> returnedDtoList = new ArrayList<>();
 
         for (AnswerSubmissionDto answerSubmissionDto : answerSubmissionDtoList) {
             if (answerSubmissionDto.getQuestionSubmissionId() == null) {
                 throw new IdMissingException(TextConstants.ID_MISSING);
             }
+
             if (existsByQuestionSubmissionId(answerSubmissionDto.getQuestionSubmissionId())) {
-                throw new ExceedingLimitException(
-                        "Error 145: Multiple choice and essay questions can only have one answer submission.");
+                throw new ExceedingLimitException("Error 145: Multiple choice and essay questions can only have one answer submission.");
             }
-            AnswerSubmissionDto returnedDto = postAnswerSubmission(answerSubmissionDto,
-                    answerSubmissionDto.getQuestionSubmissionId());
-            returnedDtoList.add(returnedDto);
+
+            returnedDtoList.add(postAnswerSubmission(answerSubmissionDto, answerSubmissionDto.getQuestionSubmissionId()));
         }
 
         return returnedDtoList;
     }
 
     private boolean existsByQuestionSubmissionId(Long questionSubmissionId) throws TypeNotSupportedException {
-        String answerType = getAnswerType(questionSubmissionId);
-        switch (answerType) {
+        switch (getAnswerType(questionSubmissionId)) {
             case "MC":
-                List<AnswerMcSubmission> existingMcSubmissions = findByQuestionSubmissionIdMC(questionSubmissionId);
-                return !existingMcSubmissions.isEmpty();
+                return CollectionUtils.isNotEmpty(findByQuestionSubmissionIdMC(questionSubmissionId));
             case "ESSAY":
-                List<AnswerEssaySubmission> existingEssaySubmissions = findAllByQuestionSubmissionIdEssay(
-                        questionSubmissionId);
-                return !existingEssaySubmissions.isEmpty();
+                return CollectionUtils.isNotEmpty(findAllByQuestionSubmissionIdEssay(questionSubmissionId));
             default:
                 throw new TypeNotSupportedException("Error 103: Answer type not supported.");
         }
@@ -171,13 +172,14 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
             case "FILE":
                 updateAnswerFileSubmission(answerSubmissionId, answerSubmissionDto);
                 break;
-            default: throw new DataServiceException("Error 103: Answer type not supported.");
+            default:
+                throw new DataServiceException("Error 103: Answer type not supported.");
         }
     }
 
     @Override
     public void deleteAnswerSubmission(long answerSubmissionId, String answerType) throws DataServiceException {
-        switch(answerType){
+        switch(answerType) {
             case "MC":
                 deleteByIdMC(answerSubmissionId);
                 break;
@@ -187,7 +189,8 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
             case "FILE":
                 deleteByIdFile(answerSubmissionId);
                 break;
-            default: throw new DataServiceException("Error 103: Answer type not supported.");
+            default:
+                throw new DataServiceException("Error 103: Answer type not supported.");
         }
     }
 
@@ -196,28 +199,27 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
      */
 
     @Override
-    public List<AnswerMcSubmission> findByQuestionSubmissionIdMC(Long questionSubmissionId){
+    public List<AnswerMcSubmission> findByQuestionSubmissionIdMC(Long questionSubmissionId) {
         return allRepositories.answerMcSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmissionId);
     }
 
     @Override
-    public List<AnswerSubmissionDto> getAnswerMcSubmissions(Long questionSubmissionId){
-        List<AnswerMcSubmission> answerMcSubmissions = findByQuestionSubmissionIdMC(questionSubmissionId);
-        List<AnswerSubmissionDto> answerSubmissionDtoList = new ArrayList<>();
-        for(AnswerMcSubmission answerMcSubmission : answerMcSubmissions){
-            answerSubmissionDtoList.add(toDtoMC(answerMcSubmission));
-        }
-        return answerSubmissionDtoList;
+    public List<AnswerSubmissionDto> getAnswerMcSubmissions(Long questionSubmissionId) {
+        return CollectionUtils.emptyIfNull(findByQuestionSubmissionIdMC(questionSubmissionId)).stream()
+            .map(answerMcSubmission -> toDtoMC(answerMcSubmission))
+            .toList();
     }
 
     @Override
-    public AnswerSubmissionDto toDtoMC(AnswerMcSubmission answer){
+    public AnswerSubmissionDto toDtoMC(AnswerMcSubmission answer) {
         AnswerSubmissionDto answerSubmissionDto = new AnswerSubmissionDto();
         answerSubmissionDto.setAnswerSubmissionId(answer.getAnswerMcSubId());
         answerSubmissionDto.setQuestionSubmissionId(answer.getQuestionSubmission().getQuestionSubmissionId());
-        if(answer.getAnswerMc() != null){
+
+        if (answer.getAnswerMc() != null) {
             answerSubmissionDto.setAnswerId(answer.getAnswerMc().getAnswerMcId());
         }
+
         return answerSubmissionDto;
     }
 
@@ -225,25 +227,32 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
     public AnswerMcSubmission fromDtoMC(AnswerSubmissionDto answerSubmissionDto) throws DataServiceException {
         AnswerMcSubmission answerMcSubmission = new AnswerMcSubmission();
         answerMcSubmission.setAnswerMcSubId(answerSubmissionDto.getAnswerSubmissionId());
-        if(answerSubmissionDto.getAnswerId() != null){
+
+        if (answerSubmissionDto.getAnswerId() != null) {
             Optional<AnswerMc> answerMc = allRepositories.answerMcRepository.findById(answerSubmissionDto.getAnswerId());
-            if(answerMc.isPresent()){
-                answerMcSubmission.setAnswerMc(answerMc.get());
-            } else {
+
+            if (!answerMc.isPresent()) {
                 throw new DataServiceException("The MC answer for the answer submission does not exist.");
             }
+
+            answerMcSubmission.setAnswerMc(answerMc.get());
         }
+
         Optional<QuestionSubmission> questionSubmission = allRepositories.questionSubmissionRepository.findById(answerSubmissionDto.getQuestionSubmissionId());
-        if(questionSubmission.isPresent()){
-            answerMcSubmission.setQuestionSubmission(questionSubmission.get());
-        } else {
+
+        if (!questionSubmission.isPresent()) {
             throw new DataServiceException("The question submission for the answer submission does not exist.");
         }
+
+        answerMcSubmission.setQuestionSubmission(questionSubmission.get());
+
         return answerMcSubmission;
     }
 
     @Override
-    public AnswerMcSubmission saveMC(AnswerMcSubmission answerMcSubmission){ return allRepositories.answerMcSubmissionRepository.save(answerMcSubmission); }
+    public AnswerMcSubmission saveMC(AnswerMcSubmission answerMcSubmission) {
+        return allRepositories.answerMcSubmissionRepository.save(answerMcSubmission);
+    }
 
     @Override
     public AnswerMcSubmission getAnswerMcSubmission(Long answerSubmissionId) {
@@ -254,51 +263,54 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
     public void updateAnswerMcSubmission(Long id, AnswerSubmissionDto answerSubmissionDto) throws AnswerNotMatchingException {
         AnswerMcSubmission answerMcSubmission = getAnswerMcSubmission(id);
         Optional<AnswerMc> answerMc = allRepositories.answerMcRepository.findById(answerSubmissionDto.getAnswerId());
-        if (answerMc.isPresent()) {
-            answerMcSubmission.setAnswerMc(answerMc.get());
-        } else{
+
+        if (!answerMc.isPresent()) {
             throw new AnswerNotMatchingException(TextConstants.ANSWER_NOT_MATCHING);
         }
+
+        answerMcSubmission.setAnswerMc(answerMc.get());
+
         saveAndFlushMC(answerMcSubmission);
     }
 
     @Override
-    public void saveAndFlushMC(AnswerMcSubmission answerMcSubmission){ allRepositories.answerMcSubmissionRepository.saveAndFlush( answerMcSubmission); }
-
-    @Override
-    public void deleteByIdMC(Long id) throws EmptyResultDataAccessException{ allRepositories.answerMcSubmissionRepository.deleteByAnswerMcSubId(id); }
-
-    @Override
-    public boolean mcAnswerSubmissionBelongsToQuestionSubmission(Long questionSubmissionId, Long answerMcSubmissionId){
-        return allRepositories.answerMcSubmissionRepository.existsByQuestionSubmission_QuestionSubmissionIdAndAnswerMcSubId(questionSubmissionId, answerMcSubmissionId);
+    public void saveAndFlushMC(AnswerMcSubmission answerMcSubmission) {
+        allRepositories.answerMcSubmissionRepository.saveAndFlush( answerMcSubmission);
     }
 
+    @Override
+    public void deleteByIdMC(Long id) throws EmptyResultDataAccessException{
+        allRepositories.answerMcSubmissionRepository.deleteByAnswerMcSubId(id);
+    }
 
+    @Override
+    public boolean mcAnswerSubmissionBelongsToQuestionSubmission(Long questionSubmissionId, Long answerMcSubmissionId) {
+        return allRepositories.answerMcSubmissionRepository.existsByQuestionSubmission_QuestionSubmissionIdAndAnswerMcSubId(questionSubmissionId, answerMcSubmissionId);
+    }
 
     /*
     ESSAY SUBMISSION METHODS
      */
+
     @Override
-    public List<AnswerEssaySubmission> findAllByQuestionSubmissionIdEssay(Long questionSubmissionId){
+    public List<AnswerEssaySubmission> findAllByQuestionSubmissionIdEssay(Long questionSubmissionId) {
         return allRepositories.answerEssaySubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmissionId);
     }
 
     @Override
-    public List<AnswerSubmissionDto> getAnswerEssaySubmissions(Long questionSubmissionId){
-        List<AnswerEssaySubmission> answerEssaySubmissions = findAllByQuestionSubmissionIdEssay(questionSubmissionId);
-        List<AnswerSubmissionDto> answerSubmissionDtoList = new ArrayList<>();
-        for(AnswerEssaySubmission answerEssaySubmission : answerEssaySubmissions){
-            answerSubmissionDtoList.add(toDtoEssay(answerEssaySubmission));
-        }
-        return answerSubmissionDtoList;
+    public List<AnswerSubmissionDto> getAnswerEssaySubmissions(Long questionSubmissionId) {
+        return CollectionUtils.emptyIfNull(findAllByQuestionSubmissionIdEssay(questionSubmissionId)).stream()
+            .map(answerEssaySubmission -> toDtoEssay(answerEssaySubmission))
+            .toList();
     }
 
     @Override
-    public AnswerSubmissionDto toDtoEssay(AnswerEssaySubmission answer){
+    public AnswerSubmissionDto toDtoEssay(AnswerEssaySubmission answer) {
         AnswerSubmissionDto answerSubmissionDto = new AnswerSubmissionDto();
         answerSubmissionDto.setAnswerSubmissionId(answer.getAnswerEssaySubmissionId());
         answerSubmissionDto.setQuestionSubmissionId(answer.getQuestionSubmission().getQuestionSubmissionId());
         answerSubmissionDto.setResponse(answer.getResponse());
+
         return answerSubmissionDto;
     }
 
@@ -308,56 +320,67 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
         answerEssaySubmission.setAnswerEssaySubmissionId(answerSubmissionDto.getAnswerSubmissionId());
         answerEssaySubmission.setResponse(answerSubmissionDto.getResponse());
         Optional<QuestionSubmission> questionSubmission = questionSubmissionService.findById(answerSubmissionDto.getQuestionSubmissionId());
-        if(questionSubmission.isPresent()){
-            answerEssaySubmission.setQuestionSubmission(questionSubmission.get());
-        } else {
+
+        if (!questionSubmission.isPresent()) {
             throw new DataServiceException("Question submission for answer submission does not exist.");
         }
+
+        answerEssaySubmission.setQuestionSubmission(questionSubmission.get());
+
         return answerEssaySubmission;
     }
 
     @Override
-    public AnswerEssaySubmission saveEssay(AnswerEssaySubmission answer){ return allRepositories.answerEssaySubmissionRepository.save(answer); }
+    public AnswerEssaySubmission saveEssay(AnswerEssaySubmission answer) {
+        return allRepositories.answerEssaySubmissionRepository.save(answer);
+    }
 
     @Override
-    public Optional<AnswerEssaySubmission> findByIdEssay(Long id) { return allRepositories.answerEssaySubmissionRepository.findById(id); }
+    public Optional<AnswerEssaySubmission> findByIdEssay(Long id) {
+        return allRepositories.answerEssaySubmissionRepository.findById(id);
+    }
 
     @Override
-    public AnswerEssaySubmission getAnswerEssaySubmission(Long answerSubmissionId){
+    public AnswerEssaySubmission getAnswerEssaySubmission(Long answerSubmissionId) {
         return allRepositories.answerEssaySubmissionRepository.findByAnswerEssaySubmissionId(answerSubmissionId);
     }
 
     @Override
-    public void updateAnswerEssaySubmission(Long id, AnswerSubmissionDto answerSubmissionDto){
+    public void updateAnswerEssaySubmission(Long id, AnswerSubmissionDto answerSubmissionDto) {
         AnswerEssaySubmission answerEssaySubmission = getAnswerEssaySubmission(id);
         answerEssaySubmission.setResponse(answerSubmissionDto.getResponse());
         saveAndFlushEssay(answerEssaySubmission);
     }
 
     @Override
-    public void saveAndFlushEssay(AnswerEssaySubmission answer) { allRepositories.answerEssaySubmissionRepository.saveAndFlush(answer); }
+    public void saveAndFlushEssay(AnswerEssaySubmission answer) {
+        allRepositories.answerEssaySubmissionRepository.saveAndFlush(answer);
+    }
 
     @Override
-    public void deleteByIdEssay(Long id) { allRepositories.answerEssaySubmissionRepository.deleteByAnswerEssaySubmissionId(id); }
+    public void deleteByIdEssay(Long id) {
+        allRepositories.answerEssaySubmissionRepository.deleteByAnswerEssaySubmissionId(id);
+    }
 
     @Override
-    public boolean essayAnswerSubmissionBelongsToQuestionSubmission(Long questionSubmissionId, Long answerSubmissionId){
+    public boolean essayAnswerSubmissionBelongsToQuestionSubmission(Long questionSubmissionId, Long answerSubmissionId) {
         return allRepositories.answerEssaySubmissionRepository.existsByQuestionSubmission_QuestionSubmissionIdAndAnswerEssaySubmissionId(questionSubmissionId, answerSubmissionId);
     }
 
     @Override
-    public String getAnswerType(Long questionSubmissionId){
+    public String getAnswerType(Long questionSubmissionId) {
         QuestionSubmission questionSubmission = allRepositories.questionSubmissionRepository.findByQuestionSubmissionId(questionSubmissionId);
+
         return questionSubmission.getQuestion().getQuestionType().toString();
     }
 
-
     @Override
-    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId, Long submissionId, Long questionSubmissionId, Long answerSubmissionId){
+    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId, Long submissionId, Long questionSubmissionId, Long answerSubmissionId) {
         HttpHeaders headers = new HttpHeaders();
         headers.setLocation(ucBuilder.path(
-                "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}/question_submissions/{question_submission_id}/answer_submissions/{answer_submission_id}")
+                "/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}/submissions/{submissionId}/question_submissions/{questionSubmissionId}/answer_submissions/{answerSubmissionId}")
                 .buildAndExpand(experimentId, conditionId, treatmentId, assessmentId, submissionId, questionSubmissionId, answerSubmissionId).toUri());
+
         return headers;
     }
 
@@ -394,7 +417,7 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
         answerFileSubmission.setEncryptionPhrase(answerSubmissionDto.getEncryptionPhrase());
         Optional<QuestionSubmission> questionSubmission = questionSubmissionService.findById(answerSubmissionDto.getQuestionSubmissionId());
 
-        if(!questionSubmission.isPresent()){
+        if (!questionSubmission.isPresent()) {
             throw new DataServiceException("Question submission for answer submission does not exist.");
         }
 
@@ -410,11 +433,12 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
 
     @Override
     public List<AnswerSubmissionDto> getAnswerFileSubmissions(Long questionSubmissionId) throws IOException {
-        List<AnswerFileSubmission> answerFileSubmissions = findAllByQuestionSubmissionIdFile(questionSubmissionId);
         List<AnswerSubmissionDto> answerSubmissionDtoList = new ArrayList<>();
-        for(AnswerFileSubmission answerFileSubmission : answerFileSubmissions){
+
+        for (AnswerFileSubmission answerFileSubmission : findAllByQuestionSubmissionIdFile(questionSubmissionId)) {
             answerSubmissionDtoList.add(toDtoFile(answerFileSubmission));
         }
+
         return answerSubmissionDtoList;
     }
 
@@ -464,8 +488,7 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
 
     @Override
     public boolean fileAnswerSubmissionBelongsToQuestionSubmission(Long questionSubmissionId, Long answerFileSubmissionId) {
-        return allRepositories.answerFileSubmissionRepository.
-                existsByQuestionSubmission_QuestionSubmissionIdAndAnswerFileSubmissionId(questionSubmissionId, answerFileSubmissionId);
+        return allRepositories.answerFileSubmissionRepository.existsByQuestionSubmission_QuestionSubmissionIdAndAnswerFileSubmissionId(questionSubmissionId, answerFileSubmissionId);
     }
 
     public AnswerSubmissionDto handleFileAnswerSubmission(AnswerSubmissionDto answerSubmissionDto, MultipartFile file) throws IdInPostException, DataServiceException, TypeNotSupportedException, IOException {

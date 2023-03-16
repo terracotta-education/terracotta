@@ -28,6 +28,7 @@ import net.lingala.zip4j.model.ZipParameters;
 import net.lingala.zip4j.model.enums.CompressionLevel;
 import net.lingala.zip4j.model.enums.EncryptionMethod;
 
+import org.apache.commons.collections4.CollectionUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -54,7 +55,6 @@ import java.security.GeneralSecurityException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -105,20 +105,21 @@ public class FileStorageServiceImpl implements FileStorageService {
     @Override
     public String storeFile(MultipartFile file, String extraPath, Long experimentId, boolean consent) {
         String fileName = "consent.pdf";
+
         if (!consent) {
             fileName = StringUtils.cleanPath(file.getOriginalFilename());
         }
 
         try {
-            if(fileName.contains("..")) {
+            if (fileName.contains("..")) {
                 throw new FileStorageException("Error 139: Sorry, Filename contains invalid path sequence " + fileName);
             }
             String finalPath = uploadDir;
-            if (StringUtils.hasText(extraPath)){
+            if (StringUtils.hasText(extraPath)) {
                 finalPath = finalPath + extraPath + "/";
             }
 
-            if (!Files.exists(Paths.get(finalPath))){
+            if (!Files.exists(Paths.get(finalPath))) {
                 Files.createDirectories(Paths.get(finalPath));
             }
 
@@ -134,44 +135,48 @@ public class FileStorageServiceImpl implements FileStorageService {
     public Resource loadFileAsResource(String fileName, String extraPath) {
         try {
             String finalPath = uploadDir;
-            if (StringUtils.hasText(extraPath)){
+
+            if (StringUtils.hasText(extraPath)) {
                 finalPath = finalPath + extraPath;
             }
+
             Path filePath = Paths.get(finalPath).resolve(fileName).normalize();
             Resource resource = new UrlResource(filePath.toUri());
-            if(resource.exists()) {
-                return resource;
-            }else {
+
+            if (!resource.exists()) {
                 throw new MyFileNotFoundException("Error 126: File not found " + fileName);
             }
+
+            return resource;
         } catch (MalformedURLException ex) {
             throw new MyFileNotFoundException("Error 126: File not found " + fileName, ex);
         }
     }
 
     @Override
-    public Resource getFileAsResource(String fileId){
+    public Resource getFileAsResource(String fileId) {
         Optional<FileInfo> fileInfo = allRepositories.fileInfoRepository.findByFileId(fileId);
-        if(fileInfo.isPresent()){
-            try{
-                String finalPath = uploadDir + "/" + fileInfo.get().getExperiment().getExperimentId() + "/files/" + fileInfo.get().getFilename();
-                Path filePath = Paths.get(finalPath).normalize();
-                Resource resource = new UrlResource(filePath.toUri());
-                if(resource.exists()){
-                    return resource;
-                } else {
-                    throw new MyFileNotFoundException("Error 126: File not found.");
-                }
-            } catch (MalformedURLException ex) {
-                throw new MyFileNotFoundException("Error 126: File not found.", ex);
-            }
-        } else {
+
+        if (!fileInfo.isPresent()) {
             throw new MyFileNotFoundException("Error 126: File not found in repository.");
+        }
+
+        try {
+            String finalPath = uploadDir + "/" + fileInfo.get().getExperiment().getExperimentId() + "/files/" + fileInfo.get().getFilename();
+            Path filePath = Paths.get(finalPath).normalize();
+            Resource resource = new UrlResource(filePath.toUri());
+            if (resource.exists()) {
+                return resource;
+            } else {
+                throw new MyFileNotFoundException("Error 126: File not found.");
+            }
+        } catch (MalformedURLException ex) {
+            throw new MyFileNotFoundException("Error 126: File not found.", ex);
         }
     }
 
     @Override
-    public void saveFile(MultipartFile multipartFile, String extraPath, Long experimentId){
+    public void saveFile(MultipartFile multipartFile, String extraPath, Long experimentId) {
         FileInfo file = new FileInfo();
         file.setFilename(extraPath + "/" + multipartFile.getOriginalFilename());
         file.setFileId(UUID.randomUUID().toString());
@@ -187,14 +192,14 @@ public class FileStorageServiceImpl implements FileStorageService {
         try {
             String finalPath = uploadDir;
 
-            if (StringUtils.hasText(extraPath)){
+            if (StringUtils.hasText(extraPath)) {
                 finalPath = finalPath + extraPath;
             }
 
             Path filePath = Paths.get(finalPath).resolve(fileName).normalize();
             Resource resource = new UrlResource(filePath.toUri());
 
-            if(resource.exists()) {
+            if (resource.exists()) {
                 return Files.deleteIfExists(filePath);
             }
 
@@ -221,7 +226,7 @@ public class FileStorageServiceImpl implements FileStorageService {
             } else {
                 throw new MyFileNotFoundException("Error 126: File not found.");
             }
-        } catch (IOException ex){
+        } catch (IOException ex) {
             throw new MyFileNotFoundException("Error 126: File Not found.", ex);
         }
     }
@@ -230,10 +235,10 @@ public class FileStorageServiceImpl implements FileStorageService {
     public Optional<FileInfo> findByFileId(String fileId) { return allRepositories.fileInfoRepository.findById(fileId); }
 
     @Override
-    public List<FileInfo> findByExperimentId(Long experimentId){ return allRepositories.fileInfoRepository.findByExperiment_ExperimentId(experimentId); }
+    public List<FileInfo> findByExperimentId(Long experimentId) { return allRepositories.fileInfoRepository.findByExperiment_ExperimentId(experimentId); }
 
     @Override
-    public FileInfo findByExperimentIdAndFilename(Long experimentId, String filename){
+    public FileInfo findByExperimentIdAndFilename(Long experimentId, String filename) {
         return allRepositories.fileInfoRepository.findByExperiment_ExperimentIdAndFilename(experimentId, filename);
     }
 
@@ -286,12 +291,9 @@ public class FileStorageServiceImpl implements FileStorageService {
 
     @Override
     public List<FileInfoDto> getFiles(long experimentId) {
-        List<FileInfo> fileInfoList = findByExperimentId(experimentId);
-        List<FileInfoDto> fileInfoDtoList = new ArrayList<>();
-        for(FileInfo fileInfo : fileInfoList){
-            fileInfoDtoList.add(toDto(fileInfo));
-        }
-        return fileInfoDtoList;
+        return CollectionUtils.emptyIfNull(findByExperimentId(experimentId)).stream()
+            .map(fileInfo -> toDto(fileInfo))
+            .toList();
     }
 
     @Override
@@ -327,8 +329,7 @@ public class FileStorageServiceImpl implements FileStorageService {
             canvasAssignment.setSubmissionTypes(Collections.singletonList("external_tool"));
 
             try {
-                Optional<AssignmentExtended> assignment = canvasAPIClient.createCanvasAssignment(instructorUser,
-                        canvasAssignment, canvasCourseId);
+                Optional<AssignmentExtended> assignment = canvasAPIClient.createCanvasAssignment(instructorUser, canvasAssignment, canvasCourseId);
 
                 if (!assignment.isPresent()) {
                     throw new AssignmentNotMatchingException(TextConstants.ASSIGNMENT_NOT_MATCHING);
@@ -371,10 +372,9 @@ public class FileStorageServiceImpl implements FileStorageService {
         LtiUserEntity instructorUser = allRepositories.ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
         ConsentDocument consentDocument = experiment.getConsentDocument();
 
-        if (consentDocument!=null) {
+        if (consentDocument != null) {
             String lmsId = consentDocument.getLmsAssignmentId();
-            Optional<AssignmentExtended> assignmentExtendedOptional = canvasAPIClient.listAssignment(instructorUser,
-                    securedInfo.getCanvasCourseId(), Integer.parseInt(lmsId));
+            Optional<AssignmentExtended> assignmentExtendedOptional = canvasAPIClient.listAssignment(instructorUser, securedInfo.getCanvasCourseId(), Integer.parseInt(lmsId));
 
             if (assignmentExtendedOptional.isPresent()) {
                 AssignmentExtended assignmentExtended = assignmentExtendedOptional.get();
@@ -385,32 +385,36 @@ public class FileStorageServiceImpl implements FileStorageService {
 
     @Override
     public String parseHTMLFiles (String html, String localUrl) {
-
         if (org.apache.commons.lang3.StringUtils.isNotBlank(html)) {
             Document doc = Jsoup.parse(html);
             parseAndUpdateElements(doc, "src", "/files/", "?token=", true, localUrl);
             parseAndUpdateElements(doc, "href", "/files/", "?token=", true, localUrl);
             parseAndUpdateElements(doc, "src", "/api/experiments/", "/files/", false, localUrl);
             parseAndUpdateElements(doc, "href", "/api/experiments/", "/files/", false, localUrl);
+
             return doc.body().html();
         }
+
         return html;
     }
 
     private void parseAndUpdateElements(Document doc, String attribute, String prefixToSearch, String stringToSearch, boolean alreadyToken, String localUrl) {
         Elements elements = doc.getElementsByAttributeValueStarting(attribute, localUrl + prefixToSearch);
-        for (Element element:elements){
+
+        for (Element element:elements) {
             String originalLink = element.attr(attribute);
-            if (originalLink.contains(stringToSearch)){
+            if (originalLink.contains(stringToSearch)) {
                 String fileId = org.apache.commons.lang3.StringUtils.substringAfterLast(originalLink,"/");
-                if (alreadyToken){
+
+                if (alreadyToken) {
                     fileId = org.apache.commons.lang3.StringUtils.substringBefore(fileId,"?token=");
                 }
+
                 try {
                     String token = apijwtService.buildFileToken(fileId, localUrl);
                     String fileDownloadUrl = localUrl + "/files/" + fileId + "?token=" + token;
                     element.attr(attribute, fileDownloadUrl);
-                } catch (GeneralSecurityException gs){
+                } catch (GeneralSecurityException gs) {
                     //In case of problem we don't modify anything but it won't fail
                     log.warn("Error when trying to build a file token " + fileId);
                 }

@@ -40,10 +40,10 @@ import javax.persistence.PersistenceContext;
 public class AnswerServiceImpl implements AnswerService {
 
     @Autowired
-    AllRepositories allRepositories;
+    private AllRepositories allRepositories;
 
     @Autowired
-    FileStorageService fileStorageService;
+    private FileStorageService fileStorageService;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -53,14 +53,9 @@ public class AnswerServiceImpl implements AnswerService {
      */
     @Override
     public List<AnswerDto> findAllByQuestionIdMC(Long questionId, boolean showCorrectAnswer) {
-        List<AnswerMc> answerList = allRepositories.answerMcRepository.findByQuestion_QuestionId(questionId);
-        List<AnswerDto> answerDtoList = new ArrayList<>();
-        if (!answerList.isEmpty()) {
-            for (AnswerMc answerMc : answerList) {
-                answerDtoList.add(toDtoMC(answerMc, answerMc.getAnswerOrder(), showCorrectAnswer));
-            }
-        }
-        return answerDtoList;
+        return CollectionUtils.emptyIfNull(allRepositories.answerMcRepository.findByQuestion_QuestionId(questionId)).stream()
+            .map(answerMc -> toDtoMC(answerMc, answerMc.getAnswerOrder(), showCorrectAnswer))
+            .toList();
     }
 
     /**
@@ -68,8 +63,7 @@ public class AnswerServiceImpl implements AnswerService {
      */
     @Override
     public List<AnswerDto> findAllByQuestionIdMC(QuestionSubmission questionSubmission, boolean showCorrectAnswer) {
-        List<AnswerMc> answerList = allRepositories.answerMcRepository
-                .findByQuestion_QuestionId(questionSubmission.getQuestion().getQuestionId());
+        List<AnswerMc> answerList = allRepositories.answerMcRepository.findByQuestion_QuestionId(questionSubmission.getQuestion().getQuestionId());
 
         // Get the answers in the order they are to be presented for this submission
         List<AnswerMcSubmissionOption> answerMcSubmissionOptions = questionSubmission.getAnswerMcSubmissionOptions();
@@ -80,6 +74,7 @@ public class AnswerServiceImpl implements AnswerService {
         // loop over them and add to dto list
         List<AnswerDto> answerDtoList = new ArrayList<>();
         int answerOrder = 0;
+
         for (AnswerMcSubmissionOption answerMcSubmissionOption : answerMcSubmissionOptions) {
             answerDtoList.add(toDtoMC(answerMcSubmissionOption.getAnswerMc(), answerOrder++, showCorrectAnswer));
         }
@@ -95,8 +90,9 @@ public class AnswerServiceImpl implements AnswerService {
     }
 
     @Override
-    public AnswerDto getAnswerMC(Long answerId){
+    public AnswerDto getAnswerMC(Long answerId) {
         AnswerMc answerMc = allRepositories.answerMcRepository.findByAnswerMcId(answerId);
+
         return toDtoMC(answerMc, answerMc.getAnswerOrder(), false);
     }
 
@@ -108,18 +104,21 @@ public class AnswerServiceImpl implements AnswerService {
 
         answerDto.setQuestionId(questionId);
         answerDto.setAnswerType(getQuestionType(questionId));
-        if (QuestionTypes.MC.toString().equals(answerDto.getAnswerType())) {
-            limitReached(questionId);
-            AnswerMc answerMc;
-            try {
-                answerMc = fromDtoMC(answerDto);
-            } catch (DataServiceException ex) {
-                throw new DataServiceException("Error 105: Unable to create Answer: " + ex.getMessage());
-            }
-            return toDtoMC(saveMC(answerMc), answerMc.getAnswerOrder(), false);
-        } else {
+
+        if (!QuestionTypes.MC.toString().equals(answerDto.getAnswerType())) {
             throw new DataServiceException("Error 103: Answer type not supported.");
         }
+
+        limitReached(questionId);
+        AnswerMc answerMc;
+
+        try {
+            answerMc = fromDtoMC(answerDto);
+        } catch (DataServiceException ex) {
+            throw new DataServiceException("Error 105: Unable to create Answer: " + ex.getMessage());
+        }
+
+        return toDtoMC(saveMC(answerMc), answerMc.getAnswerOrder(), false);
     }
 
     @Override
@@ -131,10 +130,10 @@ public class AnswerServiceImpl implements AnswerService {
         answerDto.setQuestionId(answer.getQuestion().getQuestionId());
         answerDto.setAnswerType(QuestionTypes.MC.toString());
 
-        if (!showCorrectAnswer) {
-            answerDto.setCorrect(null);
-        } else {
+        if (showCorrectAnswer) {
             answerDto.setCorrect(answer.getCorrect());
+        } else {
+            answerDto.setCorrect(null);
         }
 
         return answerDto;
@@ -142,45 +141,50 @@ public class AnswerServiceImpl implements AnswerService {
 
     @Override
     public AnswerMc fromDtoMC(AnswerDto answerDto) throws DataServiceException {
-
         AnswerMc answer = new AnswerMc();
         answer.setAnswerMcId(answerDto.getAnswerId());
         answer.setHtml(answerDto.getHtml());
         answer.setCorrect(answerDto.getCorrect());
         answer.setAnswerOrder(answerDto.getAnswerOrder());
         Optional<Question> question = allRepositories.questionRepository.findById(answerDto.getQuestionId());
-        if(question.isPresent()){
-            answer.setQuestion(question.get());
-        } else {
+
+        if (!question.isPresent()) {
             throw new DataServiceException("The question for the answer does not exist");
         }
+
+        answer.setQuestion(question.get());
+
         return answer;
     }
 
     @Override
-    public AnswerMc saveMC(AnswerMc answer) { return allRepositories.answerMcRepository.save(answer); }
+    public AnswerMc saveMC(AnswerMc answer) {
+        return allRepositories.answerMcRepository.save(answer);
+    }
 
     @Override
-    public AnswerMc findByAnswerId(Long answerId) { return allRepositories.answerMcRepository.findByAnswerMcId(answerId); }
+    public AnswerMc findByAnswerId(Long answerId) {
+        return allRepositories.answerMcRepository.findByAnswerMcId(answerId);
+    }
 
     @Override
     @Transactional
-    public List<AnswerDto> updateAnswerMC(Map<AnswerMc, AnswerDto> map){
+    public List<AnswerDto> updateAnswerMC(Map<AnswerMc, AnswerDto> map) {
         List<AnswerDto> answerDtos = new ArrayList<>();
 
-        for(Map.Entry<AnswerMc, AnswerDto> entry : map.entrySet()){
+        for (Map.Entry<AnswerMc, AnswerDto> entry : map.entrySet()) {
             AnswerMc answerMc = entry.getKey();
             AnswerDto answerDto = entry.getValue();
 
-            if(answerDto.getHtml() != null) {
+            if (answerDto.getHtml() != null) {
                 answerMc.setHtml(answerDto.getHtml());
             }
 
-            if(answerDto.getAnswerOrder() != null) {
+            if (answerDto.getAnswerOrder() != null) {
                 answerMc.setAnswerOrder(answerDto.getAnswerOrder());
             }
 
-            if(answerDto.getCorrect() != null) {
+            if (answerDto.getCorrect() != null) {
                 answerMc.setCorrect(answerDto.getCorrect());
             }
 
@@ -192,7 +196,9 @@ public class AnswerServiceImpl implements AnswerService {
 
 
     @Override
-    public void deleteByIdMC(Long id) { allRepositories.answerMcRepository.deleteByAnswerMcId(id); }
+    public void deleteByIdMC(Long id) {
+        allRepositories.answerMcRepository.deleteByAnswerMcId(id);
+    }
 
     @Override
     public boolean mcAnswerBelongsToQuestionAndAssessment(Long assessmentId, Long questionId, Long answerId) {
@@ -202,22 +208,24 @@ public class AnswerServiceImpl implements AnswerService {
     @Override
     public void limitReached(Long questionId) throws MultipleChoiceLimitReachedException {
         List<AnswerMc> answerList = allRepositories.answerMcRepository.findByQuestion_QuestionId(questionId);
-        if(answerList.size() == 20){
+
+        if (answerList.size() == 20) {
             throw new MultipleChoiceLimitReachedException("Error 120: The multiple choice option limit of 20 options has been reached.");
         }
     }
 
     @Override
-    public String getQuestionType(Long questionId){
+    public String getQuestionType(Long questionId) {
         return allRepositories.questionRepository.findByQuestionId(questionId).getQuestionType().toString();
     }
 
     @Override
-    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId, Long questionId, Long answerId){
+    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId, Long questionId, Long answerId) {
         HttpHeaders headers = new HttpHeaders();
         headers.setLocation(ucBuilder.path(
-                "/api/experiments/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/questions/{question_id}/answers/{answer_id}")
+                "/api/experiments/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}/questions/{questionId}/answers/{answerId}")
                 .buildAndExpand(experimentId, conditionId, treatmentId, assessmentId, questionId, answerId).toUri());
+
         return headers;
     }
 
@@ -233,16 +241,16 @@ public class AnswerServiceImpl implements AnswerService {
         }
 
         // copy MC options
-        List<AnswerMc> answerMcs = allRepositories.answerMcRepository.findByQuestion_QuestionId(originalQuestionId);
+        return CollectionUtils.emptyIfNull(allRepositories.answerMcRepository.findByQuestion_QuestionId(originalQuestionId)).stream()
+            .map(
+                answerMc -> {
+                    entityManager.detach(answerMc);
+                    answerMc.setAnswerMcId(null);
+                    answerMc.setQuestion(newQuestion);
 
-        return CollectionUtils.emptyIfNull(answerMcs).stream()
-            .map(answerMc -> {
-                entityManager.detach(answerMc);
-                answerMc.setAnswerMcId(null);
-                answerMc.setQuestion(newQuestion);
-
-                return saveMC(answerMc);
-            })
+                    return saveMC(answerMc);
+                }
+            )
             .collect(Collectors.toList());
     }
 

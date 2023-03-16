@@ -15,8 +15,6 @@ package edu.iu.terracotta.service.app.impl;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.model.ApiOneUseToken;
 import edu.iu.terracotta.service.app.APIDataService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -28,39 +26,30 @@ import java.util.Date;
 @Service
 public class APIDataServiceImpl implements APIDataService {
 
-    static final Logger log = LoggerFactory.getLogger(APIDataServiceImpl.class);
-
     @Autowired
-    AllRepositories repos;
+    private AllRepositories allRepositories;
 
-    /**
-     * Allows convenient access to the DAO repositories which manage the stored data
-     * @return the repositories access service
-     */
     @Override
-    public AllRepositories getRepos() {
-        return repos;
+    public void addOneUseToken(String token) {
+        allRepositories.apiOneUseTokenRepository.save(new ApiOneUseToken(token));
     }
 
     @Override
-    public void addOneUseToken(String token){
-        repos.apiOneUseTokenRepository.save(new ApiOneUseToken(token));
-    }
+    public boolean findAndDeleteOneUseToken(String token) {
+        ApiOneUseToken apiOneUseToken = allRepositories.apiOneUseTokenRepository.findByToken(token);
 
-    @Override
-    public boolean findAndDeleteOneUseToken(String token){
-        ApiOneUseToken apiOneUseToken = repos.apiOneUseTokenRepository.findByToken(token);
-        if (apiOneUseToken!=null){
-            repos.apiOneUseTokenRepository.delete(apiOneUseToken);
-            return true;
-        } else {
+        if (apiOneUseToken == null) {
             return false;
         }
+
+        allRepositories.apiOneUseTokenRepository.delete(apiOneUseToken);
+
+        return true;
     }
 
     @Override
     public void cleanOldTokens() {
-        repos.apiOneUseTokenRepository.deleteByCreatedAtBefore(new Date(System.currentTimeMillis()-24*60*60*1000));
+        allRepositories.apiOneUseTokenRepository.deleteByCreatedAtBefore(new Date(System.currentTimeMillis()-24*60*60*1000));
     }
 
 }

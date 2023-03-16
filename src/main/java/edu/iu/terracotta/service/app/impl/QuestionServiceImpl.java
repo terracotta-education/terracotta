@@ -37,10 +37,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Component
-@SuppressWarnings({"PMD.PreserveStackTrace"})
 public class QuestionServiceImpl implements QuestionService {
 
     @Autowired
@@ -61,12 +59,10 @@ public class QuestionServiceImpl implements QuestionService {
     }
 
     @Override
-    public List<QuestionDto> getQuestions(Long assessmentId){
-        List<Question> questions = findAllByAssessmentId(assessmentId);
-
-        return CollectionUtils.emptyIfNull(questions).stream()
+    public List<QuestionDto> getQuestions(Long assessmentId) {
+        return CollectionUtils.emptyIfNull(findAllByAssessmentId(assessmentId)).stream()
             .map(question -> toDto(question, false, false))
-            .collect(Collectors.toList());
+            .toList();
     }
 
     @Override
@@ -93,7 +89,7 @@ public class QuestionServiceImpl implements QuestionService {
                 }
             }
         } catch (DataServiceException | InvalidQuestionTypeException | NegativePointsException ex) {
-            throw new DataServiceException("Error 105: Unable to create Question: " + ex.getMessage());
+            throw new DataServiceException("Error 105: Unable to create Question: " + ex.getMessage(), ex);
         }
 
         return toDto(question, answers, true);
@@ -152,21 +148,20 @@ public class QuestionServiceImpl implements QuestionService {
         question.setQuestionId(questionDto.getQuestionId());
         question.setHtml(questionDto.getHtml());
 
-        if (questionDto.getPoints() >= 0){
-            question.setPoints(questionDto.getPoints());
-        } else {
+        if (questionDto.getPoints() < 0) {
             throw new NegativePointsException("Error 142: The point value cannot be negative.");
         }
 
+        question.setPoints(questionDto.getPoints());
         question.setQuestionOrder(questionDto.getQuestionOrder());
         question.setQuestionType(questionType);
         Optional<Assessment> assessment = allRepositories.assessmentRepository.findById(questionDto.getAssessmentId());
 
-        if (assessment.isPresent()) {
-            question.setAssessment(assessment.get());
-        } else {
+        if (!assessment.isPresent()) {
             throw new DataServiceException("The assessment for the question does not exist");
         }
+
+        question.setAssessment(assessment.get());
 
         return question;
     }
@@ -184,20 +179,20 @@ public class QuestionServiceImpl implements QuestionService {
     @Override
     @Transactional
     public void updateQuestion(Map<Question, QuestionDto> map) throws NegativePointsException {
-        for(Map.Entry<Question, QuestionDto> entry : map.entrySet()){
+        for(Map.Entry<Question, QuestionDto> entry : map.entrySet()) {
             Question question = entry.getKey();
             QuestionDto questionDto = entry.getValue();
             question.setHtml(questionDto.getHtml());
             question.setQuestionOrder(questionDto.getQuestionOrder());
 
-            if (questionDto.getPoints() < 0){
+            if (questionDto.getPoints() < 0) {
                 throw new NegativePointsException("Error 142: The point value cannot be negative.");
             }
 
             question.setPoints(questionDto.getPoints());
 
             if (question.getQuestionType() == QuestionTypes.MC) {
-                ((QuestionMc)question).setRandomizeAnswers(questionDto.isRandomizeAnswers());
+                ((QuestionMc) question).setRandomizeAnswers(questionDto.isRandomizeAnswers());
             }
 
             save(question);
@@ -225,20 +220,21 @@ public class QuestionServiceImpl implements QuestionService {
     }
 
     @Override
-    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId, Long questionId){
+    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId, Long questionId) {
         HttpHeaders headers = new HttpHeaders();
-        headers.setLocation(ucBuilder.path("/api/experiments/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/questions/{question_id}")
+        headers.setLocation(ucBuilder.path("/api/experiments/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}/questions/{questionId}")
                 .buildAndExpand(experimentId, conditionId, treatmentId, assessmentId, questionId).toUri());
+
         return headers;
     }
 
     @Override
     public void validateQuestionType(QuestionDto questionDto) throws InvalidQuestionTypeException {
-        if (questionDto.getQuestionType() == null){
+        if (questionDto.getQuestionType() == null) {
             throw new InvalidQuestionTypeException("Error 119: Must include a question type in the post.");
         }
 
-        if (!EnumUtils.isValidEnum(QuestionTypes.class, questionDto.getQuestionType())){
+        if (!EnumUtils.isValidEnum(QuestionTypes.class, questionDto.getQuestionType())) {
             throw new InvalidQuestionTypeException("Error 103: Please use a supported question type.");
         }
     }

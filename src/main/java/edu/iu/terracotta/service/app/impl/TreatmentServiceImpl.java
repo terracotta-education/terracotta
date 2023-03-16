@@ -210,21 +210,28 @@ public class TreatmentServiceImpl implements TreatmentService {
     }
 
     @Override
-    public Treatment save(Treatment treatment) { return allRepositories.treatmentRepository.save(treatment); }
+    public Treatment save(Treatment treatment) {
+        return allRepositories.treatmentRepository.save(treatment);
+    }
 
     @Override
-    public Optional<Treatment> findById(Long id) { return allRepositories.treatmentRepository.findById(id); }
+    public Optional<Treatment> findById(Long id) {
+        return allRepositories.treatmentRepository.findById(id);
+    }
 
     @Override
-    public Treatment saveAndFlush(Treatment treatmentToChange) { return allRepositories.treatmentRepository.saveAndFlush(treatmentToChange); }
+    public Treatment saveAndFlush(Treatment treatmentToChange) {
+        return allRepositories.treatmentRepository.saveAndFlush(treatmentToChange);
+    }
 
     @Override
-    public void deleteById(Long id) { allRepositories.treatmentRepository.deleteByTreatmentId(id); }
+    public void deleteById(Long id) {
+        allRepositories.treatmentRepository.deleteByTreatmentId(id);
+    }
 
     @Override
     public boolean treatmentBelongsToExperimentAndCondition(Long experimentId, Long conditionId, Long treatmentId) {
-        return allRepositories.treatmentRepository.existsByCondition_Experiment_ExperimentIdAndCondition_ConditionIdAndTreatmentId(
-                experimentId, conditionId, treatmentId);
+        return allRepositories.treatmentRepository.existsByCondition_Experiment_ExperimentIdAndCondition_ConditionIdAndTreatmentId(experimentId, conditionId, treatmentId);
     }
 
     @Override
@@ -237,8 +244,9 @@ public class TreatmentServiceImpl implements TreatmentService {
     @Override
     public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, long experimentId, long conditionId, long treatmentId) {
         HttpHeaders headers = new HttpHeaders();
-        headers.setLocation(ucBuilder.path("/api/experiments/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}")
+        headers.setLocation(ucBuilder.path("/api/experiments/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}")
                 .buildAndExpand(experimentId, conditionId, treatmentId).toUri());
+
         return headers;
     }
 
