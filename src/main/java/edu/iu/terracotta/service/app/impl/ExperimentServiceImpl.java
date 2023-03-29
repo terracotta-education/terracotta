@@ -330,7 +330,7 @@ public class ExperimentServiceImpl implements ExperimentService {
         experiment.setLtiContextEntity(ltiContextEntity.get());
         Optional<PlatformDeployment> platformDeployment = allRepositories.platformDeploymentRepository.findById(experimentDto.getPlatformDeploymentId());
 
-        if (platformDeployment.isPresent()) {
+        if (!platformDeployment.isPresent()) {
             throw new DataServiceException("The platform deployment defined in the experiment dto does not exist");
         }
 
