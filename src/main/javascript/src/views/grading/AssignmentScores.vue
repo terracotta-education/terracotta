@@ -69,6 +69,7 @@ export default {
       experiment: "experiment/experiment",
       assignment: "assignment/assignment",
       participants: "participants/participants",
+      editMode: 'navigation/editMode'
     }),
     assignment_id() {
       return parseInt(this.$route.params.assignment_id);
@@ -81,6 +82,9 @@ export default {
     },
     selectedAssignmentTreatments() {
       return this.assignment.treatments;
+    },
+    getSaveExitPage() {
+      return this.editMode?.callerPage?.name || 'ExperimentSummaryStatus';
     },
   },
   data() {

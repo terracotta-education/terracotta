@@ -195,8 +195,8 @@ public class ExportServiceImpl implements ExportService {
                 String.valueOf(participantCount),
                 String.valueOf(consentedParticipantsCount),
                 String.valueOf(allRepositories.conditionRepository.countByExperiment_ExperimentId(experimentId)),
-                String.valueOf(experiment.getCreatedAt().getTime()),
-                experiment.isStarted() ? String.valueOf(experiment.getStarted().getTime()) : ""
+                experiment.getCreatedAt().toString(),
+                experiment.isStarted() ? experiment.getStarted().toString() : ""
             });
         }
     }
