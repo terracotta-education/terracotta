@@ -186,8 +186,8 @@ public class ExportServiceImpl implements ExportService {
             writer.writeNext(new String[] {
                 experiment.getExperimentId().toString(),
                 String.valueOf(experiment.getLtiContextEntity().getContextId()),
-                StringUtils.isAllBlank(experiment.getTitle()) ? "N/A" : experiment.getTitle(),
-                StringUtils.isAllBlank(experiment.getDescription()) ? "N/A" : experiment.getDescription(),
+                StringUtils.isBlank(experiment.getTitle()) ? "N/A" : experiment.getTitle(),
+                StringUtils.isBlank(experiment.getDescription()) ? "N/A" : experiment.getDescription(),
                 experiment.getExposureType().toString(),
                 experiment.getParticipationType().toString(),
                 experiment.getDistributionType().toString(),

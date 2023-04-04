@@ -12,25 +12,23 @@
  */
 package edu.iu.terracotta.controller.lti;
 
-
 import edu.iu.terracotta.service.lti.LTIDataService;
 import edu.iu.terracotta.utils.TextConstants;
 import edu.iu.terracotta.utils.oauth.OAuthUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 
 import javax.servlet.http.HttpServletRequest;
 import java.security.GeneralSecurityException;
 import java.security.interfaces.RSAPublicKey;
-import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,23 +36,18 @@ import java.util.Map;
 /**
  * Serving the public key of the tool.
  */
-@Controller
+@RestController
 @Scope("session")
 @RequestMapping("/jwks")
 public class JWKController {
 
     @Autowired
-    LTIDataService ltiDataService;
+    private LTIDataService ltiDataService;
 
-    static final Logger log = LoggerFactory.getLogger(JWKController.class);
-
-    @RequestMapping(value = "/jwk", method = RequestMethod.GET, produces = "application/json;")
-    @ResponseBody
-    public Map<String, List<Map<String, Object>>> jkw(HttpServletRequest req, Model model) throws GeneralSecurityException {
-        Map<String, List<Map<String, Object>>> keys = new HashMap<>();
-        log.debug("Someone is calling the jwk endpoint!");
-        log.debug(req.getQueryString());
+    @GetMapping(value = "/jwk", produces = MediaType.APPLICATION_JSON_VALUE)
+    public Map<String, List<Map<String, Object>>> jwk(HttpServletRequest req, Model model) throws GeneralSecurityException {
         RSAPublicKey toolPublicKey = OAuthUtils.loadPublicKey(ltiDataService.getOwnPublicKey());
+
         Map<String, Object> values = new HashMap<>();
         values.put("kty", toolPublicKey.getAlgorithm()); // getAlgorithm() returns kty not algorithm
         values.put("kid", TextConstants.DEFAULT_KID);
@@ -62,9 +55,8 @@ public class JWKController {
         values.put("e", Base64.getUrlEncoder().encodeToString(toolPublicKey.getPublicExponent().toByteArray()));
         values.put("alg", "RS256");
         values.put("use", "sig");
-        List<Map<String, Object>> valuesList = new ArrayList<>();
-        valuesList.add(values);
-        keys.put("keys", valuesList);
-        return keys;
+
+        return Collections.singletonMap("keys", Collections.singletonList(values));
     }
+
 }

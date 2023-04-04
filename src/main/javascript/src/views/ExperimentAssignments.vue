@@ -360,7 +360,7 @@ export default {
     }),
     experiment_id() {
       return parseInt(this.experiment.experimentId);
-    },
+    }
   },
 
   data: () => ({
@@ -500,6 +500,10 @@ export default {
     },
     // Navigate to EDIT section
     async handleEdit(assignment, exposure_id) {
+      const reallyEdit = await this.handleAssignmentStartedAlert(assignment.assignmentId);
+      if (!reallyEdit) {
+        return;
+      }
       await this.setCurrentAssignment(assignment);
       await this.saveEditMode({
         initialPage: 'AssignmentEditor',
@@ -599,6 +603,10 @@ export default {
       }
     },
     async goToBuilder(conditionId, assignmentId) {
+      const reallyEdit = await this.handleAssignmentStartedAlert(assignmentId);
+      if (!reallyEdit) {
+        return;
+      }
       await this.saveEditMode({
         initialPage: 'TerracottaBuilder',
         callerPage: {
@@ -664,6 +672,23 @@ export default {
     },
     dueDate(item) {
       return item.dueDate != null ? moment(item.dueDate).format('MMM D, YYYY hh:mma') : "";
+    },
+    async handleAssignmentStartedAlert(assignmentId) {
+      var assignment = this.assignments.find((a) => a.assignmentId === assignmentId);
+      if (!assignment.started) {
+        return true;
+      }
+      const result = await this.$swal({
+        icon: "warning",
+        text: "You are currently collecting assignment submissions, and at least one student has submitted the assignment. Making changes could compromise the integrity of your experiment.",
+        showCancelButton: true,
+        confirmButtonText: "OK",
+        cancelButtonText: "Cancel",
+        showLoaderOnConfirm: true,
+        reverseButtons: true,
+        allowOutsideClick: () => !this.$swal.isLoading(),
+      });
+      return result.isConfirmed;
     }
   },
   async mounted() {
