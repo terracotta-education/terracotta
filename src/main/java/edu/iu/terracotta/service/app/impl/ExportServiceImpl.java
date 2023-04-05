@@ -63,8 +63,8 @@ import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -177,6 +177,7 @@ public class ExportServiceImpl implements ExportService {
     private void handleExperimentCsv(long experimentId, long participantCount, long consentedParticipantsCount, Map<String, String> files) throws IOException {
         Path path = createTempFile();
         files.put(ExperimentCsv.FILENAME, path.toString());
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
         try (CSVWriter writer = createCsvFileWriter(path)) {
             writer.writeNext(ExperimentCsv.getHeaderRow());
@@ -191,12 +192,12 @@ public class ExportServiceImpl implements ExportService {
                 experiment.getExposureType().toString(),
                 experiment.getParticipationType().toString(),
                 experiment.getDistributionType().toString(),
-                Timestamp.valueOf(LocalDateTime.now()).toString(),
+                LocalDateTime.now().withNano(0).format(formatter),
                 String.valueOf(participantCount),
                 String.valueOf(consentedParticipantsCount),
                 String.valueOf(allRepositories.conditionRepository.countByExperiment_ExperimentId(experimentId)),
-                experiment.getCreatedAt().toString(),
-                experiment.isStarted() ? experiment.getStarted().toString() : ""
+                experiment.getCreatedAt().toLocalDateTime().format(formatter),
+                experiment.isStarted() ? experiment.getStarted().toLocalDateTime().format(formatter) : "N/A"
             });
         }
     }
