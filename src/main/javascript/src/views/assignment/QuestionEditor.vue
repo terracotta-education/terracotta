@@ -42,20 +42,23 @@
             >
               <v-list-item-title>
                 <v-icon class="mr-2">mdi-format-page-break</v-icon>
-                Remove page break after question</v-list-item-title
-              >
+                Remove page break after question
+              </v-list-item-title>
             </v-list-item>
-            <v-list-item v-else @click="addPageBreakAfter(question)">
+            <v-list-item
+              v-else
+              @click="addPageBreakAfter(question)"
+            >
               <v-list-item-title>
                 <v-icon class="mr-2">mdi-format-page-break</v-icon>
-                Add page break after question</v-list-item-title
-              >
+                Add page break after question
+              </v-list-item-title>
             </v-list-item>
             <v-list-item @click="handleDeleteQuestion(question)">
               <v-list-item-title>
                 <v-icon class="mr-2">mdi-delete-outline</v-icon>
-                Delete Question</v-list-item-title
-              >
+                Delete question
+              </v-list-item-title>
             </v-list-item>
           </v-list>
         </v-menu>
@@ -93,14 +96,11 @@ export default {
     return {
       rules: [
         (v) => (v && !!v.trim()) || "required",
-        (v) =>
-          (v || "").length <= 255 || "A maximum of 255 characters is allowed",
+        (v) => (v || "").length <= 255 || "A maximum of 255 characters is allowed",
       ],
       numberRule: [
         (v) => (v && !isNaN(v)) || "required",
-        (v) =>
-          (!isNaN(parseFloat(v)) && v >= 0) ||
-          "The point value cannot be negative",
+        (v) => (!isNaN(parseFloat(v)) && v >= 0) || "The point value cannot be negative",
       ],
       extensions: [
         History,
@@ -150,9 +150,8 @@ export default {
       const questionIndex = this.question.questionOrder;
       if (questionIndex + 1 < this.questions.length) {
         return this.questions[questionIndex + 1].questionType === "PAGE_BREAK";
-      } else {
-        return false;
       }
+      return false;
     },
     html: {
       // two-way computed property
