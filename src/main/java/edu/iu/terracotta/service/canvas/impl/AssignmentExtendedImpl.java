@@ -86,4 +86,5 @@ public class AssignmentExtendedImpl  extends BaseImpl<AssignmentExtended, Assign
     protected Class<AssignmentExtended> objectType() {
         return AssignmentExtended.class;
     }
+
 }

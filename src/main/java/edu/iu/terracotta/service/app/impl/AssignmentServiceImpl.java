@@ -39,7 +39,6 @@ import edu.iu.terracotta.model.canvas.AssignmentExtended;
 import edu.iu.terracotta.model.oauth2.LTIToken;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.AllRepositories;
-import edu.iu.terracotta.repository.LtiUserRepository;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.AssessmentService;
 import edu.iu.terracotta.service.app.AssignmentService;
@@ -107,9 +106,6 @@ public class AssignmentServiceImpl implements AssignmentService {
     private ExperimentService experimentService;
 
     @Autowired
-    private LtiUserRepository ltiUserRepository;
-
-    @Autowired
     private ExposureService exposureService;
 
     @Autowired
@@ -147,7 +143,7 @@ public class AssignmentServiceImpl implements AssignmentService {
         }
 
         List<AssignmentDto> assignmentDtoList = new ArrayList<>();
-        LtiUserEntity instructorUser = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
+        LtiUserEntity instructorUser = allRepositories.ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
 
         for (Assignment assignment : assignments) {
             if (instructorUser != null) {
@@ -169,7 +165,7 @@ public class AssignmentServiceImpl implements AssignmentService {
             throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
         }
 
-        LtiUserEntity instructorUser = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
+        LtiUserEntity instructorUser = allRepositories.ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
         Assignment assignment = createAssignment(assignmentDto, experimentId, securedInfo.getCanvasCourseId(), exposureId, instructorUser);
 
         setAssignmentDtoAttrs(assignment, securedInfo.getCanvasCourseId(), instructorUser);
@@ -330,7 +326,7 @@ public class AssignmentServiceImpl implements AssignmentService {
 
         if (!assignment.getTitle().equals(assignmentDto.getTitle())) {
             assignment.setTitle(assignmentDto.getTitle());
-            LtiUserEntity instructorUser = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
+            LtiUserEntity instructorUser = allRepositories.ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
             editAssignmentNameInCanvas(assignment, securedInfo.getCanvasCourseId(), assignmentDto.getTitle(), instructorUser);
         }
 
@@ -376,7 +372,7 @@ public class AssignmentServiceImpl implements AssignmentService {
     @Override
     public void deleteById(Long id, SecuredInfo securedInfo) throws EmptyResultDataAccessException, CanvasApiException, AssignmentNotEditedException {
         Assignment assignment = allRepositories.assignmentRepository.getReferenceById(id);
-        LtiUserEntity instructorUser = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
+        LtiUserEntity instructorUser = allRepositories.ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
         deleteAssignmentInCanvas(assignment, securedInfo.getCanvasCourseId(), instructorUser);
 
         long submissionsCount = allRepositories.submissionRepository.countByAssessment_Treatment_Assignment_AssignmentId(id);
@@ -514,7 +510,7 @@ public class AssignmentServiceImpl implements AssignmentService {
         List<Assignment> assignmentsToCheck = allRepositories.assignmentRepository.findAssignmentsToCheckByPlatform(platformDeploymentKeyId);
 
         for (Assignment assignment:assignmentsToCheck) {
-            LtiUserEntity instructorUser = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(
+            LtiUserEntity instructorUser = allRepositories.ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(
                 assignment.getExposure().getExperiment().getCreatedBy().getUserKey(),
                 platformDeploymentKeyId
             );
@@ -573,7 +569,7 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     private List<AssignmentExtended> getAllAssignmentsForCanvasCourse(SecuredInfo securedInfo) throws CanvasApiException {
-        LtiUserEntity instructorUser = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
+        LtiUserEntity instructorUser = allRepositories.ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
 
         return canvasAPIClient.listAssignments(instructorUser, securedInfo.getCanvasCourseId());
     }
@@ -790,7 +786,7 @@ public class AssignmentServiceImpl implements AssignmentService {
                 deleteAssignmentInCanvas(
                     assignment,
                     securedInfo.getCanvasCourseId(),
-                    ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId())
+                    allRepositories.ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId())
                 );
             } catch (CanvasApiException | AssignmentNotEditedException e) {
                 log.warn("Assignment : {} was not deleted in canvas", assignment.getTitle());
@@ -824,7 +820,7 @@ public class AssignmentServiceImpl implements AssignmentService {
             treatmentService.duplicateTreatment(treatment.getTreatmentId(), newAssignment, securedInfo);
         }
 
-        setAssignmentDtoAttrs(newAssignment, securedInfo.getCanvasCourseId(), ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId()));
+        setAssignmentDtoAttrs(newAssignment, securedInfo.getCanvasCourseId(), allRepositories.ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId()));
 
         return toDto(newAssignment, false, true);
     }
@@ -833,10 +829,12 @@ public class AssignmentServiceImpl implements AssignmentService {
     public void setAssignmentDtoAttrs(Assignment assignment, String canvasCourseId, LtiUserEntity instructorUser) throws NumberFormatException, CanvasApiException {
         Optional<AssignmentExtended> canvasAssignment = canvasAPIClient.listAssignment(instructorUser, canvasCourseId, Integer.parseInt(assignment.getLmsAssignmentId()));
 
-        if (canvasAssignment.isPresent()) {
-            assignment.setPublished(canvasAssignment.get().isPublished());
-            assignment.setDueDate(canvasAssignment.get().getDueAt());
+        if (!canvasAssignment.isPresent()) {
+            return;
         }
+
+        assignment.setPublished(canvasAssignment.get().isPublished());
+        assignment.setDueDate(canvasAssignment.get().getDueAt());
     }
 
     @Override
@@ -860,7 +858,7 @@ public class AssignmentServiceImpl implements AssignmentService {
         targetAssignmentDto.setAssignmentId(null);
 
         // create new assignment
-        LtiUserEntity instructorUser = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
+        LtiUserEntity instructorUser = allRepositories.ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
         Assignment newAssignment = createAssignment(targetAssignmentDto, experimentId, securedInfo.getCanvasCourseId(), targetAssignmentDto.getExposureId(), instructorUser);
         setAssignmentDtoAttrs(newAssignment, securedInfo.getCanvasCourseId(), instructorUser);
 

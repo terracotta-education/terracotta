@@ -10,6 +10,7 @@ import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.OutcomeNotMatchingException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
+import edu.iu.terracotta.model.LtiUserEntity;
 import edu.iu.terracotta.model.app.AnswerEssaySubmission;
 import edu.iu.terracotta.model.app.AnswerMc;
 import edu.iu.terracotta.model.app.AnswerMcSubmission;
@@ -39,6 +40,7 @@ import edu.iu.terracotta.model.app.enumerator.export.SubmissionsCsv;
 import edu.iu.terracotta.model.events.Event;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.AllRepositories;
+import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.app.ExportService;
 import edu.iu.terracotta.service.app.OutcomeService;
 import edu.iu.terracotta.service.app.SubmissionService;
@@ -63,6 +65,7 @@ import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
@@ -77,19 +80,25 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
 @Service
+@SuppressWarnings({"PMD.GuardLogStatement"})
 public class ExportServiceImpl implements ExportService {
+
+    private static final String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
 
     @Autowired
     private AllRepositories allRepositories;
 
     @Autowired
+    private AssignmentService assignmentService;
+
+    @Autowired
     private AWSService awsService;
 
     @Autowired
-    private OutcomeService outcomeService;
+    private Environment env;
 
     @Autowired
-    private Environment env;
+    private OutcomeService outcomeService;
 
     @Autowired
     private SubmissionService submissionService;
@@ -107,6 +116,8 @@ public class ExportServiceImpl implements ExportService {
     private List<Assignment> assignments;
     private List<ExposureGroupCondition> exposureGroupConditions;
     private List<Treatment> treatments;
+    private DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern(DATE_FORMAT);
+    private SimpleDateFormat simpleDateFormatter = new SimpleDateFormat(DATE_FORMAT);
 
     @Override
     public Map<String, String> getFiles(long experimentId, SecuredInfo securedInfo)
@@ -114,7 +125,7 @@ public class ExportServiceImpl implements ExportService {
         /*
          * Prepare the datasets that will be utilized multiple times
          */
-        prepareData(experimentId);
+        prepareData(experimentId, securedInfo);
 
         /*
          * Mapping: filename => temporary_file_path (/tmp/data.csv)
@@ -177,7 +188,6 @@ public class ExportServiceImpl implements ExportService {
     private void handleExperimentCsv(long experimentId, long participantCount, long consentedParticipantsCount, Map<String, String> files) throws IOException {
         Path path = createTempFile();
         files.put(ExperimentCsv.FILENAME, path.toString());
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
         try (CSVWriter writer = createCsvFileWriter(path)) {
             writer.writeNext(ExperimentCsv.getHeaderRow());
@@ -192,12 +202,12 @@ public class ExportServiceImpl implements ExportService {
                 experiment.getExposureType().toString(),
                 experiment.getParticipationType().toString(),
                 experiment.getDistributionType().toString(),
-                LocalDateTime.now().withNano(0).format(formatter),
+                LocalDateTime.now().withNano(0).format(dateTimeFormatter),
                 String.valueOf(participantCount),
                 String.valueOf(consentedParticipantsCount),
                 String.valueOf(allRepositories.conditionRepository.countByExperiment_ExperimentId(experimentId)),
-                experiment.getCreatedAt().toLocalDateTime().format(formatter),
-                experiment.isStarted() ? experiment.getStarted().toLocalDateTime().format(formatter) : "N/A"
+                experiment.getCreatedAt().toLocalDateTime().format(dateTimeFormatter),
+                experiment.isStarted() ? experiment.getStarted().toLocalDateTime().format(dateTimeFormatter) : "N/A"
             });
         }
     }
@@ -302,6 +312,7 @@ public class ExportServiceImpl implements ExportService {
                                                     StringUtils.isNotBlank(egc.getCondition().getName()) ? egc.getCondition().getName() : "N/A",
                                                     assignment.getAssignmentId().toString(),
                                                     assignment.getTitle(),
+                                                    assignment.getDueDate() != null ? simpleDateFormatter.format(assignment.getDueDate()) : "N/A",
                                                     treatment.getTreatmentId().toString(),
                                                     treatment.getAssessment().getMultipleSubmissionScoringScheme().toString(),
                                                     calculateAttemptsAllowed(treatment.getAssessment().getNumOfSubmissions()),
@@ -684,11 +695,28 @@ public class ExportServiceImpl implements ExportService {
         return new CSVWriter(new FileWriter(new File(path.toString()), append));
     }
 
-    private void prepareData(long experimentId) {
+    private void prepareData(long experimentId, SecuredInfo securedInfo) {
         consentedParticipantsCount = 0l;
         exposureGroupConditions = allRepositories.exposureGroupConditionRepository.findByCondition_Experiment_ExperimentId(experimentId);
         assignments = allRepositories.assignmentRepository.findByExposure_Experiment_ExperimentId(experimentId);
         treatments = allRepositories.treatmentRepository.findByCondition_Experiment_ExperimentId(experimentId);
+
+        if (CollectionUtils.isEmpty(assignments)) {
+            return;
+        }
+
+        LtiUserEntity ltiUserEntity = allRepositories.ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
+
+        assignments.stream()
+            .forEach(
+                assignment -> {
+                    try {
+                        assignmentService.setAssignmentDtoAttrs(assignment, securedInfo.getCanvasCourseId(), ltiUserEntity);
+                    } catch (NumberFormatException | CanvasApiException e) {
+                        log.warn("Exception finding assignment ID: '{}' for course ID: '{}' in Canvas.", assignment.getLmsAssignmentId(), securedInfo.getCanvasCourseId(), e);
+                    }
+                }
+            );
     }
 
     private List<ExposureGroupCondition> findExposureGroupConditionByGroupId(long groupId) {
