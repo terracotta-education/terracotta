@@ -11,6 +11,7 @@ public enum ParticipantTreatmentCsv {
     CONDITION_TYPE("condition_name"),
     ASSIGNMENT_ID("assignment_id"),
     ASSIGNMENT_NAME("assignment_name"),
+    ASSIGNMENT_DUE_DATE("assignment_due_date"),
     TREATMENT_ID("treatment_id"),
     GRADE_TYPE("grade_type"),
     ATTEMPTS_ALLOWED("attempts_allowed"),
