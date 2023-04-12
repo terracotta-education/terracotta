@@ -46,7 +46,7 @@
             </v-expansion-panels>
             <v-expansion-panels flat>
                 <v-expansion-panel class="py-3 mb-6">
-                    <v-expansion-panel-header><strong>Experiment type</strong></v-expansion-panel-header>
+                    <v-expansion-panel-header><strong>Experiment Type</strong></v-expansion-panel-header>
                     <v-expansion-panel-content>
                         <p>{{ exposureType }}</p>
                     </v-expansion-panel-content>
