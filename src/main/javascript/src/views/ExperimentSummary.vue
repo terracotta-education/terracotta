@@ -396,7 +396,7 @@ export default {
           type: "array",
         },
         {
-          title: "Experiment type",
+          title: "Experiment Type",
           description: this.experiment.exposureType,
           editSection: "ExperimentDesignType",
           type: "constant",

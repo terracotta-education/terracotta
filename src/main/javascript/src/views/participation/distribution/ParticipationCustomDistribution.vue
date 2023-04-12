@@ -43,7 +43,7 @@
       v-if="isDisabled()"
       class="errorMessage mt-3"
     >
-      Please provide a positive value for each condition distribution and all condition sistributions should be equal to 100%.
+      Please provide a positive value for each condition distribution and all condition distributions should be equal to 100%.
     </p>
 
     <v-btn

@@ -131,7 +131,7 @@ export default {
             },
             {
               key: "design_type",
-              name: "Experiment type",
+              name: "Experiment Type",
             },
           ],
         },
