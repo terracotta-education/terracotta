@@ -120,26 +120,25 @@
                             </a>
                           </template>
                           <span>
-                            <strong class="d-block"
-                              >What is an exposure set?</strong
-                            >
+                            <strong class="d-block">What is an exposure set?</strong>
                             An "exposure set" exposes a student to a specific
                             condition during a specific time period. Students will
                             change conditions between exposure sets, and the order
                             of conditions across exposure sets will be randomly
-                            assigned to different students (<a
-                              @click="handleEdit('ExperimentDesignConditions', item.tab)"
-                              >edit</a
-                            >). An exposure set contains one or more assignments,
+                            assigned to different students (
+                            <a @click="handleEdit('ExperimentDesignConditions', item.tab)">edit</a>
+                            ). An exposure set contains one or more assignments,
                             and there must be an equal number of assignments in
                             each exposure set in order to balance the experiment.
                             For more details about exposure sets, see our blog
-                            post here.</span
-                          >
+                            post here.
+                          </span>
                         </v-tooltip>
                       </p>
                       <span
-                        >Your exposure sets are currently:
+                        v-show="showBalanced"
+                      >
+                        Your exposure sets are currently:
                         <v-chip label outlined class="mr-2">
                           <span
                             v-if="!balanced"
@@ -446,6 +445,9 @@ export default {
     },
     loaded() {
       return !this.isLoading;
+    },
+    showBalanced() {
+      return this.exposures?.length > 1;
     }
   },
 
