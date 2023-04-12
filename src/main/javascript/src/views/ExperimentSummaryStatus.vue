@@ -148,7 +148,7 @@
                             <v-list-item
                               @click="handleDeleteOutcome(exposure.exposureId, outcome.outcomeId)"
                             >
-                              <v-list-item-title>Delete Outcome</v-list-item-title>
+                              <v-list-item-title>Delete outcome</v-list-item-title>
                             </v-list-item>
                           </v-list>
                         </v-menu>

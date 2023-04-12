@@ -1,9 +1,12 @@
 <template>
   <div>
     <v-container v-if="experiment">
-      <v-row class="sticky my-1" justify="space-between">
+      <v-row
+        class="sticky my-1"
+        justify="space-between"
+      >
         <v-col
-        class="col-experiment-title"
+          class="col-experiment-title"
           cols="8"
         >
           <p class="header ma-0 pa-0">
@@ -103,15 +106,11 @@
                         v-if="exposures"
                         class="pb-0"
                       >
-                        Because you have <strong>{{ conditionCount }}</strong> (<a
-                          @click="handleEdit('ExperimentDesignConditions', item.tab)"
-                          >edit</a
-                        >) and would like your students to be
+                        Because you have <strong>{{ conditionCount }}</strong> (<a @click="handleEdit('ExperimentDesignConditions', item.tab)" >edit</a>
+                        ) and would like your students to be
                         <strong>{{ exposureText[experiment.exposureType] }}</strong>
-                        ({{ exposureType[experiment.exposureType] }}) (<a
-                          @click="handleEdit('ExperimentDesignConditions', item.tab)"
-                          >edit</a
-                        >), we set you up with {{ exposures.length }} exposure
+                        ({{ exposureType[experiment.exposureType] }}) (<a @click="handleEdit('ExperimentDesignConditions', item.tab)">edit</a>
+                        ), we set you up with {{ exposures.length }} exposure
                         sets.
                         <v-tooltip top>
                           <template v-slot:activator="{ on, attrs }">
@@ -125,8 +124,7 @@
                             condition during a specific time period. Students will
                             change conditions between exposure sets, and the order
                             of conditions across exposure sets will be randomly
-                            assigned to different students (
-                            <a @click="handleEdit('ExperimentDesignConditions', item.tab)">edit</a>
+                            assigned to different students (<a @click="handleEdit('ExperimentDesignConditions', item.tab)">edit</a>
                             ). An exposure set contains one or more assignments,
                             and there must be an equal number of assignments in
                             each exposure set in order to balance the experiment.
@@ -398,7 +396,7 @@ export default {
           type: "array",
         },
         {
-          title: "Experiment Type",
+          title: "Experiment type",
           description: this.experiment.exposureType,
           editSection: "ExperimentDesignType",
           type: "constant",

@@ -23,7 +23,7 @@
 
       <v-expansion-panel>
         <v-expansion-panel-header>
-          Not Participating ({{ notParticipating.length }})
+          Not participating ({{ notParticipating.length }})
         </v-expansion-panel-header>
         <v-expansion-panel-content>
           <ListParticipants
@@ -71,7 +71,7 @@ export default {
   },
   data() {
     return {
-      moveToOptions: ["Participating", "Not Participating", "Unassigned"],
+      moveToOptions: ["Participating", "Not participating", "Unassigned"],
     };
   },
   computed: {
@@ -125,7 +125,7 @@ export default {
         updatedParticipants = this.updateParticipantConsent(selectedIds, true);
       }
 
-      if (option === "Not Participating") {
+      if (option === "Not participating") {
         updatedParticipants = this.updateParticipantConsent(
           selectedIds,
           false
