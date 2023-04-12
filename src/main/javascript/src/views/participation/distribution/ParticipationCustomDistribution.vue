@@ -39,9 +39,11 @@
       </v-card-text>
     </v-card>
 
-    <p v-if="isDisabled()" class="errorMessage mt-3">
-      Please Provide Positive Value for Each Condition Distribution and All
-      Condition Distributions should be equal to 100%.
+    <p
+      v-if="isDisabled()"
+      class="errorMessage mt-3"
+    >
+      Please provide a positive value for each condition distribution and all condition sistributions should be equal to 100%.
     </p>
 
     <v-btn
@@ -50,7 +52,8 @@
       :disabled="isDisabled()"
       color="primary"
       @click="updateDistribution('ParticipationSummary')"
-      >Continue
+    >
+      Continue
     </v-btn>
   </div>
 </template>
