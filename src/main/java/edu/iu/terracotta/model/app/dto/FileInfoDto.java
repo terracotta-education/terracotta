@@ -2,6 +2,7 @@ package edu.iu.terracotta.model.app.dto;
 
 import java.sql.Timestamp;
 
+import edu.iu.terracotta.model.app.FileSubmissionLocal;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -18,5 +19,6 @@ public class FileInfoDto {
     private Timestamp dateUpdated;
     private Timestamp dateCreated;
     private String tempToken;
+    private FileSubmissionLocal fileSubmissionLocal;
 
 }

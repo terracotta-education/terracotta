@@ -466,15 +466,6 @@ public class ParticipantServiceImpl implements ParticipantService {
             ParticipantDto participantDto = entry.getValue();
             Experiment experiment = experimentService.getExperiment(experimentId);
 
-            if (ParticipationTypes.CONSENT.equals(experiment.getParticipationType())) {
-                if (!experiment.isStarted()
-                        && (participantToChange.getConsent() == null || (BooleanUtils.isFalse(participantToChange.getConsent()) && participantToChange.getDateRevoked() == null))
-                        && participantDto.getConsent() != null) {
-                    experiment.setStarted(Timestamp.valueOf(LocalDateTime.now()));
-                    experimentService.save(experiment);
-                }
-            }
-
             // If they had consent, and now they don't have, we change the dateRevoked to now.
             // In any other case, we leave the date as it is. Ignoring any value in the PUT
             if (participantToChange.getConsent() != null
@@ -553,7 +544,6 @@ public class ParticipantServiceImpl implements ParticipantService {
 
         return true;
     }
-
 
     @Override
     public Participant findParticipant(List<Participant> participants, String userId) {
