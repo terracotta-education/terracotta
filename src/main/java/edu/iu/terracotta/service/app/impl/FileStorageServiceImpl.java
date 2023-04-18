@@ -10,7 +10,6 @@ import edu.iu.terracotta.model.LtiUserEntity;
 import edu.iu.terracotta.model.app.AnswerFileSubmission;
 import edu.iu.terracotta.model.app.ConsentDocument;
 import edu.iu.terracotta.model.app.Experiment;
-import edu.iu.terracotta.model.app.FileInfo;
 import edu.iu.terracotta.model.app.FileSubmissionLocal;
 import edu.iu.terracotta.model.app.dto.FileInfoDto;
 import edu.iu.terracotta.model.canvas.AssignmentExtended;
@@ -28,7 +27,6 @@ import net.lingala.zip4j.model.ZipParameters;
 import net.lingala.zip4j.model.enums.CompressionLevel;
 import net.lingala.zip4j.model.enums.EncryptionMethod;
 
-import org.apache.commons.collections4.CollectionUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -56,7 +54,6 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -77,6 +74,12 @@ public class FileStorageServiceImpl implements FileStorageService {
     @Value("${upload.submissions.local.path.root}")
     private String uploadSubmissionsLocalPathRoot;
 
+    @Value("${consent.file.local.path}")
+    private String consentFileLocalPath;
+
+    @Value("${consent.file.local.path.root}")
+    private String consentFileLocalPathRoot;
+
     @Autowired
     private ExperimentService experimentService;
 
@@ -89,216 +92,141 @@ public class FileStorageServiceImpl implements FileStorageService {
     @Autowired
     private AllRepositories allRepositories;
 
-    private Path decompressedFileTempDirectory;
+    private Path decompressedSubmissionFileTempDirectory;
+    private Path decompressedConsentFileTempDirectory;
 
     @PostConstruct
     public void init() {
         try {
             Files.createDirectories(Paths.get(uploadDir));
             Files.createDirectories(Paths.get(uploadSubmissionsLocalPathRoot));
-            this.decompressedFileTempDirectory = Files.createTempDirectory(Paths.get(uploadSubmissionsLocalPath).toString() + ".");
+            Files.createDirectories(Paths.get(consentFileLocalPathRoot));
+            this.decompressedSubmissionFileTempDirectory = Files.createTempDirectory(Paths.get(uploadSubmissionsLocalPath).toString() + ".");
+            this.decompressedConsentFileTempDirectory = Files.createTempDirectory(Paths.get(consentFileLocalPath).toString() + ".");
         }catch (IOException e) {
             throw new RuntimeException("Error 138: Could not create upload folder!");
         }
     }
 
     @Override
-    public String storeFile(MultipartFile file, String extraPath, Long experimentId, boolean consent) {
-        String fileName = "consent.pdf";
-
-        if (!consent) {
-            fileName = StringUtils.cleanPath(file.getOriginalFilename());
-        }
-
+    public Resource getConsentFile(long experimentId) {
         try {
-            if (fileName.contains("..")) {
-                throw new FileStorageException("Error 139: Sorry, Filename contains invalid path sequence " + fileName);
-            }
-            String finalPath = uploadDir;
-            if (StringUtils.hasText(extraPath)) {
-                finalPath = finalPath + extraPath + "/";
+            Optional<ConsentDocument> consentDocument = allRepositories.consentDocumentRepository.findByExperiment_ExperimentId(experimentId);
+
+            if (!consentDocument.isPresent()) {
+                throw new MyFileNotFoundException("Error 126: Consent file not found for experiment ID: '{}'" + experimentId);
             }
 
-            if (!Files.exists(Paths.get(finalPath))) {
-                Files.createDirectories(Paths.get(finalPath));
+            if (!consentDocument.isPresent()) {
+                return null;
             }
 
-            Path targetLocation = Paths.get(finalPath).resolve(fileName);
-            Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
+            final File consentFile;
 
-            return fileName;
-        } catch (IOException ex) {
-            throw new FileStorageException("Error 140: Could not store file " + fileName + ". Please try again.", ex);
-        }
-    }
-    @Override
-    public Resource loadFileAsResource(String fileName, String extraPath) {
-        try {
-            String finalPath = uploadDir;
-
-            if (StringUtils.hasText(extraPath)) {
-                finalPath = finalPath + extraPath;
+            if (!consentDocument.get().isCompressed()) {
+                // file is not compressed; return it as-is
+                consentFile = new File(String.format("%s/%s", consentFileLocalPathRoot, consentDocument.get().getFileUri()));
+                return new UrlResource(consentFile.toPath().toUri());
             }
 
-            Path filePath = Paths.get(finalPath).resolve(fileName).normalize();
-            Resource resource = new UrlResource(filePath.toUri());
+            // file is compressed; decompress and then return it
+            try {
+                decompressFile(
+                    Paths.get(
+                        String.format("%s/%s", consentFileLocalPathRoot, consentDocument.get().getEncryptedFileUri())
+                    ).toString(),
+                    consentDocument.get().getEncryptionPhrase(),
+                    decompressedConsentFileTempDirectory
+                );
 
-            if (!resource.exists()) {
-                throw new MyFileNotFoundException("Error 126: File not found " + fileName);
+                consentFile = new File(String.format("%s/%s", decompressedConsentFileTempDirectory, consentDocument.get().getEncodedFileName()));
+            } catch (FileStorageException e) {
+                throw e;
             }
 
-            return resource;
+            return new UrlResource(consentFile.toPath().toUri());
         } catch (MalformedURLException ex) {
-            throw new MyFileNotFoundException("Error 126: File not found " + fileName, ex);
+            throw new MyFileNotFoundException("Error 126: Consent file not found for experiment ID: '{}'" + experimentId, ex);
         }
     }
 
-    @Override
-    public Resource getFileAsResource(String fileId) {
-        Optional<FileInfo> fileInfo = allRepositories.fileInfoRepository.findByFileId(fileId);
+    private FileInfoDto uploadFile(MultipartFile file, long experimentId) {
+        FileSubmissionLocal fileSubmissionLocal = saveConsentFile(file, experimentId);
 
-        if (!fileInfo.isPresent()) {
-            throw new MyFileNotFoundException("Error 126: File not found in repository.");
-        }
-
-        try {
-            String finalPath = uploadDir + "/" + fileInfo.get().getExperiment().getExperimentId() + "/files/" + fileInfo.get().getFilename();
-            Path filePath = Paths.get(finalPath).normalize();
-            Resource resource = new UrlResource(filePath.toUri());
-            if (resource.exists()) {
-                return resource;
-            } else {
-                throw new MyFileNotFoundException("Error 126: File not found.");
-            }
-        } catch (MalformedURLException ex) {
-            throw new MyFileNotFoundException("Error 126: File not found.", ex);
-        }
-    }
-
-    @Override
-    public void saveFile(MultipartFile multipartFile, String extraPath, Long experimentId) {
-        FileInfo file = new FileInfo();
-        file.setFilename(extraPath + "/" + multipartFile.getOriginalFilename());
-        file.setFileId(UUID.randomUUID().toString());
-        file.setFileType(multipartFile.getContentType());
-        file.setSize(multipartFile.getSize());
-        Optional<Experiment> experiment = experimentService.findById(experimentId);
-        experiment.ifPresent(file::setExperiment);
-        allRepositories.fileInfoRepository.save(file);
-    }
-
-    @Override
-    public boolean deleteFile(String fileName, String extraPath) {
-        try {
-            String finalPath = uploadDir;
-
-            if (StringUtils.hasText(extraPath)) {
-                finalPath = finalPath + extraPath;
-            }
-
-            Path filePath = Paths.get(finalPath).resolve(fileName).normalize();
-            Resource resource = new UrlResource(filePath.toUri());
-
-            if (resource.exists()) {
-                return Files.deleteIfExists(filePath);
-            }
-
-            throw new MyFileNotFoundException("Error 126: File not found " + fileName);
-        } catch (IOException ex) {
-            throw new MyFileNotFoundException("Error 126: File not found.", ex);
-        }
-    }
-
-    @Override
-    public boolean deleteByFileId(String fileId) {
-        try{
-            Optional<FileInfo> fileInfo = allRepositories.fileInfoRepository.findById(fileId);
-            if (fileInfo.isPresent()) {
-                String finalPath = uploadDir + "/" + fileInfo.get().getExperiment().getExperimentId() + "/files/" + fileInfo.get().getFilename();
-                Path filePath = Paths.get(finalPath).normalize();
-                Resource resource = new UrlResource(filePath.toUri());
-                if (resource.exists()) {
-                    allRepositories.fileInfoRepository.deleteByFileId(fileId);
-                    return Files.deleteIfExists(filePath);
-                } else {
-                    throw new MyFileNotFoundException("Error 126: File not found.");
-                }
-            } else {
-                throw new MyFileNotFoundException("Error 126: File not found.");
-            }
-        } catch (IOException ex) {
-            throw new MyFileNotFoundException("Error 126: File Not found.", ex);
-        }
-    }
-
-    @Override
-    public Optional<FileInfo> findByFileId(String fileId) { return allRepositories.fileInfoRepository.findById(fileId); }
-
-    @Override
-    public List<FileInfo> findByExperimentId(Long experimentId) { return allRepositories.fileInfoRepository.findByExperiment_ExperimentId(experimentId); }
-
-    @Override
-    public FileInfo findByExperimentIdAndFilename(Long experimentId, String filename) {
-        return allRepositories.fileInfoRepository.findByExperiment_ExperimentIdAndFilename(experimentId, filename);
-    }
-
-    @Override
-    public FileInfoDto toDto(FileInfo fileInfo) {
         FileInfoDto fileInfoDto = new FileInfoDto();
-        fileInfoDto.setFileId(fileInfo.getFileId());
-        fileInfoDto.setExperimentId(fileInfo.getExperiment().getExperimentId());
-        fileInfoDto.setPath(fileInfo.getFilename());
-        fileInfoDto.setDateCreated(fileInfo.getCreatedAt());
-        fileInfoDto.setDateUpdated(fileInfo.getUpdatedAt());
-        fileInfoDto.setFileType(fileInfo.getFileType());
-        fileInfoDto.setSize(fileInfo.getSize());
-        fileInfoDto.setUrl(ServletUriComponentsBuilder.fromCurrentContextPath().path("/api/experiments/" + fileInfoDto.getExperimentId() + "/files/" + fileInfo.getFileId()).build().toUriString());
-        try {
-            fileInfoDto.setTempToken(apijwtService.buildFileToken(fileInfo.getFileId(), fileInfo.getExperiment().getPlatformDeployment().getLocalUrl()));
-        } catch (GeneralSecurityException ex) {
-            //This shouldn't happen, but if it happens we just want a  warning in the log
-            log.warn("Error generating the file token: " + fileInfo.getFileId() + " : " + ex.getMessage());
-        }
+        fileInfoDto.setFileId(null);
+        fileInfoDto.setDateCreated(Timestamp.valueOf(LocalDateTime.now()));
+        fileInfoDto.setExperimentId(experimentId);
+        fileInfoDto.setFileType(file.getContentType());
+        fileInfoDto.setSize(file.getSize());
+        fileInfoDto.setDateUpdated(fileInfoDto.getDateCreated());
+        fileInfoDto.setFileSubmissionLocal(fileSubmissionLocal);
+
         return fileInfoDto;
     }
 
     @Override
-    public FileInfoDto uploadFile(MultipartFile file, String prefix, String extraPath, long experimentId, boolean consent) {
-        String path = prefix + extraPath;
-        String fileName = storeFile(file, path, experimentId, consent);
-        FileInfoDto fileInfoDto = new FileInfoDto();
-        if (consent) {
-            fileInfoDto.setFileId(null);
-            fileInfoDto.setDateCreated(Timestamp.valueOf(LocalDateTime.now()));
-            fileInfoDto.setExperimentId(experimentId);
-            fileInfoDto.setUrl(ServletUriComponentsBuilder.fromCurrentContextPath().path("/api/experiments" + prefix + extraPath).build().toUriString());
-            fileInfoDto.setFileType(file.getContentType());
-            fileInfoDto.setSize(file.getSize());
-            fileInfoDto.setDateUpdated(fileInfoDto.getDateCreated());
-        } else {
-            FileInfo fileInfo = findByExperimentIdAndFilename(experimentId, extraPath + "/" + fileName);
-            fileInfoDto.setFileId(fileInfo.getFileId());
-            fileInfoDto.setExperimentId(experimentId);
-            fileInfoDto.setPath(fileInfo.getFilename());
-            fileInfoDto.setSize(fileInfo.getSize());
-            fileInfoDto.setFileType(fileInfo.getFileType());
-            fileInfoDto.setDateCreated(fileInfo.getCreatedAt());
-            fileInfoDto.setDateUpdated(fileInfo.getUpdatedAt());
-            fileInfoDto.setUrl(ServletUriComponentsBuilder.fromCurrentContextPath().path("/api/experiments" + prefix + fileInfo.getFileId()).build().toUriString());
+    public FileSubmissionLocal saveConsentFile(MultipartFile file, long experimentId) {
+        if (file == null) {
+            throw new FileStorageException("Error 140: File cannot be null.");
         }
-        return fileInfoDto;
+
+        String path = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy/MM/dd/HH"));
+        String filename = file.getOriginalFilename() != null ? StringUtils.cleanPath(file.getOriginalFilename()) : "";
+
+        if (filename.contains("..")) {
+            throw new FileStorageException(String.format("Error 139: filename contains invalid path sequence: '%s'", filename));
+        }
+
+        try {
+            // create the upload directory
+            Files.createDirectories(Paths.get(String.format("%s/%s", consentFileLocalPathRoot, path)));
+            // assign random UUID as file name
+            String filePath = String.format("%s/%s", path, UUID.randomUUID().toString());
+
+            while (Files.exists(Paths.get(filePath))) {
+                // ensure no file name clashes
+                filePath = String.format("%s/%s", path, UUID.randomUUID().toString());
+            }
+
+            // copy the file to the directory
+            Files.copy(
+                file.getInputStream(),
+                Paths.get(String.format("%s/%s", consentFileLocalPathRoot, filePath)),
+                StandardCopyOption.REPLACE_EXISTING
+            );
+
+            String encryptionPhrase = UUID.randomUUID().toString();
+
+            FileSubmissionLocal fileSubmissionLocal =  new FileSubmissionLocal(
+                filePath,
+                compressFile(
+                    Paths.get(String.format("%s/%s", consentFileLocalPathRoot, filePath)).toString(),
+                    encryptionPhrase,
+                    ConsentDocument.COMPRESSED_FILE_EXTENSION
+                ),
+                EncryptionMethod.AES.toString(),
+                encryptionPhrase
+            );
+
+            if (!fileSubmissionLocal.isCompressed()) {
+                // file was not compressed; return
+                return fileSubmissionLocal;
+            }
+
+            // delete the original file
+            Files.deleteIfExists(Paths.get(String.format("%s/%s", consentFileLocalPathRoot, filePath)));
+
+            return fileSubmissionLocal;
+        } catch (IOException ex) {
+            throw new FileStorageException(String.format("Error 140: Could not store file '%s'. Please try again.", filename), ex);
+        }
     }
 
     @Override
-    public List<FileInfoDto> getFiles(long experimentId) {
-        return CollectionUtils.emptyIfNull(findByExperimentId(experimentId)).stream()
-            .map(fileInfo -> toDto(fileInfo))
-            .toList();
-    }
-
-    @Override
-    public void uploadConsent(long experimentId, String title, FileInfoDto consentUploaded, SecuredInfo securedInfo)
+    public FileInfoDto uploadConsentFile(long experimentId, String title, MultipartFile multipartFile, SecuredInfo securedInfo)
             throws AssignmentNotCreatedException, CanvasApiException, AssignmentNotEditedException, AssignmentNotMatchingException {
+        FileInfoDto fileInfoDto = uploadFile(multipartFile, experimentId);
         Experiment experiment = experimentService.getExperiment(experimentId);
         ConsentDocument consentDocument = experiment.getConsentDocument();
         LtiUserEntity instructorUser = allRepositories.ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
@@ -306,12 +234,17 @@ public class FileStorageServiceImpl implements FileStorageService {
 
         if (consentDocument == null) {
             consentDocument = new ConsentDocument();
-            consentDocument.setFilePointer(consentUploaded.getUrl());
+            //consentDocument.setFilePointer(fileInfoDto.getUrl());
             consentDocument.setExperiment(experiment);
             consentDocument.setTitle(title);
-        } else {
-            consentDocument.setFilePointer(consentUploaded.getUrl());
         }
+
+        consentDocument.setEncryptionMethod(fileInfoDto.getFileSubmissionLocal().getEncryptionMethod());
+        consentDocument.setEncryptionPhrase(fileInfoDto.getFileSubmissionLocal().getEncryptionPhrase());
+        consentDocument.setFileUri(fileInfoDto.getFileSubmissionLocal().getFilePath());
+
+        // reset to null, as not needed
+        fileInfoDto.setFileSubmissionLocal(null);
 
         //Let's see if we have the assignment generated in Canvas
         if (consentDocument.getLmsAssignmentId() == null) {
@@ -364,6 +297,23 @@ public class FileStorageServiceImpl implements FileStorageService {
         consentDocument = experimentService.saveConsentDocument(consentDocument);
         experiment.setConsentDocument(consentDocument);
         experimentService.saveAndFlush(experiment);
+
+        return fileInfoDto;
+    }
+
+    @Override
+    public void deleteConsentFile(long experimentId) {
+        Optional<ConsentDocument> consentDocument = allRepositories.consentDocumentRepository.findByExperiment_ExperimentId(experimentId);
+
+        if (!consentDocument.isPresent()) {
+            return;
+        }
+
+        try {
+            Files.deleteIfExists(Paths.get(String.format("%s/%s", consentFileLocalPathRoot, consentDocument.get().getFileUri())));
+        } catch (IOException ex) {
+            throw new FileStorageException(String.format("Error 140: Could not delete file for experiment ID: '%s'.", experimentId), ex);
+        }
     }
 
     @Override
@@ -372,19 +322,24 @@ public class FileStorageServiceImpl implements FileStorageService {
         LtiUserEntity instructorUser = allRepositories.ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
         ConsentDocument consentDocument = experiment.getConsentDocument();
 
-        if (consentDocument != null) {
-            String lmsId = consentDocument.getLmsAssignmentId();
-            Optional<AssignmentExtended> assignmentExtendedOptional = canvasAPIClient.listAssignment(instructorUser, securedInfo.getCanvasCourseId(), Integer.parseInt(lmsId));
-
-            if (assignmentExtendedOptional.isPresent()) {
-                AssignmentExtended assignmentExtended = assignmentExtendedOptional.get();
-                canvasAPIClient.deleteAssignment(instructorUser, assignmentExtended, securedInfo.getCanvasCourseId());
-            }
+        if (consentDocument == null) {
+            return;
         }
+
+        String lmsId = consentDocument.getLmsAssignmentId();
+        Optional<AssignmentExtended> assignmentExtendedOptional = canvasAPIClient.listAssignment(instructorUser, securedInfo.getCanvasCourseId(), Integer.parseInt(lmsId));
+
+        if (assignmentExtendedOptional.isPresent()) {
+            AssignmentExtended assignmentExtended = assignmentExtendedOptional.get();
+            canvasAPIClient.deleteAssignment(instructorUser, assignmentExtended, securedInfo.getCanvasCourseId());
+        }
+
+        deleteConsentFile(experimentId);
+        allRepositories.consentDocumentRepository.deleteById(consentDocument.getConsentDocumentId());
     }
 
     @Override
-    public String parseHTMLFiles (String html, String localUrl) {
+    public String parseHTMLFiles(String html, String localUrl) {
         if (org.apache.commons.lang3.StringUtils.isNotBlank(html)) {
             Document doc = Jsoup.parse(html);
             parseAndUpdateElements(doc, "src", "/files/", "?token=", true, localUrl);
@@ -459,7 +414,8 @@ public class FileStorageServiceImpl implements FileStorageService {
                 filePath,
                 compressFile(
                     Paths.get(String.format("%s/%s", uploadSubmissionsLocalPathRoot, filePath)).toString(),
-                    encryptionPhrase
+                    encryptionPhrase,
+                    AnswerFileSubmission.COMPRESSED_FILE_EXTENSION
                 ),
                 EncryptionMethod.AES.toString(),
                 encryptionPhrase
@@ -498,22 +454,24 @@ public class FileStorageServiceImpl implements FileStorageService {
                 Paths.get(
                     String.format("%s/%s", uploadSubmissionsLocalPathRoot, answerFileSubmission.get().getEncryptedFileUri())
                 ).toString(),
-                answerFileSubmission.get().getEncryptionPhrase()
+                answerFileSubmission.get().getEncryptionPhrase(),
+                decompressedSubmissionFileTempDirectory
             );
 
-            return new File(String.format("%s/%s", decompressedFileTempDirectory, answerFileSubmission.get().getEncodedFileName()));
+            return new File(String.format("%s/%s", decompressedSubmissionFileTempDirectory, answerFileSubmission.get().getEncodedFileName()));
         } catch (FileStorageException e) {
             throw e;
         }
     }
 
-    private boolean compressFile(String filePathToCompress, String encryptionPhrase) {
+    @Override
+    public boolean compressFile(String filePathToCompress, String encryptionPhrase, String compressedFileExtension) {
         ZipParameters zipParameters = new ZipParameters();
         zipParameters.setEncryptFiles(true);
         zipParameters.setCompressionLevel(CompressionLevel.ULTRA);
         zipParameters.setEncryptionMethod(EncryptionMethod.AES);
 
-        try (ZipFile zipFile = new ZipFile(filePathToCompress + AnswerFileSubmission.COMPRESSED_FILE_EXTENSION, encryptionPhrase.toCharArray())) {
+        try (ZipFile zipFile = new ZipFile(filePathToCompress + compressedFileExtension, encryptionPhrase.toCharArray())) {
             zipFile.addFile(new File(filePathToCompress), zipParameters);
         } catch (IOException e) {
             log.error("Error zipping file: {}", filePathToCompress, e);
@@ -523,9 +481,9 @@ public class FileStorageServiceImpl implements FileStorageService {
         return true;
     }
 
-    private void decompressFile(String filePathToDecompress, String encryptionPhrase) throws FileStorageException {
+    private void decompressFile(String filePathToDecompress, String encryptionPhrase, Path tempDirectory) throws FileStorageException {
         try (ZipFile zipFile = new ZipFile(filePathToDecompress, encryptionPhrase.toCharArray())) {
-            zipFile.extractAll(decompressedFileTempDirectory.toString());
+            zipFile.extractAll(tempDirectory.toString());
         } catch (IOException e) {
             throw new FileStorageException(String.format("Error: Could not decompress file '%s'. Please try again.", filePathToDecompress), e);
         }

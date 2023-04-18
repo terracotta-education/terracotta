@@ -1,8 +1,6 @@
 package edu.iu.terracotta.runner;
 
 import org.apache.commons.collections4.CollectionUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -16,12 +14,11 @@ import java.time.LocalDateTime;
 
 import edu.iu.terracotta.model.app.Assignment;
 import edu.iu.terracotta.repository.AllRepositories;
+import lombok.extern.slf4j.Slf4j;
 
-
+@Slf4j
 @Component
 public class AssignmentDataRunner implements ApplicationListener<ApplicationReadyEvent> {
-
-    static final Logger log = LoggerFactory.getLogger(AssignmentDataRunner.class);
 
     @Autowired
     private AllRepositories allRepositories;
@@ -38,33 +35,40 @@ public class AssignmentDataRunner implements ApplicationListener<ApplicationRead
             return;
         }
 
-        // fix legacy assignment started date
-        int page = 0;
-        Page<Assignment> assignments = allRepositories.assignmentRepository.findAll(PageRequest.of(page++, batchSize));
+        Thread thread = new Thread(
+            () ->
+                {
+                    // fix legacy assignment started date
+                    int page = 0;
+                    Page<Assignment> assignments = allRepositories.assignmentRepository.findAll(PageRequest.of(page++, batchSize));
 
-        log.info("Starting assignment start date fix...");
-        int processed = 0;
+                    log.info("Starting assignment start date fix...");
+                    int processed = 0;
 
-        while (CollectionUtils.isNotEmpty(assignments.getContent())) {
-            processed += assignments.getContent().size();
-            assignments.getContent().stream()
-                .filter(assignment -> { return !assignment.isStarted(); })
-                .forEach(
-                    assignment -> {
-                        long submissionsCount = allRepositories.submissionRepository.countByAssessment_Treatment_Assignment_AssignmentId(assignment.getAssignmentId());
+                    while (CollectionUtils.isNotEmpty(assignments.getContent())) {
+                        processed += assignments.getContent().size();
+                        assignments.getContent().stream()
+                            .filter(assignment -> !assignment.isStarted())
+                            .forEach(
+                                assignment -> {
+                                    long submissionsCount = allRepositories.submissionRepository.countByAssessment_Treatment_Assignment_AssignmentId(assignment.getAssignmentId());
 
-                        if (submissionsCount > 0) {
-                            assignment.setStarted(Timestamp.valueOf(LocalDateTime.now()));
-                            allRepositories.assignmentRepository.save(assignment);
-                        }
+                                    if (submissionsCount > 0) {
+                                        assignment.setStarted(Timestamp.valueOf(LocalDateTime.now()));
+                                        allRepositories.assignmentRepository.save(assignment);
+                                    }
+                                }
+                            );
+
+                        log.info("Processed {} assignment records...", processed);
+                        assignments = allRepositories.assignmentRepository.findAll(PageRequest.of(page++, batchSize));
                     }
-                );
 
-            log.info("Processed {} assignment records...", processed);
-            assignments = allRepositories.assignmentRepository.findAll(PageRequest.of(page++, batchSize));
-        }
+                    log.info("Assignment start date fix complete! {} assignment records processed.", processed);
+                }
+        );
 
-        log.info("Assignment start date fix complete! {} assignment records processed.", processed);
+        thread.start();
     }
 
 }
