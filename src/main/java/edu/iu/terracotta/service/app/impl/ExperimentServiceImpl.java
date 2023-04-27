@@ -157,13 +157,19 @@ public class ExperimentServiceImpl implements ExperimentService {
             throw new WrongValueException("Error 110: The experiment has started. The Participation Type can't be changed from 'Consent' to " + experimentDto.getParticipationType());
         }
 
+        if (!experimentToChange.canSetExposureType()) {
+            // cannot change exposure type after initial creation
+            if (experimentToChange.getExposureType() != EnumUtils.getEnum(ExposureTypes.class, experimentDto.getExposureType())) {
+                throw new WrongValueException("Error 110: The experiment has an existing exposure type. The Exposure Type can't be changed.");
+            }
+        }
+
         if (experimentDto.getExposureType() != null) {
             if (!EnumUtils.isValidEnum(ExposureTypes.class, experimentDto.getExposureType())) {
                 throw new WrongValueException("Error 134: " + experimentDto.getExposureType() + " is not a valid Exposure value");
             }
 
             experimentToChange.setExposureType(EnumUtils.getEnum(ExposureTypes.class, experimentDto.getExposureType()));
-
         }
 
         if (experimentDto.getDistributionType() != null) {

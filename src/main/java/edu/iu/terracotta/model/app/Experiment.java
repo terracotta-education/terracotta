@@ -101,4 +101,9 @@ public class Experiment extends BaseEntity {
         return started != null;
     }
 
+    @Transient
+    public boolean canSetExposureType() {
+        return ExposureTypes.NOSET == exposureType;
+    }
+
 }

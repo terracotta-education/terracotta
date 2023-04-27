@@ -28,6 +28,8 @@ import java.util.Optional;
 @SuppressWarnings({"PMD.PreserveStackTrace"})
 public class ConditionServiceImpl implements ConditionService {
 
+    private static final int CONDITION_COUNT_ALLOWED = 16;
+
     @Autowired
     private AllRepositories allRepositories;
 
@@ -53,7 +55,7 @@ public class ConditionServiceImpl implements ConditionService {
         try {
             condition = fromDto(conditionDto);
         } catch (DataServiceException e) {
-            throw new DataServiceException("Error 105: Unable to create condition:" + e.getMessage());
+            throw new DataServiceException(String.format("Error 105: Unable to create condition: %s", e.getMessage()), e);
         }
 
         return toDto(save(condition));
@@ -172,7 +174,7 @@ public class ConditionServiceImpl implements ConditionService {
     @Override
     public void validateConditionName(String conditionName, String dtoName, Long experimentId, Long conditionId, boolean required) throws TitleValidationException {
         if (required) {
-            if (StringUtils.isAllBlank(dtoName) && StringUtils.isAllBlank(conditionName)) {
+            if (StringUtils.isAllBlank(dtoName, conditionName)) {
                 throw new TitleValidationException("Error 100: Please give the condition a name.");
             }
         }
@@ -209,31 +211,32 @@ public class ConditionServiceImpl implements ConditionService {
         for (ConditionDto condto : conditionDtoList) {
             List<Condition> conditions = allRepositories.conditionRepository.findByNameAndExperiment_ExperimentIdAndConditionIdIsNot(condto.getName(), experimentId, condto.getConditionId());
 
-            if (!conditions.isEmpty()) {
-                for (Condition con : conditions) {
-                    List<ConditionDto> duplicates = conditionDtoList.stream()
-                        .filter(co -> {
-                            return co.getConditionId() == con.getConditionId() && co.getName().equals(con.getName());
-                        }
-                    )
+            if (CollectionUtils.isEmpty(conditions)) {
+                continue;
+            }
+
+            for (Condition con : conditions) {
+                List<ConditionDto> duplicates = conditionDtoList.stream()
+                    .filter(co -> {
+                        return co.getConditionId().equals(con.getConditionId()) && co.getName().equals(con.getName());
+                    })
                     .toList();
 
-                    if (!duplicates.isEmpty()) {
-                        throw new TitleValidationException("Error 102: Unable to create the condition. A condition with title \"" + condto.getName() + "\" already exists in this experiment. It is possible " +
-                                "that one of the other conditions has that name and has not been updated with a new one yet. If that is the case and you wish to use this name, " +
-                                "please change that condition's name first, then try again.");
-                    }
+                if (!duplicates.isEmpty()) {
+                    throw new TitleValidationException("Error 102: Unable to create the condition. A condition with title \"" + condto.getName() + "\" already exists in this experiment. It is possible " +
+                            "that one of the other conditions has that name and has not been updated with a new one yet. If that is the case and you wish to use this name, " +
+                            "please change that condition's name first, then try again.");
                 }
-
             }
         }
     }
 
-
     private void validateMaximumConditionsNotReached(long experimentId) throws ExperimentConditionLimitReachedException {
-        if (allRepositories.conditionRepository.findByExperiment_ExperimentId(experimentId).size() >= 16) {
-            throw new ExperimentConditionLimitReachedException("Error 148: The experiment conditions limit of 16 conditions has been reached.");
+        if (allRepositories.conditionRepository.findByExperiment_ExperimentId(experimentId).size() < CONDITION_COUNT_ALLOWED) {
+            return;
         }
+
+        throw new ExperimentConditionLimitReachedException("Error 148: The experiment conditions limit of 16 conditions has been reached.");
     }
 
 }
