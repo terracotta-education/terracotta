@@ -14,8 +14,8 @@ import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.QuestionService;
 import edu.iu.terracotta.utils.TextConstants;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
@@ -38,21 +38,19 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @Controller
-@SuppressWarnings({"rawtypes", "unchecked"})
+@SuppressWarnings({"rawtypes", "unchecked", "PMD.GuardLogStatement"})
 @RequestMapping(value = QuestionController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
 public class QuestionController {
 
-    final static String REQUEST_ROOT = "api/experiments";
-    final static Logger log = LoggerFactory.getLogger(QuestionController.class);
+    public final static String REQUEST_ROOT = "api/experiments";
 
     @Autowired
-    QuestionService questionService;
+    private QuestionService questionService;
 
     @Autowired
-    APIJWTService apijwtService;
-
-
+    private APIJWTService apijwtService;
 
     @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/questions",
             method = RequestMethod.GET, produces = "application/json;")
@@ -115,7 +113,7 @@ public class QuestionController {
                                                     HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, BadTokenException, IdInPostException, DataServiceException, MultipleChoiceLimitReachedException {
 
-        log.debug("Creating Question: {}", questionDto);
+        log.debug("Creating Question for assessment ID: {}", assessmentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
@@ -156,7 +154,7 @@ public class QuestionController {
                 questionService.updateQuestion(map);
                 return new ResponseEntity<>(HttpStatus.OK);
             } catch (Exception ex) {
-                throw new DataServiceException("Error 105: An error occurred trying to update the question list. No questions were updated. " + ex.getMessage());
+                throw new DataServiceException("Error 105: An error occurred trying to update the question list. No questions were updated. " + ex.getMessage(), ex);
             }
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);

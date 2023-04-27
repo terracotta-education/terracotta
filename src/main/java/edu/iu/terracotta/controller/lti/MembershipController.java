@@ -23,9 +23,6 @@ import edu.iu.terracotta.model.oauth2.LTIToken;
 import edu.iu.terracotta.service.lti.AdvantageMembershipService;
 import edu.iu.terracotta.utils.LtiStrings;
 import edu.iu.terracotta.utils.TextConstants;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Controller;
@@ -46,16 +43,14 @@ import java.util.Optional;
 @RequestMapping("/membership")
 public class MembershipController {
 
-    static final Logger log = LoggerFactory.getLogger(MembershipController.class);
+    @Autowired
+    private LtiContextRepository ltiContextRepository;
 
     @Autowired
-    LtiContextRepository ltiContextRepository;
+    private ToolDeploymentRepository toolDeploymentRepository;
 
     @Autowired
-    ToolDeploymentRepository toolDeploymentRepository;
-
-    @Autowired
-    AdvantageMembershipService advantageMembershipService;
+    private AdvantageMembershipService advantageMembershipService;
 
     @SuppressWarnings("SameReturnValue")
     @RequestMapping({"", "/"})
@@ -77,10 +72,10 @@ public class MembershipController {
 
                 //Call the membership service to get the users on the context
                 // 1. Get the token
-                LTIToken LTIToken = advantageMembershipService.getToken(toolDeployment.get().getPlatformDeployment());
+                LTIToken ltiToken = advantageMembershipService.getToken(toolDeployment.get().getPlatformDeployment());
 
                 // 2. Call the service
-                CourseUsers courseUsers = advantageMembershipService.callMembershipService(LTIToken, context);
+                CourseUsers courseUsers = advantageMembershipService.callMembershipService(ltiToken, context);
 
                 // 3. update the model
                 model.addAttribute(TextConstants.RESULTS, courseUsers.getCourseUserList());

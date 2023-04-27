@@ -88,7 +88,7 @@ public class GroupController {
                                                     UriComponentsBuilder ucBuilder,
                                                     HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ExperimentLockedException, IdInPostException, DataServiceException {
-        log.debug("Creating Group : {}", groupDto);
+        log.debug("Creating Group for experiment ID: {}", experimentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentLocked(experimentId,true);
         apijwtService.experimentAllowed(securedInfo, experimentId);

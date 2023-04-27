@@ -111,7 +111,7 @@ public class ExperimentController {
                                                         UriComponentsBuilder ucBuilder,
                                                         HttpServletRequest req)
             throws BadTokenException, TitleValidationException, IdInPostException, DataServiceException {
-        log.debug("Creating Experiment : {}", experimentDto);
+        log.debug("Creating Experiment with title : {}", experimentDto.getTitle());
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
 
         if (securedInfo ==null){

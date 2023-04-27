@@ -16,10 +16,9 @@ import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.AnswerService;
 import edu.iu.terracotta.service.app.QuestionService;
 import edu.iu.terracotta.utils.TextConstants;
+import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.collections.CollectionUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
@@ -41,8 +40,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @Controller
-@SuppressWarnings({"rawtypes", "unchecked"})
+@SuppressWarnings({"rawtypes", "unchecked", "PMD.GuardLogStatement"})
 @RequestMapping(value = AnswerController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
 public class AnswerController {
     /**
@@ -50,19 +50,16 @@ public class AnswerController {
      but all of the requests can be updated with switch statements to support additional types.
      */
 
-    static final String REQUEST_ROOT = "api/experiments";
-    static final Logger log = LoggerFactory.getLogger(AnswerController.class);
+    public static final String REQUEST_ROOT = "api/experiments";
 
     @Autowired
-    APIJWTService apijwtService;
+    private APIJWTService apijwtService;
 
     @Autowired
-    AnswerService answerService;
+    private AnswerService answerService;
 
     @Autowired
-    QuestionService questionService;
-
-
+    private QuestionService questionService;
 
     @GetMapping(value = "/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}/questions/{questionId}/answers",
             produces = MediaType.APPLICATION_JSON_VALUE)
@@ -141,7 +138,7 @@ public class AnswerController {
                                                 HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionNotMatchingException, BadTokenException, MultipleChoiceLimitReachedException, IdInPostException, DataServiceException {
 
-        log.debug("Creating Answer: {}", answerDto);
+        log.debug("Creating Answer for question ID: {}", questionId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
@@ -194,7 +191,7 @@ public class AnswerController {
         try {
             return new ResponseEntity<>(answerService.updateAnswerMC(map), HttpStatus.OK);
         } catch (Exception ex) {
-            throw new DataServiceException(String.format("Error 105: An error occurred trying to update the answer list. No answers were updated. %s", ex.getMessage()));
+            throw new DataServiceException(String.format("Error 105: An error occurred trying to update the answer list. No answers were updated. %s", ex.getMessage()), ex);
         }
     }
 

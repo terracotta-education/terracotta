@@ -105,7 +105,6 @@ public class AnswerSubmissionController {
         }
     }
 
-
     @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}/question_submissions/{question_submission_id}/answer_submissions/{answer_submission_id}",
                     method = RequestMethod.GET, produces = "application/json;")
     @ResponseBody
@@ -136,7 +135,6 @@ public class AnswerSubmissionController {
         }
     }
 
-
     @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}/answer_submissions",
                     method = RequestMethod.POST)
     @Transactional
@@ -152,7 +150,7 @@ public class AnswerSubmissionController {
             QuestionSubmissionNotMatchingException, BadTokenException, InvalidUserException, IdInPostException,
             TypeNotSupportedException, DataServiceException, IdMissingException, ExceedingLimitException, IOException {
 
-        log.info("Creating answer submissions: {}", answerSubmissionDtoList);
+        log.info("Creating answer submissions for submission ID: {}", submissionId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
@@ -172,7 +170,6 @@ public class AnswerSubmissionController {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
     }
-
 
     /*
     As other question types are added, it may be useful to add another request allowing for the PUT of a list of answer submissions.
@@ -206,14 +203,12 @@ public class AnswerSubmissionController {
                 answerSubmissionService.updateAnswerSubmission(answerSubmissionDto, answerSubmissionId, answerType);
                 return new ResponseEntity<>(HttpStatus.OK);
             } catch (Exception e) {
-                throw new DataServiceException("Error 105: Unable to update answer submission: " + e.getMessage());
+                throw new DataServiceException("Error 105: Unable to update answer submission: " + e.getMessage(), e);
             }
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
     }
-
-
 
     @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}/question_submissions/{question_submission_id}/answer_submissions/{answer_submission_id}",
                     method = RequestMethod.DELETE)
@@ -239,7 +234,7 @@ public class AnswerSubmissionController {
                 answerSubmissionService.deleteAnswerSubmission(answerSubmissionId, answerType);
                 return new ResponseEntity<>(HttpStatus.OK);
             } catch (DataServiceException e) {
-                throw new DataServiceException("Error 105: Could not delete answer submission. " + e.getMessage());
+                throw new DataServiceException("Error 105: Could not delete answer submission. " + e.getMessage(), e);
             }
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);

@@ -91,7 +91,7 @@ public class ExposureController {
                                                     UriComponentsBuilder ucBuilder,
                                                     HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ExperimentLockedException, TitleValidationException, IdInPostException, DataServiceException {
-        log.debug("Creating Exposure : {}", exposureDto);
+        log.debug("Creating Exposure for experiment ID: {}", experimentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.experimentLocked(experimentId,true);

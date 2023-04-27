@@ -108,8 +108,7 @@ public class ParticipantController {
                                                          UriComponentsBuilder ucBuilder,
                                                          HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, IdInPostException, DataServiceException {
-
-        log.debug("Creating Participant : {}", participantDto);
+        log.debug("Creating Participant for experiment ID: {}", experimentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
 

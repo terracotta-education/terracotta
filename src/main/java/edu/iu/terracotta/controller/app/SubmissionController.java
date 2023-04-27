@@ -1,14 +1,23 @@
 package edu.iu.terracotta.controller.app;
 
-import edu.iu.terracotta.exceptions.*;
+import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
+import edu.iu.terracotta.exceptions.BadTokenException;
+import edu.iu.terracotta.exceptions.ConnectionException;
+import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.exceptions.IdInPostException;
+import edu.iu.terracotta.exceptions.InvalidUserException;
+import edu.iu.terracotta.exceptions.NoSubmissionsException;
+import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
+import edu.iu.terracotta.exceptions.SubmissionNotMatchingException;
 import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.dto.SubmissionDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.utils.TextConstants;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
@@ -16,7 +25,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.HttpServletRequest;
@@ -24,20 +39,19 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @Controller
-@SuppressWarnings({"rawtypes", "unchecked"})
+@SuppressWarnings({"rawtypes", "unchecked", "PMD.GuardLogStatement"})
 @RequestMapping(value = SubmissionController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
 public class SubmissionController {
 
-    static final String REQUEST_ROOT = "api/experiments";
-    static final Logger log = LoggerFactory.getLogger(SubmissionController.class);
+    public static final String REQUEST_ROOT = "api/experiments";
 
     @Autowired
-    APIJWTService apijwtService;
+    private APIJWTService apijwtService;
 
     @Autowired
-    SubmissionService submissionService;
-
+    private SubmissionService submissionService;
 
     @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions", method = RequestMethod.GET,
             produces = "application/json;")
@@ -104,8 +118,7 @@ public class SubmissionController {
                                                         HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, BadTokenException, InvalidUserException,
                     ParticipantNotMatchingException, IdInPostException, DataServiceException {
-
-        log.debug("Creating Submission: {}", submissionDto);
+        log.debug("Creating Submission for assessment ID: '{}' and participant ID: '{}'", assessmentId, submissionDto.getParticipantId());
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
@@ -183,7 +196,7 @@ public class SubmissionController {
                 submissionService.updateSubmissions(map, student);
                 return new ResponseEntity<>(HttpStatus.OK);
             } catch (Exception e) {
-                throw new DataServiceException("Error 105: There was an error updating the submission list. No submissions were updated. " + e.getMessage());
+                throw new DataServiceException("Error 105: There was an error updating the submission list. No submissions were updated. " + e.getMessage(), e);
             }
         } else {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);

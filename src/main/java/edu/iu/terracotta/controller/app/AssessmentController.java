@@ -20,8 +20,8 @@ import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.AssessmentService;
 import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.utils.TextConstants;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
@@ -43,22 +43,22 @@ import org.springframework.web.util.UriComponentsBuilder;
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 
-@SuppressWarnings({"rawtypes", "unchecked"})
+@Slf4j
 @Controller
+@SuppressWarnings({"rawtypes", "unchecked", "PMD.GuardLogStatement"})
 @RequestMapping(value = AssessmentController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
 public class AssessmentController {
 
-    static final String REQUEST_ROOT = "api/experiments";
-    static final Logger log = LoggerFactory.getLogger(AssessmentController.class);
+    public static final String REQUEST_ROOT = "api/experiments";
 
     @Autowired
-    AssessmentService assessmentService;
+    private AssessmentService assessmentService;
 
     @Autowired
-    APIJWTService apijwtService;
+    private APIJWTService apijwtService;
 
     @Autowired
-    SubmissionService submissionService;
+    private SubmissionService submissionService;
 
     @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments", method = RequestMethod.GET, produces = "application/json;")
     @ResponseBody
@@ -132,8 +132,7 @@ public class AssessmentController {
                                                         HttpServletRequest req)
             throws ExperimentNotMatchingException, TreatmentNotMatchingException, BadTokenException,
             TitleValidationException, AssessmentNotMatchingException, IdInPostException, DataServiceException {
-
-        log.debug("Creating Assessment: {}", assessmentDto);
+        log.debug("Creating Assessment for experiment ID: {}", experimentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.treatmentAllowed(securedInfo, experimentId, conditionId, treatmentId);

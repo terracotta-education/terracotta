@@ -125,7 +125,7 @@ public class SubmissionCommentController {
                                                                       UriComponentsBuilder ucBuilder,
                                                                       HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, SubmissionNotMatchingException, BadTokenException, InvalidUserException, IdInPostException, DataServiceException {
-        log.debug("Creating submission comment: {}", submissionCommentDto);
+        log.debug("Creating submission comment for submission ID: {}", submissionId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);

@@ -59,6 +59,7 @@ import edu.iu.terracotta.service.app.TreatmentService;
 import edu.iu.terracotta.service.lti.LTIDataService;
 import edu.iu.terracotta.utils.lti.LTI3Request;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Header;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.JwsHeader;
@@ -98,7 +99,7 @@ import java.util.Optional;
  */
 @Slf4j
 @Service
-@SuppressWarnings({"unchecked", "rawtypes"})
+@SuppressWarnings({"unchecked", "rawtypes", "PMD.GuardLogStatement"})
 public class APIJWTServiceImpl implements APIJWTService {
 
     private static final String ISSUER_LMS_OAUTH_API_TOKEN_REQUEST = "lmsOAuthAPITokenRequest";
@@ -170,25 +171,30 @@ public class APIJWTServiceImpl implements APIJWTService {
     //Here we could add other checks like expiration of the state (not implemented)
     @Override
     public Jws<Claims> validateToken(String token) {
-        return Jwts.parserBuilder().setSigningKeyResolver(new SigningKeyResolverAdapter() {
-            // This is done because each state is signed with a different key based on the issuer... so
-            // we don't know the key and we need to check it pre-extracting the claims and finding the kid
-            @Override
-            public Key resolveSigningKey(JwsHeader header, Claims claims) {
-                PublicKey toolPublicKey;
-                try {
-                    // We are dealing with RS256 encryption, so we have some Oauth utils to manage the keys and
-                    // convert them to keys from the string stored in DB. There are for sure other ways to manage this.
-                    toolPublicKey = OAuthUtils.loadPublicKey(ltiDataService.getOwnPublicKey());
-                } catch (GeneralSecurityException ex) {
-                    log.error("Error validating the state. Error generating the tool public key", ex);
-                    return null;
+        try {
+            return Jwts.parserBuilder().setSigningKeyResolver(new SigningKeyResolverAdapter() {
+                // This is done because each state is signed with a different key based on the issuer... so
+                // we don't know the key and we need to check it pre-extracting the claims and finding the kid
+                @Override
+                public Key resolveSigningKey(JwsHeader header, Claims claims) {
+                    PublicKey toolPublicKey;
+                    try {
+                        // We are dealing with RS256 encryption, so we have some Oauth utils to manage the keys and
+                        // convert them to keys from the string stored in DB. There are for sure other ways to manage this.
+                        toolPublicKey = OAuthUtils.loadPublicKey(ltiDataService.getOwnPublicKey());
+                    } catch (GeneralSecurityException ex) {
+                        log.error("Error validating the state. Error generating the tool public key", ex);
+                        return null;
+                    }
+                    return toolPublicKey;
                 }
-                return toolPublicKey;
-            }
-        })
-        .build()
-        .parseClaimsJws(token);
+            })
+            .build()
+            .parseClaimsJws(token);
+        } catch (ExpiredJwtException e) {
+            log.warn("JWT expired. {}", e.getMessage());
+            return null;
+        }
         // If we are on this point, then the state signature has been validated. We can start other tasks now.
     }
 
@@ -633,15 +639,15 @@ public class APIJWTServiceImpl implements APIJWTService {
             throw new ExperimentNotMatchingException("The experiment with id " + experimentId + " does not exist");
         }
 
-        if (experiment.get().isStarted()) {
-            if (throwException) {
-                throw new ExperimentLockedException("Error 110: The experiment has started and can't be modified");
-            } else {
-                return true;
-            }
+        if (!experiment.get().isStarted()) {
+            return false;
         }
 
-        return false;
+        if (throwException) {
+            throw new ExperimentLockedException("Error 110: The experiment has started and can't be modified");
+        }
+
+        return true;
     }
 
     @Override
