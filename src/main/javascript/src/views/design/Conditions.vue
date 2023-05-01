@@ -3,9 +3,9 @@
     <h1>Name your conditions</h1>
     <p>These will be used to label the different experimental versions of your assignments.</p>
     <form
-        @submit.prevent="saveConditions('ExperimentDesignType')"
-        class="my-5 mb-15"
-        v-if="experiment"
+      v-if="experiment"
+      @submit.prevent="saveConditions('ExperimentDesignType')"
+      class="my-5 mb-15"
     >
 
       <v-container class="pa-0">
@@ -13,7 +13,9 @@
             v-for="(condition, i) in experiment.conditions"
             :key="condition.conditionId"
         >
-          <template v-if="i < 2">
+          <template
+            v-if="i < 2"
+          >
             <v-col class="py-0">
               <v-text-field
                   v-model="condition.name"
@@ -26,7 +28,9 @@
               ></v-text-field>
             </v-col>
           </template>
-          <template v-else>
+          <template
+            v-else
+          >
             <v-col class="py-0">
               <v-text-field
                   v-model="condition.name"
@@ -36,7 +40,8 @@
                   placeholder="e.g. Condition Name"
                   outlined
                   required
-              ></v-text-field>
+              >
+              </v-text-field>
             </v-col>
             <v-col
               v-if="deleteAllowed"
@@ -45,11 +50,11 @@
               sm="2"
             >
               <v-btn
-                  icon
-                  outlined
-                  tile
-                  class="delete_condition"
-                  @click="handleDeleteCondition(condition)"
+                icon
+                outlined
+                tile
+                class="delete_condition"
+                @click="handleDeleteCondition(condition)"
               >
                 <v-icon>mdi-delete</v-icon>
               </v-btn>
@@ -58,28 +63,32 @@
         </v-row>
       </v-container>
 
-      <div v-if="addAllowed">
+      <div
+        v-if="addAllowed"
+      >
         <v-btn
-            @click="createCondition({name:'',experiment_experiment_id:experiment.experimentId})"
-            color="blue"
-            class="add_condition px-0 mb-10"
-            text
-            v-if="experiment.conditions.length < 16"
+          v-if="experiment.conditions.length < 16"
+          @click="createCondition({name: '', experiment_experiment_id: experiment.experimentId})"
+          color="blue"
+          class="add_condition px-0 mb-10"
+          text
         >
           Add another condition
         </v-btn>
-        <v-alert type="error" v-else>
-          You have reached the maximum number of conditions (16) allowed by the
-          experiment builder.
+        <v-alert
+          v-else
+          type="error"
+        >
+          You have reached the maximum number of conditions (16) allowed by the experiment builder.
         </v-alert>
       </div>
 
       <v-btn
           :disabled="
-          hasDuplicateValues(experiment.conditions, 'name') ||
-          !experiment.conditions.length > 0 ||
-          !experiment.conditions.every(c => c.name && c.name.trim())
-        "
+            hasDuplicateValues(experiment.conditions, 'name') ||
+            !experiment.conditions.length > 0 ||
+            !experiment.conditions.every(c => c.name && c.name.trim())
+          "
           elevation="0"
           color="primary"
           class="mr-4"
@@ -116,7 +125,7 @@ export default {
       return this.editMode?.callerPage?.name || 'Home';
     },
     addAllowed() {
-      return this.experiment.exposureType === 'NOSET';
+      return !this.editMode && this.experiment.conditions.length < 16;
     },
     deleteAllowed() {
       return this.experiment.exposureType === 'NOSET';

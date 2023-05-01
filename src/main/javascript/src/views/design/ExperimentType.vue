@@ -1,19 +1,33 @@
 <template>
     <div>
-        <template v-if="experiment && experiment.conditions">
+        <template
+            v-if="experiment && experiment.conditions"
+        >
             <h1 class="mb-5">
                 <span>You have defined <strong>{{ numConditions }} conditions</strong></span><br><br>
                 <span>How do you want students to be exposed to these different conditions?</span>
             </h1>
 
-            <v-expansion-panels class="v-expansion-panels--icon" flat>
-                <v-expansion-panel :class="{'v-expansion-panel--selected': experiment.exposureType === 'WITHIN'}">
+            <v-expansion-panels
+                :value="expanded"
+                class="v-expansion-panels--icon"
+                flat
+            >
+                <v-expansion-panel
+                    :class="{'v-expansion-panel--selected': experiment.exposureType === 'WITHIN'}"
+                    :key="getExposureTypes.indexOf('WINTHIN')"
+                >
                     <v-expansion-panel-header hide-actions>
-                        <img src="@/assets/all_conditions.svg" alt="all conditions"> All conditions
+                        <img
+                            src="@/assets/all_conditions.svg"
+                            alt="all conditions"
+                        >
+                        All conditions
                     </v-expansion-panel-header>
                     <v-expansion-panel-content>
                         <p>All students are exposed to every condition, in different orders. This way you can compare how the different conditions affected each individual student. This is called a within-subject design.</p>
                         <v-btn
+                            v-if="!hasSelectedExposureType || this.initialExposureType === 'WITHIN'"
                             @click="saveType('WITHIN')"
                             color="primary"
                             elevation="0"
@@ -22,13 +36,21 @@
                         </v-btn>
                     </v-expansion-panel-content>
                 </v-expansion-panel>
-                <v-expansion-panel :class="{'v-expansion-panel--selected': experiment.exposureType === 'BETWEEN'}">
+                <v-expansion-panel
+                    :class="{'v-expansion-panel--selected': experiment.exposureType === 'BETWEEN'}"
+                    :key="getExposureTypes.indexOf('BETWEEN')"
+                >
                     <v-expansion-panel-header hide-actions>
-                        <img src="@/assets/one_condition.svg" alt="only one condition"> Only one condition
+                        <img
+                            src="@/assets/one_condition.svg"
+                            alt="only one condition"
+                        >
+                        Only one condition
                     </v-expansion-panel-header>
                     <v-expansion-panel-content>
                         <p>Each student is only exposed to one condition, so that you can compare how the different conditions affected different students. This is called a between-subjects design.</p>
                         <v-btn
+                            v-if="!hasSelectedExposureType || this.initialExposureType === 'BETWEEN'"
                             @click="saveType('BETWEEN')"
                             color="primary"
                             elevation="0"
@@ -38,8 +60,34 @@
                     </v-expansion-panel-content>
                 </v-expansion-panel>
             </v-expansion-panels>
+            <v-card
+                v-if="!hasSelectedExposureType"
+                class="mt-15 pt-5 px-5 mx-auto blue lighten-5 rounded-lg"
+                outlined
+            >
+                <p>
+                    Please note that you will not be able to switch between “All conditions” and “Only one condition” after you click SELECT.
+                </p>
+                <p>
+                    Additionally, once you click SELECT to leave this screen, you will be able to add, but not delete conditions,
+                    so please use the back button now to double-check that you have included what you need. To change your decisions beyond this point,
+                    you will need to create a new experiment.
+                </p>
+            </v-card>
+            <v-card
+                v-if="hasSelectedExposureType"
+                class="mt-15 pt-5 px-5 mx-auto blue lighten-5 rounded-lg"
+                outlined
+            >
+                <p>
+                    Please note that you are not able to switch between “All conditions” and “Only one condition” as you have previously selected
+                    a type. To change the experiment type, please create a new experiment.
+                </p>
+            </v-card>
         </template>
-        <template v-else>
+        <template
+            v-else
+        >
             <v-alert
                 prominent
                 type="error"
@@ -62,7 +110,17 @@ export default {
     props: ['experiment'],
     data() {
         return {
-            initialExperimentType: null
+            initialExposureType: null,
+            initialExposureTypeIndex: null,
+            expanded: []
+        }
+    },
+    watch: {
+        initialExposureTypeIndex(newIndex) {
+            if (newIndex === -1) {
+                return;
+            }
+            this.expanded = [newIndex];
         }
     },
     computed: {
@@ -73,18 +131,19 @@ export default {
             return this.experiment?.conditions?.length || 0
         },
         getExposureTypes() {
-            return ['BETWEEN', 'WITHIN'];
+            return ['WITHIN', 'BETWEEN'];
         },
         getSaveExitPage() {
             return this.editMode?.callerPage?.name || 'Home';
+        },
+        hasSelectedExposureType() {
+            return this.getExposureTypes.includes(this.initialExposureType);
         }
     },
     methods: {
         ...mapActions({
             reportStep: 'api/reportStep',
-            updateExperiment: 'experiment/updateExperiment',
-            createExposures: 'exposures/createExposures',
-            createAndAssignGroups: 'groups/createAndAssignGroups'
+            updateExperiment: 'experiment/updateExperiment'
         }),
         async saveType(type) {
             const e = this.experiment
@@ -100,11 +159,6 @@ export default {
                             if (!this.editMode) {
                                 // report the current step
                                 await this.reportStep({experimentId, step})
-                            }
-                            if (this.initialExperimentType !== type) {
-                                // experiment type has change; update exposures and groups
-                                await this.createExposures(this.experiment.experimentId);
-                                await this.createAndAssignGroups(this.experiment.experimentId);
                             }
                             if (this.getExposureTypes.includes(this.experiment.exposureType)) {
                                 this.$router.push({
@@ -140,7 +194,8 @@ export default {
         }
     },
     async mounted() {
-        this.initialExperimentType = this.experiment?.experimentType;
+        this.initialExposureType = this.experiment?.exposureType;
+        this.initialExposureTypeIndex = this.getExposureTypes.indexOf(this.initialExposureType);
     }
 }
 </script>
