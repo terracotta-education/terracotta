@@ -10,7 +10,7 @@
     </parent>
     <groupId>edu.iu</groupId>
     <artifactId>terracotta</artifactId>
-    <version>23.05.0</version>
+    <version>23.05.1.x</version>
     <inceptionYear>2021</inceptionYear>
     <name>Terracotta</name>
     <description>LTI 1.3 tool for educational experimentation</description>
@@ -26,12 +26,12 @@
         <java.version>17</java.version>
         <jjwt.version>0.11.5</jjwt.version>
         <joda-time.version>2.12.0</joda-time.version>
-        <json.version>20220924</json.version>
+        <json.version>20230227</json.version>
         <jsoup.version>1.15.3</jsoup.version>
         <liquibase.version>4.17.0</liquibase.version>
         <log4j2.version>2.17.2</log4j2.version>
         <lombok.version>1.18.26</lombok.version>
-        <mysql-connector-j.version>8.0.32</mysql-connector-j.version>
+        <mysql-connector-j.version>8.0.33</mysql-connector-j.version>
         <nimbus-jose-jwt.version>9.25.6</nimbus-jose-jwt.version>
         <opencsv.version>5.7.1</opencsv.version>
         <spring-security-oauth.version>2.5.2.RELEASE</spring-security-oauth.version>

@@ -9,6 +9,7 @@ import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExceedingLimitException;
+import edu.iu.terracotta.exceptions.ExperimentLockedException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.ExposureNotMatchingException;
 import edu.iu.terracotta.exceptions.IdInPostException;
@@ -114,7 +115,7 @@ public class AssignmentController {
             AssessmentNotMatchingException, TitleValidationException, AssignmentNotCreatedException, IdInPostException,
             DataServiceException, RevealResponsesSettingValidationException,
             MultipleAttemptsSettingsValidationException, NumberFormatException, CanvasApiException {
-        log.debug("Creating Assignment: {}", assignmentDto);
+        log.debug("Creating Assignment for experiment ID: {}", experimentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
@@ -139,7 +140,6 @@ public class AssignmentController {
             throws ExperimentNotMatchingException, BadTokenException, AssignmentNotMatchingException,
                     TitleValidationException, CanvasApiException, AssignmentNotEditedException,
                     RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException, ExposureNotMatchingException {
-
         log.debug("Updating assignment with id: {}", assignmentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -188,9 +188,10 @@ public class AssignmentController {
                                                  @PathVariable long exposureId,
                                                  @PathVariable long assignmentId,
                                                  HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssignmentNotMatchingException, BadTokenException, CanvasApiException, AssignmentNotEditedException {
+            throws ExperimentNotMatchingException, AssignmentNotMatchingException, BadTokenException, CanvasApiException, AssignmentNotEditedException, ExperimentLockedException {
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentLocked(experimentId, true);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assignmentAllowed(securedInfo, experimentId, exposureId, assignmentId);
 

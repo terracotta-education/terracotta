@@ -264,6 +264,7 @@
                           </v-list-item-title>
                         </v-list-item>
                         <v-list-item
+                          v-if="canDeleteAssignment"
                           aria-label="delete assignment"
                           @click="handleDeleteAssignment(exposure.exposureId, item)">
                           <v-list-item-title>
@@ -360,6 +361,9 @@ export default {
     }),
     experiment_id() {
       return parseInt(this.experiment.experimentId);
+    },
+    canDeleteAssignment() {
+      return !this.experiment.started;
     }
   },
 

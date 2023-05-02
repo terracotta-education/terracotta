@@ -12,8 +12,8 @@ import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.OutcomeScoreService;
 import edu.iu.terracotta.utils.TextConstants;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
@@ -31,20 +31,19 @@ import org.springframework.web.util.UriComponentsBuilder;
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 
+@Slf4j
 @Controller
-@SuppressWarnings({"rawtypes", "unchecked"})
+@SuppressWarnings({"rawtypes", "unchecked", "PMD.GuardLogStatement"})
 @RequestMapping(value = OutcomeScoreController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
 public class OutcomeScoreController {
 
-    static final String REQUEST_ROOT = "api/experiments";
-    static final Logger log = LoggerFactory.getLogger(OutcomeScoreController.class);
+    public static final String REQUEST_ROOT = "api/experiments";
 
     @Autowired
-    OutcomeScoreService outcomeScoreService;
+    private OutcomeScoreService outcomeScoreService;
 
     @Autowired
-    APIJWTService apijwtService;
-
+    private APIJWTService apijwtService;
 
     @RequestMapping(value = "/{experiment_id}/exposures/{exposure_id}/outcomes/{outcome_id}/outcome_scores", method = RequestMethod.GET, produces = "application/json;")
     @ResponseBody
@@ -102,7 +101,7 @@ public class OutcomeScoreController {
                                                             HttpServletRequest req)
             throws ExperimentNotMatchingException, OutcomeNotMatchingException, BadTokenException, InvalidParticipantException, IdInPostException, DataServiceException {
 
-        log.debug("Creating outcome score: {}", outcomeScoreDto);
+        log.debug("Creating outcome score for outcome ID: {}", outcomeId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.outcomeAllowed(securedInfo, experimentId, exposureId, outcomeId);

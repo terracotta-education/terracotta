@@ -126,8 +126,7 @@ public class QuestionSubmissionCommentController {
                                                                                       HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, BadTokenException, InvalidUserException,
                     IdInPostException, DataServiceException {
-
-        log.debug("Creating question submission comment: {}", questionSubmissionCommentDto);
+        log.debug("Creating question submission comment for question submission ID: {}", questionSubmissionId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);

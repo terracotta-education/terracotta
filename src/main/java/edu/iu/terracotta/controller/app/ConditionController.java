@@ -93,7 +93,8 @@ public class ConditionController {
                                                       UriComponentsBuilder ucBuilder,
                                                       HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ExperimentLockedException, TitleValidationException, ConditionsLockedException, IdInPostException, DataServiceException, ExperimentConditionLimitReachedException {
-        log.debug("Creating Condition : {}", conditionDto);
+
+        log.debug("Creating Condition for experiment ID: {}", experimentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentLocked(experimentId,true);
         apijwtService.experimentAllowed(securedInfo, experimentId);

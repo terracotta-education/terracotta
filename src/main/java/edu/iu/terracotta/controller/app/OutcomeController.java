@@ -108,7 +108,7 @@ public class OutcomeController {
                                                   UriComponentsBuilder ucBuilder,
                                                   HttpServletRequest req)
             throws ExperimentNotMatchingException, ExposureNotMatchingException, BadTokenException, TitleValidationException, IdInPostException, DataServiceException {
-        log.debug("Creating Outcome: {}", outcomeDto);
+        log.debug("Creating Outcome for exposure ID: {}", exposureId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
@@ -130,7 +130,6 @@ public class OutcomeController {
                                               @RequestBody OutcomeDto outcomeDto,
                                               HttpServletRequest req)
             throws ExperimentNotMatchingException, OutcomeNotMatchingException, BadTokenException, TitleValidationException {
-
         log.debug("Updating outcome with id {}", outcomeId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
