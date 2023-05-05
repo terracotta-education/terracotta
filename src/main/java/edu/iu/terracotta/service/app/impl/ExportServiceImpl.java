@@ -235,8 +235,8 @@ public class ExportServiceImpl implements ExportService {
             List<OutcomeScore> outcomeScores = allRepositories.outcomeScoreRepository.findByOutcome_Exposure_Experiment_ExperimentId(experimentId, PageRequest.of(page, exportBatchSize)).getContent();
 
             while (CollectionUtils.isNotEmpty(outcomeScores)) {
-                CollectionUtils.emptyIfNull(outcomeScores).stream()
-                    .filter(outcomeScore -> outcomeScore.getParticipant().getConsent() != null && outcomeScore.getParticipant().getConsent())
+                outcomeScores.stream()
+                    .filter(outcomeScore -> BooleanUtils.isTrue(outcomeScore.getParticipant().getConsent()))
                     .forEach(outcomeScore -> {
                         if (outcomeScore.getParticipant().getGroup() != null) {
                             // participant has been assigned to a group; get exposure group condition
@@ -244,7 +244,7 @@ public class ExportServiceImpl implements ExportService {
                                     outcomeScore.getParticipant().getGroup().getGroupId(), outcomeScore.getOutcome().getExposure().getExposureId());
 
                             if (exposureGroupCondition.isPresent()) {
-                                writer.writeNext(new String[]{
+                                writer.writeNext(new String[] {
                                     outcomeScore.getOutcome().getOutcomeId().toString(),
                                     outcomeScore.getParticipant().getParticipantId().toString(),
                                     String.valueOf(outcomeScore.getOutcome().getExposure().getExposureId()),
