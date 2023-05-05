@@ -2,6 +2,9 @@ package edu.iu.terracotta.model.app.enumerator.export;
 
 import java.util.Arrays;
 
+import lombok.AllArgsConstructor;
+
+@AllArgsConstructor
 public enum EventPersonalIdentifiers {
 
     // NOTE: order is important!
@@ -13,19 +16,17 @@ public enum EventPersonalIdentifiers {
 
     public static final String FILENAME = "events.json";
 
-    private String field;
-
-    EventPersonalIdentifiers(String header) {
-        this.field = header;
-    }
+    private String header;
 
     @Override
     public String toString() {
-        return field;
+        return header;
     }
 
     public static String[] getFields() {
-        return Arrays.stream(EventPersonalIdentifiers.values()).map(EventPersonalIdentifiers::toString).toArray(String[]::new);
+        return Arrays.stream(EventPersonalIdentifiers.values())
+            .map(EventPersonalIdentifiers::toString)
+            .toArray(String[]::new);
     }
 
 }

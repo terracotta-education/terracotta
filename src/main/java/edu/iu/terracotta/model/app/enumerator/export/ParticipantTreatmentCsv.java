@@ -2,6 +2,9 @@ package edu.iu.terracotta.model.app.enumerator.export;
 
 import java.util.Arrays;
 
+import lombok.AllArgsConstructor;
+
+@AllArgsConstructor
 public enum ParticipantTreatmentCsv {
 
     // NOTE: order is important!
@@ -22,17 +25,15 @@ public enum ParticipantTreatmentCsv {
 
     private String header;
 
-    ParticipantTreatmentCsv(String header) {
-        this.header = header;
-    }
-
     @Override
     public String toString() {
         return header;
     }
 
     public static String[] getHeaderRow() {
-        return Arrays.stream(ParticipantTreatmentCsv.values()).map(ParticipantTreatmentCsv::toString).toArray(String[]::new);
+        return Arrays.stream(ParticipantTreatmentCsv.values())
+            .map(ParticipantTreatmentCsv::toString)
+            .toArray(String[]::new);
     }
 
 }
