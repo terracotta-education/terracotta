@@ -8,6 +8,7 @@ import org.imsglobal.caliper.clients.AbstractClient;
 /**
  * Utility class that serializes Caliper envelope.
  */
+@SuppressWarnings({"PMD.UncommentedEmptyMethodBody"})
 public class JSONSerializerClient extends AbstractClient {
 
     protected JSONSerializerClient() {
@@ -16,7 +17,6 @@ public class JSONSerializerClient extends AbstractClient {
 
     @Override
     public void send(Envelope envelope) {
-
     }
 
     public static String serialize(Envelope envelope) {
@@ -26,4 +26,5 @@ public class JSONSerializerClient extends AbstractClient {
             throw new RuntimeException("Failed to serialize envelope", e);
         }
     }
+
 }

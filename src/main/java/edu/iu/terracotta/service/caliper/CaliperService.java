@@ -29,13 +29,6 @@ public interface CaliperService {
 
     void sendViewGradeEvent(Submission submission, SecuredInfo securedInfo);
 
-    void sendToolUseEvent(LtiMembershipEntity membershipEntity,
-                          String canvasUserGlobalId,
-                          String canvasCourseId,
-                          String canvasUserId,
-                          String canvasLoginId,
-                          List<String> canvasRoles,
-                          String canvasUserName);
-
+    void sendToolUseEvent(LtiMembershipEntity membershipEntity, String canvasUserGlobalId, String canvasCourseId, String canvasUserId, String canvasLoginId, List<String> canvasRoles, String canvasUserName);
 
 }
