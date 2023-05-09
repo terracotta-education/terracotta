@@ -76,6 +76,7 @@ import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.DateUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -163,6 +164,9 @@ public class APIJWTServiceImpl implements APIJWTService {
 
     @Autowired
     private AnswerSubmissionService answerSubmissionService;
+
+    @Value("${app.token.logging.enabled:true}")
+    private boolean tokenLoggingEnabled;
 
     /**
      * This will check that the state has been signed by us and retrieve the issuer private key.
@@ -317,7 +321,9 @@ public class APIJWTServiceImpl implements APIJWTService {
             apiDataService.addOneUseToken(token);
         }
 
-        log.debug("Token Request: \n {} \n", token);
+        if (tokenLoggingEnabled) {
+            log.debug("Token Request: \n {} \n", token);
+        }
 
         return token;
     }
@@ -409,7 +415,10 @@ public class APIJWTServiceImpl implements APIJWTService {
             .claim("fileId", fileId)  //This is an specific claim to ask for tokens.
             .signWith(toolPrivateKey, SignatureAlgorithm.RS256);  //We sign it with our own private key. The platform has the public one.
         String token = builder.compact();
-        log.debug("Token Request: \n {} \n", token);
+
+        if (tokenLoggingEnabled) {
+            log.debug("Token Request: \n {} \n", token);
+        }
 
         return token;
     }
@@ -457,7 +466,10 @@ public class APIJWTServiceImpl implements APIJWTService {
             .signWith(toolPrivateKey, SignatureAlgorithm.RS256);  //We sign it with our own private key. The platform has the public one.
 
         String newToken = builder.compact();
-        log.debug("Token Request: \n {} \n", newToken);
+
+        if (tokenLoggingEnabled) {
+            log.debug("Token Request: \n {} \n", newToken);
+        }
 
         return newToken;
     }

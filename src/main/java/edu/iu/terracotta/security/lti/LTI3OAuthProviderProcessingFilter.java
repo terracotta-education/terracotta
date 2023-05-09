@@ -21,6 +21,8 @@ import lombok.extern.slf4j.Slf4j;
 import edu.iu.terracotta.service.lti.LTIDataService;
 import edu.iu.terracotta.service.lti.LTIJWTService;
 import edu.iu.terracotta.utils.lti.LTI3Request;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.GenericFilterBean;
@@ -42,6 +44,9 @@ import java.util.List;
 @Slf4j
 @SuppressWarnings({"unchecked", "PMD.GuardLogStatement"})
 public class LTI3OAuthProviderProcessingFilter extends GenericFilterBean {
+
+    @Value("${app.lti.data.verbose.logging.enabled:false}")
+    private boolean ltiDataVerboseLoggingEnabled;
 
     private LTIDataService ltiDataService;
     private LTIJWTService ltijwtService;
@@ -81,15 +86,18 @@ public class LTI3OAuthProviderProcessingFilter extends GenericFilterBean {
             // This is just for logging.
             HttpServletRequest httpServletRequest = (HttpServletRequest) servletRequest;
             Enumeration<String> sessionAttributes = httpServletRequest.getSession().getAttributeNames();
-            log.debug("-------------------------------------------------------------------------------------------------------");
 
-            while (sessionAttributes.hasMoreElements()) {
-                String attName = sessionAttributes.nextElement();
-                log.debug(attName + " : " + httpServletRequest.getSession().getAttribute(attName));
+            if (ltiDataVerboseLoggingEnabled) {
+                log.debug("-------------------------------------------------------------------------------------------------------");
 
+                while (sessionAttributes.hasMoreElements()) {
+                    String attName = sessionAttributes.nextElement();
+                    log.debug(attName + " : " + httpServletRequest.getSession().getAttribute(attName));
+
+                }
+
+                log.debug("-------------------------------------------------------------------------------------------------------");
             }
-
-            log.debug("-------------------------------------------------------------------------------------------------------");
 
             // First we validate that the state is a good state.
 

@@ -43,6 +43,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.thymeleaf.util.ListUtils;
@@ -89,6 +90,9 @@ public class LTI3Request {
 
     private HttpServletRequest httpServletRequest;
     private LTIDataService ltiDataService;
+
+    @Value("${app.lti.data.verbose.logging.enabled:false}")
+    private boolean ltiDataVerboseLoggingEnabled;
 
     // these are populated by the loadLTIDataFromDB operation
 
@@ -303,15 +307,17 @@ public class LTI3Request {
 
         Jws<Claims> jws = parser.build().parseClaimsJws(jwt);
         //This is just for logging.
-        Enumeration<String> sessionAttributes = httpServletRequest.getSession().getAttributeNames();
-        log.debug("----------------------BEFORE---------------------------------------------------------------------------------");
+        if (ltiDataVerboseLoggingEnabled) {
+            Enumeration<String> sessionAttributes = httpServletRequest.getSession().getAttributeNames();
+            log.debug("----------------------BEFORE---------------------------------------------------------------------------------");
 
-        while (sessionAttributes.hasMoreElements()) {
-            String attName = sessionAttributes.nextElement();
-            log.debug(attName + " : " + httpServletRequest.getSession().getAttribute(attName));
+            while (sessionAttributes.hasMoreElements()) {
+                String attName = sessionAttributes.nextElement();
+                log.debug(attName + " : " + httpServletRequest.getSession().getAttribute(attName));
+            }
+
+            log.debug("-------------------------------------------------------------------------------------------------------");
         }
-
-        log.debug("-------------------------------------------------------------------------------------------------------");
 
         //We check that the LTI request is a valid LTI Request and has the right type.
         String isLTI3Request = isLTI3Request(jws);
