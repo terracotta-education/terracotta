@@ -24,14 +24,14 @@ import io.jsonwebtoken.JwsHeader;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.SigningKeyResolverAdapter;
+import lombok.extern.slf4j.Slf4j;
 import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.utils.TextConstants;
 import edu.iu.terracotta.utils.oauth.OAuthUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.DateUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -47,16 +47,16 @@ import java.util.UUID;
  * This manages all the data processing for the LTIRequest (and for LTI in general)
  * Necessary to get appropriate TX handling and service management
  */
+@Slf4j
 @Service
 @SuppressWarnings({"rawtypes"})
 public class LTIJWTServiceImpl implements LTIJWTService {
 
-    static final Logger log = LoggerFactory.getLogger(LTIJWTServiceImpl.class);
-
     @Autowired
-    LTIDataService ltiDataService;
+    private LTIDataService ltiDataService;
 
-    String error;
+    @Value("${app.token.logging.enabled:true}")
+    private boolean tokenLoggingEnabled;
 
     /**
      * This will check that the state has been signed by us and retrieve the issuer private key.
@@ -79,6 +79,7 @@ public class LTIJWTServiceImpl implements LTIJWTService {
                     log.error("Error validating the state. Error generating the tool public key", ex);
                     return null;
                 }
+
                 return toolPublicKey;
             }
         })
@@ -86,7 +87,6 @@ public class LTIJWTServiceImpl implements LTIJWTService {
         .parseClaimsJws(state);
         // If we are on this point, then the state signature has been validated. We can start other tasks now.
     }
-
 
     /**
      * We will just check that it is a valid signed JWT from the issuer. The logic later will decide if we
@@ -96,14 +96,13 @@ public class LTIJWTServiceImpl implements LTIJWTService {
      */
     @Override
     public Jws<Claims> validateJWT(String jwt, String clientId) {
-
         return Jwts.parserBuilder().setSigningKeyResolver(new SigningKeyResolverAdapter() {
-
             // This is done because each state is signed with a different key based on the issuer... so
             // we don't know the key and we need to check it pre-extracting the claims and finding the kid
             @Override
             public Key resolveSigningKey(JwsHeader header, Claims claims) {
                 PlatformDeployment platformDeployment;
+
                 try {
                     // We are dealing with RS256 encryption, so we have some Oauth utils to manage the keys and
                     // convert them to keys from the string stored in DB. There are for sure other ways to manage this.
@@ -112,6 +111,7 @@ public class LTIJWTServiceImpl implements LTIJWTService {
                     log.error("Kid not found in header", ex);
                     return null;
                 }
+
                 // If the platform has a JWK Set endpoint... we try that.
                 if (StringUtils.isNoneEmpty(platformDeployment.getJwksEndpoint())) {
                     try {
@@ -125,11 +125,11 @@ public class LTIJWTServiceImpl implements LTIJWTService {
                         log.error("Kid not found in header", ex);
                         return null;
                     }
-                } else { // If not, we get the key stored in our configuration
-                    log.error("The platform configuration must contain a valid JWKS");
-                    return null;
                 }
 
+                // If not, we get the key stored in our configuration
+                log.error("The platform configuration must contain a valid JWKS");
+                return null;
             }
         })
         .build()
@@ -141,29 +141,33 @@ public class LTIJWTServiceImpl implements LTIJWTService {
      */
     @Override
     public String generateTokenRequestJWT(PlatformDeployment platformDeployment) throws GeneralSecurityException, IOException {
-
         Date date = new Date();
-        Key toolPrivateKey = OAuthUtils.loadPrivateKey(ltiDataService.getOwnPrivateKey());
         String aud;
-        //D2L needs a different aud, maybe others too
+
+        // D2L needs a different aud, maybe others too
         if (platformDeployment.getOAuth2TokenAud() != null) {
             aud = platformDeployment.getOAuth2TokenAud();
         } else {
             aud = platformDeployment.getOAuth2TokenUrl();
         }
+
         String state = Jwts.builder()
-                .setHeaderParam("kid", TextConstants.DEFAULT_KID)
-                .setHeaderParam("typ", "JWT")
-                .setIssuer(platformDeployment.getClientId())  // D2L needs the issuer to be the clientId
-                .setSubject(platformDeployment.getClientId()) // The clientId
-                .setAudience(aud)  //We send here the authToken url.
-                .setExpiration(DateUtils.addSeconds(date, 3600)) //a java.util.Date
-                .setNotBefore(date) //a java.util.Date
-                .setIssuedAt(date) // for example, now
-                .claim("jti", UUID.randomUUID().toString())  //This is an specific claim to ask for tokens.
-                .signWith(toolPrivateKey, SignatureAlgorithm.RS256)  //We sign it with our own private key. The platform has the public one.
-                .compact();
-        log.debug("Token Request: \n {} \n", state);
+            .setHeaderParam("kid", TextConstants.DEFAULT_KID)
+            .setHeaderParam("typ", "JWT")
+            .setIssuer(platformDeployment.getClientId())  // D2L needs the issuer to be the clientId
+            .setSubject(platformDeployment.getClientId()) // The clientId
+            .setAudience(aud)  //We send here the authToken url.
+            .setExpiration(DateUtils.addSeconds(date, 3600)) //a java.util.Date
+            .setNotBefore(date) //a java.util.Date
+            .setIssuedAt(date) // for example, now
+            .claim("jti", UUID.randomUUID().toString())  //This is an specific claim to ask for tokens.
+            .signWith(OAuthUtils.loadPrivateKey(ltiDataService.getOwnPrivateKey()), SignatureAlgorithm.RS256)  //We sign it with our own private key. The platform has the public one.
+            .compact();
+
+        if (tokenLoggingEnabled) {
+            log.debug("Token Request: \n {} \n", state);
+        }
+
         return state;
     }
 
