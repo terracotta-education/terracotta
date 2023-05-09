@@ -23,6 +23,7 @@ import edu.iu.terracotta.utils.lti.LtiOidcUtils;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -68,6 +69,9 @@ public class OIDCController {
 
     @Autowired
     private LTIDataService ltiDataService;
+
+    @Value("${app.lti.data.verbose.logging.enabled:false}")
+    private boolean ltiDataVerboseLoggingEnabled;
 
     /**
      * This will receive the request to start the OIDC process.
@@ -248,7 +252,7 @@ public class OIDCController {
         authRequestMap.put("scope", OPEN_ID);  //Always this value, as specified in the standard.
         // The state is something that we can create and add anything we want on it.
         // On this case, we have decided to create a JWT token with some information that we will use as additional security. But it is not mandatory.
-        String state = LtiOidcUtils.generateState(ltiDataService, platformDeployment, authRequestMap, loginInitiationDTO, clientIdValue, deploymentIdValue);
+        String state = LtiOidcUtils.generateState(ltiDataService, platformDeployment, authRequestMap, loginInitiationDTO, clientIdValue, deploymentIdValue, ltiDataVerboseLoggingEnabled);
         authRequestMap.put("state", state); //The state we use later to retrieve some useful information about the OICD request.
         authRequestMap.put("oicdEndpoint", platformDeployment.getOidcEndpoint());  //We need this in the Thymeleaf template in case we decide to use the POST method. It is the endpoint where the LMS receives the OICD requests
         authRequestMap.put("oicdEndpointComplete", generateCompleteUrl(authRequestMap));  //This generates the URL to use in case we decide to use the GET method

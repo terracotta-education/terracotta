@@ -15,23 +15,20 @@ package edu.iu.terracotta.utils.lti;
 import edu.iu.terracotta.service.lti.LTIDataService;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import lombok.extern.slf4j.Slf4j;
 import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.model.lti.dto.LoginInitiationDTO;
 import edu.iu.terracotta.utils.TextConstants;
 import edu.iu.terracotta.utils.oauth.OAuthUtils;
 import org.apache.commons.lang3.time.DateUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.Key;
 import java.util.Date;
 import java.util.Map;
 
+@Slf4j
 public final class LtiOidcUtils {
-
-    static final Logger log = LoggerFactory.getLogger(LtiOidcUtils.class);
 
     private LtiOidcUtils() {
         throw new IllegalStateException("Utility class");
@@ -41,8 +38,7 @@ public final class LtiOidcUtils {
      * The state will be returned when the tool makes the final call to us, so it is useful to send information
      * to our own tool, to know about the request.
      */
-    public static String generateState(LTIDataService ltiDataService, PlatformDeployment platformDeployment, Map<String, String> authRequestMap, LoginInitiationDTO loginInitiationDTO, String clientIdValue, String deploymentIdValue) throws GeneralSecurityException, IOException {
-
+    public static String generateState(LTIDataService ltiDataService, PlatformDeployment platformDeployment, Map<String, String> authRequestMap, LoginInitiationDTO loginInitiationDTO, String clientIdValue, String deploymentIdValue, boolean verboseLogging) throws GeneralSecurityException, IOException {
         Date date = new Date();
         Key issPrivateKey = OAuthUtils.loadPrivateKey(ltiDataService.getOwnPrivateKey());
         String state = Jwts.builder()
@@ -64,7 +60,11 @@ public final class LtiOidcUtils {
                 .claim("controller", "/oidc/login_initiations")
                 .signWith(issPrivateKey, SignatureAlgorithm.RS256)  //We sign it
                 .compact();
-        log.debug("State: \n {} \n", state);
+
+        if (verboseLogging) {
+            log.debug("State: \n {} \n", state);
+        }
+
         return state;
     }
 
