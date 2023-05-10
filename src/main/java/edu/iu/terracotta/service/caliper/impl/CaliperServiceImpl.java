@@ -122,18 +122,24 @@ public class CaliperServiceImpl implements CaliperService {
 
     @Override
     public void send(Envelope envelope, PlatformDeployment platformDeployment) {
-        try {
-            Sensor sensor = getSensor(platformDeployment);
+        Thread thread = new Thread(
+            () ->
+                {
+                    try {
+                        Sensor sensor = getSensor(platformDeployment);
 
-            if (sensor == null) {
-                log.error("No sensor configured for deployment ID: '{}'", platformDeployment.getKeyId());
-                return;
-            }
+                        if (sensor == null) {
+                            log.error("No sensor configured for deployment ID: '{}'", platformDeployment.getKeyId());
+                            return;
+                        }
 
-            sensor.send(envelope);
-        } catch (Exception e) {
-            log.error("Failed to send event data to caliper: '{}' for deployment ID: '{}' with error: '{}'", platformDeployment.getCaliperHost(), platformDeployment.getKeyId(), e.getMessage());
-        }
+                        sensor.send(envelope);
+                    } catch (Exception e) {
+                        log.error("Failed to send event data to caliper: '{}' for deployment ID: '{}' with error: '{}'", platformDeployment.getCaliperHost(), platformDeployment.getKeyId(), e.getMessage());
+                    }
+                }
+        );
+        thread.start();
     }
 
     @Override

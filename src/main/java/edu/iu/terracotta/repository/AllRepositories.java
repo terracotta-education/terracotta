@@ -137,6 +137,9 @@ public class AllRepositories {
     @Autowired
     public AnswerFileSubmissionRepository answerFileSubmissionRepository;
 
+    @Autowired
+    public CanvasAPITokenRepository canvasAPITokenRepository;
+
     @PersistenceContext
     public EntityManager entityManager;
 

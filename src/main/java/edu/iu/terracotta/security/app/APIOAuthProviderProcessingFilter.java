@@ -19,6 +19,8 @@ import io.jsonwebtoken.security.SecurityException;
 import lombok.extern.slf4j.Slf4j;
 import edu.iu.terracotta.service.app.APIDataService;
 import edu.iu.terracotta.service.app.APIJWTService;
+
+import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.StringUtils;
@@ -40,13 +42,14 @@ import java.util.Locale;
 @SuppressWarnings({"PMD.GuardLogStatement"})
 public class APIOAuthProviderProcessingFilter extends GenericFilterBean {
 
-    private APIJWTService apiJwtService;
-    private APIDataService apiDataService;
-
     private static final String JWT_REQUEST_HEADER_NAME = "Authorization";
     private static final String JWT_BEARER_TYPE = "Bearer";
     private static final String QUERY_PARAM_NAME = "token";
+
     private final boolean allowQueryParam;
+
+    private APIJWTService apiJwtService;
+    private APIDataService apiDataService;
 
     public APIOAuthProviderProcessingFilter(APIJWTService apiJwtService, APIDataService apiDataService) {
         this(apiJwtService, apiDataService, false);
@@ -88,7 +91,7 @@ public class APIOAuthProviderProcessingFilter extends GenericFilterBean {
                 throw new AuthenticationCredentialsNotFoundException("Missing JWT token");
             }
 
-            //Second, as the state is something that we have created, it should be in our list of states.
+            // Second, as the state is something that we have created, it should be in our list of states.
 
             if (StringUtils.hasText(token)) {
                 Jws<Claims> tokenClaims = apiJwtService.validateToken(token);
@@ -97,9 +100,9 @@ public class APIOAuthProviderProcessingFilter extends GenericFilterBean {
                         throw new IllegalStateException("API token is invalid");
                     }
 
-                    //TODO add here any other checks we want to perform.
+                    // TODO add here any other checks we want to perform.
 
-                    if ((Boolean) tokenClaims.getBody().get("oneUse")){
+                    if (BooleanUtils.toBoolean((String) tokenClaims.getBody().get("oneUse"))){
                         boolean exists = apiDataService.findAndDeleteOneUseToken(token);
 
                         if (!exists){
@@ -111,14 +114,14 @@ public class APIOAuthProviderProcessingFilter extends GenericFilterBean {
 
             filterChain.doFilter(servletRequest, servletResponse);
             this.resetAuthenticationAfterRequest();
-        } catch (ExpiredJwtException eje) {
-            log.warn("Security exception for user {} - {}", eje.getClaims().getSubject(), eje.getMessage());
+        } catch (ExpiredJwtException e) {
+            log.warn("Security exception for user {} - {}", e.getClaims().getSubject(), e.getMessage());
             ((HttpServletResponse) servletResponse).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            log.debug("Exception " + eje.getMessage(), eje);
-        } catch (SecurityException ex) {
-            log.warn("Invalid JWT signature: {0}", ex.getMessage());
-            log.debug("Exception " + ex.getMessage(), ex);
+        } catch (SecurityException e) {
+            log.warn("Invalid JWT signature: {}", e.getMessage());
             ((HttpServletResponse) servletResponse).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        } catch (AuthenticationCredentialsNotFoundException | IllegalStateException e) {
+            log.warn("Error handling JWT token: {}", e.getMessage());
         }
     }
 
