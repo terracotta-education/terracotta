@@ -27,9 +27,9 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.BufferingClientHttpRequestFactory;
@@ -56,6 +56,9 @@ public class AdvantageConnectorHelperImpl implements AdvantageConnectorHelper {
     @Autowired
     private ExceptionMessageGenerator exceptionMessageGenerator;
 
+    @Value("${app.token.logging.enabled:true}")
+    private boolean tokenLoggingEnabled;
+
     @Override
     public HttpEntity createRequestEntity(String apiKey) {
         HttpHeaders headers = new HttpHeaders();
@@ -64,7 +67,6 @@ public class AdvantageConnectorHelperImpl implements AdvantageConnectorHelper {
         return new HttpEntity<>(headers);
     }
 
-    // We put the token in the Authorization as a simple Bearer one.
     @Override
     public HttpEntity createTokenizedRequestEntity(LTIToken ltiToken) {
         HttpHeaders headers = new HttpHeaders();
@@ -73,7 +75,6 @@ public class AdvantageConnectorHelperImpl implements AdvantageConnectorHelper {
         return new HttpEntity<>(headers);
     }
 
-    // We put the token in the Authorization as a simple Bearer one.
     @Override
     public HttpEntity<LineItem> createTokenizedRequestEntity(LTIToken ltiToken, LineItem lineItem) {
         HttpHeaders headers = new HttpHeaders();
@@ -82,7 +83,6 @@ public class AdvantageConnectorHelperImpl implements AdvantageConnectorHelper {
         return new HttpEntity<>(lineItem, headers);
     }
 
-    // We put the token in the Authorization as a simple Bearer one.
     @Override
     public HttpEntity<LineItems> createTokenizedRequestEntity(LTIToken ltiToken, LineItems lineItems) {
         HttpHeaders headers = new HttpHeaders();
@@ -91,7 +91,6 @@ public class AdvantageConnectorHelperImpl implements AdvantageConnectorHelper {
         return new HttpEntity<>(lineItems, headers);
     }
 
-    // We put the token in the Authorization as a simple Bearer one.
     @Override
     public HttpEntity<String> createTokenizedRequestEntity(LTIToken ltiToken, String score) {
         HttpHeaders headers = new HttpHeaders();
@@ -101,57 +100,51 @@ public class AdvantageConnectorHelperImpl implements AdvantageConnectorHelper {
         return new HttpEntity<>(score, headers);
     }
 
-    //Asking for a token. The scope will come in the scope parameter
-    //The platformDeployment has the URL to ask for the token.
+    // Asking for a token. The scope will come in the scope parameter
+    // The platformDeployment has the URL to ask for the token.
     @Override
     public LTIToken getToken(PlatformDeployment platformDeployment, String scope) throws ConnectionException {
-        LTIToken ltiToken = null;
         try {
-
-            // We need an specific request for the token.
             HttpEntity request = createTokenRequest(scope, platformDeployment);
             final String postTokenUrl = platformDeployment.getOAuth2TokenUrl();
-            log.debug("POST_TOKEN_URL -  " + postTokenUrl);
+
+            if (tokenLoggingEnabled) {
+                log.debug("POST_TOKEN_URL -  " + postTokenUrl);
+            }
+
             ResponseEntity<LTIToken> reportPostResponse = postEntity(postTokenUrl, request, platformDeployment, scope);
 
             if (reportPostResponse == null) {
                 log.warn("Problem getting the token");
             }
 
-            HttpStatus status = reportPostResponse.getStatusCode();
-
-            if (!status.is2xxSuccessful()) {
-                String exceptionMsg = "Can't get the token: " + status.getReasonPhrase();
+            if (!reportPostResponse.getStatusCode().is2xxSuccessful()) {
+                String exceptionMsg = "Can't get the token: " + reportPostResponse.getStatusCode().getReasonPhrase();
                 log.error(exceptionMsg);
                 throw new ConnectionException(exceptionMsg);
             }
 
-            ltiToken = reportPostResponse.getBody();
+            return reportPostResponse.getBody();
         } catch (Exception e) {
-            log.error("ERROR GETTING THE TOKEN", e);
+            log.error("Error getting the token: '{}'", e.getMessage());
             StringBuilder exceptionMsg = new StringBuilder();
             exceptionMsg.append("Can't get the token. Exception");
             log.error(exceptionMsg.toString());
             throw new ConnectionException(exceptionMessageGenerator.exceptionMessage(exceptionMsg.toString(), e));
         }
-
-        return ltiToken;
     }
 
     private ResponseEntity<LTIToken> postEntity(String postTokenUrl, HttpEntity request, PlatformDeployment platformDeployment, String scope) throws GeneralSecurityException, IOException {
-        ResponseEntity<LTIToken> reportPostResponse;
         RestTemplate restTemplate = createRestTemplate();
 
         try {
-            reportPostResponse = restTemplate.postForEntity(postTokenUrl, request, LTIToken.class);
+            return restTemplate.postForEntity(postTokenUrl, request, LTIToken.class);
         } catch (Exception ex) {
-            log.error("ERROR GETTING THE TOKEN", ex);
+            log.error("Error getting the token: '{}'", ex.getMessage());
             log.error("Can't get the token. Exception. We will try again with a JSON Payload");
             HttpEntity request2 = createTokenRequestJSON(scope, platformDeployment);
-            reportPostResponse = restTemplate.postForEntity(postTokenUrl, request2, LTIToken.class);
+            return restTemplate.postForEntity(postTokenUrl, request2, LTIToken.class);
         }
-
-        return reportPostResponse;
     }
 
     // This is specific to request a token.
