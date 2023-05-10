@@ -36,6 +36,7 @@ import edu.iu.terracotta.model.app.dto.SubmissionDto;
 import edu.iu.terracotta.model.app.dto.TreatmentDto;
 import edu.iu.terracotta.model.app.enumerator.MultipleSubmissionScoringScheme;
 import edu.iu.terracotta.model.canvas.AssignmentExtended;
+import edu.iu.terracotta.model.canvas.CanvasAPITokenEntity;
 import edu.iu.terracotta.model.oauth2.LTIToken;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.AllRepositories;
@@ -499,6 +500,7 @@ public class AssignmentServiceImpl implements AssignmentService {
     @Override
     public void checkAndRestoreAllAssignmentsInCanvas() throws CanvasApiException, DataServiceException, ConnectionException, IOException {
         List<PlatformDeployment> allDeployments = allRepositories.platformDeploymentRepository.findAll();
+
         for (PlatformDeployment platformDeployment:allDeployments) {
             checkAndRestoreAssignmentsInCanvas(platformDeployment.getKeyId());
         }
@@ -579,8 +581,15 @@ public class AssignmentServiceImpl implements AssignmentService {
         String canvasCourseId = StringUtils.substringBetween(
                 assignment.getExposure().getExperiment().getLtiContextEntity().getContext_memberships_url(), "courses/",
                 "/names");
-        return canvasAPIClient.checkAssignmentExists(instructorUser, Integer.parseInt(assignment.getLmsAssignmentId()),
-                canvasCourseId).isPresent();
+
+        Optional<CanvasAPITokenEntity> apiToken = allRepositories.canvasAPITokenRepository.findByUser(instructorUser);
+
+        if (!apiToken.isPresent()) {
+            // instructor does not have an API token; skip processing
+            return true;
+        }
+
+        return canvasAPIClient.checkAssignmentExists(instructorUser, Integer.parseInt(assignment.getLmsAssignmentId()), canvasCourseId).isPresent();
     }
 
     @Override

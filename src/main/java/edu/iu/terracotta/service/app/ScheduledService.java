@@ -7,5 +7,7 @@ import edu.iu.terracotta.exceptions.DataServiceException;
 import java.io.IOException;
 
 public interface ScheduledService {
+
     void restoreDeletedAssignments() throws DataServiceException, CanvasApiException, ConnectionException, IOException;
+
 }

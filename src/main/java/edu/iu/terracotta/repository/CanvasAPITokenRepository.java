@@ -10,4 +10,5 @@ import edu.iu.terracotta.model.canvas.CanvasAPITokenEntity;
 public interface CanvasAPITokenRepository extends JpaRepository<CanvasAPITokenEntity, Long> {
 
     Optional<CanvasAPITokenEntity> findByUser(LtiUserEntity user);
+
 }
