@@ -814,15 +814,25 @@ public class AssignmentServiceImpl implements AssignmentService {
             throw new DataServiceException("The assignment with the given ID does not exist");
         }
 
-        entityManager.detach(from);
+        AssignmentDto fromDto = toDto(from, false, false);
 
-        // reset ID
-        from.setAssignmentId(null);
+        // reset assignment details
+        fromDto.setAssignmentId(null);
+        fromDto.setLmsAssignmentId(null);
+        fromDto.setPublished(false);
+        fromDto.setResourceLinkId(null);
+        fromDto.setStarted(false);
 
         // add the "Copy of" prefix; truncate to max title length if needed
-        from.setTitle(StringUtils.truncate(String.format("%s %s", TextConstants.DUPLICATE_PREFIX, from.getTitle()), MAX_TITLE_LENGTH));
+        fromDto.setTitle(StringUtils.truncate(String.format("%s %s", TextConstants.DUPLICATE_PREFIX, from.getTitle()), MAX_TITLE_LENGTH));
 
-        Assignment newAssignment = save(from);
+        Assignment newAssignment = createAssignment(
+            fromDto,
+            from.getExposure().getExperiment().getExperimentId(),
+            securedInfo.getCanvasCourseId(),
+            from.getExposure().getExposureId(),
+            allRepositories.ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId())
+        );
 
         // duplicate treatments
         for (Treatment treatment : allRepositories.treatmentRepository.findByAssignment_AssignmentId(assignmentId)) {
