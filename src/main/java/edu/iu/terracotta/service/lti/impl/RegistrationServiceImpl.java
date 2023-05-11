@@ -29,52 +29,41 @@ import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-/**
- * This manages the Registration call
- * Necessary to get appropriate TX handling and service management
- */
 @Slf4j
 @Service
-@SuppressWarnings({"rawtypes", "PMD.GuardLogStatement"})
+@SuppressWarnings({"PMD.GuardLogStatement"})
 public class RegistrationServiceImpl implements RegistrationService {
 
     @Autowired
     private ExceptionMessageGenerator exceptionMessageGenerator;
 
-    //Calling the membership service and getting a paginated result of users.
     @Override
     public String callDynamicRegistration(String token, ToolRegistrationDTO toolRegistrationDTO, String endpoint) throws ConnectionException {
-        //TODO figure the answer to the post
-        String answer;
         try {
-            RestTemplate restTemplate = new RestTemplate(
-                    new BufferingClientHttpRequestFactory(new SimpleClientHttpRequestFactory()));
-            //We add the token in the request with this.
             HttpHeaders headers = new HttpHeaders();
             headers.set(HttpHeaders.AUTHORIZATION, "Bearer " + token);
-            HttpEntity request = new HttpEntity<>(toolRegistrationDTO, headers);
-            //The URL to get the course contents is stored in the context (in our database) because it came
-            // from the platform when we created the link to the context, and we saved it then.
 
-            log.debug("Endpoint -  " + endpoint);
-            ResponseEntity<String> registrationRequest = restTemplate.
-                    exchange(endpoint, HttpMethod.POST, request, String.class);
+            ResponseEntity<String> registrationRequest = new RestTemplate(new BufferingClientHttpRequestFactory(new SimpleClientHttpRequestFactory())).exchange(
+                endpoint,
+                HttpMethod.POST,
+                new HttpEntity<>(toolRegistrationDTO, headers),
+                String.class
+            );
             HttpStatus status = registrationRequest.getStatusCode();
-            if (status.is2xxSuccessful()) {
-                answer = registrationRequest.getBody();
-            } else {
+
+            if (!status.is2xxSuccessful()) {
                 String exceptionMsg = "Can't get confirmation of the registration";
                 log.error(exceptionMsg);
                 throw new ConnectionException(exceptionMsg);
             }
+
+            return registrationRequest.getBody();
         } catch (Exception e) {
             StringBuilder exceptionMsg = new StringBuilder();
             exceptionMsg.append("Problem during the registration");
             log.error(exceptionMsg.toString(), e);
             throw new ConnectionException(exceptionMessageGenerator.exceptionMessage(exceptionMsg.toString(), e));
         }
-        return answer;
     }
-
 
 }

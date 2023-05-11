@@ -70,15 +70,12 @@ public class LTIDataServiceImpl implements LTIDataService {
 
     @Override
     @Transactional
-    //We check if we already have the information about this link in the database.
     public boolean loadLTIDataFromDB(LTI3Request lti, String link) {
         assert repos != null;
         lti.setLoaded(false);
 
         if (lti.getLtiDeploymentId() == null || lti.getAud() == null) {
-            // don't even attempt this without the deployment Id, audience (client_id) or issuer, it's pointless
-            log.debug("LTIload: No key to load lti.results for");
-
+            log.debug("LTIload: No key to load lti.results");
             return false;
         }
 
@@ -107,7 +104,6 @@ public class LTIDataServiceImpl implements LTIDataService {
         List<Object[]> rows = qDeployment.getResultList();
 
         if (CollectionUtils.isEmpty(rows)) {
-
             if (ltiDataVerboseLoggingEnabled) {
                 log.debug("LTIload: No lti.results found for client_id: " + lti.getAud() + " and  deployment_id:" + lti.getLtiDeploymentId());
             }

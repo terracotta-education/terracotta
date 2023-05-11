@@ -14,25 +14,9 @@ public interface LTIDataService {
 
     AllRepositories getRepos();
 
-    /**
-     * Check if the information about this link in the database.
-     *
-     * @param lti
-     * @param link
-     * @return
-     */
     @Transactional
     boolean loadLTIDataFromDB(LTI3Request lti, String link);
 
-    /**
-     * Update the information for the context, user, membership, link (if received), etc...  with new information on the LTI Request.
-     *
-     * @param lti
-     * @param toolDeployment
-     * @param link
-     * @return
-     * @throws DataServiceException
-     */
     @Transactional
     int upsertLTIDataInDB(LTI3Request lti, ToolDeployment toolDeployment, String link) throws DataServiceException;
 
@@ -44,14 +28,6 @@ public interface LTIDataService {
 
     LtiMembershipEntity saveLtiMembershipEntity(LtiMembershipEntity ltiMembershipEntity);
 
-    /**
-     * Find or if possible create a ToolDeployment instance.
-     *
-     * @param iss
-     * @param clientId
-     * @param ltiDeploymentId
-     * @return {@link ToolDeployment} instance or null if not found and could not be created automatically
-     */
     ToolDeployment findOrCreateToolDeployment(String iss, String clientId, String ltiDeploymentId);
 
     String getOwnPrivateKey();

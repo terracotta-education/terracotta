@@ -26,7 +26,7 @@ import org.apache.commons.lang3.time.DateUtils;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.Key;
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -38,35 +38,30 @@ public final class DeepLinkUtils {
         throw new IllegalStateException("Utility class");
     }
 
-    /**
-     *
-     */
     public static Map<String, String> generateDeepLinkJWT(LTIDataService ltiDataService, PlatformDeployment platformDeployment, LTI3Request lti3Request, String localUrl) throws GeneralSecurityException, IOException {
-
-        Map<String, String> deepLinkJwtMap = new HashMap<>();
         Date date = new Date();
-
         Key toolPrivateKey = OAuthUtils.loadPrivateKey(ltiDataService.getOwnPrivateKey());
 
         // JWT 1:  Empty list of JSON
         String jwt1 = Jwts.builder()
-                .setHeaderParam(LtiStrings.TYP, LtiStrings.JWT)
-                .setHeaderParam(LtiStrings.KID, TextConstants.DEFAULT_KID)
-                .setHeaderParam(LtiStrings.ALG, LtiStrings.RS256)
-                .setIssuer(platformDeployment.getClientId())  //Client ID
-                .setAudience(lti3Request.getIss())
-                .setExpiration(DateUtils.addSeconds(date, 3600)) //a java.util.Date
-                .setIssuedAt(date) // for example, now
-                .claim(LtiStrings.LTI_NONCE, lti3Request.getNonce())
-                .claim(LtiStrings.LTI_AZP, lti3Request.getIss())
-                .claim(LtiStrings.LTI_DEPLOYMENT_ID, lti3Request.getLtiDeploymentId())
-                .claim(LtiStrings.LTI_MESSAGE_TYPE, LtiStrings.LTI_MESSAGE_TYPE_DEEP_LINKING_RESPONSE)
-                .claim(LtiStrings.LTI_VERSION, LtiStrings.LTI_VERSION_3)
-                .claim(LtiStrings.LTI_DATA, lti3Request.getDeepLinkData())
-                .claim(LtiStrings.LTI_CONTENT_ITEMS, new HashMap<String, Object>())
-                .signWith(toolPrivateKey, SignatureAlgorithm.RS256)  //We sign it
-                .compact();
+            .setHeaderParam(LtiStrings.TYP, LtiStrings.JWT)
+            .setHeaderParam(LtiStrings.KID, TextConstants.DEFAULT_KID)
+            .setHeaderParam(LtiStrings.ALG, LtiStrings.RS256)
+            .setIssuer(platformDeployment.getClientId())  //Client ID
+            .setAudience(lti3Request.getIss())
+            .setExpiration(DateUtils.addSeconds(date, 3600)) //a java.util.Date
+            .setIssuedAt(date) // for example, now
+            .claim(LtiStrings.LTI_NONCE, lti3Request.getNonce())
+            .claim(LtiStrings.LTI_AZP, lti3Request.getIss())
+            .claim(LtiStrings.LTI_DEPLOYMENT_ID, lti3Request.getLtiDeploymentId())
+            .claim(LtiStrings.LTI_MESSAGE_TYPE, LtiStrings.LTI_MESSAGE_TYPE_DEEP_LINKING_RESPONSE)
+            .claim(LtiStrings.LTI_VERSION, LtiStrings.LTI_VERSION_3)
+            .claim(LtiStrings.LTI_DATA, lti3Request.getDeepLinkData())
+            .claim(LtiStrings.LTI_CONTENT_ITEMS, new HashMap<String, Object>())
+            .signWith(toolPrivateKey, SignatureAlgorithm.RS256)  //We sign it
+            .compact();
 
+        Map<String, String> deepLinkJwtMap = new HashMap<>();
         deepLinkJwtMap.put("jwt1", jwt1);
 
         //JWT 2: One ltiResourcelink
@@ -166,26 +161,21 @@ public final class DeepLinkUtils {
     }
 
     static List<Map<String, Object>> createOneDeepLink(String localUrl) {
-        List<Map<String, Object>> deepLinks = new ArrayList<>();
         Map<String, Object> deepLink = new HashMap<>();
-
         deepLink.put(LtiStrings.DEEP_LINK_TYPE, LtiStrings.DEEP_LINK_LTIRESOURCELINK);
         deepLink.put(LtiStrings.DEEP_LINK_TITLE, "My test link");
         deepLink.put(LtiStrings.DEEP_LINK_URL, localUrl + "/lti3?link=1234");
-        deepLinks.add(deepLink);
-        return deepLinks;
 
-
+        return Collections.singletonList(deepLink);
     }
 
     static List<Map<String, Object>> createOneDeepLinkWithGrades(String localUrl) {
-        List<Map<String, Object>> deepLinks = new ArrayList<>();
         Map<String, Object> deepLink = new HashMap<>();
-
         deepLink.put(LtiStrings.DEEP_LINK_TYPE, LtiStrings.DEEP_LINK_LTIRESOURCELINK);
         deepLink.put(LtiStrings.DEEP_LINK_TITLE, "My test link");
         deepLink.put(LtiStrings.DEEP_LINK_URL, localUrl + "/lti3?link=1234");
         deepLink.put("lineItem", lineItem());
+
         Map<String, String> availableDates = new HashMap<>();
         Map<String, String> submissionDates = new HashMap<>();
         Map<String, String> custom = new HashMap<>();
@@ -199,34 +189,27 @@ public final class DeepLinkUtils {
         deepLink.put("available", availableDates);
         deepLink.put("submission", submissionDates);
         deepLink.put("custom", custom);
-        deepLinks.add(deepLink);
-        return deepLinks;
 
-
+        return Collections.singletonList(deepLink);
     }
 
     static Map<String, Object> lineItem() {
         Map<String, Object> deepLink = new HashMap<>();
-
         deepLink.put("scoreMaximum", 87);
         deepLink.put("label", "LTI 1234 Quiz");
         deepLink.put("resourceId", "1234");
         deepLink.put("tag", "myquiztest");
+
         return deepLink;
     }
 
 
     static List<Map<String, Object>> createOneDeepLinkNoLti() {
-        List<Map<String, Object>> deepLinks = new ArrayList<>();
-
         Map<String, Object> deepLink2b = new HashMap<>();
         deepLink2b.put(LtiStrings.DEEP_LINK_TYPE, "link");
         deepLink2b.put(LtiStrings.DEEP_LINK_URL, "https://www.youtube.com/watch?v=corV3-WsIro");
 
-        deepLinks.add(deepLink2b);
-        return deepLinks;
-
-
+        return Collections.singletonList(deepLink2b);
     }
 
 
@@ -271,23 +254,18 @@ public final class DeepLinkUtils {
     }
 
     static List<Map<String, Object>> createMultipleDeepLinkOnlyLti(String localUrl) {
-        List<Map<String, Object>> deepLinks = createOneDeepLink(localUrl);
-
         Map<String, Object> ltiResourceLink = new HashMap<>();
         ltiResourceLink.put(LtiStrings.DEEP_LINK_TYPE, LtiStrings.DEEP_LINK_LTIRESOURCELINK);
         ltiResourceLink.put(LtiStrings.DEEP_LINK_TITLE, "Another deep link");
         ltiResourceLink.put(LtiStrings.DEEP_LINK_URL, localUrl + "/lti3?link=4567");
-        deepLinks.add(ltiResourceLink);
-        return deepLinks;
+
+        return Collections.singletonList(ltiResourceLink);
     }
 
     private static String listMapToJson(List<Map<String, Object>> listMap) {
-
-        ObjectMapper objectMapper = new ObjectMapper();
         try {
-            return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(listMap);
+            return new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(listMap);
         } catch (JsonProcessingException e) {
-            e.printStackTrace();
             return "";
         }
     }
