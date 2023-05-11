@@ -23,7 +23,6 @@ import edu.iu.terracotta.utils.oauth.OAuthUtils;
 import org.apache.commons.lang3.time.DateUtils;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
-import java.security.Key;
 import java.util.Date;
 import java.util.Map;
 
@@ -40,25 +39,24 @@ public final class LtiOidcUtils {
      */
     public static String generateState(LTIDataService ltiDataService, PlatformDeployment platformDeployment, Map<String, String> authRequestMap, LoginInitiationDTO loginInitiationDTO, String clientIdValue, String deploymentIdValue, boolean verboseLogging) throws GeneralSecurityException, IOException {
         Date date = new Date();
-        Key issPrivateKey = OAuthUtils.loadPrivateKey(ltiDataService.getOwnPrivateKey());
         String state = Jwts.builder()
                 .setHeaderParam("kid", TextConstants.DEFAULT_KID)  // The key id used to sign this
                 .setHeaderParam("typ", "JWT") // The type
-                .setIssuer("ltiStarter")  //This is our own identifier, to know that we are the issuer.
+                .setIssuer("ltiStarter")  // This is our own identifier, to know that we are the issuer.
                 .setSubject(platformDeployment.getIss()) // We store here the platform issuer to check that matches with the issuer received later
-                .setAudience(platformDeployment.getClientId())  //We send here the clientId to check it later.
+                .setAudience(platformDeployment.getClientId())  // We send here the clientId to check it later.
                 .setExpiration(DateUtils.addSeconds(date, 3600)) //a java.util.Date
-                .setNotBefore(date) //a java.util.Date
+                .setNotBefore(date) // a java.util.Date
                 .setIssuedAt(date) // for example, now
-                .setId(authRequestMap.get("nonce")) //just a nonce... we don't use it by the moment, but it could be good if we store information about the requests in DB.
-                .claim("original_iss", loginInitiationDTO.getIss())  //All this claims are the information received in the OIDC initiation and some other useful things.
+                .setId(authRequestMap.get("nonce")) // just a nonce... we don't use it by the moment, but it could be good if we store information about the requests in DB.
+                .claim("original_iss", loginInitiationDTO.getIss())  // All this claims are the information received in the OIDC initiation and some other useful things.
                 .claim("loginHint", loginInitiationDTO.getLoginHint())
                 .claim("ltiMessageHint", loginInitiationDTO.getLtiMessageHint())
                 .claim("targetLinkUri", loginInitiationDTO.getTargetLinkUri())
                 .claim("clientId", clientIdValue)
                 .claim("ltiDeploymentId", deploymentIdValue)
                 .claim("controller", "/oidc/login_initiations")
-                .signWith(issPrivateKey, SignatureAlgorithm.RS256)  //We sign it
+                .signWith(OAuthUtils.loadPrivateKey(ltiDataService.getOwnPrivateKey()), SignatureAlgorithm.RS256)  // We sign it
                 .compact();
 
         if (verboseLogging) {

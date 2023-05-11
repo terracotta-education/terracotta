@@ -370,17 +370,11 @@ public class LTI3Request {
      * @return true if this is a complete and correct LTI request (includes key, context, link, user) OR false otherwise
      */
     public String processRequestParameters(HttpServletRequest request, Jws<Claims> jws) {
-
         if (request != null && this.httpServletRequest != request) {
             this.httpServletRequest = request;
         }
 
         assert this.httpServletRequest != null;
-
-        //First we get all the possible values, and we set null in the ones empty.
-        // Later we will review those values to check if the request is valid or not.
-
-        //LTI3 CORE
 
         iss = jws.getBody().getIssuer();
         aud = jws.getBody().getAudience();
@@ -481,6 +475,7 @@ public class LTI3Request {
         session.setAttribute(LtiStrings.LTI_SESSION_USER_ID, sub);
         session.setAttribute(LtiStrings.LTI_SESSION_CONTEXT_ID, ltiContextId);
         session.setAttribute(LtiStrings.LTI_SESSION_CONTEXT_ID, ltiContextId);
+
         try {
             ToolDeployment toolDeployment = this.ltiDataService.findOrCreateToolDeployment(iss, aud, ltiDeploymentId);
             session.setAttribute(LtiStrings.LTI_SESSION_TOOL_DEPLOYMENT_ID, toolDeployment.getLtiDeploymentId());
@@ -522,7 +517,7 @@ public class LTI3Request {
 
         // This is an ugly way to display the error... can be improved.
         if (complete && correct) {
-            return "true";
+            return Boolean.TRUE.toString();
         }
 
         if (complete) {
@@ -535,17 +530,15 @@ public class LTI3Request {
     }
 
     private String getNormalizedRoleName() {
-        String normalizedRoleName = LtiStrings.LTI_ROLE_GENERAL;
-
         if (isRoleAdministrator()) {
-            normalizedRoleName = LtiStrings.LTI_ROLE_ADMIN;
+            return LtiStrings.LTI_ROLE_ADMIN;
         } else if (isRoleInstructor()) {
-            normalizedRoleName = LtiStrings.LTI_ROLE_MEMBERSHIP_INSTRUCTOR;
+            return LtiStrings.LTI_ROLE_MEMBERSHIP_INSTRUCTOR;
         } else if (isRoleLearner()) {
-            normalizedRoleName = LtiStrings.LTI_ROLE_MEMBERSHIP_LEARNER;
+            return LtiStrings.LTI_ROLE_MEMBERSHIP_LEARNER;
         }
 
-        return normalizedRoleName;
+        return LtiStrings.LTI_ROLE_GENERAL;
     }
 
     private String getStringFromLTIRequest(Jws<Claims> jws, String stringToGet) {
@@ -727,11 +720,8 @@ public class LTI3Request {
      *
      * @return the string "true" if complete and the error message if not
      */
-    //TODO update this to check the really complete conditions...!
     private String checkCorrectLTIRequest() {
-        //TODO check things as:
-        // Roles are correct roles
-        return "true";
+        return Boolean.TRUE.toString();
     }
 
     /**
@@ -739,10 +729,8 @@ public class LTI3Request {
      *
      * @return the string "true" if complete and the error message if not
      */
-    //TODO update this to check the really complete conditions...!
     private String checkCorrectDeepLinkingRequest() {
-        //TODO check anything needed to check if the request is valid:
-        return "true";
+        return Boolean.TRUE.toString();
     }
 
     /**
@@ -773,7 +761,7 @@ public class LTI3Request {
             }
             if (found) {
                 httpServletRequest.getSession().setAttribute("lti_nonce", ltiNonceNew);
-                return "true";
+                return Boolean.TRUE.toString();
             } else {
                 return "Unknown or already used nounce.";
             }
@@ -819,9 +807,9 @@ public class LTI3Request {
             return LtiStrings.LTI_MESSAGE_TYPE_RESOURCE_LINK;
         } else if (valid && LtiStrings.LTI_MESSAGE_TYPE_DEEP_LINKING.equals(ltiMessageType)) {
             return LtiStrings.LTI_MESSAGE_TYPE_DEEP_LINKING;
-        } else {
-            return errorDetail;
         }
+
+        return errorDetail;
     }
 
     public boolean isRoleAdministrator() {
@@ -833,7 +821,7 @@ public class LTI3Request {
     }
 
     public boolean isRoleLearner() {
-        return ltiRoles != null && ltiRoles.contains(LtiStrings.LTI_ROLE_MEMBERSHIP_LEARNER);
+        return CollectionUtils.containsAny(ltiRoles, LtiStrings.LTI_ROLE_MEMBERSHIP_LEARNER);
     }
 
     /**
@@ -841,17 +829,15 @@ public class LTI3Request {
      * @return the number that represents the role (higher is more access)
      */
     public int makeUserRoleNum(List<String> rawUserRoles) {
-        int roleNum = 0;
-
         if (rawUserRoles != null) {
             if (rawUserRoles.contains(LtiStrings.LTI_ROLE_MEMBERSHIP_ADMIN)) {
-                roleNum = 2;
+                return 2;
             } else if (rawUserRoles.contains(LtiStrings.LTI_ROLE_MEMBERSHIP_INSTRUCTOR)) {
-                roleNum = 1;
+                return 1;
             }
         }
 
-        return roleNum;
+        return 0;
     }
 
 }

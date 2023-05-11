@@ -12,9 +12,6 @@
  */
 package edu.iu.terracotta.utils.oauth;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.security.GeneralSecurityException;
 import java.security.KeyFactory;
 import java.security.PrivateKey;
@@ -23,15 +20,11 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 
-//TODO use the Bouncy Castle library for this instead the sun security one.
-
 
 /**
  * OAuth handling utils
  */
-public class OAuthUtils {
-
-    static final Logger log = LoggerFactory.getLogger(OAuthUtils.class);
+public final class OAuthUtils {
 
     private OAuthUtils() {
         throw new IllegalStateException("Utility class");
@@ -41,24 +34,25 @@ public class OAuthUtils {
         String publicKeyContent = key.replace("\\n", "").replace("-----BEGIN PUBLIC KEY-----", "").replace("-----END PUBLIC KEY-----", "");
         KeyFactory kf = KeyFactory.getInstance("RSA");
         X509EncodedKeySpec keySpecX509 = new X509EncodedKeySpec(Base64.getDecoder().decode(publicKeyContent));
+
         return (RSAPublicKey) kf.generatePublic(keySpecX509);
     }
 
     public static PrivateKey loadPrivateKey(String privateKeyPem) throws GeneralSecurityException {
         // PKCS#8 format
-        final String PEM_PRIVATE_START = "-----BEGIN PRIVATE KEY-----";
-        final String PEM_PRIVATE_END = "-----END PRIVATE KEY-----";
+        final String pemPrivateStart = "-----BEGIN PRIVATE KEY-----";
+        final String pemPrivateEnd = "-----END PRIVATE KEY-----";
 
-        if (privateKeyPem.contains(PEM_PRIVATE_START)) { // PKCS#8 format
-            privateKeyPem = privateKeyPem.replace(PEM_PRIVATE_START, "").replace(PEM_PRIVATE_END, "");
+        if (privateKeyPem.contains(pemPrivateStart)) { // PKCS#8 format
+            privateKeyPem = privateKeyPem.replace(pemPrivateStart, "").replace(pemPrivateEnd, "");
             privateKeyPem = privateKeyPem.replaceAll("\\s", "");
             byte[] pkcs8EncodedKey = Base64.getDecoder().decode(privateKeyPem);
             KeyFactory factory = KeyFactory.getInstance("RSA");
+
             return factory.generatePrivate(new PKCS8EncodedKeySpec(pkcs8EncodedKey));
         }
 
         throw new GeneralSecurityException("Not supported format of a private key");
     }
-
 
 }

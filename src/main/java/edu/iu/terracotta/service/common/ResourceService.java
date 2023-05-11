@@ -15,8 +15,6 @@ package edu.iu.terracotta.service.common;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
-import org.springframework.core.io.support.ResourcePatternResolver;
-
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
@@ -24,15 +22,14 @@ import java.util.Set;
 public interface ResourceService<T> {
 
     default Set<T> getResources(Class<T> objectClass) throws IOException {
-        ObjectMapper mapper = new ObjectMapper();
-        ClassLoader cl = this.getClass().getClassLoader();
-        ResourcePatternResolver resourceResolver = new PathMatchingResourcePatternResolver(cl);
-        Resource[] resources = resourceResolver.getResources(getDirectoryPath() + "/*.json");
+        Resource[] resources = new PathMatchingResourcePatternResolver(this.getClass().getClassLoader()).getResources(getDirectoryPath() + "/*.json");
         Set<T> objects = new HashSet<>();
+
         for (Resource resource : resources) {
-            T object = mapper.readValue(resource.getInputStream(), objectClass);
+            T object = new ObjectMapper().readValue(resource.getInputStream(), objectClass);
             objects.add(object);
         }
+
         return objects;
     }
 

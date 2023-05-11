@@ -7,4 +7,5 @@ public interface LMSOAuthServiceManager {
     LMSOAuthService<?> getLMSOAuthService(PlatformDeployment platformDeployment);
 
     LMSOAuthService<?> getLMSOAuthService(long platformDeploymentId);
+
 }

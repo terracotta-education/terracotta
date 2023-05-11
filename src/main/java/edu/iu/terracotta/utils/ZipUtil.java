@@ -11,6 +11,10 @@ import java.util.zip.ZipOutputStream;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.springframework.core.io.ByteArrayResource;
 
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ZipUtil {
 
     public static ByteArrayResource generateZipFile(Map<String, String> files) throws IOException {
@@ -38,9 +42,6 @@ public final class ZipUtil {
         }
 
         return new ByteArrayResource(byteArrayOutputStream.toByteArray());
-    }
-
-    private ZipUtil() {
     }
 
 }

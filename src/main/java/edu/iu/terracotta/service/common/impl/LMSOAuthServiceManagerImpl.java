@@ -16,7 +16,7 @@ public class LMSOAuthServiceManagerImpl implements LMSOAuthServiceManager {
     private CanvasOAuthServiceImpl canvasOAuthService;
 
     @Autowired
-    AllRepositories allRepositories;
+    private AllRepositories allRepositories;
 
     @Override
     public LMSOAuthService<?> getLMSOAuthService(PlatformDeployment platformDeployment) {
