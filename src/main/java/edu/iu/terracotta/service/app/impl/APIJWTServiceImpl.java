@@ -428,6 +428,10 @@ public class APIJWTServiceImpl implements APIJWTService {
         int length = 3600;
         Jws<Claims> tokenClaims = validateToken(token);
 
+        if (tokenClaims == null) {
+            throw new BadTokenException("Token is invalid.");
+        }
+
         if (BooleanUtils.isTrue((Boolean) tokenClaims.getBody().get("oneUse"))) {
             throw new BadTokenException("Trying to refresh an one use token");
         }
