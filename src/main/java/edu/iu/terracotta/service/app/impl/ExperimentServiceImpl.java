@@ -55,19 +55,19 @@ public class ExperimentServiceImpl implements ExperimentService {
     private AllRepositories allRepositories;
 
     @Autowired
+    private AssignmentService assignmentService;
+
+    @Autowired
     private ConditionService conditionService;
 
     @Autowired
     private ExposureService exposureService;
 
     @Autowired
-    private ParticipantService participantService;
-
-    @Autowired
-    private AssignmentService assignmentService;
-
-    @Autowired
     private FileStorageServiceImpl fileStorageService;
+
+    @Autowired
+    private ParticipantService participantService;
 
     @Override
     public List<Experiment> findAllByDeploymentIdAndCourseId(long deploymentId, long contextId) {
@@ -89,12 +89,14 @@ public class ExperimentServiceImpl implements ExperimentService {
                 () ->
                     {
                         try {
+                            log.info("Starting assignment recreation in Canvas.");
                             assignmentService.checkAndRestoreAssignmentsInCanvasByContext(securedInfo);
                         } catch (CanvasApiException | DataServiceException | ConnectionException | IOException e) {
                             log.error("Error syncing assignments with Canvas. Context ID: '{}'", securedInfo.getContextId(), e);
                         }
                     }
             );
+
             thread.start();
         }
 

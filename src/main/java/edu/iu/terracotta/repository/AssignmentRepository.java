@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+@SuppressWarnings({"PMD.MethodNamingConventions"})
 public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
 
     Assignment findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(Long experimentId, String lmsAssignmentId);
@@ -25,6 +26,8 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
     boolean existsByExposure_Experiment_ExperimentIdAndAssignmentId(Long experimentId, Long assignmentId);
 
     Page<Assignment> findAll(Pageable pageable);
+
+    List<Assignment> findAllByExposure_Experiment_PlatformDeployment_KeyId(long depoymentId);
 
     @Transactional
     void deleteByAssignmentId(Long submissionId);

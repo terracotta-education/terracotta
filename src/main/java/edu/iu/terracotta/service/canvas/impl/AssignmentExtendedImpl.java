@@ -24,7 +24,7 @@ import java.util.Optional;
 
 @Slf4j
 @SuppressWarnings({"PMD.GuardLogStatement"})
-public class AssignmentExtendedImpl  extends BaseImpl<AssignmentExtended, AssignmentReaderExtended, AssignmentWriterExtended> implements AssignmentReaderExtended, AssignmentWriterExtended {
+public class AssignmentExtendedImpl extends BaseImpl<AssignmentExtended, AssignmentReaderExtended, AssignmentWriterExtended> implements AssignmentReaderExtended, AssignmentWriterExtended {
 
     public AssignmentExtendedImpl(String canvasBaseUrl, Integer apiVersion, OauthToken oauthToken, RestClient restClient, int connectTimeout, int readTimeout, Integer paginationPageSize, Boolean serializeNulls) {
         super(canvasBaseUrl, apiVersion, oauthToken, restClient, connectTimeout, readTimeout, paginationPageSize, serializeNulls);

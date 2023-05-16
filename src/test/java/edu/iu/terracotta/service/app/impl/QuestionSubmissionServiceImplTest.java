@@ -271,9 +271,8 @@ public class QuestionSubmissionServiceImplTest {
 
         questionSubmissionService.canSubmit(securedInfo, experimentId);
 
-        verify(this.canvasAPIClient).listAssignment(instructorUser, canvasCourseId,
-                Integer.valueOf(canvasAssignmentId));
-        verify(this.canvasAPIClient).listSubmissions(instructorUser, Integer.valueOf(canvasAssignmentId),
-                canvasCourseId);
+        verify(this.canvasAPIClient).listAssignment(instructorUser, canvasCourseId, Integer.valueOf(canvasAssignmentId));
+        verify(this.canvasAPIClient).listSubmissions(instructorUser, Integer.valueOf(canvasAssignmentId), canvasCourseId);
     }
+
 }

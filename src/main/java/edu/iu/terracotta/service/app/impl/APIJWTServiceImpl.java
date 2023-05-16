@@ -39,6 +39,7 @@ import edu.iu.terracotta.model.oauth2.Roles;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.APIDataService;
 import edu.iu.terracotta.service.app.APIJWTService;
+import edu.iu.terracotta.service.app.AdminService;
 import edu.iu.terracotta.service.app.AnswerService;
 import edu.iu.terracotta.service.app.AnswerSubmissionService;
 import edu.iu.terracotta.service.app.AssessmentService;
@@ -164,6 +165,9 @@ public class APIJWTServiceImpl implements APIJWTService {
 
     @Autowired
     private AnswerSubmissionService answerSubmissionService;
+
+    @Autowired
+    private AdminService adminService;
 
     @Value("${app.token.logging.enabled:true}")
     private boolean tokenLoggingEnabled;
@@ -599,6 +603,11 @@ public class APIJWTServiceImpl implements APIJWTService {
     @Override
     public boolean isAdmin(SecuredInfo securedInfo) {
         return securedInfo.getRoles().contains(Roles.ADMIN);
+    }
+
+    @Override
+    public boolean isTerracottaAdmin(SecuredInfo securedInfo) {
+        return adminService.isTerracottaAdmin(securedInfo.getUserId());
     }
 
     @Override

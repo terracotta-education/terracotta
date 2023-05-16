@@ -203,7 +203,7 @@ public class AssignmentServiceImplTest {
 
     @Test
     public void testGetAssignmentsNoCanvasAssignmentFound() throws AssessmentNotMatchingException, CanvasApiException {
-        when(canvasAPIClient.listAssignment(eq(instructorUser),anyString(), anyInt() )).thenReturn(Optional.empty());
+        when(canvasAPIClient.listAssignment(eq(instructorUser),anyString(), anyInt())).thenReturn(Optional.empty());
         List<AssignmentDto> assignmentDtos = assignmentService.getAssignments(0L, false, false, securedInfo);
 
         assertNotNull(assignmentDtos);

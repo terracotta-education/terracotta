@@ -90,6 +90,8 @@ public interface APIJWTService {
 
     boolean isAdmin(SecuredInfo securedInfo);
 
+    boolean isTerracottaAdmin(SecuredInfo securedInfo);
+
     boolean isInstructor(SecuredInfo securedInfo);
 
     boolean isInstructorOrHigher(SecuredInfo securedInfo);

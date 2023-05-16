@@ -140,6 +140,12 @@ public class AllRepositories {
     @Autowired
     public CanvasAPITokenRepository canvasAPITokenRepository;
 
+    @Autowired
+    public LtiMembershipRepository ltiMembershipRepository;
+
+    @Autowired
+    public AdminUserRepository adminUserRepository;
+
     @PersistenceContext
     public EntityManager entityManager;
 
