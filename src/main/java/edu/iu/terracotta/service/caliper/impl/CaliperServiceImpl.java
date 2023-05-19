@@ -581,7 +581,7 @@ public class CaliperServiceImpl implements CaliperService {
         int maxAttempts = 0;
 
         try {
-            maxAttempts = submission.getAssessment().getNumOfSubmissions();
+            maxAttempts = submission.getAssessment().getNumOfSubmissions() != null ? submission.getAssessment().getNumOfSubmissions() : 0;
         } catch (Exception ex) {
             log.warn(ex.getMessage());
         }
