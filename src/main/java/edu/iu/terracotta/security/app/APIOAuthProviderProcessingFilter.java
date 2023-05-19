@@ -20,7 +20,6 @@ import lombok.extern.slf4j.Slf4j;
 import edu.iu.terracotta.service.app.APIDataService;
 import edu.iu.terracotta.service.app.APIJWTService;
 
-import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.StringUtils;
