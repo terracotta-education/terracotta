@@ -411,21 +411,22 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
 
     @Override
     public void canSubmit(SecuredInfo securedInfo, long experimentId) throws CanvasApiException, AssignmentAttemptException, IOException {
-        // There are two possible ways to do this check. First, and preferred,
-        // is using LTI custom variable substitution to get the allowed attempts
-        // and the number of student attempts. The second is by making Canvas
-        // API calls to get the same information.
+        // There are two possible ways to do this check. First, and preferred, is using LTI custom variable substitution to get the allowed attempts
+        // and the number of student attempts. The second is by making Canvas API calls to get the same information.
 
         // (Approach #1) Using LTI custom variable substitution
+        if (securedInfo.getAllowedAttempts() != null && securedInfo.getAllowedAttempts() == -1) {
+            // unlimited attempts
+            return;
+        }
+
         if (securedInfo.getAllowedAttempts() != null && securedInfo.getStudentAttempts() != null) {
-            if (securedInfo.getAllowedAttempts() == -1) {
-                return;
-            }
-
             if (securedInfo.getStudentAttempts() < securedInfo.getAllowedAttempts()) {
+                // more attempts left
                 return;
             }
 
+            // attempts limit reached
             throw new AssignmentAttemptException(TextConstants.MAX_SUBMISSION_ATTEMPTS_REACHED);
         }
 
@@ -437,9 +438,8 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
         List<edu.ksu.canvas.model.assignment.Submission> submissionsList = canvasAPIClient.listSubmissions(instructorUser, assignmentIdInt, securedInfo.getCanvasCourseId());
 
         Optional<edu.ksu.canvas.model.assignment.Submission> submission = submissionsList.stream()
-            .filter(sub -> {
-                return sub.getUser().getId() == Integer.parseInt(securedInfo.getCanvasUserId());
-            })
+            .filter(sub -> sub.getUser() != null)
+            .filter(sub -> sub.getUser().getId() == Integer.parseInt(securedInfo.getCanvasUserId()))
             .findFirst();
 
         if (!assignmentExtended.isPresent() || !submission.isPresent()) {
