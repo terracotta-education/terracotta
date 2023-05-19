@@ -102,7 +102,7 @@ public class APIOAuthProviderProcessingFilter extends GenericFilterBean {
 
                     // TODO add here any other checks we want to perform.
 
-                    if (BooleanUtils.toBoolean((String) tokenClaims.getBody().get("oneUse"))){
+                    if ((Boolean) tokenClaims.getBody().get("oneUse")) {
                         boolean exists = apiDataService.findAndDeleteOneUseToken(token);
 
                         if (!exists){
