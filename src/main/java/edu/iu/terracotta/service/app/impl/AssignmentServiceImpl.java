@@ -67,7 +67,6 @@ import edu.iu.terracotta.model.app.Exposure;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import org.springframework.web.util.UriComponentsBuilder;
-
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 
@@ -525,12 +524,12 @@ public class AssignmentServiceImpl implements AssignmentService {
 
     @Override
     @Transactional(rollbackFor = { CanvasApiException.class })
-    public void checkAndRestoreAssignmentsInCanvasByContext(SecuredInfo securedInfo) throws CanvasApiException, DataServiceException, ConnectionException, IOException {
+    public List<AssignmentExtended> checkAndRestoreAssignmentsInCanvasByContext(SecuredInfo securedInfo) throws CanvasApiException, DataServiceException, ConnectionException, IOException {
         List<Assignment> assignmentsToCheck = allRepositories.assignmentRepository.findAssignmentsToCheckByContext(securedInfo.getContextId());
 
         if (CollectionUtils.isEmpty(assignmentsToCheck)) {
             log.info("No assignments exist in Terracotta for context ID: '{}' to check in Canvas. Aborting.", securedInfo.getContextId());
-            return;
+            return Collections.emptyList();
         }
 
         log.info("Checking Terracotta assignment IDs for context ID: '{}' in Canvas: {}",
@@ -539,6 +538,12 @@ public class AssignmentServiceImpl implements AssignmentService {
         );
 
         List<AssignmentExtended> canvasAssignments = getAllAssignmentsForCanvasCourse(securedInfo);
+
+        if (CollectionUtils.isEmpty(canvasAssignments)) {
+            log.info("No assignments exist in Canvas for context ID: '{}. Aborting.", securedInfo.getContextId());
+            return Collections.emptyList();
+        }
+
         List<Integer> canvasAssignmentIds = canvasAssignments.stream()
             .map(AssignmentExtended::getId)
             .toList();
@@ -560,7 +565,7 @@ public class AssignmentServiceImpl implements AssignmentService {
             )
             .toList();
 
-        log.info("Checking Terracotta assignments for context ID: '{}' in Canvas COMPLETE. Assignments recreated: {}",
+        log.info("Checking Terracotta assignments for context ID: '{}' in Canvas COMPLETE. Assignments recreated: {}.",
             securedInfo.getContextId(),
             CollectionUtils.isNotEmpty(assignmentsRecreated) ?
                 assignmentsRecreated.stream()
@@ -568,9 +573,12 @@ public class AssignmentServiceImpl implements AssignmentService {
                     .collect(Collectors.joining(", ")) :
                 "N/A"
         );
+
+        return canvasAssignments;
     }
 
-    private List<AssignmentExtended> getAllAssignmentsForCanvasCourse(SecuredInfo securedInfo) throws CanvasApiException {
+    @Override
+    public List<AssignmentExtended> getAllAssignmentsForCanvasCourse(SecuredInfo securedInfo) throws CanvasApiException {
         LtiUserEntity instructorUser = allRepositories.ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
 
         return canvasAPIClient.listAssignments(instructorUser, securedInfo.getCanvasCourseId());
@@ -610,8 +618,7 @@ public class AssignmentServiceImpl implements AssignmentService {
         canvasAssignment.setSubmissionTypes(Collections.singletonList("external_tool"));
         String canvasCourseId = StringUtils.substringBetween(assignment.getExposure().getExperiment().getLtiContextEntity().getContext_memberships_url(), "courses/", "/names");
 
-        Optional<AssignmentExtended> canvasAssignmentReturned = canvasAPIClient.createCanvasAssignment(
-                assignment.getExposure().getExperiment().getCreatedBy(), canvasAssignment, canvasCourseId);
+        Optional<AssignmentExtended> canvasAssignmentReturned = canvasAPIClient.createCanvasAssignment(assignment.getExposure().getExperiment().getCreatedBy(), canvasAssignment, canvasCourseId);
         assignment.setLmsAssignmentId(Integer.toString(canvasAssignmentReturned.get().getId()));
         String jwtTokenAssignment = canvasAssignmentReturned.get().getSecureParams();
         String resourceLinkId = apijwtService.unsecureToken(jwtTokenAssignment).getBody().get("lti_assignment_id").toString();

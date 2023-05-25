@@ -161,7 +161,7 @@ public class ExperimentController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteExperiment(@PathVariable("id") Long id,
+    public ResponseEntity<Void> deleteExperiment(@PathVariable long id,
                                                  HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ExperimentLockedException {
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);

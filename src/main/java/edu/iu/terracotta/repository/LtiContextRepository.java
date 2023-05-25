@@ -27,4 +27,5 @@ public interface LtiContextRepository extends JpaRepository<LtiContextEntity, Lo
     LtiContextEntity findByContextKey(String key);
 
     LtiContextEntity findByContextKeyAndToolDeployment(String contextKey, ToolDeployment toolDeployment);
+
 }

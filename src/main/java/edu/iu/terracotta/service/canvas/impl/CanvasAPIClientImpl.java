@@ -5,9 +5,12 @@ import edu.iu.terracotta.exceptions.LMSOAuthException;
 import edu.iu.terracotta.model.LtiUserEntity;
 import edu.iu.terracotta.model.canvas.AssignmentExtended;
 import edu.iu.terracotta.model.canvas.CanvasAPITokenEntity;
+import edu.iu.terracotta.model.canvas.CourseExtended;
 import edu.iu.terracotta.service.canvas.AssignmentReaderExtended;
 import edu.iu.terracotta.service.canvas.AssignmentWriterExtended;
 import edu.iu.terracotta.service.canvas.CanvasAPIClient;
+import edu.iu.terracotta.service.canvas.CourseReaderExtended;
+import edu.iu.terracotta.service.canvas.CourseWriterExtended;
 import edu.ksu.canvas.exception.CanvasException;
 import edu.ksu.canvas.exception.ObjectNotFoundException;
 import edu.ksu.canvas.interfaces.CanvasReader;
@@ -19,6 +22,7 @@ import edu.ksu.canvas.oauth.OauthToken;
 import edu.ksu.canvas.requestOptions.GetSingleAssignmentOptions;
 import edu.ksu.canvas.requestOptions.GetSubmissionsOptions;
 import edu.ksu.canvas.requestOptions.ListCourseAssignmentsOptions;
+import edu.ksu.canvas.requestOptions.ListUserCoursesOptions;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -95,6 +99,21 @@ public class CanvasAPIClientImpl implements CanvasAPIClient {
     /**
      * required scopes:
      * <ul>
+     * <li>{@value #SCOPE_ASSIGNMENTS_LIST}
+     * </ul>
+     */
+    @Override
+    public List<AssignmentExtended> listAssignments(String baseUrl, String canvasCourseId, String tokenOverride) throws CanvasApiException {
+        try {
+            return getReader(baseUrl, AssignmentReaderExtended.class, tokenOverride).listCourseAssignments(new ListCourseAssignmentsOptions(canvasCourseId));
+        } catch (IOException | CanvasException ex) {
+            throw new CanvasApiException("Failed to get the list of assignments Canvas course [" + canvasCourseId + "]", ex);
+        }
+    }
+
+    /**
+     * required scopes:
+     * <ul>
      * <li>{@value #SCOPE_ASSIGNMENT_GET}
      * </ul>
      */
@@ -119,6 +138,21 @@ public class CanvasAPIClientImpl implements CanvasAPIClient {
     public Optional<AssignmentExtended> editAssignment(LtiUserEntity apiUser, AssignmentExtended assignmentExtended, String canvasCourseId) throws CanvasApiException {
         try {
             return getWriter(apiUser, AssignmentWriterExtended.class).editAssignment(canvasCourseId, assignmentExtended);
+        } catch (IOException | CanvasException ex) {
+            throw new CanvasApiException("Failed to edit the assignments with id [" + assignmentExtended.getId() + "] from canvas course [" + canvasCourseId + "]", ex);
+        }
+    }
+
+    /**
+     * required scopes:
+     * <ul>
+     * <li>{@value #SCOPE_ASSIGNMENT_EDIT}
+     * </ul>
+     */
+    @Override
+    public Optional<AssignmentExtended> editAssignment(String baseUrl, AssignmentExtended assignmentExtended, String canvasCourseId, String tokenOverride) throws CanvasApiException {
+        try {
+            return getWriter(baseUrl, AssignmentWriterExtended.class, tokenOverride).editAssignment(canvasCourseId, assignmentExtended);
         } catch (IOException | CanvasException ex) {
             throw new CanvasApiException("Failed to edit the assignments with id [" + assignmentExtended.getId() + "] from canvas course [" + canvasCourseId + "]", ex);
         }
@@ -254,31 +288,81 @@ public class CanvasAPIClientImpl implements CanvasAPIClient {
         }
     }
 
+    @Override
+    public List<CourseExtended> listCoursesForUser(String baseUrl, String canvasUserId, String tokenOverride) throws CanvasApiException {
+        try {
+            return getReader(baseUrl, CourseReaderExtended.class, tokenOverride).listCoursesForUser(new ListUserCoursesOptions(canvasUserId));
+        } catch (IOException | CanvasException ex) {
+            throw new CanvasApiException(String.format("Failed to get the courses from canvas for user ID [%s]", canvasUserId), ex);
+        }
+    }
+
+    @Override
+    public Optional<CourseExtended> editCourse(String baseUrl, CourseExtended courseExtended, String canvasCourseId, String tokenOverride) throws CanvasApiException {
+        try {
+            return getWriter(baseUrl, CourseWriterExtended.class, tokenOverride).editCourse(canvasCourseId, courseExtended);
+        } catch (IOException | CanvasException ex) {
+            throw new CanvasApiException(String.format("Failed to edit the course with ID [%s] in Canvas", canvasCourseId), ex);
+        }
+    }
+
     private <T extends CanvasWriter<?, T>> T getWriter(LtiUserEntity apiUser, Class<T> clazz) throws CanvasApiException {
         return getWriterInternal(apiUser, clazz, getOauthToken(apiUser));
+    }
+
+    private <T extends CanvasWriter<?, T>> T getWriter(String baseUrl, Class<T> clazz, String tokenOverride) throws CanvasApiException {
+        return getWriterInternal(baseUrl, clazz, getOauthToken(null, tokenOverride));
     }
 
     private <T extends CanvasReader<?, T>> T getReader(LtiUserEntity apiUser, Class<T> clazz) throws CanvasApiException {
         return getReaderInternal(apiUser, clazz, getOauthToken(apiUser));
     }
 
+    private <T extends CanvasReader<?, T>> T getReader(String baseUrl, Class<T> clazz, String tokenOverride) throws CanvasApiException {
+        return getReaderInternal(baseUrl, clazz, getOauthToken(null, tokenOverride));
+    }
+
     <T extends CanvasReader<?, T>> T getReaderInternal(LtiUserEntity apiUser, Class<T> clazz, OauthToken oauthToken) {
         return getApiFactory(apiUser).getReader(clazz, oauthToken);
+    }
+
+    <T extends CanvasReader<?, T>> T getReaderInternal(String baseUrl, Class<T> clazz, OauthToken oauthToken) {
+        return getApiFactory(baseUrl).getReader(clazz, oauthToken);
     }
 
     <T extends CanvasWriter<?, T>> T getWriterInternal(LtiUserEntity apiUser, Class<T> clazz, OauthToken oauthToken) {
         return getApiFactory(apiUser).getWriter(clazz, oauthToken);
     }
 
+    <T extends CanvasWriter<?, T>> T getWriterInternal(String baseUrl, Class<T> clazz, OauthToken oauthToken) {
+        return getApiFactory(baseUrl).getWriter(clazz, oauthToken);
+    }
+
     private CanvasApiFactoryExtended getApiFactory(LtiUserEntity apiUser) {
         return new CanvasApiFactoryExtended(apiUser.getPlatformDeployment().getBaseUrl());
     }
 
-    private OauthToken getOauthToken(LtiUserEntity apiUser) throws CanvasApiException {
-        return new NonRefreshableOauthToken(getAccessToken(apiUser));
+    private CanvasApiFactoryExtended getApiFactory(String baseUrl) {
+        return new CanvasApiFactoryExtended(baseUrl);
     }
 
-    private String getAccessToken(LtiUserEntity apiUser) throws CanvasApiException {
+    private OauthToken getOauthToken(LtiUserEntity apiUser) throws CanvasApiException {
+        return new NonRefreshableOauthToken(getAccessToken(apiUser, null));
+    }
+
+    private OauthToken getOauthToken(LtiUserEntity apiUser, String tokenOverride) throws CanvasApiException {
+        return new NonRefreshableOauthToken(getAccessToken(apiUser, tokenOverride));
+    }
+
+    private String getAccessToken(LtiUserEntity apiUser, String tokenOverride) throws CanvasApiException {
+        if (tokenOverride != null) {
+            if (tokenLoggingEnabled) {
+                log.debug("Using API token override: '{}'", tokenOverride);
+            }
+
+            return tokenOverride;
+        }
+
         String accessToken = null;
 
         if (canvasOAuthService.isConfigured(apiUser.getPlatformDeployment())) {

@@ -2,6 +2,8 @@ package edu.iu.terracotta.service.canvas.impl;
 
 import edu.iu.terracotta.service.canvas.AssignmentReaderExtended;
 import edu.iu.terracotta.service.canvas.AssignmentWriterExtended;
+import edu.iu.terracotta.service.canvas.CourseReaderExtended;
+import edu.iu.terracotta.service.canvas.CourseWriterExtended;
 import edu.iu.terracotta.service.canvas.SubmissionReaderExtended;
 import edu.ksu.canvas.CanvasApiFactory;
 import edu.ksu.canvas.impl.AccountImpl;
@@ -202,6 +204,7 @@ public class CanvasApiFactoryExtended {
         this.readerMap.put(ProgressReader.class, ProgressImpl.class);
         this.readerMap.put(CourseSettingsReader.class, CourseSettingsImpl.class);
         this.readerMap.put(GradingStandardReader.class, GradingStandardImpl.class);
+        this.readerMap.put(CourseReaderExtended.class, CourseExtendedImpl.class);
         this.writerMap.put(AssignmentOverrideWriter.class, AssignmentOverrideImpl.class);
         this.writerMap.put(AdminWriter.class, AdminImpl.class);
         this.writerMap.put(AssignmentWriter.class, AssignmentImpl.class);
@@ -229,6 +232,7 @@ public class CanvasApiFactoryExtended {
         this.writerMap.put(ProgressWriter.class, ProgressImpl.class);
         this.writerMap.put(CourseSettingsWriter.class, CourseSettingsImpl.class);
         this.writerMap.put(GradingStandardWriter.class, GradingStandardImpl.class);
+        this.writerMap.put(CourseWriterExtended.class, CourseExtendedImpl.class);
     }
 
 }
