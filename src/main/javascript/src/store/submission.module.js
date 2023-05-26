@@ -107,6 +107,7 @@ const actions = {
       console.error("downloadAnswerFileSubmission catch", { error, state });
     }
   },
+
   resetSubmissions({state}) {
     state.submissions = [];
     state.studentResponse = null;

@@ -13,21 +13,15 @@
         </v-col>
       </v-row>
     </v-alert>
-    <iframe
-      :src="
-        'data:application/pdf;base64, ' +
-          encodeURI(this.consent.file) +
-          // pagemode=none hides thumbnails on Firefox, toolbar=0 works for other browsers
-          '#pagemode=none&toolbar=0'
-      "
-      title="Consent PDF"
-    ></iframe>
+    <vue-pdf-embed
+      v-if="loadPdfFrame"
+      :source="'data:application/pdf;base64,' + pdfFile"
+    />
     <form @submit.prevent="updateConsent(answer || false)">
       <v-card class="mt-5">
-        <v-card-title
-          >In the consideration of the above, will you participate in this
-          research study?</v-card-title
-        >
+        <v-card-title>
+          In the consideration of the above, will you participate in this research study?
+        </v-card-title>
         <v-list class="optionList">
           <v-radio-group v-model="answer">
             <v-radio
@@ -47,11 +41,15 @@
 </template>
 
 <script>
-import { mapGetters, mapActions } from "vuex";
+import { mapActions } from "vuex";
+import VuePdfEmbed from 'vue-pdf-embed/dist/vue2-pdf-embed';
 
 export default {
   name: "StudentConsent",
   props: ["experimentId", "userId"],
+  components: {
+    VuePdfEmbed
+  },
   data: () => ({
     answer: "",
     options: [
@@ -65,12 +63,14 @@ export default {
       },
     ],
     participant: null,
+    pdfFile: null,
+    loadPdfFrame: false,
   }),
 
-  computed: {
-    ...mapGetters({
-      consent: "consent/consent",
-    }),
+  watch: {
+    pdfFile() {
+      this.loadPdfFrame = true;
+    }
   },
   methods: {
     ...mapActions({
@@ -111,9 +111,15 @@ export default {
           console.log("submitParticipant | catch", { response });
         });
     },
+    handleConsentFileDownload() {
+      this.getConsentFile(this.experimentId)
+        .then((file) => {
+          this.pdfFile = encodeURI(file);
+        });
+    }
   },
   async created() {
-    this.getConsentFile(this.experimentId);
+    this.handleConsentFileDownload();
     const stepResponse = await this.reportStep({
       experimentId: this.experimentId,
       step: "launch_consent_assignment",
@@ -132,9 +138,13 @@ export default {
 .optionList {
   margin-left: 15px;
 }
-iframe {
-  width: 100%;
+
+div.vue-pdf-embed {
+  width: 98%;
+  margin: 0 auto;
   min-height: 300px;
-  border: none;
+  max-height: 600px;
+  overflow-y: scroll;
+  box-shadow: 0 3px 1px -2px rgba(0,0,0,.2),0 2px 2px 0 rgba(0,0,0,.14),0 1px 5px 0 rgba(0,0,0,.12);
 }
 </style>
