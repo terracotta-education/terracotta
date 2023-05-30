@@ -17,6 +17,7 @@ import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.model.app.Assignment;
+import edu.iu.terracotta.model.app.ConsentDocument;
 import edu.iu.terracotta.model.canvas.AssignmentExtended;
 import edu.iu.terracotta.model.canvas.CourseExtended;
 import edu.iu.terracotta.repository.AllRepositories;
@@ -64,7 +65,15 @@ public class AdminServiceImpl implements AdminService {
             .map(Assignment::getLmsAssignmentId)
             .toList();
 
-        if (CollectionUtils.isEmpty(assignmentIds)) {
+        // retrieve all existing consent assignment IDs in Terracotta for this platform deployment
+        List<String> consentAssignmentIds = CollectionUtils.emptyIfNull(allRepositories.consentDocumentRepository.findAllByExperiment_PlatformDeployment_KeyId(platformDeploymentId)).stream()
+            .map(ConsentDocument::getLmsAssignmentId)
+            .toList();
+
+        // create a list of both assignment and consent assignment IDs
+        List<String> allAssignmentIds = (List<String>) CollectionUtils.union(assignmentIds, consentAssignmentIds);
+
+        if (CollectionUtils.isEmpty(allAssignmentIds)) {
             log.info("No assignments found in terracotta for deployment ID: '{}', Aborting.", platformDeploymentId);
             return;
         }
@@ -102,7 +111,7 @@ public class AdminServiceImpl implements AdminService {
                                 }
 
                                 List<Integer> assignmentsUpdatedTargetLink = canvasAssignments.stream()
-                                    .filter(canvasAssignment -> assignmentIds.contains(Integer.toString(canvasAssignment.getId())))
+                                    .filter(canvasAssignment -> allAssignmentIds.contains(Integer.toString(canvasAssignment.getId())))
                                     .filter(
                                         canvasAssignment -> {
                                             String[] baseUrl = StringUtils.splitByWholeSeparator(canvasAssignment.getExternalToolTagAttributes().getUrl(), "/lti3");
