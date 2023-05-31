@@ -15,7 +15,7 @@ export const consentService = {
 /**
  * Create Assignment
  */
-function create(experiment_id, consent) {
+function create(experiment_id, pdfFile, title) {
   const requestOptions = {
     headers: {
       'Content-Type': 'multipart/form-data',
@@ -23,14 +23,14 @@ function create(experiment_id, consent) {
     }
   }
 
-  let formData = new FormData()
-  formData.append('consent', consent.file);
+  let formData = new FormData();
+  formData.append('consent', pdfFile);
 
   // Axios was required for correct formData boundary
   return (
     axios
       .post(
-        `${store.getters["api/aud"]}/api/experiments/${experiment_id}/consent?title=${consent.title}`,
+        `${store.getters["api/aud"]}/api/experiments/${experiment_id}/consent?title=${title}`,
         formData,
         requestOptions
       )
