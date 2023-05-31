@@ -17,15 +17,12 @@ const actions = {
       }
     });
   },
-  setConsentFile: ({commit}, file) => {
-    commit('setConsentFile', file)
-  },
-  getConsentFile: ({commit}, experiment_id) => {
-    return consentService.getConsentFile(experiment_id).then(response => {
+  async getConsentFile({state}, experiment_id) {
+    return await consentService.getConsentFile(experiment_id).then(response => {
       if (response.status === 200) {
-        commit('setConsentFile', response.base)
+        return response.base;
       } else {
-        console.log('getConsentFile | catch', {response})
+        console.log('getConsentFile | catch', {state, response})
       }
     })
     .catch(response => console.log('getConsentFile | catch', {response}))
@@ -39,10 +36,7 @@ const mutations = {
   },
   setConsentTitle(state, title) {
     state.title = title
-  },
-  setConsentFile(state, file) {
-    state.file = file
-  },
+  }
 }
 
 const getters = {

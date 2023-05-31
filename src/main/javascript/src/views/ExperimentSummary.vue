@@ -280,9 +280,31 @@
                           <!-- Consent Participation -->
                           <template v-if="section.description === 'CONSENT'">
                             Informed Consent
-                            <button class="pdfButton" @click="openPDF">
+                            <button
+                              v-if="!pdfLoading"
+                              class="pdfButton"
+                              @click="openPDF"
+                            >
                               {{ experiment.consent.title }}
                             </button>
+                            <svg
+                              v-if="pdfLoading"
+                              class="spinner"
+                              width="28px"
+                              height="28px"
+                              viewBox="0 0 66 66"
+                              xmlns="http://www.w3.org/2000/svg"
+                            >
+                              <circle
+                                class="path"
+                                fill="none"
+                                stroke-width="6"
+                                stroke-linecap="round"
+                                cx="33"
+                                cy="33"
+                                r="30">
+                              </circle>
+                            </svg>
                           </template>
                           <!-- Manual Participation -->
                           <template
@@ -318,6 +340,10 @@
           </v-tabs-items>
         </v-col>
       </v-row>
+      <vue-pdf-embed
+        v-if="loadPdfFrame"
+        :source="'data:application/pdf;base64,' + pdfFile"
+      />
     </v-container>
     <v-container v-else>
       no experiment
@@ -331,17 +357,21 @@ import { mapGetters, mapActions } from "vuex";
 import { saveAs } from "file-saver";
 import ExperimentSummaryStatus from "@/views/ExperimentSummaryStatus";
 import ExperimentAssignments from "@/views/ExperimentAssignments";
+import VuePdfEmbed from 'vue-pdf-embed/dist/vue2-pdf-embed';
 
 export default {
   name: "ExperimentSummary",
-  components: { ExperimentSummaryStatus, ExperimentAssignments },
+  components: {
+    ExperimentSummaryStatus,
+    ExperimentAssignments,
+    VuePdfEmbed
+  },
   computed: {
     ...mapGetters({
       experiment: "experiment/experiment",
       conditions: "experiment/conditions",
       exposures: "exposures/exposures",
       assignments: "assignment/assignments",
-      consent: "consent/consent",
       exportdata: "exportdata/exportData",
       conditionColorMapping: "condition/conditionColorMapping",
       editMode: "navigation/editMode"
@@ -487,8 +517,17 @@ export default {
     conditionTreatments: {},
     conditionColors: [""],
     isLoading: true,
-    exposureSet: 0
+    exposureSet: 0,
+    loadPdfFrame: false,
+    pdfFile: null,
+    pdfLoading: false
   }),
+  watch: {
+    pdfFile() {
+      this.loadPdfFrame = true;
+      this.pdfLoading = false;
+    }
+  },
   methods: {
     ...mapActions({
       fetchExposures: "exposures/fetchExposures",
@@ -526,16 +565,11 @@ export default {
       });
     },
     openPDF() {
-      // Second Parameter intentionally left blank
-      let pdfWindow = window.open("", "", "_blank");
-      pdfWindow.opener = null;
-      pdfWindow.document.write(
-        "<iframe width='100%' height='100%' src='data:application/pdf;base64, " +
-          encodeURI(this.consent.file) +
-          "'></iframe>"
-      );
-
-      return false;
+      if (this.pdfLoading || this.loadPdfFrame) {
+        return;
+      }
+      this.pdfLoading = true;
+      this.handleConsentFileDownload();
     },
     async getAssignmentDetails() {
       await this.fetchExposures(this.experiment.experimentId);
@@ -627,6 +661,12 @@ export default {
       const newGroups = groupConditionList?.map((group) => group.groupName);
       return newGroups?.sort();
     },
+    handleConsentFileDownload() {
+      this.getConsentFile(this.experiment.experimentId)
+        .then((file) => {
+          this.pdfFile = encodeURI(file);
+        });
+    }
   },
 
   async mounted() {
@@ -656,9 +696,6 @@ export default {
     }
     this.getAssignmentDetails();
     await this.getZip(this.experiment.experimentId);
-    if (this.experiment.participationType === "CONSENT") {
-      await this.getConsentFile(this.experiment.experimentId);
-    }
     this.isLoading = false;
   },
   beforeRouteEnter(to, from, next) {
@@ -817,5 +854,47 @@ div.container {
 div.col-experiment-title,
 div.col-experiment-title > p {
   max-width: fit-content;
+}
+div.vue-pdf-embed {
+  width: 98%;
+  margin: 20px auto;
+  min-height: 300px;
+  max-height: 600px;
+  overflow-y: scroll;
+  box-shadow: 0 3px 1px -2px rgba(0,0,0,.2),0 2px 2px 0 rgba(0,0,0,.14),0 1px 5px 0 rgba(0,0,0,.12);
+}
+$offset: 187;
+$duration: 0.75s;
+.spinner {
+  animation: rotator $duration linear infinite;
+  margin: 0 auto;
+}
+@keyframes rotator {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(270deg); }
+}
+.path {
+  stroke-dasharray: $offset;
+  stroke-dashoffset: 0;
+  transform-origin: center;
+  animation:
+    dash $duration ease-in-out infinite,
+    colors ($duration*4) ease-in-out infinite;
+}
+@keyframes colors {
+  0% { stroke: lightgrey; }
+}
+@keyframes dash {
+  0% {
+    stroke-dashoffset: $offset;
+  }
+  50% {
+    stroke-dashoffset: $offset/4;
+    transform:rotate(135deg);
+  }
+  100% {
+    stroke-dashoffset: $offset;
+    transform:rotate(450deg);
+  }
 }
 </style>

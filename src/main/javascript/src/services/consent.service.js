@@ -72,7 +72,7 @@ function update(experiment_id) {
 /**
  * Get Consent File
  */
-function getConsentFile(experiment_id) {
+async function getConsentFile(experiment_id) {
   const requestOptions = {
     method: 'GET',
     headers: { ...authHeader() },
