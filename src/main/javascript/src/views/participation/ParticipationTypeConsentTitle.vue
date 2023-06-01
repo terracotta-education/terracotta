@@ -39,7 +39,7 @@
 </template>
 
 <script>
-import { mapGetters } from 'vuex';
+import { mapActions, mapGetters } from 'vuex';
 
 export default {
   name: 'ParticipationTypeConsentTitle',
@@ -54,11 +54,11 @@ export default {
     },
     title: {
       get() {
-        return this.titleProxy === '' ? this.experiment?.consent?.title || this.consent?.title : this.titleProxy
+        return this.titleProxy === '' ? this.experiment?.consent?.title || this.consent?.title : this.titleProxy;
       },
       set(value) {
-        this.titleProxy = value
-        this.$store.commit('consent/setConsentTitle', value)
+        this.titleProxy = value;
+        this.setConsentTitle(value);
       }
     }
   },
@@ -70,6 +70,9 @@ export default {
     ],
   }),
   methods: {
+    ...mapActions({
+      setConsentTitle: "consent/setConsentTitle"
+    }),
     saveTitle(path) {
       this.$router.push({name: path, params: {experiment: this.experiment.experimentId}})
     },

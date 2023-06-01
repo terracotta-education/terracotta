@@ -1,32 +1,63 @@
 <template>
   <div class="file-drop-zone">
     <template v-if="!file">
-      <div :class="['drop-zone', dragging ? 'drop-zone--over' : '']" @dragenter="dragging = true"
-           @dragleave="dragging = false">
-        <div class="drop-zone__info" @drag="onChange">
-          <v-btn class="mb-3" elevation="0" color="primary">Upload PDF</v-btn>
+      <div
+        :class="['drop-zone', dragging ? 'drop-zone--over' : '']"
+        @dragenter="dragging = true"
+        @dragleave="dragging = false"
+      >
+        <div
+          class="drop-zone__info"
+          @drag="onChange"
+        >
+          <v-btn
+            class="mb-3"
+            elevation="0"
+            color="primary"
+          >
+            Upload PDF
+          </v-btn>
           <p>or drag and drop here</p>
         </div>
-        <input type="file" @change="onChange">
+        <input
+          type="file"
+          @change="onChange"
+        >
       </div>
     </template>
-    <div v-else class="drop-zone__uploaded pa-3">
+    <div
+      v-else
+      class="drop-zone__uploaded pa-3"
+    >
       <div class="drop-zone__uploaded-info">
         <h4 class="drop-zone__title">Selected file:</h4>
         <v-card outlined>
           <v-card-text class="py-1 px-2">
             <strong>Informed Consent File</strong>
-            <v-btn
-              class="remove-file"
-              elevation="0"
-              icon
-              tile
-              @click="removeFile"
-            >
-              <v-icon dark>
-                mdi-close
-              </v-icon>
-            </v-btn>
+            <div>
+              <v-btn
+                class="icon-file-view"
+                elevation="0"
+                icon
+                tile
+                @click="doDisplayFile"
+              >
+                <v-icon>
+                  mdi-file-eye-outline
+                </v-icon>
+              </v-btn>
+              <v-btn
+                class="icon-file-remove"
+                elevation="0"
+                icon
+                tile
+                @click="removeFile"
+              >
+                <v-icon dark>
+                  mdi-close
+                </v-icon>
+              </v-btn>
+            </div>
           </v-card-text>
         </v-card>
       </div>
@@ -36,11 +67,16 @@
 
 <script>
 export default {
-  props: ['existing', 'fileName'],
+  props: ['existingFile'],
   data() {
     return {
       file: null,
       dragging: false
+    }
+  },
+  watch: {
+    existingFile(newFile) {
+      this.file = newFile;
     }
   },
   methods: {
@@ -70,14 +106,17 @@ export default {
       this.file = file;
       this.dragging = false;
       this.$emit('update', file)
+      this.$emit('newUpload', true);
     },
     removeFile() {
       this.file = '';
-      this.$emit('update', null)
+      this.$emit('update', null);
+      this.$emit('newUpload', true);
+      this.$emit('displayFile', false);
+    },
+    doDisplayFile() {
+      this.$emit('displayFile', true);
     }
-  },
-  created: function () {
-    this.file = this.existing?.length || null
   },
   computed: {
     extension() {
@@ -139,20 +178,31 @@ export default {
       justify-content: space-between;
     }
 
-    .remove-file {
+    .icon-file-remove,
+    .icon-file-view {
       height: 30px;
       width: 30px;
       border: 1px solid map-get($grey, 'lighten-2');
       border-radius: 4px;
 
+      i {
+        font-size: 16px;
+      }
+    }
+
+    .icon-file-remove {
       &:hover,
       &:focus {
         background: map-get($red, 'base');
         color: white;
       }
+    }
 
-      i {
-        font-size: 16px;
+    .icon-file-view {
+      &:hover,
+      &:focus {
+        background: map-get($grey, 'lighten-2');
+        color: white;
       }
     }
   }
