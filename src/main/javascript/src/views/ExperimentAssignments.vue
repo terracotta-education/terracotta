@@ -42,9 +42,7 @@
               </div>
               <template v-if="!loaded">
                 <div class="spinner-container">
-                  <svg class="spinner" width="28px" height="28px" viewBox="0 0 66 66" xmlns="http://www.w3.org/2000/svg">
-                    <circle class="path" fill="none" stroke-width="6" stroke-linecap="round" cx="33" cy="33" r="30"></circle>
-                  </svg>
+                  <Spinner></Spinner>
                 </div>
               </template>
               <template v-if="loaded">
@@ -330,11 +328,15 @@
 <script>
 import { mapGetters, mapActions } from "vuex";
 import Sortable from "sortablejs";
+import Spinner from "@/components/Spinner";
 import moment from "moment";
 
 export default {
   name: "ExperimentAssignments",
   props: ["experiment", "balanced", "loaded", "activeExposureSet"],
+  components: {
+    Spinner
+  },
   directives: {
     sortableDataTable: {
       bind(el, binding, vnode) {
@@ -821,41 +823,6 @@ div.spinner-container {
   justify-content: center;
   border: thin solid rgba(0,0,0,.12) !important;
   border-radius: 8px !important;
-}
-$offset: 187;
-$duration: 0.75s;
-.spinner {
-  animation: rotator $duration linear infinite;
-}
-@keyframes rotator {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(270deg); }
-}
-.path {
-  stroke-dasharray: $offset;
-  stroke-dashoffset: 0;
-  transform-origin: center;
-  animation:
-    dash $duration ease-in-out infinite,
-    colors ($duration*4) ease-in-out infinite;
-}
-@keyframes colors {
-  0% {
-    stroke: lightgrey;
-  }
-}
-@keyframes dash {
-  0% {
-    stroke-dashoffset: $offset;
-  }
-  50% {
-    stroke-dashoffset: $offset/4;
-    transform:rotate(135deg);
-  }
-  100% {
-    stroke-dashoffset: $offset;
-    transform:rotate(450deg);
-  }
 }
 .v-application--is-ltr .v-data-table > .v-data-table__wrapper > table > tbody > tr > th,
 .v-application--is-ltr .v-data-table > .v-data-table__wrapper > table > tfoot > tr > th,

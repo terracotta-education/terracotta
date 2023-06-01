@@ -287,24 +287,7 @@
                             >
                               {{ experiment.consent.title }}
                             </button>
-                            <svg
-                              v-if="pdfLoading"
-                              class="spinner"
-                              width="28px"
-                              height="28px"
-                              viewBox="0 0 66 66"
-                              xmlns="http://www.w3.org/2000/svg"
-                            >
-                              <circle
-                                class="path"
-                                fill="none"
-                                stroke-width="6"
-                                stroke-linecap="round"
-                                cx="33"
-                                cy="33"
-                                r="30">
-                              </circle>
-                            </svg>
+                            <Spinner v-if="pdfLoading"></Spinner>
                           </template>
                           <!-- Manual Participation -->
                           <template
@@ -357,6 +340,7 @@ import { mapGetters, mapActions } from "vuex";
 import { saveAs } from "file-saver";
 import ExperimentSummaryStatus from "@/views/ExperimentSummaryStatus";
 import ExperimentAssignments from "@/views/ExperimentAssignments";
+import Spinner from "@/components/Spinner";
 import VuePdfEmbed from 'vue-pdf-embed/dist/vue2-pdf-embed';
 
 export default {
@@ -364,6 +348,7 @@ export default {
   components: {
     ExperimentSummaryStatus,
     ExperimentAssignments,
+    Spinner,
     VuePdfEmbed
   },
   computed: {
@@ -862,39 +847,5 @@ div.vue-pdf-embed {
   max-height: 600px;
   overflow-y: scroll;
   box-shadow: 0 3px 1px -2px rgba(0,0,0,.2),0 2px 2px 0 rgba(0,0,0,.14),0 1px 5px 0 rgba(0,0,0,.12);
-}
-$offset: 187;
-$duration: 0.75s;
-.spinner {
-  animation: rotator $duration linear infinite;
-  margin: 0 auto;
-}
-@keyframes rotator {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(270deg); }
-}
-.path {
-  stroke-dasharray: $offset;
-  stroke-dashoffset: 0;
-  transform-origin: center;
-  animation:
-    dash $duration ease-in-out infinite,
-    colors ($duration*4) ease-in-out infinite;
-}
-@keyframes colors {
-  0% { stroke: lightgrey; }
-}
-@keyframes dash {
-  0% {
-    stroke-dashoffset: $offset;
-  }
-  50% {
-    stroke-dashoffset: $offset/4;
-    transform:rotate(135deg);
-  }
-  100% {
-    stroke-dashoffset: $offset;
-    transform:rotate(450deg);
-  }
 }
 </style>

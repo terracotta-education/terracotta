@@ -19,24 +19,7 @@
       >
         Next
       </v-btn>
-      <svg
-        v-if="uploading"
-        class="spinner"
-        width="28px"
-        height="28px"
-        viewBox="0 0 66 66"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <circle
-          class="path"
-          fill="none"
-          stroke-width="6"
-          stroke-linecap="round"
-          cx="33"
-          cy="33"
-          r="30">
-        </circle>
-      </svg>
+      <Spinner v-if="uploading"></Spinner>
     </div>
 
     <p>
@@ -58,8 +41,9 @@
 </template>
 
 <script>
-import FileDropZone from "@/components/FileDropZone";
 import { mapActions, mapGetters } from "vuex";
+import FileDropZone from "@/components/FileDropZone";
+import Spinner from "@/components/Spinner";
 import VuePdfEmbed from 'vue-pdf-embed/dist/vue2-pdf-embed';
 
 export default {
@@ -67,6 +51,7 @@ export default {
   props: ["experiment"],
   components: {
     FileDropZone,
+    Spinner,
     VuePdfEmbed
   },
   data: () => ({
