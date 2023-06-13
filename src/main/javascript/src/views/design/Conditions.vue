@@ -2,15 +2,14 @@
   <div>
     <h1>Name your conditions</h1>
     <p>These will be used to label the different experimental versions of your assignments.</p>
-    <form
-      v-if="experiment"
+    <v-form
       @submit.prevent="saveConditions('ExperimentDesignType')"
       class="my-5 mb-15"
+      ref="conditionsForm"
     >
-
       <v-container class="pa-0">
         <v-row
-            v-for="(condition, i) in experiment.conditions"
+            v-for="(condition, i) in conditions"
             :key="condition.conditionId"
         >
           <template
@@ -19,8 +18,8 @@
             <v-col class="py-0">
               <v-text-field
                   v-model="condition.name"
-                  :name="'condition-'+condition.conditionId"
-                  :rules="rules"
+                  :name="'condition-' + condition.conditionId"
+                  :rules="[duplicateRule(condition), requiredRule(condition), maxLengthRule(condition)]"
                   label="Condition name"
                   placeholder="e.g. Condition Name"
                   outlined
@@ -31,11 +30,13 @@
           <template
             v-else
           >
-            <v-col class="py-0">
+            <v-col
+              class="py-0"
+            >
               <v-text-field
                   v-model="condition.name"
-                  :name="'condition-'+condition.conditionId"
-                  :rules="rules"
+                  :name="'condition-' + condition.conditionId"
+                  :rules="[duplicateRule(condition), requiredRule(condition), maxLengthRule(condition)]"
                   label="Condition name"
                   placeholder="e.g. Condition Name"
                   outlined
@@ -68,7 +69,7 @@
       >
         <v-btn
           v-if="experiment.conditions.length < 16"
-          @click="createCondition({name: '', experiment_experiment_id: experiment.experimentId})"
+          @click="createNewCondition()"
           color="blue"
           class="add_condition px-0 mb-10"
           text
@@ -84,11 +85,7 @@
       </div>
 
       <v-btn
-          :disabled="
-            hasDuplicateValues(experiment.conditions, 'name') ||
-            !experiment.conditions.length > 0 ||
-            !experiment.conditions.every(c => c.name && c.name.trim())
-          "
+          :disabled="hasFieldErrors"
           elevation="0"
           color="primary"
           class="mr-4"
@@ -96,27 +93,26 @@
       >
         Next
       </v-btn>
-    </form>
-
-
+    </v-form>
   </div>
 </template>
 
 <script>
 import {mapActions, mapGetters} from 'vuex';
 import store from '@/store';
-import {hasDuplicateValues} from '@/mixins/hasDuplicateValues'
 
 export default {
   name: 'DesignConditions',
   props: ['experiment'],
-  mixins: [hasDuplicateValues],
-  data: () => ({
-    rules: [
-      v => v && !!v.trim() || 'Condition name is required',
-      v => (v || '').length <= 255 || 'A maximum of 255 characters is allowed'
-    ]
-  }),
+  data() {
+    return {
+      fieldErrors: {
+        duplicateName: {conditionIds: [], message: "Multiple conditions have the same name."},
+        requiredName: {conditionIds: [], message: "A name is required for each condition."},
+        maxLengthName: {conditionIds: [], message: "A maximum of 255 characters is allowed for condition names."}
+      }
+    }
+  },
   computed: {
     ...mapGetters({
       editMode: 'navigation/editMode'
@@ -125,10 +121,33 @@ export default {
       return this.editMode?.callerPage?.name || 'Home';
     },
     addAllowed() {
-      return !this.editMode && this.experiment.conditions.length < 16;
+      return !this.editMode && this.conditions.length < 16;
     },
     deleteAllowed() {
       return this.experiment.exposureType === 'NOSET';
+    },
+    conditions() {
+      return this.experiment.conditions;
+    },
+    errorMessage() {
+      if (this.fieldErrors.duplicateName.conditionIds.length) {
+        return this.fieldErrors.duplicateName.message;
+      }
+      if (this.fieldErrors.requiredName.conditionIds.length) {
+        return this.fieldErrors.requiredName.message;
+      }
+      if (this.fieldErrors.maxLengthName.conditionIds.length) {
+        return this.fieldErrors.maxLengthName.message;
+      }
+      return "Unspecified error."
+    },
+    countErrors() {
+      var count = 0;
+      Object.keys(this.fieldErrors).forEach((fe) => count += this.fieldErrors[fe].conditionIds.length);
+      return count;
+    },
+    hasFieldErrors() {
+      return this.countErrors > 0;
     }
   },
   methods: {
@@ -137,7 +156,15 @@ export default {
       deleteCondition: 'condition/deleteCondition',
       updateConditions: 'condition/updateConditions',
     }),
+    async createNewCondition() {
+      await this.createCondition({name: "", experiment_experiment_id: this.experiment.experimentId});
+      this.$refs.conditionsForm.validate();
+    },
     async saveConditions(path) {
+      if (this.hasFieldErrors) {
+        this.$swal('There was an error saving your conditions. ' + this.errorMessage);
+        return;
+      }
       const e = this.experiment
       e.conditions.experimentId = this.experiment.experimentId
       await this.updateConditions(e.conditions)
@@ -157,7 +184,8 @@ export default {
     async handleDeleteCondition(condition) {
       const {defaultCondition} = condition;
       if (defaultCondition) {
-        this.$swal('You are attempting to delete the default condition. You must set one of the other existing conditions as the default before deleting this condition.')
+        this.$swal('You are attempting to delete the default condition. You must set one of the other existing conditions as the default before deleting this condition.');
+        return;
       } else {
         if (condition?.conditionId) {
           const reallyDelete = await this.$swal({
@@ -181,16 +209,45 @@ export default {
       }
     },
     async saveExit() {
-      if (this.experiment.conditions.filter((c) => !c.name).length) {
-        // not all names were entered, just return...
+      if (this.conditions.every((c) => !(c.name && c.name.trim()))) {
+        // all conditions are blank, exit w/o saving
         this.$router.push({
           name: this.getSaveExitPage,
           params: {
             experiment: this.experiment.experimentId
           }
-        })
+        });
+        return;
+      }
+      if (this.hasFieldErrors) {
+        this.$swal("There was an error saving your conditions. " + this.errorMessage);
+        this.$refs.conditionsForm.validate();
+        return;
+      }
+      this.saveConditions(this.getSaveExitPage);
+    },
+    duplicateRule(condition) {
+      this.handleRule(this.fieldErrors.duplicateName, condition, this.conditions.some((c) => c.conditionId !== condition.conditionId && condition.name && c.name === condition.name));
+      return !this.fieldErrors.duplicateName.conditionIds.includes(condition.conditionId) || "Duplicate condition name.";
+    },
+    requiredRule(condition) {
+      this.handleRule(this.fieldErrors.requiredName, condition, !(condition.name && condition.name.trim()));
+      return !this.fieldErrors.requiredName.conditionIds.includes(condition.conditionId) || "Condition name is required";
+    },
+    maxLengthRule(condition) {
+      this.handleRule(this.fieldErrors.maxLengthName, condition, (condition.name || '').length > 255);
+      return !this.fieldErrors.maxLengthName.conditionIds.includes(condition.conditionId) || "A maximum of 255 characters is allowed";
+    },
+    handleRule(fieldError, condition, hasError) {
+      if (hasError) {
+        if (!fieldError.conditionIds.includes(condition.conditionId)) {
+          fieldError.conditionIds.push(condition.conditionId);
+        }
       } else {
-        this.saveConditions(this.getSaveExitPage)
+        var idx = fieldError.conditionIds.indexOf(condition.conditionId);
+        if (idx !== -1) {
+          fieldError.conditionIds.splice(idx);
+        }
       }
     }
   },
@@ -208,6 +265,9 @@ export default {
       next()
     }
   },
+  mounted() {
+    this.$refs.conditionsForm.validate();
+  }
 }
 </script>
 
