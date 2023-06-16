@@ -110,7 +110,35 @@ export default {
         duplicateName: {conditionIds: [], message: "Multiple conditions have the same name."},
         requiredName: {conditionIds: [], message: "A name is required for each condition."},
         maxLengthName: {conditionIds: [], message: "A maximum of 255 characters is allowed for condition names."}
-      }
+      },
+      hasFieldErrors: false
+    }
+  },
+  watch: {
+    conditions: {
+      handler: function() {
+        this.clearFieldErrors();
+        this.$refs.conditionsForm.validate();
+      },
+      deep: true
+    },
+    duplicateName: {
+      handler: function() {
+        this.hasFieldErrors = this.calculateFieldErrors();
+      },
+      deep: true
+    },
+    requiredName: {
+      handler: function() {
+        this.hasFieldErrors = this.calculateFieldErrors();
+      },
+      deep: true
+    },
+    maxLengthName: {
+      handler: function() {
+        this.hasFieldErrors = this.calculateFieldErrors();
+      },
+      deep: true
     }
   },
   computed: {
@@ -129,25 +157,26 @@ export default {
     conditions() {
       return this.experiment.conditions;
     },
+    duplicateName() {
+      return this.fieldErrors.duplicateName.conditionIds;
+    },
+    requiredName() {
+      return this.fieldErrors.requiredName.conditionIds;
+    },
+    maxLengthName() {
+      return this.fieldErrors.maxLengthName.conditionIds;
+    },
     errorMessage() {
-      if (this.fieldErrors.duplicateName.conditionIds.length) {
+      if (this.duplicateName.length) {
         return this.fieldErrors.duplicateName.message;
       }
-      if (this.fieldErrors.requiredName.conditionIds.length) {
+      if (this.requiredName.length) {
         return this.fieldErrors.requiredName.message;
       }
-      if (this.fieldErrors.maxLengthName.conditionIds.length) {
+      if (this.maxLengthName.length) {
         return this.fieldErrors.maxLengthName.message;
       }
       return "Unspecified error."
-    },
-    countErrors() {
-      var count = 0;
-      Object.keys(this.fieldErrors).forEach((fe) => count += this.fieldErrors[fe].conditionIds.length);
-      return count;
-    },
-    hasFieldErrors() {
-      return this.countErrors > 0;
     }
   },
   methods: {
@@ -197,7 +226,8 @@ export default {
           })
           if (reallyDelete.isConfirmed) {
             try {
-              this.deleteCondition(condition)
+              Object.keys(this.fieldErrors).forEach((fe) => this.handleRule(this.fieldErrors[fe], condition.conditionId, false));
+              await this.deleteCondition(condition);
             } catch (error) {
               this.$swal({
                 text: 'Could not delete condition.',
@@ -227,28 +257,34 @@ export default {
       this.saveConditions(this.getSaveExitPage);
     },
     duplicateRule(condition) {
-      this.handleRule(this.fieldErrors.duplicateName, condition, this.conditions.some((c) => c.conditionId !== condition.conditionId && condition.name && c.name === condition.name));
+      this.handleRule(this.fieldErrors.duplicateName, condition.conditionId, this.conditions.some((c) => c.conditionId !== condition.conditionId && condition.name && c.name === condition.name));
       return !this.fieldErrors.duplicateName.conditionIds.includes(condition.conditionId) || "Duplicate condition name.";
     },
     requiredRule(condition) {
-      this.handleRule(this.fieldErrors.requiredName, condition, !(condition.name && condition.name.trim()));
+      this.handleRule(this.fieldErrors.requiredName, condition.conditionId, !(condition.name && condition.name.trim()));
       return !this.fieldErrors.requiredName.conditionIds.includes(condition.conditionId) || "Condition name is required";
     },
     maxLengthRule(condition) {
-      this.handleRule(this.fieldErrors.maxLengthName, condition, (condition.name || '').length > 255);
+      this.handleRule(this.fieldErrors.maxLengthName, condition.conditionId, (condition.name || '').length > 255);
       return !this.fieldErrors.maxLengthName.conditionIds.includes(condition.conditionId) || "A maximum of 255 characters is allowed";
     },
-    handleRule(fieldError, condition, hasError) {
+    handleRule(fieldError, conditionId, hasError) {
       if (hasError) {
-        if (!fieldError.conditionIds.includes(condition.conditionId)) {
-          fieldError.conditionIds.push(condition.conditionId);
+        if (!fieldError.conditionIds.includes(conditionId)) {
+          fieldError.conditionIds.push(conditionId);
         }
       } else {
-        var idx = fieldError.conditionIds.indexOf(condition.conditionId);
+        var idx = fieldError.conditionIds.indexOf(conditionId);
         if (idx !== -1) {
           fieldError.conditionIds.splice(idx);
         }
       }
+    },
+    calculateFieldErrors() {
+      return Object.keys(this.fieldErrors).some((fe) => this.fieldErrors[fe].conditionIds.length > 0);
+    },
+    clearFieldErrors() {
+      Object.keys(this.fieldErrors).forEach((fe) => this.fieldErrors[fe].conditionIds = []);
     }
   },
   beforeRouteEnter(to, from, next) {
