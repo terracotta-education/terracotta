@@ -1,5 +1,8 @@
 <template>
-  <div class="terracotta-builder" v-if="experiment && assessment">
+  <div
+    v-if="experiment && assessment"
+    class="terracotta-builder"
+  >
     <div class="header-container">
       <h1>
         {{ this.assignment_title }}
@@ -10,11 +13,16 @@
           label
           :color="condition_color"
         >
-        <h4 class="label-condition-name">{{ this.condition_name }}</h4>
+          <h4 class="label-condition-name">
+            {{ this.condition_name }}
+          </h4>
         </v-chip>
       </div>
     </div>
-    <v-tabs v-model="tab" class="tabs">
+    <v-tabs
+      v-model="tab"
+      class="tabs"
+    >
       <v-tab>Treatment</v-tab>
       <v-tab>Settings</v-tab>
     </v-tabs>
@@ -30,54 +38,77 @@
             placeholder="e.g. Lorem ipsum"
             outlined
           ></v-textarea>
-
           <div class="d-flex align-center mb-3 justify-space-between">
             <h4 class="pa-0"><strong>Questions</strong></h4>
-            <v-btn color="primary" text elevation="0" class="saveButton" @click="handleClearQuestions()" :disabled="!canClearAll">Clear All</v-btn>
+            <v-btn
+              color="primary"
+              text
+              elevation="0"
+              class="saveButton"
+              @click="handleClearQuestions()"
+              :disabled="!canClearAll"
+            >
+              Clear All
+            </v-btn>
           </div>
 
-          <template v-if="questionPages && questionPages.length > 0">
+          <template
+            v-if="questionPages && questionPages.length > 0"
+          >
             <template>
-              <div v-for="questionPage in questionPages" :key="questionPage.key">
+              <div
+                v-for="(questionPage, qpIndex) in questionPages"
+                :key="questionPage.key"
+              >
                 <v-expansion-panels
                   flat
                   accordion
                   outlined
                   class="v-expansion-panels--outlined"
                   :key="questionPage.key"
+                  v-model="expandedQuestionPanel[qpIndex]"
                 >
-                <draggable :list="questionPage.questions" group="questions" handle=".dragger"
-                  @change="(ev) => handleQuestionOrderChange(ev)"
-                  class="" style="width:100%">
-                  <v-expansion-panel
-                    v-for="(question, qIndex) in questionPage.questions"
-                    :key="qIndex"
-                    :class="[qIndex === 0 ? 'rounded-lg' : qIndex === questionPage.questions.length - 1 ? 'rounded-lg rounded-t-0' : '',
-                      qIndex === questionPage.questions.length - 1 ? '' : 'rounded-b-0']"
+                  <draggable
+                    :list="questionPage.questions"
+                    group="questions"
+                    handle=".dragger"
+                    @change="(ev) => handleQuestionOrderChange(ev)"
+                    class=""
+                    style="width:100%"
                   >
-                    <template v-if="question">
-                      <v-expansion-panel-header class="text-left">
-                        <div class="d-flex align-start">
-                          <span class="dragger me-2"><v-icon>mdi-drag</v-icon></span>
-                          <h2 class="pa-0">
-                            {{ questionPage.questionStartIndex + qIndex + 1 }}
-                            <span
-                              class="pl-3 question-text"
-                              v-if="question.html"
-                              v-html="textOnly(question.html)"
-                            ></span>
-                          </h2>
-                        </div>
-                      </v-expansion-panel-header>
-                      <v-expansion-panel-content>
-                        <component
-                          :is="questionTypeComponents[question.questionType]"
-                          :question="question"
-                        />
-                      </v-expansion-panel-content>
-                    </template>
-                  </v-expansion-panel>
-                </draggable>
+                    <v-expansion-panel
+                      v-for="(question, qIndex) in questionPage.questions"
+                      :key="qIndex"
+                      :ref="buildExpandedQuestionPanelId(qpIndex, qIndex)"
+                      :class="[qIndex === 0 ? 'rounded-lg' : qIndex === questionPage.questions.length - 1 ? 'rounded-lg rounded-t-0' : '',
+                        qIndex === questionPage.questions.length - 1 ? '' : 'rounded-b-0']"
+                      @click="expandedQuestionPagePanel = qpIndex"
+                    >
+                      <template v-if="question">
+                        <v-expansion-panel-header class="text-left">
+                          <div class="d-flex align-start">
+                            <span class="dragger me-2">
+                              <v-icon>mdi-drag</v-icon>
+                            </span>
+                            <h2 class="pa-0">
+                              {{ questionPage.questionStartIndex + qIndex + 1 }}
+                              <span
+                                v-if="question.html"
+                                class="pl-3 question-text"
+                                v-html="textOnly(question.html)"
+                              ></span>
+                            </h2>
+                          </div>
+                        </v-expansion-panel-header>
+                        <v-expansion-panel-content>
+                          <component
+                            :is="questionTypeComponents[question.questionType]"
+                            :question="question"
+                          />
+                        </v-expansion-panel-content>
+                      </template>
+                    </v-expansion-panel>
+                  </draggable>
                 </v-expansion-panels>
                 <page-break v-if="questionPage.pageBreakAfter" />
               </div>
@@ -103,26 +134,29 @@
             </template>
             <v-list>
               <v-list-item @click="handleAddQuestion('ESSAY')">
-                <v-list-item-title
-                  ><v-icon class="mr-1">mdi-text</v-icon> Short
-                  answer</v-list-item-title
-                >
+                <v-list-item-title>
+                  <v-icon class="mr-1">mdi-text</v-icon> Short answer
+                </v-list-item-title>
               </v-list-item>
               <v-list-item @click="handleAddQuestion('MC')">
-                <v-list-item-title
-                  ><v-icon class="mr-1">mdi-radiobox-marked</v-icon> Multiple
-                  choice</v-list-item-title
-                >
+                <v-list-item-title>
+                  <v-icon class="mr-1">mdi-radiobox-marked</v-icon> Multiple choice
+                </v-list-item-title>
               </v-list-item>
               <v-list-item @click="handleAddQuestion('FILE')">
                 <v-list-item-title>
-                  <v-icon class="mr-1">mdi-file-upload-outline</v-icon>
-                    File upload
-                  </v-list-item-title>
+                  <v-icon class="mr-1">mdi-file-upload-outline</v-icon> File upload
+                </v-list-item-title>
               </v-list-item>
             </v-list>
           </v-menu>
-          <v-menu offset-y close-on-click close-on-content-click transition="slide-y-transition" v-model="copyMenuShown">
+          <v-menu
+            offset-y
+            close-on-click
+            close-on-content-click
+            transition="slide-y-transition"
+            v-model="copyMenuShown"
+          >
             <template v-slot:activator="{ on, attrs }">
               <v-btn
                 color="primary"
@@ -131,11 +165,9 @@
                 v-bind="attrs"
                 v-on="on"
                 class="mb-3 mt-3"
-
                 :disabled="questions.length > 0"
               >
-                Copy Treatment From
-                <v-icon>mdi-chevron-down</v-icon>
+                Copy Treatment From <v-icon>mdi-chevron-down</v-icon>
               </v-btn>
             </template>
             <v-list>
@@ -150,10 +182,14 @@
                     transition="slide-x-transition"
                   >
                     <template v-slot:activator="{ on, attrs }">
-                      <v-list-item :key="index" v-bind="attrs" v-on="on">
-                        <v-list-item-title>{{
-                          assignment.title
-                        }}</v-list-item-title>
+                      <v-list-item
+                        :key="index"
+                        v-bind="attrs"
+                        v-on="on"
+                      >
+                        <v-list-item-title>
+                          {{ assignment.title}}
+                        </v-list-item-title>
                         <v-list-item-action class="justify-end">
                           <v-icon>mdi-menu-right</v-icon>
                         </v-list-item-action>
@@ -166,8 +202,8 @@
                           :key="treatment.treatmentId"
                           @click="duplicate(treatment)"
                         >
-                          <v-list-item-title
-                            >Treatment
+                          <v-list-item-title>
+                            Treatment
                             <v-chip
                               label
                               :color="
@@ -178,14 +214,15 @@
                                   ).conditionName
                                 ]
                               "
-                              >{{
+                            >
+                              {{
                                 conditionForTreatment(
                                   getGroupConditionListForAssignment(assignment),
                                   treatment.conditionId
                                 ).conditionName
-                              }}</v-chip
-                            ></v-list-item-title
-                          >
+                              }}
+                            </v-chip>
+                          </v-list-item-title>
                         </v-list-item>
                       </template>
                     </v-list>
@@ -217,6 +254,44 @@ import FileUploadQuestionEditor from "./FileUploadQuestionEditor.vue";
 export default {
   name: "TerracottaBuilder",
   props: ["experiment"],
+  data() {
+    return {
+      copyMenuShown: false,
+      rules: [
+        (v) => (v && !!v.trim()) || "required",
+        (v) =>
+          (v || "").length <= 255 || "A maximum of 255 characters is allowed",
+      ],
+      tab: null,
+      expandedQuestionPagePanel: null,
+      expandedQuestionPanel: []
+    };
+  },
+  watch: {
+    expandedQuestionPagePanel(idx) {
+      // opening question panel in another question page; close all others
+      for (let i = 0; i < this.questionPages.length; i++) {
+        if (i !== idx) {
+          this.expandedQuestionPanel[i] = null;
+        }
+      }
+    },
+    expandedQuestionPanel: {
+      handler(idx) {
+        // scroll to the newly-opened question panel
+        if (idx && idx[this.expandedQuestionPagePanel] != null) {
+          setTimeout(() => {
+            this.$vuetify.goTo(
+              this.$refs[this.buildExpandedQuestionPanelId(this.expandedQuestionPagePanel, idx[this.expandedQuestionPagePanel])][0],
+              {offset: 100}
+            );
+          },
+          500);
+        }
+      },
+      deep: true
+    }
+  },
   computed: {
     currentAssignment() {
       return JSON.parse(this.$route.params.current_assignment);
@@ -285,18 +360,7 @@ export default {
       set(value) {
         this.setAssessment({ ...this.assessment, html: value });
       },
-    },
-  },
-  data() {
-    return {
-      copyMenuShown: false,
-      rules: [
-        (v) => (v && !!v.trim()) || "required",
-        (v) =>
-          (v || "").length <= 255 || "A maximum of 255 characters is allowed",
-      ],
-      tab: null,
-    };
+    }
   },
   methods: {
     ...mapMutations({
@@ -342,6 +406,11 @@ export default {
           1, // points
           "",
         ]);
+        // open the added question panel
+        var questionPageIndex = this.questionPages.length > 0 ? this.questionPages.length - 1 : 0;
+        var questionIndex = this.questionPages[questionPageIndex] && this.questionPages[questionPageIndex].questions && this.questionPages[questionPageIndex].questions.length > 0 ?
+          this.questionPages[questionPageIndex].questions.length - 1 : 0;
+        this.expandQuestionPanel(questionPageIndex, questionIndex);
       } catch (error) {
         console.error(error);
       }
@@ -457,12 +526,10 @@ export default {
       );
     },
     async saveAll(routeName) {
-
       if (this.answerableQuestions.some((q) => !q.html)) {
         this.$swal("Please fill or delete empty questions.");
         return false;
       }
-
       const savedAssessment = await this.handleSaveAssessment();
       if (savedAssessment) {
         await this.handleSaveQuestions(this.questions);
@@ -478,7 +545,6 @@ export default {
       /* eslint-disable-next-line */
       const { treatmentId, assessmentId } = assessmentDto;
       let assessment;
-
       this.copyMenuShown = false;
 
       try {
@@ -530,6 +596,13 @@ export default {
       // Add a space between adjacent children
       return [...doc.body.children].map((c) => c.innerText).join(" ");
     },
+    expandQuestionPanel(questionPageIndex, questionPanelIndex) {
+      this.expandedQuestionPagePanel = questionPageIndex;
+      this.expandedQuestionPanel.splice(questionPageIndex, 1, questionPanelIndex);
+    },
+    buildExpandedQuestionPanelId(expandedQuestionPagePanel, expandedQuestionPanel) {
+      return "question-panel-" + expandedQuestionPagePanel + "_" + expandedQuestionPanel;
+    }
   },
   async created() {
     await this.fetchAssessment([
