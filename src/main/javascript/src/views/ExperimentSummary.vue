@@ -42,7 +42,10 @@
       <v-row>
         <v-col cols="12">
           <v-divider></v-divider>
-          <v-tabs v-model="tab" elevation="0">
+          <v-tabs
+            v-model="tab"
+            elevation="0"
+          >
             <v-tab
               v-for="item in setupTabs"
               :key="item.tab"
@@ -50,7 +53,7 @@
               {{ item.tab }}
             </v-tab>
           </v-tabs>
-          <v-divider class=""></v-divider>
+          <v-divider></v-divider>
           <v-tabs-items v-model="tab">
             <v-tab-item
               class="tab-section pt-6"
@@ -94,11 +97,14 @@
                   </div>
                 </div>
                 <template v-if="item.tab === 'status'">
-                  <experiment-summary-status :experiment="experiment" />
+                  <experiment-summary-status
+                    :experiment="experiment"
+                  />
                 </template>
                 <template v-if="item.tab === 'assignment'">
                   <div class="section-exposure-sets px-5">
                     <div
+                      v-if="!singleConditionExperiment"
                       class="panelInformation d-flex flex-column justify-center"
                     >
                       <h3 class="mb-0">Exposure Sets</h3>
@@ -106,12 +112,10 @@
                         v-if="exposures"
                         class="pb-0"
                       >
-                        Because you have <strong>{{ conditionCount }}</strong> (<a @click="handleEdit('ExperimentDesignConditions', item.tab)" >edit</a>
-                        ) and would like your students to be
-                        <strong>{{ exposureText[experiment.exposureType] }}</strong>
-                        ({{ exposureType[experiment.exposureType] }}) (<a @click="handleEdit('ExperimentDesignConditions', item.tab)">edit</a>
-                        ), we set you up with {{ exposures.length }} exposure
-                        sets.
+                        Because you have <strong>{{ conditionCount }}</strong> (<a @click="handleEdit('ExperimentDesignConditions', item.tab)" >edit</a>)
+                        and would like your students to be <strong>{{ exposureText[experiment.exposureType] }}</strong>
+                        ({{ exposureType[experiment.exposureType] }}) (<a @click="handleEdit('ExperimentDesignConditions', item.tab)">edit</a>),
+                        we set you up with {{ exposures.length }} exposure sets.
                         <v-tooltip top>
                           <template v-slot:activator="{ on, attrs }">
                             <a v-bind="attrs" v-on="on">
@@ -120,16 +124,10 @@
                           </template>
                           <span>
                             <strong class="d-block">What is an exposure set?</strong>
-                            An "exposure set" exposes a student to a specific
-                            condition during a specific time period. Students will
-                            change conditions between exposure sets, and the order
-                            of conditions across exposure sets will be randomly
-                            assigned to different students (<a @click="handleEdit('ExperimentDesignConditions', item.tab)">edit</a>
-                            ). An exposure set contains one or more assignments,
-                            and there must be an equal number of assignments in
-                            each exposure set in order to balance the experiment.
-                            For more details about exposure sets, see our blog
-                            post here.
+                            An "exposure set" exposes a student to a specific condition during a specific time period. Students will change conditions between exposure sets, and the order
+                            of conditions across exposure sets will be randomly assigned to different students (<a @click="handleEdit('ExperimentDesignConditions', item.tab)">edit</a> ).
+                            An exposure set contains one or more assignments, and there must be an equal number of assignments in each exposure set in order to balance the experiment.
+                            For more details about exposure sets, see our blog post here.
                           </span>
                         </v-tooltip>
                       </p>
@@ -137,7 +135,10 @@
                         v-show="showBalanced"
                       >
                         Your exposure sets are currently:
-                        <v-chip label outlined class="mr-2">
+                        <v-chip
+                          label
+                          outlined
+                          class="mr-2">
                           <span
                             v-if="!balanced"
                             class="label-unbalanced"
@@ -157,23 +158,15 @@
                             </a>
                           </template>
                           <span v-if="balanced">
-                            <strong class="d-block"
-                              >Balanced Exposure Sets</strong
-                            >
+                            <strong class="d-block">Balanced Exposure Sets</strong>
                             Your exposure sets contain all the same number assignments, and assignments contain the same number of treatments. Great work!</span
                           >
                           <span v-if="!balanced">
-                            <strong class="d-block"
-                              >Unbalanced Exposure Sets</strong
-                            >
-                            A balanced experiment needs to have the same number
-                            of assignments within each exposure set, and a
-                            treatment for each condition within each assignment.
-                            This will allow your students to be exposed to every
-                            condition, but in different orders, so you can
-                            compare how the different conditions affected each
-                            individual student.</span
-                          >
+                            <strong class="d-block">Unbalanced Exposure Sets</strong>
+                            A balanced experiment needs to have the same number of assignments within each exposure set, and a treatment for each condition within each assignment.
+                            This will allow your students to be exposed to every condition, but in different orders, so you can compare how the different conditions affected each
+                            individual student.
+                          </span>
                         </v-tooltip>
                       </span>
                     </div>
@@ -220,15 +213,16 @@
                             :for="`condition-${condition.conditionId}`"
                             class="text-left conditionLabel"
                           >
-                            <span class="conditionName"
-                              >Condition {{ index + 1 }}</span
-                            >
+                            <span class="conditionName">
+                              Condition {{ index + 1 }}
+                            </span>
                             <br />
                             <v-chip
                               label
                               :color="conditionColorMapping[condition.name]"
-                              >{{ condition.name }}</v-chip
                             >
+                              {{ condition.name }}
+                            </v-chip>
                             <v-chip
                               class="px-3 py-1  ml-3 defaultPill"
                               color="primary"
@@ -248,13 +242,11 @@
                               alt="all conditions"
                               class="constantImage mb-2"
                             />
-                            <span class="conditionType mb-2"
-                              >All conditions</span
-                            >
+                            <span class="conditionType mb-2">
+                              All conditions
+                            </span>
                             <p class="conditionDetail">
-                              All students are exposed to every condition, in
-                              different orders. This way you can compare how the
-                              different conditions affected each individual
+                              All students are exposed to every condition, in different orders. This way you can compare how the different conditions affected each individual
                               student. This is called a within-subject design.
                             </p>
                           </template>
@@ -264,13 +256,11 @@
                               alt="one conditions"
                               class="constantImage mb-2"
                             />
-                            <span class="conditionType mb-2"
-                              >Only one condition</span
-                            >
+                            <span class="conditionType mb-2">
+                              Only one condition
+                            </span>
                             <p class="conditionDetail">
-                              Each student is only exposed to one condition, so
-                              that you can compare how the different conditions
-                              affected different students. This is called a
+                              Each student is only exposed to one condition, so that you can compare how the different conditions affected different students. This is called a
                               between-subjects design.
                             </p>
                           </template>
@@ -295,22 +285,16 @@
                           >
                             Manual
                             <br />
-                            <span
-                              >{{ experiment.acceptedParticipants }}
-                              students selected to participate out of
-                              {{ experiment.potentialParticipants }}
-                              students enrolled
+                            <span>
+                              {{ experiment.acceptedParticipants }} students selected to participate out of {{ experiment.potentialParticipants }} students enrolled
                             </span>
                           </template>
                           <!-- All Participation -->
                           <template v-else>
                             Include All Students
                             <br />
-                            <span
-                              >{{ experiment.potentialParticipants }}
-                              students selected to participate out of
-                              {{ experiment.potentialParticipants }}
-                              students enrolled
+                            <span>
+                              {{ experiment.potentialParticipants }} students selected to participate out of {{ experiment.potentialParticipants }} students enrolled
                             </span>
                           </template>
                         </template>
@@ -419,8 +403,8 @@ export default {
       ];
     },
     conditionCount() {
-      return `${this.experiment.conditions.length} condition${
-        this.experiment.conditions.length > 1 ? "s" : ""
+      return `${this.conditions.length} condition${
+        this.singleConditionExperiment ? "" : "s"
       }`;
     },
     // Participation Expansion View Values
@@ -461,6 +445,12 @@ export default {
     },
     showBalanced() {
       return this.exposures?.length > 1;
+    },
+    singleConditionExperiment() {
+      return this.conditions.length === 1;
+    },
+    experimentId() {
+      return this.experiment.experimentId;
     }
   },
 
@@ -530,7 +520,7 @@ export default {
       this.$router.push({ name: "Home" });
     },
     async exportData() {
-      await this.getZip(this.experiment.experimentId);
+      await this.getZip(this.experimentId);
       saveAs(
         this.exportdata,
         `Terracotta Experiment ${this.experiment.title} Export.zip`
@@ -557,7 +547,7 @@ export default {
       this.handleConsentFileDownload();
     },
     async getAssignmentDetails() {
-      await this.fetchExposures(this.experiment.experimentId);
+      await this.fetchExposures(this.experimentId);
       return this.exposures;
     },
     hasTreatment(conditionId, assignmentId) {
@@ -575,7 +565,7 @@ export default {
       // POST TREATMENT
       try {
         return await this.createTreatment([
-          this.experiment.experimentId,
+          this.experimentId,
           conditionId,
           assignmentId,
         ]);
@@ -587,7 +577,7 @@ export default {
       // POST ASSESSMENT TITLE & HTML (description)
       try {
         return await this.createAssessment([
-          this.experiment.experimentId,
+          this.experimentId,
           conditionId,
           treatment.treatmentId,
         ]);
@@ -626,7 +616,7 @@ export default {
       this.$router.push({
         name: "TerracottaBuilder",
         params: {
-          experiment_id: this.experiment.experimentId,
+          experiment_id: this.experimentId,
           condition_id: conditionId,
           treatment_id: treatment?.data?.treatmentId,
           assessment_id: assessment?.data?.assessmentId,
@@ -647,7 +637,7 @@ export default {
       return newGroups?.sort();
     },
     handleConsentFileDownload() {
-      this.getConsentFile(this.experiment.experimentId)
+      this.getConsentFile(this.experimentId)
         .then((file) => {
           this.pdfFile = encodeURI(file);
         });
@@ -660,12 +650,12 @@ export default {
     this.exposureSet = this.activeExposureSet;
     await this.saveEditMode(null);
 
-    await this.fetchExposures(this.experiment.experimentId);
+    await this.fetchExposures(this.experimentId);
     for (const e of this.exposures) {
       // add submissions to assignments request
       const submissions = true;
       await this.fetchAssignmentsByExposure([
-        this.experiment.experimentId,
+        this.experimentId,
         e.exposureId,
         submissions,
       ]);
@@ -680,7 +670,7 @@ export default {
       }
     }
     this.getAssignmentDetails();
-    await this.getZip(this.experiment.experimentId);
+    await this.getZip(this.experimentId);
     this.isLoading = false;
   },
   beforeRouteEnter(to, from, next) {
@@ -803,9 +793,9 @@ table {
 }
 div.container-section-summary {
   padding-bottom: 40px;
-}
-div.container-section-summary div.panel-overview {
-  padding-bottom: 0 !important;
+  div.panel-overview {
+    padding-bottom: 0 !important;
+  }
 }
 div.icon-section-summary,
 h2.header-section-summary {

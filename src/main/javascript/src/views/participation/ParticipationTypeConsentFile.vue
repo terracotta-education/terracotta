@@ -15,7 +15,7 @@
         class="mt-3 mb-6"
         color="primary"
         elevation="0"
-        @click="saveConsent('ParticipationDistribution')"
+        @click="saveConsent(nextPage)"
       >
         Next
       </v-btn>
@@ -71,11 +71,21 @@ export default {
       consent: "consent/consent",
       editMode: 'navigation/editMode'
     }),
-    getSaveExitPage() {
+    saveExitPage() {
       return this.editMode?.callerPage?.name || "Home";
+    },
+    nextPage() {
+      // if single condition; go directly to the summary page, as 'EVEN' is default
+      return this.singleConditionExperiment ? "ParticipationSummary" : "ParticipationDistribution";
     },
     consentFileExists() {
       return this.pdfFile != null;
+    },
+    conditions() {
+      return this.experiment.conditions;
+    },
+    singleConditionExperiment() {
+      return this.conditions.length === 1;
     }
   },
   methods: {
@@ -140,7 +150,7 @@ export default {
       }
     },
     saveExit() {
-      this.saveConsent(this.getSaveExitPage);
+      this.saveConsent(this.saveExitPage);
     },
   },
   created() {

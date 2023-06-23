@@ -4,7 +4,7 @@
             v-if="experiment && experiment.conditions"
         >
             <h1 class="mb-5">
-                <span>You have defined <strong>{{ numConditions }} conditions</strong></span><br><br>
+                <span>You have defined <strong>{{ numConditions }} condition{{ hasConditions ? "s" : "" }}</strong></span><br><br>
                 <span>How do you want students to be exposed to these different conditions?</span>
             </h1>
 
@@ -15,7 +15,7 @@
             >
                 <v-expansion-panel
                     :class="{'v-expansion-panel--selected': experiment.exposureType === 'WITHIN'}"
-                    :key="getExposureTypes.indexOf('WINTHIN')"
+                    :key="getExposureTypes.indexOf('WITHIN')"
                 >
                     <v-expansion-panel-header hide-actions>
                         <img
@@ -127,8 +127,14 @@ export default {
         ...mapGetters({
             editMode: 'navigation/editMode'
         }),
+        conditions() {
+            return this.experiment.conditions;
+        },
         numConditions() {
-            return this.experiment?.conditions?.length || 0
+            return this.conditions?.length || 0;
+        },
+        hasConditiions() {
+            return this.numConditions > 1;
         },
         getExposureTypes() {
             return ['WITHIN', 'BETWEEN'];

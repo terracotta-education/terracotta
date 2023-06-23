@@ -145,7 +145,8 @@ const routes = [
               currentSection: 'design',
               currentStep: 'design_type',
               stepsComplete: true,
-              previousStep: 'ExperimentDesignType'
+              previousStep: 'ExperimentDesignType',
+              previousStepSingleCondition: 'ExperimentDesignConditions'
             }
           },
         ]
@@ -285,7 +286,8 @@ const routes = [
             meta: {
               currentSection: 'participation',
               currentStep: 'select_participants',
-              previousStep: 'ParticipationDistribution'
+              previousStep: 'ParticipationDistribution',
+              previousStepSingleCondition: 'ExperimentParticipationSelectionMethod'
             }
           }
         ]

@@ -15,7 +15,7 @@ const actions = {
       {
         name: '',
         experiment_experiment_id: experimentId
-      },
+      }
     ]
     dispatch('createConditions', defaultConditions)
   },

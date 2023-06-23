@@ -6,7 +6,10 @@
 
     <!-- Groups Section -->
     <p>Groups</p>
-    <v-expansion-panels class="v-expansion-panels--icon" flat>
+    <v-expansion-panels
+      class="v-expansion-panels--icon"
+      flat
+    >
       <v-expansion-panel>
         <v-expansion-panel-header>
           Participating ({{ participating.length }})
@@ -51,8 +54,12 @@
     </v-expansion-panels>
 
     <div class="mt-5">
-      <v-btn elevation="0" color="primary" @click="submitParticipants('ParticipationDistribution')"
-        >Continue
+      <v-btn
+        elevation="0"
+        color="primary"
+        @click="submitParticipants(nextPage('ParticipationDistribution'))"
+      >
+        Continue
       </v-btn>
     </div>
   </div>
@@ -94,6 +101,12 @@ export default {
     unassigned() {
       return this.groupParticipants(null);
     },
+    conditions() {
+        return this.experiment.conditions;
+    },
+    singleConditionExperiment() {
+        return this.conditions.length === 1;
+    }
   },
   methods: {
     ...mapActions({
@@ -158,6 +171,13 @@ export default {
     },
     saveExit() {
       this.submitParticipants(this.getSaveExitPage)
+    },
+    nextPage(toPage) {
+      if (this.singleConditionExperiment) {
+          return "ParticipationSummary";
+      }
+
+      return toPage;
     }
   },
   async created() {

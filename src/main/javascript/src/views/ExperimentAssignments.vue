@@ -1,11 +1,22 @@
 <template>
   <div>
-    <v-container class="px-0" v-if="experiment">
+    <v-container
+      v-if="experiment"
+      class="px-0"
+    >
       <v-row>
         <v-col cols="12">
-          <v-divider class=""></v-divider>
-          <v-tabs v-model="tab" elevation="0" show-arrows>
-            <v-tab v-for="(exposure, eidx) in exposures" :key="eidx">
+          <v-divider v-if="!singleConditionExperiment"></v-divider>
+          <v-tabs
+            v-if="!singleConditionExperiment"
+            v-model="tab"
+            elevation="0"
+            show-arrows
+          >
+            <v-tab
+              v-for="(exposure, eidx) in exposures"
+              :key="eidx"
+            >
               <div class="d-flex flex-column align-start py-1">
                 <div class="section-tab-set">Set {{ eidx + 1 }}</div>
                 <div
@@ -20,8 +31,8 @@
           <v-divider></v-divider>
           <v-tabs-items v-model="tab">
             <v-tab-item
-              class="section-assignments py-3 px-3"
               v-for="(exposure, eidx) in exposures"
+              class="section-assignments py-3 px-3"
               :key="eidx"
             >
               <div class="d-flex justify-space-between">
@@ -89,6 +100,16 @@
                       )
                   "
                 >
+                  <template v-slot:item.title="{ item }">
+                    {{ item.title }}
+                    <v-chip
+                      v-if="item.treatments.length == 1"
+                      label
+                      :color="lightGrey"
+                    >
+                      Only One Version
+                    </v-chip>
+                  </template>
                   <template v-slot:expanded-item="{ item }">
                     <td
                       :colspan="assignmentHeaders.length"
@@ -222,8 +243,7 @@
                             >
                               <v-list-item-title>
                                 <v-icon>mdi-arrow-right-top</v-icon> Move
-                              </v-list-item-title
-                            >
+                              </v-list-item-title>
                               <v-list-item-action class="justify-end">
                                 <v-icon>mdi-menu-right</v-icon>
                               </v-list-item-action>
@@ -232,15 +252,14 @@
                           <v-list>
                             <template v-for="(exposure, idx) in exposures">
                               <v-list-item
-                                v-if="exposure.exposureId !== item.exposureId" :key="exposure.exposureId"
+                                v-if="exposure.exposureId !== item.exposureId"
+                                :key="exposure.exposureId"
                                 :aria-label="`Exposure set ${idx + 1}`"
-                                @click="
-                                  handleMoveAssignment(exposure.exposureId, item)
-                                "
+                                @click="handleMoveAssignment(exposure.exposureId, item)"
                               >
-                                <v-list-item-title
-                                  >Exposure set {{ idx + 1 }}</v-list-item-title
-                                >
+                                <v-list-item-title>
+                                  Exposure set {{ idx + 1 }}
+                                </v-list-item-title>
                               </v-list-item>
                             </template>
                           </v-list>
@@ -275,48 +294,62 @@
                   </template>
                 </v-data-table>
               </template>
-              <h3 class="my-4">Design</h3>
-              <v-card
-                class="data-table-design px-5 py-5 rounded-lg mx-3 mb-5 d-inline-block"
-                outlined
+              <div
+                v-if="!singleConditionExperiment"
               >
-                <div
-                  class="groupNames"
-                  :key="group"
-                  v-for="group in sortedGroups(exposure.groupConditionList, designExpanded ? null : maxDesignGroups)"
+                <h3 class="my-4">Design</h3>
+                <v-card
+                  class="data-table-design px-5 py-5 rounded-lg mx-3 mb-5 d-inline-block"
+                  outlined
                 >
-                  {{ group }} will receive
-                  <v-chip
-                    class="ma-2"
-                    :color="
-                      conditionColorMapping[
+                  <div
+                    v-for="group in sortedGroups(exposure.groupConditionList, designExpanded ? null : maxDesignGroups)"
+                    class="groupNames"
+                    :key="group"
+                  >
+                    {{ group }} will receive
+                    <v-chip
+                      class="ma-2"
+                      :color="
+                        conditionColorMapping[
+                          groupNameConditionMapping(exposure.groupConditionList)[
+                            group
+                          ]
+                        ]
+                      "
+                      label
+                      :key="group"
+                    >
+                      <!-- Sorted Group Names -->
+                      {{
                         groupNameConditionMapping(exposure.groupConditionList)[
                           group
                         ]
-                      ]
-                    "
-                    label
-                    :key="group"
+                      }}
+                    </v-chip>
+                  </div>
+                  <a
+                    v-if="sortedGroups(exposure.groupConditionList).length > maxDesignGroups"
+                    @click="designExpanded = !designExpanded"
+                    class="text--blue"
                   >
-                    <!-- Sorted Group Names -->
-                    {{
-                      groupNameConditionMapping(exposure.groupConditionList)[
-                        group
-                      ]
-                    }}</v-chip
-                  >
-                </div>
-                <a
-                  v-if="sortedGroups(exposure.groupConditionList).length > maxDesignGroups"
-                  @click="designExpanded = !designExpanded"
-                  class="text--blue"
-                >
-                  <v-icon v-if="!designExpanded" color="blue">mdi-plus</v-icon>
-                  <v-icon v-if="designExpanded" color="blue">mdi-minus</v-icon>
-                  <span v-if="!designExpanded">More</span>
-                  <span v-if="designExpanded">Less</span>
-                </a>
-              </v-card>
+                    <v-icon
+                      v-if="!designExpanded"
+                      color="blue"
+                    >
+                      mdi-plus
+                    </v-icon>
+                    <v-icon
+                      v-else
+                      color="blue"
+                    >
+                      mdi-minus
+                    </v-icon>
+                    <span v-if="!designExpanded">More</span>
+                    <span v-else>Less</span>
+                  </a>
+                </v-card>
+              </div>
             </v-tab-item>
           </v-tabs-items>
         </v-col>
@@ -333,7 +366,12 @@ import moment from "moment";
 
 export default {
   name: "ExperimentAssignments",
-  props: ["experiment", "balanced", "loaded", "activeExposureSet"],
+  props: [
+    "experiment",
+    "balanced",
+    "loaded",
+    "activeExposureSet"
+  ],
   components: {
     Spinner
   },
@@ -369,6 +407,9 @@ export default {
     },
     assignmentsCount() {
       return this.assignments.length;
+    },
+    singleConditionExperiment() {
+      return this.conditions.length === 1;
     }
   },
   data: () => ({

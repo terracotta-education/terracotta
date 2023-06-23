@@ -100,7 +100,16 @@
                     // this page is where we initially began, return to the caller page on exit
                     return this.editMode.callerPage.name;
                 }
+                if (this.singleConditionExperiment && this.$router.currentRoute.meta.previousStepSingleCondition) {
+                    return this.$router.currentRoute.meta.previousStepSingleCondition;
+                }
                 return this.$router.currentRoute.meta.previousStep;
+            },
+            conditions() {
+                return this.experiment.conditions;
+            },
+            singleConditionExperiment() {
+                return this.conditions.length === 1;
             }
         },
 

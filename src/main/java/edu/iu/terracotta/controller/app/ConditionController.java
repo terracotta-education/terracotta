@@ -165,7 +165,7 @@ public class ConditionController {
     }
 
     @DeleteMapping("/{conditionId}")
-    public ResponseEntity<Void> deleteExperiment(@PathVariable long experimentId,
+    public ResponseEntity<Void> deleteCondition(@PathVariable long experimentId,
                                                  @PathVariable long conditionId,
                                                  HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ConditionNotMatchingException, ExperimentLockedException, ConditionsLockedException {

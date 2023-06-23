@@ -1,27 +1,30 @@
 <template>
   <div>
     <h1>Create your assignment</h1>
-    <p>This will create an unpublished assignment shell in Canvas and will be the way Terracotta will deliver treatments
-      to students.</p>
+    <p>This will create an unpublished assignment shell in Canvas and will be the way Terracotta will deliver treatments to students.</p>
     <v-row>
       <div class="col-6">
-          <v-text-field
-              v-model="assignment.title"
-              label="Assignment name"
-              :rules="rules"
-              outlined
-          ></v-text-field>
+        <v-text-field
+          v-model="assignment.title"
+          label="Assignment name"
+          :rules="rules"
+          outlined
+        >
+        </v-text-field>
       </div>
     </v-row>
-    <v-divider class=""></v-divider>
-    <v-tabs v-model="tab" class="tabs">
+    <v-divider></v-divider>
+    <v-tabs
+      v-model="tab"
+      class="tabs"
+    >
       <v-tab>Settings</v-tab>
     </v-tabs>
-    <v-divider class=""></v-divider>
+    <v-divider></v-divider>
     <v-tabs-items v-model="tab">
-        <v-tab-item class="my-5">
-            <assignment-settings />
-        </v-tab-item>
+      <v-tab-item class="my-5">
+          <assignment-settings />
+      </v-tab-item>
     </v-tabs-items>
   </div>
 </template>
@@ -32,6 +35,9 @@ import AssignmentSettings from './AssignmentSettings.vue';
 
 export default {
   name: "CreateAssignment",
+  components: {
+    AssignmentSettings,
+  },
   data() {
     return {
       tab: null,
@@ -58,10 +64,8 @@ export default {
       return JSON.parse(this.$route.params.conditionIds);
     },
     contDisabled() {
-      return (
-        !this.assignment.title
-      );
-    },
+      return !this.assignment.title;
+    }
   },
   methods: {
     async saveExit() {
@@ -142,9 +146,6 @@ export default {
     this.setAssignment({
       numOfSubmissions: null
     });
-  },
-  components: {
-    AssignmentSettings,
-  },
+  }
 };
 </script>
