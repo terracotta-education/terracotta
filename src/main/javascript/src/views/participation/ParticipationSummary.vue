@@ -1,13 +1,17 @@
 <template>
   <div>
     <h1 class="my-3">
-      <span class="green--text font-weight-bold"
-        >You've completed section 2.</span
-      ><br />
+      <span class="green--text font-weight-bold">
+        You've completed section 2.
+      </span>
+      <br />
       Here's a summary of your experiment participation.
     </h1>
     <template v-if="experiment">
-      <v-expansion-panels flat v-if="this.experiment.participationType">
+      <v-expansion-panels
+        v-if="this.experiment.participationType"
+        flat
+      >
         <v-expansion-panel class="py-3 mb-3">
           <v-expansion-panel-header>
             <strong>Selection Method</strong>
@@ -19,8 +23,8 @@
       </v-expansion-panels>
 
       <v-expansion-panels
-        flat
         v-if="this.experiment.participationType === 'CONSENT'"
+        flat
       >
         <v-expansion-panel class="py-3 mb-3">
           <v-expansion-panel-header>
@@ -33,20 +37,34 @@
       </v-expansion-panels>
 
       <v-expansion-panels
-        flat
         v-if="this.experiment.participationType === 'CONSENT'"
+        flat
       >
         <v-expansion-panel class="py-3 mb-3">
-          <v-expansion-panel-header
-            ><strong>Informed Consent</strong></v-expansion-panel-header
-          >
+          <v-expansion-panel-header>
+            <strong>Informed Consent</strong>
+          </v-expansion-panel-header>
           <v-expansion-panel-content>
             <button
+              v-if="!downloading && !showFile"
               class='pdfButton'
-              @click="openPDF"
+              @click="doDisplayFile"
             >
-              Consent File
+              View consent file
             </button>
+            <button
+              v-if="!downloading && showFile"
+              class='pdfButton'
+              @click="doHideFile"
+            >
+              Close preview
+            </button>
+            <Spinner v-if="downloading"></Spinner>
+            <div v-if="showFile">
+              <vue-pdf-embed
+                :source="pdfFile"
+              />
+            </div>
           </v-expansion-panel-content>
         </v-expansion-panel>
       </v-expansion-panels>
@@ -65,16 +83,32 @@
 
 <script>
 import { mapGetters, mapActions } from "vuex";
+import Spinner from "@/components/Spinner";
+import VuePdfEmbed from 'vue-pdf-embed/dist/vue2-pdf-embed';
 
 export default {
   name: "ParticipationSummary",
   props: ["experiment"],
+  components: {
+    Spinner,
+    VuePdfEmbed
+  },
+  data: () => ({
+    pdfFile: null,
+    downloading: false,
+    showFile: false
+  }),
+  watch: {
+    pdfFile(pdfFile) {
+      this.showFile = pdfFile != null;
+    }
+  },
   computed: {
     ...mapGetters({
       consent: 'consent/consent',
       editMode: 'navigation/editMode'
     }),
-    getSaveExitPage() {
+    saveExitPage() {
         return this.editMode?.callerPage?.name || 'ExperimentSummary';
     },
     participationType() {
@@ -99,33 +133,39 @@ export default {
     ...mapActions({
       getConsentFile: "consent/getConsentFile"
     }),
-    openPDF() {
-      this.getConsentFile(this.experiment.experimentId)
+    async doDisplayFile() {
+      if (!this.pdfFile) {
+        this.downloading = true;
+        await this.handleConsentFileDownload();
+        this.downloading = false;
+      } else {
+        this.showFile = true;
+      }
+    },
+    doHideFile() {
+      this.showFile = false;
+    },
+    async handleConsentFileDownload() {
+      await this.getConsentFile(this.experiment.experimentId)
+        .then((file) => {
+          if (!file) {
+            return;
+          }
 
-      // Second Parameter intentionally left blank
-      let pdfWindow = window.open('', '', '_blank')
-      pdfWindow.opener = null
-      pdfWindow.document.write(
-        "<iframe width='100%' height='100%' src='data:application/pdf;base64, " +
-          encodeURI(this.consent.file) +
-          "'></iframe>"
-      )
-      return false
+          this.pdfFile = "data:application/pdf;base64," + encodeURI(file);
+        });
     },
     nextSection() {
       this.$router.push({
-        name: this.getSaveExitPage,
-        params: { experiment: this.experiment.experimentId },
+        name: this.saveExitPage,
+        params: {
+          experiment: this.experiment.experimentId
+        }
       })
     },
     saveExit() {
       this.nextSection();
     },
-  },
-  created() {
-    if (this.experiment.consent?.filePointer) {
-      this.getConsentFile(this.experiment.experimentId);
-    }
   },
   beforeRouteEnter(to, from, next) {
     // Updating selection type for custom steps
@@ -138,14 +178,21 @@ export default {
 <style lang="scss">
 .v-expansion-panel {
   border: 1px solid map-get($grey, 'lighten-2');
-
-  .pdfButton {
-	background: none!important;
-	border: none;
-	padding: 0!important;
-	color: #069;
-	text-decoration: underline;
-	cursor: pointer;
+  button.pdfButton {
+    background: none!important;
+    border: none;
+    padding: 0!important;
+    color: #069;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+  div.vue-pdf-embed {
+    width: 98%;
+    margin: 20px auto;
+    min-height: 300px;
+    max-height: 600px;
+    overflow-y: scroll;
+    box-shadow: 0 3px 1px -2px rgba(0,0,0,.2),0 2px 2px 0 rgba(0,0,0,.14),0 1px 5px 0 rgba(0,0,0,.12);
   }
 }
 </style>
