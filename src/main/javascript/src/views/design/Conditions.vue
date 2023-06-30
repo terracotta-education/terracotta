@@ -257,11 +257,20 @@ export default {
       this.saveConditions(this.getSaveExitPage);
     },
     duplicateRule(condition) {
-      this.handleRule(this.fieldErrors.duplicateName, condition.conditionId, this.conditions.some((c) => c.conditionId !== condition.conditionId && condition.name && c.name === condition.name));
+      this.handleRule(
+        this.fieldErrors.duplicateName,
+        condition.conditionId,
+        this.conditions.some(
+          (c) =>
+            c.conditionId !== condition.conditionId &&
+            condition.name && c.name &&
+            c.name.replace(/\s\s+/g, ' ').toLowerCase().trim() === condition.name.replace(/\s\s+/g, ' ').toLowerCase().trim()
+        )
+      );
       return !this.fieldErrors.duplicateName.conditionIds.includes(condition.conditionId) || "Duplicate condition name.";
     },
     requiredRule(condition) {
-      this.handleRule(this.fieldErrors.requiredName, condition.conditionId, !(condition.name && condition.name.trim()));
+      this.handleRule(this.fieldErrors.requiredName, condition.conditionId, !(condition.name && condition.name.replace(/\s\s+/g, ' ').trim()));
       return !this.fieldErrors.requiredName.conditionIds.includes(condition.conditionId) || "Condition name is required";
     },
     maxLengthRule(condition) {
