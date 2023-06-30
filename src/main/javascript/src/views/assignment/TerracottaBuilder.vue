@@ -598,7 +598,8 @@ export default {
     },
     expandQuestionPanel(questionPageIndex, questionPanelIndex) {
       this.expandedQuestionPagePanel = questionPageIndex;
-      this.expandedQuestionPanel.splice(questionPageIndex, 1, questionPanelIndex);
+      this.expandedQuestionPanel = [];
+      this.expandedQuestionPanel[questionPageIndex] = questionPanelIndex;
     },
     buildExpandedQuestionPanelId(expandedQuestionPagePanel, expandedQuestionPanel) {
       return "question-panel-" + expandedQuestionPagePanel + "_" + expandedQuestionPanel;
