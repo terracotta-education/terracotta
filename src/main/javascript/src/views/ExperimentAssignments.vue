@@ -72,11 +72,14 @@
                   v-if="getAssignmentsForExposure(exposure).length"
                   :headers="assignmentHeaders"
                   :items="getAssignmentsForExposure(exposure)"
-                  :single-expand="singleExpand"
+                  :expanded="assignmentsExpanded"
                   :sort-by="['assignmentOrder']"
                   :mobile-breakpoint="mobileBreakpoint"
                   hide-default-footer
                   v-sortable-data-table
+                  item-key="assignmentId"
+                  show-expand
+                  class="data-table-assignments mx-3 mb-5 mt-3"
                   @sorted="
                     (event) =>
                       saveOrder(
@@ -85,9 +88,6 @@
                         exposure
                       )
                   "
-                  item-key="assignmentId"
-                  show-expand
-                  class="data-table-assignments mx-3 mb-5 mt-3"
                 >
                   <template v-slot:expanded-item="{ item }">
                     <td
@@ -366,16 +366,18 @@ export default {
     },
     canDeleteAssignment() {
       return !this.experiment.started;
+    },
+    assignmentsCount() {
+      return this.assignments.length;
     }
   },
-
   data: () => ({
     tab: 0,
     minTreatments: 2,
     maxDesignGroups: 2,
     conditionTreatments: {},
     conditionColors: [""],
-    singleExpand: true,
+    assignmentsExpanded: [],
     designExpanded: false,
     mobileBreakpoint: 636,
     assignmentHeaders: [
@@ -427,6 +429,14 @@ export default {
       }
     ],
   }),
+  watch: {
+    assignmentsCount: {
+      handler() {
+        this.expandAssignments();
+      },
+      immediate: true
+    }
+  },
   methods: {
     ...mapActions({
       fetchExposures: "exposures/fetchExposures",
@@ -695,6 +705,10 @@ export default {
         allowOutsideClick: () => !this.$swal.isLoading(),
       });
       return result.isConfirmed;
+    },
+    expandAssignments() {
+      this.assignmentsExpanded = [];
+      this.assignments.forEach(assignment => this.assignmentsExpanded.push(assignment));
     }
   },
   async mounted() {
