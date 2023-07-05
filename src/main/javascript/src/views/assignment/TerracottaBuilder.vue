@@ -151,6 +151,7 @@
             </v-list>
           </v-menu>
           <v-menu
+            v-if="assignmentsAvailableToCopy.length > 0"
             offset-y
             close-on-click
             close-on-content-click
@@ -172,12 +173,12 @@
             </template>
             <v-list>
                 <template
-                  v-for="(assignment, index) in assignments"
+                  v-for="(assignment, index) in assignmentsAvailableToCopy"
                 >
                   <v-menu
+                    v-if="assignment.treatments.length > 0 && hasTreatmentsNotCurrent(assignment.treatments)"
                     offset-x
                     :key="assignment.assignmentId"
-                    v-if="assignment.treatments.length > 0"
                     open-on-hover
                     transition="slide-x-transition"
                   >
@@ -196,9 +197,9 @@
                       </v-list-item>
                     </template>
                     <v-list>
-                      <template>
+                      <template v-for="treatment in assignment.treatments">
                         <v-list-item
-                          v-for="treatment in assignment.treatments"
+                          v-if="treatment.treatmentId != treatment_id"
                           :key="treatment.treatmentId"
                           @click="duplicate(treatment)"
                         >
@@ -254,8 +255,17 @@ import FileUploadQuestionEditor from "./FileUploadQuestionEditor.vue";
 export default {
   name: "TerracottaBuilder",
   props: ["experiment"],
+  components: {
+    QuestionEditor,
+    MultipleChoiceQuestionEditor,
+    FileUploadQuestionEditor,
+    PageBreak,
+    TreatmentSettings,
+    draggable
+  },
   data() {
     return {
+      assignmentsAvailableToCopy: [],
       copyMenuShown: false,
       rules: [
         (v) => (v && !!v.trim()) || "required",
@@ -290,11 +300,17 @@ export default {
         }
       },
       deep: true
+    },
+    assignmentCount() {
+      this.findAssignmentsAvailableToCopy();
     }
   },
   computed: {
     currentAssignment() {
       return JSON.parse(this.$route.params.current_assignment);
+    },
+    assignmentCount() {
+      return this.assignments.length;
     },
     assignment_id() {
       return this.currentAssignment.assignmentId;
@@ -603,6 +619,18 @@ export default {
     },
     buildExpandedQuestionPanelId(expandedQuestionPagePanel, expandedQuestionPanel) {
       return "question-panel-" + expandedQuestionPagePanel + "_" + expandedQuestionPanel;
+    },
+    hasTreatmentsNotCurrent(treatments) {
+      return treatments.some((t) => t.treatmentId !== this.treatment_id);
+    },
+    findAssignmentsAvailableToCopy() {
+      this.assignments.forEach((a) => {
+        var hasAvailableTreatment = this.hasTreatmentsNotCurrent(a.treatments);
+
+        if (hasAvailableTreatment) {
+          this.assignmentsAvailableToCopy.push(a);
+        }
+      });
     }
   },
   async created() {
@@ -613,15 +641,8 @@ export default {
       this.assessment_id,
     ]);
     this.getAssignmentDetails();
-  },
-  components: {
-    QuestionEditor,
-    MultipleChoiceQuestionEditor,
-    FileUploadQuestionEditor,
-    PageBreak,
-    TreatmentSettings,
-    draggable
-  },
+    this.findAssignmentsAvailableToCopy();
+  }
 };
 </script>
 
