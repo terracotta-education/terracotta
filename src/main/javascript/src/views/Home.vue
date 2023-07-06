@@ -126,7 +126,11 @@
                             :disabled="item.started"
                           >
                             <v-list-item-icon class="mr-3">
-                              <v-icon color="black">mdi-delete</v-icon>
+                              <v-icon
+                                :color="item.started ? 'grey' : 'black'"
+                              >
+                                mdi-delete
+                              </v-icon>
                             </v-list-item-icon>
                             <v-list-item-content>
                               <v-list-item-title>Delete</v-list-item-title>
