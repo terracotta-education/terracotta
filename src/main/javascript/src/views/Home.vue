@@ -2,29 +2,58 @@
   <div>
     <v-container v-show="!hasExperiments">
       <div class="terracotta-appbg"/>
-      <v-row justify="center" class="text-center">
-        <v-col md="6" class="mt-15 ">
-          <v-img src="@/assets/terracotta_logo.svg" alt="Terracotta Logo" class="mb-13 mx-auto" max-width="400"/>
+      <v-row
+        justify="center"
+        class="text-center"
+      >
+        <v-col
+          md="6"
+          class="mt-15"
+        >
+          <v-img
+            src="@/assets/terracotta_logo.svg"
+            alt="Terracotta Logo"
+            class="mb-13 mx-auto"
+            max-width="400"
+          />
           <h1>Experimental research in the LMS</h1>
-
           <p class="mb-10">
-            Welcome to Terracotta, the platform that supports teachers' and researchers' abilities to easily
-            run experiments in live classes. <br>
+            Welcome to Terracotta, the platform that supports teachers' and researchers' abilities to easily run experiments in live classes.<br>
             New to Terracotta?
-            <a href="https://terracotta.education/terracotta-overview" target="_blank">Read an overview of the tool</a>.
+            <a
+              href="https://terracotta.education/terracotta-overview"
+              target="_blank"
+            >
+              Read an overview of the tool
+            </a>.
           </p>
-
           <p class="mb-0">Ready to get started?</p>
-          <v-btn @click="startExperiment" color="primary" elevation="0">Create your first experiment</v-btn>
+          <v-btn
+            @click="startExperiment"
+            color="primary"
+            elevation="0"
+          >
+            Create your first experiment
+          </v-btn>
         </v-col>
       </v-row>
     </v-container>
     <v-container v-show="hasExperiments">
-      <v-row class="mb-5" justify="space-between">
+      <v-row
+        class="mb-5"
+        justify="space-between"
+      >
         <v-col cols="6">
-          <v-img src="@/assets/terracotta_logo.svg" alt="Terracotta Logo" max-width="138"/>
+          <v-img
+            src="@/assets/terracotta_logo.svg"
+            alt="Terracotta Logo"
+            max-width="138"
+          />
         </v-col>
-        <v-col cols="6" class="text-right">
+        <v-col
+          cols="6"
+          class="text-right"
+        >
           <v-btn
             @click="startExperiment"
             color="primary"
@@ -83,17 +112,30 @@
                       <v-list-item-title>Export</v-list-item-title>
                     </v-list-item-content>
                   </v-list-item>
-                  <v-list-item
-                    @click="handleDelete(item)"
-                    :aria-label="`delete experiment ${item.title}`"
-                  >
-                    <v-list-item-icon class="mr-3">
-                      <v-icon color="black">mdi-delete</v-icon>
-                    </v-list-item-icon>
-                    <v-list-item-content>
-                      <v-list-item-title>Delete</v-list-item-title>
-                    </v-list-item-content>
-                  </v-list-item>
+                    <v-tooltip
+                      :disabled="!item.started"
+                      top
+                    >
+                      <template
+                        #activator="{ on }"
+                      >
+                        <span v-on="on">
+                          <v-list-item
+                            @click="handleDelete(item)"
+                            :aria-label="`delete experiment ${item.title}`"
+                            :disabled="item.started"
+                          >
+                            <v-list-item-icon class="mr-3">
+                              <v-icon color="black">mdi-delete</v-icon>
+                            </v-list-item-icon>
+                            <v-list-item-content>
+                              <v-list-item-title>Delete</v-list-item-title>
+                            </v-list-item-content>
+                          </v-list-item>
+                        </span>
+                      </template>
+                      <span>You cannot delete this assignment because at least one student has completed it.</span>
+                    </v-tooltip>
                 </v-list>
               </v-menu>
             </template>
@@ -105,9 +147,9 @@
 </template>
 
 <script>
-import {mapActions, mapGetters} from 'vuex'
-import {saveAs} from 'file-saver'
-import moment from 'moment'
+import {mapActions, mapGetters} from 'vuex';
+import {saveAs} from 'file-saver';
+import moment from 'moment';
 
 export default {
   name: 'Home',
@@ -122,7 +164,7 @@ export default {
   },
   filters: {
     formatDate: function (date) {
-      return moment(date).fromNow()
+      return moment(date).fromNow();
     }
   },
   computed: {
@@ -189,7 +231,7 @@ export default {
       deleteEditMode: 'navigation/deleteEditMode'
     }),
     async handleExport(item) {
-      await this.getZip(item.experimentId)
+      await this.getZip(item.experimentId);
       saveAs(this.exportdata, `Terracotta Experiment ${item.title} Export.zip`);
     },
     async handleDelete(e) {
@@ -200,36 +242,52 @@ export default {
           showCancelButton: true,
           confirmButtonText: 'Yes, delete it',
           cancelButtonText: 'No, cancel',
-        })
+        });
         // if confirmed, delete experiment
         if (reallyDelete.isConfirmed) {
           try {
-            this.deleteExperiment(e.experimentId)
+            this.deleteExperiment(e.experimentId);
           } catch (error) {
             this.$swal({
               text: 'Could not delete experiment.',
               icon: 'error'
-            })
+            });
           }
         }
       }
     },
     handleNavigate(experimentId) {
-        const selectedExperiment =  this.experiments.filter((experiment) => experiment.experimentId === experimentId)
-        const {exposureType, participationType, distributionType} = selectedExperiment[0]
-        const isExperimentInComplete = [exposureType, participationType, distributionType].some((value) => value === 'NOSET')
+        const selectedExperiment =  this.experiments.filter((experiment) => experiment.experimentId === experimentId);
+        const {exposureType, participationType, distributionType} = selectedExperiment[0];
+        const isExperimentInComplete = [exposureType, participationType, distributionType].some((value) => value === 'NOSET');
+
         if(isExperimentInComplete) {
-          this.$router.push({name: 'ExperimentDesignIntro', params: {experiment_id: experimentId}})
+          this.$router.push({
+            name: 'ExperimentDesignIntro',
+            params: {
+              experiment_id: experimentId
+            }
+          });
         } else {
-          this.$router.push({name: 'ExperimentSummary', params: {experiment_id: experimentId}})
+          this.$router.push({
+            name: 'ExperimentSummary',
+            params: {
+              experiment_id: experimentId
+            }
+          });
         }
     },
     startExperiment() {
-      const _this = this
+      const _this = this;
       this.createExperiment()
           .then(response => {
             if (response?.data?.experimentId) {
-              _this.$router.push({name: 'ExperimentDesignIntro', params: {experiment_id: response.data.experimentId}})
+              _this.$router.push({
+                name: 'ExperimentDesignIntro',
+                params: {
+                  experiment_id: response.data.experimentId
+                }
+              });
             } else {
               this.$swal({
                 text: `Error Status: ${response?.status} - There was an issue creating an experiment`,
@@ -243,10 +301,10 @@ export default {
   },
   async created() {
     // get experiments list
-    await this.fetchExperiments()
+    await this.fetchExperiments();
 
     // reset consent data when loading the dashboard
-    await this.resetConsent()
+    await this.resetConsent();
 
     // reset data in state
     this.resetAssessments();
@@ -267,34 +325,27 @@ export default {
 
 <style lang="scss">
 .v-data-table {
-
   * {
     color: black !important;
   }
-
   *:not(.v-icon) {
     font-size: 16px !important;
   }
-
   &__wrapper {
     border: 1px solid #E0E0E0;
     border-radius: 10px;
   }
-
   &__link {
     text-decoration: none;
-
     &:focus,
     &:hover {
       text-decoration: underline;
     }
   }
-
   .v-data-footer {
     border-top: none !important;
   }
 }
-
 .terracotta-appbg {
 	background: url('~@/assets/terracotta_appbg.jpg') no-repeat center center;
 	background-size: cover;
@@ -307,5 +358,13 @@ export default {
 }
 .terracotta-appbg + * {
 	position: relative; /*place the content above the terracotta-appbg*/
+}
+div.v-tooltip__content {
+  max-width: 400px;
+  opacity: 1.0 !important;
+  background-color: rgba(55,61,63, 1.0) !important;
+  a {
+    color: #afdcff;
+  }
 }
 </style>
