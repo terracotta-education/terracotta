@@ -509,7 +509,7 @@ public class ParticipantServiceImpl implements ParticipantService {
 
     @Override
     @Transactional
-    public boolean changeConsent(ParticipantDto participantDto, SecuredInfo securedInfo, Long experimentId) throws ParticipantAlreadyStartedException {
+    public boolean changeConsent(ParticipantDto participantDto, SecuredInfo securedInfo, Long experimentId) throws ParticipantAlreadyStartedException, ExperimentNotMatchingException {
         Participant participant = allRepositories.participantRepository.findByParticipantId(participantDto.getParticipantId());
 
         if (participant == null
@@ -541,6 +541,17 @@ public class ParticipantServiceImpl implements ParticipantService {
         }
 
         changeParticipant(Collections.singletonMap(participant, participantDto), experimentId);
+
+        // update experiment as started
+        Experiment experiment = allRepositories.experimentRepository.findByExperimentId(experimentId);
+
+        if (experiment == null) {
+            throw new ExperimentNotMatchingException(String.format("No experiment with ID: '%s' found.", experimentId));
+        }
+
+        if (!experiment.isStarted()) {
+            experiment.setStarted(Timestamp.valueOf(LocalDateTime.now()));
+        }
 
         return true;
     }
