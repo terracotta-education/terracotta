@@ -138,7 +138,7 @@
                           </v-list-item>
                         </span>
                       </template>
-                      <span>You cannot delete this assignment because at least one student has completed it.</span>
+                      <span>You cannot delete this experiment because at least one student has completed an assignment.</span>
                     </v-tooltip>
                 </v-list>
               </v-menu>
