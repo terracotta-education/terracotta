@@ -8,10 +8,11 @@
           alt="Terracotta Logo"
           max-width="173"
         />
-        <v-card class="oauth-permissions-card mx-auto" max-width="700">
-          <v-card-title class="text-h5"
-            >Terracotta wants to access your Canvas account</v-card-title
-          >
+        <v-card
+          class="oauth-permissions-card mx-auto"
+          max-width="700"
+        >
+          <v-card-title class="text-h5">Terracotta wants to access your Canvas account</v-card-title>
           <v-card-text class="oauth-permissions-card__text">
             <p>
               This will allow Terracotta to:
@@ -27,16 +28,18 @@
                     max-width="360px"
                   >
                     <template v-slot:activator="{ on, attrs }">
-                      <v-icon v-bind="attrs" v-on="on" class="ml-auto">
+                      <v-icon
+                        v-bind="attrs"
+                        v-on="on"
+                        class="ml-auto"
+                      >
                         mdi-information-outline
                       </v-icon>
                     </template>
                     <div class="tooltip-content">
                       <h3>What does this mean?</h3>
                       <div>
-                        Terracotta will pull information from your Canvas site
-                        which allows it to list students' names and assignments
-                        in order and match them up with the outcomes you choose.
+                        Terracotta will pull information from your Canvas site which allows it to list students' names and assignments in order and match them up with the outcomes you choose.
                       </div>
                     </div>
                   </v-tooltip>
@@ -54,19 +57,19 @@
                     max-width="360px"
                   >
                     <template v-slot:activator="{ on, attrs }">
-                      <v-icon v-bind="attrs" v-on="on" class="ml-auto">
+                      <v-icon
+                        v-bind="attrs"
+                        v-on="on"
+                        class="ml-auto"
+                      >
                         mdi-information-outline
                       </v-icon>
                     </template>
                     <div class="tooltip-content">
                       <h3>What does this involve?</h3>
                       <div>
-                        When you create an assignment in Terracotta, it
-                        automatically creates that same assignment in Canvas.
-                        Terracotta assignments are listed with other Canvas
-                        assignments, and when you edit or delete them in
-                        Terracotta, Terracotta communicates with Canvas to keep
-                        the assignments up to date.
+                        When you create an assignment in Terracotta, it automatically creates that same assignment in Canvas. Terracotta assignments are listed with other Canvas
+                        assignments, and when you edit or delete them in Terracotta, Terracotta communicates with Canvas to keep the assignments up to date.
                       </div>
                     </div>
                   </v-tooltip>
@@ -75,14 +78,18 @@
             </ul>
           </v-card-text>
           <v-card-actions>
-            <v-btn class="redirect-button" :href="lmsApiOAuthURL" elevation="0"
-              >Go to the Canvas Authorization Page</v-btn
+            <v-btn
+              :href="lmsApiOAuthURL"
+              class="redirect-button"
+              elevation="0"
             >
+              Go to the Canvas Authorization Page
+            </v-btn>
           </v-card-actions>
         </v-card>
-      </v-col></v-row
-    ></v-container
-  >
+      </v-col>
+    </v-row>
+  </v-container>
 </template>
 
 <script>
@@ -117,7 +124,6 @@ export default {
   &.redirect-button {
     background: #ebdcd2;
     border-radius: 48px;
-
     height: 42px;
     font-style: normal;
     font-weight: 400;
@@ -127,7 +133,6 @@ export default {
     text-align: center;
     letter-spacing: 0.15px;
     text-transform: none;
-
     color: rgba(35, 48, 80, 0.87);
   }
 }
@@ -137,7 +142,6 @@ export default {
     line-height: 24px;
     letter-spacing: 0.15px;
     height: 24px;
-    // padding-top: 24px;
     padding-bottom: 36px;
     margin-bottom: 18px;
     border-bottom: 1px solid #dddcd5;

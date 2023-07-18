@@ -1,7 +1,14 @@
 <template>
   <div>
-    <v-container v-show="!hasExperiments">
-      <div class="terracotta-appbg"/>
+    <PageLoading
+      :isLoaded="isLoaded"
+      :message="'Loading experiments. Please wait.'"
+    >
+    </PageLoading>
+    <v-container
+      v-if="isLoaded && !hasExperiments"
+    >
+      <div class="terracotta-appbg"></div>
       <v-row
         justify="center"
         class="text-center"
@@ -38,7 +45,9 @@
         </v-col>
       </v-row>
     </v-container>
-    <v-container v-show="hasExperiments">
+    <v-container
+      v-show="isLoaded && hasExperiments"
+    >
       <v-row
         class="mb-5"
         justify="space-between"
@@ -86,7 +95,9 @@
               </button>
             </template>
             <template v-slot:item.createdAt="{ item }">
-              <span v-if="item.createdAt">{{ item.createdAt | formatDate }}</span>
+              <span v-if="item.createdAt">
+                {{ item.createdAt | formatDate }}
+              </span>
             </template>
             <template v-slot:item.actions="{ item }">
               <v-menu offset-y>
@@ -154,16 +165,22 @@
 import {mapActions, mapGetters} from 'vuex';
 import {saveAs} from 'file-saver';
 import moment from 'moment';
+import PageLoading from "@/components/PageLoading";
+
 
 export default {
   name: 'Home',
+  components: {
+    PageLoading
+  },
   data() {
     return {
       headers: [
         {text: 'Experiment name', value: 'title'},
         {text: 'Created', value: 'createdAt'},
         {text: 'Actions', value: 'actions', sortable: false},
-      ]
+      ],
+      isLoaded: false
     }
   },
   filters: {
@@ -184,6 +201,8 @@ export default {
     // this is necessary, as vuejs doesn't allow tabbing + keyboard selection of column sorting
     hasExperiments: {
       handler() {
+        this.isLoaded = true;
+
         if (!this.hasExperiments) {
           return;
         }
@@ -261,46 +280,46 @@ export default {
       }
     },
     handleNavigate(experimentId) {
-        const selectedExperiment =  this.experiments.filter((experiment) => experiment.experimentId === experimentId);
-        const {exposureType, participationType, distributionType} = selectedExperiment[0];
-        const isExperimentInComplete = [exposureType, participationType, distributionType].some((value) => value === 'NOSET');
+      const selectedExperiment =  this.experiments.filter((experiment) => experiment.experimentId === experimentId);
+      const {exposureType, participationType, distributionType} = selectedExperiment[0];
+      const isExperimentInComplete = [exposureType, participationType, distributionType].some((value) => value === 'NOSET');
 
-        if(isExperimentInComplete) {
-          this.$router.push({
-            name: 'ExperimentDesignIntro',
-            params: {
-              experiment_id: experimentId
-            }
-          });
-        } else {
-          this.$router.push({
-            name: 'ExperimentSummary',
-            params: {
-              experiment_id: experimentId
-            }
-          });
-        }
+      if(isExperimentInComplete) {
+        this.$router.push({
+          name: 'ExperimentDesignIntro',
+          params: {
+            experiment_id: experimentId
+          }
+        });
+      } else {
+        this.$router.push({
+          name: 'ExperimentSummary',
+          params: {
+            experiment_id: experimentId
+          }
+        });
+      }
     },
     startExperiment() {
       const _this = this;
       this.createExperiment()
-          .then(response => {
-            if (response?.data?.experimentId) {
-              _this.$router.push({
-                name: 'ExperimentDesignIntro',
-                params: {
-                  experiment_id: response.data.experimentId
-                }
-              });
-            } else {
-              this.$swal({
-                text: `Error Status: ${response?.status} - There was an issue creating an experiment`,
-                icon: 'error'
-              })
-            }
-          }).catch(response => {
-            console.log('startExperiment -> createExperiment | catch', {response})
-          })
+        .then(response => {
+          if (response?.data?.experimentId) {
+            _this.$router.push({
+              name: 'ExperimentDesignIntro',
+              params: {
+                experiment_id: response.data.experimentId
+              }
+            });
+          } else {
+            this.$swal({
+              text: `Error Status: ${response?.status} - There was an issue creating an experiment`,
+              icon: 'error'
+            })
+          }
+        }).catch(response => {
+          console.log('startExperiment -> createExperiment | catch', {response})
+        })
     }
   },
   async created() {

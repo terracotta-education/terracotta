@@ -10,24 +10,17 @@
               alt="Terracotta Logo"
               max-width="173"
             />
-            <v-card class="storage-access-card mx-auto" max-width="700">
-              <v-card-title class="text-h5"
-                >You are using a browser that requires we ask your permission to
-                use cookies.</v-card-title
-              >
+            <v-card
+              class="storage-access-card mx-auto"
+              max-width="700"
+            >
+              <v-card-title class="text-h5" >You are using a browser that requires we ask your permission to use cookies.</v-card-title>
               <v-card-text class="storage-access-card__text">
                 <p>
-                  For the best experience, we recommend
-                  <strong
-                    >opening
-                    {{ isAssignment ? "your assignment" : "Terracotta" }} in
-                    Chrome</strong
-                  >.
+                  For the best experience, we recommend <strong>opening {{ isAssignment ? "your assignment" : "Terracotta" }} in Chrome</strong>.
                 </p>
                 <p>
-                  Continuing in your current browser will require a few extra
-                  steps (but don't worry; we'll walk you through them). You may
-                  be asked to:
+                  Continuing in your current browser will require a few extra steps (but don't worry; we'll walk you through them). You may be asked to:
                 </p>
                 <ul>
                   <li>
@@ -39,23 +32,24 @@
                       max-width="360px"
                     >
                       <template v-slot:activator="{ on, attrs }">
-                        <span class="has-tooltip" v-bind="attrs" v-on="on"
-                          >What is Terracotta?</span
+                        <span
+                          class="has-tooltip"
+                          v-bind="attrs"
+                          v-on="on"
                         >
+                          What is Terracotta?
+                        </span>
                       </template>
                       <div>
                         <h3>What is Terracotta?</h3>
                         <div>
-                          Terracotta is a Canvas plug-in that allows teachers
-                          and researchers to embed studies directly in their
-                          learning management system course sites.
+                          Terracotta is a Canvas plug-in that allows teachers and researchers to embed studies directly in their learning management system course sites.
                         </div>
                       </div>
                     </v-tooltip>
                   </li>
                   <li>
-                    Allow Terracotta to use cookies and website data while you
-                    use Canvas.
+                    Allow Terracotta to use cookies and website data while you use Canvas.
                     <v-tooltip
                       top
                       color="#373d3f"
@@ -63,21 +57,19 @@
                       max-width="360px"
                     >
                       <template v-slot:activator="{ on, attrs }">
-                        <span class="has-tooltip" v-bind="attrs" v-on="on"
-                          >Why does Terracotta need this information and how
-                          will it be used?</span
+                        <span
+                          class="has-tooltip"
+                          v-bind="attrs"
+                          v-on="on"
                         >
+                          Why does Terracotta need this information and how will it be used?
+                        </span>
                       </template>
                       <div>
                         <h3>How Terracotta uses cookies</h3>
-
                         <div>
-                          Cookies allow Terracotta to associate your activity
-                          with your Canvas account. Some browsers restrict 3rd
-                          party access because it's often used to track activity
-                          across multiple sites. That's not what Terracotta is
-                          doing; it's only tracking your activity on this site
-                          to ensure it's associated with your account.
+                          Cookies allow Terracotta to associate your activity with your Canvas account. Some browsers restrict 3rd party access because it's often used to track activity
+                          across multiple sites. That's not what Terracotta is doing; it's only tracking your activity on this site to ensure it's associated with your account.
                         </div>
                       </div>
                     </v-tooltip>
@@ -89,14 +81,14 @@
                   @click="requestStorageAccess"
                   color="primary"
                   elevation="0"
-                  >Launch
-                  {{ isAssignment ? "assignment" : "Terracotta" }}</v-btn
                 >
+                  Launch {{ isAssignment ? "assignment" : "Terracotta" }}
+                </v-btn>
               </v-card-actions>
             </v-card>
-          </v-col></v-row
-        ></v-container
-      >
+          </v-col>
+        </v-row>
+      </v-container>
 
       <form
         ref="loginForm"
@@ -154,7 +146,10 @@
             class="form-control"
           />
         </div>
-        <div class="form-group" v-if="ltiDeploymentId">
+        <div
+          v-if="ltiDeploymentId"
+          class="form-group"
+        >
           <label for="lti_deployment_id">lti_deployment_id:</label>
           <input
             type="text"
@@ -164,7 +159,11 @@
             class="form-control"
           />
         </div>
-        <input type="submit" value="Submit" class="btn btn-primary" />
+        <input
+          type="submit"
+          value="Submit"
+          class="btn btn-primary"
+        />
       </form>
     </v-main>
   </v-app>

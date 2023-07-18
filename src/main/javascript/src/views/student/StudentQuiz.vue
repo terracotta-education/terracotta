@@ -1,7 +1,12 @@
 <template>
-  <v-container fluid v-if="!loading">
+  <v-container
+    v-show="pageLoaded && !loading"
+    fluid
+  >
     <v-row>
-      <v-col v-if="canTryAgain">
+      <v-col
+        v-if="canTryAgain"
+      >
         <v-btn
           @click="handleTryAgain"
           elevation="0"
@@ -16,7 +21,7 @@
           <span v-else-if="assignmentData.multipleSubmissionScoringScheme === 'MOST_RECENT'">The most recent</span>
           <span v-else-if="assignmentData.multipleSubmissionScoringScheme === 'AVERAGE'">The average</span>
           <span v-else-if="assignmentData.multipleSubmissionScoringScheme === 'CUMULATIVE'">A cumulative</span>
-           score will be kept
+          score will be kept
         </p>
       </v-col>
       <v-spacer />
@@ -230,14 +235,14 @@
 </template>
 
 <script>
-import Vue from 'vue';
 import { mapActions, mapGetters } from "vuex";
 import EssayResponseEditor from "./EssayResponseEditor.vue";
-import MultipleChoiceResponseEditor from "./MultipleChoiceResponseEditor.vue";
-import YoutubeEventCapture from "./YoutubeEventCapture.vue";
-import moment from 'moment';
-import SubmissionSelector from '../assignment/SubmissionSelector.vue';
 import FileUploadResponseEditor from "@/views/student/FileUploadResponseEditor";
+import moment from 'moment';
+import MultipleChoiceResponseEditor from "./MultipleChoiceResponseEditor.vue";
+import SubmissionSelector from '../assignment/SubmissionSelector.vue';
+import YoutubeEventCapture from "./YoutubeEventCapture.vue";
+import Vue from 'vue';
 
 Vue.filter('formatDate', (value) => {
   if (value) {
@@ -247,13 +252,16 @@ Vue.filter('formatDate', (value) => {
 
 export default {
   name: "StudentQuiz",
-  props: ["experimentId", "assignmentId"],
+  props: [
+    "experimentId",
+    "assignmentId"
+  ],
   components: {
-    FileUploadResponseEditor,
     EssayResponseEditor,
+    FileUploadResponseEditor,
     MultipleChoiceResponseEditor,
-    YoutubeEventCapture,
     SubmissionSelector,
+    YoutubeEventCapture
   },
   data() {
     return {
@@ -270,6 +278,7 @@ export default {
       readonly: false,
       answers: [],
       loading: false,
+      pageLoaded: false,
       submissions: [],
       answerSubmissionId: null,
       downloadId: null
@@ -739,7 +748,7 @@ export default {
           this.readonly = true;
         }
 
-      }else if(stepResponse?.status == 401) {
+      } else if (stepResponse?.status == 401) {
          if (stepResponse?.data.toString().includes("Error 150:")) {
            this.$swal({
              target: "#app",
@@ -753,6 +762,8 @@ export default {
       console.error({ e });
     }
     this.loading = false;
+    this.pageLoaded = true;
+    this.$emit('loaded');
   },
 };
 </script>
@@ -766,11 +777,9 @@ export default {
   font-size: 16px;
   font-weight: 400;
 }
-
 .individualScore {
   margin-left: 1px;
 }
-
 .cardDetails {
   min-width: 100%;
 }
