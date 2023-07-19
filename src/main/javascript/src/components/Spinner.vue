@@ -1,9 +1,9 @@
 <template>
   <svg
     class="spinner"
-    width="28px"
-    height="28px"
-    viewBox="0 0 66 66"
+    :width="getWidth"
+    :height="getHeight"
+    :viewBox="getViewBox"
     xmlns="http://www.w3.org/2000/svg"
   >
     <circle
@@ -11,16 +11,45 @@
       fill="none"
       stroke-width="6"
       stroke-linecap="round"
-      cx="33"
-      cy="33"
-      r="30">
+      :cx="getCx"
+      :cy="getCy"
+      :r="getR"
+    >
     </circle>
   </svg>
 </template>
 
 <script>
   export default {
-    name: "Spinner"
+    name: "Spinner",
+    props: [
+      "width",
+      "height",
+      "viewBox",
+      "cx",
+      "cy",
+      "r"
+    ],
+    computed: {
+      getWidth() {
+        return this.width || "28px";
+      },
+      getHeight() {
+        return this.height || "28px";
+      },
+      getViewBox() {
+        return this.viewBox || "0 0 66 66";
+      },
+      getCx() {
+        return this.cx || "33";
+      },
+      getCy() {
+        return this.cy || "33";
+      },
+      getR() {
+        return this.r || "30";
+      }
+    }
   }
 </script>
 

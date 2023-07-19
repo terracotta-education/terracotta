@@ -23,6 +23,7 @@ const operations = [];
 if (tokenParam) {
   operations.push(store.dispatch('api/setLtiToken',tokenParam));
 }
+
 operations.push(store.dispatch('api/setLmsApiOAuthURL', lmsApiOAuthURL));
 Promise.all(operations).then(startVue);
 
@@ -37,6 +38,7 @@ function startVue() {
   if (lmsApiOAuthURL) {
     router.replace({name: "oauth2-redirect"});
   }
+
   new Vue({
     store,
     router,

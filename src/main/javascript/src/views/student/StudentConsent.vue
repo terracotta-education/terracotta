@@ -1,5 +1,8 @@
 <template>
-  <div class="consent-steps my-5 mx-auto">
+  <div
+    v-show="loadPdfFrame"
+    class="consent-steps my-5 mx-auto"
+  >
     <v-alert
       v-if="participant && participant.started && !participant.consent"
       prominent
@@ -7,9 +10,7 @@
     >
       <v-row align="center">
         <v-col class="grow">
-          You have already accessed an assignment that is part of this study. At
-          this time, no matter your response to the following question, you
-          cannot be included in this study.
+          You have already accessed an assignment that is part of this study. At this time, no matter your response to the following question, you cannot be included in this study.
         </v-col>
       </v-row>
     </v-alert>
@@ -33,7 +34,12 @@
           </v-radio-group>
         </v-list>
       </v-card>
-      <v-btn elevation="0" color="primary" class="mr-4 mt-5" type="submit">
+      <v-btn
+        elevation="0"
+        color="primary"
+        class="mr-4 mt-5"
+        type="submit"
+      >
         Submit
       </v-btn>
     </form>
@@ -64,12 +70,13 @@ export default {
     ],
     participant: null,
     pdfFile: null,
-    loadPdfFrame: false,
+    loadPdfFrame: false
   }),
 
   watch: {
     pdfFile() {
       this.loadPdfFrame = true;
+      this.$emit('loaded');
     }
   },
   methods: {
@@ -134,11 +141,9 @@ export default {
   min-height: 100%;
   padding: 30px 45px;
 }
-
 .optionList {
   margin-left: 15px;
 }
-
 div.vue-pdf-embed {
   width: 98%;
   margin: 0 auto;
