@@ -41,7 +41,7 @@
                   </v-btn>
               </div>
               <template v-if="!loaded">
-                <div class="spinner-container">
+                <div class="spinner-container-assignment">
                   <Spinner></Spinner>
                 </div>
               </template>
@@ -757,9 +757,11 @@ export default {
   width: fit-content;
   margin: 0 auto;
 }
-.no-assignments-yet-container > h4 {
-  width: fit-content;
-  margin: 0 auto;
+.no-assignments-yet-container {
+  > h4 {
+    width: fit-content;
+    margin: 0 auto;
+ }
 }
 .btn-create-first-assignment {
   border-radius: 24px;
@@ -799,6 +801,23 @@ div.section-assignments.py-3.px-3 {
   padding-top: 40px !important;
   padding-left: 0 !important;
   padding-right: 0 !important;
+  > div.spinner-container-assignment {
+    width: 100%;
+    height: 100px;
+    padding: 0;
+    margin-top: 12px !important;
+    margin-left: 0 !important;
+    list-style: none;
+    display: -webkit-box;
+    display: -moz-box;
+    display: -ms-flexbox;
+    display: -webkit-flex;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: thin solid rgba(0,0,0,.12) !important;
+    border-radius: 8px !important;
+  }
 }
 div.no-assignments-yet.px-5.py-5.mx-3.mb-5,
 div.data-table-assignments.mx-3.mb-5.mt-3,
@@ -820,23 +839,6 @@ div.data-table-assignments.mx-3.mb-5.mt-3 th span {
 td.treatments-table-container td,
 td.treatments-table-container td span {
   white-space: normal;
-}
-div.spinner-container {
-  width: 100%;
-  height: 100px;
-  padding: 0;
-  margin-top: 12px !important;
-  margin-left: 0 !important;
-  list-style: none;
-  display: -webkit-box;
-  display: -moz-box;
-  display: -ms-flexbox;
-  display: -webkit-flex;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: thin solid rgba(0,0,0,.12) !important;
-  border-radius: 8px !important;
 }
 .v-application--is-ltr .v-data-table > .v-data-table__wrapper > table > tbody > tr > th,
 .v-application--is-ltr .v-data-table > .v-data-table__wrapper > table > tfoot > tr > th,
