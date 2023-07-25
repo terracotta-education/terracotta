@@ -13,7 +13,7 @@
       >
         <div class="studentView mt-5">
           <PageLoading
-            :isLoaded="childLoaded"
+            :display="!childLoaded"
             :message="'Loading your assignment. Please wait.'"
           >
           </PageLoading>

@@ -1,6 +1,6 @@
 <template>
   <v-container
-    v-if="!isLoaded"
+    v-show="display"
   >
     <div class="spinner-container">
       <h1>{{ getMessage }}</h1>
@@ -24,7 +24,7 @@
       },
       props: [
         "message",
-        "isLoaded"
+        "display"
       ],
       computed: {
         getMessage() {
