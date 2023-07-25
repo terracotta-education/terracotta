@@ -1,12 +1,12 @@
 <template>
   <div>
     <PageLoading
-      :isLoaded="isLoaded"
+      :display="!isLoaded"
       :message="'Loading experiments. Please wait.'"
     >
     </PageLoading>
     <v-container
-      v-if="isLoaded && !hasExperiments"
+      v-show="isLoaded && !hasExperiments"
     >
       <div class="terracotta-appbg"></div>
       <v-row
@@ -167,7 +167,6 @@ import {saveAs} from 'file-saver';
 import moment from 'moment';
 import PageLoading from "@/components/PageLoading";
 
-
 export default {
   name: 'Home',
   components: {
@@ -201,15 +200,15 @@ export default {
     // this is necessary, as vuejs doesn't allow tabbing + keyboard selection of column sorting
     hasExperiments: {
       handler() {
-        this.isLoaded = true;
-
         if (!this.hasExperiments) {
+          this.isLoaded = true;
           return;
         }
 
         const table = this.$el.querySelector(".table-experiments");
 
         if (!table) {
+          this.isLoaded = true;
           return;
         }
 
@@ -323,9 +322,6 @@ export default {
     }
   },
   async created() {
-    // get experiments list
-    await this.fetchExperiments();
-
     // reset consent data when loading the dashboard
     await this.resetConsent();
 
@@ -342,6 +338,11 @@ export default {
     this.resetSubmissions();
     this.resetTreatments();
     this.deleteEditMode();
+
+    // get experiments list
+    await this.fetchExperiments();
+
+    this.isLoaded = true;
   }
 }
 </script>

@@ -28,7 +28,6 @@ const actions = {
       .catch(response => console.log('fetchExperimentById | catch', {response}))
   },
   fetchExperiments: ({commit}) => {
-    commit('resetExperiments')
     return experimentService.getAll()
       .then(response => {
         if (response.status===200) {
