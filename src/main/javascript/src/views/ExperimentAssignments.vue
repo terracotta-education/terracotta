@@ -37,23 +37,23 @@
             >
               <div class="d-flex justify-space-between">
                 <h3>Assignments</h3>
-                <v-btn
-                    v-if="getAssignmentsForExposure(exposure).length"
-                    color="primary"
-                    elevation="0"
-                    @click="
-                      handleCreateAssignment(
-                        exposure.exposureId,
-                        JSON.stringify(exposure.groupConditionList.map(a => a.conditionId)),
-                      )
-                    "
-                  >
-                    Add Assignment
-                  </v-btn>
+                <div
+                  v-if="loaded && getAssignmentsForExposure(exposure).length"
+                >
+                  <AddAssignmentDialog
+                    @multiple="handleAssignmentMultipleVersions(exposure)"
+                    @single="handleAssignmentSingleVersion(exposure)"
+                    :hasExistingAssignment="true"
+                    :isSingleConditionExperiment="singleConditionExperiment"
+                  />
+                </div>
               </div>
               <template v-if="!loaded">
                 <div class="spinner-container-assignment">
-                  <Spinner></Spinner>
+                  <Spinner
+                    height="50px"
+                    width="50px"
+                  />
                 </div>
               </template>
               <template v-if="loaded">
@@ -65,18 +65,12 @@
                 >
                   <div class="no-assignments-yet-container">
                     <h4>You don't have any assignments yet</h4>
-                    <v-btn
-                      class="btn-create-first-assignment"
-                      elevation="0"
-                      @click="
-                        handleCreateAssignment(
-                          exposure.exposureId,
-                          JSON.stringify(exposure.groupConditionList.map(a => a.conditionId))
-                        )
-                      "
-                    >
-                      Create your first assignment
-                    </v-btn>
+                    <AddAssignmentDialog
+                      @multiple="handleAssignmentMultipleVersions(exposure)"
+                      @single="handleAssignmentSingleVersion(exposure)"
+                      :hasExistingAssignment="false"
+                      :isSingleConditionExperiment="singleConditionExperiment"
+                    />
                   </div>
                 </v-card>
                 <v-data-table
@@ -145,6 +139,7 @@
                             Treatment
                           </span>
                           <v-chip
+                            v-if="!singleConditionExperiment && assignments.find(a => a.assignmentId == item.assignmentId).treatments.length === conditions.length"
                             label
                             :color="
                               conditionColorMapping[
@@ -179,11 +174,11 @@
                   <template v-slot:item.treatments="{ item }">
                     <!-- red text if treatment count != condition count or a treatment not having an assessment -->
                     <span
-                      :class="item.treatments.length !== conditions.length || item.treatments.filter(treatment => !treatment.assessmentDto || !treatment.assessmentDto.questions || !treatment.assessmentDto.questions.length).length ? 'label-treatment-incomplete' : 'label-treatment-complete'"
+                      :class="item.treatments.filter(treatment => !treatment.assessmentDto || !treatment.assessmentDto.questions || !treatment.assessmentDto.questions.length).length ? 'label-treatment-incomplete' : 'label-treatment-complete'"
                     >
-                      {{ item.treatments.length }} / {{ conditions.length }}
+                      {{ item.treatments.length }} / {{ item.treatments.length }}
                       <v-tooltip
-                        v-if="item.treatments.length !== conditions.length || item.treatments.filter(treatment => !treatment.assessmentDto || !treatment.assessmentDto.questions || !treatment.assessmentDto.questions.length).length"
+                        v-if="item.treatments.filter(treatment => !treatment.assessmentDto || !treatment.assessmentDto.questions || !treatment.assessmentDto.questions.length).length"
                         top
                       >
                         <template #activator="{ on }">
@@ -204,7 +199,9 @@
                   </template>
                   <!-- eslint-disable-next-line -->
                   <template v-slot:item.published="{ item }">
-                    <span :class="item.published ? 'label-treatment-complete' : 'label-treatment-incomplete'">
+                    <span
+                      :class="item.published ? 'label-treatment-complete' : 'label-treatment-incomplete'"
+                    >
                       {{ item.published ? "Published" : "Unpublished" }}
                     </span>
                   </template>
@@ -360,6 +357,7 @@
 
 <script>
 import { mapGetters, mapActions } from "vuex";
+import AddAssignmentDialog from "@/components/AddAssignmentDialog";
 import Sortable from "sortablejs";
 import Spinner from "@/components/Spinner";
 import moment from "moment";
@@ -373,8 +371,9 @@ export default {
     "activeExposureSet"
   ],
   components: {
-    Spinner
-  },
+    AddAssignmentDialog,
+    Spinner,
+},
   directives: {
     sortableDataTable: {
       bind(el, binding, vnode) {
@@ -410,6 +409,9 @@ export default {
     },
     singleConditionExperiment() {
       return this.conditions.length === 1;
+    },
+    defaultCondition() {
+      return this.conditions.find(c => c.defaultCondition);
     }
   },
   data: () => ({
@@ -468,7 +470,7 @@ export default {
         sortable: false,
         value: "title",
       }
-    ],
+    ]
   }),
   watch: {
     assignmentsCount: {
@@ -750,6 +752,20 @@ export default {
     expandAssignments() {
       this.assignmentsExpanded = [];
       this.assignments.forEach(assignment => this.assignmentsExpanded.push(assignment));
+    },
+    async handleAssignmentMultipleVersions(exposure) {
+      // create an assignment normal
+      await this.handleCreateAssignment(
+        exposure.exposureId,
+        JSON.stringify(exposure.groupConditionList.map(a => a.conditionId))
+      );
+    },
+    async handleAssignmentSingleVersion(exposure) {
+      // create an assignment with the default condition
+      await this.handleCreateAssignment(
+        exposure.exposureId,
+        JSON.stringify([this.defaultCondition.conditionId])
+      );
     }
   },
   async mounted() {
@@ -803,13 +819,6 @@ export default {
     width: fit-content;
     margin: 0 auto;
  }
-}
-.btn-create-first-assignment {
-  border-radius: 24px;
-  width: fit-content;
-  min-height: 48px;
-  background-color: white !important;
-  border: 1px solid;
 }
 .section-tab-set {
   color: black;
