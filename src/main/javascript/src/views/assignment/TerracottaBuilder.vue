@@ -7,7 +7,9 @@
       <h1>
         {{ this.assignment_title }}
       </h1>
-      <div>
+      <div
+        v-if="!hasSingleTreatment"
+      >
         <h4 class="label-treatment">Treatment</h4>
         <v-chip
           label
@@ -206,6 +208,7 @@
                           <v-list-item-title>
                             Treatment
                             <v-chip
+                              v-if="assignment.treatments.length > 1"
                               label
                               :color="
                                 conditionColorMapping[
@@ -343,6 +346,9 @@ export default {
     },
     canClearAll() {
       return this.assessment.questions.length > 0 && !this.assessment.started;
+    },
+    hasSingleTreatment() {
+      return this.currentAssignment.treatments.length === 1;
     },
     ...mapGetters({
       assignment: "assignment/assignment",

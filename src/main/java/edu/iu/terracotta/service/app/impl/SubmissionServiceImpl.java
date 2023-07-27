@@ -733,19 +733,17 @@ public class SubmissionServiceImpl implements SubmissionService {
     @Override
     public void allowedSubmission(Long submissionId, SecuredInfo securedInfo) throws SubmissionNotMatchingException {
         try {
-            Optional<Submission> submissionOptional = allRepositories.submissionRepository.findById(submissionId);
+            Optional<Submission> submission = allRepositories.submissionRepository.findById(submissionId);
 
-            if (submissionOptional.isPresent()) {
-                if (!submissionOptional.get().getParticipant().getLtiUserEntity().getUserKey().equals(securedInfo.getUserId())) {
+            if (submission.isPresent()) {
+                if (!submission.get().getParticipant().getLtiUserEntity().getUserKey().equals(securedInfo.getUserId())) {
                     throw new SubmissionNotMatchingException("Submission don't belong to the user");
                 }
 
-                boolean consent = BooleanUtils.isTrue(submissionOptional.get().getParticipant().getConsent());
-                // Group is only used for determining treatment when participant
-                // has consented. Students that haven't given consent should
-                // always get the default condition's treatment.
-                Group group = consent ? submissionOptional.get().getParticipant().getGroup() : null;
-                Treatment treatment = submissionOptional.get().getAssessment().getTreatment();
+                boolean consent = BooleanUtils.isTrue(submission.get().getParticipant().getConsent());
+                // Group is only used for determining treatment when participant has consented. Students that haven't given consent should always get the default condition's treatment.
+                Group group = consent ? submission.get().getParticipant().getGroup() : null;
+                Treatment treatment = submission.get().getAssessment().getTreatment();
                 Condition condition = treatment.getCondition();
 
                 if (group == null) {
@@ -761,11 +759,18 @@ public class SubmissionServiceImpl implements SubmissionService {
                         return;
                     }
 
-                    throw new SubmissionNotMatchingException("Student sending an assessment that does not belongs to the expected treatment");
+                    List<Treatment> treatments = allRepositories.treatmentRepository.findByAssignment_AssignmentId(submission.get().getAssessment().getTreatment().getAssignment().getAssignmentId());
+
+                    if (treatments.size() == 1) {
+                        // this is a single treatment assignment; allow submission from other exposure groups
+                        return;
+                    }
+
+                    throw new SubmissionNotMatchingException("Student sending an assessment that does not belong to the expected treatment");
                 }
             }
-        } catch (Exception ex) {
-            throw new SubmissionNotMatchingException("Error 147: Not allowed to submit this submission: " + ex.getMessage());
+        } catch (Exception e) {
+            throw new SubmissionNotMatchingException(String.format("Error 147: Not allowed to submit this submission: %s", e.getMessage()));
         }
 
         throw new SubmissionNotMatchingException("Error 147: Not allowed to submit this submission");
