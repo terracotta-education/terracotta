@@ -70,9 +70,7 @@
                   :key="item.title"
                 >
                   <p class="pb-0">
-                    <strong>Note:</strong> You are currently collecting
-                    assignment submissions. Some setup functionality may not be
-                    available to avoid disrupting the experiment.
+                    <strong>Note:</strong> You are currently collecting assignment submissions. Some setup functionality may not be available to avoid disrupting the experiment.
                   </p>
                 </v-card>
                 <div class="container-section-summary px-5">
