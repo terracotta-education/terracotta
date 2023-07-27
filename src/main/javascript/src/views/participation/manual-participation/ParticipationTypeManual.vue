@@ -27,7 +27,7 @@
       </v-btn>
       <router-link
         class="plain-link ml-3"
-        :to="{ name: 'ParticipationDistribution' }"
+        :to="{ name: nextPage('ParticipationDistribution') }"
       >
         Skip participant selection for now
       </router-link>
@@ -45,14 +45,27 @@
       ...mapGetters({
         editMode: 'navigation/editMode'
       }),
-      getSaveExitPage() {
+      saveExitPage() {
         return this.editMode?.callerPage?.name || 'Home';
+      },
+      conditions() {
+        return this.experiment.conditions;
+      },
+      singleConditionExperiment() {
+        return this.conditions.length === 1;
       }
     },
     methods: {
+      nextPage(toPage) {
+        if (this.singleConditionExperiment) {
+          return "ParticipationSummary";
+        }
+
+        return toPage;
+      },
       saveExit() {
         this.$router.push({
-          name: this.getSaveExitPage,
+          name: this.saveExitPage,
           params: {
             experiment: this.experiment.experimentId
           }

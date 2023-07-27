@@ -8,9 +8,27 @@
             <p>One of the basic principles of ethical research is showing respect for research participants.  One way of showing this respect is by providing people an opportunity to make decisions for themselves about whether they want to participate in a study.</p>
             <p>Terracotta is designed to make this process easy.  If you want, we can create a short assignment where your students will provide consent to be included in this experiment.</p>
         </v-card>
-        <v-btn elevation="0" color="primary" class="mb-4" :to="{name: 'ParticipationDistribution'}">Yes, I want to proceed</v-btn>
+        <v-btn
+            elevation="0"
+            color="primary"
+            class="mb-4"
+            :to="{
+                name: nextPage('ParticipationDistribution')
+            }"
+        >
+            Yes, I want to proceed
+        </v-btn>
         <br>
-        <v-btn @click="goToConsentPage" outlined tile class="consentBtn" color="primary" elevation="0">No, I want to create a consent assignment instead</v-btn>
+        <v-btn
+            @click="goToConsentPage"
+            outlined
+            tile
+            class="consentBtn"
+            color="primary"
+            elevation="0"
+        >
+            No, I want to create a consent assignment instead
+        </v-btn>
         <br>
     </div>
 </template>
@@ -25,8 +43,14 @@ export default {
         ...mapGetters({
             editMode: 'navigation/editMode'
         }),
-        getSaveExitPage() {
+        saveExitPage() {
             return this.editMode?.callerPage?.name || 'Home';
+        },
+        conditions() {
+            return this.experiment.conditions;
+        },
+        singleConditionExperiment() {
+            return this.conditions.length === 1;
         }
     },
     methods: {
@@ -46,11 +70,18 @@ export default {
         },
         saveExit() {
             this.$router.push({
-                name: this.getSaveExitPage,
+                name: this.saveExitPage,
                 params: {
                     experiment: this.experiment.experimentId
                 }
             })
+        },
+        nextPage(toPage) {
+            if (this.singleConditionExperiment) {
+                return "ParticipationSummary";
+            }
+
+            return toPage;
         }
     }
 }

@@ -47,7 +47,7 @@ export default {
     ...mapGetters({
       editMode: 'navigation/editMode'
     }),
-    getSaveExitPage() {
+    saveExitPage() {
       return this.editMode?.callerPage?.name || 'Home';
     }
   },
@@ -108,7 +108,7 @@ export default {
     },
     saveExit() {
       this.$router.push({
-        name: this.getSaveExitPage,
+        name: this.saveExitPage,
         params: {
           experiment: this.experiment.experimentId
         }
