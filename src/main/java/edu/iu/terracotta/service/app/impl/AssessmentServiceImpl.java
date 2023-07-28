@@ -594,7 +594,7 @@ public class AssessmentServiceImpl implements AssessmentService {
             throw new AssessmentNotMatchingException("Error 130: This assignment does not have a condition assigned for the participant group.");
         }
 
-        return retrieveTreatmentAssessment(exposureGroupCondition.get().getCondition().getConditionId(), assignment.getAssignmentId());
+        return retrieveTreatmentAssessment(exposureGroupCondition.get().getCondition().getConditionId(), assignment.getAssignmentId(), experimentId);
     }
 
     @Override
@@ -605,14 +605,30 @@ public class AssessmentServiceImpl implements AssessmentService {
             throw new AssessmentNotMatchingException("Error 127: This assignment does not exist in Terracotta for this experiment");
         }
 
-        return retrieveTreatmentAssessment(conditionId, assignment.getAssignmentId());
+
+        return retrieveTreatmentAssessment(conditionId, assignment.getAssignmentId(), experimentId);
     }
 
-    private Assessment retrieveTreatmentAssessment(long conditionId, long assignmentId) throws AssessmentNotMatchingException {
+    private Assessment retrieveTreatmentAssessment(long conditionId, long assignmentId, long experimentId) throws AssessmentNotMatchingException {
         List<Treatment> treatments = allRepositories.treatmentRepository.findByCondition_ConditionIdAndAssignment_AssignmentId(conditionId, assignmentId);
 
         if (treatments.isEmpty()) {
-            throw new AssessmentNotMatchingException("Error 131: This assignment does not have a treatment assigned.");
+            // no treatment, check default condition for treatment as this may be a single treatment assignment
+            List<Condition> conditions = allRepositories.conditionRepository.findByExperiment_ExperimentId(experimentId);
+
+            Optional<Condition> defaultCondition = conditions.stream()
+                .filter(c -> BooleanUtils.isTrue(c.getDefaultCondition()))
+                .findFirst();
+
+            if (!defaultCondition.isPresent()) {
+                throw new AssessmentNotMatchingException("Error 131: This assignment does not have a treatment assigned.");
+            }
+
+            treatments = allRepositories.treatmentRepository.findByCondition_ConditionIdAndAssignment_AssignmentId(defaultCondition.get().getConditionId(), assignmentId);
+
+            if (treatments.isEmpty()) {
+                throw new AssessmentNotMatchingException("Error 131: This assignment does not have a treatment assigned.");
+            }
         }
 
         if (treatments.size() > 1) {
