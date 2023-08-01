@@ -65,7 +65,7 @@ div.swal2-container {
     max-width: 52em !important;
     > .swal2-html-container {
       h3 {
-        text-align: center !important;
+        text-align: left !important;
       }
       a,
       p {
