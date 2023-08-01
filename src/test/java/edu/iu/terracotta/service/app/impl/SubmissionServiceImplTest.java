@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyFloat;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.clearInvocations;
@@ -32,6 +33,7 @@ import edu.iu.terracotta.exceptions.SubmissionNotMatchingException;
 import edu.iu.terracotta.model.LtiUserEntity;
 import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.model.app.AnswerMc;
+import edu.iu.terracotta.model.app.AnswerMcSubmission;
 import edu.iu.terracotta.model.app.AnswerMcSubmissionOption;
 import edu.iu.terracotta.model.app.Assessment;
 import edu.iu.terracotta.model.app.Assignment;
@@ -42,10 +44,12 @@ import edu.iu.terracotta.model.app.Group;
 import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.QuestionMc;
 import edu.iu.terracotta.model.app.QuestionSubmission;
+import edu.iu.terracotta.model.app.RegradeDetails;
 import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.Treatment;
 import edu.iu.terracotta.model.app.dto.SubmissionDto;
 import edu.iu.terracotta.model.app.enumerator.QuestionTypes;
+import edu.iu.terracotta.model.app.enumerator.RegradeOption;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.repository.AnswerMcRepository;
@@ -57,6 +61,7 @@ import edu.iu.terracotta.repository.ParticipantRepository;
 import edu.iu.terracotta.repository.QuestionSubmissionRepository;
 import edu.iu.terracotta.repository.SubmissionRepository;
 import edu.iu.terracotta.service.app.APIJWTService;
+import edu.iu.terracotta.service.app.AnswerSubmissionService;
 import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.app.QuestionSubmissionService;
 
@@ -73,15 +78,15 @@ public class SubmissionServiceImplTest {
     @Mock private ParticipantRepository participantRepository;
     @Mock private QuestionSubmissionRepository questionSubmissionRepository;
     @Mock private SubmissionRepository submissionRepository;
-    @Mock
-    private ExposureGroupConditionRepository exposureGroupConditionRepository;
+    @Mock private ExposureGroupConditionRepository exposureGroupConditionRepository;
 
+    @Mock private AnswerSubmissionService answerSubmissionService;
     @Mock private APIJWTService apijwtService;
     @Mock private AssignmentService assignmentService;
-    @Mock
-    private QuestionSubmissionService questionSubmissionService;
+    @Mock private QuestionSubmissionService questionSubmissionService;
 
     @Mock private AnswerMc answerMc;
+    @Mock private AnswerMcSubmission answerMcSubmission;
     @Mock private Assessment assessment;
     @Mock private Assignment assignment;
     @Mock private Condition condition;
@@ -91,6 +96,7 @@ public class SubmissionServiceImplTest {
     @Mock private PlatformDeployment platformDeployment;
     @Mock private QuestionMc question;
     @Mock private QuestionSubmission questionSubmission;
+    @Mock private RegradeDetails regradeDetails;
     @Mock private SecuredInfo securedInfo;
     @Mock private Submission submission;
     @Mock private Treatment treatment;
@@ -121,19 +127,29 @@ public class SubmissionServiceImplTest {
         when(submissionRepository.save(any(Submission.class))).thenReturn(submission);
         when(submissionRepository.findById(anyLong())).thenReturn(Optional.of(submission));
 
+        when(answerSubmissionService.findByQuestionSubmissionIdMC(anyLong())).thenReturn(Collections.singletonList(answerMcSubmission));
         when(apijwtService.isTestStudent(any(SecuredInfo.class))).thenReturn(false);
+        when(questionSubmissionService.automaticGradingMC(any(QuestionSubmission.class), any(AnswerMcSubmission.class))).thenReturn(questionSubmission);
 
+        when(answerMc.getCorrect()).thenReturn(true);
+        when(answerMcSubmission.getAnswerMc()).thenReturn(answerMc);
         when(assessment.getQuestions()).thenReturn(Collections.singletonList(question));
         when(assessment.getTreatment()).thenReturn(treatment);
         when(condition.getExperiment()).thenReturn(experiment);
-        when(question.getQuestionType()).thenReturn(QuestionTypes.MC);
-        when(question.isRandomizeAnswers()).thenReturn(true);
-        when(securedInfo.getUserId()).thenReturn("canvasUserId");
         when(ltiUserEntity.getUserKey()).thenReturn("canvasUserId");
         when(participant.getLtiUserEntity()).thenReturn(ltiUserEntity);
         when(platformDeployment.getLocalUrl()).thenReturn("1");
-        when(submission.getParticipant()).thenReturn(participant);
+        when(question.getQuestionType()).thenReturn(QuestionTypes.MC);
+        when(question.getPoints()).thenReturn(10F);
+        when(question.getQuestionId()).thenReturn(1L);
+        when(question.isRandomizeAnswers()).thenReturn(true);
+        when(questionSubmission.getQuestion()).thenReturn(question);
+        when(regradeDetails.getEditedMCQuestionIds()).thenReturn(Collections.singletonList(1L));
+        when(regradeDetails.getRegradeOption()).thenReturn(RegradeOption.FULL);
+        when(securedInfo.getUserId()).thenReturn("canvasUserId");
         when(submission.getAssessment()).thenReturn(assessment);
+        when(submission.getParticipant()).thenReturn(participant);
+        when(submission.getQuestionSubmissions()).thenReturn(Collections.singletonList(questionSubmission));
         when(treatment.getAssignment()).thenReturn(assignment);
         when(treatment.getCondition()).thenReturn(condition);
     }
@@ -265,4 +281,95 @@ public class SubmissionServiceImplTest {
             submissionService.allowedSubmission(1l, securedInfo);
         });
     }
+
+    @Test
+    public void testRegradeFull() throws DataServiceException {
+        submissionService.gradeSubmission(submission, regradeDetails);
+
+        verify(questionSubmissionRepository).save(any(QuestionSubmission.class));
+        verify(submissionRepository).save(submission);
+    }
+
+    @Test
+    public void testRegradeFullIdNotFound() throws DataServiceException {
+        when(question.getQuestionId()).thenReturn(2L);
+        submissionService.gradeSubmission(submission, regradeDetails);
+
+        verify(questionSubmission, never()).setCalculatedPoints(anyFloat());
+        verify(questionSubmission, never()).setAlteredGrade(null);
+        verify(questionSubmissionRepository, never()).save(any(QuestionSubmission.class));
+        verify(submissionRepository).save(submission);
+    }
+
+    @Test
+    public void testRegradeBoth() throws DataServiceException {
+        when(regradeDetails.getRegradeOption()).thenReturn(RegradeOption.BOTH);
+        submissionService.gradeSubmission(submission, regradeDetails);
+
+        verify(questionSubmissionRepository).save(any(QuestionSubmission.class));
+        verify(submissionRepository).save(submission);
+    }
+
+    @Test
+    public void testRegradeBothIdNotFound() throws DataServiceException {
+        when(question.getQuestionId()).thenReturn(2L);
+        submissionService.gradeSubmission(submission, regradeDetails);
+
+        verify(questionSubmission, never()).setAlteredGrade(null);
+        verify(questionSubmissionRepository, never()).save(any(QuestionSubmission.class));
+        verify(submissionRepository).save(submission);
+    }
+
+    @Test
+    public void testRegradeBothAnswerIncorrect() throws DataServiceException {
+        when(regradeDetails.getRegradeOption()).thenReturn(RegradeOption.BOTH);
+        when(answerMc.getCorrect()).thenReturn(false);
+        when(questionSubmission.getCalculatedPoints()).thenReturn(0F);
+        submissionService.gradeSubmission(submission, regradeDetails);
+
+        verify(questionSubmission, never()).setCalculatedPoints(anyFloat());
+        verify(questionSubmission).setAlteredGrade(null);
+        verify(questionSubmissionRepository).save(any(QuestionSubmission.class));
+        verify(submissionRepository).save(submission);
+    }
+
+    @Test
+    public void testRegradeCurrent() throws DataServiceException {
+        when(regradeDetails.getRegradeOption()).thenReturn(RegradeOption.CURRENT);
+        submissionService.gradeSubmission(submission, regradeDetails);
+
+        verify(questionSubmissionRepository, never()).save(any(QuestionSubmission.class));
+        verify(questionSubmissionService).automaticGradingMC(any(QuestionSubmission.class), any(AnswerMcSubmission.class));
+        verify(submissionRepository).save(submission);
+    }
+
+    @Test
+    public void testRegradeCurrentIdNotFound() throws DataServiceException {
+        when(question.getQuestionId()).thenReturn(2L);
+        submissionService.gradeSubmission(submission, regradeDetails);
+
+        verify(questionSubmissionRepository, never()).save(any(QuestionSubmission.class));
+        verify(submissionRepository).save(submission);
+    }
+
+    @Test
+    public void testRegradeNone() throws DataServiceException {
+        when(regradeDetails.getRegradeOption()).thenReturn(RegradeOption.NONE);
+        submissionService.gradeSubmission(submission, regradeDetails);
+
+        verify(questionSubmissionRepository, never()).save(any(QuestionSubmission.class));
+        verify(questionSubmissionService, never()).automaticGradingMC(any(QuestionSubmission.class), any(AnswerMcSubmission.class));
+        verify(submissionRepository).save(submission);
+    }
+
+    @Test
+    public void testRegradeNA() throws DataServiceException {
+        when(regradeDetails.getRegradeOption()).thenReturn(RegradeOption.NA);
+        submissionService.gradeSubmission(submission, regradeDetails);
+
+        verify(questionSubmissionRepository, never()).save(any(QuestionSubmission.class));
+        verify(questionSubmissionService).automaticGradingMC(any(QuestionSubmission.class), any(AnswerMcSubmission.class));
+        verify(submissionRepository).save(submission);
+    }
+
 }

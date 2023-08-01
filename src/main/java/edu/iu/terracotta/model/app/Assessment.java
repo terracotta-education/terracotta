@@ -18,7 +18,6 @@ import javax.persistence.Lob;
 import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
 import javax.persistence.Table;
-
 import edu.iu.terracotta.model.BaseEntity;
 import edu.iu.terracotta.model.app.enumerator.MultipleSubmissionScoringScheme;
 import lombok.Getter;

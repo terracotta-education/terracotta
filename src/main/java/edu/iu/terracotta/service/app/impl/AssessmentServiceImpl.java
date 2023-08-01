@@ -22,6 +22,7 @@ import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.ExposureGroupCondition;
 import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.Question;
+import edu.iu.terracotta.model.app.RegradeDetails;
 import edu.iu.terracotta.model.app.RetakeDetails;
 import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.Treatment;
@@ -30,6 +31,7 @@ import edu.iu.terracotta.model.app.dto.AssessmentDto;
 import edu.iu.terracotta.model.app.dto.QuestionDto;
 import edu.iu.terracotta.model.app.dto.SubmissionDto;
 import edu.iu.terracotta.model.app.enumerator.MultipleSubmissionScoringScheme;
+import edu.iu.terracotta.model.app.enumerator.RegradeOption;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.AssessmentService;
@@ -38,10 +40,12 @@ import edu.iu.terracotta.service.app.ParticipantService;
 import edu.iu.terracotta.service.app.QuestionService;
 import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.utils.TextConstants;
+import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
@@ -63,8 +67,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Component
-@SuppressWarnings({"PMD.PreserveStackTrace"})
+@SuppressWarnings({"PMD.PreserveStackTrace", "PMD.GuardLogStatement"})
 public class AssessmentServiceImpl implements AssessmentService {
 
     public static final int TITLE_MAX_LENGTH = 255;
@@ -727,4 +732,33 @@ public class AssessmentServiceImpl implements AssessmentService {
         throw new AssignmentAttemptException(TextConstants.ASSIGNMENT_SUBMISSION_WAIT_TIME_NOT_REACHED);
     }
 
+    @Override
+    public void regradeQuestions(RegradeDetails regradeDetails, long assessmentId) throws DataServiceException {
+        if (regradeDetails == null) {
+            return;
+        }
+
+        if (CollectionUtils.isEmpty(regradeDetails.getEditedMCQuestionIds())) {
+            return;
+        }
+
+        log.info("Regrade option selected: [{}] with edited MC question IDs: [{}]",
+            regradeDetails.getRegradeOption(),
+            StringUtils.join(regradeDetails.getEditedMCQuestionIds(), ",")
+        );
+
+        if (RegradeOption.NA == regradeDetails.getRegradeOption()) {
+            return;
+        }
+
+        log.info("Processing regrade for assessment ID: [{}]", assessmentId);
+        List<Submission> submissions = allRepositories.submissionRepository.findByAssessment_AssessmentId(assessmentId);
+
+        // regrade option selected; perform regrade
+        for (Submission submission : submissions) {
+            submissionService.gradeSubmission(submission, regradeDetails);
+        }
+
+        log.info("Regrading complete for assessment ID: [{}]", assessmentId);
+    }
 }

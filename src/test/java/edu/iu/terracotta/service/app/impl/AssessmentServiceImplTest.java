@@ -46,12 +46,14 @@ import edu.iu.terracotta.model.app.ExposureGroupCondition;
 import edu.iu.terracotta.model.app.Group;
 import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.Question;
+import edu.iu.terracotta.model.app.RegradeDetails;
 import edu.iu.terracotta.model.app.RetakeDetails;
 import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.Treatment;
 import edu.iu.terracotta.model.app.dto.AssessmentDto;
 import edu.iu.terracotta.model.app.dto.QuestionDto;
 import edu.iu.terracotta.model.app.enumerator.MultipleSubmissionScoringScheme;
+import edu.iu.terracotta.model.app.enumerator.RegradeOption;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.repository.AssessmentRepository;
@@ -60,6 +62,7 @@ import edu.iu.terracotta.repository.ExperimentRepository;
 import edu.iu.terracotta.repository.ExposureGroupConditionRepository;
 import edu.iu.terracotta.repository.ParticipantRepository;
 import edu.iu.terracotta.repository.QuestionRepository;
+import edu.iu.terracotta.repository.SubmissionRepository;
 import edu.iu.terracotta.repository.TreatmentRepository;
 import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.service.app.ParticipantService;
@@ -102,6 +105,7 @@ public class AssessmentServiceImplTest {
     @Mock private ExposureGroupConditionRepository exposureGroupConditionRepository;
     @Mock private ParticipantRepository participantRepository;
     @Mock private QuestionRepository questionRepository;
+    @Mock private SubmissionRepository submissionRepository;
     @Mock private TreatmentRepository treatmentRepository;
 
     @Mock private EntityManager entityManager;
@@ -123,6 +127,7 @@ public class AssessmentServiceImplTest {
     @Mock private PlatformDeployment platformDeployment;
     @Mock private Question question;
     @Mock private QuestionDto questionDto;
+    @Mock private RegradeDetails regradeDetails;
     @Mock private SecuredInfo securedInfo;
     @Mock private Submission submission;
     @Mock private Treatment treatment;
@@ -135,7 +140,7 @@ public class AssessmentServiceImplTest {
             ParticipantNotUpdatedException, AssignmentNotMatchingException, IdInPostException, NoSuchMethodException, SecurityException, QuestionNotMatchingException, MultipleChoiceLimitReachedException, ExperimentNotMatchingException {
         MockitoAnnotations.openMocks(this);
 
-        clearInvocations(questionService);
+        clearInvocations(questionService, submissionService);
 
         allRepositories.assessmentRepository = assessmentRepository;
         allRepositories.assignmentRepository = assignmentRepository;
@@ -143,6 +148,7 @@ public class AssessmentServiceImplTest {
         allRepositories.exposureGroupConditionRepository = exposureGroupConditionRepository;
         allRepositories.participantRepository = participantRepository;
         allRepositories.questionRepository = questionRepository;
+        allRepositories.submissionRepository = submissionRepository;
         allRepositories.treatmentRepository = treatmentRepository;
 
         verifySubmissionLimit = AssessmentServiceImpl.class.getDeclaredMethod("verifySubmissionLimit", Integer.class, int.class);
@@ -158,6 +164,7 @@ public class AssessmentServiceImplTest {
         when(exposureGroupConditionRepository.getByGroup_GroupIdAndExposure_ExposureId(anyLong(), anyLong())).thenReturn(Optional.of(exposureGroupCondition));
         when(participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(anyLong(), anyString())).thenReturn(participant);
         when(questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(anyLong())).thenReturn(Collections.emptyList());
+        when(submissionRepository.findByAssessment_AssessmentId(anyLong())).thenReturn(Collections.singletonList(submission));
         when(treatmentRepository.findByCondition_ConditionIdAndAssignment_AssignmentId(anyLong(), anyLong())).thenReturn(Collections.singletonList(treatment));
         when(treatmentRepository.findByTreatmentId(anyLong())).thenReturn(treatment);
         when(treatmentRepository.saveAndFlush(any(Treatment.class))).thenReturn(treatment);
@@ -173,6 +180,7 @@ public class AssessmentServiceImplTest {
         when(submissionService.findByParticipantIdAndAssessmentId(anyLong(), anyLong())).thenReturn(Collections.singletonList(submission));
         when(submissionService.getScoreFromMultipleSubmissions(any(Participant.class), any(Assessment.class))).thenReturn(1F);
         when(submissionService.getSubmissionScore(any(Submission.class))).thenReturn(1F);
+        when(submissionService.gradeSubmission(any(Submission.class), any(RegradeDetails.class))).thenReturn(submission);
 
         when(assessment.isAllowStudentViewResponses()).thenReturn(true);
         when(assessment.getAssessmentId()).thenReturn(1L);
@@ -183,7 +191,6 @@ public class AssessmentServiceImplTest {
         when(assignment.getExposure()).thenReturn(exposure);
         when(assessmentDto.getMultipleSubmissionScoringScheme()).thenReturn(MultipleSubmissionScoringScheme.MOST_RECENT.toString());
         when(assessmentDto.getQuestions()).thenReturn(Collections.singletonList(questionDto));
-        // when(assessmentDto.getTitle()).thenReturn("title");
         when(condition.getConditionId()).thenReturn(1L);
         when(condition.getDefaultCondition()).thenReturn(true);
         when(experiment.getPlatformDeployment()).thenReturn(platformDeployment);
@@ -195,14 +202,16 @@ public class AssessmentServiceImplTest {
         when(participant.getConsent()).thenReturn(true);
         when(participant.getGroup()).thenReturn(group);
         when(participant.getParticipantId()).thenReturn(1L);
-        when(treatment.getAssessment()).thenReturn(assessment);
-        when(treatment.getAssignment()).thenReturn(assignment);
-        when(treatment.getCondition()).thenReturn(condition);
-        when(treatment.getTreatmentId()).thenReturn(1L);
+        when(regradeDetails.getEditedMCQuestionIds()).thenReturn(Collections.singletonList(1L));
+        when(regradeDetails.getRegradeOption()).thenReturn(RegradeOption.BOTH);
         when(securedInfo.getCanvasAssignmentId()).thenReturn("canvasAssignmentId");
         when(securedInfo.getUserId()).thenReturn("canvasUserId");
         when(submission.getAssessment()).thenReturn(assessment);
         when(submission.getDateSubmitted()).thenReturn(Timestamp.from(Instant.now()));
+        when(treatment.getAssessment()).thenReturn(assessment);
+        when(treatment.getAssignment()).thenReturn(assignment);
+        when(treatment.getCondition()).thenReturn(condition);
+        when(treatment.getTreatmentId()).thenReturn(1L);
     }
 
     @Test
@@ -478,4 +487,44 @@ public class AssessmentServiceImplTest {
         assertEquals(TextConstants.ASSIGNMENT_SUBMISSION_WAIT_TIME_NOT_REACHED, e.getCause().getMessage());
     }
 
+    @Test
+    public void textRegradeQuestions() throws DataServiceException {
+        assessmentService.regradeQuestions(regradeDetails, 1L);
+
+        verify(submissionService).gradeSubmission(any(Submission.class), any(RegradeDetails.class));
+    }
+
+    @Test
+    public void textRegradeQuestionsNoSumbissions() throws DataServiceException {
+        when(submissionRepository.findByAssessment_AssessmentId(anyLong())).thenReturn(Collections.emptyList());
+
+        assessmentService.regradeQuestions(regradeDetails, 1L);
+
+        verify(submissionService, never()).gradeSubmission(any(Submission.class), any(RegradeDetails.class));
+    }
+
+    @Test
+    public void textRegradeQuestionsRegradeOptionNA() throws DataServiceException {
+        when(regradeDetails.getRegradeOption()).thenReturn(RegradeOption.NA);
+
+        assessmentService.regradeQuestions(regradeDetails, 1L);
+
+        verify(submissionService, never()).gradeSubmission(any(Submission.class), any(RegradeDetails.class));
+    }
+
+    @Test
+    public void textRegradeQuestionsNoRegradeDetails() throws DataServiceException {
+        assessmentService.regradeQuestions(null, 1L);
+
+        verify(submissionService, never()).gradeSubmission(any(Submission.class), any(RegradeDetails.class));
+    }
+
+    @Test
+    public void textRegradeQuestionsNoEditedMCQuestionIds() throws DataServiceException {
+        when(regradeDetails.getEditedMCQuestionIds()).thenReturn(Collections.emptyList());
+
+        assessmentService.regradeQuestions(regradeDetails, 1L);
+
+        verify(submissionService, never()).gradeSubmission(any(Submission.class), any(RegradeDetails.class));
+    }
 }

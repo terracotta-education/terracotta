@@ -18,6 +18,7 @@ import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
 import edu.iu.terracotta.model.app.Assessment;
 import edu.iu.terracotta.model.app.Participant;
+import edu.iu.terracotta.model.app.RegradeDetails;
 import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.Assignment;
 import edu.iu.terracotta.model.app.Treatment;
@@ -90,5 +91,7 @@ public interface AssessmentService {
     void verifySubmissionLimit(Integer limit, int existingSubmissionsCount) throws AssignmentAttemptException;
 
     void verifySubmissionWaitTime(Float waitTime, List<Submission> submissionList) throws AssignmentAttemptException;
+
+    void regradeQuestions(RegradeDetails regradeDetails, long assessmentId) throws DataServiceException;
 
 }
