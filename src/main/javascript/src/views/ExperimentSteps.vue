@@ -22,10 +22,11 @@
                     </router-link>
                     <v-btn
                         v-show="this.$router.currentRoute.name !== 'ExperimentDesignIntro'"
+                        :disabled="saveButtonClicked"
                         color="primary"
                         elevation="0"
                         class="saveButton"
-                        @click="$refs.childComponent.saveExit()"
+                        @click="handleSaveClick()"
                     >
                         <span v-if="this.$router.currentRoute.meta.stepActionText">{{ this.$router.currentRoute.meta.stepActionText }}</span>
                         <span v-else-if="editMode">SAVE & CLOSE</span>
@@ -75,7 +76,9 @@
     export default {
         name: 'ExperimentSteps',
 
-        data: () => ({}),
+        data: () => ({
+            saveButtonClicked: false
+        }),
 
         computed: {
             ...mapGetters({
@@ -128,6 +131,10 @@
             ...mapActions({
                 fetchExperimentById: 'experiment/fetchExperimentById'
             }),
+            handleSaveClick() {
+                this.saveButtonClicked = true;
+                this.$refs.childComponent.saveExit();
+            }
         },
 
         components: {
@@ -169,13 +176,19 @@
                     @extend .blue--text;
                 }
             }
-            .saveButton {
+            .saveButton,
+            .saveButton:disabled,
+            .saveButton[disabled] {
                 margin-left:auto;
                 background: none!important;
                 border: none;
                 padding: 0!important;
                 color: #069;
                 cursor: pointer;
+            }
+            .saveButton:disabled,
+            .saveButton[disabled] {
+                color: grey;
             }
         }
         > aside {
