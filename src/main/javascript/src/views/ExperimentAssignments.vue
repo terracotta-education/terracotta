@@ -189,7 +189,7 @@
                             mdi-alert-circle-outline
                           </v-icon>
                         </template>
-                        <span>Set up your assignment by creating treatments.</span>
+                        <span>Set up your assignment by creating {{ item.treatments.length > 1 ? "treatments" : "a treatment" }}.</span>
                       </v-tooltip>
                     </span>
                   </template>
