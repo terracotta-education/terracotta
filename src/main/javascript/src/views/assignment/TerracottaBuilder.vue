@@ -609,8 +609,8 @@ export default {
         console.error("handleCreateTreatment | catch", { error });
       }
     },
-    saveExit() {
-      this.saveAll("ExperimentSummary");
+    async saveExit() {
+      return this.saveAll("ExperimentSummary");
     },
     textOnly(htmlString) {
       const parser = new DOMParser();

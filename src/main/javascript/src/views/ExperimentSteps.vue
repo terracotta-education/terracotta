@@ -131,9 +131,13 @@
             ...mapActions({
                 fetchExperimentById: 'experiment/fetchExperimentById'
             }),
-            handleSaveClick() {
+            async handleSaveClick() {
                 this.saveButtonClicked = true;
-                this.$refs.childComponent.saveExit();
+                var success = await this.$refs.childComponent.saveExit();
+
+                if (!success) {
+                    this.saveButtonClicked = false;
+                }
             }
         },
 
