@@ -491,7 +491,6 @@ export default {
       createTreatment: "treatment/createTreatment",
       createAssessment: "assessment/createAssessment",
       getConsentFile: "consent/getConsentFile",
-      getZip: "exportdata/fetchExportData",
       moveAssignment: "assignment/moveAssignment",
       setCurrentAssignment: 'assignments/setCurrentAssignment',
       saveEditMode: "navigation/saveEditMode",

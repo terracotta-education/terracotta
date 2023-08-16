@@ -667,7 +667,6 @@ export default {
       }
     }
     this.getAssignmentDetails();
-    await this.getZip(this.experimentId);
     this.isLoading = false;
   },
   beforeRouteEnter(to, from, next) {

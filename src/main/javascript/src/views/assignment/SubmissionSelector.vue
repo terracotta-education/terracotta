@@ -21,13 +21,24 @@ export default {
     };
   },
   watch: {
-    activeSubmissionId (newValue) {
-        this.$emit('select', newValue)
+    activeSubmissionId: {
+      handler(newValue) {
+        this.$emit('select', newValue);
+      }
     },
+    allSubmissions: {
+      handler() {
+        const latestSubmission = this.orderedSubmissions[0];
+        this.activeSubmissionId = latestSubmission?.submissionId;
+      }
+    }
   },
   computed: {
     ...mapGetters({
     }),
+    allSubmissions() {
+      return this.submissions;
+    },
     activeSubmission() {
         return this.submissions.find(s => s.submissionId === this.activeSubmissionId);
     },
@@ -35,7 +46,7 @@ export default {
         return this.orderedSubmissions.map((s, idx) => ({value: s.submissionId, label: `Attempt ${this.submissions.length - idx}`}))
     },
     orderedSubmissions() {
-      return [...this.submissions].sort((a, b) => a.dateSubmitted - b.dateSubmitted).reverse();
+      return [...this.allSubmissions].sort((a, b) => a.dateSubmitted - b.dateSubmitted).reverse();
     }
   },
   mounted () {
