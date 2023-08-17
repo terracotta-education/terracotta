@@ -287,6 +287,9 @@ export default {
     experiment_id() {
       return parseInt(this.$route.params.experiment_id);
     },
+    allSubmissions() {
+      return this.assessment.submissions || [];
+    },
     studentSubmittedAnswers() {
       const answers = {};
       if (this.assessment && this.assessment.questions) {
@@ -347,11 +350,11 @@ export default {
       return questions;
     },
     selectedSubmission() {
-      return this.assessment.submissions.find(s => s.submissionId === this.selectedSubmissionId);
+      return this.allSubmissions.find(s => s.submissionId === this.selectedSubmissionId);
     },
     participantSubmissions() {
       // return only this participant's submissions
-      return this.assessment.submissions.filter(s => s.participantId == this.participant_id);
+      return this.allSubmissions.filter(s => s.participantId == this.participant_id);
     }
   },
   watch: {
