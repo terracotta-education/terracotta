@@ -22,6 +22,8 @@ public interface OutcomeService {
 
     List<OutcomeDto> getOutcomesForExposure(long exposureId);
 
+    List<OutcomeDto> getAllByExperiment(long experimentId);
+
     Outcome getOutcome(long id);
 
     OutcomeDto postOutcome(OutcomeDto outcomeDto, long exposureId) throws IdInPostException, DataServiceException, TitleValidationException;

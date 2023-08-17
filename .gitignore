@@ -39,3 +39,8 @@ terracotta.code-workspace
 application.properties
 dev/
 docker-compose.yml
+terracotta_files
+
+### Mac ###
+.DS_Store
+**/.DS_Store

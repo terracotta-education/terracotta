@@ -66,8 +66,8 @@
 </template>
 
 <script>
-import ListParticipants from "../../../components/ListParticipants.vue";
 import { mapActions, mapGetters } from "vuex";
+import ListParticipants from "../../../components/ListParticipants.vue";
 import store from "@/store";
 
 export default {

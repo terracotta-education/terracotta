@@ -158,4 +158,13 @@ public class OutcomeServiceImplTest extends BaseTest {
 
         assertNotNull(retVal);
     }
+
+    @Test
+    public void testGetAllByExperiment() {
+        List<OutcomeDto> retVal = outcomeService.getAllByExperiment(0);
+
+        assertNotNull(retVal);
+        assertEquals(1, retVal.size());
+    }
+
 }

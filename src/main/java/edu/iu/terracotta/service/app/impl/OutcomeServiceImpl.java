@@ -65,6 +65,15 @@ public class OutcomeServiceImpl implements OutcomeService {
     }
 
     @Override
+    public List<OutcomeDto> getAllByExperiment(long experimentId) {
+        return CollectionUtils.emptyIfNull(allRepositories.outcomeRepository.findByExposure_Experiment_ExperimentId(experimentId)).stream()
+            .map(
+                outcome -> toDto(outcome, false)
+            )
+            .toList();
+    }
+
+    @Override
     public OutcomeDto postOutcome(OutcomeDto outcomeDto, long exposureId) throws IdInPostException, DataServiceException, TitleValidationException {
         if (outcomeDto.getOutcomeId() != null) {
             throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);

@@ -2,9 +2,8 @@
   <div>
     <PageLoading
       :display="!isLoaded"
-      :message="'Loading experiments. Please wait.'"
-    >
-    </PageLoading>
+      :message="`Loading experiments. Please wait.`"
+    />
     <v-container
       v-show="isLoaded && !hasExperiments"
     >
@@ -248,6 +247,7 @@ export default {
       resetOutcome: 'outcomes/resetOutcome',
       resetOutcomePotentials: 'outcomes/resetOutcomePotentials',
       resetParticipants: 'participants/resetParticipants',
+      resetResultsDashboard: 'resultsDashboard/resetResultsDashboard',
       resetSubmissions: 'submissions/resetSubmissions',
       resetTreatments: 'treatments/resetTreatments',
       deleteEditMode: 'navigation/deleteEditMode'
@@ -335,6 +335,7 @@ export default {
     this.resetOutcome();
     this.resetOutcomePotentials();
     this.resetParticipants();
+    this.resetResultsDashboard();
     this.resetSubmissions();
     this.resetTreatments();
     this.deleteEditMode();

@@ -359,9 +359,9 @@
 <script>
 import { mapGetters, mapActions } from "vuex";
 import AddAssignmentDialog from "@/components/AddAssignmentDialog";
+import moment from "moment";
 import Sortable from "sortablejs";
 import Spinner from "@/components/Spinner";
-import moment from "moment";
 
 export default {
   name: "ExperimentAssignments",
@@ -462,7 +462,7 @@ export default {
         text: "",
         sortable: false,
         value: "data-table-expand"
-      },
+      }
     ],
     treatmentHeaders: [
       {
@@ -720,7 +720,6 @@ export default {
       );
       return groupConditionMap;
     },
-
     conditionForTreatment(groupConditionList, conditionId) {
       return groupConditionList.find((c) => c.conditionId === conditionId);
     },
