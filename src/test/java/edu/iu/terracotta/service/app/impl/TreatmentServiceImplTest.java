@@ -55,7 +55,9 @@ import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.repository.AssignmentRepository;
 import edu.iu.terracotta.repository.ConditionRepository;
+import edu.iu.terracotta.repository.LtiUserRepository;
 import edu.iu.terracotta.repository.TreatmentRepository;
+import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.AssessmentService;
 import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.utils.TextConstants;
@@ -68,8 +70,10 @@ public class TreatmentServiceImplTest {
     @Mock private AllRepositories allRepositories;
     @Mock private AssignmentRepository assignmentRepository;
     @Mock private ConditionRepository conditionRepository;
+    @Mock private LtiUserRepository ltiUserRepository;
     @Mock private TreatmentRepository treatmentRepository;
 
+    @Mock private APIJWTService apijwtService;
     @Mock private AssessmentService assessmentService;
     @Mock private AssignmentService assignmentService;
     @Mock private EntityManager entityManager;
@@ -93,21 +97,26 @@ public class TreatmentServiceImplTest {
 
         allRepositories.assignmentRepository = assignmentRepository;
         allRepositories.conditionRepository = conditionRepository;
+        allRepositories.ltiUserRepository = ltiUserRepository;
         allRepositories.treatmentRepository = treatmentRepository;
 
         when(assessmentService.duplicateAssessment(anyLong(), anyLong())).thenReturn(assessment);
         when(assignmentRepository.findById(anyLong())).thenReturn(Optional.of(assignment));
         when(conditionRepository.findById(anyLong())).thenReturn(Optional.of(condition));
+        when(ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(anyString(), anyLong())).thenReturn(ltiUserEntity);
         when(treatmentRepository.findByTreatmentId(anyLong())).thenReturn(treatment);
         when(treatmentRepository.findByCondition_ConditionId(anyLong())).thenReturn(Collections.singletonList(treatment));
         when(treatmentRepository.save(any(Treatment.class))).thenReturn(treatment);
 
+        when(apijwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(true);
         when(assessment.getAssessmentId()).thenReturn(1L);
         when(assessmentDto.getAssessmentId()).thenReturn(1L);
         when(assignment.getAssignmentId()).thenReturn(1L);
         when(assignmentDto.getAssignmentId()).thenReturn(1L);
         when(condition.getConditionId()).thenReturn(1L);
         when(securedInfo.getCanvasCourseId()).thenReturn("canvasCourseId");
+        when(securedInfo.getPlatformDeploymentId()).thenReturn(1L);
+        when(securedInfo.getUserId()).thenReturn("1");
         when(treatment.getAssessment()).thenReturn(assessment);
         when(treatment.getAssignment()).thenReturn(assignment);
         when(treatment.getCondition()).thenReturn(condition);
@@ -150,12 +159,14 @@ public class TreatmentServiceImplTest {
 
         assertNotNull(treatmentDtos);
         assertEquals(1, treatmentDtos.size());
-        verify(assignmentService).setAssignmentDtoAttrs(any(Assignment.class), anyString(), ltiUserEntity);
+        verify(assignmentService).setAssignmentDtoAttrs(any(Assignment.class), anyString(), any(LtiUserEntity.class));
     }
 
     @Test
     public void testGetTreatmentsAsStudentUser()
             throws NumberFormatException, AssessmentNotMatchingException, CanvasApiException {
+        when(apijwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(false);
+
         List<TreatmentDto> treatmentDtos = treatmentService.getTreatments(0L, false, securedInfo);
 
         assertNotNull(treatmentDtos);

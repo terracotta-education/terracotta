@@ -24,9 +24,15 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
+import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.model.app.AnswerMc;
+import edu.iu.terracotta.model.app.Assessment;
+import edu.iu.terracotta.model.app.Assignment;
+import edu.iu.terracotta.model.app.Experiment;
+import edu.iu.terracotta.model.app.Exposure;
 import edu.iu.terracotta.model.app.Question;
 import edu.iu.terracotta.model.app.QuestionMc;
+import edu.iu.terracotta.model.app.Treatment;
 import edu.iu.terracotta.model.app.dto.AnswerDto;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.repository.AnswerMcRepository;
@@ -45,8 +51,14 @@ public class AnswerServiceImplTest {
     @Mock private FileStorageService fileStorageService;
 
     @Mock private AnswerMc answerMc;
+    @Mock private Assessment assessment;
+    @Mock private Assignment assignment;
+    @Mock private Experiment experiment;
+    @Mock private Exposure exposure;
+    @Mock private PlatformDeployment platformDeployment;
     @Mock private Question question;
     @Mock private QuestionMc questionMc;
+    @Mock private Treatment treatment;
 
     @BeforeEach
     public void beforeEach() {
@@ -62,7 +74,13 @@ public class AnswerServiceImplTest {
         when(fileStorageService.parseHTMLFiles(anyString(), anyString())).thenReturn("html");
 
         when(answerMc.getQuestion()).thenReturn(question);
+        when(assessment.getTreatment()).thenReturn(treatment);
+        when(assignment.getExposure()).thenReturn(exposure);
+        when(experiment.getPlatformDeployment()).thenReturn(platformDeployment);
+        when(exposure.getExperiment()).thenReturn(experiment);
         when(question.getQuestionId()).thenReturn(1L);
+        when(question.getAssessment()).thenReturn(assessment);
+        when(treatment.getAssignment()).thenReturn(assignment);
     }
 
     @Test

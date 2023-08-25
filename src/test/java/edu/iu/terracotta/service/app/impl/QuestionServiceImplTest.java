@@ -17,9 +17,14 @@ import edu.iu.terracotta.exceptions.ExceedingLimitException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.MultipleChoiceLimitReachedException;
 import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
+import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.model.app.Assessment;
+import edu.iu.terracotta.model.app.Assignment;
+import edu.iu.terracotta.model.app.Experiment;
+import edu.iu.terracotta.model.app.Exposure;
 import edu.iu.terracotta.model.app.Question;
 import edu.iu.terracotta.model.app.QuestionMc;
+import edu.iu.terracotta.model.app.Treatment;
 import edu.iu.terracotta.model.app.dto.AnswerDto;
 import edu.iu.terracotta.model.app.dto.QuestionDto;
 import edu.iu.terracotta.model.app.enumerator.QuestionTypes;
@@ -55,8 +60,13 @@ public class QuestionServiceImplTest {
 
     @Mock private AnswerDto answerDto;
     @Mock private Assessment assessment;
+    @Mock private Assignment assignment;
+    @Mock private Experiment experiment;
+    @Mock private Exposure exposure;
+    @Mock private PlatformDeployment platformDeployment;
     @Mock private QuestionMc question;
     @Mock private QuestionDto questionDto;
+    @Mock private Treatment treatment;
 
     @BeforeEach
     public void beforeEach() throws DataServiceException, AssessmentNotMatchingException, QuestionNotMatchingException, IdInPostException, MultipleChoiceLimitReachedException {
@@ -76,12 +86,17 @@ public class QuestionServiceImplTest {
 
         when(assessment.getAssessmentId()).thenReturn(1L);
         when(assessment.getQuestions()).thenReturn(Collections.singletonList(question));
+        when(assessment.getTreatment()).thenReturn(treatment);
+        when(assignment.getExposure()).thenReturn(exposure);
+        when(experiment.getPlatformDeployment()).thenReturn(platformDeployment);
+        when(exposure.getExperiment()).thenReturn(experiment);
         when(question.getAssessment()).thenReturn(assessment);
         when(question.getQuestionId()).thenReturn(1L);
         when(question.getQuestionType()).thenReturn(QuestionTypes.ESSAY);
         when(questionDto.getAnswers()).thenReturn(Collections.singletonList(answerDto));
         when(questionDto.getQuestionId()).thenReturn(null);
         when(questionDto.getQuestionType()).thenReturn(QuestionTypes.MC.toString());
+        when(treatment.getAssignment()).thenReturn(assignment);
     }
 
     @Test
