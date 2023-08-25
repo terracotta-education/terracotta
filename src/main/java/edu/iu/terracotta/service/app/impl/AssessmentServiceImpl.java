@@ -61,6 +61,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Component
 @SuppressWarnings({"PMD.PreserveStackTrace"})
@@ -353,7 +354,7 @@ public class AssessmentServiceImpl implements AssessmentService {
         if (CollectionUtils.isNotEmpty(assessmentDto.getQuestions())) {
             List<Long> existingQuestionIds = CollectionUtils.emptyIfNull(questionService.findAllByAssessmentId(assessmentDto.getAssessmentId())).stream()
                 .map(Question::getQuestionId)
-                .toList();
+                .collect(Collectors.toList()); // needs to be a modifiable list
 
             Map<Question, QuestionDto> questionMap = new HashMap<>();
 

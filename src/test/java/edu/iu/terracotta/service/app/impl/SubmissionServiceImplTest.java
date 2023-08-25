@@ -16,7 +16,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.IOException;
 import java.sql.Timestamp;
@@ -31,6 +30,7 @@ import edu.iu.terracotta.exceptions.InvalidUserException;
 import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
 import edu.iu.terracotta.exceptions.SubmissionNotMatchingException;
 import edu.iu.terracotta.model.LtiUserEntity;
+import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.model.app.AnswerMc;
 import edu.iu.terracotta.model.app.AnswerMcSubmissionOption;
 import edu.iu.terracotta.model.app.Assessment;
@@ -86,20 +86,18 @@ public class SubmissionServiceImplTest {
     @Mock private Assignment assignment;
     @Mock private Condition condition;
     @Mock private Experiment experiment;
+    @Mock private LtiUserEntity ltiUserEntity;
     @Mock private Participant participant;
+    @Mock private PlatformDeployment platformDeployment;
     @Mock private QuestionMc question;
     @Mock private QuestionSubmission questionSubmission;
     @Mock private SecuredInfo securedInfo;
     @Mock private Submission submission;
     @Mock private Treatment treatment;
-    @Mock
-    private LtiUserEntity ltiUser;
 
     @BeforeEach
     public void beforeEach() {
         MockitoAnnotations.openMocks(this);
-
-        ReflectionTestUtils.setField(submissionService, "localUrl", "localhost");
 
         clearInvocations(assignmentRepository);
 
@@ -116,6 +114,7 @@ public class SubmissionServiceImplTest {
         when(answerMcSubmissionOptionRepository.save(any(AnswerMcSubmissionOption.class))).thenReturn(null);
         when(assessmentRepository.findById(anyLong())).thenReturn(Optional.of(assessment));
         when(assignmentService.save(any(Assignment.class))).thenReturn(assignment);
+        when(ltiUserEntity.getPlatformDeployment()).thenReturn(platformDeployment);
         when(participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(anyLong(), anyString())).thenReturn(participant);
         when(participantRepository.findById(anyLong())).thenReturn(Optional.of(participant));
         when(questionSubmissionRepository.save(any(QuestionSubmission.class))).thenReturn(questionSubmission);
@@ -130,8 +129,9 @@ public class SubmissionServiceImplTest {
         when(question.getQuestionType()).thenReturn(QuestionTypes.MC);
         when(question.isRandomizeAnswers()).thenReturn(true);
         when(securedInfo.getUserId()).thenReturn("canvasUserId");
-        when(ltiUser.getUserKey()).thenReturn(("canvasUserId"));
-        when(participant.getLtiUserEntity()).thenReturn(ltiUser);
+        when(ltiUserEntity.getUserKey()).thenReturn("canvasUserId");
+        when(participant.getLtiUserEntity()).thenReturn(ltiUserEntity);
+        when(platformDeployment.getLocalUrl()).thenReturn("1");
         when(submission.getParticipant()).thenReturn(participant);
         when(submission.getAssessment()).thenReturn(assessment);
         when(treatment.getAssignment()).thenReturn(assignment);

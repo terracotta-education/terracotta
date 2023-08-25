@@ -7,12 +7,16 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.Spy;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.util.Optional;
 
 import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.exceptions.AssignmentNotEditedException;
 import edu.iu.terracotta.exceptions.CanvasApiException;
+import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExceedingLimitException;
 import edu.iu.terracotta.model.LtiUserEntity;
@@ -29,6 +33,7 @@ import edu.iu.terracotta.repository.AssignmentRepository;
 import edu.iu.terracotta.repository.LtiUserRepository;
 import edu.iu.terracotta.repository.ExposureRepository;
 import edu.iu.terracotta.repository.SubmissionRepository;
+import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.AssessmentService;
 import edu.iu.terracotta.service.app.ExposureService;
 import edu.iu.terracotta.service.app.TreatmentService;
@@ -36,6 +41,7 @@ import edu.iu.terracotta.service.canvas.CanvasAPIClient;
 
 import javax.persistence.EntityManager;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -57,6 +63,9 @@ import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.PlatformDeploymentRepository;
 import edu.iu.terracotta.repository.TreatmentRepository;
 import edu.iu.terracotta.utils.TextConstants;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Header;
+import io.jsonwebtoken.Jwt;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -76,6 +85,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@SuppressWarnings({"rawtypes"})
 public class AssignmentServiceImplTest {
 
     @Spy
@@ -86,23 +96,26 @@ public class AssignmentServiceImplTest {
     @Mock private AssessmentRepository assessmentRepository;
     @Mock private AssignmentRepository assignmentRepository;
     @Mock private ExposureRepository exposureRepository;
+    @Mock private LtiUserRepository ltiUserRepository;
     @Mock private PlatformDeploymentRepository platformDeploymentRepository;
     @Mock private SubmissionRepository submissionRepository;
     @Mock private TreatmentRepository treatmentRepository;
 
+    @Mock private APIJWTService apijwtService;
     @Mock private AssessmentService assessmentService;
     @Mock private CanvasAPIClient canvasAPIClient;
-    @Mock ExposureService exposureService;
+    @Mock private ExposureService exposureService;
     @Mock private TreatmentService treatmentService;
-    @Mock private LtiUserRepository ltiUserRepository;
 
     @Mock private Assessment assessment;
     @Mock private Assignment assignment;
     @Mock private AssignmentDto assignmentDto;
     @Mock private AssignmentExtended assignmentExtended;
+    @Mock private Claims claims;
     @Mock private EntityManager entityManager;
     @Mock private Experiment experiment;
     @Mock private Exposure exposure;
+    @Mock private Jwt<Header, Claims> jwt;
     @Mock private LtiUserEntity instructorUser;
     @Mock private PlatformDeployment platformDeployment;
     @Mock private SecuredInfo securedInfo;
@@ -112,7 +125,7 @@ public class AssignmentServiceImplTest {
     private Date dueDate = new Date();
 
     @BeforeEach
-    public void beforeEach() throws NoSuchMethodException, SecurityException, DataServiceException, AssessmentNotMatchingException, CanvasApiException, NumberFormatException, IdInPostException, ExceedingLimitException, TreatmentNotMatchingException, AssignmentNotCreatedException, AssignmentAttemptException, QuestionNotMatchingException {
+    public void beforeEach() throws NoSuchMethodException, SecurityException, DataServiceException, AssessmentNotMatchingException, CanvasApiException, NumberFormatException, IdInPostException, ExceedingLimitException, TreatmentNotMatchingException, AssignmentNotCreatedException, AssignmentAttemptException, QuestionNotMatchingException, ConnectionException, IOException {
         MockitoAnnotations.openMocks(this);
 
         clearInvocations(assignmentRepository, canvasAPIClient);
@@ -120,6 +133,7 @@ public class AssignmentServiceImplTest {
         allRepositories.assessmentRepository = assessmentRepository;
         allRepositories.assignmentRepository = assignmentRepository;
         allRepositories.exposureRepository = exposureRepository;
+        allRepositories.ltiUserRepository = ltiUserRepository;
         allRepositories.platformDeploymentRepository = platformDeploymentRepository;
         allRepositories.submissionRepository = submissionRepository;
         allRepositories.treatmentRepository = treatmentRepository;
@@ -136,14 +150,14 @@ public class AssignmentServiceImplTest {
         when(treatmentRepository.findByAssignment_AssignmentId(anyLong())).thenReturn(Collections.emptyList());
         when(ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(anyString(), anyLong())).thenReturn(instructorUser);
 
+        when(apijwtService.unsecureToken(anyString())).thenReturn(jwt);
         when(assessmentService.getAssessmentForParticipant(any(Participant.class), any(SecuredInfo.class))).thenReturn(assessment);
-
         doNothing().when(assessmentService).verifySubmissionLimit(anyInt(), anyInt());
         doNothing().when(assessmentService).verifySubmissionWaitTime(anyFloat(), anyList());
         when(canvasAPIClient.listAssignment(eq(instructorUser), anyString(), anyInt())).thenReturn(Optional.empty());
+        when(canvasAPIClient.createCanvasAssignment(any(LtiUserEntity.class), any(AssignmentExtended.class), anyString())).thenReturn(Optional.of(assignmentExtended));
         when(exposureService.getExposure(anyLong())).thenReturn(exposure);
-        when(treatmentService.duplicateTreatment(anyLong(), any(Assignment.class), any(SecuredInfo.class)))
-                .thenReturn(treatmentDto);
+        when(treatmentService.duplicateTreatment(anyLong(), any(Assignment.class), any(SecuredInfo.class))).thenReturn(treatmentDto);
 
         when(assignment.getAssignmentId()).thenReturn(1l);
         when(assignment.getDueDate()).thenReturn(dueDate);
@@ -155,16 +169,22 @@ public class AssignmentServiceImplTest {
         when(assignmentDto.getMultipleSubmissionScoringScheme()).thenReturn(MultipleSubmissionScoringScheme.MOST_RECENT.toString());
         when(assignmentExtended.isPublished()).thenReturn(true);
         when(assignmentExtended.getDueAt()).thenReturn(dueDate);
-        when(experiment.getPlatformDeployment()).thenReturn(new PlatformDeployment());
+        when(assignmentExtended.getSecureParams()).thenReturn("1");
+        when(claims.get(anyString())).thenReturn("1");
+        when(experiment.getPlatformDeployment()).thenReturn(platformDeployment);
         when(exposure.getExperiment()).thenReturn(experiment);
         when(exposure.getExposureId()).thenReturn(1L);
-
-        doNothing().when(assignmentService).createAssignmentInCanvas(eq(instructorUser), any(Assignment.class), anyLong(), anyString());
+        when(jwt.getBody()).thenReturn(claims);
+        when(securedInfo.getCanvasCourseId()).thenReturn("1");
+        when(securedInfo.getPlatformDeploymentId()).thenReturn(1L);
+        when(securedInfo.getUserId()).thenReturn("1");
     }
 
     @Test
     public void duplicateAssignmentTest() throws DataServiceException, IdInPostException, TitleValidationException, AssessmentNotMatchingException,
                                                 AssignmentNotCreatedException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, NumberFormatException, CanvasApiException, ExceedingLimitException, TreatmentNotMatchingException, QuestionNotMatchingException {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
         AssignmentDto assignmentDto = assignmentService.duplicateAssignment(0L, securedInfo);
 
         assertNotNull(assignmentDto);
@@ -175,6 +195,8 @@ public class AssignmentServiceImplTest {
     public void duplicateAssignmentTestWithTreatments() throws DataServiceException, IdInPostException, TitleValidationException, AssessmentNotMatchingException,
                                                 AssignmentNotCreatedException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, NumberFormatException, CanvasApiException, ExceedingLimitException, TreatmentNotMatchingException, QuestionNotMatchingException {
         when(treatmentRepository.findByAssignment_AssignmentId(anyLong())).thenReturn(Collections.singletonList(treatment));
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
         AssignmentDto assignmentDto = assignmentService.duplicateAssignment(0L, securedInfo);
 
         assertNotNull(assignmentDto);

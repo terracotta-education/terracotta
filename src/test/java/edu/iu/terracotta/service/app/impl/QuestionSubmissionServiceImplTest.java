@@ -37,6 +37,7 @@ import edu.iu.terracotta.model.app.Assessment;
 import edu.iu.terracotta.model.app.Assignment;
 import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.Exposure;
+import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.Question;
 import edu.iu.terracotta.model.app.QuestionSubmission;
 import edu.iu.terracotta.model.app.QuestionSubmissionComment;
@@ -48,6 +49,7 @@ import edu.iu.terracotta.model.app.dto.QuestionSubmissionDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.repository.AnswerEssaySubmissionRepository;
+import edu.iu.terracotta.repository.AnswerFileSubmissionRepository;
 import edu.iu.terracotta.repository.AnswerMcSubmissionRepository;
 import edu.iu.terracotta.repository.AssessmentRepository;
 import edu.iu.terracotta.repository.AssignmentRepository;
@@ -66,6 +68,7 @@ public class QuestionSubmissionServiceImplTest {
 
     @Mock private AllRepositories allRepositories;
     @Mock private AnswerEssaySubmissionRepository answerEssaySubmissionRepository;
+    @Mock private AnswerFileSubmissionRepository answerFileSubmissionRepository;
     @Mock private AnswerMcSubmissionRepository answerMcSubmissionRepository;
     @Mock private AssessmentRepository assessmentRepository;
     @Mock private QuestionSubmissionCommentRepository questionSubmissionCommentRepository;
@@ -86,6 +89,9 @@ public class QuestionSubmissionServiceImplTest {
     @Mock private AnswerMcSubmission answerMcSubmission;
     @Mock private AnswerSubmissionDto answerSubmissionDto;
     @Mock private Assessment assessment;
+    @Mock private LtiUserEntity ltiUserEntity;
+    @Mock private Participant participant;
+    @Mock private PlatformDeployment platformDeployment;
     @Mock private Question question;
     @Mock private QuestionSubmission questionSubmission;
     @Mock private QuestionSubmissionComment questionSubmissionComment;
@@ -98,6 +104,7 @@ public class QuestionSubmissionServiceImplTest {
 
         allRepositories.assessmentRepository = assessmentRepository;
         allRepositories.answerEssaySubmissionRepository = answerEssaySubmissionRepository;
+        allRepositories.answerFileSubmissionRepository = answerFileSubmissionRepository;
         allRepositories.answerMcSubmissionRepository = answerMcSubmissionRepository;
         allRepositories.questionSubmissionCommentRepository = questionSubmissionCommentRepository;
         allRepositories.questionSubmissionRepository = questionSubmissionRepository;
@@ -118,10 +125,13 @@ public class QuestionSubmissionServiceImplTest {
 
         when(assessment.canViewCorrectAnswers()).thenReturn(true);
         when(assessment.canViewResponses()).thenReturn(true);
+        when(ltiUserEntity.getPlatformDeployment()).thenReturn(platformDeployment);
+        when(participant.getLtiUserEntity()).thenReturn(ltiUserEntity);
         when(question.getQuestionId()).thenReturn(1l);
         when(questionSubmission.getQuestion()).thenReturn(question);
         when(questionSubmission.getQuestionSubmissionId()).thenReturn(1l);
         when(questionSubmission.getSubmission()).thenReturn(submission);
+        when(submission.getParticipant()).thenReturn(participant);
         when(submission.getSubmissionId()).thenReturn(1L);
     }
 

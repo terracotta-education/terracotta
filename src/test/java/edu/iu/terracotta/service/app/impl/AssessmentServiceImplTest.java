@@ -14,6 +14,7 @@ import java.lang.reflect.Method;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -35,6 +36,7 @@ import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
 import edu.iu.terracotta.exceptions.RevealResponsesSettingValidationException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
+import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.model.app.Assessment;
 import edu.iu.terracotta.model.app.Assignment;
 import edu.iu.terracotta.model.app.Condition;
@@ -118,6 +120,7 @@ public class AssessmentServiceImplTest {
     @Mock private ExposureGroupCondition exposureGroupCondition;
     @Mock private Group group;
     @Mock private Participant participant;
+    @Mock private PlatformDeployment platformDeployment;
     @Mock private Question question;
     @Mock private QuestionDto questionDto;
     @Mock private SecuredInfo securedInfo;
@@ -162,7 +165,7 @@ public class AssessmentServiceImplTest {
         when(fileStorageService.parseHTMLFiles(anyString(), anyString())).thenReturn(StringUtils.EMPTY);
         when(participantService.handleExperimentParticipant(any(Experiment.class), any(SecuredInfo.class))).thenReturn(participant);
         when(questionService.duplicateQuestionsForAssessment(anyLong(), any(Assessment.class))).thenReturn(Collections.singletonList(question));
-        when(questionService.findAllByAssessmentId(anyLong())).thenReturn(Collections.singletonList(question));
+        when(questionService.findAllByAssessmentId(anyLong())).thenReturn(Arrays.asList(question)); // requires modifiable list
         when(questionService.getQuestion(anyLong())).thenReturn(question);
         when(questionService.postQuestion(any(QuestionDto.class), anyLong(), anyBoolean())).thenReturn(questionDto);
         when(questionService.save(any(Question.class))).thenReturn(question);
@@ -183,7 +186,9 @@ public class AssessmentServiceImplTest {
         // when(assessmentDto.getTitle()).thenReturn("title");
         when(condition.getConditionId()).thenReturn(1L);
         when(condition.getDefaultCondition()).thenReturn(true);
+        when(experiment.getPlatformDeployment()).thenReturn(platformDeployment);
         when(exposure.getExposureId()).thenReturn(1L);
+        when(exposure.getExperiment()).thenReturn(experiment);
         when(exposureGroupCondition.getCondition()).thenReturn(condition);
         when(exposureGroupCondition.getGroup()).thenReturn(group);
         when(group.getGroupId()).thenReturn(1L);
