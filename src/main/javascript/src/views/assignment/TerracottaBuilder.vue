@@ -106,6 +106,7 @@
                           <component
                             :is="questionTypeComponents[question.questionType]"
                             :question="question"
+                            @edited="addEditedQuestion(question.questionId)"
                           />
                         </v-expansion-panel-content>
                       </template>
@@ -246,25 +247,27 @@
 
 <script>
 import { mapActions, mapGetters, mapMutations } from "vuex";
-import MultipleChoiceQuestionEditor from "./MultipleChoiceQuestionEditor.vue";
-import QuestionEditor from "./QuestionEditor.vue";
-import PageBreak from "./PageBreak.vue";
-import TreatmentSettings from "./TreatmentSettings.vue";
-import draggable from 'vuedraggable';
 import { assessmentService } from '@/services';
-import omitDeep from '../../helpers/deep-omit';
+import draggable from 'vuedraggable';
 import FileUploadQuestionEditor from "./FileUploadQuestionEditor.vue";
+import MultipleChoiceQuestionEditor from "./MultipleChoiceQuestionEditor.vue";
+import omitDeep from '../../helpers/deep-omit';
+import PageBreak from "./PageBreak.vue";
+import QuestionEditor from "./QuestionEditor.vue";
+import RegradeAssignmentDialog from "@/components/RegradeAssignmentDialog.vue"
+import TreatmentSettings from "./TreatmentSettings.vue";
+import Vue from 'vue';
 
 export default {
   name: "TerracottaBuilder",
   props: ["experiment"],
   components: {
-    QuestionEditor,
-    MultipleChoiceQuestionEditor,
+    draggable,
     FileUploadQuestionEditor,
+    MultipleChoiceQuestionEditor,
     PageBreak,
-    TreatmentSettings,
-    draggable
+    QuestionEditor,
+    TreatmentSettings
   },
   data() {
     return {
@@ -277,7 +280,11 @@ export default {
       ],
       tab: null,
       expandedQuestionPagePanel: null,
-      expandedQuestionPanel: []
+      expandedQuestionPanel: [],
+      regradeDetails: {
+        regradeOption: "NA",
+        editedMCQuestionIds: []
+      }
     };
   },
   watch: {
@@ -350,6 +357,23 @@ export default {
     hasSingleTreatment() {
       return this.currentAssignment.treatments.length === 1;
     },
+    studentCount() {
+      var submissions = this.submissions.map(s => s.participantId);
+
+      return submissions.filter((s, i) => submissions.indexOf(s) === i).length;
+    },
+    submissionCount() {
+      return this.submissions? this.submissions.length : 0;
+    },
+    hasSubmissions() {
+      return this.submissionCount > 0;
+    },
+    hasEditedQuestions() {
+      return this.regradeDetails.editedMCQuestionIds.length > 0;
+    },
+    displayRegradeAssignmentDialog() {
+      return this.hasSubmissions && this.hasEditedQuestions;
+    },
     ...mapGetters({
       assignment: "assignment/assignment",
       exposures: "exposures/exposures",
@@ -359,6 +383,7 @@ export default {
       answerableQuestions: "assessment/answerableQuestions",
       questionPages: "assessment/questionPages",
       conditionColorMapping: "condition/conditionColorMapping",
+      submissions: "submissions/submissions"
     }),
     contDisabled() {
       return (
@@ -398,6 +423,8 @@ export default {
       deleteQuestion: "assessment/deleteQuestion",
       updateAnswer: "assessment/updateAnswer",
       updateTreatment: "treatment/updateTreatment",
+      fetchSubmissions: "submissions/fetchSubmissions",
+      regradeQuestions: "assessment/regradeQuestions"
     }),
     getAssignmentsForExposure(exp) {
       return this.assignments
@@ -552,15 +579,42 @@ export default {
         this.$swal("Please fill or delete empty questions.");
         return false;
       }
+
+      if (this.displayRegradeAssignmentDialog) {
+        var regradeOption = await this.handleDisplayRegradeAssignmentDialog();
+
+        if (regradeOption.isDismissed) {
+          return false;
+        }
+
+        this.regradeDetails.regradeOption = regradeOption.value.regradeOption;
+      }
+
       const savedAssessment = await this.handleSaveAssessment();
+
       if (savedAssessment) {
         await this.handleSaveQuestions(this.questions);
         await this.handleSaveAnswers();
+        this.handleRegradeQuestions();
         this.$router.push({
           name: routeName,
           params: { exposure_id: isNaN(this.exposure_id) ? this.$route.params.exposure_id : this.exposure_id },
         });
       }
+    },
+    handleRegradeQuestions() {
+      if (!this.regradeDetails.editedMCQuestionIds.length) {
+        // no edited MC questions; skip
+        return;
+      }
+
+      this.regradeQuestions([
+        this.experiment.experimentId,
+        this.condition_id,
+        this.treatment_id,
+        this.assessment_id,
+        this.regradeDetails
+      ]);
     },
     async duplicate(treatment) {
       const { assessmentDto, conditionId } = treatment;
@@ -637,6 +691,51 @@ export default {
           this.assignmentsAvailableToCopy.push(a);
         }
       });
+    },
+    async handleDisplayRegradeAssignmentDialog() {
+      return this.$swal({
+        html: '<div id="dialog-regrade-assignment"></div>',
+        showCancelButton: true,
+        confirmButtonText: "Update",
+        cancelButtonText: "Cancel",
+        reverseButtons: true,
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        customClass: {
+          confirmButton: "response-option-confirm",
+          popup: "regrade-assignment-popup"
+        },
+        preConfirm: () => {
+          const regradeOption = this.$swal.getPopup().querySelector("input#regrade-option-selected");
+
+          if (regradeOption && regradeOption.value) {
+            return {regradeOption: regradeOption.value};
+          }
+
+          // no value selected; prompt user to select one
+          this.$swal.showValidationMessage("Please select a regrade option");
+        },
+        willOpen: () => {
+          var RegradeAssignmentDialogClass = Vue.extend(RegradeAssignmentDialog);
+          var regradeAssignmentDialog = new RegradeAssignmentDialogClass({
+            propsData: {
+              assignmentName: this.assignment_title,
+              conditionName: this.condition_name,
+              studentCount: this.studentCount,
+              editedQuestionCount: this.regradeDetails.editedMCQuestionIds.length
+            }
+          });
+          regradeAssignmentDialog.$mount(document.getElementById("dialog-regrade-assignment"));
+        }
+      });
+    },
+    addEditedQuestion(questionId) {
+      if (this.regradeDetails.editedMCQuestionIds.includes(questionId)) {
+        return;
+      }
+
+      this.regradeDetails.editedMCQuestionIds.push(questionId);
+      console.log("added edited MC question id: " + questionId);
     }
   },
   async created() {
@@ -645,6 +744,12 @@ export default {
       this.condition_id,
       this.treatment_id,
       this.assessment_id,
+    ]);
+    await await this.fetchSubmissions([
+      this.experiment.experimentId,
+      this.condition_id,
+      this.treatment_id,
+      this.assessment_id
     ]);
     this.getAssignmentDetails();
     this.findAssignmentsAvailableToCopy();

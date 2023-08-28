@@ -18,7 +18,8 @@
       step="any"
       outlined
       required
-    ></v-text-field>
+    >
+    </v-text-field>
 
     <!-- default slot for answer options or other custom content -->
     <slot></slot>
@@ -91,7 +92,10 @@ import YoutubeEmbedExtension from "./tiptap/YoutubeEmbedExtension";
 import { mapActions, mapGetters, mapMutations } from "vuex";
 
 export default {
-  props: ["question"],
+  props: [
+    "question",
+    "isMC"
+  ],
   data() {
     return {
       rules: [
@@ -148,10 +152,15 @@ export default {
     },
     isPageBreakAfter() {
       const questionIndex = this.question.questionOrder;
+
       if (questionIndex + 1 < this.questions.length) {
         return this.questions[questionIndex + 1].questionType === "PAGE_BREAK";
       }
+
       return false;
+    },
+    isMultipleChoice() {
+      return this.isMC ? this.isMC : false;
     },
     html: {
       // two-way computed property
@@ -159,6 +168,10 @@ export default {
         return this.question.html;
       },
       set(value) {
+        if (this.isMultipleChoice) {
+          this.$emit("edited");
+        }
+
         this.updateQuestions({ ...this.question, html: value });
       },
     },
@@ -168,9 +181,13 @@ export default {
         return this.question.points;
       },
       set(value) {
+        if (this.isMultipleChoice) {
+          this.$emit("edited");
+        }
+
         this.updateQuestions({ ...this.question, points: value });
       },
-    },
+    }
   },
   components: {
     TiptapVuetify,

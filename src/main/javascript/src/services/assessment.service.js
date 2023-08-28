@@ -16,6 +16,7 @@ export const assessmentService = {
   createAnswer,
   updateAnswer,
   deleteAnswer,
+  regradeQuestions
 }
 
 /**
@@ -98,11 +99,24 @@ async function updateAssessment(
       numOfSubmissions,
       multipleSubmissionScoringScheme,
       hoursBetweenSubmissions,
-      cumulativeScoringInitialPercentage,
+      cumulativeScoringInitialPercentage
     })
   }
 
   return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}`, requestOptions).then(handleResponse)
+}
+
+/**
+ * Regrade Assessment Questions
+ */
+async function regradeQuestions(experiment_id, condition_id, treatment_id, assessment_id, body) {
+  const requestOptions = {
+    method: 'POST',
+    headers: {...authHeader(), 'Content-Type': 'application/json'},
+    body: JSON.stringify(body)
+  }
+
+  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/regrade`, requestOptions).then(handleResponse)
 }
 
 /**

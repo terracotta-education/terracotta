@@ -22,10 +22,12 @@ import edu.iu.terracotta.model.app.Group;
 import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.QuestionMc;
 import edu.iu.terracotta.model.app.QuestionSubmission;
+import edu.iu.terracotta.model.app.RegradeDetails;
 import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.Treatment;
 import edu.iu.terracotta.model.app.dto.SubmissionDto;
 import edu.iu.terracotta.model.app.enumerator.QuestionTypes;
+import edu.iu.terracotta.model.app.enumerator.RegradeOption;
 import edu.iu.terracotta.model.oauth2.LTIToken;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.AllRepositories;
@@ -39,7 +41,6 @@ import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.service.caliper.CaliperService;
 import edu.iu.terracotta.service.lti.AdvantageAGSService;
 import edu.iu.terracotta.utils.TextConstants;
-
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -63,7 +64,7 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Component
-@SuppressWarnings({"PMD.PreserveStackTrace"})
+@SuppressWarnings({"PMD.PreserveStackTrace", "PMD.GuardLogStatement"})
 public class SubmissionServiceImpl implements SubmissionService {
 
     @Autowired
@@ -322,29 +323,34 @@ public class SubmissionServiceImpl implements SubmissionService {
     }
 
     @Override
-    @Transactional
     public void finalizeAndGrade(Long submissionId, SecuredInfo securedInfo, boolean student)
             throws DataServiceException, AssignmentDatesException, CanvasApiException, IOException, ConnectionException {
-        Optional<Submission> submissionOptional = allRepositories.submissionRepository.findById(submissionId);
+        finalizeAndGrade(submissionId, securedInfo, student, RegradeOption.NA);
+    }
 
-        if (!submissionOptional.isPresent()) {
+    @Transactional
+    public void finalizeAndGrade(Long submissionId, SecuredInfo securedInfo, boolean student, RegradeOption regradeOption)
+            throws DataServiceException, AssignmentDatesException, CanvasApiException, IOException, ConnectionException {
+        Optional<Submission> submission = allRepositories.submissionRepository.findById(submissionId);
+
+        if (!submission.isPresent()) {
             throw new DataServiceException("Error 105: Submission not found");
         }
 
         //We are not changing the submission date once it is set.
         //^^^ maybe if we are allowing resubmissions we should allow this to change?
-        if (submissionOptional.get().getDateSubmitted() == null) {
-            if (securedInfo.getDueAt() != null && submissionOptional.get().getUpdatedAt().after(securedInfo.getDueAt())) {
-                submissionOptional.get().setLateSubmission(true);
+        if (submission.get().getDateSubmitted() == null) {
+            if (securedInfo.getDueAt() != null && submission.get().getUpdatedAt().after(securedInfo.getDueAt())) {
+                submission.get().setLateSubmission(true);
             }
 
-            submissionOptional.get().setDateSubmitted(getLastUpdatedTimeForSubmission(submissionOptional.get()));
+            submission.get().setDateSubmitted(getLastUpdatedTimeForSubmission(submission.get()));
         }
 
-        if (securedInfo.getLockAt() == null || submissionOptional.get().getDateSubmitted().after(securedInfo.getLockAt())) {
-            saveAndFlush(gradeSubmission(submissionOptional.get()));
-            caliperService.sendAssignmentSubmitted(submissionOptional.get(), securedInfo);
-            sendSubmissionGradeToCanvasWithLTI(submissionOptional.get(), student);
+        if (securedInfo.getLockAt() == null || submission.get().getDateSubmitted().after(securedInfo.getLockAt())) {
+            saveAndFlush(gradeSubmission(submission.get(), new RegradeDetails()));
+            caliperService.sendAssignmentSubmitted(submission.get(), securedInfo);
+            sendSubmissionGradeToCanvasWithLTI(submission.get(), student);
         } else {
             throw new AssignmentDatesException("Error 128: Canvas Assignment is locked, we can not generate/grade a submission with a date later than the lock date");
         }
@@ -410,36 +416,90 @@ public class SubmissionServiceImpl implements SubmissionService {
             throw new DataServiceException("Error 105: Submission not found");
         }
 
-        saveAndFlush(gradeSubmission(submission.get()));
+        saveAndFlush(gradeSubmission(submission.get(), new RegradeDetails()));
     }
 
     @Override
-    public Submission gradeSubmission(Submission submission) throws DataServiceException {
+    public Submission gradeSubmission(Submission submission, RegradeDetails regradeDetails) throws DataServiceException {
         //We need to calculate the 2 the possible grades. Automatic and manual
-        float automatic = Float.parseFloat("0");
-        float manual = Float.parseFloat("0");
-        boolean altered = this.isGradeAltered(submission);
+        float automatic = 0f;
+        float manual = 0f;
 
         for (QuestionSubmission questionSubmission : submission.getQuestionSubmissions()) {
-            //We need to grade the question first automatically it it was not graded before.
-            //If multiple choice, we take the automatic score for automatic and the manual if any for manual, and if no manual, then the automatic for manual
-            QuestionSubmission questionGraded = new QuestionSubmission();
+            // If multiple choice, we take the automatic score for automatic and the manual if any for manual, and if no manual, then the automatic for manual
+            QuestionSubmission questionGraded = questionSubmission;
 
             switch (questionSubmission.getQuestion().getQuestionType()) {
                 case MC:
                     List<AnswerMcSubmission> answerMcSubmissions = answerSubmissionService.findByQuestionSubmissionIdMC(questionSubmission.getQuestionSubmissionId());
+
                     if (answerMcSubmissions.size() == 1) {
-                        questionGraded = questionSubmissionService.automaticGradingMC(questionSubmission, answerMcSubmissions.get(0));
+                        switch (regradeDetails.getRegradeOption()) {
+                            case FULL:
+                                if (!isRegradeEligible(regradeDetails.getEditedMCQuestionIds(), questionSubmission.getQuestion().getQuestionId())) {
+                                    // this is not an edited question submission; skip regrading
+                                    break;
+                                }
+
+                                // set score to full max points
+                                questionSubmission.setCalculatedPoints(questionSubmission.getQuestion().getPoints());
+                                questionSubmission.setAlteredGrade(null);
+                                questionGraded = allRepositories.questionSubmissionRepository.save(questionSubmission);
+                                break;
+
+                            case BOTH:
+                                if (!isRegradeEligible(regradeDetails.getEditedMCQuestionIds(), questionSubmission.getQuestion().getQuestionId())) {
+                                    // this is not an edited question submission; skip regrading
+                                    break;
+                                }
+
+                                // current answer is true or has previously-added points; set to max question points (in case point value changed)
+                                if (BooleanUtils.isTrue(answerMcSubmissions.get(0).getAnswerMc().getCorrect())
+                                        || questionSubmission.getCalculatedPoints() != null && questionSubmission.getCalculatedPoints() > 0) {
+                                    //
+                                    questionSubmission.setCalculatedPoints(questionSubmission.getQuestion().getPoints());
+                                }
+
+                                questionSubmission.setAlteredGrade(null);
+                                questionGraded = allRepositories.questionSubmissionRepository.save(questionSubmission);
+                                break;
+
+                            case CURRENT:
+                                if (!isRegradeEligible(regradeDetails.getEditedMCQuestionIds(), questionSubmission.getQuestion().getQuestionId())) {
+                                    // this is not an edited question submission; skip regrading
+                                    questionGraded = questionSubmission;
+                                    break;
+                                }
+
+                                questionSubmission.setAlteredGrade(null);
+                                questionGraded = questionSubmissionService.automaticGradingMC(questionSubmission, answerMcSubmissions.get(0));
+                                break;
+
+                            case NA:
+                                questionGraded = questionSubmissionService.automaticGradingMC(questionSubmission, answerMcSubmissions.get(0));
+                                break;
+
+                            case NONE:
+                            default:
+                                questionGraded = questionSubmission;
+                                break;
+                        }
                     } else if (answerMcSubmissions.size() > 1) {
                         throw new DataServiceException("Error 135: Cannot have more than one answer submission for a multiple choice question.");
                     } else {
-                        questionGraded.setCalculatedPoints(Float.valueOf("0"));
+                        questionGraded.setCalculatedPoints(0f);
                     }
+
                     break;
                 case ESSAY:
                 case FILE:
                     questionGraded = questionSubmission;
-                    questionGraded.setCalculatedPoints(Float.valueOf("0"));
+
+                    if (RegradeOption.NA == regradeDetails.getRegradeOption()) {
+                        // not a regrade
+                        questionGraded.setCalculatedPoints(0f);
+                    }
+
                     break;
                 default:
                     break;
@@ -448,20 +508,26 @@ public class SubmissionServiceImpl implements SubmissionService {
             automatic = automatic + questionGraded.getCalculatedPoints();
 
             if (questionGraded.getAlteredGrade() != null && !questionGraded.getAlteredGrade().isNaN()) {
-                manual = manual + questionSubmission.getAlteredGrade();
+                manual = manual + questionGraded.getAlteredGrade();
             } else {
-                manual = manual + questionSubmission.getCalculatedPoints();
+                manual = manual + questionGraded.getCalculatedPoints();
             }
-            //TODO: If open question, we take the manual score for both, because the automatic will be always 0
+            // TODO: If open question, we take the manual score for both, because the automatic will be always 0
         }
+
         submission.setCalculatedGrade(automatic);
         submission.setAlteredCalculatedGrade(manual);
 
-        if (!altered) {
+        if (!isGradeAltered(submission) || RegradeOption.NA != regradeDetails.getRegradeOption()) {
+            // grade is not altered or this is a regrade
             submission.setTotalAlteredGrade(manual);
         }
 
-        return submission;
+        return allRepositories.submissionRepository.save(submission);
+    }
+
+    private boolean isRegradeEligible(List<Long> editedMCQuestionIds, long questionId) {
+        return editedMCQuestionIds.contains(questionId);
     }
 
     @Override
@@ -541,7 +607,7 @@ public class SubmissionServiceImpl implements SubmissionService {
         // submission has been manually graded.
         // If any of the ESSAY questions with positive max points have a null
         // alteredGrade, then the assessment still needs to be manually graded.
-        return !this.isGradeAltered(submission)
+        return !isGradeAltered(submission)
             && submission.getQuestionSubmissions().stream().anyMatch(qs -> {
                 return qs.getQuestion().getQuestionType() == QuestionTypes.ESSAY
                         && qs.getQuestion().getPoints() > 0

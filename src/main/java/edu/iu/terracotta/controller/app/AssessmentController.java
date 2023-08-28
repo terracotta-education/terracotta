@@ -14,6 +14,7 @@ import edu.iu.terracotta.exceptions.RevealResponsesSettingValidationException;
 import edu.iu.terracotta.exceptions.SubmissionNotMatchingException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
+import edu.iu.terracotta.model.app.RegradeDetails;
 import edu.iu.terracotta.model.app.dto.AssessmentDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
@@ -30,14 +31,14 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.HttpServletRequest;
@@ -49,22 +50,21 @@ import java.util.List;
 @RequestMapping(value = AssessmentController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
 public class AssessmentController {
 
-    public static final String REQUEST_ROOT = "api/experiments";
-
-    @Autowired
-    private AssessmentService assessmentService;
+    public static final String REQUEST_ROOT = "api/experiments/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments";
 
     @Autowired
     private APIJWTService apijwtService;
 
     @Autowired
+    private AssessmentService assessmentService;
+
+    @Autowired
     private SubmissionService submissionService;
 
-    @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments", method = RequestMethod.GET, produces = "application/json;")
-    @ResponseBody
-    public ResponseEntity<List<AssessmentDto>> getAssessmentByTreatment(@PathVariable("experiment_id") Long experimentId,
-                                                                        @PathVariable("condition_id") Long conditionId,
-                                                                        @PathVariable("treatment_id") Long treatmentId,
+    @GetMapping
+    public ResponseEntity<List<AssessmentDto>> getAssessmentByTreatment(@PathVariable long experimentId,
+                                                                        @PathVariable long conditionId,
+                                                                        @PathVariable long treatmentId,
                                                                         @RequestParam(name = "submissions", defaultValue = "false") boolean submissions,
                                                                         HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, TreatmentNotMatchingException, AssessmentNotMatchingException {
@@ -73,19 +73,20 @@ public class AssessmentController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.treatmentAllowed(securedInfo, experimentId, conditionId, treatmentId);
 
-        if(apijwtService.isLearnerOrHigher(securedInfo)) {
-            List<AssessmentDto> assessmentDtoList = assessmentService.getAllAssessmentsByTreatment(treatmentId, submissions);
-            if(assessmentDtoList.isEmpty()){
-                return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-            }
-            return new ResponseEntity<>(assessmentDtoList, HttpStatus.OK);
-        } else {
+        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
+
+        List<AssessmentDto> assessmentDtoList = assessmentService.getAllAssessmentsByTreatment(treatmentId, submissions);
+
+        if (assessmentDtoList.isEmpty()) {
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        }
+
+        return new ResponseEntity<>(assessmentDtoList, HttpStatus.OK);
     }
 
-    @ResponseBody
-    @GetMapping(value = "/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/{assessmentId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<AssessmentDto> getAssessment(@PathVariable long experimentId,
                                                        @PathVariable long conditionId,
                                                        @PathVariable long treatmentId,
@@ -95,8 +96,7 @@ public class AssessmentController {
                                                        @RequestParam(name = "submissions", defaultValue = "false") boolean submissions,
                                                        @RequestParam(name = "submission_id", required = false) Long submissionId,
                                                        HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, AssessmentNotMatchingException,
-                SubmissionNotMatchingException, NoSubmissionsException {
+            throws ExperimentNotMatchingException, BadTokenException, AssessmentNotMatchingException, SubmissionNotMatchingException, NoSubmissionsException {
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -123,31 +123,33 @@ public class AssessmentController {
         return new ResponseEntity<>(assessmentDto, HttpStatus.OK);
     }
 
-    @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments", method = RequestMethod.POST)
-    public ResponseEntity<AssessmentDto> postAssessment(@PathVariable("experiment_id") Long experimentId,
-                                                        @PathVariable("condition_id") Long conditionId,
-                                                        @PathVariable("treatment_id") Long treatmentId,
+    @PostMapping
+    public ResponseEntity<AssessmentDto> postAssessment(@PathVariable long experimentId,
+                                                        @PathVariable long conditionId,
+                                                        @PathVariable long treatmentId,
                                                         @RequestBody AssessmentDto assessmentDto,
                                                         UriComponentsBuilder ucBuilder,
                                                         HttpServletRequest req)
             throws ExperimentNotMatchingException, TreatmentNotMatchingException, BadTokenException,
             TitleValidationException, AssessmentNotMatchingException, IdInPostException, DataServiceException {
+
         log.debug("Creating Assessment for experiment ID: {}", experimentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.treatmentAllowed(securedInfo, experimentId, conditionId, treatmentId);
 
-        if(apijwtService.isInstructorOrHigher(securedInfo)) {
-            AssessmentDto returnedDto = assessmentService.postAssessment(assessmentDto, treatmentId);
-            HttpHeaders headers = assessmentService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, returnedDto.getAssessmentId());
-            return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
-        } else {
+        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
+
+        AssessmentDto returnedDto = assessmentService.postAssessment(assessmentDto, treatmentId);
+        HttpHeaders headers = assessmentService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, returnedDto.getAssessmentId());
+
+        return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
     }
 
-    @PutMapping("/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}")
-    public ResponseEntity<AssessmentDto> updateAssessment(@PathVariable long experimentId,
+    @PutMapping("/{assessmentId}")
+    public ResponseEntity<AssessmentDto> putAssessment(@PathVariable long experimentId,
                                                  @PathVariable long conditionId,
                                                  @PathVariable long treatmentId,
                                                  @PathVariable long assessmentId,
@@ -171,30 +173,57 @@ public class AssessmentController {
         return new ResponseEntity<>(updatedAssessmentDto, HttpStatus.OK);
     }
 
-
     @Transactional
-    @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}", method = RequestMethod.DELETE)
-    public ResponseEntity<Void> deleteAssessment(@PathVariable("experiment_id") Long experimentId,
-                                                 @PathVariable("condition_id") Long conditionId,
-                                                 @PathVariable("treatment_id") Long treatmentId,
-                                                 @PathVariable("assessment_id") Long assessmentId,
+    @DeleteMapping("/{assessmentId}")
+    public ResponseEntity<Void> deleteAssessment(@PathVariable long experimentId,
+                                                 @PathVariable long conditionId,
+                                                 @PathVariable long treatmentId,
+                                                 @PathVariable long assessmentId,
                                                  HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, BadTokenException {
+
+        log.debug("Deleting assessment with id: {}", assessmentId);
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
 
-        if(apijwtService.isInstructorOrHigher(securedInfo)) {
-            try{
-                assessmentService.deleteById(assessmentId);
-                return new ResponseEntity<>(HttpStatus.OK);
-            } catch (EmptyResultDataAccessException ex) {
-                log.warn(ex.getMessage());
-                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-            }
-        } else {
+        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
+
+        try{
+            assessmentService.deleteById(assessmentId);
+        } catch (EmptyResultDataAccessException ex) {
+            log.warn(ex.getMessage());
+        }
+
+        return new ResponseEntity<>(HttpStatus.OK);
     }
+
+    @PostMapping("/{assessmentId}/regrade")
+    public ResponseEntity<Void> regrade(@PathVariable long experimentId,
+                                                @PathVariable long conditionId,
+                                                @PathVariable long treatmentId,
+                                                @PathVariable long assessmentId,
+                                                @RequestBody RegradeDetails regradeDetails,
+                                                HttpServletRequest req)
+        throws ExperimentNotMatchingException, TreatmentNotMatchingException, BadTokenException,
+            TitleValidationException, AssessmentNotMatchingException, IdInPostException, DataServiceException {
+
+        log.debug("Regrading questions for assessment ID: {}", assessmentId);
+        SecuredInfo securedInfo = apijwtService.extractValues(req,false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.treatmentAllowed(securedInfo, experimentId, conditionId, treatmentId);
+        apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
+
+        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
+            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
+        }
+
+        assessmentService.regradeQuestions(regradeDetails, assessmentId);
+
+        return new ResponseEntity<>(HttpStatus.ACCEPTED);
+    }
+
 }

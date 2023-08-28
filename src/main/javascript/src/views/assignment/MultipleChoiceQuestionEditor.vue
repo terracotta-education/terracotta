@@ -1,6 +1,11 @@
 <template>
   <!-- proxy props and event listeners to question-editor -->
-  <question-editor v-bind="$props" v-on="$listeners">
+  <question-editor
+    v-bind="$props"
+    v-on="$listeners"
+    :isMC="true"
+    @edited="handleQuestionEdited"
+  >
     <h4><strong>Options</strong></h4>
     <p class="ma-0 mb-3">Select correct option(s) below</p>
 
@@ -10,7 +15,10 @@
         :key="answer.answerId"
         class="mb-3"
       >
-        <v-row align="center" class="flex-nowrap">
+        <v-row
+          align="center"
+          class="flex-nowrap"
+        >
           <v-col class="py-0">
             <v-btn
               icon
@@ -19,10 +27,14 @@
               :class="{ 'green--text': answer.correct }"
               @click="handleToggleCorrect(answer)"
             >
-              <template v-if="!answer.correct">
+              <template
+                v-if="!answer.correct"
+              >
                 <v-icon>mdi-checkbox-marked-circle-outline</v-icon>
               </template>
-              <template v-else>
+              <template
+                v-else
+              >
                 <v-icon>mdi-checkbox-marked-circle</v-icon>
               </template>
             </v-btn>
@@ -36,7 +48,8 @@
               hide-details
               outlined
               required
-            ></v-text-field>
+            >
+            </v-text-field>
           </v-col>
           <v-col class="py-0">
             <v-btn
@@ -52,7 +65,9 @@
       </li>
     </ul>
     <v-row align="center" class="flex-nowrap">
-      <v-col cols="auto"><div class="icon-button-spacer"></div></v-col>
+      <v-col cols="auto">
+        <div class="icon-button-spacer"></div>
+      </v-col>
       <v-col cols="auto">
         <v-btn
           elevation="0"
@@ -109,6 +124,7 @@ export default {
       },
       set(value) {
         this.updateQuestions({ ...this.question, randomizeAnswers: value });
+        this.handleQuestionEdited();
       },
     },
   },
@@ -137,12 +153,14 @@ export default {
           false,
           0,
         ]);
+        this.handleQuestionEdited();
       } catch (error) {
         console.error(error);
       }
     },
     handleToggleCorrect(answer) {
       this.updateAnswers({ ...answer, correct: !answer.correct });
+      this.handleQuestionEdited();
     },
     async handleDeleteAnswer(q, a) {
       // DELETE ANSWER
@@ -155,6 +173,7 @@ export default {
           q.questionId,
           a.answerId,
         ]);
+        this.handleQuestionEdited();
       } catch (error) {
         console.error("handleDeleteAnswer | catch", { error });
         this.$swal("there was a problem deleting the answer");
@@ -162,7 +181,11 @@ export default {
     },
     updateAnswerHtml(answer, value) {
       this.updateAnswers({ ...answer, html: value });
+      this.handleQuestionEdited();
     },
+    handleQuestionEdited() {
+      this.$emit("edited");
+    }
   },
 };
 </script>

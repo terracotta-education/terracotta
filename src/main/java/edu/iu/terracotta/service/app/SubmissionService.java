@@ -11,6 +11,7 @@ import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
 import edu.iu.terracotta.exceptions.SubmissionNotMatchingException;
 import edu.iu.terracotta.model.app.Assessment;
 import edu.iu.terracotta.model.app.Participant;
+import edu.iu.terracotta.model.app.RegradeDetails;
 import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.dto.SubmissionDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
@@ -23,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+@SuppressWarnings({"PMD.MethodNamingConventions"})
 public interface SubmissionService {
 
     List<Submission> findAllByAssessmentId(Long assessmentId);
@@ -55,14 +57,14 @@ public interface SubmissionService {
 
     void deleteById(Long id) throws EmptyResultDataAccessException;
 
-    boolean submissionBelongsToAssessment(Long assessmentId, Long SubmissionId);
+    boolean submissionBelongsToAssessment(Long assessmentId, Long submissionId);
 
     void finalizeAndGrade(Long submissionId, SecuredInfo securedInfo, boolean student)
             throws DataServiceException, CanvasApiException, IOException, AssignmentDatesException, ConnectionException;
 
     void grade(Long submissionId, SecuredInfo securedInfo) throws DataServiceException;
 
-    Submission gradeSubmission(Submission submission) throws DataServiceException;
+    Submission gradeSubmission(Submission submission, RegradeDetails regradeDetails) throws DataServiceException;
 
     void sendSubmissionGradeToCanvasWithLTI(Submission submission, boolean studentSubmission)
             throws ConnectionException, DataServiceException, CanvasApiException, IOException;

@@ -291,12 +291,10 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
         if (BooleanUtils.isTrue(answerMcSubmission.getAnswerMc().getCorrect())) {
             questionSubmission.setCalculatedPoints(questionSubmission.getQuestion().getPoints());
         } else {
-            questionSubmission.setCalculatedPoints(Float.valueOf("0"));
+            questionSubmission.setCalculatedPoints(0f);
         }
 
-        allRepositories.questionSubmissionRepository.save(questionSubmission);
-
-        return questionSubmission;
+        return allRepositories.questionSubmissionRepository.save(questionSubmission);
     }
 
     @Override

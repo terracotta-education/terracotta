@@ -56,6 +56,15 @@ const actions = {
       console.log('createAssessment catch', error)
     }
   },
+  regradeQuestions({state}, payload) {
+    // payload = experiment_id, condition_id, treatment_id, assessment_id, body
+    // regrade the given question IDs
+    try {
+        assessmentService.regradeQuestions(...payload);
+    } catch (error) {
+      console.log('regradeQuestions catch', error, state);
+    }
+  },
   async updateAssessment(context, payload) {
     // payload = experiment_id, condition_id, treatment_id, assessment_id,
     //           body, allowStudentViewResponses, studentViewResponsesAfter,
