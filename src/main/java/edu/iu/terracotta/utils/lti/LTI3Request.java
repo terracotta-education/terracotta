@@ -287,7 +287,7 @@ public class LTI3Request {
             public Key resolveSigningKey(JwsHeader header, Claims claims) {
                 // We are dealing with RS256 encryption, so we have some Oauth utils to manage the keys and
                 // convert them to keys from the string stored in DB. There are for sure other ways to manage this.
-                PlatformDeployment platformDeployment = ltiDataService.getRepos().platformDeploymentRepository.findByIssAndClientId(claims.getIssuer(), claims.getAudience()).get(0);
+                PlatformDeployment platformDeployment = ltiDataService.getAllRepositories().platformDeploymentRepository.findByIssAndClientId(claims.getIssuer(), claims.getAudience()).get(0);
 
                 if (StringUtils.isNoneEmpty(platformDeployment.getJwksEndpoint())) {
                     try {
@@ -507,7 +507,7 @@ public class LTI3Request {
             try {
                 deepLinkJwts = DeepLinkUtils.generateDeepLinkJWT(
                     ltiDataService,
-                    ltiDataService.getRepos().platformDeploymentRepository.findByToolDeployments_LtiDeploymentId(ltiDeploymentId).get(0),
+                    ltiDataService.getAllRepositories().platformDeploymentRepository.findByToolDeployments_LtiDeploymentId(ltiDeploymentId).get(0),
                     this,
                     toolDeployment.getPlatformDeployment().getLocalUrl());
             } catch (GeneralSecurityException | IOException | NullPointerException ex) {

@@ -12,42 +12,30 @@ import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import edu.iu.terracotta.BaseTest;
+import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.IdInPostException;
+import edu.iu.terracotta.exceptions.MultipleChoiceLimitReachedException;
 import edu.iu.terracotta.model.LtiContextEntity;
 import edu.iu.terracotta.model.LtiUserEntity;
-import edu.iu.terracotta.model.PlatformDeployment;
-import edu.iu.terracotta.repository.AllRepositories;
-import edu.iu.terracotta.repository.PlatformDeploymentRepository;
-import edu.iu.terracotta.service.lti.LTIDataService;
-import edu.iu.terracotta.utils.lti.LTI3Request;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Header;
 import io.jsonwebtoken.Jwt;
 
 @SuppressWarnings({"rawtypes"})
-public class APIJWTServiceImplTest {
+public class APIJWTServiceImplTest extends BaseTest {
 
     @InjectMocks private APIJWTServiceImpl apiJWTService;
-
-    @Mock private AllRepositories allRepositories;
-    @Mock private PlatformDeploymentRepository platformDeploymentRepository;
-
-    @Mock private LTIDataService ltiDataService;
-
-    @Mock private LTI3Request lti3Request;
-    @Mock private PlatformDeployment platformDeployment;
 
     private Map<String, Object> customVars;
 
     @BeforeEach
-    public void beforeEach() {
+    public void beforeEach() throws IdInPostException, DataServiceException, MultipleChoiceLimitReachedException {
         MockitoAnnotations.openMocks(this);
 
-        allRepositories.platformDeploymentRepository = platformDeploymentRepository;
-
-        when(ltiDataService.getRepos()).thenReturn(allRepositories);
+        setup();
 
         when(lti3Request.getLtiTargetLinkUrl()).thenReturn("");
         when(lti3Request.getContext()).thenReturn(new LtiContextEntity());

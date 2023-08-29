@@ -12,12 +12,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import javax.persistence.EntityManager;
-
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -27,6 +23,7 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 
+import edu.iu.terracotta.BaseTest;
 import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.exceptions.AssignmentNotEditedException;
 import edu.iu.terracotta.exceptions.AssignmentNotMatchingException;
@@ -44,83 +41,32 @@ import edu.iu.terracotta.exceptions.RevealResponsesSettingValidationException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
 import edu.iu.terracotta.model.LtiUserEntity;
-import edu.iu.terracotta.model.app.Assessment;
 import edu.iu.terracotta.model.app.Assignment;
-import edu.iu.terracotta.model.app.Condition;
 import edu.iu.terracotta.model.app.Treatment;
 import edu.iu.terracotta.model.app.dto.AssessmentDto;
-import edu.iu.terracotta.model.app.dto.AssignmentDto;
 import edu.iu.terracotta.model.app.dto.TreatmentDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
-import edu.iu.terracotta.repository.AllRepositories;
-import edu.iu.terracotta.repository.AssignmentRepository;
-import edu.iu.terracotta.repository.ConditionRepository;
-import edu.iu.terracotta.repository.LtiUserRepository;
-import edu.iu.terracotta.repository.TreatmentRepository;
-import edu.iu.terracotta.service.app.APIJWTService;
-import edu.iu.terracotta.service.app.AssessmentService;
-import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.utils.TextConstants;
 
-public class TreatmentServiceImplTest {
+public class TreatmentServiceImplTest extends BaseTest {
 
-    @InjectMocks
-    private TreatmentServiceImpl treatmentService;
+    @InjectMocks private TreatmentServiceImpl treatmentService;
 
-    @Mock private AllRepositories allRepositories;
-    @Mock private AssignmentRepository assignmentRepository;
-    @Mock private ConditionRepository conditionRepository;
-    @Mock private LtiUserRepository ltiUserRepository;
-    @Mock private TreatmentRepository treatmentRepository;
-
-    @Mock private APIJWTService apijwtService;
-    @Mock private AssessmentService assessmentService;
-    @Mock private AssignmentService assignmentService;
-    @Mock private EntityManager entityManager;
-
-    @Mock private Assessment assessment;
-    @Mock private AssessmentDto assessmentDto;
-    @Mock private Assignment assignment;
-    @Mock private AssignmentDto assignmentDto;
-    @Mock private Condition condition;
-    @Mock private LtiUserEntity ltiUserEntity;
-    @Mock private SecuredInfo securedInfo;
-    @Mock private Treatment treatment;
     @Mock private TreatmentDto treatmentDtoToUpdate;
 
-
     @BeforeEach
-    public void beforeEach() throws DataServiceException, AssessmentNotMatchingException, CanvasApiException, TreatmentNotMatchingException, QuestionNotMatchingException {
+    public void beforeEach() throws DataServiceException, AssessmentNotMatchingException, CanvasApiException, TreatmentNotMatchingException, QuestionNotMatchingException, IdInPostException, MultipleChoiceLimitReachedException {
         MockitoAnnotations.openMocks(this);
 
+        setup();
         clearInvocations(assignmentService);
 
-        allRepositories.assignmentRepository = assignmentRepository;
-        allRepositories.conditionRepository = conditionRepository;
-        allRepositories.ltiUserRepository = ltiUserRepository;
-        allRepositories.treatmentRepository = treatmentRepository;
-
         when(assessmentService.duplicateAssessment(anyLong(), anyLong())).thenReturn(assessment);
-        when(assignmentRepository.findById(anyLong())).thenReturn(Optional.of(assignment));
-        when(conditionRepository.findById(anyLong())).thenReturn(Optional.of(condition));
         when(ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(anyString(), anyLong())).thenReturn(ltiUserEntity);
-        when(treatmentRepository.findByTreatmentId(anyLong())).thenReturn(treatment);
         when(treatmentRepository.findByCondition_ConditionId(anyLong())).thenReturn(Collections.singletonList(treatment));
-        when(treatmentRepository.save(any(Treatment.class))).thenReturn(treatment);
 
         when(apijwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(true);
-        when(assessment.getAssessmentId()).thenReturn(1L);
-        when(assessmentDto.getAssessmentId()).thenReturn(1L);
-        when(assignment.getAssignmentId()).thenReturn(1L);
-        when(assignmentDto.getAssignmentId()).thenReturn(1L);
-        when(condition.getConditionId()).thenReturn(1L);
-        when(securedInfo.getCanvasCourseId()).thenReturn("canvasCourseId");
-        when(securedInfo.getPlatformDeploymentId()).thenReturn(1L);
-        when(securedInfo.getUserId()).thenReturn("1");
-        when(treatment.getAssessment()).thenReturn(assessment);
-        when(treatment.getAssignment()).thenReturn(assignment);
-        when(treatment.getCondition()).thenReturn(condition);
-        when(treatment.getTreatmentId()).thenReturn(1l);
+
         when(treatmentDtoToUpdate.getAssessmentDto()).thenReturn(assessmentDto);
         when(treatmentDtoToUpdate.getAssignmentDto()).thenReturn(assignmentDto);
         when(treatmentDtoToUpdate.getTreatmentId()).thenReturn(1L);

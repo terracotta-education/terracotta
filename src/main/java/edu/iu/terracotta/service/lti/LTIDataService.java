@@ -12,34 +12,20 @@ import org.springframework.transaction.annotation.Transactional;
 
 public interface LTIDataService {
 
-    AllRepositories getRepos();
+    @Transactional boolean loadLTIDataFromDB(LTI3Request lti, String link);
+    @Transactional int upsertLTIDataInDB(LTI3Request lti, ToolDeployment toolDeployment, String link) throws DataServiceException;
 
-    @Transactional
-    boolean loadLTIDataFromDB(LTI3Request lti, String link);
-
-    @Transactional
-    int upsertLTIDataInDB(LTI3Request lti, ToolDeployment toolDeployment, String link) throws DataServiceException;
-
+    AllRepositories getAllRepositories();
     LtiUserEntity findByUserKeyAndPlatformDeployment(String userKey, PlatformDeployment platformDeployment);
-
     LtiUserEntity saveLtiUserEntity(LtiUserEntity ltiUserEntity);
-
     LtiMembershipEntity findByUserAndContext(LtiUserEntity ltiUserEntity, LtiContextEntity ltiContextEntity);
-
     LtiMembershipEntity saveLtiMembershipEntity(LtiMembershipEntity ltiMembershipEntity);
-
     ToolDeployment findOrCreateToolDeployment(String iss, String clientId, String ltiDeploymentId);
-
     String getOwnPrivateKey();
-
     void setOwnPrivateKey(String ownPrivateKey);
-
     String getOwnPublicKey();
-
     void setOwnPublicKey(String ownPublicKey);
-
     Boolean getDemoMode();
-
     void setDemoMode(Boolean demoMode);
 
 }

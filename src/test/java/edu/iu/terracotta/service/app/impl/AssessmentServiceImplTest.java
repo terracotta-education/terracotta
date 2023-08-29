@@ -7,8 +7,6 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.Spy;
 
-import javax.persistence.EntityManager;
-
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.Timestamp;
@@ -19,6 +17,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+import edu.iu.terracotta.BaseTest;
 import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.exceptions.AssignmentAttemptException;
 import edu.iu.terracotta.exceptions.AssignmentNotMatchingException;
@@ -36,38 +35,17 @@ import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
 import edu.iu.terracotta.exceptions.RevealResponsesSettingValidationException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
-import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.model.app.Assessment;
-import edu.iu.terracotta.model.app.Assignment;
-import edu.iu.terracotta.model.app.Condition;
 import edu.iu.terracotta.model.app.Experiment;
-import edu.iu.terracotta.model.app.Exposure;
-import edu.iu.terracotta.model.app.ExposureGroupCondition;
-import edu.iu.terracotta.model.app.Group;
 import edu.iu.terracotta.model.app.Participant;
-import edu.iu.terracotta.model.app.Question;
 import edu.iu.terracotta.model.app.RegradeDetails;
 import edu.iu.terracotta.model.app.RetakeDetails;
 import edu.iu.terracotta.model.app.Submission;
-import edu.iu.terracotta.model.app.Treatment;
 import edu.iu.terracotta.model.app.dto.AssessmentDto;
 import edu.iu.terracotta.model.app.dto.QuestionDto;
 import edu.iu.terracotta.model.app.enumerator.MultipleSubmissionScoringScheme;
 import edu.iu.terracotta.model.app.enumerator.RegradeOption;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
-import edu.iu.terracotta.repository.AllRepositories;
-import edu.iu.terracotta.repository.AssessmentRepository;
-import edu.iu.terracotta.repository.AssignmentRepository;
-import edu.iu.terracotta.repository.ExperimentRepository;
-import edu.iu.terracotta.repository.ExposureGroupConditionRepository;
-import edu.iu.terracotta.repository.ParticipantRepository;
-import edu.iu.terracotta.repository.QuestionRepository;
-import edu.iu.terracotta.repository.SubmissionRepository;
-import edu.iu.terracotta.repository.TreatmentRepository;
-import edu.iu.terracotta.service.app.FileStorageService;
-import edu.iu.terracotta.service.app.ParticipantService;
-import edu.iu.terracotta.service.app.QuestionService;
-import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.utils.TextConstants;
 
 import org.apache.commons.lang3.StringUtils;
@@ -92,126 +70,54 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @SuppressWarnings({"PMD.AvoidAccessibilityAlteration"})
-public class AssessmentServiceImplTest {
+public class AssessmentServiceImplTest extends BaseTest {
 
     @Spy
     @InjectMocks
     private AssessmentServiceImpl assessmentService;
 
-    @Mock private AllRepositories allRepositories;
-    @Mock private AssessmentRepository assessmentRepository;
-    @Mock private AssignmentRepository assignmentRepository;
-    @Mock private ExperimentRepository experimentRepository;
-    @Mock private ExposureGroupConditionRepository exposureGroupConditionRepository;
-    @Mock private ParticipantRepository participantRepository;
-    @Mock private QuestionRepository questionRepository;
-    @Mock private SubmissionRepository submissionRepository;
-    @Mock private TreatmentRepository treatmentRepository;
-
-    @Mock private EntityManager entityManager;
-    @Mock private FileStorageService fileStorageService;
-    @Mock private ParticipantService participantService;
-    @Mock private QuestionService questionService;
-    @Mock private SubmissionService submissionService;
-
-    @Mock private Assessment assessment;
     @Mock private Assessment assessment1;
-    @Mock private AssessmentDto assessmentDto;
-    @Mock private Assignment assignment;
-    @Mock private Condition condition;
-    @Mock private Experiment experiment;
-    @Mock private Exposure exposure;
-    @Mock private ExposureGroupCondition exposureGroupCondition;
-    @Mock private Group group;
-    @Mock private Participant participant;
-    @Mock private PlatformDeployment platformDeployment;
-    @Mock private Question question;
-    @Mock private QuestionDto questionDto;
-    @Mock private RegradeDetails regradeDetails;
-    @Mock private SecuredInfo securedInfo;
-    @Mock private Submission submission;
-    @Mock private Treatment treatment;
 
     private Method verifySubmissionLimit;
     private Method verifySubmissionWaitTime;
 
     @BeforeEach
     public void beforeEach() throws DataServiceException, AssessmentNotMatchingException, GroupNotMatchingException, ParticipantNotMatchingException,
-            ParticipantNotUpdatedException, AssignmentNotMatchingException, IdInPostException, NoSuchMethodException, SecurityException, QuestionNotMatchingException, MultipleChoiceLimitReachedException, ExperimentNotMatchingException {
+            ParticipantNotUpdatedException, AssignmentNotMatchingException, IdInPostException, NoSuchMethodException, SecurityException, QuestionNotMatchingException,
+            MultipleChoiceLimitReachedException, ExperimentNotMatchingException {
         MockitoAnnotations.openMocks(this);
 
+        setup();
         clearInvocations(questionService, submissionService);
-
-        allRepositories.assessmentRepository = assessmentRepository;
-        allRepositories.assignmentRepository = assignmentRepository;
-        allRepositories.experimentRepository = experimentRepository;
-        allRepositories.exposureGroupConditionRepository = exposureGroupConditionRepository;
-        allRepositories.participantRepository = participantRepository;
-        allRepositories.questionRepository = questionRepository;
-        allRepositories.submissionRepository = submissionRepository;
-        allRepositories.treatmentRepository = treatmentRepository;
 
         verifySubmissionLimit = AssessmentServiceImpl.class.getDeclaredMethod("verifySubmissionLimit", Integer.class, int.class);
         verifySubmissionLimit.setAccessible(true);
         verifySubmissionWaitTime = AssessmentServiceImpl.class.getDeclaredMethod("verifySubmissionWaitTime", Float.class, List.class);
         verifySubmissionWaitTime.setAccessible(true);
 
-        when(assessmentRepository.findByAssessmentId(anyLong())).thenReturn(assessment);
-        when(assessmentRepository.save(any(Assessment.class))).thenReturn(assessment);
+
         when(assignmentRepository.findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(anyLong(), anyString())).thenReturn(assignment);
-        when(experimentRepository.findById(anyLong())).thenReturn(Optional.of(experiment));
         when(exposureGroupConditionRepository.getByCondition_ConditionIdAndExposure_ExposureId(anyLong(), anyLong())).thenReturn(Optional.of(exposureGroupCondition));
         when(exposureGroupConditionRepository.getByGroup_GroupIdAndExposure_ExposureId(anyLong(), anyLong())).thenReturn(Optional.of(exposureGroupCondition));
         when(participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(anyLong(), anyString())).thenReturn(participant);
         when(questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(anyLong())).thenReturn(Collections.emptyList());
         when(submissionRepository.findByAssessment_AssessmentId(anyLong())).thenReturn(Collections.singletonList(submission));
         when(treatmentRepository.findByCondition_ConditionIdAndAssignment_AssignmentId(anyLong(), anyLong())).thenReturn(Collections.singletonList(treatment));
-        when(treatmentRepository.findByTreatmentId(anyLong())).thenReturn(treatment);
-        when(treatmentRepository.saveAndFlush(any(Treatment.class))).thenReturn(treatment);
 
         when(fileStorageService.parseHTMLFiles(anyString(), anyString())).thenReturn(StringUtils.EMPTY);
         when(participantService.handleExperimentParticipant(any(Experiment.class), any(SecuredInfo.class))).thenReturn(participant);
         when(questionService.duplicateQuestionsForAssessment(anyLong(), any(Assessment.class))).thenReturn(Collections.singletonList(question));
         when(questionService.findAllByAssessmentId(anyLong())).thenReturn(Arrays.asList(question)); // requires modifiable list
-        when(questionService.getQuestion(anyLong())).thenReturn(question);
-        when(questionService.postQuestion(any(QuestionDto.class), anyLong(), anyBoolean())).thenReturn(questionDto);
-        when(questionService.save(any(Question.class))).thenReturn(question);
-        when(submissionService.findByParticipantId(anyLong())).thenReturn(Collections.singletonList(submission));
-        when(submissionService.findByParticipantIdAndAssessmentId(anyLong(), anyLong())).thenReturn(Collections.singletonList(submission));
-        when(submissionService.getScoreFromMultipleSubmissions(any(Participant.class), any(Assessment.class))).thenReturn(1F);
-        when(submissionService.getSubmissionScore(any(Submission.class))).thenReturn(1F);
-        when(submissionService.gradeSubmission(any(Submission.class), any(RegradeDetails.class))).thenReturn(submission);
 
         when(assessment.isAllowStudentViewResponses()).thenReturn(true);
-        when(assessment.getAssessmentId()).thenReturn(1L);
         when(assessment.getMultipleSubmissionScoringScheme()).thenReturn(MultipleSubmissionScoringScheme.MOST_RECENT);
         when(assessment.getQuestions()).thenReturn(Collections.emptyList());
-        when(assessment.getTreatment()).thenReturn(treatment);
-        when(assignment.getAssignmentId()).thenReturn(1L);
-        when(assignment.getExposure()).thenReturn(exposure);
         when(assessmentDto.getMultipleSubmissionScoringScheme()).thenReturn(MultipleSubmissionScoringScheme.MOST_RECENT.toString());
         when(assessmentDto.getQuestions()).thenReturn(Collections.singletonList(questionDto));
-        when(condition.getConditionId()).thenReturn(1L);
         when(condition.getDefaultCondition()).thenReturn(true);
-        when(experiment.getPlatformDeployment()).thenReturn(platformDeployment);
-        when(exposure.getExposureId()).thenReturn(1L);
-        when(exposure.getExperiment()).thenReturn(experiment);
-        when(exposureGroupCondition.getCondition()).thenReturn(condition);
-        when(exposureGroupCondition.getGroup()).thenReturn(group);
-        when(group.getGroupId()).thenReturn(1L);
-        when(participant.getConsent()).thenReturn(true);
-        when(participant.getGroup()).thenReturn(group);
-        when(participant.getParticipantId()).thenReturn(1L);
+        when(questionDto.getQuestionId()).thenReturn(1L);
         when(regradeDetails.getEditedMCQuestionIds()).thenReturn(Collections.singletonList(1L));
         when(regradeDetails.getRegradeOption()).thenReturn(RegradeOption.BOTH);
-        when(securedInfo.getCanvasAssignmentId()).thenReturn("canvasAssignmentId");
-        when(securedInfo.getUserId()).thenReturn("canvasUserId");
-        when(submission.getAssessment()).thenReturn(assessment);
-        when(submission.getDateSubmitted()).thenReturn(Timestamp.from(Instant.now()));
-        when(treatment.getAssessment()).thenReturn(assessment);
-        when(treatment.getAssignment()).thenReturn(assignment);
-        when(treatment.getCondition()).thenReturn(condition);
-        when(treatment.getTreatmentId()).thenReturn(1L);
     }
 
     @Test

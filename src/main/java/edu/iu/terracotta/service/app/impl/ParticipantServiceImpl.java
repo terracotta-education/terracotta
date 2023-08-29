@@ -204,7 +204,7 @@ public class ParticipantServiceImpl implements ParticipantService {
         }
 
         try {
-            Optional<LtiUserEntity> userEntity = allRepositories.users.findById(participantDto.getUser().getUserId());
+            Optional<LtiUserEntity> userEntity = allRepositories.ltiUserRepository.findById(participantDto.getUser().getUserId());
 
             if (userEntity.isPresent()) {
                 participant.setLtiUserEntity(userEntity.get());
