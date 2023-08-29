@@ -350,7 +350,7 @@ public class ExperimentServiceImpl implements ExperimentService {
         experiment.setDistributionType(EnumUtils.getEnum(DistributionTypes.class, experimentDto.getDistributionType(), DistributionTypes.NOSET));
         experiment.setStarted(experimentDto.getStarted());
         experiment.setClosed(experimentDto.getClosed());
-        LtiUserEntity user = allRepositories.users.findByUserIdAndPlatformDeployment_KeyId(experimentDto.getCreatedBy(),platformDeployment.get().getKeyId());
+        LtiUserEntity user = allRepositories.ltiUserRepository.findByUserIdAndPlatformDeployment_KeyId(experimentDto.getCreatedBy(),platformDeployment.get().getKeyId());
 
         if (user == null) {
             throw new DataServiceException("The user specified to create the experiment does not exist or does not belong to this course");
@@ -395,7 +395,7 @@ public class ExperimentServiceImpl implements ExperimentService {
         //than the one in the token.
         experimentDto.setContextId(securedInfo.getContextId());
         experimentDto.setPlatformDeploymentId(securedInfo.getPlatformDeploymentId());
-        LtiUserEntity user = allRepositories.users.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
+        LtiUserEntity user = allRepositories.ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
 
         if (user != null) {
             experimentDto.setCreatedBy(user.getUserId());

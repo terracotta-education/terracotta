@@ -29,20 +29,22 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.Spy;
 
+import edu.iu.terracotta.BaseTest;
 import edu.iu.terracotta.exceptions.AssignmentNotMatchingException;
 import edu.iu.terracotta.exceptions.ConnectionException;
+import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.GroupNotMatchingException;
+import edu.iu.terracotta.exceptions.IdInPostException;
+import edu.iu.terracotta.exceptions.MultipleChoiceLimitReachedException;
 import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.model.LtiContextEntity;
 import edu.iu.terracotta.model.LtiUserEntity;
 import edu.iu.terracotta.model.PlatformDeployment;
-import edu.iu.terracotta.model.app.Condition;
 import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.Group;
 import edu.iu.terracotta.model.app.Participant;
@@ -51,62 +53,29 @@ import edu.iu.terracotta.model.app.enumerator.ParticipationTypes;
 import edu.iu.terracotta.model.membership.CourseUser;
 import edu.iu.terracotta.model.membership.CourseUsers;
 import edu.iu.terracotta.model.oauth2.Roles;
-import edu.iu.terracotta.model.oauth2.SecuredInfo;
-import edu.iu.terracotta.repository.AllRepositories;
-import edu.iu.terracotta.repository.ExperimentRepository;
-import edu.iu.terracotta.repository.ParticipantRepository;
-import edu.iu.terracotta.service.app.GroupService;
-import edu.iu.terracotta.service.lti.AdvantageMembershipService;
-import edu.iu.terracotta.service.lti.LTIDataService;
 import edu.iu.terracotta.utils.TextConstants;
 
-public class ParticipantServiceImplTest {
+public class ParticipantServiceImplTest extends BaseTest {
 
     @Spy
     @InjectMocks
     private ParticipantServiceImpl participantService;
 
-    @Mock private GroupService groupService;
-    @Mock
-    private AdvantageMembershipService advantageMembershipService;
-    @Mock
-    private LTIDataService ltiDataService;
-    @Mock
-    private AllRepositories allRepositories;
-    @Mock
-    private ExperimentRepository experimentRepository;
-    @Mock
-    private ParticipantRepository participantRepository;
-
-    @Mock private Condition condition;
-    @Mock private Experiment experiment;
-    @Mock private Group group;
-    @Mock private Participant participant;
-    @Mock private SecuredInfo securedInfo;
-
     @BeforeEach
-    public void beforeEach() throws ParticipantNotUpdatedException, GroupNotMatchingException, AssignmentNotMatchingException {
+    public void beforeEach() throws ParticipantNotUpdatedException, GroupNotMatchingException, AssignmentNotMatchingException, IdInPostException, DataServiceException, MultipleChoiceLimitReachedException {
         MockitoAnnotations.openMocks(this);
 
+        setup();
         clearInvocations(participant);
 
-        allRepositories.experimentRepository = experimentRepository;
-        allRepositories.participantRepository = participantRepository;
-
-        when(condition.getConditionId()).thenReturn(1L);
         when(condition.getDefaultCondition()).thenReturn(true);
-        when(experiment.getConditions()).thenReturn(Collections.singletonList(condition));
         when(experiment.getDistributionType()).thenReturn(DistributionTypes.CUSTOM);
-        when(experiment.getExperimentId()).thenReturn(1L);
         when(experiment.getParticipationType()).thenReturn(ParticipationTypes.AUTO);
         when(groupService.getUniqueGroupByConditionId(anyLong(), anyString(), anyLong())).thenReturn(group);
         when(groupService.nextGroup(any(Experiment.class))).thenReturn(group);
         when(participant.getConsent()).thenReturn(false);
         when(participant.getDateGiven()).thenReturn(Timestamp.from(Instant.now()));
         when(participant.getDateRevoked()).thenReturn(Timestamp.from(Instant.now()));
-        when(participant.getGroup()).thenReturn(group);
-        when(securedInfo.getCanvasAssignmentId()).thenReturn("1");
-        when(securedInfo.getUserId()).thenReturn("userId");
 
         doReturn(participant).when(participantService).findParticipant(anyList(), anyString());
         doReturn(participant).when(participantService).save(any(Participant.class));
@@ -261,7 +230,7 @@ public class ParticipantServiceImplTest {
                 platformDeployment)).thenReturn(null);
         when(ltiDataService.saveLtiUserEntity(argThat(u -> u.getUserKey().equals(courseUser4.getUserId()))))
                 .thenAnswer(invocation -> invocation.getArgument(0));
-        when(participantRepository.save(argThat(p -> p.getLtiUserEntity().getUserKey().equals("userKey4"))))
+        when(participantRepository.save(argThat(p -> "userKey4".equals(p.getLtiUserEntity().getUserKey()))))
                 .thenAnswer(inv -> inv.getArgument(0));
 
         // Current Participant list
@@ -287,10 +256,10 @@ public class ParticipantServiceImplTest {
 
         assertEquals(4, refreshedParticipants.size());
         Optional<Participant> newParticipant = refreshedParticipants.stream()
-                .filter(p -> p.getLtiUserEntity().getUserKey().equals("userKey4")).findFirst();
+                .filter(p -> "userKey4".equals(p.getLtiUserEntity().getUserKey())).findFirst();
         assertTrue(newParticipant.isPresent());
         verify(participantRepository).flush();
-        verify(participantRepository).save(argThat(p -> p.getLtiUserEntity().getUserKey().equals("userKey4")));
+        verify(participantRepository).save(argThat(p -> "userKey4".equals(p.getLtiUserEntity().getUserKey())));
         // make sure that save was never called
         verifyNoMoreInteractions(participantRepository);
 
@@ -325,7 +294,7 @@ public class ParticipantServiceImplTest {
         when(advantageMembershipService.callMembershipService(any(), eq(context))).thenReturn(courseUsers);
 
         when(participantRepository
-                .save(argThat(p -> p.getLtiUserEntity().getUserKey().equals("userKey3") && p.getDropped())))
+                .save(argThat(p -> "userKey3".equals(p.getLtiUserEntity().getUserKey()) && p.getDropped())))
                 .thenAnswer(inv -> inv.getArgument(0));
 
         // Current Participant list
@@ -351,7 +320,7 @@ public class ParticipantServiceImplTest {
 
         assertEquals(3, refreshedParticipants.size());
         verify(participantRepository)
-                .save(argThat(p -> p.getLtiUserEntity().getUserKey().equals("userKey3") && p.getDropped()));
+                .save(argThat(p -> "userKey3".equals(p.getLtiUserEntity().getUserKey()) && p.getDropped()));
         verify(participantRepository).flush();
         // make sure that save was never called
         verifyNoMoreInteractions(participantRepository);

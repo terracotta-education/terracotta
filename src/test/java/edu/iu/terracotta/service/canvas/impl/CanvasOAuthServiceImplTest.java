@@ -32,61 +32,47 @@ import org.mockito.Spy;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.client.RestTemplate;
 import org.springframework.web.client.UnknownContentTypeException;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import edu.iu.terracotta.BaseTest;
+import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.LMSOAuthException;
+import edu.iu.terracotta.exceptions.MultipleChoiceLimitReachedException;
 import edu.iu.terracotta.model.LtiUserEntity;
 import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.model.canvas.CanvasAPIOAuthSettings;
 import edu.iu.terracotta.model.canvas.CanvasAPIToken;
 import edu.iu.terracotta.model.canvas.CanvasAPITokenEntity;
 import edu.iu.terracotta.model.canvas.CanvasAPIUser;
-import edu.iu.terracotta.repository.CanvasAPIOAuthSettingsRepository;
-import edu.iu.terracotta.repository.CanvasAPITokenRepository;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.lti.LTIDataService;
 
-public class CanvasOAuthServiceImplTest {
+public class CanvasOAuthServiceImplTest extends BaseTest {
 
     @Spy
     @InjectMocks
     private CanvasOAuthServiceImpl canvasOAuthService;
 
-    @Mock
-    private CanvasAPITokenRepository canvasAPITokenRepository;
-
-    @Mock
-    private CanvasAPIOAuthSettingsRepository canvasAPIOAuthSettingsRepository;
-
-    @Mock
-    private LTIDataService ltiDataService;
-
-    @Mock
-    private APIJWTService apijwtService;
+    @Mock private LTIDataService ltiDataService;
+    @Mock private APIJWTService apijwtService;
 
     @Mock
     private PlatformDeployment platformDeployment;
 
-    @Mock
-    private RestTemplate restTemplate;
-
-    // Test data
     private CanvasAPIOAuthSettings canvasAPIOAuthSettings;
     private String clientId = "222220000000000111";
-
     private CanvasAPIToken token;
-
     private CanvasAPITokenEntity tokenEntity;
-
     private LtiUserEntity user;
-
     private String localUrl = "https://dev.terracotta.education";
 
     @BeforeEach
-    public void beforeEach() {
+    public void beforeEach() throws IdInPostException, DataServiceException, MultipleChoiceLimitReachedException {
         MockitoAnnotations.openMocks(this);
+
+        setup();
 
         canvasAPIOAuthSettings = new CanvasAPIOAuthSettings();
         canvasAPIOAuthSettings.setClientId(clientId);
@@ -113,13 +99,11 @@ public class CanvasOAuthServiceImplTest {
 
     @Test
     public void testIsConfiguredWhenNotConfigured() {
-
         assertFalse(canvasOAuthService.isConfigured(platformDeployment));
     }
 
     @Test
     public void testIsConfiguredWhenIsConfigured() {
-
         when(canvasAPIOAuthSettingsRepository.findByPlatformDeployment(eq(platformDeployment)))
                 .thenReturn(Optional.of(canvasAPIOAuthSettings));
         assertTrue(canvasOAuthService.isConfigured(platformDeployment));
@@ -127,8 +111,7 @@ public class CanvasOAuthServiceImplTest {
 
     @Test
     public void testGetAuthorizationRequestURI() throws LMSOAuthException, MalformedURLException {
-        when(canvasAPIOAuthSettingsRepository.findByPlatformDeployment(eq(platformDeployment)))
-                .thenReturn(Optional.of(canvasAPIOAuthSettings));
+        when(canvasAPIOAuthSettingsRepository.findByPlatformDeployment(eq(platformDeployment))).thenReturn(Optional.of(canvasAPIOAuthSettings));
 
         String state = "abc123";
         String url = canvasOAuthService.getAuthorizationRequestURI(platformDeployment, state);
@@ -142,14 +125,9 @@ public class CanvasOAuthServiceImplTest {
 
     @Test
     public void testFetchAndSaveAccessToken() throws LMSOAuthException {
-
-        when(canvasAPIOAuthSettingsRepository.findByPlatformDeployment(eq(platformDeployment)))
-                .thenReturn(Optional.of(canvasAPIOAuthSettings));
+        when(canvasAPIOAuthSettingsRepository.findByPlatformDeployment(eq(platformDeployment))).thenReturn(Optional.of(canvasAPIOAuthSettings));
         when(canvasOAuthService.createRestTemplate()).thenReturn(restTemplate);
-
-        ResponseEntity<CanvasAPIToken> response = new ResponseEntity<CanvasAPIToken>(token, HttpStatus.OK);
-        when(restTemplate.postForEntity(anyString(), any(), eq(CanvasAPIToken.class))).thenReturn(response);
-
+        when(restTemplate.postForEntity(anyString(), any(), eq(CanvasAPIToken.class))).thenReturn(new ResponseEntity<CanvasAPIToken>(token, HttpStatus.OK));
         when(canvasAPITokenRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         CanvasAPITokenEntity result = canvasOAuthService.fetchAndSaveAccessToken(user, "code");
@@ -166,15 +144,9 @@ public class CanvasOAuthServiceImplTest {
 
     @Test
     public void testFetchAndSaveAccessTokenThrowsExceptionWhenNot2XX() throws LMSOAuthException {
-
-        when(canvasAPIOAuthSettingsRepository.findByPlatformDeployment(eq(platformDeployment)))
-                .thenReturn(Optional.of(canvasAPIOAuthSettings));
+        when(canvasAPIOAuthSettingsRepository.findByPlatformDeployment(eq(platformDeployment))).thenReturn(Optional.of(canvasAPIOAuthSettings));
         when(canvasOAuthService.createRestTemplate()).thenReturn(restTemplate);
-
-        ResponseEntity<CanvasAPIToken> response = new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
-        when(restTemplate.postForEntity(anyString(), any(), eq(CanvasAPIToken.class))).thenReturn(response);
-
-        // when(canvasAPITokenRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(restTemplate.postForEntity(anyString(), any(), eq(CanvasAPIToken.class))).thenReturn(new ResponseEntity<>(null, HttpStatus.BAD_REQUEST));
 
         try {
             canvasOAuthService.fetchAndSaveAccessToken(user, "code");
@@ -186,15 +158,14 @@ public class CanvasOAuthServiceImplTest {
 
     @Test
     public void testFetchAndSaveAccessTokenThrowsExceptionWhen302() throws LMSOAuthException, URISyntaxException {
-
-        when(canvasAPIOAuthSettingsRepository.findByPlatformDeployment(eq(platformDeployment)))
-                .thenReturn(Optional.of(canvasAPIOAuthSettings));
+        when(canvasAPIOAuthSettingsRepository.findByPlatformDeployment(eq(platformDeployment))).thenReturn(Optional.of(canvasAPIOAuthSettings));
         when(canvasOAuthService.createRestTemplate()).thenReturn(restTemplate);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setLocation(new URI("http://www.example.com/token-response?error=a_error_code&error_description=a_description"));
-        UnknownContentTypeException exception = new UnknownContentTypeException(null, null, HttpStatus.FOUND.value(), "Not Found", headers, null);
-        when(restTemplate.postForEntity(anyString(), any(), eq(CanvasAPIToken.class))).thenThrow(exception);
+        when(restTemplate.postForEntity(anyString(), any(), eq(CanvasAPIToken.class))).thenThrow(
+            new UnknownContentTypeException(null, null, HttpStatus.FOUND.value(), "Not Found", headers, null)
+        );
 
         try {
             canvasOAuthService.fetchAndSaveAccessToken(user, "code");
@@ -207,9 +178,7 @@ public class CanvasOAuthServiceImplTest {
 
     @Test
     public void testGetAccessTokenReturnsTokenIfNotExpired() throws LMSOAuthException {
-
         when(canvasAPITokenRepository.findByUser(eq(user))).thenReturn(Optional.of(tokenEntity));
-
         tokenEntity.setExpiresAt(Timestamp.from(Instant.now().plus(1, ChronoUnit.HOURS)));
 
         CanvasAPITokenEntity result = canvasOAuthService.getAccessToken(user);
@@ -219,24 +188,19 @@ public class CanvasOAuthServiceImplTest {
 
     @Test
     public void testGetAccessTokenRefreshesTokenIfExpired() throws LMSOAuthException {
-
         when(canvasAPITokenRepository.findByUser(eq(user))).thenReturn(Optional.of(tokenEntity));
 
         tokenEntity.setAccessToken("old-access-token");
         tokenEntity.setExpiresAt(Timestamp.from(Instant.now().minus(1, ChronoUnit.HOURS)));
 
-        // Expect to refresh token
-        when(canvasAPIOAuthSettingsRepository.findByPlatformDeployment(eq(platformDeployment)))
-                .thenReturn(Optional.of(canvasAPIOAuthSettings));
+        when(canvasAPIOAuthSettingsRepository.findByPlatformDeployment(eq(platformDeployment))).thenReturn(Optional.of(canvasAPIOAuthSettings));
         when(canvasOAuthService.createRestTemplate()).thenReturn(restTemplate);
-        ResponseEntity<CanvasAPIToken> response = new ResponseEntity<CanvasAPIToken>(token, HttpStatus.OK);
-        when(restTemplate.postForEntity(anyString(), any(), eq(CanvasAPIToken.class))).thenReturn(response);
+        when(restTemplate.postForEntity(anyString(), any(), eq(CanvasAPIToken.class))).thenReturn(new ResponseEntity<CanvasAPIToken>(token, HttpStatus.OK));
         when(canvasAPITokenRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         CanvasAPITokenEntity result = canvasOAuthService.getAccessToken(user);
 
         assertSame(tokenEntity, result);
-        // refresh should update the access token and expires at timestamp
         assertEquals(token.getAccessToken(), result.getAccessToken());
         long actualExpiresEpochMillis = result.getExpiresAt().toInstant().toEpochMilli();
         long expectedExpiresEpochMillis = Instant.now().plus(token.getExpiresIn(), ChronoUnit.SECONDS).toEpochMilli();
@@ -246,7 +210,6 @@ public class CanvasOAuthServiceImplTest {
     // Token expires in 4 minutes and the buffer for unexpired is 5 minutes.
     @Test
     public void testGetAccessTokenRefreshesTokenIfAlmostExpired() throws LMSOAuthException {
-
         when(canvasAPITokenRepository.findByUser(eq(user))).thenReturn(Optional.of(tokenEntity));
 
         tokenEntity.setAccessToken("old-access-token");
@@ -255,11 +218,9 @@ public class CanvasOAuthServiceImplTest {
         assertTrue(tokenEntity.getExpiresAt().toInstant().isAfter(Instant.now()));
 
         // Expect to refresh token
-        when(canvasAPIOAuthSettingsRepository.findByPlatformDeployment(eq(platformDeployment)))
-                .thenReturn(Optional.of(canvasAPIOAuthSettings));
+        when(canvasAPIOAuthSettingsRepository.findByPlatformDeployment(eq(platformDeployment))).thenReturn(Optional.of(canvasAPIOAuthSettings));
         when(canvasOAuthService.createRestTemplate()).thenReturn(restTemplate);
-        ResponseEntity<CanvasAPIToken> response = new ResponseEntity<CanvasAPIToken>(token, HttpStatus.OK);
-        when(restTemplate.postForEntity(anyString(), any(), eq(CanvasAPIToken.class))).thenReturn(response);
+        when(restTemplate.postForEntity(anyString(), any(), eq(CanvasAPIToken.class))).thenReturn(new ResponseEntity<CanvasAPIToken>(token, HttpStatus.OK));
         when(canvasAPITokenRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         CanvasAPITokenEntity result = canvasOAuthService.getAccessToken(user);
@@ -274,25 +235,23 @@ public class CanvasOAuthServiceImplTest {
 
     @Test
     public void testIsAccessTokenAvailableReturnsFalseIfNoToken() {
-
         when(canvasAPITokenRepository.findByUser(eq(user))).thenReturn(Optional.empty());
 
         boolean result = canvasOAuthService.isAccessTokenAvailable(user);
+
         assertFalse(result);
     }
 
     @Test
     public void testIsAccessTokenAvailableReturnsFalseIfMissingScopes() {
-
         when(canvasAPITokenRepository.findByUser(eq(user))).thenReturn(Optional.of(tokenEntity));
 
         // Only include the first required scope
         tokenEntity.setScopes(CanvasAPIClientImpl.SCOPES_REQUIRED.get(0));
 
         boolean result = canvasOAuthService.isAccessTokenAvailable(user);
-        assertFalse(result);
 
-        // Shouldn't try to refresh token
+        assertFalse(result);
         verify(canvasAPIOAuthSettingsRepository, never()).findByPlatformDeployment(platformDeployment);
         verify(canvasOAuthService, never()).createRestTemplate();
 
@@ -300,7 +259,6 @@ public class CanvasOAuthServiceImplTest {
 
     @Test
     public void testIsAccessTokenAvailableRefreshesTokenIfAllScopes() {
-
         when(canvasAPITokenRepository.findByUser(eq(user))).thenReturn(Optional.of(tokenEntity));
 
         // Only include the first required scope
@@ -309,49 +267,44 @@ public class CanvasOAuthServiceImplTest {
         token.setAccessToken("new-access-token");
 
         // Should try to refresh token
-        when(canvasAPIOAuthSettingsRepository.findByPlatformDeployment(eq(platformDeployment)))
-                .thenReturn(Optional.of(canvasAPIOAuthSettings));
+        when(canvasAPIOAuthSettingsRepository.findByPlatformDeployment(eq(platformDeployment))).thenReturn(Optional.of(canvasAPIOAuthSettings));
         when(canvasOAuthService.createRestTemplate()).thenReturn(restTemplate);
-        ResponseEntity<CanvasAPIToken> response = new ResponseEntity<CanvasAPIToken>(token, HttpStatus.OK);
-        when(restTemplate.postForEntity(anyString(), any(), eq(CanvasAPIToken.class))).thenReturn(response);
+        when(restTemplate.postForEntity(anyString(), any(), eq(CanvasAPIToken.class))).thenReturn(new ResponseEntity<CanvasAPIToken>(token, HttpStatus.OK));
         when(canvasAPITokenRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         boolean result = canvasOAuthService.isAccessTokenAvailable(user);
-        assertTrue(result);
 
+        assertTrue(result);
         verify(canvasAPITokenRepository).save(tokenEntity);
         assertEquals("new-access-token", tokenEntity.getAccessToken());
     }
 
     @Test
     public void testIsAccessTokenAvailableReturnsFalseIfRefreshTokenFails() {
-
         when(canvasAPITokenRepository.findByUser(eq(user))).thenReturn(Optional.of(tokenEntity));
 
         // Only include the first required scope
         tokenEntity.setScopes(String.join(" ", CanvasAPIClientImpl.SCOPES_REQUIRED));
 
         // Should try to refresh token
-        when(canvasAPIOAuthSettingsRepository.findByPlatformDeployment(eq(platformDeployment)))
-                .thenReturn(Optional.of(canvasAPIOAuthSettings));
+        when(canvasAPIOAuthSettingsRepository.findByPlatformDeployment(eq(platformDeployment))).thenReturn(Optional.of(canvasAPIOAuthSettings));
         when(canvasOAuthService.createRestTemplate()).thenReturn(restTemplate);
-        ResponseEntity<CanvasAPIToken> response = new ResponseEntity<CanvasAPIToken>(token, HttpStatus.BAD_REQUEST);
-        when(restTemplate.postForEntity(anyString(), any(), eq(CanvasAPIToken.class))).thenReturn(response);
+        when(restTemplate.postForEntity(anyString(), any(), eq(CanvasAPIToken.class))).thenReturn(new ResponseEntity<CanvasAPIToken>(token, HttpStatus.BAD_REQUEST));
 
         boolean result = canvasOAuthService.isAccessTokenAvailable(user);
-        assertFalse(result);
 
+        assertFalse(result);
         verify(canvasAPITokenRepository, never()).save(tokenEntity);
     }
 
     private String encodeQueryParam(String name, String value) {
-
-        String encoded = UriComponentsBuilder
-                .newInstance()
-                .queryParam(name, value)
-                .encode()
-                .build()
-                .toString();
-        return encoded.substring(1); // strip off leading "?"
+        return UriComponentsBuilder
+            .newInstance()
+            .queryParam(name, value)
+            .encode()
+            .build()
+            .toString()
+            .substring(1); // strip off leading "?"
     }
+
 }

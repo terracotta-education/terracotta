@@ -15,7 +15,6 @@ import static org.mockito.Mockito.when;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import java.io.IOException;
@@ -25,133 +24,47 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+import edu.iu.terracotta.BaseTest;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.InvalidUserException;
+import edu.iu.terracotta.exceptions.MultipleChoiceLimitReachedException;
 import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
 import edu.iu.terracotta.exceptions.SubmissionNotMatchingException;
-import edu.iu.terracotta.model.LtiUserEntity;
-import edu.iu.terracotta.model.PlatformDeployment;
-import edu.iu.terracotta.model.app.AnswerMc;
 import edu.iu.terracotta.model.app.AnswerMcSubmission;
 import edu.iu.terracotta.model.app.AnswerMcSubmissionOption;
-import edu.iu.terracotta.model.app.Assessment;
-import edu.iu.terracotta.model.app.Assignment;
-import edu.iu.terracotta.model.app.Condition;
-import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.ExposureGroupCondition;
 import edu.iu.terracotta.model.app.Group;
-import edu.iu.terracotta.model.app.Participant;
-import edu.iu.terracotta.model.app.QuestionMc;
 import edu.iu.terracotta.model.app.QuestionSubmission;
-import edu.iu.terracotta.model.app.RegradeDetails;
-import edu.iu.terracotta.model.app.Submission;
-import edu.iu.terracotta.model.app.Treatment;
 import edu.iu.terracotta.model.app.dto.SubmissionDto;
 import edu.iu.terracotta.model.app.enumerator.QuestionTypes;
 import edu.iu.terracotta.model.app.enumerator.RegradeOption;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
-import edu.iu.terracotta.repository.AllRepositories;
-import edu.iu.terracotta.repository.AnswerMcRepository;
-import edu.iu.terracotta.repository.AnswerMcSubmissionOptionRepository;
-import edu.iu.terracotta.repository.AssessmentRepository;
-import edu.iu.terracotta.repository.AssignmentRepository;
-import edu.iu.terracotta.repository.ExposureGroupConditionRepository;
-import edu.iu.terracotta.repository.ParticipantRepository;
-import edu.iu.terracotta.repository.QuestionSubmissionRepository;
-import edu.iu.terracotta.repository.SubmissionRepository;
-import edu.iu.terracotta.service.app.APIJWTService;
-import edu.iu.terracotta.service.app.AnswerSubmissionService;
-import edu.iu.terracotta.service.app.AssignmentService;
-import edu.iu.terracotta.service.app.QuestionSubmissionService;
 
-public class SubmissionServiceImplTest {
+public class SubmissionServiceImplTest extends BaseTest {
 
-    @InjectMocks
-    private SubmissionServiceImpl submissionService;
-
-    @Mock private AllRepositories allRepositories;
-    @Mock private AnswerMcRepository answerMcRepository;
-    @Mock private AnswerMcSubmissionOptionRepository answerMcSubmissionOptionRepository;
-    @Mock private AssessmentRepository assessmentRepository;
-    @Mock private AssignmentRepository assignmentRepository;
-    @Mock private ParticipantRepository participantRepository;
-    @Mock private QuestionSubmissionRepository questionSubmissionRepository;
-    @Mock private SubmissionRepository submissionRepository;
-    @Mock private ExposureGroupConditionRepository exposureGroupConditionRepository;
-
-    @Mock private AnswerSubmissionService answerSubmissionService;
-    @Mock private APIJWTService apijwtService;
-    @Mock private AssignmentService assignmentService;
-    @Mock private QuestionSubmissionService questionSubmissionService;
-
-    @Mock private AnswerMc answerMc;
-    @Mock private AnswerMcSubmission answerMcSubmission;
-    @Mock private Assessment assessment;
-    @Mock private Assignment assignment;
-    @Mock private Condition condition;
-    @Mock private Experiment experiment;
-    @Mock private LtiUserEntity ltiUserEntity;
-    @Mock private Participant participant;
-    @Mock private PlatformDeployment platformDeployment;
-    @Mock private QuestionMc question;
-    @Mock private QuestionSubmission questionSubmission;
-    @Mock private RegradeDetails regradeDetails;
-    @Mock private SecuredInfo securedInfo;
-    @Mock private Submission submission;
-    @Mock private Treatment treatment;
+    @InjectMocks private SubmissionServiceImpl submissionService;
 
     @BeforeEach
-    public void beforeEach() {
+    public void beforeEach() throws IdInPostException, DataServiceException, MultipleChoiceLimitReachedException {
         MockitoAnnotations.openMocks(this);
 
+        setup();
         clearInvocations(assignmentRepository);
-
-        allRepositories.answerMcRepository = answerMcRepository;
-        allRepositories.answerMcSubmissionOptionRepository = answerMcSubmissionOptionRepository;
-        allRepositories.assessmentRepository = assessmentRepository;
-        allRepositories.assignmentRepository = assignmentRepository;
-        allRepositories.participantRepository = participantRepository;
-        allRepositories.questionSubmissionRepository = questionSubmissionRepository;
-        allRepositories.submissionRepository = submissionRepository;
-        allRepositories.exposureGroupConditionRepository = exposureGroupConditionRepository;
 
         when(answerMcRepository.findByQuestion_QuestionId(anyLong())).thenReturn(Collections.singletonList(answerMc));
         when(answerMcSubmissionOptionRepository.save(any(AnswerMcSubmissionOption.class))).thenReturn(null);
-        when(assessmentRepository.findById(anyLong())).thenReturn(Optional.of(assessment));
-        when(assignmentService.save(any(Assignment.class))).thenReturn(assignment);
-        when(ltiUserEntity.getPlatformDeployment()).thenReturn(platformDeployment);
         when(participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(anyLong(), anyString())).thenReturn(participant);
-        when(participantRepository.findById(anyLong())).thenReturn(Optional.of(participant));
-        when(questionSubmissionRepository.save(any(QuestionSubmission.class))).thenReturn(questionSubmission);
-        when(submissionRepository.save(any(Submission.class))).thenReturn(submission);
-        when(submissionRepository.findById(anyLong())).thenReturn(Optional.of(submission));
 
         when(answerSubmissionService.findByQuestionSubmissionIdMC(anyLong())).thenReturn(Collections.singletonList(answerMcSubmission));
-        when(apijwtService.isTestStudent(any(SecuredInfo.class))).thenReturn(false);
         when(questionSubmissionService.automaticGradingMC(any(QuestionSubmission.class), any(AnswerMcSubmission.class))).thenReturn(questionSubmission);
 
         when(answerMc.getCorrect()).thenReturn(true);
-        when(answerMcSubmission.getAnswerMc()).thenReturn(answerMc);
         when(assessment.getQuestions()).thenReturn(Collections.singletonList(question));
-        when(assessment.getTreatment()).thenReturn(treatment);
-        when(condition.getExperiment()).thenReturn(experiment);
-        when(ltiUserEntity.getUserKey()).thenReturn("canvasUserId");
-        when(participant.getLtiUserEntity()).thenReturn(ltiUserEntity);
-        when(platformDeployment.getLocalUrl()).thenReturn("1");
         when(question.getQuestionType()).thenReturn(QuestionTypes.MC);
-        when(question.getPoints()).thenReturn(10F);
-        when(question.getQuestionId()).thenReturn(1L);
-        when(question.isRandomizeAnswers()).thenReturn(true);
-        when(questionSubmission.getQuestion()).thenReturn(question);
+        when(questionMc.getPoints()).thenReturn(10F);
         when(regradeDetails.getEditedMCQuestionIds()).thenReturn(Collections.singletonList(1L));
         when(regradeDetails.getRegradeOption()).thenReturn(RegradeOption.FULL);
-        when(securedInfo.getUserId()).thenReturn("canvasUserId");
-        when(submission.getAssessment()).thenReturn(assessment);
-        when(submission.getParticipant()).thenReturn(participant);
-        when(submission.getQuestionSubmissions()).thenReturn(Collections.singletonList(questionSubmission));
-        when(treatment.getAssignment()).thenReturn(assignment);
-        when(treatment.getCondition()).thenReturn(condition);
     }
 
     @Test
@@ -171,6 +84,8 @@ public class SubmissionServiceImplTest {
 
     @Test
     public void testCreateNewSubmissionNotStarted() throws IdInPostException, ParticipantNotMatchingException, InvalidUserException, DataServiceException {
+        when(question.getQuestionType()).thenReturn(QuestionTypes.ESSAY);
+
         submissionService.createNewSubmission(assessment, participant, securedInfo);
 
         verify(assignmentService).save(assignment);
@@ -178,6 +93,7 @@ public class SubmissionServiceImplTest {
 
     @Test
     public void testCreateNewSubmissionAlreadyStarted() throws IdInPostException, ParticipantNotMatchingException, InvalidUserException, DataServiceException {
+        when(question.getQuestionType()).thenReturn(QuestionTypes.ESSAY);
         when(assignment.isStarted()).thenReturn(true);
         submissionService.createNewSubmission(assessment, participant, securedInfo);
 
@@ -186,6 +102,7 @@ public class SubmissionServiceImplTest {
 
     @Test
     public void testCreateNewSubmissionTestStudent() throws IdInPostException, ParticipantNotMatchingException, InvalidUserException, DataServiceException {
+        when(question.getQuestionType()).thenReturn(QuestionTypes.ESSAY);
         when(apijwtService.isTestStudent(any(SecuredInfo.class))).thenReturn(true);
         submissionService.createNewSubmission(assessment, participant, securedInfo);
 

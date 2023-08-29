@@ -21,8 +21,12 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.Spy;
 
+import edu.iu.terracotta.BaseTest;
 import edu.iu.terracotta.exceptions.CanvasApiException;
+import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.LMSOAuthException;
+import edu.iu.terracotta.exceptions.MultipleChoiceLimitReachedException;
 import edu.iu.terracotta.model.LtiUserEntity;
 import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.model.canvas.AssignmentExtended;
@@ -31,27 +35,24 @@ import edu.iu.terracotta.service.canvas.AssignmentWriterExtended;
 import edu.ksu.canvas.exception.InvalidOauthTokenException;
 
 @SuppressWarnings({"PMD.EmptyCatchBlock"})
-public class CanvasAPIClientImplTest {
+public class CanvasAPIClientImplTest extends BaseTest {
 
     @Spy
     @InjectMocks
     private CanvasAPIClientImpl canvasAPIClient;
 
-    @Mock
-    private CanvasOAuthServiceImpl canvasOAuthService;
-
-    @Mock
-    private AssignmentWriterExtended assignmentWriterExtended;
+    @Mock private CanvasOAuthServiceImpl canvasOAuthService;
 
     // Test data
     private LtiUserEntity apiUser;
     private PlatformDeployment platformDeployment;
-
     private CanvasAPITokenEntity canvasAPIToken;
 
     @BeforeEach
-    public void beforeEach() {
+    public void beforeEach() throws IdInPostException, DataServiceException, MultipleChoiceLimitReachedException {
         MockitoAnnotations.openMocks(this);
+
+        setup();
 
         platformDeployment = new PlatformDeployment();
         platformDeployment.setKeyId(829);
@@ -66,7 +67,6 @@ public class CanvasAPIClientImplTest {
 
     @Test
     public void testCreateCanvasAssignmentUsesUserAPIToken() throws LMSOAuthException, CanvasApiException, IOException {
-
         when(canvasOAuthService.isConfigured(eq(platformDeployment))).thenReturn(true);
         when(canvasOAuthService.getAccessToken(eq(apiUser))).thenReturn(canvasAPIToken);
 
@@ -88,7 +88,6 @@ public class CanvasAPIClientImplTest {
 
     @Test
     public void testCreateCanvasAssignmentUsesAdminAPIToken() throws CanvasApiException, IOException {
-
         platformDeployment.setApiToken("admin-api-token");
         when(canvasOAuthService.isConfigured(eq(platformDeployment))).thenReturn(false);
 
@@ -110,7 +109,6 @@ public class CanvasAPIClientImplTest {
     @Test
     public void testCreateCanvasAssignmentThrowsExceptionWhenUserAPITokenDoesNotExist()
             throws CanvasApiException, IOException, LMSOAuthException {
-
         when(canvasOAuthService.isConfigured(eq(platformDeployment))).thenReturn(true);
         when(canvasOAuthService.getAccessToken(eq(apiUser))).thenThrow(new LMSOAuthException("access token doesn't exist for user"));
 
@@ -133,7 +131,6 @@ public class CanvasAPIClientImplTest {
 
     @Test
     public void testCreateCanvasAssignmentThrowsExceptionWhenAdminAPITokenDoesNotExist() throws IOException {
-
         platformDeployment.setApiToken(null);
         when(canvasOAuthService.isConfigured(eq(platformDeployment))).thenReturn(false);
 
@@ -155,7 +152,6 @@ public class CanvasAPIClientImplTest {
 
     @Test
     public void testCreateCanvasAssignmentThrowsCanvasApiExceptionWhenWriterThrowsCanvasException() throws LMSOAuthException, IOException {
-
         when(canvasOAuthService.isConfigured(eq(platformDeployment))).thenReturn(true);
         when(canvasOAuthService.getAccessToken(eq(apiUser))).thenReturn(canvasAPIToken);
 
@@ -181,4 +177,5 @@ public class CanvasAPIClientImplTest {
         verify(canvasOAuthService).getAccessToken(apiUser);
         verify(assignmentWriterExtended).createAssignment(canvasCourseId, assignmentExtended);
     }
+
 }

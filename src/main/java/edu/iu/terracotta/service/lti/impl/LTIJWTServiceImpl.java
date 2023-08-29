@@ -106,7 +106,7 @@ public class LTIJWTServiceImpl implements LTIJWTService {
                 try {
                     // We are dealing with RS256 encryption, so we have some Oauth utils to manage the keys and
                     // convert them to keys from the string stored in DB. There are for sure other ways to manage this.
-                    platformDeployment = ltiDataService.getRepos().platformDeploymentRepository.findByIssAndClientId(claims.getIssuer(), clientId).get(0);
+                    platformDeployment = ltiDataService.getAllRepositories().platformDeploymentRepository.findByIssAndClientId(claims.getIssuer(), clientId).get(0);
                 } catch (IndexOutOfBoundsException ex) {
                     log.error("Kid not found in header", ex);
                     return null;

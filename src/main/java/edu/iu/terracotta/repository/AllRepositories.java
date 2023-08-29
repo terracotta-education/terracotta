@@ -32,121 +32,45 @@ import javax.persistence.PersistenceContext;
 @SuppressWarnings("SpringJavaAutowiringInspection")
 public class AllRepositories {
 
-    @Autowired
-    public ConfigRepository configs;
+    @Autowired public AdminUserRepository adminUserRepository;
+    @Autowired public AnswerMcRepository answerMcRepository;
+    @Autowired public AnswerEssaySubmissionRepository answerEssaySubmissionRepository;
+    @Autowired public AnswerFileSubmissionRepository answerFileSubmissionRepository;
+    @Autowired public AnswerMcSubmissionOptionRepository answerMcSubmissionOptionRepository;
+    @Autowired public AnswerMcSubmissionRepository answerMcSubmissionRepository;
+    @Autowired public AssessmentRepository assessmentRepository;
+    @Autowired public ApiOneUseTokenRepository apiOneUseTokenRepository;
+    @Autowired public AssignmentRepository assignmentRepository;
+    @Autowired public CanvasAPIOAuthSettingsRepository canvasAPIOAuthSettingsRepository;
+    @Autowired public CanvasAPITokenRepository canvasAPITokenRepository;
+    @Autowired public ConditionRepository conditionRepository;
+    @Autowired public ConfigRepository configs;
+    @Autowired public ConsentDocumentRepository consentDocumentRepository;
+    @Autowired public EventRepository eventRepository;
+    @Autowired public ExperimentRepository experimentRepository;
+    @Autowired public ExposureGroupConditionRepository exposureGroupConditionRepository;
+    @Autowired public ExposureRepository exposureRepository;
+    @Autowired public FileInfoRepository fileInfoRepository;
+    @Autowired public GroupRepository groupRepository;
+    @Autowired public LtiContextRepository contexts;
+    @Autowired public LtiLinkRepository links;
+    @Autowired public LtiMembershipRepository members;
+    @Autowired public LtiResultRepository results;
+    @Autowired public LtiMembershipRepository ltiMembershipRepository;
+    @Autowired public LtiUserRepository ltiUserRepository;
+    @Autowired public OutcomeRepository outcomeRepository;
+    @Autowired public OutcomeScoreRepository outcomeScoreRepository;
+    @Autowired public ParticipantRepository participantRepository;
+    @Autowired public PlatformDeploymentRepository platformDeploymentRepository;
+    @Autowired public QuestionMcRepository questionMcRepository;
+    @Autowired public QuestionRepository questionRepository;
+    @Autowired public QuestionSubmissionCommentRepository questionSubmissionCommentRepository;
+    @Autowired public QuestionSubmissionRepository questionSubmissionRepository;
+    @Autowired public SubmissionCommentRepository submissionCommentRepository;
+    @Autowired public SubmissionRepository submissionRepository;
+    @Autowired public ToolDeploymentRepository toolDeploymentRepository;
+    @Autowired public TreatmentRepository treatmentRepository;
 
-    @Autowired
-    public LtiContextRepository contexts;
-
-    @Autowired
-    public LtiLinkRepository links;
-
-    @Autowired
-    public LtiMembershipRepository members;
-
-    @Autowired
-    public LtiResultRepository results;
-
-    @Autowired
-    public LtiUserRepository users;
-
-    @Autowired
-    public PlatformDeploymentRepository platformDeploymentRepository;
-
-    @Autowired
-    public ToolDeploymentRepository toolDeploymentRepository;
-
-    @Autowired
-    public ApiOneUseTokenRepository apiOneUseTokenRepository;
-
-    @Autowired
-    public ExperimentRepository experimentRepository;
-
-    @Autowired
-    public ConsentDocumentRepository consentDocumentRepository;
-
-    @Autowired
-    public ConditionRepository conditionRepository;
-
-    @Autowired
-    public ParticipantRepository participantRepository;
-
-    @Autowired
-    public ExposureRepository exposureRepository;
-
-    @Autowired
-    public GroupRepository groupRepository;
-
-    @Autowired
-    public AssignmentRepository assignmentRepository;
-
-    @Autowired
-    public AnswerMcRepository answerMcRepository;
-
-    @Autowired
-    public AnswerMcSubmissionOptionRepository answerMcSubmissionOptionRepository;
-
-    @Autowired
-    public QuestionRepository questionRepository;
-
-    @Autowired
-    public QuestionMcRepository questionMcRepository;
-
-    @Autowired
-    public AssessmentRepository assessmentRepository;
-
-    @Autowired
-    public TreatmentRepository treatmentRepository;
-
-    @Autowired
-    public ExposureGroupConditionRepository exposureGroupConditionRepository;
-
-    @Autowired
-    public SubmissionRepository submissionRepository;
-
-    @Autowired
-    public QuestionSubmissionRepository questionSubmissionRepository;
-
-    @Autowired
-    public SubmissionCommentRepository submissionCommentRepository;
-
-    @Autowired
-    public LtiUserRepository ltiUserRepository;
-
-    @Autowired
-    public QuestionSubmissionCommentRepository questionSubmissionCommentRepository;
-
-    @Autowired
-    public OutcomeRepository outcomeRepository;
-
-    @Autowired
-    public OutcomeScoreRepository outcomeScoreRepository;
-
-    @Autowired
-    public FileInfoRepository fileInfoRepository;
-
-    @Autowired
-    public AnswerMcSubmissionRepository answerMcSubmissionRepository;
-
-    @Autowired
-    public AnswerEssaySubmissionRepository answerEssaySubmissionRepository;
-
-    @Autowired
-    public EventRepository eventRepository;
-
-    @Autowired
-    public AnswerFileSubmissionRepository answerFileSubmissionRepository;
-
-    @Autowired
-    public CanvasAPITokenRepository canvasAPITokenRepository;
-
-    @Autowired
-    public LtiMembershipRepository ltiMembershipRepository;
-
-    @Autowired
-    public AdminUserRepository adminUserRepository;
-
-    @PersistenceContext
-    public EntityManager entityManager;
+    @PersistenceContext public EntityManager entityManager;
 
 }

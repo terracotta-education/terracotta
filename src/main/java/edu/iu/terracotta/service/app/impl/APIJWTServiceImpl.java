@@ -286,7 +286,7 @@ public class APIJWTServiceImpl implements APIJWTService {
 
         Date date = new Date();
         Key toolPrivateKey = OAuthUtils.loadPrivateKey(ltiDataService.getOwnPrivateKey());
-        Optional<PlatformDeployment> platformDeployment = ltiDataService.getRepos().platformDeploymentRepository.findById(platformDeploymentId);
+        Optional<PlatformDeployment> platformDeployment = ltiDataService.getAllRepositories().platformDeploymentRepository.findById(platformDeploymentId);
 
         JwtBuilder builder = Jwts.builder()
             .setHeaderParam("kid", TextConstants.DEFAULT_KID)

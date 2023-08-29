@@ -13,6 +13,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.util.Optional;
 
+import edu.iu.terracotta.BaseTest;
 import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.exceptions.AssignmentNotEditedException;
 import edu.iu.terracotta.exceptions.CanvasApiException;
@@ -21,26 +22,8 @@ import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExceedingLimitException;
 import edu.iu.terracotta.model.LtiUserEntity;
 import edu.iu.terracotta.exceptions.ExposureNotMatchingException;
-import edu.iu.terracotta.model.PlatformDeployment;
-import edu.iu.terracotta.model.app.Assessment;
 import edu.iu.terracotta.model.app.Assignment;
-import edu.iu.terracotta.model.app.Experiment;
-import edu.iu.terracotta.model.app.Exposure;
 import edu.iu.terracotta.model.app.Participant;
-import edu.iu.terracotta.repository.AllRepositories;
-import edu.iu.terracotta.repository.AssessmentRepository;
-import edu.iu.terracotta.repository.AssignmentRepository;
-import edu.iu.terracotta.repository.LtiUserRepository;
-import edu.iu.terracotta.repository.ExposureRepository;
-import edu.iu.terracotta.repository.SubmissionRepository;
-import edu.iu.terracotta.service.app.APIJWTService;
-import edu.iu.terracotta.service.app.AssessmentService;
-import edu.iu.terracotta.service.app.ExposureService;
-import edu.iu.terracotta.service.app.TreatmentService;
-import edu.iu.terracotta.service.canvas.CanvasAPIClient;
-
-import javax.persistence.EntityManager;
-
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Date;
@@ -50,23 +33,16 @@ import edu.iu.terracotta.exceptions.AssignmentMoveException;
 import edu.iu.terracotta.exceptions.AssignmentNotCreatedException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.MultipleAttemptsSettingsValidationException;
+import edu.iu.terracotta.exceptions.MultipleChoiceLimitReachedException;
 import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
 import edu.iu.terracotta.exceptions.RevealResponsesSettingValidationException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
-import edu.iu.terracotta.model.app.Treatment;
 import edu.iu.terracotta.model.app.dto.AssignmentDto;
-import edu.iu.terracotta.model.app.dto.TreatmentDto;
 import edu.iu.terracotta.model.app.enumerator.MultipleSubmissionScoringScheme;
 import edu.iu.terracotta.model.canvas.AssignmentExtended;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
-import edu.iu.terracotta.repository.PlatformDeploymentRepository;
-import edu.iu.terracotta.repository.TreatmentRepository;
 import edu.iu.terracotta.utils.TextConstants;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Header;
-import io.jsonwebtoken.Jwt;
-
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyFloat;
@@ -85,67 +61,27 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@SuppressWarnings({"rawtypes"})
-public class AssignmentServiceImplTest {
+public class AssignmentServiceImplTest extends BaseTest {
 
     @Spy
     @InjectMocks
     private AssignmentServiceImpl assignmentService;
 
-    @Mock private AllRepositories allRepositories;
-    @Mock private AssessmentRepository assessmentRepository;
-    @Mock private AssignmentRepository assignmentRepository;
-    @Mock private ExposureRepository exposureRepository;
-    @Mock private LtiUserRepository ltiUserRepository;
-    @Mock private PlatformDeploymentRepository platformDeploymentRepository;
-    @Mock private SubmissionRepository submissionRepository;
-    @Mock private TreatmentRepository treatmentRepository;
-
-    @Mock private APIJWTService apijwtService;
-    @Mock private AssessmentService assessmentService;
-    @Mock private CanvasAPIClient canvasAPIClient;
-    @Mock private ExposureService exposureService;
-    @Mock private TreatmentService treatmentService;
-
-    @Mock private Assessment assessment;
-    @Mock private Assignment assignment;
-    @Mock private AssignmentDto assignmentDto;
-    @Mock private AssignmentExtended assignmentExtended;
-    @Mock private Claims claims;
-    @Mock private EntityManager entityManager;
-    @Mock private Experiment experiment;
-    @Mock private Exposure exposure;
-    @Mock private Jwt<Header, Claims> jwt;
     @Mock private LtiUserEntity instructorUser;
-    @Mock private PlatformDeployment platformDeployment;
-    @Mock private SecuredInfo securedInfo;
-    @Mock private Treatment treatment;
-    @Mock private TreatmentDto treatmentDto;
 
     private Date dueDate = new Date();
 
     @BeforeEach
-    public void beforeEach() throws NoSuchMethodException, SecurityException, DataServiceException, AssessmentNotMatchingException, CanvasApiException, NumberFormatException, IdInPostException, ExceedingLimitException, TreatmentNotMatchingException, AssignmentNotCreatedException, AssignmentAttemptException, QuestionNotMatchingException, ConnectionException, IOException {
+    public void beforeEach() throws NoSuchMethodException, SecurityException, DataServiceException, AssessmentNotMatchingException, CanvasApiException, NumberFormatException,
+        IdInPostException, ExceedingLimitException, TreatmentNotMatchingException, AssignmentNotCreatedException, AssignmentAttemptException, QuestionNotMatchingException,
+        ConnectionException, IOException, MultipleChoiceLimitReachedException {
         MockitoAnnotations.openMocks(this);
 
+        setup();
         clearInvocations(assignmentRepository, canvasAPIClient);
 
-        allRepositories.assessmentRepository = assessmentRepository;
-        allRepositories.assignmentRepository = assignmentRepository;
-        allRepositories.exposureRepository = exposureRepository;
-        allRepositories.ltiUserRepository = ltiUserRepository;
-        allRepositories.platformDeploymentRepository = platformDeploymentRepository;
-        allRepositories.submissionRepository = submissionRepository;
-        allRepositories.treatmentRepository = treatmentRepository;
-
-        when(assignmentRepository.getReferenceById(anyLong())).thenReturn(assignment);
         when(assessmentRepository.findByTreatment_Assignment_AssignmentId(anyLong())).thenReturn(Collections.singletonList(assessment));
-        when(assignmentRepository.findByAssignmentId(anyLong())).thenReturn(assignment);
         when(assignmentRepository.findByExposure_ExposureIdAndSoftDeleted(anyLong(), anyBoolean())).thenReturn(Collections.singletonList(assignment));
-        when(assignmentRepository.save(any(Assignment.class))).thenReturn(assignment);
-        when(assignmentRepository.saveAndFlush(any(Assignment.class))).thenReturn(assignment);
-        when(exposureRepository.findById(anyLong())).thenReturn(Optional.of(exposure));
-        when(platformDeploymentRepository.getReferenceById(anyLong())).thenReturn(platformDeployment);
         when(submissionRepository.countByAssessment_Treatment_Assignment_AssignmentId(anyLong())).thenReturn(0L);
         when(treatmentRepository.findByAssignment_AssignmentId(anyLong())).thenReturn(Collections.emptyList());
         when(ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(anyString(), anyLong())).thenReturn(instructorUser);
@@ -159,10 +95,7 @@ public class AssignmentServiceImplTest {
         when(exposureService.getExposure(anyLong())).thenReturn(exposure);
         when(treatmentService.duplicateTreatment(anyLong(), any(Assignment.class), any(SecuredInfo.class))).thenReturn(treatmentDto);
 
-        when(assignment.getAssignmentId()).thenReturn(1l);
         when(assignment.getDueDate()).thenReturn(dueDate);
-        when(assignment.getExposure()).thenReturn(exposure);
-        when(assignment.getLmsAssignmentId()).thenReturn("1");
         when(assignment.getMultipleSubmissionScoringScheme()).thenReturn(MultipleSubmissionScoringScheme.MOST_RECENT);
         when(assignment.isPublished()).thenReturn(true);
         when(assignmentDto.getExposureId()).thenReturn(1L);
@@ -170,14 +103,6 @@ public class AssignmentServiceImplTest {
         when(assignmentExtended.isPublished()).thenReturn(true);
         when(assignmentExtended.getDueAt()).thenReturn(dueDate);
         when(assignmentExtended.getSecureParams()).thenReturn("1");
-        when(claims.get(anyString())).thenReturn("1");
-        when(experiment.getPlatformDeployment()).thenReturn(platformDeployment);
-        when(exposure.getExperiment()).thenReturn(experiment);
-        when(exposure.getExposureId()).thenReturn(1L);
-        when(jwt.getBody()).thenReturn(claims);
-        when(securedInfo.getCanvasCourseId()).thenReturn("1");
-        when(securedInfo.getPlatformDeploymentId()).thenReturn(1L);
-        when(securedInfo.getUserId()).thenReturn("1");
     }
 
     @Test

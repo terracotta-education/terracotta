@@ -16,123 +16,49 @@ import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
-
 import org.apache.commons.collections4.CollectionUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import edu.iu.terracotta.BaseTest;
 import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.exceptions.AssignmentAttemptException;
 import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.IdInPostException;
+import edu.iu.terracotta.exceptions.MultipleChoiceLimitReachedException;
 import edu.iu.terracotta.model.LtiUserEntity;
 import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.model.app.AnswerEssaySubmission;
 import edu.iu.terracotta.model.app.AnswerMcSubmission;
-import edu.iu.terracotta.model.app.Assessment;
 import edu.iu.terracotta.model.app.Assignment;
 import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.Exposure;
-import edu.iu.terracotta.model.app.Participant;
-import edu.iu.terracotta.model.app.Question;
-import edu.iu.terracotta.model.app.QuestionSubmission;
 import edu.iu.terracotta.model.app.QuestionSubmissionComment;
-import edu.iu.terracotta.model.app.Submission;
-import edu.iu.terracotta.model.app.dto.AnswerDto;
-import edu.iu.terracotta.model.app.dto.AnswerSubmissionDto;
-import edu.iu.terracotta.model.app.dto.QuestionSubmissionCommentDto;
 import edu.iu.terracotta.model.app.dto.QuestionSubmissionDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
-import edu.iu.terracotta.repository.AllRepositories;
-import edu.iu.terracotta.repository.AnswerEssaySubmissionRepository;
-import edu.iu.terracotta.repository.AnswerFileSubmissionRepository;
-import edu.iu.terracotta.repository.AnswerMcSubmissionRepository;
-import edu.iu.terracotta.repository.AssessmentRepository;
-import edu.iu.terracotta.repository.AssignmentRepository;
-import edu.iu.terracotta.repository.QuestionSubmissionCommentRepository;
-import edu.iu.terracotta.repository.QuestionSubmissionRepository;
-import edu.iu.terracotta.repository.SubmissionRepository;
-import edu.iu.terracotta.service.app.AnswerService;
-import edu.iu.terracotta.service.app.AnswerSubmissionService;
-import edu.iu.terracotta.service.app.QuestionSubmissionCommentService;
-import edu.iu.terracotta.service.canvas.CanvasAPIClient;
 
-public class QuestionSubmissionServiceImplTest {
+public class QuestionSubmissionServiceImplTest extends BaseTest{
 
-    @InjectMocks
-    private QuestionSubmissionServiceImpl questionSubmissionService;
-
-    @Mock private AllRepositories allRepositories;
-    @Mock private AnswerEssaySubmissionRepository answerEssaySubmissionRepository;
-    @Mock private AnswerFileSubmissionRepository answerFileSubmissionRepository;
-    @Mock private AnswerMcSubmissionRepository answerMcSubmissionRepository;
-    @Mock private AssessmentRepository assessmentRepository;
-    @Mock private QuestionSubmissionCommentRepository questionSubmissionCommentRepository;
-    @Mock private QuestionSubmissionRepository questionSubmissionRepository;
-    @Mock
-    private SubmissionRepository submissionRepository;
-    @Mock
-    private AssignmentRepository assignmentRepository;
-
-    @Mock private AnswerService answerService;
-    @Mock private AnswerSubmissionService answerSubmissionService;
-    @Mock private QuestionSubmissionCommentService questionSubmissionCommentService;
-    @Mock
-    private CanvasAPIClient canvasAPIClient;
-
-    @Mock private AnswerDto answerDto;
-    @Mock private AnswerEssaySubmission answerEssaySubmission;
-    @Mock private AnswerMcSubmission answerMcSubmission;
-    @Mock private AnswerSubmissionDto answerSubmissionDto;
-    @Mock private Assessment assessment;
-    @Mock private LtiUserEntity ltiUserEntity;
-    @Mock private Participant participant;
-    @Mock private PlatformDeployment platformDeployment;
-    @Mock private Question question;
-    @Mock private QuestionSubmission questionSubmission;
-    @Mock private QuestionSubmissionComment questionSubmissionComment;
-    @Mock private QuestionSubmissionCommentDto questionSubmissionCommentDto;
-    @Mock private Submission submission;
+    @InjectMocks private QuestionSubmissionServiceImpl questionSubmissionService;
 
     @BeforeEach
-    public void beforeEach() throws DataServiceException, AssessmentNotMatchingException {
+    public void beforeEach() throws DataServiceException, AssessmentNotMatchingException, IdInPostException, MultipleChoiceLimitReachedException {
         MockitoAnnotations.openMocks(this);
 
-        allRepositories.assessmentRepository = assessmentRepository;
-        allRepositories.answerEssaySubmissionRepository = answerEssaySubmissionRepository;
-        allRepositories.answerFileSubmissionRepository = answerFileSubmissionRepository;
-        allRepositories.answerMcSubmissionRepository = answerMcSubmissionRepository;
-        allRepositories.questionSubmissionCommentRepository = questionSubmissionCommentRepository;
-        allRepositories.questionSubmissionRepository = questionSubmissionRepository;
-        allRepositories.submissionRepository = submissionRepository;
-        allRepositories.assignmentRepository = assignmentRepository;
+        setup();
 
-        when(assessmentRepository.findById(anyLong())).thenReturn(Optional.of(assessment));
         when(answerEssaySubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(anyLong())).thenReturn(Collections.singletonList(answerEssaySubmission));
         when(answerMcSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(anyLong())).thenReturn(Collections.singletonList(answerMcSubmission));
         when(questionSubmissionCommentRepository.findByQuestionSubmission_QuestionSubmissionId(anyLong())).thenReturn(Collections.singletonList(questionSubmissionComment));
         when(questionSubmissionRepository.findBySubmission_SubmissionId(anyLong())).thenReturn(Collections.singletonList(questionSubmission));
-        when(submissionRepository.findBySubmissionId(anyLong())).thenReturn(submission);
 
         when(answerService.findAllByQuestionIdMC(anyLong(), anyBoolean())).thenReturn(Collections.singletonList(answerDto));
         when(answerSubmissionService.toDtoEssay(any(AnswerEssaySubmission.class))).thenReturn(answerSubmissionDto);
         when(answerSubmissionService.toDtoMC(any(AnswerMcSubmission.class))).thenReturn(answerSubmissionDto);
         when(questionSubmissionCommentService.toDto(any(QuestionSubmissionComment.class))).thenReturn(questionSubmissionCommentDto);
-
-        when(assessment.canViewCorrectAnswers()).thenReturn(true);
-        when(assessment.canViewResponses()).thenReturn(true);
-        when(ltiUserEntity.getPlatformDeployment()).thenReturn(platformDeployment);
-        when(participant.getLtiUserEntity()).thenReturn(ltiUserEntity);
-        when(question.getQuestionId()).thenReturn(1l);
-        when(questionSubmission.getQuestion()).thenReturn(question);
-        when(questionSubmission.getQuestionSubmissionId()).thenReturn(1l);
-        when(questionSubmission.getSubmission()).thenReturn(submission);
-        when(submission.getParticipant()).thenReturn(participant);
-        when(submission.getSubmissionId()).thenReturn(1L);
     }
 
     @Test

@@ -3,36 +3,20 @@ package edu.iu.terracotta.service.app.impl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import javax.persistence.EntityManager;
-
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
-
+import edu.iu.terracotta.BaseTest;
 import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExceedingLimitException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.MultipleChoiceLimitReachedException;
 import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
-import edu.iu.terracotta.model.PlatformDeployment;
-import edu.iu.terracotta.model.app.Assessment;
-import edu.iu.terracotta.model.app.Assignment;
-import edu.iu.terracotta.model.app.Experiment;
-import edu.iu.terracotta.model.app.Exposure;
 import edu.iu.terracotta.model.app.Question;
-import edu.iu.terracotta.model.app.QuestionMc;
-import edu.iu.terracotta.model.app.Treatment;
 import edu.iu.terracotta.model.app.dto.AnswerDto;
 import edu.iu.terracotta.model.app.dto.QuestionDto;
 import edu.iu.terracotta.model.app.enumerator.QuestionTypes;
-import edu.iu.terracotta.repository.AllRepositories;
-import edu.iu.terracotta.repository.AssessmentRepository;
-import edu.iu.terracotta.repository.QuestionRepository;
-import edu.iu.terracotta.service.app.AnswerService;
-import edu.iu.terracotta.service.app.FileStorageService;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -45,58 +29,24 @@ import static org.mockito.Mockito.when;
 
 import org.apache.commons.lang3.StringUtils;
 
-public class QuestionServiceImplTest {
+public class QuestionServiceImplTest extends BaseTest {
 
-    @InjectMocks
-    private QuestionServiceImpl questionService;
-
-    @Mock private AllRepositories allRepositories;
-    @Mock private AssessmentRepository assessmentRepository;
-    @Mock private QuestionRepository questionRepository;
-
-    @Mock AnswerService answerService;
-    @Mock private EntityManager entityManager;
-    @Mock private FileStorageService fileStorageService;
-
-    @Mock private AnswerDto answerDto;
-    @Mock private Assessment assessment;
-    @Mock private Assignment assignment;
-    @Mock private Experiment experiment;
-    @Mock private Exposure exposure;
-    @Mock private PlatformDeployment platformDeployment;
-    @Mock private QuestionMc question;
-    @Mock private QuestionDto questionDto;
-    @Mock private Treatment treatment;
+    @InjectMocks private QuestionServiceImpl questionService;
 
     @BeforeEach
     public void beforeEach() throws DataServiceException, AssessmentNotMatchingException, QuestionNotMatchingException, IdInPostException, MultipleChoiceLimitReachedException {
         MockitoAnnotations.openMocks(this);
 
-        allRepositories.assessmentRepository = assessmentRepository;
-        allRepositories.questionRepository = questionRepository;
+        setup();
 
-        when(assessmentRepository.findByAssessmentId(anyLong())).thenReturn(assessment);
-        when(assessmentRepository.findById(anyLong())).thenReturn(Optional.of(assessment));
         when(questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(anyLong())).thenReturn(Collections.singletonList(question));
-        when(questionRepository.save(any(Question.class))).thenReturn(question);
+        when(questionRepository.save(any(Question.class))).thenReturn(questionMc);
 
         when(answerService.duplicateAnswersForQuestion(anyLong(), any(Question.class))).thenReturn(Collections.emptyList());
-        when(answerService.postAnswerMC(any(AnswerDto.class), anyLong())).thenReturn(answerDto);
         when(fileStorageService.parseHTMLFiles(anyString(), anyString())).thenReturn(StringUtils.EMPTY);
 
-        when(assessment.getAssessmentId()).thenReturn(1L);
-        when(assessment.getQuestions()).thenReturn(Collections.singletonList(question));
-        when(assessment.getTreatment()).thenReturn(treatment);
-        when(assignment.getExposure()).thenReturn(exposure);
-        when(experiment.getPlatformDeployment()).thenReturn(platformDeployment);
-        when(exposure.getExperiment()).thenReturn(experiment);
-        when(question.getAssessment()).thenReturn(assessment);
-        when(question.getQuestionId()).thenReturn(1L);
         when(question.getQuestionType()).thenReturn(QuestionTypes.ESSAY);
-        when(questionDto.getAnswers()).thenReturn(Collections.singletonList(answerDto));
-        when(questionDto.getQuestionId()).thenReturn(null);
         when(questionDto.getQuestionType()).thenReturn(QuestionTypes.MC.toString());
-        when(treatment.getAssignment()).thenReturn(assignment);
     }
 
     @Test
@@ -134,6 +84,9 @@ public class QuestionServiceImplTest {
 
     @Test
     public void testPostQuestionEssay() throws IdInPostException, DataServiceException, MultipleChoiceLimitReachedException {
+        when(question.getQuestionType()).thenReturn(QuestionTypes.ESSAY);
+        when(questionDto.getQuestionType()).thenReturn(QuestionTypes.ESSAY.toString());
+        when(questionRepository.save(any(Question.class))).thenReturn(question);
         QuestionDto retDto = questionService.postQuestion(questionDto, 1l, false);
 
         assertNotNull(retDto);
