@@ -22,6 +22,7 @@ import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.ExposureGroupCondition;
 import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.Question;
+import edu.iu.terracotta.model.app.QuestionMc;
 import edu.iu.terracotta.model.app.RegradeDetails;
 import edu.iu.terracotta.model.app.RetakeDetails;
 import edu.iu.terracotta.model.app.Submission;
@@ -759,6 +760,26 @@ public class AssessmentServiceImpl implements AssessmentService {
             submissionService.gradeSubmission(submission, regradeDetails);
         }
 
+        updateRegradedQuestionStatus(regradeDetails);
         log.info("Regrading complete for assessment ID: [{}]", assessmentId);
     }
+
+    /**
+     * Updates the edited {@link QuestionMc}s with the given {@link RegradeOption}
+     *
+     * @param regradeDetails
+     */
+    private void updateRegradedQuestionStatus(RegradeDetails regradeDetails) {
+        if (CollectionUtils.isEmpty(regradeDetails.getEditedMCQuestionIds())) {
+            return;
+        }
+
+        allRepositories.questionMcRepository.findAllById(regradeDetails.getEditedMCQuestionIds()).forEach(
+            questionMc -> {
+                questionMc.setRegradeOption(regradeDetails.getRegradeOption());
+                allRepositories.questionMcRepository.save(questionMc);
+            }
+        );
+    }
+
 }

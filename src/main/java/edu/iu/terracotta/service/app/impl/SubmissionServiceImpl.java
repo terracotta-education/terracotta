@@ -476,6 +476,14 @@ public class SubmissionServiceImpl implements SubmissionService {
                                 break;
 
                             case NA:
+                                if (RegradeOption.FULL == questionSubmission.getQuestion().getRegradeOption()) {
+                                    // regrade FULL option previously selected; set score to full max points
+                                    questionSubmission.setCalculatedPoints(questionSubmission.getQuestion().getPoints());
+                                    questionSubmission.setAlteredGrade(null);
+                                    questionGraded = allRepositories.questionSubmissionRepository.save(questionSubmission);
+                                    break;
+                                }
+
                                 questionGraded = questionSubmissionService.automaticGradingMC(questionSubmission, answerMcSubmissions.get(0));
                                 break;
 

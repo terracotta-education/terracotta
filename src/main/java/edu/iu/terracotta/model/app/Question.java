@@ -2,6 +2,7 @@ package edu.iu.terracotta.model.app;
 
 import edu.iu.terracotta.model.BaseEntity;
 import edu.iu.terracotta.model.app.enumerator.QuestionTypes;
+import edu.iu.terracotta.model.app.enumerator.RegradeOption;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -45,8 +46,12 @@ public class Question extends BaseEntity {
     @Column
     private Integer questionOrder;
 
-    @Enumerated(EnumType.STRING)
     @Column
+    @Enumerated(EnumType.STRING)
     private QuestionTypes questionType;
+
+    @Column
+    @Enumerated(EnumType.STRING)
+    private RegradeOption regradeOption;
 
 }
