@@ -18,6 +18,8 @@ import javax.persistence.EntityManager;
 
 import org.mockito.Mock;
 import org.springframework.core.env.Environment;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.web.client.RestTemplate;
 
 import edu.iu.terracotta.model.LtiContextEntity;
@@ -229,8 +231,8 @@ public class BaseTest {
         allRepositories.conditionRepository = conditionRepository;
         allRepositories.eventRepository = eventRepository;
         allRepositories.experimentRepository = experimentRepository;
-        allRepositories.exposureRepository = exposureRepository;
         allRepositories.exposureGroupConditionRepository = exposureGroupConditionRepository;
+        allRepositories.exposureRepository = exposureRepository;
         allRepositories.ltiUserRepository = ltiUserRepository;
         allRepositories.outcomeRepository = outcomeRepository;
         allRepositories.outcomeScoreRepository = outcomeScoreRepository;
@@ -259,6 +261,7 @@ public class BaseTest {
             when(experimentRepository.findById(anyLong())).thenReturn(Optional.of(experiment));
             when(exposureRepository.findById(anyLong())).thenReturn(Optional.of(exposure));
             when(ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(anyString(), anyLong())).thenReturn(ltiUserEntity);
+            when(outcomeRepository.findByExposure_Experiment_ExperimentId(anyLong(), any(Pageable.class))).thenReturn(new PageImpl<>(Collections.singletonList(outcome)));
             when(outcomeRepository.findByExposure_ExposureId(anyLong())).thenReturn(Collections.singletonList(outcome));
             when(outcomeRepository.findById(anyLong())).thenReturn(Optional.of(outcome));
             when(outcomeRepository.findByOutcomeId(anyLong())).thenReturn(outcome);
@@ -272,6 +275,7 @@ public class BaseTest {
             when(submissionRepository.findById(anyLong())).thenReturn(Optional.of(submission));
             when(submissionRepository.findBySubmissionId(anyLong())).thenReturn(submission);
             when(submissionRepository.save(any(Submission.class))).thenReturn(submission);
+            when(treatmentRepository.findById(anyLong())).thenReturn(Optional.of(treatment));
             when(treatmentRepository.findByTreatmentId(anyLong())).thenReturn(treatment);
             when(treatmentRepository.save(any(Treatment.class))).thenReturn(treatment);
             when(treatmentRepository.saveAndFlush(any(Treatment.class))).thenReturn(treatment);
@@ -304,6 +308,7 @@ public class BaseTest {
             when(assessment.canViewResponses()).thenReturn(true);
             when(assessment.getTreatment()).thenReturn(treatment);
             when(assessmentDto.getAssessmentId()).thenReturn(1L);
+            when(assessmentDto.getTreatmentId()).thenReturn(1L);
             when(assignment.getAssignmentId()).thenReturn(1L);
             when(assignment.getExposure()).thenReturn(exposure);
             when(assignment.getLmsAssignmentId()).thenReturn("1");
@@ -330,7 +335,7 @@ public class BaseTest {
             when(exposureGroupCondition.getGroup()).thenReturn(group);
             when(group.getGroupId()).thenReturn(1L);
             when(jwt.getBody()).thenReturn(claims);
-            when(ltiContextEntity.getContextId()).thenReturn(1L);
+            when(ltiContextEntity.getContextId()).thenReturn(1l);
             when(ltiContextEntity.getContext_memberships_url()).thenReturn("courses/1/names");
             when(ltiUserEntity.getDisplayName()).thenReturn(DISPLAY_NAME);
             when(ltiUserEntity.getEmail()).thenReturn(EMAIL);
@@ -352,9 +357,10 @@ public class BaseTest {
             when(participant.getParticipantId()).thenReturn(1L);
             when(participant.isTestStudent()).thenReturn(false);
             when(platformDeployment.getLocalUrl()).thenReturn("https://localhost");
-            when(question.getQuestionId()).thenReturn(1L);
             when(question.getAssessment()).thenReturn(assessment);
             when(question.getPoints()).thenReturn(1F);
+            when(question.getQuestionId()).thenReturn(1L);
+            when(question.getQuestionType()).thenReturn(QuestionTypes.ESSAY);
             when(questionDto.getAnswers()).thenReturn(Collections.singletonList(answerDto));
             when(questionDto.getQuestionId()).thenReturn(null);
             when(questionMc.getAssessment()).thenReturn(assessment);

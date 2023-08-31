@@ -18,7 +18,6 @@ import java.util.Map;
 import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.MockitoAnnotations;
@@ -45,7 +44,6 @@ import edu.iu.terracotta.model.app.enumerator.export.ParticipantsCsv;
 import edu.iu.terracotta.model.app.enumerator.export.ResponseOptionsCsv;
 import edu.iu.terracotta.model.app.enumerator.export.SubmissionsCsv;
 
-@Disabled("Test is broken and needs to be updated")
 public class ExportServiceImplTest extends BaseTest {
 
     @Spy
@@ -69,9 +67,11 @@ public class ExportServiceImplTest extends BaseTest {
         when(eventRepository.findByParticipant_Experiment_ExperimentId(anyLong())).thenReturn(Collections.emptyList());
         when(exposureGroupConditionRepository.findByGroup_GroupId(anyLong())).thenReturn(Collections.singletonList(exposureGroupCondition));
         when(exposureGroupConditionRepository.getByGroup_GroupIdAndExposure_ExposureId(anyLong(), anyLong())).thenReturn(Optional.empty());
-        when(outcomeRepository.findByExposure_Experiment_ExperimentId(anyLong())).thenReturn(Collections.singletonList(outcome));
         when(outcomeScoreRepository.findByOutcome_Exposure_Experiment_ExperimentId(anyLong(), any(Pageable.class)))
             .thenReturn(new PageImpl<>(Collections.singletonList(outcomeScore)))
+            .thenReturn(new PageImpl<>(Collections.emptyList()));
+        when(outcomeRepository.findByExposure_Experiment_ExperimentId(anyLong(), any(Pageable.class)))
+            .thenReturn(new PageImpl<>(Collections.singletonList(outcome)))
             .thenReturn(new PageImpl<>(Collections.emptyList()));
         when(participantRepository.findByExperiment_ExperimentId(anyLong(), any(Pageable.class)))
             .thenReturn(new PageImpl<>(Collections.singletonList(participant)))
@@ -93,8 +93,6 @@ public class ExportServiceImplTest extends BaseTest {
         when(assessment.getMultipleSubmissionScoringScheme()).thenReturn(MultipleSubmissionScoringScheme.MOST_RECENT);
         when(environment.getProperty(anyString())).thenReturn("aws_string");
         when(experiment.getCreatedAt()).thenReturn(new Timestamp(System.currentTimeMillis()));
-
-
         when(outcome.getLmsType()).thenReturn(LmsType.discussion_topic);
         when(participant.getDateGiven()).thenReturn(Timestamp.from(Instant.now()));
     }
