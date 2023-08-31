@@ -2,9 +2,9 @@
   <div>
     <h1>Create a title for your experiment</h1>
     <form
+      v-if="experiment"
       @submit.prevent="saveTitle('ExperimentDesignDescription')"
       class="my-5"
-      v-if="experiment"
     >
       <v-text-field
         v-model="experiment.title"
@@ -25,13 +25,6 @@
         Next
       </v-btn>
     </form>
-    <v-card
-      class="mt-15 pt-5 px-5 mx-auto blue lighten-5 rounded-lg"
-      outlined
-    >
-      <p><strong>Note:</strong> Students will be able to see this title if they click on the Terracotta tool, so do not
-        include any details about your study that you wouldn't want participants to see.</p>
-    </v-card>
   </div>
 </template>
 
@@ -86,7 +79,6 @@ export default {
     saveExit()  {
       this.saveTitle(this.getSaveExitPage)
     }
-
   }
 }
 </script>
