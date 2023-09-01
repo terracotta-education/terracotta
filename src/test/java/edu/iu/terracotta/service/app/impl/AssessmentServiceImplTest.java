@@ -7,6 +7,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.Spy;
 
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.Timestamp;
@@ -21,6 +22,8 @@ import edu.iu.terracotta.BaseTest;
 import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.exceptions.AssignmentAttemptException;
 import edu.iu.terracotta.exceptions.AssignmentNotMatchingException;
+import edu.iu.terracotta.exceptions.CanvasApiException;
+import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExceedingLimitException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
@@ -60,6 +63,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -100,6 +104,7 @@ public class AssessmentServiceImplTest extends BaseTest {
         when(exposureGroupConditionRepository.getByCondition_ConditionIdAndExposure_ExposureId(anyLong(), anyLong())).thenReturn(Optional.of(exposureGroupCondition));
         when(exposureGroupConditionRepository.getByGroup_GroupIdAndExposure_ExposureId(anyLong(), anyLong())).thenReturn(Optional.of(exposureGroupCondition));
         when(participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(anyLong(), anyString())).thenReturn(participant);
+        when(questionMcRepository.findAllById(anyList())).thenReturn(Collections.singletonList(questionMc));
         when(questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(anyLong())).thenReturn(Collections.emptyList());
         when(submissionRepository.findByAssessment_AssessmentId(anyLong())).thenReturn(Collections.singletonList(submission));
         when(treatmentRepository.findByCondition_ConditionIdAndAssignment_AssignmentId(anyLong(), anyLong())).thenReturn(Collections.singletonList(treatment));
@@ -394,14 +399,15 @@ public class AssessmentServiceImplTest extends BaseTest {
     }
 
     @Test
-    public void textRegradeQuestions() throws DataServiceException {
+    public void testRegradeQuestions() throws DataServiceException, ConnectionException, CanvasApiException, IOException {
         assessmentService.regradeQuestions(regradeDetails, 1L);
 
         verify(submissionService).gradeSubmission(any(Submission.class), any(RegradeDetails.class));
+        verify(submissionService).sendSubmissionGradeToCanvasWithLTI(any(Submission.class), anyBoolean());
     }
 
     @Test
-    public void textRegradeQuestionsNoSumbissions() throws DataServiceException {
+    public void testRegradeQuestionsNoSumbissions() throws DataServiceException, ConnectionException, CanvasApiException, IOException {
         when(submissionRepository.findByAssessment_AssessmentId(anyLong())).thenReturn(Collections.emptyList());
 
         assessmentService.regradeQuestions(regradeDetails, 1L);
@@ -410,7 +416,7 @@ public class AssessmentServiceImplTest extends BaseTest {
     }
 
     @Test
-    public void textRegradeQuestionsRegradeOptionNA() throws DataServiceException {
+    public void testRegradeQuestionsRegradeOptionNA() throws DataServiceException, ConnectionException, CanvasApiException, IOException {
         when(regradeDetails.getRegradeOption()).thenReturn(RegradeOption.NA);
 
         assessmentService.regradeQuestions(regradeDetails, 1L);
@@ -419,14 +425,14 @@ public class AssessmentServiceImplTest extends BaseTest {
     }
 
     @Test
-    public void textRegradeQuestionsNoRegradeDetails() throws DataServiceException {
+    public void testRegradeQuestionsNoRegradeDetails() throws DataServiceException, ConnectionException, CanvasApiException, IOException {
         assessmentService.regradeQuestions(null, 1L);
 
         verify(submissionService, never()).gradeSubmission(any(Submission.class), any(RegradeDetails.class));
     }
 
     @Test
-    public void textRegradeQuestionsNoEditedMCQuestionIds() throws DataServiceException {
+    public void testRegradeQuestionsNoEditedMCQuestionIds() throws DataServiceException, ConnectionException, CanvasApiException, IOException {
         when(regradeDetails.getEditedMCQuestionIds()).thenReturn(Collections.emptyList());
 
         assessmentService.regradeQuestions(regradeDetails, 1L);

@@ -2,6 +2,8 @@ package edu.iu.terracotta.controller.app;
 
 import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.exceptions.BadTokenException;
+import edu.iu.terracotta.exceptions.CanvasApiException;
+import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.IdInPostException;
@@ -42,6 +44,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.HttpServletRequest;
+
+import java.io.IOException;
 import java.util.List;
 
 @Slf4j
@@ -209,7 +213,7 @@ public class AssessmentController {
                                                 @RequestBody RegradeDetails regradeDetails,
                                                 HttpServletRequest req)
         throws ExperimentNotMatchingException, TreatmentNotMatchingException, BadTokenException,
-            TitleValidationException, AssessmentNotMatchingException, IdInPostException, DataServiceException {
+            TitleValidationException, AssessmentNotMatchingException, IdInPostException, DataServiceException, ConnectionException, CanvasApiException, IOException {
 
         log.debug("Regrading questions for assessment ID: {}", assessmentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
