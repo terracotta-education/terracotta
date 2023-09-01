@@ -77,6 +77,7 @@ import edu.iu.terracotta.repository.OutcomeRepository;
 import edu.iu.terracotta.repository.OutcomeScoreRepository;
 import edu.iu.terracotta.repository.ParticipantRepository;
 import edu.iu.terracotta.repository.PlatformDeploymentRepository;
+import edu.iu.terracotta.repository.QuestionMcRepository;
 import edu.iu.terracotta.repository.QuestionRepository;
 import edu.iu.terracotta.repository.QuestionSubmissionCommentRepository;
 import edu.iu.terracotta.repository.QuestionSubmissionRepository;
@@ -134,6 +135,7 @@ public class BaseTest {
     @Mock protected OutcomeScoreRepository outcomeScoreRepository;
     @Mock protected ParticipantRepository participantRepository;
     @Mock protected PlatformDeploymentRepository platformDeploymentRepository;
+    @Mock protected QuestionMcRepository questionMcRepository;
     @Mock protected QuestionRepository questionRepository;
     @Mock protected QuestionSubmissionCommentRepository questionSubmissionCommentRepository;
     @Mock protected QuestionSubmissionRepository questionSubmissionRepository;
@@ -221,6 +223,7 @@ public class BaseTest {
         allRepositories.outcomeScoreRepository = outcomeScoreRepository;
         allRepositories.participantRepository = participantRepository;
         allRepositories.platformDeploymentRepository = platformDeploymentRepository;
+        allRepositories.questionMcRepository = questionMcRepository;
         allRepositories.questionRepository = questionRepository;
         allRepositories.questionSubmissionCommentRepository = questionSubmissionCommentRepository;
         allRepositories.questionSubmissionRepository = questionSubmissionRepository;

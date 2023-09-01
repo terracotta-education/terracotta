@@ -3,6 +3,8 @@ package edu.iu.terracotta.service.app.impl;
 import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.exceptions.AssignmentAttemptException;
 import edu.iu.terracotta.exceptions.AssignmentNotMatchingException;
+import edu.iu.terracotta.exceptions.CanvasApiException;
+import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.GroupNotMatchingException;
@@ -56,6 +58,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 
+import java.io.IOException;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -734,7 +737,7 @@ public class AssessmentServiceImpl implements AssessmentService {
     }
 
     @Override
-    public void regradeQuestions(RegradeDetails regradeDetails, long assessmentId) throws DataServiceException {
+    public void regradeQuestions(RegradeDetails regradeDetails, long assessmentId) throws DataServiceException, ConnectionException, CanvasApiException, IOException {
         if (regradeDetails == null) {
             return;
         }
@@ -757,7 +760,8 @@ public class AssessmentServiceImpl implements AssessmentService {
 
         // regrade option selected; perform regrade
         for (Submission submission : submissions) {
-            submissionService.gradeSubmission(submission, regradeDetails);
+            Submission gradedSubmission = submissionService.gradeSubmission(submission, regradeDetails);
+            submissionService.sendSubmissionGradeToCanvasWithLTI(gradedSubmission, false);
         }
 
         updateRegradedQuestionStatus(regradeDetails);
