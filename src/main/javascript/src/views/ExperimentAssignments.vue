@@ -80,6 +80,7 @@
                   :expanded="assignmentsExpanded"
                   :sort-by="['assignmentOrder']"
                   :mobile-breakpoint="mobileBreakpoint"
+                  :items-per-page="assignmentsCount"
                   hide-default-footer
                   v-sortable-data-table
                   item-key="assignmentId"
