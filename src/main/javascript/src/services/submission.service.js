@@ -14,6 +14,7 @@ export const submissionService = {
   createAnswerSubmissions,
   updateAnswerSubmission,
   downloadAnswerFileSubmission,
+  getSubmission
 };
 
 /**
@@ -32,6 +33,27 @@ async function getAll(
 
     return fetch(
         `${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/submissions`,
+        requestOptions
+    ).then(handleResponse);
+}
+
+/**
+ * Get a Submission
+ */
+async function getSubmission(
+    experiment_id,
+    condition_id,
+    treatment_id,
+    assessment_id,
+    submission_id
+) {
+    const requestOptions = {
+        method: "GET",
+        headers: authHeader(),
+    };
+
+    return fetch(
+        `${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/submissions/${submission_id}`,
         requestOptions
     ).then(handleResponse);
 }
