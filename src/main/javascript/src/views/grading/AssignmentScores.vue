@@ -40,8 +40,7 @@
                         </router-link>
                       </td>
                       <td>
-                        <span v-if="participant.submission.totalAlteredGrade !== null">{{ participant.submission.totalAlteredGrade }}</span>
-                        <span v-else>{{ participant.submission.alteredCalculatedGrade }}</span>
+                        <span>{{ participant.scoreToDisplay }}</span>
                       </td>
                     </tr>
                   </template>
@@ -103,10 +102,12 @@ export default {
       return participants.map(p => {
         const subs = treatment.assessmentDto.submissions;
         const psubs = subs.filter(s => s.participantId === p.participantId);
+        const scoreToDisplay = this.calculateScore(psubs, treatment.assessmentDto.multipleSubmissionScoringScheme);
         const latest = this.getLatestSubmissionFromSet(psubs);
         return {
           ...p,
-          submission: latest
+          submission: latest,
+          scoreToDisplay: scoreToDisplay
         }
       });
     },
@@ -133,6 +134,30 @@ export default {
         this.$swal("There was a problem saving assignment scores.");
       }
     },
+    calculateScore(participantSubmissions, scheme) {
+      // scores sorted by date descending
+      const scores = participantSubmissions
+        .sort((a, b) => a.dateSubmitted - b.dateSubmitted).reverse()
+        .map((ps) => ps.totalAlteredGrade || ps.alteredCalculatedGrade);
+
+      if (!scores.length) {
+        return "N/A";
+      }
+
+      switch(scheme) {
+        case "AVERAGE":
+          return this.round((scores.reduce((a, b) => a + b, 0)) / scores.length);
+        case "HIGHEST":
+          return Math.max(...scores);
+        case "MOST_RECENT":
+        default:
+          // latest score is first in array
+          return scores[0];
+      }
+    },
+    round(n) {
+      return n % 1 ? n.toFixed(2) : n;
+    }
   },
   async mounted() {
     await this.fetchAssignment([
@@ -146,7 +171,6 @@ export default {
     for (const treatment of this.assignment.treatments) {
       for (const submission of treatment.assessmentDto.submissions) {
         // Create a clone of each submission that can be mutated
-        console.log(submission.submissionId)
         submissions[submission.submissionId] = clone(submission);
       }
     }
