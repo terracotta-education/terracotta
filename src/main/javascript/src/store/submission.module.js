@@ -2,6 +2,7 @@ import { submissionService } from "@/services";
 
 const state = {
   submissions: null,
+  submission: null,
   studentResponse: null,
   questionSubmissions: null,
 };
@@ -16,6 +17,17 @@ const actions = {
       })
       .catch((response) => {
         console.log("setSubmissions | catch", { response });
+      });
+  },
+  async fetchSubmission({ commit }, payload) {
+    // payload = experiment_id, condition_id, treatment_id, assessment_id, submission_id
+    return submissionService
+      .getSubmission(...payload)
+      .then(({ data }) => {
+        commit("setSubmission", data);
+      })
+      .catch((response) => {
+        console.log("setSubmission | catch", { response });
       });
   },
   async updateSubmission({ state }, payload) {
@@ -119,6 +131,9 @@ const mutations = {
   setSubmissions(state, data) {
     state.submissions = data;
   },
+  setSubmission(state, data) {
+    state.submission = data;
+  },
   setStudentResponse(state, data) {
     state.studentResponse = data;
   },
@@ -130,6 +145,9 @@ const mutations = {
 const getters = {
   submissions(state) {
     return state.submissions;
+  },
+  submission(state) {
+    return state.submission;
   },
   studentResponse(state) {
     return state.studentResponse;

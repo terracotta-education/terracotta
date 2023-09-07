@@ -437,6 +437,7 @@ export default {
     },
     async submitQuiz() {
       try {
+        this.selectedSubmissionId = this.submissionId;
         const experimentId = this.experimentId;
         const step = "student_submission";
         const parameters = { submissionIds: this.submissionId };

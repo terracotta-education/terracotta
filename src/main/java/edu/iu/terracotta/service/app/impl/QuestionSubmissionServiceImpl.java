@@ -162,7 +162,7 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
 
         try {
             for (QuestionSubmissionDto questionSubmissionDto : questionSubmissionDtoList) {
-                log.debug("Creating question submission: {}", questionSubmissionDto);
+                log.debug("Creating question submission for submission ID: [{}]", submissionId);
                 questionSubmissionDto.setSubmissionId(submissionId);
                 QuestionSubmission questionSubmission;
                 questionSubmission = fromDto(questionSubmissionDto);
