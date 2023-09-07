@@ -350,12 +350,12 @@ export default {
         const { totalAlteredGrade, alteredCalculatedGrade } = this.selectedSubmission;
         grade = totalAlteredGrade !== null ? totalAlteredGrade : alteredCalculatedGrade;
       }
-      return `${grade} / ${this.assignmentData?.maxPoints}`;
+      return `${this.round(grade)} / ${this.assignmentData?.maxPoints}`;
     },
     keptScore() {
       const kept = this.assignmentData?.retakeDetails.keptScore;
 
-      return `${kept ? kept : 0} / ${this.assignmentData?.maxPoints}`;
+      return `${kept ? this.round(kept) : 0} / ${this.assignmentData?.maxPoints}`;
     },
     muted() {
       if (!this.assignmentData) { return true; }
@@ -730,6 +730,9 @@ export default {
         console.error({ e });
       }
     },
+    round(n) {
+      return n % 1 ? n.toFixed(2) : n;
+    }
   },
   async created() {
     this.loading = true;
