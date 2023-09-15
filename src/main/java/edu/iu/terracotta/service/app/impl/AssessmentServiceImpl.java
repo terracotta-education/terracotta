@@ -2,6 +2,7 @@ package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.exceptions.AssignmentAttemptException;
+import edu.iu.terracotta.exceptions.AssignmentDatesException;
 import edu.iu.terracotta.exceptions.AssignmentNotMatchingException;
 import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.ConnectionException;
@@ -37,6 +38,8 @@ import edu.iu.terracotta.model.app.enumerator.MultipleSubmissionScoringScheme;
 import edu.iu.terracotta.model.app.enumerator.RegradeOption;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.AllRepositories;
+import edu.iu.terracotta.service.app.APIJWTService;
+import edu.iu.terracotta.service.app.AnswerSubmissionService;
 import edu.iu.terracotta.service.app.AssessmentService;
 import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.service.app.ParticipantService;
@@ -69,6 +72,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -82,16 +86,22 @@ public class AssessmentServiceImpl implements AssessmentService {
     private AllRepositories allRepositories;
 
     @Autowired
-    private QuestionService questionService;
+    private AnswerSubmissionService answerSubmissionService;
 
     @Autowired
-    private SubmissionService submissionService;
+    private APIJWTService apijwtService;
 
     @Autowired
     private FileStorageService fileStorageService;
 
     @Autowired
     private ParticipantService participantService;
+
+    @Autowired
+    private QuestionService questionService;
+
+    @Autowired
+    private SubmissionService submissionService;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -655,7 +665,7 @@ public class AssessmentServiceImpl implements AssessmentService {
     @Override
     public AssessmentDto viewAssessment(long experimentId, SecuredInfo securedInfo)
             throws ExperimentNotMatchingException, ParticipantNotMatchingException, AssessmentNotMatchingException,
-                GroupNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException {
+                GroupNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, DataServiceException, CanvasApiException, IOException, AssignmentDatesException, ConnectionException {
         Optional<Experiment> experiment = allRepositories.experimentRepository.findById(experimentId);
 
         if (!experiment.isPresent()) {
@@ -683,6 +693,35 @@ public class AssessmentServiceImpl implements AssessmentService {
 
         if (assessment == null) {
             throw new AssessmentNotMatchingException("There is no assessment available for this user");
+        }
+
+        List<Submission> submissionList = submissionService.findByParticipantIdAndAssessmentId(participant.getParticipantId(), assessment.getAssessmentId());
+
+        if (CollectionUtils.isNotEmpty(submissionList)) {
+            for (Submission submission : submissionList) {
+                //   - if one of them is not submitted, (and we can use it, we need to return that one),
+                if (submission.getDateSubmitted() == null) {
+                    AtomicInteger answerSubmissionCount = new AtomicInteger(0);
+                    submission.getQuestionSubmissions()
+                        .forEach(
+                            questionSubmission -> {
+                                answerSubmissionCount.addAndGet(answerSubmissionService.findAllByQuestionSubmissionIdEssay(questionSubmission.getQuestionSubmissionId()).size());
+                                answerSubmissionCount.addAndGet(answerSubmissionService.findAllByQuestionSubmissionIdFile(questionSubmission.getQuestionSubmissionId()).size());
+                                answerSubmissionCount.addAndGet(answerSubmissionService.findByQuestionSubmissionIdMC(questionSubmission.getQuestionSubmissionId()).size());
+                            }
+                        );
+
+                    if (answerSubmissionCount.get() == assessment.getQuestions().size()) {
+                        // all questions have an answer; finalize and grade
+                        submissionService.finalizeAndGrade(
+                            submission.getSubmissionId(),
+                            securedInfo,
+                            apijwtService.isLearner(securedInfo) && !apijwtService.isInstructorOrHigher(securedInfo)
+                        );
+                        log.info("Previous assessment ID: [{}] has an incomplete submission ID: [{}]. Regrading and finalizing.", assessment.getAssessmentId(), submission.getSubmissionId());
+                    }
+                }
+            }
         }
 
         return toDto(assessment, participant, assessment.isAllowStudentViewResponses());

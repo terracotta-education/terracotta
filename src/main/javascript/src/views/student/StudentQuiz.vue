@@ -492,7 +492,6 @@ export default {
         await this.saveAnswers();
 
         // submit step
-        // TCOTA-590 occurs here... set breakpoint on the line below
         const { data, status } = await this.reportStep({
           experimentId,
           step,
