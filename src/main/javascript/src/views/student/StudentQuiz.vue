@@ -73,16 +73,24 @@
         <v-divider />
       </v-col>
     </v-row>
-    <v-row v-if="cantTryAgainMessage">
+    <v-row
+      v-if="cantTryAgainMessage"
+    >
       <v-col>
         <v-card
           class="pt-5 px-5 mx-auto yellow lighten-5 rounded-lg"
           outlined
         >
-          <p class="pb-0" v-if="cantTryAgainMessage === 'MAX_NUMBER_ATTEMPTS_REACHED'">
+          <p
+            v-if="cantTryAgainMessage === 'MAX_NUMBER_ATTEMPTS_REACHED'"
+            class="pb-0"
+          >
             You have reached the maximum number of attempts for this assignment.
           </p>
-          <p class="pb-0" v-if="cantTryAgainMessage === 'WAIT_TIME_NOT_REACHED'">
+          <p
+            v-if="cantTryAgainMessage === 'WAIT_TIME_NOT_REACHED'"
+            class="pb-0"
+          >
             Wait time not reached... You must wait a period of time before submitting again.
           </p>
         </v-card>
@@ -91,25 +99,31 @@
     <v-row v-if="readonly">
       <v-col>
         <v-card
+          v-if="muted"
           class="pt-5 px-5 mx-auto yellow lighten-5 rounded-lg"
           outlined
-          v-if="muted"
         >
           <h3>Your assignment is muted</h3>
           <p class="pb-0">
             Your instructor has not released the grades yet.
           </p>
         </v-card>
-        <div v-if="!muted && assignmentData && assignmentData.submissions">
+        <div
+          v-if="!muted && assignmentData && assignmentData.submissions"
+        >
           <submission-selector
             :submissions="assignmentData.submissions"
             @select="(id) => selectedSubmissionId = id" />
         </div>
       </v-col>
     </v-row>
-    <v-row v-if="assessment && questionValues.length > 0">
+    <v-row
+      v-if="assessment && questionValues.length > 0"
+    >
       <v-col>
-        <template v-if="!submitted">
+        <template
+          v-if="!submitted"
+        >
           <!-- only display assessment instructions on the first page -->
           <div
             v-if="assessment.html && questionPageIndex === 0"
@@ -120,21 +134,27 @@
             style="width: 100%;"
             ref="form"
           >
-            <div class="answerSection mt-5 w-100">
+            <div
+              class="answerSection mt-5 w-100"
+            >
               <v-card
-                class="mt-5 mb-2"
-                outlined
                 v-for="(question, index) in currentQuestionPage.questions"
                 :key="question.questionId"
+                class="mt-5 mb-2"
+                outlined
               >
                 <v-card-title>
                   <v-row>
-                    <v-col cols="1">
-                      <span>{{
-                        currentQuestionPage.questionStartIndex + index + 1
-                      }}</span>
+                    <v-col
+                      cols="1"
+                    >
+                      <span>
+                        {{ currentQuestionPage.questionStartIndex + index + 1 }}
+                      </span>
                     </v-col>
-                    <v-col cols="8">
+                    <v-col
+                      cols="8"
+                    >
                       <youtube-event-capture
                         :experimentId="experimentId"
                         :assessmentId="assessmentId"
@@ -143,28 +163,34 @@
                         :submissionId="submissionId"
                         :treatmentId="treatmentId"
                       >
-                        <span v-html="question.html"></span>
+                        <span
+                          v-html="question.html"
+                        >
+                        </span>
                       </youtube-event-capture>
                     </v-col>
                     <v-col>
-                      <div class="total-points text-right ml-2" v-if="!readonly">
-                        {{ question.points }} Point{{
-                          question.points > 1 ? "s" : ""
-                        }}
+                      <div
+                        v-if="!readonly"
+                        class="total-points text-right ml-2"
+                      >
+                        {{ question.points }} Point{{ question.points > 1 ? "s" : "" }}
                       </div>
                       <div class="total-points text-right ml-2" v-if="readonly">
                         {{ getQuestionSubmissionValue(question) }}
                         /
-                        {{ question.points }} Point{{
-                          question.points > 1 ? "s" : ""
-                        }}
+                        {{ question.points }} Point{{ question.points > 1 ? "s" : "" }}
                       </div>
                     </v-col>
                   </v-row>
                 </v-card-title>
                 <!-- Options (Answers) -->
-                <v-card-text v-if="questionValues && questionValues.length > 0">
-                  <template v-if="question.questionType === 'MC'">
+                <v-card-text
+                  v-if="questionValues && questionValues.length > 0"
+                >
+                  <template
+                    v-if="question.questionType === 'MC'"
+                  >
                     <multiple-choice-response-editor
                       :answers="getQuestionAnswers(question)"
                       :readonly="readonly"
@@ -174,7 +200,9 @@
                         ).answerId"
                     />
                   </template>
-                  <template v-else-if="question.questionType === 'ESSAY'">
+                  <template
+                    v-else-if="question.questionType === 'ESSAY'"
+                  >
                     <essay-response-editor
                       :answer="getEssayResponse(question)"
                       :readonly="readonly"
@@ -185,7 +213,9 @@
                       "
                     />
                   </template>
-                  <template v-else-if="question.questionType === 'FILE'">
+                  <template
+                    v-else-if="question.questionType === 'FILE'"
+                  >
                     <file-upload-response-editor
                       :selectedSubmission="selectedSubmission"
                       :fileResponses="getFileResponses(question)"
@@ -215,19 +245,25 @@
               Next
             </v-btn>
             <v-btn
+              v-if="!readonly && !hasNextQuestionPage"
               :disabled="!allQuestionsAnswered"
               elevation="0"
               color="primary"
               class="mt-4"
               type="submit"
-              v-if="!readonly && !hasNextQuestionPage"
             >
               Submit
             </v-btn>
           </form>
         </template>
-        <template v-else>
-          <v-alert type="success">Your answers have been submitted.</v-alert>
+        <template
+          v-else
+        >
+          <v-alert
+            type="success"
+          >
+            Your answers have been submitted.
+          </v-alert>
         </template>
       </v-col>
     </v-row>
@@ -241,8 +277,8 @@ import FileUploadResponseEditor from "@/views/student/FileUploadResponseEditor";
 import moment from 'moment';
 import MultipleChoiceResponseEditor from "./MultipleChoiceResponseEditor.vue";
 import SubmissionSelector from '../assignment/SubmissionSelector.vue';
-import YoutubeEventCapture from "./YoutubeEventCapture.vue";
 import Vue from 'vue';
+import YoutubeEventCapture from "./YoutubeEventCapture.vue";
 
 Vue.filter('formatDate', (value) => {
   if (value) {
@@ -328,7 +364,9 @@ export default {
       return this.readonly || this.submitted;
     },
     allowedAttempts() {
-      if (!this.assignmentData) { return ' - ' }
+      if (!this.assignmentData) {
+        return ' - '
+      }
       const { numOfSubmissions } = this.assignmentData;
       return numOfSubmissions === null ? 1 : numOfSubmissions === 0 ? 'Unlimited' : numOfSubmissions;
     },
@@ -417,8 +455,7 @@ export default {
         preConfirm: async () => {
           try {
             this.$swal.update({
-              text:
-                "Please don't refresh or close your browser window until assignment submission is confirmed.",
+              text: "Please don't refresh or close your browser window until assignment submission is confirmed.",
               showConfirmButton: false,
             });
             return await this.submitQuiz();
@@ -455,6 +492,7 @@ export default {
         await this.saveAnswers();
 
         // submit step
+        // TCOTA-590 occurs here... set breakpoint on the line below
         const { data, status } = await this.reportStep({
           experimentId,
           step,
