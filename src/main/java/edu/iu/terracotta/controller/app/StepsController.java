@@ -123,8 +123,10 @@ public class StepsController {
                 return new ResponseEntity<>(HttpStatus.OK);
             case STUDENT_SUBMISSION: //Mark the submission as finished and calculate the automatic grade.
                 List<String> submissionsId;
+
                 if (stepDto.getParameters() != null) {
                     submissionsId = Collections.arrayToList(StringUtils.split(stepDto.getParameters().get("submissionIds"), ","));
+
                     if (submissionsId.isEmpty()) {
                         return new ResponseEntity<>(TextConstants.SUBMISSION_IDS_MISSING, HttpStatus.BAD_REQUEST);
                     }
@@ -132,10 +134,7 @@ public class StepsController {
                     return new ResponseEntity<>(TextConstants.SUBMISSION_IDS_MISSING, HttpStatus.BAD_REQUEST);
                 }
 
-                boolean student = false;
-                if (apijwtService.isLearner(securedInfo) && !apijwtService.isInstructorOrHigher(securedInfo)) {
-                    student = true;
-                }
+                boolean student = apijwtService.isLearner(securedInfo) && !apijwtService.isInstructorOrHigher(securedInfo);
 
                 try {
                     if (apijwtService.isLearner(securedInfo) && !apijwtService.isInstructorOrHigher(securedInfo)) {

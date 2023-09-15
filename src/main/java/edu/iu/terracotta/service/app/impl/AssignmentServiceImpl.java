@@ -41,6 +41,7 @@ import edu.iu.terracotta.model.oauth2.LTIToken;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.APIJWTService;
+import edu.iu.terracotta.service.app.AnswerSubmissionService;
 import edu.iu.terracotta.service.app.AssessmentService;
 import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.app.ExperimentService;
@@ -78,6 +79,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -94,13 +96,22 @@ public class AssignmentServiceImpl implements AssignmentService {
     private AllRepositories allRepositories;
 
     @Autowired
-    private AssessmentService assessmentService;
-
-    @Autowired
     private AdvantageAGSService advantageAGSService;
 
     @Autowired
-    private SubmissionService submissionService;
+    private AnswerSubmissionService answerSubmissionService;
+
+    @Autowired
+    private APIJWTService apijwtService;
+
+    @Autowired
+    private AssessmentService assessmentService;
+
+    @Autowired
+    private CaliperService caliperService;
+
+    @Autowired
+    private CanvasAPIClient canvasAPIClient;
 
     @Autowired
     private ExperimentService experimentService;
@@ -112,16 +123,10 @@ public class AssignmentServiceImpl implements AssignmentService {
     private ParticipantService participantService;
 
     @Autowired
+    private SubmissionService submissionService;
+
+    @Autowired
     private TreatmentService treatmentService;
-
-    @Autowired
-    private CaliperService caliperService;
-
-    @Autowired
-    private CanvasAPIClient canvasAPIClient;
-
-    @Autowired
-    private APIJWTService apijwtService;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -437,62 +442,69 @@ public class AssignmentServiceImpl implements AssignmentService {
 
     @Override
     @Transactional
-    public ResponseEntity<Object> launchAssignment(Long experimentId, SecuredInfo securedInfo) throws
-            AssessmentNotMatchingException, ParticipantNotUpdatedException, AssignmentDatesException,
-            DataServiceException, CanvasApiException, IOException, GroupNotMatchingException,
-            ParticipantNotMatchingException, ConnectionException, AssignmentAttemptException, AssignmentNotMatchingException, ExperimentNotMatchingException {
+    public ResponseEntity<Object> launchAssignment(Long experimentId, SecuredInfo securedInfo)
+            throws AssessmentNotMatchingException, ParticipantNotUpdatedException, AssignmentDatesException, DataServiceException, CanvasApiException, IOException, GroupNotMatchingException,
+                ParticipantNotMatchingException, ConnectionException, AssignmentAttemptException, AssignmentNotMatchingException, ExperimentNotMatchingException {
         Optional<Experiment> experiment = experimentService.findById(experimentId);
-        if (experiment.isPresent()) {
-            Participant participant = participantService.handleExperimentParticipant(experiment.get(), securedInfo);
 
-            //3. Check the assessment that belongs to this student
-            Assessment assessment = assessmentService.getAssessmentForParticipant(participant, securedInfo);
-
-            //4. Maybe create the submission and return it (it must include info about the assessment)
-            // First, try to find the submissions for this assessment and participant.
-            List<Submission> submissionList = submissionService.findByParticipantIdAndAssessmentId(participant.getParticipantId(), assessment.getAssessmentId());
-
-            if (!submissionList.isEmpty()) {
-                for (Submission submission : submissionList) {
-                    //   - if one of them is not submitted, (and we can use it, we need to return that one),
-                    if (submission.getDateSubmitted() == null) {
-                        // if (!submissionService.datesAllowed(experimentId, assessment.getTreatment().getTreatmentId(), securedInfo)) {
-                        //     submissionService.finalizeAndGrade(submission.getSubmissionId(), securedInfo);//We close it... and we need to save it.
-                        // } else {
-                            //   if one is not submitted and you can't open it again,
-                            // if (submission.getAssessment().getAutoSubmit()) {
-                                //if (submission.getAssessment().getNumOfSubmissions() == 0 || submission.getAssessment().getNumOfSubmissions() > submissionList.size()) {
-                                    // TODO: it should ask the user (you have an ongoing submission, opening a new one will send the current... do you want to proceed?  or
-                                //   submissionService.finalizeAndGrade(submission.getSubmissionId(), securedInfo);
-                                //} else {
-                                    // TODO: you have an ongoing submission that was not submitted. Do you want to submit it now)
-                                // submissionService.finalizeAndGrade(submission.getSubmissionId(), securedInfo);
-                                // }
-                            // } else {
-                                caliperService.sendAssignmentRestarted(submission, securedInfo);
-                                return new ResponseEntity<>(submissionService.toDto(submission, true, false), HttpStatus.OK);
-                            // }
-                        // }
-                    }
-                }
-            }
-
-            try {
-                assessmentService.verifySubmissionLimit(assessment.getNumOfSubmissions(), submissionList.size());
-                assessmentService.verifySubmissionWaitTime(assessment.getHoursBetweenSubmissions(), submissionList);
-
-                // If it is the first submission in the experiment mark it as started.
-                if (experiment.get().getStarted() == null) {
-                    experiment.get().setStarted(Timestamp.valueOf(LocalDateTime.now()));
-                    experimentService.save(experiment.get());
-                }
-
-                return createSubmission(experimentId, assessment, participant, securedInfo);
-            } catch (AssignmentAttemptException e) {
-                return new ResponseEntity(e.getMessage(), HttpStatus.UNAUTHORIZED);
-            }
-        } else { //Shouldn't happen
+        if (!experiment.isPresent()) {
             return new ResponseEntity(TextConstants.EXPERIMENT_NOT_MATCHING, HttpStatus.UNAUTHORIZED);
+        }
+
+        Participant participant = participantService.handleExperimentParticipant(experiment.get(), securedInfo);
+
+        //3. Check the assessment that belongs to this student
+        Assessment assessment = assessmentService.getAssessmentForParticipant(participant, securedInfo);
+
+        //4. Maybe create the submission and return it (it must include info about the assessment)
+        // First, try to find the submissions for this assessment and participant.
+        List<Submission> submissionList = submissionService.findByParticipantIdAndAssessmentId(participant.getParticipantId(), assessment.getAssessmentId());
+
+        if (CollectionUtils.isNotEmpty(submissionList)) {
+            for (Submission submission : submissionList) {
+                //   - if one of them is not submitted, (and we can use it, we need to return that one),
+                if (submission.getDateSubmitted() == null) {
+                    AtomicInteger answerSubmissionCount = new AtomicInteger(0);
+                    submission.getQuestionSubmissions()
+                        .forEach(
+                            questionSubmission -> {
+                                answerSubmissionCount.addAndGet(answerSubmissionService.findAllByQuestionSubmissionIdEssay(questionSubmission.getQuestionSubmissionId()).size());
+                                answerSubmissionCount.addAndGet(answerSubmissionService.findAllByQuestionSubmissionIdFile(questionSubmission.getQuestionSubmissionId()).size());
+                                answerSubmissionCount.addAndGet(answerSubmissionService.findByQuestionSubmissionIdMC(questionSubmission.getQuestionSubmissionId()).size());
+                            }
+                        );
+
+                    if (answerSubmissionCount.get() == assessment.getQuestions().size()) {
+                        // all questions have an answer; finalize and grade
+                        submissionService.finalizeAndGrade(
+                            submission.getSubmissionId(),
+                            securedInfo,
+                            apijwtService.isLearner(securedInfo) && !apijwtService.isInstructorOrHigher(securedInfo)
+                        );
+                        log.info("Previous assessment ID: [{}] has an incomplete submission ID: [{}]. Regrading and finalizing.", assessment.getAssessmentId(), submission.getSubmissionId());
+                        continue;
+                    }
+
+                    caliperService.sendAssignmentRestarted(submission, securedInfo);
+
+                    return new ResponseEntity<>(submissionService.toDto(submission, true, false), HttpStatus.OK);
+                }
+            }
+        }
+
+        try {
+            assessmentService.verifySubmissionLimit(assessment.getNumOfSubmissions(), submissionList.size());
+            assessmentService.verifySubmissionWaitTime(assessment.getHoursBetweenSubmissions(), submissionList);
+
+            // If it is the first submission in the experiment mark it as started.
+            if (experiment.get().getStarted() == null) {
+                experiment.get().setStarted(Timestamp.valueOf(LocalDateTime.now()));
+                experimentService.save(experiment.get());
+            }
+
+            return createSubmission(experimentId, assessment, participant, securedInfo);
+        } catch (AssignmentAttemptException e) {
+            return new ResponseEntity(e.getMessage(), HttpStatus.UNAUTHORIZED);
         }
     }
 
