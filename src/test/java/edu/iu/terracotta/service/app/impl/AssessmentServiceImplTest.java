@@ -6,6 +6,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.Spy;
+import org.springframework.http.HttpHeaders;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -83,6 +85,8 @@ public class AssessmentServiceImplTest extends BaseTest {
 
     @Mock private Assessment assessment1;
 
+    private Method retrieveTreatmentAssessment;
+    private Method validateRevealAssignmentResponsesSettings;
     private Method verifySubmissionLimit;
     private Method verifySubmissionWaitTime;
 
@@ -94,13 +98,19 @@ public class AssessmentServiceImplTest extends BaseTest {
         setup();
         clearInvocations(questionService, submissionService);
 
+        retrieveTreatmentAssessment = AssessmentServiceImpl.class.getDeclaredMethod("retrieveTreatmentAssessment", long.class, long.class, long.class);
+        retrieveTreatmentAssessment.setAccessible(true);
+        validateRevealAssignmentResponsesSettings = AssessmentServiceImpl.class.getDeclaredMethod("validateRevealAssignmentResponsesSettings", AssessmentDto.class);
+        validateRevealAssignmentResponsesSettings.setAccessible(true);
         verifySubmissionLimit = AssessmentServiceImpl.class.getDeclaredMethod("verifySubmissionLimit", Integer.class, int.class);
         verifySubmissionLimit.setAccessible(true);
         verifySubmissionWaitTime = AssessmentServiceImpl.class.getDeclaredMethod("verifySubmissionWaitTime", Float.class, List.class);
         verifySubmissionWaitTime.setAccessible(true);
 
-
+        when(assessmentRepository.existsByTreatment_Condition_Experiment_ExperimentIdAndTreatment_Condition_ConditionIdAndTreatment_TreatmentIdAndAssessmentId(anyLong(), anyLong(), anyLong(), anyLong())).thenReturn(true);
+        when(assessmentRepository.findByTreatment_TreatmentId(anyLong())).thenReturn(Collections.singletonList(assessment));
         when(assignmentRepository.findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(anyLong(), anyString())).thenReturn(assignment);
+        when(conditionRepository.findByExperiment_ExperimentId(anyLong())).thenReturn(Collections.singletonList(condition));
         when(exposureGroupConditionRepository.getByCondition_ConditionIdAndExposure_ExposureId(anyLong(), anyLong())).thenReturn(Optional.of(exposureGroupCondition));
         when(exposureGroupConditionRepository.getByGroup_GroupIdAndExposure_ExposureId(anyLong(), anyLong())).thenReturn(Optional.of(exposureGroupCondition));
         when(participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(anyLong(), anyString())).thenReturn(participant);
@@ -119,6 +129,7 @@ public class AssessmentServiceImplTest extends BaseTest {
         when(assessment.getQuestions()).thenReturn(Collections.emptyList());
         when(assessmentDto.getMultipleSubmissionScoringScheme()).thenReturn(MultipleSubmissionScoringScheme.MOST_RECENT.toString());
         when(assessmentDto.getQuestions()).thenReturn(Collections.singletonList(questionDto));
+        when(assignment.getMultipleSubmissionScoringScheme()).thenReturn(MultipleSubmissionScoringScheme.MOST_RECENT);
         when(condition.getDefaultCondition()).thenReturn(true);
         when(questionDto.getQuestionId()).thenReturn(1L);
         when(regradeDetails.getEditedMCQuestionIds()).thenReturn(Collections.singletonList(1L));
@@ -185,6 +196,21 @@ public class AssessmentServiceImplTest extends BaseTest {
         assertFalse(assessmentDto.getRetakeDetails().isRetakeAllowed());
         assertEquals(RetakeDetails.RetakeNotAllowedReason.MAX_NUMBER_ATTEMPTS_REACHED.toString(), assessmentDto.getRetakeDetails().getRetakeNotAllowedReason());
         assertEquals(1F, assessmentDto.getRetakeDetails().getLastAttemptScore());
+    }
+
+    @Test
+    public void testViewAssessmentWaitTimeNoSubmissions() throws ExperimentNotMatchingException, ParticipantNotMatchingException, AssessmentNotMatchingException, GroupNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, AssignmentAttemptException, DataServiceException, CanvasApiException, IOException, AssignmentDatesException, ConnectionException {
+        when(submissionService.findByParticipantIdAndAssessmentId(anyLong(), anyLong())).thenReturn(Collections.emptyList());
+        AssessmentDto assessmentDto = assessmentService.viewAssessment(1l, securedInfo);
+
+        assertNotNull(assessmentDto);
+        assertNotNull(assessmentDto.getRetakeDetails());
+        assertEquals(1F, assessmentDto.getRetakeDetails().getKeptScore());
+        assertEquals(0, assessmentDto.getRetakeDetails().getSubmissionAttemptsCount());
+        assertTrue(assessmentDto.getRetakeDetails().isRetakeAllowed());
+        assertNull(assessmentDto.getRetakeDetails().getRetakeNotAllowedReason());
+        assertEquals(null, assessmentDto.getRetakeDetails().getLastAttemptScore());
+        assertEquals(0, assessmentDto.getSubmissions().size());
     }
 
     @Test
@@ -438,5 +464,127 @@ public class AssessmentServiceImplTest extends BaseTest {
         assessmentService.regradeQuestions(regradeDetails, 1L);
 
         verify(submissionService, never()).gradeSubmission(any(Submission.class), any(RegradeDetails.class));
+    }
+
+    @Test
+    public void testFindAllAssessmentsByTreatmentId() throws IdInPostException, DataServiceException, TitleValidationException, AssessmentNotMatchingException {
+        List<Assessment> retVal = assessmentService.findAllByTreatmentId(1L);
+
+        assertNotNull(retVal);
+        assertEquals(1, retVal.size());
+    }
+
+    @Test
+    public void testGetAllAssessmentsByTreatment() throws IdInPostException, DataServiceException, TitleValidationException, AssessmentNotMatchingException {
+        List<AssessmentDto> retVal = assessmentService.getAllAssessmentsByTreatment(1L, false);
+
+        assertNotNull(retVal);
+        assertEquals(1, retVal.size());
+    }
+
+    @Test
+    public void testGetAllAssessmentsByTreatmentWithSubmissions() throws IdInPostException, DataServiceException, TitleValidationException, AssessmentNotMatchingException {
+        List<AssessmentDto> retVal = assessmentService.getAllAssessmentsByTreatment(1L, true);
+
+        assertNotNull(retVal);
+        assertEquals(1, retVal.size());
+    }
+
+    @Test
+    public void testPostAssessment() throws IdInPostException, DataServiceException, TitleValidationException, AssessmentNotMatchingException {
+        when(assessmentDto.getAssessmentId()).thenReturn(null);
+        AssessmentDto retVal = assessmentService.postAssessment(assessmentDto, 1L);
+
+        assertNotNull(retVal);
+    }
+
+    @Test
+    public void testPostAssessmentIdInPostExceptionThrown() {
+        IdInPostException e = assertThrows(IdInPostException.class, () -> assessmentService.postAssessment(assessmentDto, 1L));
+        assertEquals(TextConstants.ID_IN_POST_ERROR, e.getMessage());
+    }
+
+    @Test
+    public void testAssessmentBelongsToExperimentAndConditionAndTreatmentCorrectTrueResponseFalse() {
+        when(assessmentDto.isAllowStudentViewCorrectAnswers()).thenReturn(true);
+        when(assessmentDto.isAllowStudentViewResponses()).thenReturn(false);
+
+        InvocationTargetException e = assertThrows(InvocationTargetException.class, () -> validateRevealAssignmentResponsesSettings.invoke(assessmentService, assessmentDto));
+        assertTrue(e.getCause() instanceof RevealResponsesSettingValidationException);
+        assertEquals("Error 151: Cannot allow students to view correct answers if they are not allowed to view responses.", e.getCause().getMessage());
+    }
+
+    @Test
+    public void testAssessmentBelongsToExperimentAndConditionAndTreatmentViewResponsesBeforeIsAfterAfter() {
+        when(assessmentDto.getStudentViewResponsesAfter()).thenReturn(Timestamp.from(Instant.now()));
+        when(assessmentDto.getStudentViewResponsesBefore()).thenReturn(Timestamp.from(Instant.now().minusSeconds(1)));
+
+        InvocationTargetException e = assertThrows(InvocationTargetException.class, () -> validateRevealAssignmentResponsesSettings.invoke(assessmentService, assessmentDto));
+        assertTrue(e.getCause() instanceof RevealResponsesSettingValidationException);
+        assertEquals("Error 152: Start date of revealing student responses must come before end date.", e.getCause().getMessage());
+    }
+
+    @Test
+    public void testAssessmentBelongsToExperimentAndConditionAndTreatmentViewCorrectBeforeIsAfterAfter() {
+        when(assessmentDto.getStudentViewCorrectAnswersAfter()).thenReturn(Timestamp.from(Instant.now()));
+        when(assessmentDto.getStudentViewCorrectAnswersBefore()).thenReturn(Timestamp.from(Instant.now().minusSeconds(1)));
+
+        InvocationTargetException e = assertThrows(InvocationTargetException.class, () -> validateRevealAssignmentResponsesSettings.invoke(assessmentService, assessmentDto));
+        assertTrue(e.getCause() instanceof RevealResponsesSettingValidationException);
+        assertEquals("Error 153: Start date of revealing correct answers must come before end date.", e.getCause().getMessage());
+    }
+
+    @Test
+    public void testAssessmentBelongsToExperimentAndConditionAndTreatmentViewCorrectIsEqualOrAfterResponses() {
+        when(assessmentDto.getStudentViewResponsesAfter()).thenReturn(Timestamp.from(Instant.now()));
+        when(assessmentDto.getStudentViewCorrectAnswersAfter()).thenReturn(Timestamp.from(Instant.now().minusSeconds(1)));
+
+        InvocationTargetException e = assertThrows(InvocationTargetException.class, () -> validateRevealAssignmentResponsesSettings.invoke(assessmentService, assessmentDto));
+        assertTrue(e.getCause() instanceof RevealResponsesSettingValidationException);
+        assertEquals("Error 154: Start date of revealing correct answers must equal or come after start date of revealing student responses.", e.getCause().getMessage());
+    }
+
+    @Test
+    public void testAssessmentBelongsToExperimentAndConditionAndTreatmentViewCorrectIsEqualOrBeforeResponses() {
+        when(assessmentDto.getStudentViewResponsesBefore()).thenReturn(Timestamp.from(Instant.now()));
+        when(assessmentDto.getStudentViewCorrectAnswersBefore()).thenReturn(Timestamp.from(Instant.now().plusSeconds(1)));
+
+        InvocationTargetException e = assertThrows(InvocationTargetException.class, () -> validateRevealAssignmentResponsesSettings.invoke(assessmentService, assessmentDto));
+        assertTrue(e.getCause() instanceof RevealResponsesSettingValidationException);
+        assertEquals("Error 155: End date of revealing correct answers must equal or come before end date of revealing student responses.", e.getCause().getMessage());
+    }
+
+    @Test
+    public void testBuildHeaders() {
+        HttpHeaders header = assessmentService.buildHeaders(UriComponentsBuilder.newInstance(), 1L, 1L, 1L, 1L);
+
+        assertNotNull(header);
+    }
+
+    @Test
+    public void testGetAssessmentForParticipant() throws AssessmentNotMatchingException {
+        Assessment retVal = assessmentService.getAssessmentForParticipant(participant, securedInfo);
+
+        assertNotNull(retVal);
+    }
+
+    @Test
+    public void testGetAssessmentForParticipantNoConsent() throws AssessmentNotMatchingException {
+        when(participant.getConsent()).thenReturn(false);
+
+        Assessment retVal = assessmentService.getAssessmentForParticipant(participant, securedInfo);
+
+        assertNotNull(retVal);
+    }
+
+    @Test
+    public void testRetrieveTreatmentAssessmentNoTreatment() {
+        when(treatmentRepository.findByCondition_ConditionIdAndAssignment_AssignmentId(anyLong(), anyLong())).thenReturn(Collections.emptyList());
+        when(treatmentRepository.findByCondition_ConditionIdAndAssignment_AssignmentId(anyLong(), anyLong())).thenReturn(Collections.emptyList());
+        when(condition.getDefaultCondition()).thenReturn(true);
+
+        InvocationTargetException e = assertThrows(InvocationTargetException.class, () -> retrieveTreatmentAssessment.invoke(assessmentService, 1l, 1l, 1l));
+        assertTrue(e.getCause() instanceof AssessmentNotMatchingException);
+        assertEquals("Error 131: This assignment does not have a treatment assigned.", e.getCause().getMessage());
     }
 }
