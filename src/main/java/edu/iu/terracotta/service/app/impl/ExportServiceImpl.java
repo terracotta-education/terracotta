@@ -84,6 +84,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class ExportServiceImpl implements ExportService {
 
     private static final String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
+    private static final String NA = "N/A";
 
     @Autowired
     private AllRepositories allRepositories;
@@ -197,8 +198,8 @@ public class ExportServiceImpl implements ExportService {
             writer.writeNext(new String[] {
                 experiment.getExperimentId().toString(),
                 String.valueOf(experiment.getLtiContextEntity().getContextId()),
-                StringUtils.isBlank(experiment.getTitle()) ? "N/A" : experiment.getTitle(),
-                StringUtils.isBlank(experiment.getDescription()) ? "N/A" : experiment.getDescription(),
+                StringUtils.isBlank(experiment.getTitle()) ? NA : experiment.getTitle(),
+                StringUtils.isBlank(experiment.getDescription()) ? NA : experiment.getDescription(),
                 experiment.getExposureType().toString(),
                 experiment.getParticipationType().toString(),
                 experiment.getDistributionType().toString(),
@@ -207,7 +208,7 @@ public class ExportServiceImpl implements ExportService {
                 String.valueOf(consentedParticipantsCount),
                 String.valueOf(allRepositories.conditionRepository.countByExperiment_ExperimentId(experimentId)),
                 experiment.getCreatedAt().toLocalDateTime().format(dateTimeFormatter),
-                experiment.isStarted() ? experiment.getStarted().toLocalDateTime().format(dateTimeFormatter) : "N/A"
+                experiment.isStarted() ? experiment.getStarted().toLocalDateTime().format(dateTimeFormatter) : NA
             });
         }
     }
@@ -215,14 +216,14 @@ public class ExportServiceImpl implements ExportService {
     private void handleOutcomesCsv(long experimentId,  SecuredInfo securedInfo, Map<String, String> files)
             throws CanvasApiException, IOException, ParticipantNotUpdatedException, ExperimentNotMatchingException, OutcomeNotMatchingException {
         int outcomesPage = 0;
-        List<Outcome> outcomes = outcomeService.findAllByExperiment(experimentId, PageRequest.of(outcomesPage, exportBatchSize));
+        List<Outcome> outcomes = allRepositories.outcomeRepository.findByExposure_Experiment_ExperimentId(experimentId, PageRequest.of(outcomesPage, exportBatchSize)).getContent();
 
         while (CollectionUtils.isNotEmpty(outcomes)) {
             for (Outcome outcome : outcomes) {
                 outcomeService.updateOutcomeGrades(outcome.getOutcomeId(), securedInfo);
             }
 
-            outcomes = outcomeService.findAllByExperiment(experimentId, PageRequest.of(++outcomesPage, exportBatchSize));
+            outcomes = allRepositories.outcomeRepository.findByExposure_Experiment_ExperimentId(experimentId, PageRequest.of(++outcomesPage, exportBatchSize)).getContent();
         }
 
         Path path = createTempFile();
@@ -249,9 +250,9 @@ public class ExportServiceImpl implements ExportService {
                                     outcomeScore.getParticipant().getParticipantId().toString(),
                                     String.valueOf(outcomeScore.getOutcome().getExposure().getExposureId()),
                                     outcomeScore.getOutcome().getLmsType().toString(),
-                                    StringUtils.isBlank(outcomeScore.getOutcome().getTitle()) ? "N/A" : outcomeScore.getOutcome().getTitle(),
+                                    StringUtils.isBlank(outcomeScore.getOutcome().getTitle()) ? NA : outcomeScore.getOutcome().getTitle(),
                                     outcomeScore.getOutcome().getMaxPoints().toString(),
-                                    outcomeScore.getScoreNumeric() != null ? outcomeScore.getScoreNumeric().toString() : "N/A",
+                                    outcomeScore.getScoreNumeric() != null ? outcomeScore.getScoreNumeric().toString() : NA,
                                     exposureGroupCondition.get().getCondition().getName(),
                                     String.valueOf(exposureGroupCondition.get().getCondition().getConditionId())
                                 });
@@ -265,9 +266,9 @@ public class ExportServiceImpl implements ExportService {
                             outcomeScore.getParticipant().getParticipantId().toString(),
                             String.valueOf(outcomeScore.getOutcome().getExposure().getExposureId()),
                             outcomeScore.getOutcome().getLmsType().toString(),
-                            StringUtils.isBlank(outcomeScore.getOutcome().getTitle()) ? "N/A" : outcomeScore.getOutcome().getTitle(),
+                            StringUtils.isBlank(outcomeScore.getOutcome().getTitle()) ? NA : outcomeScore.getOutcome().getTitle(),
                             outcomeScore.getOutcome().getMaxPoints().toString(),
-                            outcomeScore.getScoreNumeric() != null ? outcomeScore.getScoreNumeric().toString() : "N/A",
+                            outcomeScore.getScoreNumeric() != null ? outcomeScore.getScoreNumeric().toString() : NA,
                             StringUtils.EMPTY,
                             StringUtils.EMPTY
                         });
@@ -309,10 +310,10 @@ public class ExportServiceImpl implements ExportService {
                                                     participant.getParticipantId().toString(),
                                                     egc.getExposure().getExposureId().toString(),
                                                     egc.getCondition().getConditionId().toString(),
-                                                    StringUtils.isNotBlank(egc.getCondition().getName()) ? egc.getCondition().getName() : "N/A",
+                                                    StringUtils.isNotBlank(egc.getCondition().getName()) ? egc.getCondition().getName() : NA,
                                                     assignment.getAssignmentId().toString(),
                                                     assignment.getTitle(),
-                                                    assignment.getDueDate() != null ? simpleDateFormatter.format(assignment.getDueDate()) : "N/A",
+                                                    assignment.getDueDate() != null ? simpleDateFormatter.format(assignment.getDueDate()) : NA,
                                                     treatment.getTreatmentId().toString(),
                                                     treatment.getAssessment().getMultipleSubmissionScoringScheme().toString(),
                                                     calculateAttemptsAllowed(treatment.getAssessment().getNumOfSubmissions()),
@@ -336,7 +337,7 @@ public class ExportServiceImpl implements ExportService {
 
     private String calculateTimeRequiredBetweenAttempts(Float hoursBetweenSubmissions) {
         if (hoursBetweenSubmissions == null || hoursBetweenSubmissions == 0F) {
-            return "N/A";
+            return NA;
         }
 
         return String.format("%s hours", hoursBetweenSubmissions);
@@ -346,7 +347,7 @@ public class ExportServiceImpl implements ExportService {
         Float finalScore = submissionService.getScoreFromMultipleSubmissions(participant, assessment);
 
         if (finalScore == null) {
-            return "N/A";
+            return NA;
         }
 
         return Float.toString(finalScore);
@@ -431,7 +432,7 @@ public class ExportServiceImpl implements ExportService {
                             question.getAssessment().getTreatment().getAssignment().getAssignmentId().toString(),
                             question.getAssessment().getTreatment().getTreatmentId().toString(),
                             question.getAssessment().getTreatment().getCondition().getConditionId().toString(),
-                            StringUtils.isNotBlank(question.getHtml()) ? question.getHtml() : "N/A",
+                            StringUtils.isNotBlank(question.getHtml()) ? question.getHtml() : NA,
                             question.getQuestionType().toString()})
                     );
 
@@ -454,12 +455,12 @@ public class ExportServiceImpl implements ExportService {
                 CollectionUtils.emptyIfNull(questionSubmissions).stream()
                     .filter(questionSubmission -> BooleanUtils.isNotFalse(questionSubmission.getSubmission().getParticipant().getConsent()))
                     .forEach(questionSubmission -> {
-                        String response = "N/A";
-                        String responseId = "N/A";
-                        String responsePosition = "N/A";
-                        String correctness = "N/A";
-                        String calculatedScore = "N/A";
-                        String overrideScore = "N/A";
+                        String response = NA;
+                        String responseId = NA;
+                        String responsePosition = NA;
+                        String correctness = NA;
+                        String calculatedScore = NA;
+                        String overrideScore = NA;
 
                         switch (questionSubmission.getQuestion().getQuestionType()) {
                             case MC:
@@ -530,7 +531,7 @@ public class ExportServiceImpl implements ExportService {
                             responseId,
                             responsePosition,
                             correctness,
-                            questionSubmission.getSubmission().getDateSubmitted() != null ?  questionSubmission.getSubmission().getDateSubmitted().toString() : "N/A",
+                            questionSubmission.getSubmission().getDateSubmitted() != null ?  questionSubmission.getSubmission().getDateSubmitted().toString() : NA,
                             questionSubmission.getQuestion().getPoints().toString(),
                             calculatedScore,
                             overrideScore
@@ -558,7 +559,7 @@ public class ExportServiceImpl implements ExportService {
                         writer.writeNext(new String[] {
                             answerMc.getAnswerMcId().toString(),
                             answerMc.getQuestion().getQuestionId().toString(),
-                            StringUtils.isNotBlank(answerMc.getHtml()) ? answerMc.getHtml() : "N/A",
+                            StringUtils.isNotBlank(answerMc.getHtml()) ? answerMc.getHtml() : NA,
                             Character.toString(mapResponsePosition(answerMc.getQuestion().getQuestionId(), answerMc.getAnswerMcId())),
                             answerMc.getCorrect().toString().toUpperCase(Locale.US),
                             Boolean.toString(((QuestionMc) answerMc.getQuestion()).isRandomizeAnswers()).toUpperCase(Locale.US)

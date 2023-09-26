@@ -1,15 +1,3 @@
-/**
- * Copyright 2021 Unicon (R)
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- * http://www.apache.org/licenses/LICENSE-2.0
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.exceptions.AnswerNotMatchingException;
@@ -109,65 +97,26 @@ public class APIJWTServiceImpl implements APIJWTService {
     private static final String JWT_BEARER_TYPE = "Bearer";
     private static final String QUERY_PARAM_NAME = "token";
 
-    @Autowired
-    private LTIDataService ltiDataService;
-
-    @Autowired
-    private APIDataService apiDataService;
-
-    @Autowired
-    private ExperimentService experimentService;
-
-    @Autowired
-    private ConditionService conditionService;
-
-    @Autowired
-    private ParticipantService participantService;
-
-    @Autowired
-    private ExposureService exposureService;
-
-    @Autowired
-    private AssignmentService assignmentService;
-
-    @Autowired
-    private GroupService groupService;
-
-    @Autowired
-    private TreatmentService treatmentService;
-
-    @Autowired
-    private AssessmentService assessmentService;
-
-    @Autowired
-    private QuestionService questionService;
-
-    @Autowired
-    private AnswerService answerService;
-
-    @Autowired
-    private SubmissionService submissionService;
-
-    @Autowired
-    private QuestionSubmissionService questionSubmissionService;
-
-    @Autowired
-    private SubmissionCommentService submissionCommentService;
-
-    @Autowired
-    private QuestionSubmissionCommentService questionSubmissionCommentService;
-
-    @Autowired
-    private OutcomeService outcomeService;
-
-    @Autowired
-    private OutcomeScoreService outcomeScoreService;
-
-    @Autowired
-    private AnswerSubmissionService answerSubmissionService;
-
-    @Autowired
-    private AdminService adminService;
+    @Autowired private AdminService adminService;
+    @Autowired private AnswerService answerService;
+    @Autowired private AnswerSubmissionService answerSubmissionService;
+    @Autowired private APIDataService apiDataService;
+    @Autowired private AssessmentService assessmentService;
+    @Autowired private AssignmentService assignmentService;
+    @Autowired private ConditionService conditionService;
+    @Autowired private ExperimentService experimentService;
+    @Autowired private ExposureService exposureService;
+    @Autowired private GroupService groupService;
+    @Autowired private LTIDataService ltiDataService;
+    @Autowired private OutcomeScoreService outcomeScoreService;
+    @Autowired private OutcomeService outcomeService;
+    @Autowired private ParticipantService participantService;
+    @Autowired private QuestionService questionService;
+    @Autowired private QuestionSubmissionCommentService questionSubmissionCommentService;
+    @Autowired private QuestionSubmissionService questionSubmissionService;
+    @Autowired private SubmissionCommentService submissionCommentService;
+    @Autowired private SubmissionService submissionService;
+    @Autowired private TreatmentService treatmentService;
 
     @Value("${app.token.logging.enabled:true}")
     private boolean tokenLoggingEnabled;

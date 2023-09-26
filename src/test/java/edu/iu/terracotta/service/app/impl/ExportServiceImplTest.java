@@ -29,10 +29,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import edu.iu.terracotta.BaseTest;
 import edu.iu.terracotta.exceptions.CanvasApiException;
-import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
-import edu.iu.terracotta.exceptions.IdInPostException;
-import edu.iu.terracotta.exceptions.MultipleChoiceLimitReachedException;
 import edu.iu.terracotta.exceptions.OutcomeNotMatchingException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.model.app.Assessment;
@@ -55,10 +52,8 @@ public class ExportServiceImplTest extends BaseTest {
     @InjectMocks
     private ExportServiceImpl exportService;
 
-
-
     @BeforeEach
-    public void beforeEach() throws IdInPostException, DataServiceException, MultipleChoiceLimitReachedException {
+    public void beforeEach() {
         MockitoAnnotations.openMocks(this);
 
         setup();
@@ -74,6 +69,7 @@ public class ExportServiceImplTest extends BaseTest {
         when(eventRepository.findByParticipant_Experiment_ExperimentId(anyLong())).thenReturn(Collections.emptyList());
         when(exposureGroupConditionRepository.findByGroup_GroupId(anyLong())).thenReturn(Collections.singletonList(exposureGroupCondition));
         when(exposureGroupConditionRepository.getByGroup_GroupIdAndExposure_ExposureId(anyLong(), anyLong())).thenReturn(Optional.empty());
+        when(outcomeRepository.findByExposure_Experiment_ExperimentId(anyLong())).thenReturn(Collections.singletonList(outcome));
         when(outcomeScoreRepository.findByOutcome_Exposure_Experiment_ExperimentId(anyLong(), any(Pageable.class)))
             .thenReturn(new PageImpl<>(Collections.singletonList(outcomeScore)))
             .thenReturn(new PageImpl<>(Collections.emptyList()));
@@ -92,7 +88,6 @@ public class ExportServiceImplTest extends BaseTest {
         when(treatmentRepository.findByCondition_ConditionIdAndAssignment_AssignmentId(anyLong(), anyLong())).thenReturn(Collections.singletonList(treatment));
 
         when(awsService.readFileFromS3Bucket(anyString(), anyString())).thenReturn(inputStream);
-        when(outcomeService.findAllByExperiment(anyLong())).thenReturn(Collections.singletonList(outcome));
         when(submissionService.getScoreFromMultipleSubmissions(any(Participant.class), any(Assessment.class))).thenReturn(null);
 
         when(assessment.getMultipleSubmissionScoringScheme()).thenReturn(MultipleSubmissionScoringScheme.MOST_RECENT);

@@ -47,10 +47,10 @@ public class OutcomeController {
     public static final String REQUEST_ROOT = "api/experiments/{experimentId}";
 
     @Autowired
-    private OutcomeService outcomeService;
+    private APIJWTService apijwtService;
 
     @Autowired
-    private APIJWTService apijwtService;
+    private OutcomeService outcomeService;
 
     @GetMapping("/exposures/{exposureId}/outcomes")
     public ResponseEntity<List<OutcomeDto>> allOutcomesByExposure(@PathVariable long experimentId,
@@ -66,7 +66,7 @@ public class OutcomeController {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
-        List<OutcomeDto> outcomeList = outcomeService.getOutcomes(exposureId);
+        List<OutcomeDto> outcomeList = outcomeService.getOutcomesForExposure(exposureId);
 
         if (outcomeList.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
@@ -143,7 +143,6 @@ public class OutcomeController {
 
             return new ResponseEntity<>(HttpStatus.OK);
     }
-
 
     @DeleteMapping("/exposures/{exposureId}/outcomes/{outcomeId}")
     public ResponseEntity<Void> deleteOutcome(@PathVariable long experimentId,

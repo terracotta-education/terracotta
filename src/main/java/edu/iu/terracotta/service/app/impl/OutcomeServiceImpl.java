@@ -36,7 +36,6 @@ import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.EnumUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -54,42 +53,29 @@ public class OutcomeServiceImpl implements OutcomeService {
     private AllRepositories allRepositories;
 
     @Autowired
+    private ExperimentService experimentService;
+
+    @Autowired
+    private ExposureService exposureService;
+
+    @Autowired
     private OutcomeScoreService outcomeScoreService;
 
     @Autowired
     private ParticipantService participantService;
 
     @Autowired
-    private ExposureService exposureService;
-
-    @Autowired
-    private ExperimentService experimentService;
-
-    @Autowired
     private CanvasAPIClient canvasAPIClient;
 
     @Override
-    public List<Outcome> findAllByExposureId(Long exposureId) {
-        return allRepositories.outcomeRepository.findByExposure_ExposureId(exposureId);
+    public List<OutcomeDto> getOutcomesForExposure(long exposureId) {
+        return CollectionUtils.emptyIfNull(allRepositories.outcomeRepository.findByExposure_ExposureId(exposureId)).stream()
+            .map(outcome -> toDto(outcome, false))
+            .toList();
     }
 
     @Override
-    public List<Outcome> findAllByExperiment(long experimentId) {
-        return allRepositories.outcomeRepository.findByExposure_Experiment_ExperimentId(experimentId);
-    }
-
-    @Override
-    public List<Outcome> findAllByExperiment(long experimentId, Pageable pageable) {
-        return allRepositories.outcomeRepository.findByExposure_Experiment_ExperimentId(experimentId, pageable).getContent();
-    }
-
-    @Override
-    public List<OutcomeDto> getOutcomes(Long exposureId) {
-        return CollectionUtils.emptyIfNull(findAllByExposureId(exposureId)).stream().map(outcome -> toDto(outcome, false)).toList();
-    }
-
-    @Override
-    public Outcome getOutcome(Long id) {
+    public Outcome getOutcome(long id) {
         return allRepositories.outcomeRepository.findByOutcomeId(id);
     }
 
@@ -109,7 +95,7 @@ public class OutcomeServiceImpl implements OutcomeService {
             throw new DataServiceException("Error 105: Unable to create Outcome: " + ex.getMessage(), ex);
         }
 
-        return toDto(save(outcome), false);
+        return toDto(allRepositories.outcomeRepository.save(outcome), false);
     }
 
     @Override
@@ -139,6 +125,12 @@ public class OutcomeServiceImpl implements OutcomeService {
 
     @Override
     public Outcome fromDto(OutcomeDto outcomeDto) throws DataServiceException {
+        Optional<Exposure> exposure = exposureService.findById(outcomeDto.getExposureId());
+
+        if (!exposure.isPresent()) {
+            throw new DataServiceException("Exposure for outcome does not exist.");
+        }
+
         Outcome outcome = new Outcome();
         outcome.setOutcomeId(outcomeDto.getOutcomeId());
         outcome.setTitle(outcomeDto.getTitle());
@@ -146,30 +138,19 @@ public class OutcomeServiceImpl implements OutcomeService {
         outcome.setMaxPoints(outcomeDto.getMaxPoints());
         outcome.setLmsOutcomeId(outcomeDto.getLmsOutcomeId());
         outcome.setExternal(outcomeDto.getExternal());
-        Optional<Exposure> exposure = exposureService.findById(outcomeDto.getExposureId());
-
-        if (!exposure.isPresent()) {
-            throw new DataServiceException("Exposure for outcome does not exist.");
-        }
-
         outcome.setExposure(exposure.get());
 
         return outcome;
     }
 
     @Override
-    public Outcome save(Outcome outcome) {
-        return allRepositories.outcomeRepository.save(outcome);
-    }
-
-    @Override
-    public Optional<Outcome> findById(Long id) {
+    public Optional<Outcome> findById(long id) {
         return allRepositories.outcomeRepository.findById(id);
     }
 
     @Override
-    public void updateOutcome(Long outcomeId, OutcomeDto outcomeDto) throws TitleValidationException {
-        Outcome outcome = getOutcome(outcomeId);
+    public void updateOutcome(long outcomeId, OutcomeDto outcomeDto) throws TitleValidationException {
+        Outcome outcome = allRepositories.outcomeRepository.findByOutcomeId(outcomeId);
 
         if (StringUtils.isAllBlank(outcomeDto.getTitle(), outcome.getTitle())) {
             throw new TitleValidationException("Error 100: Please give the outcome a title.");
@@ -179,7 +160,7 @@ public class OutcomeServiceImpl implements OutcomeService {
             throw new TitleValidationException("Error 101: The title must be 255 characters or less.");
         }
 
-        //only allow external to be changed if the current value is null. (Only allow it to be changed once)
+        // only allow external to be changed if the current value is null. (Only allow it to be changed once)
         if (outcome.getExternal() == null && outcomeDto.getExternal() != null) {
             outcome.setExternal(outcomeDto.getExternal());
 
@@ -195,35 +176,30 @@ public class OutcomeServiceImpl implements OutcomeService {
         outcome.setTitle(outcomeDto.getTitle());
         outcome.setMaxPoints(outcomeDto.getMaxPoints());
 
-        saveAndFlush(outcome);
+        allRepositories.outcomeRepository.saveAndFlush(outcome);
     }
 
     @Override
-    public void saveAndFlush(Outcome outcomeToChange) {
-        allRepositories.outcomeRepository.saveAndFlush(outcomeToChange);
-    }
-
-    @Override
-    public void deleteById(Long id) {
+    public void deleteById(long id) {
         allRepositories.outcomeRepository.deleteByOutcomeId(id);
     }
 
     @Override
-    public boolean outcomeBelongsToExperimentAndExposure(Long experimentId, Long exposureId, Long outcomeId) {
+    public boolean outcomeBelongsToExperimentAndExposure(long experimentId, long exposureId, long outcomeId) {
         return allRepositories.outcomeRepository.existsByExposure_Experiment_ExperimentIdAndExposure_ExposureIdAndOutcomeId(experimentId, exposureId, outcomeId);
     }
 
     @Override
-    public List<OutcomePotentialDto> potentialOutcomes(Long experimentId, SecuredInfo securedInfo) throws DataServiceException, CanvasApiException {
+    public List<OutcomePotentialDto> potentialOutcomes(long experimentId, SecuredInfo securedInfo) throws DataServiceException, CanvasApiException {
         Optional<Experiment> experiment = experimentService.findById(experimentId);
-        LtiUserEntity instructorUser = allRepositories.ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
-        List<Assignment> assignmentList = allRepositories.assignmentRepository.findByExposure_Experiment_ExperimentId(experimentId);
-        List<OutcomePotentialDto> outcomePotentialDtos = new ArrayList<>();
 
         if (!experiment.isPresent()) {
             throw new DataServiceException("Error 105: Experiment does not exist.");
         }
 
+        LtiUserEntity instructorUser = allRepositories.ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
+        List<Assignment> assignmentList = allRepositories.assignmentRepository.findByExposure_Experiment_ExperimentId(experimentId);
+        List<OutcomePotentialDto> outcomePotentialDtos = new ArrayList<>();
         String canvasCourseId = StringUtils.substringBetween(experiment.get().getLtiContextEntity().getContext_memberships_url(), "courses/", "/names");
         List<AssignmentExtended> assignmentExtendedList = canvasAPIClient.listAssignments(instructorUser, canvasCourseId);
 
@@ -259,7 +235,7 @@ public class OutcomeServiceImpl implements OutcomeService {
 
     @Override
     @Transactional
-    public void updateOutcomeGrades(Long outcomeId, SecuredInfo securedInfo) throws CanvasApiException, IOException, ParticipantNotUpdatedException, ExperimentNotMatchingException, OutcomeNotMatchingException {
+    public void updateOutcomeGrades(long outcomeId, SecuredInfo securedInfo) throws CanvasApiException, IOException, ParticipantNotUpdatedException, ExperimentNotMatchingException, OutcomeNotMatchingException {
         Optional<Outcome> outcomeSearchResult = this.findById(outcomeId);
 
         if (!outcomeSearchResult.isPresent()) {
@@ -267,9 +243,9 @@ public class OutcomeServiceImpl implements OutcomeService {
         }
 
         Outcome outcome = outcomeSearchResult.get();
-        //If this is not external we don't need to check the scores.
 
         if (BooleanUtils.isNotTrue(outcome.getExternal())) {
+            // this outcome is not external; don't need to check the scores
             return;
         }
 
@@ -283,7 +259,14 @@ public class OutcomeServiceImpl implements OutcomeService {
             boolean found = false;
 
             for (OutcomeScore outcomeScore : outcome.getOutcomeScores()) {
-                if (outcomeScore.getParticipant().getLtiUserEntity().getEmail() != null && outcomeScore.getParticipant().getLtiUserEntity().getEmail().equals(submission.getUser().getLoginId()) && outcomeScore.getParticipant().getLtiUserEntity().getDisplayName().equals(submission.getUser().getName())) {
+                if (outcomeScore.getParticipant().getLtiUserEntity() == null) {
+                    continue;
+                }
+
+                if (outcomeScore.getParticipant().getLtiUserEntity().getEmail() != null &&
+                    StringUtils.equals(outcomeScore.getParticipant().getLtiUserEntity().getEmail(), submission.getUser().getLoginId()) &&
+                    StringUtils.equals(outcomeScore.getParticipant().getLtiUserEntity().getDisplayName(), submission.getUser().getName())
+                ) {
                     found = true;
 
                     if (submission.getScore() == null) {
@@ -298,7 +281,11 @@ public class OutcomeServiceImpl implements OutcomeService {
 
             if (!found) {
                 for (OutcomeScore outcomeScore : outcome.getOutcomeScores()) {
-                    if (outcomeScore.getParticipant().getLtiUserEntity().getDisplayName().equals(submission.getUser().getName())) {
+                    if (outcomeScore.getParticipant().getLtiUserEntity() == null) {
+                        continue;
+                    }
+
+                    if (StringUtils.equals(outcomeScore.getParticipant().getLtiUserEntity().getDisplayName(), submission.getUser().getName())) {
                         found = true;
 
                         if (submission.getScore() == null) {
@@ -314,7 +301,14 @@ public class OutcomeServiceImpl implements OutcomeService {
 
             if (!found) {
                 for (Participant participant : outcome.getExposure().getExperiment().getParticipants()) {
-                    if (participant.getLtiUserEntity().getEmail() != null && participant.getLtiUserEntity().getEmail().equals(submission.getUser().getLoginId()) && participant.getLtiUserEntity().getDisplayName().equals(submission.getUser().getName())) {
+                    if (participant.getLtiUserEntity() == null) {
+                        continue;
+                    }
+
+                    if (participant.getLtiUserEntity().getEmail() != null &&
+                        StringUtils.equals(participant.getLtiUserEntity().getEmail(), submission.getUser().getLoginId()) &&
+                        StringUtils.equals(participant.getLtiUserEntity().getDisplayName(), submission.getUser().getName())
+                    ) {
                         found = true;
                         OutcomeScore outcomeScore = new OutcomeScore();
                         outcomeScore.setOutcome(outcome);
@@ -334,6 +328,10 @@ public class OutcomeServiceImpl implements OutcomeService {
 
             if (!found) {
                 for (Participant participant : outcome.getExposure().getExperiment().getParticipants()) {
+                    if (participant.getLtiUserEntity() == null) {
+                        continue;
+                    }
+
                     if (participant.getLtiUserEntity().getDisplayName().equals(submission.getUser().getName())) {
                         OutcomeScore outcomeScore = new OutcomeScore();
                         outcomeScore.setOutcome(outcome);
@@ -372,7 +370,7 @@ public class OutcomeServiceImpl implements OutcomeService {
     }
 
     @Override
-    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long exposureId, Long outcomeId) {
+    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, long experimentId, long exposureId, long outcomeId) {
         HttpHeaders headers = new HttpHeaders();
         headers.setLocation(ucBuilder.path("/api/experiments/{experimentId}/exposures/{exposureId}/outcomes/{outcomeId}")
                 .buildAndExpand(experimentId, exposureId, outcomeId).toUri());

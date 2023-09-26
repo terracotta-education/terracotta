@@ -12,7 +12,6 @@ import edu.iu.terracotta.model.app.dto.OutcomeDto;
 import edu.iu.terracotta.model.app.dto.OutcomePotentialDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import org.springframework.dao.EmptyResultDataAccessException;
-import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -22,15 +21,9 @@ import java.util.Optional;
 
 public interface OutcomeService {
 
-    List<Outcome> findAllByExposureId(Long exposureId);
+    List<OutcomeDto> getOutcomesForExposure(long exposureId);
 
-    List<Outcome> findAllByExperiment(long experimentId);
-
-    List<Outcome> findAllByExperiment(long experimentId, Pageable pageable);
-
-    List<OutcomeDto> getOutcomes(Long exposureId);
-
-    Outcome getOutcome(Long id);
+    Outcome getOutcome(long id);
 
     OutcomeDto postOutcome(OutcomeDto outcomeDto, long exposureId) throws IdInPostException, DataServiceException, TitleValidationException;
 
@@ -38,23 +31,20 @@ public interface OutcomeService {
 
     Outcome fromDto(OutcomeDto outcomeDto) throws DataServiceException;
 
-    Outcome save(Outcome outcome);
+    Optional<Outcome> findById(long id);
 
-    Optional<Outcome> findById(Long id);
+    void updateOutcome(long outcomeId, OutcomeDto outcomeDto) throws TitleValidationException;
 
-    void updateOutcome(Long outcomeId, OutcomeDto outcomeDto) throws TitleValidationException;
+    void deleteById(long id) throws EmptyResultDataAccessException;
 
-    void saveAndFlush(Outcome outcomeToChange);
+    boolean outcomeBelongsToExperimentAndExposure(long experimentId, long exposureId, long outcomeId);
 
-    void deleteById(Long id) throws EmptyResultDataAccessException;
+    List<OutcomePotentialDto> potentialOutcomes(long experimentId, SecuredInfo securedInfo) throws DataServiceException, CanvasApiException;
 
-    boolean outcomeBelongsToExperimentAndExposure(Long experimentId, Long exposureId, Long outcomeId);
-
-    List<OutcomePotentialDto> potentialOutcomes(Long experimentId, SecuredInfo securedInfo) throws DataServiceException, CanvasApiException;
-
-    void updateOutcomeGrades(Long outcomeId, SecuredInfo securedInfo) throws CanvasApiException, IOException, ParticipantNotUpdatedException, ExperimentNotMatchingException, OutcomeNotMatchingException;
+    void updateOutcomeGrades(long outcomeId, SecuredInfo securedInfo) throws CanvasApiException, IOException, ParticipantNotUpdatedException, ExperimentNotMatchingException, OutcomeNotMatchingException;
 
     void defaultOutcome(OutcomeDto outcomeDto) throws TitleValidationException;
 
-    HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long exposureId, Long outcomeId);
+    HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, long experimentId, long exposureId, long outcomeId);
+
 }

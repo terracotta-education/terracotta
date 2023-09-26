@@ -16,10 +16,7 @@ import org.mockito.MockitoAnnotations;
 
 import edu.iu.terracotta.BaseTest;
 import edu.iu.terracotta.exceptions.AssignmentNotMatchingException;
-import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.GroupNotMatchingException;
-import edu.iu.terracotta.exceptions.IdInPostException;
-import edu.iu.terracotta.exceptions.MultipleChoiceLimitReachedException;
 import edu.iu.terracotta.model.app.Group;
 import edu.iu.terracotta.utils.TextConstants;
 
@@ -28,7 +25,7 @@ public class GroupServiceImplTest extends BaseTest {
     @InjectMocks private GroupServiceImpl groupService;
 
     @BeforeEach
-    public void beforeEach() throws IdInPostException, DataServiceException, MultipleChoiceLimitReachedException {
+    public void beforeEach() {
         MockitoAnnotations.openMocks(this);
 
         setup();

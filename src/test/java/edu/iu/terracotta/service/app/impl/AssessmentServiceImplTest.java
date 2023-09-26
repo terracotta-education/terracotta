@@ -87,9 +87,8 @@ public class AssessmentServiceImplTest extends BaseTest {
     private Method verifySubmissionWaitTime;
 
     @BeforeEach
-    public void beforeEach() throws DataServiceException, AssessmentNotMatchingException, GroupNotMatchingException, ParticipantNotMatchingException,
-            ParticipantNotUpdatedException, AssignmentNotMatchingException, IdInPostException, NoSuchMethodException, SecurityException, QuestionNotMatchingException,
-            MultipleChoiceLimitReachedException, ExperimentNotMatchingException {
+    public void beforeEach() throws NoSuchMethodException, SecurityException, GroupNotMatchingException, ParticipantNotMatchingException, ParticipantNotUpdatedException,
+            AssignmentNotMatchingException, ExperimentNotMatchingException, DataServiceException, QuestionNotMatchingException {
         MockitoAnnotations.openMocks(this);
 
         setup();
