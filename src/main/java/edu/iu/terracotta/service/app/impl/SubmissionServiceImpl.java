@@ -513,12 +513,12 @@ public class SubmissionServiceImpl implements SubmissionService {
                     break;
             }
 
-            automatic = automatic + questionGraded.getCalculatedPoints();
+            automatic = automatic + (questionGraded.getCalculatedPoints() != null ? questionGraded.getCalculatedPoints() : 0f);
 
             if (questionGraded.getAlteredGrade() != null && !questionGraded.getAlteredGrade().isNaN()) {
                 manual = manual + questionGraded.getAlteredGrade();
             } else {
-                manual = manual + questionGraded.getCalculatedPoints();
+                manual = manual + (questionGraded.getCalculatedPoints() != null ? questionGraded.getCalculatedPoints() : 0f);
             }
             // TODO: If open question, we take the manual score for both, because the automatic will be always 0
         }
