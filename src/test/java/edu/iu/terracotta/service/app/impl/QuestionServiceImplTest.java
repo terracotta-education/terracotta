@@ -34,7 +34,7 @@ public class QuestionServiceImplTest extends BaseTest {
     @InjectMocks private QuestionServiceImpl questionService;
 
     @BeforeEach
-    public void beforeEach() throws DataServiceException, AssessmentNotMatchingException, QuestionNotMatchingException, IdInPostException, MultipleChoiceLimitReachedException {
+    public void beforeEach() throws QuestionNotMatchingException {
         MockitoAnnotations.openMocks(this);
 
         setup();

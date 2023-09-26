@@ -15,9 +15,6 @@ import org.mockito.InjectMocks;
 import org.mockito.MockitoAnnotations;
 
 import edu.iu.terracotta.BaseTest;
-import edu.iu.terracotta.exceptions.DataServiceException;
-import edu.iu.terracotta.exceptions.IdInPostException;
-import edu.iu.terracotta.exceptions.MultipleChoiceLimitReachedException;
 import edu.iu.terracotta.model.LtiContextEntity;
 import edu.iu.terracotta.model.LtiUserEntity;
 import io.jsonwebtoken.Claims;
@@ -32,7 +29,7 @@ public class APIJWTServiceImplTest extends BaseTest {
     private Map<String, Object> customVars;
 
     @BeforeEach
-    public void beforeEach() throws IdInPostException, DataServiceException, MultipleChoiceLimitReachedException {
+    public void beforeEach() {
         MockitoAnnotations.openMocks(this);
 
         setup();

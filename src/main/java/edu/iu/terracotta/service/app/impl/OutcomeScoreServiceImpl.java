@@ -35,7 +35,9 @@ public class OutcomeScoreServiceImpl implements OutcomeScoreService {
     private ParticipantService participantService;
 
     @Override
-    public List<OutcomeScore> findAllByOutcomeId(Long outcomeId) { return allRepositories.outcomeScoreRepository.findByOutcome_OutcomeId(outcomeId);}
+    public List<OutcomeScore> findAllByOutcomeId(Long outcomeId) {
+        return allRepositories.outcomeScoreRepository.findByOutcome_OutcomeId(outcomeId);
+    }
 
     @Override
     public List<OutcomeScoreDto> getOutcomeScores(Long outcomeId) {

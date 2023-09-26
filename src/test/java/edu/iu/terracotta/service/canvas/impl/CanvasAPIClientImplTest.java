@@ -23,10 +23,7 @@ import org.mockito.Spy;
 
 import edu.iu.terracotta.BaseTest;
 import edu.iu.terracotta.exceptions.CanvasApiException;
-import edu.iu.terracotta.exceptions.DataServiceException;
-import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.LMSOAuthException;
-import edu.iu.terracotta.exceptions.MultipleChoiceLimitReachedException;
 import edu.iu.terracotta.model.LtiUserEntity;
 import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.model.canvas.AssignmentExtended;
@@ -49,7 +46,7 @@ public class CanvasAPIClientImplTest extends BaseTest {
     private CanvasAPITokenEntity canvasAPIToken;
 
     @BeforeEach
-    public void beforeEach() throws IdInPostException, DataServiceException, MultipleChoiceLimitReachedException {
+    public void beforeEach() {
         MockitoAnnotations.openMocks(this);
 
         setup();

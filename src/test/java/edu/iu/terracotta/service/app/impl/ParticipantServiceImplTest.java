@@ -35,11 +35,8 @@ import org.mockito.Spy;
 import edu.iu.terracotta.BaseTest;
 import edu.iu.terracotta.exceptions.AssignmentNotMatchingException;
 import edu.iu.terracotta.exceptions.ConnectionException;
-import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.GroupNotMatchingException;
-import edu.iu.terracotta.exceptions.IdInPostException;
-import edu.iu.terracotta.exceptions.MultipleChoiceLimitReachedException;
 import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.model.LtiContextEntity;
@@ -62,7 +59,7 @@ public class ParticipantServiceImplTest extends BaseTest {
     private ParticipantServiceImpl participantService;
 
     @BeforeEach
-    public void beforeEach() throws ParticipantNotUpdatedException, GroupNotMatchingException, AssignmentNotMatchingException, IdInPostException, DataServiceException, MultipleChoiceLimitReachedException {
+    public void beforeEach() throws GroupNotMatchingException, AssignmentNotMatchingException {
         MockitoAnnotations.openMocks(this);
 
         setup();

@@ -21,9 +21,6 @@ import org.mockito.InjectMocks;
 import org.mockito.MockitoAnnotations;
 
 import edu.iu.terracotta.BaseTest;
-import edu.iu.terracotta.exceptions.DataServiceException;
-import edu.iu.terracotta.exceptions.IdInPostException;
-import edu.iu.terracotta.exceptions.MultipleChoiceLimitReachedException;
 import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
 import edu.iu.terracotta.model.app.AnswerMc;
 import edu.iu.terracotta.model.app.dto.AnswerDto;
@@ -34,7 +31,7 @@ public class AnswerServiceImplTest extends BaseTest {
     @InjectMocks private AnswerServiceImpl answerService;
 
     @BeforeEach
-    public void beforeEach() throws IdInPostException, DataServiceException, MultipleChoiceLimitReachedException {
+    public void beforeEach() {
         MockitoAnnotations.openMocks(this);
 
         setup();

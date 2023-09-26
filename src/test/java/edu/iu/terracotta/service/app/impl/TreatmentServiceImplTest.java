@@ -55,7 +55,7 @@ public class TreatmentServiceImplTest extends BaseTest {
     @Mock private TreatmentDto treatmentDtoToUpdate;
 
     @BeforeEach
-    public void beforeEach() throws DataServiceException, AssessmentNotMatchingException, CanvasApiException, TreatmentNotMatchingException, QuestionNotMatchingException, IdInPostException, MultipleChoiceLimitReachedException {
+    public void beforeEach() throws DataServiceException, AssessmentNotMatchingException, TreatmentNotMatchingException, QuestionNotMatchingException {
         MockitoAnnotations.openMocks(this);
 
         setup();

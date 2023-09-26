@@ -28,7 +28,6 @@ import edu.iu.terracotta.BaseTest;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.InvalidUserException;
-import edu.iu.terracotta.exceptions.MultipleChoiceLimitReachedException;
 import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
 import edu.iu.terracotta.exceptions.SubmissionNotMatchingException;
 import edu.iu.terracotta.model.app.AnswerMcSubmission;
@@ -46,7 +45,7 @@ public class SubmissionServiceImplTest extends BaseTest {
     @InjectMocks private SubmissionServiceImpl submissionService;
 
     @BeforeEach
-    public void beforeEach() throws IdInPostException, DataServiceException, MultipleChoiceLimitReachedException {
+    public void beforeEach() {
         MockitoAnnotations.openMocks(this);
 
         setup();
