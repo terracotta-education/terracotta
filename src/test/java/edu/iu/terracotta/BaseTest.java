@@ -28,6 +28,7 @@ import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.model.app.AnswerEssaySubmission;
 import edu.iu.terracotta.model.app.AnswerMc;
 import edu.iu.terracotta.model.app.AnswerMcSubmission;
+import edu.iu.terracotta.model.app.AnswerMcSubmissionOption;
 import edu.iu.terracotta.model.app.Assessment;
 import edu.iu.terracotta.model.app.Assignment;
 import edu.iu.terracotta.model.app.Condition;
@@ -55,9 +56,11 @@ import edu.iu.terracotta.model.app.dto.QuestionSubmissionCommentDto;
 import edu.iu.terracotta.model.app.dto.TreatmentDto;
 import edu.iu.terracotta.model.app.enumerator.DistributionTypes;
 import edu.iu.terracotta.model.app.enumerator.ExposureTypes;
+import edu.iu.terracotta.model.app.enumerator.MultipleSubmissionScoringScheme;
 import edu.iu.terracotta.model.app.enumerator.ParticipationTypes;
 import edu.iu.terracotta.model.app.enumerator.QuestionTypes;
 import edu.iu.terracotta.model.canvas.AssignmentExtended;
+import edu.iu.terracotta.model.events.Event;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.repository.AnswerEssaySubmissionRepository;
@@ -179,6 +182,7 @@ public class BaseTest {
     @Mock protected AnswerEssaySubmission answerEssaySubmission;
     @Mock protected AnswerMc answerMc;
     @Mock protected AnswerMcSubmission answerMcSubmission;
+    @Mock protected AnswerMcSubmissionOption answerMcSubmissionOption;
     @Mock protected AnswerSubmissionDto answerSubmissionDto;
     @Mock protected Assessment assessment;
     @Mock protected AssessmentDto assessmentDto;
@@ -189,6 +193,7 @@ public class BaseTest {
     @Mock protected Claims claims;
     @Mock protected Condition condition;
     @Mock protected Environment environment;
+    @Mock protected Event event;
     @Mock protected Experiment experiment;
     @Mock protected Exposure exposure;
     @Mock protected ExposureGroupCondition exposureGroupCondition;
@@ -247,18 +252,24 @@ public class BaseTest {
 
         try {
             when(answerMcRepository.save(any(AnswerMc.class))).thenReturn(answerMc);
+            when(answerEssaySubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(anyLong())).thenReturn(Collections.singletonList(answerEssaySubmission));
+            when(answerMcSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(anyLong())).thenReturn(Collections.singletonList(answerMcSubmission));
             when(assessmentRepository.findByAssessmentId(anyLong())).thenReturn(assessment);
             when(assessmentRepository.findById(anyLong())).thenReturn(Optional.of(assessment));
             when(assessmentRepository.save(any(Assessment.class))).thenReturn(assessment);
             when(assignmentRepository.findByAssignmentId(anyLong())).thenReturn(assignment);
             when(assignmentRepository.findByExposure_Experiment_ExperimentId(anyLong())).thenReturn(Collections.singletonList(assignment));
+            when(assignmentRepository.findByExposure_ExposureIdAndSoftDeleted(anyLong(), anyBoolean())).thenReturn(Collections.singletonList(assignment));
             when(assignmentRepository.findById(anyLong())).thenReturn(Optional.of(assignment));
             when(assignmentRepository.getReferenceById(anyLong())).thenReturn(assignment);
             when(assignmentRepository.save(any(Assignment.class))).thenReturn(assignment);
             when(assignmentRepository.saveAndFlush(any(Assignment.class))).thenReturn(assignment);
+            when(conditionRepository.findByExperiment_ExperimentId(anyLong())).thenReturn(Collections.singletonList(condition));
             when(conditionRepository.findById(anyLong())).thenReturn(Optional.of(condition));
             when(experimentRepository.findByExperimentId(anyLong())).thenReturn(experiment);
             when(experimentRepository.findById(anyLong())).thenReturn(Optional.of(experiment));
+            when(exposureGroupConditionRepository.findByCondition_Experiment_ExperimentId(anyLong())).thenReturn(Collections.singletonList(exposureGroupCondition));
+            when(exposureGroupConditionRepository.findByGroup_GroupId(anyLong())).thenReturn(Collections.singletonList(exposureGroupCondition));
             when(exposureRepository.findById(anyLong())).thenReturn(Optional.of(exposure));
             when(ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(anyString(), anyLong())).thenReturn(ltiUserEntity);
             when(outcomeRepository.findByExposure_Experiment_ExperimentId(anyLong(), any(Pageable.class))).thenReturn(new PageImpl<>(Collections.singletonList(outcome)));
@@ -275,6 +286,8 @@ public class BaseTest {
             when(submissionRepository.findById(anyLong())).thenReturn(Optional.of(submission));
             when(submissionRepository.findBySubmissionId(anyLong())).thenReturn(submission);
             when(submissionRepository.save(any(Submission.class))).thenReturn(submission);
+            when(treatmentRepository.findByCondition_ConditionIdAndAssignment_AssignmentId(anyLong(), anyLong())).thenReturn(Collections.singletonList(treatment));
+            when(treatmentRepository.findByCondition_Experiment_ExperimentId(anyLong())).thenReturn(Collections.singletonList(treatment));
             when(treatmentRepository.findById(anyLong())).thenReturn(Optional.of(treatment));
             when(treatmentRepository.findByTreatmentId(anyLong())).thenReturn(treatment);
             when(treatmentRepository.save(any(Treatment.class))).thenReturn(treatment);
@@ -303,7 +316,10 @@ public class BaseTest {
             when(answerMc.getCorrect()).thenReturn(true);
             when(answerMc.getQuestion()).thenReturn(questionMc);
             when(answerMcSubmission.getAnswerMc()).thenReturn(answerMc);
+            when(answerMcSubmissionOption.getAnswerMc()).thenReturn(answerMc);
+            when(answerMcSubmissionOption.getAnswerOrder()).thenReturn(0);
             when(assessment.getAssessmentId()).thenReturn(1L);
+            when(assessment.getMultipleSubmissionScoringScheme()).thenReturn(MultipleSubmissionScoringScheme.MOST_RECENT);
             when(assessment.canViewCorrectAnswers()).thenReturn(true);
             when(assessment.canViewResponses()).thenReturn(true);
             when(assessment.getTreatment()).thenReturn(treatment);
@@ -312,6 +328,7 @@ public class BaseTest {
             when(assignment.getAssignmentId()).thenReturn(1L);
             when(assignment.getExposure()).thenReturn(exposure);
             when(assignment.getLmsAssignmentId()).thenReturn("1");
+            when(assignment.getSoftDeleted()).thenReturn(false);
             when(assignment.getTitle()).thenReturn(ASSIGNMENT_TITLE);
             when(assignmentDto.getAssignmentId()).thenReturn(1L);
             when(assignmentExtended.getId()).thenReturn(1);
@@ -319,7 +336,10 @@ public class BaseTest {
             when(condition.getConditionId()).thenReturn(1L);
             when(condition.getExperiment()).thenReturn(experiment);
             when(condition.getName()).thenReturn(CONDITION_TITLE);
+            when(event.getJson()).thenReturn(eventJson());
+            when(event.getParticipant()).thenReturn(participant);
             when(experiment.getConditions()).thenReturn(Collections.singletonList(condition));
+            when(experiment.getCreatedAt()).thenReturn(new Timestamp(System.currentTimeMillis()));
             when(experiment.getDistributionType()).thenReturn(DistributionTypes.CUSTOM);
             when(experiment.getExperimentId()).thenReturn(1L);
             when(experiment.getExposureType()).thenReturn(ExposureTypes.BETWEEN);
@@ -351,6 +371,7 @@ public class BaseTest {
             when(outcomeScore.getOutcome()).thenReturn(outcome);
             when(outcomeScore.getParticipant()).thenReturn(participant);
             when(participant.getConsent()).thenReturn(true);
+            when(participant.getDateGiven()).thenReturn(Timestamp.from(Instant.now()));
             when(participant.getExperiment()).thenReturn(experiment);
             when(participant.getGroup()).thenReturn(group);
             when(participant.getLtiUserEntity()).thenReturn(ltiUserEntity);
@@ -398,6 +419,80 @@ public class BaseTest {
         } catch (Exception e) {
             log.error("Exception occurred in test setup()", e);
         }
+    }
+
+    private String eventJson() {
+        return """
+            {
+            \"sendTime\": \"2023-09-27T12:51:26.874Z\",
+            \"dataVersion\": \"http://purl.imsglobal.org/ctx/caliper/v1p2\",
+            \"data\":
+            [
+                {
+                \"@context\": \"http://purl.imsglobal.org/ctx/caliper/v1p2\",
+                \"type\": \"ToolUseEvent\",
+                \"id\": \"urn:uuid:08164d74-1c50-4318-b1e2-4cec525fdbf2\",
+                \"actor\":
+                {
+                    \"id\": \"https://bob.terracotta.education/users/2\",
+                    \"type\": \"Person\",
+                    \"extensions\":
+                    {
+                        \"lti_id\": \"d8ad9069-11fe-4123-bb0d-78b370db3758\",
+                        \"lti_tenant\": \"https://terracotta.instructure.com\",
+                        \"canvas_global_id\": \"202570000000000196\"
+                    }
+                },
+                \"action\": \"Used\",
+                \"object\":
+                {
+                    \"id\": \"https://bob.terracotta.education\",
+                    \"type\": \"SoftwareApplication\",
+                    \"name\": \"Terracotta Bob\"
+                },
+                \"referrer\":
+                {
+                    \"id\": \"https://terracotta.instructure.com\",
+                    \"type\": \"SoftwareApplication\"
+                },
+                \"eventTime\": \"2023-09-27T12:51:26.810Z\",
+                \"edApp\":
+                {
+                    \"id\": \"https://bob.terracotta.education\",
+                    \"type\": \"SoftwareApplication\",
+                    \"name\": \"Terracotta Bob\"
+                },
+                \"group\":
+                {
+                    \"id\": \"https://terracotta.instructure.com/courses/106\",
+                    \"type\": \"CourseOffering\",
+                    \"name\": \"Terracotta QA Course\"
+                },
+                \"federatedSession\":
+                {
+                    \"id\": \"urn:session_id_localized:https://bob.terracotta.education/lti/oauth_nonce/null\",
+                    \"type\": \"LtiSession\",
+                    \"messageParameters\":
+                    {
+                    \"canvas_course_id\": \"106\",
+                    \"lti_context_id\": \"93e5df5143152919f977e68e399f71a62eceb6d8\",
+                    \"canvas_login_id\": \"rlong@unicon.net\",
+                    \"canvas_roles\":
+                    [
+                        \"http://purl.imsglobal.org/vocab/lis/v2/institution/person#Administrator\",
+                        \"http://purl.imsglobal.org/vocab/lis/v2/institution/person#Instructor\",
+                        \"http://purl.imsglobal.org/vocab/lis/v2/membership#Instructor\",
+                        \"http://purl.imsglobal.org/vocab/lis/v2/system/person#User\"
+                    ],
+                    \"canvas_user_name\": \"rlong@unicon.net\",
+                    \"canvas_user_id\": \"196\",
+                    \"canvas_user_global_id\": \"202570000000000196\"
+                    }
+                }
+                }
+            ]
+            }
+        """;
     }
 
 }
