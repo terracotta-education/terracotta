@@ -81,7 +81,7 @@ public class Participant extends BaseEntity {
     @Transient
     public boolean isTestStudent() {
         if (ltiUserEntity == null) {
-            return false;
+            return true;
         }
 
         return ltiUserEntity.isTestStudent();

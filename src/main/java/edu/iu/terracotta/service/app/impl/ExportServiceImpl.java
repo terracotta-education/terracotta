@@ -237,12 +237,15 @@ public class ExportServiceImpl implements ExportService {
 
             while (CollectionUtils.isNotEmpty(outcomeScores)) {
                 outcomeScores.stream()
+                    .filter(outcomeScore -> !outcomeScore.getParticipant().isTestStudent())
                     .filter(outcomeScore -> BooleanUtils.isTrue(outcomeScore.getParticipant().getConsent()))
                     .forEach(outcomeScore -> {
                         if (outcomeScore.getParticipant().getGroup() != null) {
                             // participant has been assigned to a group; get exposure group condition
                             Optional<ExposureGroupCondition> exposureGroupCondition = findExposureGroupConditionByGroupIdAndExposureId(
-                                    outcomeScore.getParticipant().getGroup().getGroupId(), outcomeScore.getOutcome().getExposure().getExposureId());
+                                outcomeScore.getParticipant().getGroup().getGroupId(),
+                                outcomeScore.getOutcome().getExposure().getExposureId()
+                            );
 
                             if (exposureGroupCondition.isPresent()) {
                                 writer.writeNext(new String[] {
@@ -395,7 +398,9 @@ public class ExportServiceImpl implements ExportService {
 
             while (CollectionUtils.isNotEmpty(submissions)) {
                 CollectionUtils.emptyIfNull(submissions).stream()
-                    .filter(submission -> submission.getParticipant().getConsent() != null && submission.getParticipant().getConsent() && submission.getDateSubmitted() != null)
+                    .filter(submission -> submission.getDateSubmitted() != null)
+                    .filter(submission -> submission.getParticipant().getLtiUserEntity() != null && !submission.getParticipant().isTestStudent())
+                    .filter(submission -> BooleanUtils.isTrue(submission.getParticipant().getConsent()))
                     .forEach(submission ->
                         writer.writeNext(new String[] {
                             submission.getSubmissionId().toString(),
@@ -433,7 +438,8 @@ public class ExportServiceImpl implements ExportService {
                             question.getAssessment().getTreatment().getTreatmentId().toString(),
                             question.getAssessment().getTreatment().getCondition().getConditionId().toString(),
                             StringUtils.isNotBlank(question.getHtml()) ? question.getHtml() : NA,
-                            question.getQuestionType().toString()})
+                            question.getQuestionType().toString()
+                        })
                     );
 
                 questions = allRepositories.questionRepository.findByAssessment_Treatment_Condition_Experiment_ExperimentId(experimentId, PageRequest.of(++page, exportBatchSize)).getContent();
@@ -453,6 +459,7 @@ public class ExportServiceImpl implements ExportService {
 
             while (CollectionUtils.isNotEmpty(questionSubmissions)) {
                 CollectionUtils.emptyIfNull(questionSubmissions).stream()
+                    .filter(questionSubmission -> !questionSubmission.getSubmission().getParticipant().isTestStudent())
                     .filter(questionSubmission -> BooleanUtils.isNotFalse(questionSubmission.getSubmission().getParticipant().getConsent()))
                     .forEach(questionSubmission -> {
                         String response = NA;
@@ -584,6 +591,7 @@ public class ExportServiceImpl implements ExportService {
 
             while (CollectionUtils.isNotEmpty(events)) {
                 CollectionUtils.emptyIfNull(events).stream()
+                    .filter(event -> !event.getParticipant().isTestStudent())
                     .filter(event -> BooleanUtils.isNotFalse(event.getParticipant().getConsent()) && event.getJson() != null)
                     .forEach(event -> {
                         if (!isFirstElement.getAndSet(false)) {
@@ -622,8 +630,7 @@ public class ExportServiceImpl implements ExportService {
      */
     public char mapResponsePosition(Long questionId, Long answerId, List<AnswerMcSubmissionOption> answerMcSubmissionOptions) {
         List<AnswerMc> answerList = null;
-        // Randomized option order is stored in AnswerMcSubmissionOptions, sort
-        // AnswerMc's by its order
+        // Randomized option order is stored in AnswerMcSubmissionOptions, sort AnswerMcs by its order
         if (answerMcSubmissionOptions.stream().anyMatch(o -> o.getAnswerMc().getAnswerMcId().equals(answerId))) {
             answerMcSubmissionOptions.sort(Comparator.comparingInt(AnswerMcSubmissionOption::getAnswerOrder));
             answerList = answerMcSubmissionOptions.stream()
@@ -668,7 +675,7 @@ public class ExportServiceImpl implements ExportService {
             return objectMapper.writeValueAsString(root);
         } catch (JsonProcessingException e) {
             log.error("Failure while trying to remove personally identifying information from event JSON", e);
-            // For safety, just return an empty object
+            // return an empty object
             return "{}";
         }
     }

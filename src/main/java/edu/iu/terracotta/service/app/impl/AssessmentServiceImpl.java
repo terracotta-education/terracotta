@@ -785,16 +785,16 @@ public class AssessmentServiceImpl implements AssessmentService {
             return;
         }
 
-        log.info("Regrade option selected: [{}] with edited MC question IDs: [{}]",
-            regradeDetails.getRegradeOption(),
-            StringUtils.join(regradeDetails.getEditedMCQuestionIds(), ",")
-        );
-
         if (RegradeOption.NA == regradeDetails.getRegradeOption()) {
             return;
         }
 
-        log.info("Processing regrade for assessment ID: [{}]", assessmentId);
+        log.info("Processing regrade option: [{}] with edited MC question IDs: [{}] for assessment ID: [{}]",
+            regradeDetails.getRegradeOption(),
+            StringUtils.join(regradeDetails.getEditedMCQuestionIds(), ","),
+            assessmentId
+        );
+
         List<Submission> submissions = allRepositories.submissionRepository.findByAssessment_AssessmentId(assessmentId);
 
         // regrade option selected; perform regrade
