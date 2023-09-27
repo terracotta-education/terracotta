@@ -259,7 +259,7 @@ public class OutcomeServiceImpl implements OutcomeService {
             boolean found = false;
 
             for (OutcomeScore outcomeScore : outcome.getOutcomeScores()) {
-                if (outcomeScore.getParticipant().getLtiUserEntity() == null) {
+                if (outcomeScore.getParticipant().isTestStudent()) {
                     continue;
                 }
 
@@ -281,7 +281,7 @@ public class OutcomeServiceImpl implements OutcomeService {
 
             if (!found) {
                 for (OutcomeScore outcomeScore : outcome.getOutcomeScores()) {
-                    if (outcomeScore.getParticipant().getLtiUserEntity() == null) {
+                    if (outcomeScore.getParticipant().isTestStudent()) {
                         continue;
                     }
 
@@ -301,7 +301,7 @@ public class OutcomeServiceImpl implements OutcomeService {
 
             if (!found) {
                 for (Participant participant : outcome.getExposure().getExperiment().getParticipants()) {
-                    if (participant.getLtiUserEntity() == null) {
+                    if (participant.isTestStudent()) {
                         continue;
                     }
 
@@ -328,7 +328,7 @@ public class OutcomeServiceImpl implements OutcomeService {
 
             if (!found) {
                 for (Participant participant : outcome.getExposure().getExperiment().getParticipants()) {
-                    if (participant.getLtiUserEntity() == null) {
+                    if (participant.isTestStudent()) {
                         continue;
                     }
 

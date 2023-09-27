@@ -159,10 +159,10 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
     // this method isn't technically fully transactional. The dto is validated beforehand.
     public List<QuestionSubmissionDto> postQuestionSubmissions(List<QuestionSubmissionDto> questionSubmissionDtoList, long assessmentId, long submissionId, boolean student) throws DataServiceException {
         List<QuestionSubmissionDto> returnedDtoList = new ArrayList<>();
+        log.debug("Creating {} question submissions for submission ID: [{}]", questionSubmissionDtoList.size(), submissionId);
 
         try {
             for (QuestionSubmissionDto questionSubmissionDto : questionSubmissionDtoList) {
-                log.debug("Creating question submission for submission ID: [{}]", submissionId);
                 questionSubmissionDto.setSubmissionId(submissionId);
                 QuestionSubmission questionSubmission;
                 questionSubmission = fromDto(questionSubmissionDto);
