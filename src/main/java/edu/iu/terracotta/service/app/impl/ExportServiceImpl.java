@@ -729,28 +729,28 @@ public class ExportServiceImpl implements ExportService {
 
     private List<ExposureGroupCondition> findExposureGroupConditionByGroupId(long groupId) {
         return exposureGroupConditions.stream()
-            .filter(exposureGroupCondition -> exposureGroupCondition.getGroup().getGroupId() == groupId)
+            .filter(exposureGroupCondition -> exposureGroupCondition.getGroup().getGroupId().equals(groupId))
             .toList();
     }
 
     private Optional<ExposureGroupCondition> findExposureGroupConditionByGroupIdAndExposureId(long groupId, long exposureId) {
         return exposureGroupConditions.stream()
-            .filter(exposureGroupCondition -> exposureGroupCondition.getGroup().getGroupId() == groupId)
-            .filter(exposureGroupCondition -> exposureGroupCondition.getExposure().getExposureId() == exposureId)
+            .filter(exposureGroupCondition -> exposureGroupCondition.getGroup().getGroupId().equals(groupId))
+            .filter(exposureGroupCondition -> exposureGroupCondition.getExposure().getExposureId().equals(exposureId))
             .findFirst();
     }
 
     private List<Assignment> findAssignmentsByExposureIdAndActive(long exposureId) {
         return assignments.stream()
             .filter(assignment -> BooleanUtils.isNotTrue(assignment.getSoftDeleted()))
-            .filter(assignment -> assignment.getExposure().getExposureId() == exposureId)
+            .filter(assignment -> assignment.getExposure().getExposureId().equals(exposureId))
             .toList();
     }
 
     private List<Treatment> findTreatmentByConditionIdAndAssignmentId(long conditionId, long assignmentId) {
         return treatments.stream()
-            .filter(treatment -> treatment.getCondition().getConditionId() == conditionId)
-            .filter(treatment -> treatment.getAssignment().getAssignmentId() == assignmentId)
+            .filter(treatment -> treatment.getCondition().getConditionId().equals(conditionId))
+            .filter(treatment -> treatment.getAssignment().getAssignmentId().equals(assignmentId))
             .toList();
     }
 
