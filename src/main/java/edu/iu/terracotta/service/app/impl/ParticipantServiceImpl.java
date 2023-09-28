@@ -69,29 +69,14 @@ import java.util.Optional;
 @SuppressWarnings({"PMD.UselessParentheses", "PMD.GuardLogStatement", "PMD.PreserveStackTrace", "squid:S112", "squid:S1066"})
 public class ParticipantServiceImpl implements ParticipantService {
 
-    @Autowired
-    private AllRepositories allRepositories;
-
-    @Autowired
-    private AdvantageMembershipService advantageMembershipService;
-
-    @Autowired
-    private LTIDataService ltiDataService;
-
-    @Autowired
-    private GroupService groupService;
-
-    @Autowired
-    private ExperimentService experimentService;
-
-    @Autowired
-    private AdvantageAGSService advantageAGSService;
-
-    @Autowired
-    private CanvasAPIClient canvasAPIClient;
-
-    @Autowired
-    private APIJWTService apijwtService;
+    @Autowired private AllRepositories allRepositories;
+    @Autowired private AdvantageAGSService advantageAGSService;
+    @Autowired private AdvantageMembershipService advantageMembershipService;
+    @Autowired private APIJWTService apijwtService;
+    @Autowired private CanvasAPIClient canvasAPIClient;
+    @Autowired private ExperimentService experimentService;
+    @Autowired private GroupService groupService;
+    @Autowired private LTIDataService ltiDataService;
 
     @Override
     public List<Participant> findAllByExperimentId(long experimentId) {
@@ -100,23 +85,21 @@ public class ParticipantServiceImpl implements ParticipantService {
 
     @Override
     public List<ParticipantDto> getParticipants(List<Participant> participants, long experimentId, String userId, boolean student) {
-        List<ParticipantDto> participantDtoList = new ArrayList<>();
-
         if (!student) {
-            for (Participant participant : participants) {
-                participantDtoList.add(toDto(participant));
-            }
-            return participantDtoList;
+            return participants.stream()
+                .filter(participant -> !participant.isTestStudent())
+                .map(participant -> toDto(participant))
+                .toList();
         }
 
         try {
-            participantDtoList.add(toDto(allRepositories.participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, userId)));
+            return Collections.singletonList(
+                toDto(allRepositories.participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, userId))
+            );
         } catch (NullPointerException ex) {
-            //A null pointer means that there is no participant for this experiment with that userId. We will return an empty list.
-            return participantDtoList;
+            // NPE == no participant for this experiment with that userId; return an empty list
+            return Collections.emptyList();
         }
-
-        return participantDtoList;
     }
 
     @Override
@@ -149,7 +132,7 @@ public class ParticipantServiceImpl implements ParticipantService {
             throw new DataServiceException("Error 105: Unable to create the participant:" + e.getMessage(), e);
         }
 
-        return toDto(save(participant));
+        return toDto(allRepositories.participantRepository.save(participant));
     }
 
     @Override
@@ -180,16 +163,6 @@ public class ParticipantServiceImpl implements ParticipantService {
         userDto.setDisplayName(user.getDisplayName());
 
         return userDto;
-    }
-
-    @Override
-    public Optional<Participant> findById(Long id) {
-        return allRepositories.participantRepository.findById(id);
-    }
-
-    @Override
-    public Optional<Participant> findByParticipantIdAndExperimentId(Long participantId, Long experimentId) {
-        return allRepositories.participantRepository.findByParticipantIdAndExperiment_ExperimentId(participantId, experimentId);
     }
 
     @Override
@@ -232,16 +205,6 @@ public class ParticipantServiceImpl implements ParticipantService {
     @Override
     public void saveAndFlush(Participant participantToChange) {
         allRepositories.participantRepository.saveAndFlush(participantToChange);
-    }
-
-    @Override
-    public Participant save(Participant participant) {
-        return allRepositories.participantRepository.save(participant);
-    }
-
-    @Override
-    public void deleteById(Long id) {
-        allRepositories.participantRepository.deleteByParticipantId(id);
     }
 
     @Override
@@ -315,7 +278,7 @@ public class ParticipantServiceImpl implements ParticipantService {
      * @param experiment
      * @param participant
      */
-    private void resetParticipantConsentIfExperimentNotStarted(Experiment experiment, Participant participant) {
+    public void resetParticipantConsentIfExperimentNotStarted(Experiment experiment, Participant participant) {
         if (experiment.getStarted() == null && experiment.getParticipationType() != participant.getSource()) {
             switch (participant.getSource()) {
                 case NOSET:
@@ -447,11 +410,6 @@ public class ParticipantServiceImpl implements ParticipantService {
     }
 
     @Override
-    public boolean participantBelongsToExperiment(Long experimentId, Long participantId) {
-        return allRepositories.participantRepository.existsByExperiment_ExperimentIdAndParticipantId(experimentId, participantId);
-    }
-
-    @Override
     @Transactional
     public void prepareParticipation(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException, ExperimentNotMatchingException {
         List<Participant> currentParticipantList = findAllByExperimentId(experimentId);
@@ -492,8 +450,8 @@ public class ParticipantServiceImpl implements ParticipantService {
             // We don't allow changing the group (manually) once the experiment has started.
             if (!hasStarted(participantToChange)) {
                 if (participantDto.getGroupId() != null
-                        && groupService.existsByExperiment_ExperimentIdAndGroupId(experiment.getExperimentId(), participantDto.getGroupId())) {
-                    participantToChange.setGroup(groupService.getGroup(participantDto.getGroupId()));
+                        && allRepositories.groupRepository.existsByExperiment_ExperimentIdAndGroupId(experiment.getExperimentId(), participantDto.getGroupId())) {
+                    participantToChange.setGroup(allRepositories.groupRepository.findByGroupId(participantDto.getGroupId()));
                 } else {
                     participantToChange.setGroup(null);
                 }
@@ -503,7 +461,7 @@ public class ParticipantServiceImpl implements ParticipantService {
                 participantToChange.setSource(experiment.getParticipationType());
             }
 
-            save(participantToChange);
+            allRepositories.participantRepository.save(participantToChange);
         }
     }
 
@@ -748,7 +706,7 @@ public class ParticipantServiceImpl implements ParticipantService {
             }
         }
 
-        return save(participant);
+        return allRepositories.participantRepository.save(participant);
     }
 
     private void handleConsent(Experiment experiment, Participant participant) {

@@ -40,11 +40,8 @@ import java.util.stream.Collectors;
 @SuppressWarnings({"PMD.PreserveStackTrace", "squid:S1192"})
 public class GroupServiceImpl implements GroupService {
 
-    @Autowired
-    private AllRepositories allRepositories;
-
-    @Autowired
-    private ParticipantService participantService;
+    @Autowired private AllRepositories allRepositories;
+    @Autowired private ParticipantService participantService;
 
     private Random random = new Random();
 
@@ -74,7 +71,7 @@ public class GroupServiceImpl implements GroupService {
         groupDto.setExperimentId(experimentId);
 
         try{
-            return toDto(save(fromDto(groupDto)));
+            return toDto(allRepositories.groupRepository.save(fromDto(groupDto)));
         } catch (DataServiceException e) {
             throw new DataServiceException("Error 105: Unable to create group:" + e.getMessage());
         }
@@ -90,6 +87,7 @@ public class GroupServiceImpl implements GroupService {
         groupDto.setParticipants(
             CollectionUtils.emptyIfNull(allRepositories.participantRepository.findByExperiment_ExperimentIdAndGroup_GroupId(groupDto.getExperimentId(), group.getGroupId()))
                 .stream()
+                .filter(participant -> !participant.isTestStudent())
                 .map(participant -> participantService.toDto(participant))
                 .toList()
         );
@@ -114,21 +112,6 @@ public class GroupServiceImpl implements GroupService {
     }
 
     @Override
-    public Group save(Group group) {
-        return allRepositories.groupRepository.save(group);
-    }
-
-    @Override
-    public ExposureGroupCondition saveExposureGroupCondition(ExposureGroupCondition exposureGroupCondition) {
-        return allRepositories.exposureGroupConditionRepository.save(exposureGroupCondition);
-    }
-
-    @Override
-    public Optional<Group> findById(Long id) {
-        return allRepositories.groupRepository.findById(id);
-    }
-
-    @Override
     public void updateGroup(Long groupId, GroupDto groupDto) throws TitleValidationException {
         Group group = getGroup(groupId);
 
@@ -141,22 +124,12 @@ public class GroupServiceImpl implements GroupService {
         }
 
         group.setName(groupDto.getName());
-        saveAndFlush(group);
-    }
-
-    @Override
-    public void saveAndFlush(Group groupToChange) {
-        allRepositories.groupRepository.saveAndFlush(groupToChange);
+        allRepositories.groupRepository.saveAndFlush(group);
     }
 
     @Override
     public void deleteById(Long id) throws EmptyResultDataAccessException {
         allRepositories.groupRepository.deleteByGroupId(id);
-    }
-
-    @Override
-    public boolean groupBelongsToExperiment(Long experimentId, Long groupId) {
-        return allRepositories.groupRepository.existsByExperiment_ExperimentIdAndGroupId(experimentId, groupId);
     }
 
     // TODO ASSIGN STUDENTS TO GROUPS WILL HAPPEN IN THE FIRST LAUNCH OF THE STUDENT EXCEPT IF MANUAL
@@ -188,7 +161,7 @@ public class GroupServiceImpl implements GroupService {
                     .forEach(
                         participant -> {
                             participant.setGroup(null);
-                            participantService.save(participant);
+                            allRepositories.participantRepository.save(participant);
                         }
                     );
 
@@ -225,11 +198,6 @@ public class GroupServiceImpl implements GroupService {
         // ...populate the groups later
     }
 
-    @Override
-    public boolean existsByExperiment_ExperimentIdAndGroupId(Long experimentId, Long groupId) {
-        return allRepositories.groupRepository.existsByExperiment_ExperimentIdAndGroupId(experimentId,groupId);
-    }
-
     // assign the right Experiments, Groups, and Conditions without repetition.
     private void assignGroups(List<Group> groups, Experiment experiment) {
         List<ExposureGroupCondition> existingExposureGroupConditions = allRepositories.exposureGroupConditionRepository.findByCondition_Experiment_ExperimentId(experiment.getExperimentId());
@@ -261,7 +229,7 @@ public class GroupServiceImpl implements GroupService {
                 int groupIndex = (i + loopNum) % groups.size();
                 int exposureGroupConditionIndex = loopNum * groups.size() + i;
                 exposureGroupConditionList.get(exposureGroupConditionIndex).setGroup(groups.get(groupIndex));
-                saveExposureGroupCondition(exposureGroupConditionList.get(exposureGroupConditionIndex));
+                allRepositories.exposureGroupConditionRepository.save(exposureGroupConditionList.get(exposureGroupConditionIndex));
             }
         }
     }
@@ -273,7 +241,7 @@ public class GroupServiceImpl implements GroupService {
             Group group = new Group();
             group.setExperiment(experiment);
             group.setName(String.format("Group %s", i));
-            groups.add(save(group));
+            groups.add(allRepositories.groupRepository.save(group));
         }
 
         return groups;

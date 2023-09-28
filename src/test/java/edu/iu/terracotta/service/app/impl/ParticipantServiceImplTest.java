@@ -1,5 +1,6 @@
 package edu.iu.terracotta.service.app.impl;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -35,8 +36,12 @@ import org.mockito.Spy;
 import edu.iu.terracotta.BaseTest;
 import edu.iu.terracotta.exceptions.AssignmentNotMatchingException;
 import edu.iu.terracotta.exceptions.ConnectionException;
+import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.GroupNotMatchingException;
+import edu.iu.terracotta.exceptions.IdInPostException;
+import edu.iu.terracotta.exceptions.InvalidUserException;
+import edu.iu.terracotta.exceptions.ParticipantAlreadyStartedException;
 import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.model.LtiContextEntity;
@@ -45,6 +50,7 @@ import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.Group;
 import edu.iu.terracotta.model.app.Participant;
+import edu.iu.terracotta.model.app.dto.ParticipantDto;
 import edu.iu.terracotta.model.app.enumerator.DistributionTypes;
 import edu.iu.terracotta.model.app.enumerator.ParticipationTypes;
 import edu.iu.terracotta.model.membership.CourseUser;
@@ -70,12 +76,8 @@ public class ParticipantServiceImplTest extends BaseTest {
         when(experiment.getParticipationType()).thenReturn(ParticipationTypes.AUTO);
         when(groupService.getUniqueGroupByConditionId(anyLong(), anyString(), anyLong())).thenReturn(group);
         when(groupService.nextGroup(any(Experiment.class))).thenReturn(group);
-        when(participant.getConsent()).thenReturn(false);
         when(participant.getDateGiven()).thenReturn(Timestamp.from(Instant.now()));
         when(participant.getDateRevoked()).thenReturn(Timestamp.from(Instant.now()));
-
-        doReturn(participant).when(participantService).findParticipant(anyList(), anyString());
-        doReturn(participant).when(participantService).save(any(Participant.class));
     }
 
     @Test
@@ -126,8 +128,8 @@ public class ParticipantServiceImplTest extends BaseTest {
 
     @Test
     public void testhandleExperimentParticipantNoParticipant() throws ParticipantNotUpdatedException, ExperimentNotMatchingException {
-        doReturn(Collections.singletonList(participant)).when(participantService).refreshParticipants(anyLong(),
-                anyList());
+        when(participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(anyLong(), anyString())).thenReturn(null);
+        doReturn(Collections.singletonList(participant)).when(participantService).refreshParticipants(anyLong(), anyList());
         doReturn(null).when(participantService).findParticipant(anyList(),anyString());
 
         Exception exception = assertThrows(ParticipantNotMatchingException.class, () -> { participantService.handleExperimentParticipant(experiment, securedInfo); });
@@ -135,11 +137,8 @@ public class ParticipantServiceImplTest extends BaseTest {
         assertEquals(TextConstants.PARTICIPANT_NOT_MATCHING, exception.getMessage());
     }
 
-    // Test refreshParticipants that when no added or dropped courseUsers,
-    // participantRepository.save is never called
     @Test
     public void testRefreshParticipantsNoAddsNoDrops() throws ConnectionException, ParticipantNotUpdatedException, ExperimentNotMatchingException {
-
         PlatformDeployment platformDeployment = new PlatformDeployment();
         when(experiment.getStarted()).thenReturn(new Timestamp(System.currentTimeMillis()));
         when(experiment.getPlatformDeployment()).thenReturn(platformDeployment);
@@ -471,4 +470,151 @@ public class ParticipantServiceImplTest extends BaseTest {
         verify(participantService, never()).refreshParticipants(anyLong(), anyList());
     }
 
+    @Test
+    public void testGetParticpants() {
+        List<ParticipantDto> retVal = participantService.getParticipants(Arrays.asList(participant, participant), 1l, USER_ID, false);
+
+        assertEquals(2, retVal.size());
+    }
+
+    @Test
+    public void testGetParticpantsStudent() {
+        List<ParticipantDto> retVal = participantService.getParticipants(Arrays.asList(participant, participant), 1l, USER_ID, true);
+
+        assertEquals(1, retVal.size());
+    }
+
+    @Test
+    public void testGetParticipant() throws InvalidUserException {
+        Participant retVal = participantService.getParticipant(1l, 1l, USER_ID, false);
+
+        assertNotNull(retVal);
+    }
+
+    @Test
+    public void testGetParticipantStudent() throws InvalidUserException {
+        Participant retVal = participantService.getParticipant(1l, 1l, USER_ID, true);
+
+        assertNotNull(retVal);
+    }
+
+    @Test
+    public void testFindAllByExperimentId() {
+        List<Participant> retVal = participantService.findAllByExperimentId(1l);
+
+        assertEquals(1, retVal.size());
+    }
+
+    @Test
+    public void testPostParticipant() throws IdInPostException, DataServiceException {
+        when(participantDto.getParticipantId()).thenReturn(null);
+        ParticipantDto retVal = participantService.postParticipant(participantDto, 1l);
+
+        assertNotNull(retVal);
+    }
+
+    @Test
+    public void testResetParticipantConsentIfExperimentNotStarted() {
+        for (ParticipationTypes participationType : Arrays.asList(ParticipationTypes.NOSET, ParticipationTypes.AUTO, ParticipationTypes.MANUAL, ParticipationTypes.CONSENT)) {
+                when(participant.getSource()).thenReturn(participationType);
+
+            for (ParticipationTypes experimentParticipationType : Arrays.asList(ParticipationTypes.NOSET, ParticipationTypes.AUTO, ParticipationTypes.MANUAL, ParticipationTypes.CONSENT)) {
+                when(experiment.getParticipationType()).thenReturn(experimentParticipationType);
+
+                assertDoesNotThrow(() -> {
+                    participantService.resetParticipantConsentIfExperimentNotStarted(experiment, participant);
+                });
+            }
+        }
+    }
+
+    @Test
+    public void testChangeParticipant() {
+        assertDoesNotThrow(() -> {
+            participantService.changeParticipant(Collections.singletonMap(participant, participantDto), 1l);
+        });
+    }
+
+    @Test
+    public void testChangeParticipantFalseToTrueConsent() {
+        when(participant.getConsent()).thenReturn(false);
+        when(participantDto.getConsent()).thenReturn(true);
+
+        assertDoesNotThrow(() -> {
+            participantService.changeParticipant(Collections.singletonMap(participant, participantDto), 1l);
+        });
+    }
+
+    @Test
+    public void testChangeParticipantTrueToFalseConsent() {
+        when(participantDto.getConsent()).thenReturn(false);
+
+        assertDoesNotThrow(() -> {
+            participantService.changeParticipant(Collections.singletonMap(participant, participantDto), 1l);
+        });
+    }
+
+    @Test
+    public void testChangeConsent() throws ParticipantAlreadyStartedException, ExperimentNotMatchingException {
+        when(securedInfo.getConsent()).thenReturn(true);
+
+        boolean retVal = participantService.changeConsent(participantDto, securedInfo, 1L);
+
+        assertTrue(retVal);
+    }
+
+    @Test
+    public void testChangeConsentStarted() throws ParticipantAlreadyStartedException, ExperimentNotMatchingException {
+        when(securedInfo.getConsent()).thenReturn(true);
+        when(participant.getConsent()).thenReturn(false);
+        when(participantDto.getConsent()).thenReturn(true);
+
+        Exception exception = assertThrows(ParticipantAlreadyStartedException.class, () -> { participantService.changeConsent(participantDto, securedInfo, 1L); });
+
+        assertEquals("Participant has already started experiment, consent cannot be changed to given", exception.getMessage());
+    }
+
+    @Test
+    public void testFindParticipant() {
+        Participant retVal = participantService.findParticipant(Collections.singletonList(participant), USER_ID);
+
+        assertNotNull(retVal);
+    }
+
+    @Test
+    public void testSetAllToNull() {
+        assertDoesNotThrow(() -> {
+            participantService.setAllToNull(1L, securedInfo);
+        });
+    }
+
+    @Test
+    public void testSetAllToTrue() {
+        assertDoesNotThrow(() -> {
+            participantService.setAllToTrue(1L, securedInfo);
+        });
+    }
+
+    @Test
+    public void testSetAllToFalse() {
+        assertDoesNotThrow(() -> {
+            participantService.setAllToFalse(1L, securedInfo);
+        });
+    }
+
+    @Test
+    public void testPostConsentSubmission() {
+        assertDoesNotThrow(() -> {
+            participantService.postConsentSubmission(participant, securedInfo);
+        });
+    }
+
+    @Test
+    public void testPostConsentSubmissionNoLineItem() {
+        when(consentDocument.getResourceLinkId()).thenReturn("1");
+
+        assertDoesNotThrow(() -> {
+            participantService.postConsentSubmission(participant, securedInfo);
+        });
+    }
 }

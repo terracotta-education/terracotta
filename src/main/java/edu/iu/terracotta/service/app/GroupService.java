@@ -6,7 +6,6 @@ import edu.iu.terracotta.exceptions.GroupNotMatchingException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.model.app.Experiment;
-import edu.iu.terracotta.model.app.ExposureGroupCondition;
 import edu.iu.terracotta.model.app.Group;
 import edu.iu.terracotta.model.app.dto.GroupDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
@@ -15,8 +14,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
-import java.util.Optional;
 
+@SuppressWarnings("PMD.MethodNamingConventions")
 public interface GroupService {
 
     List<Group> findAllByExperimentId(long experimentId);
@@ -31,23 +30,11 @@ public interface GroupService {
 
     Group fromDto(GroupDto groupDto) throws DataServiceException;
 
-    Group save(Group group);
-
-    ExposureGroupCondition saveExposureGroupCondition(ExposureGroupCondition exposureGroupCondition);
-
-    Optional<Group> findById(Long id);
-
     void updateGroup(Long groupId, GroupDto groupDto) throws TitleValidationException;
-
-    void saveAndFlush(Group groupToChange);
 
     void deleteById(Long id) throws EmptyResultDataAccessException;
 
-    boolean groupBelongsToExperiment(Long experimentId, Long groupId);
-
     void createAndAssignGroupsToConditionsAndExposures(Long experimentId, SecuredInfo securedInfo, boolean isCustom) throws DataServiceException;
-
-    boolean existsByExperiment_ExperimentIdAndGroupId(Long experimentId, Long groupId);
 
     Group nextGroup(Experiment experiment);
 

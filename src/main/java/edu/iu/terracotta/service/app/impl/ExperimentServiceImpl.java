@@ -20,7 +20,6 @@ import edu.iu.terracotta.model.app.dto.ConditionDto;
 import edu.iu.terracotta.model.app.dto.ConsentDto;
 import edu.iu.terracotta.model.app.dto.ExperimentDto;
 import edu.iu.terracotta.model.app.dto.ExposureDto;
-import edu.iu.terracotta.model.app.dto.ParticipantDto;
 import edu.iu.terracotta.model.app.enumerator.DistributionTypes;
 import edu.iu.terracotta.model.app.enumerator.ExposureTypes;
 import edu.iu.terracotta.model.app.enumerator.ParticipationTypes;
@@ -33,6 +32,7 @@ import edu.iu.terracotta.service.app.ExposureService;
 import edu.iu.terracotta.service.app.ParticipantService;
 import lombok.extern.slf4j.Slf4j;
 
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.EnumUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,6 +43,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -274,18 +275,17 @@ public class ExperimentServiceImpl implements ExperimentService {
         }
         experimentDto.setExposures(exposureDtoList);
 
-        List<ParticipantDto> participantDtoList = new ArrayList<>();
-
         if (participants) {
-            List<Participant> participantList = allRepositories.participantRepository.findByExperiment_ExperimentId(experiment.getExperimentId());
-
-            for (Participant participant : participantList) {
-                ParticipantDto participantDto = participantService.toDto(participant);
-                participantDtoList.add(participantDto);
-            }
+            experimentDto.setParticipants(
+                CollectionUtils.emptyIfNull(allRepositories.participantRepository.findByExperiment_ExperimentId(experiment.getExperimentId())).stream()
+                    .filter(participant -> !participant.isTestStudent())
+                    .map(participant -> participantService.toDto(participant))
+                    .toList()
+            );
+        } else {
+            experimentDto.setParticipants(Collections.emptyList());
         }
 
-        experimentDto.setParticipants(participantDtoList);
         int countAnswered = 0;
         int countAccepted = 0;
         int countRejected = 0;

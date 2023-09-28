@@ -10,7 +10,6 @@ import edu.iu.terracotta.model.app.dto.OutcomeScoreDto;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.OutcomeScoreService;
 import edu.iu.terracotta.service.app.OutcomeService;
-import edu.iu.terracotta.service.app.ParticipantService;
 import edu.iu.terracotta.utils.TextConstants;
 
 import org.apache.commons.collections4.CollectionUtils;
@@ -25,14 +24,8 @@ import java.util.Optional;
 @Component
 public class OutcomeScoreServiceImpl implements OutcomeScoreService {
 
-    @Autowired
-    private AllRepositories allRepositories;
-
-    @Autowired
-    private OutcomeService outcomeService;
-
-    @Autowired
-    private ParticipantService participantService;
+    @Autowired private AllRepositories allRepositories;
+    @Autowired private OutcomeService outcomeService;
 
     @Override
     public List<OutcomeScore> findAllByOutcomeId(Long outcomeId) {
@@ -94,7 +87,7 @@ public class OutcomeScoreServiceImpl implements OutcomeScoreService {
 
         outcomeScore.setOutcome(outcome.get());
 
-        Optional<Participant> participant = participantService.findById(outcomeScoreDto.getParticipantId());
+        Optional<Participant> participant = allRepositories.participantRepository.findById(outcomeScoreDto.getParticipantId());
 
         if (!participant.isPresent()) {
             throw new DataServiceException("The participant for the outcome score does not exist.");
@@ -143,7 +136,7 @@ public class OutcomeScoreServiceImpl implements OutcomeScoreService {
             throw new InvalidParticipantException("Error 105: Must include a valid participant id in the POST");
         }
 
-        Optional<Participant> participant = participantService.findByParticipantIdAndExperimentId(participantId, experimentId);
+        Optional<Participant> participant = allRepositories.participantRepository.findByParticipantIdAndExperiment_ExperimentId(participantId, experimentId);
 
         if (!participant.isPresent()) {
             throw new InvalidParticipantException("Error 109: The participant provided does not belong to this experiment.");

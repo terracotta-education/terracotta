@@ -19,7 +19,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 public interface ParticipantService {
 
@@ -33,22 +32,12 @@ public interface ParticipantService {
 
     ParticipantDto toDto(Participant participant);
 
-    Optional<Participant> findById(Long id);
-
-    Optional<Participant> findByParticipantIdAndExperimentId(Long participantId, Long experimentId);
-
     Participant fromDto(ParticipantDto participantDto) throws DataServiceException;
 
     void saveAndFlush(Participant participantToChange);
 
-    Participant save(Participant participant);
-
-    void deleteById(Long id);
-
     List<Participant> refreshParticipants(long experimentId, List<Participant> currentParticipantList)
         throws ParticipantNotUpdatedException, ExperimentNotMatchingException;
-
-    boolean participantBelongsToExperiment(Long experimentId, Long participantId);
 
     void prepareParticipation(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException, ExperimentNotMatchingException;
 
