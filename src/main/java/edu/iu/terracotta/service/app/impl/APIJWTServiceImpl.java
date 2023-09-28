@@ -25,6 +25,7 @@ import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.enumerator.ExposureTypes;
 import edu.iu.terracotta.model.oauth2.Roles;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
+import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.APIDataService;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.AdminService;
@@ -35,10 +36,8 @@ import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.app.ConditionService;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.ExposureService;
-import edu.iu.terracotta.service.app.GroupService;
 import edu.iu.terracotta.service.app.OutcomeScoreService;
 import edu.iu.terracotta.service.app.OutcomeService;
-import edu.iu.terracotta.service.app.ParticipantService;
 import edu.iu.terracotta.service.app.QuestionService;
 import edu.iu.terracotta.service.app.QuestionSubmissionCommentService;
 import edu.iu.terracotta.service.app.QuestionSubmissionService;
@@ -97,6 +96,7 @@ public class APIJWTServiceImpl implements APIJWTService {
     private static final String JWT_BEARER_TYPE = "Bearer";
     private static final String QUERY_PARAM_NAME = "token";
 
+    @Autowired private AllRepositories allRepositories;
     @Autowired private AdminService adminService;
     @Autowired private AnswerService answerService;
     @Autowired private AnswerSubmissionService answerSubmissionService;
@@ -106,11 +106,9 @@ public class APIJWTServiceImpl implements APIJWTService {
     @Autowired private ConditionService conditionService;
     @Autowired private ExperimentService experimentService;
     @Autowired private ExposureService exposureService;
-    @Autowired private GroupService groupService;
     @Autowired private LTIDataService ltiDataService;
     @Autowired private OutcomeScoreService outcomeScoreService;
     @Autowired private OutcomeService outcomeService;
-    @Autowired private ParticipantService participantService;
     @Autowired private QuestionService questionService;
     @Autowired private QuestionSubmissionCommentService questionSubmissionCommentService;
     @Autowired private QuestionSubmissionService questionSubmissionService;
@@ -652,7 +650,7 @@ public class APIJWTServiceImpl implements APIJWTService {
 
     @Override
     public void participantAllowed(SecuredInfo securedInfo, Long experimentId, Long participantId) throws ParticipantNotMatchingException {
-        if (!participantService.participantBelongsToExperiment(experimentId, participantId)) {
+        if (!allRepositories.participantRepository.existsByExperiment_ExperimentIdAndParticipantId(experimentId, participantId)) {
             throw new ParticipantNotMatchingException(TextConstants.PARTICIPANT_NOT_MATCHING);
         }
     }
@@ -666,7 +664,7 @@ public class APIJWTServiceImpl implements APIJWTService {
 
     @Override
     public void groupAllowed(SecuredInfo securedInfo, Long experimentId, Long groupId) throws GroupNotMatchingException {
-        if (!groupService.groupBelongsToExperiment(experimentId, groupId)) {
+        if (!allRepositories.groupRepository.existsByExperiment_ExperimentIdAndGroupId(experimentId, groupId)) {
             throw new GroupNotMatchingException(TextConstants.GROUP_NOT_MATCHING);
         }
     }
