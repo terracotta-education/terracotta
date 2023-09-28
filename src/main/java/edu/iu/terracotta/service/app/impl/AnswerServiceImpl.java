@@ -39,14 +39,10 @@ import javax.persistence.PersistenceContext;
 @SuppressWarnings({"PMD.PreserveStackTrace"})
 public class AnswerServiceImpl implements AnswerService {
 
-    @Autowired
-    private AllRepositories allRepositories;
+    @Autowired private AllRepositories allRepositories;
+    @Autowired private FileStorageService fileStorageService;
 
-    @Autowired
-    private FileStorageService fileStorageService;
-
-    @PersistenceContext
-    private EntityManager entityManager;
+    @PersistenceContext private EntityManager entityManager;
 
     /*
     MULTIPLE CHOICE
@@ -125,7 +121,10 @@ public class AnswerServiceImpl implements AnswerService {
     public AnswerDto toDtoMC(AnswerMc answer, int answerOrder, boolean showCorrectAnswer) {
         AnswerDto answerDto = new AnswerDto();
         answerDto.setAnswerId(answer.getAnswerMcId());
-        answerDto.setHtml(fileStorageService.parseHTMLFiles(answer.getHtml(), answer.getQuestion().getAssessment().getTreatment().getAssignment().getExposure().getExperiment().getPlatformDeployment().getLocalUrl()));
+        answerDto.setHtml(fileStorageService.parseHTMLFiles(
+            answer.getHtml(),
+            answer.getQuestion().getAssessment().getTreatment().getAssignment().getExposure().getExperiment().getPlatformDeployment().getLocalUrl())
+        );
         answerDto.setAnswerOrder(answerOrder);
         answerDto.setQuestionId(answer.getQuestion().getQuestionId());
         answerDto.setAnswerType(QuestionTypes.MC.toString());
@@ -157,8 +156,7 @@ public class AnswerServiceImpl implements AnswerService {
         return answer;
     }
 
-    @Override
-    public AnswerMc saveMC(AnswerMc answer) {
+    private AnswerMc saveMC(AnswerMc answer) {
         return allRepositories.answerMcRepository.save(answer);
     }
 
@@ -198,11 +196,6 @@ public class AnswerServiceImpl implements AnswerService {
     @Override
     public void deleteByIdMC(Long id) {
         allRepositories.answerMcRepository.deleteByAnswerMcId(id);
-    }
-
-    @Override
-    public boolean mcAnswerBelongsToQuestionAndAssessment(Long assessmentId, Long questionId, Long answerId) {
-        return allRepositories.answerMcRepository.existsByQuestion_Assessment_AssessmentIdAndQuestion_QuestionIdAndAnswerMcId(assessmentId, questionId, answerId);
     }
 
     @Override

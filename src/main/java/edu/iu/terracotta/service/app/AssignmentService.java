@@ -71,8 +71,6 @@ public interface AssignmentService {
                     MultipleAttemptsSettingsValidationException, NumberFormatException, CanvasApiException, ExceedingLimitException,
                     TreatmentNotMatchingException, QuestionNotMatchingException;
 
-    AssignmentDto toDto(Assignment assignment, boolean submissions, boolean addTreatmentDto) throws AssessmentNotMatchingException;
-
     Assignment fromDto(AssignmentDto assignmentDto) throws DataServiceException;
 
     Assignment save(Assignment assignment);
@@ -98,8 +96,6 @@ public interface AssignmentService {
     boolean assignmentBelongsToExperimentAndExposure(Long experimentId, Long exposureId, Long assignmentId);
 
     boolean assignmentBelongsToExperiment(Long experimentId, Long assignmentId);
-
-    String lineItemId(Assignment assignment) throws ConnectionException;
 
     void sendAssignmentGradeToCanvas(Assignment assignment) throws ConnectionException, DataServiceException, CanvasApiException, IOException;
 
@@ -130,9 +126,6 @@ public interface AssignmentService {
                     throws AssignmentNotEditedException, CanvasApiException;
 
     void deleteAllFromExperiment(Long id, SecuredInfo securedInfo);
-
-    void setAssignmentDtoAttrs(Assignment assignment, String canvasCourseId, LtiUserEntity instructorUser)
-                    throws NumberFormatException, CanvasApiException;
 
     AssignmentDto moveAssignment(long assignmentId, AssignmentDto assignmentDto, long experimentId, long exposureId, SecuredInfo securedInfo)
             throws DataServiceException, IdInPostException, TitleValidationException, AssessmentNotMatchingException,

@@ -11,10 +11,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
-import java.util.Optional;
 
 public interface ExposureService {
-    List<Exposure> findAllByExperimentId(long experimentId);
 
     List<ExposureDto> getExposures(Long experimentId);
 
@@ -24,19 +22,11 @@ public interface ExposureService {
 
     Exposure fromDto(ExposureDto exposureDto) throws DataServiceException;
 
-    Exposure save(Exposure exposure);
-
-    Optional<Exposure> findById(Long id);
-
     Exposure getExposure(Long id);
 
     void updateExposure(Long exposureId, ExposureDto exposureDto)throws TitleValidationException;
 
-    void saveAndFlush(Exposure exposureToChange);
-
     void deleteById(Long id) throws EmptyResultDataAccessException;
-
-    boolean exposureBelongsToExperiment(Long experimentId, Long exposureId);
 
     void createExposures(Long experimentId) throws DataServiceException, ExperimentStartedException;
 

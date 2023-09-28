@@ -30,11 +30,8 @@ import lombok.extern.slf4j.Slf4j;
 @SuppressWarnings({"PMD.GuardLogStatement"})
 public class AdminServiceImpl implements AdminService {
 
-    @Autowired
-    private AllRepositories allRepositories;
-
-    @Autowired
-    private CanvasAPIClient canvasAPIClient;
+    @Autowired private AllRepositories allRepositories;
+    @Autowired private CanvasAPIClient canvasAPIClient;
 
     @Override
     public void resyncTargetUris(long platformDeploymentId, String tokenOverride) throws CanvasApiException, DataServiceException, ConnectionException, IOException {

@@ -52,32 +52,16 @@ import java.util.Optional;
 @SuppressWarnings({"PMD.GuardLogStatement"})
 public class ExperimentServiceImpl implements ExperimentService {
 
-    @Autowired
-    private AllRepositories allRepositories;
-
-    @Autowired
-    private AssignmentService assignmentService;
-
-    @Autowired
-    private ConditionService conditionService;
-
-    @Autowired
-    private ExposureService exposureService;
-
-    @Autowired
-    private FileStorageServiceImpl fileStorageService;
-
-    @Autowired
-    private ParticipantService participantService;
-
-    @Override
-    public List<Experiment> findAllByDeploymentIdAndCourseId(long deploymentId, long contextId) {
-        return allRepositories.experimentRepository.findByPlatformDeployment_KeyIdAndLtiContextEntity_ContextId(deploymentId,contextId);
-    }
+    @Autowired private AllRepositories allRepositories;
+    @Autowired private AssignmentService assignmentService;
+    @Autowired private ConditionService conditionService;
+    @Autowired private ExposureService exposureService;
+    @Autowired private FileStorageServiceImpl fileStorageService;
+    @Autowired private ParticipantService participantService;
 
     @Override
     public List<ExperimentDto> getExperiments(SecuredInfo securedInfo, boolean syncWithCanvas) {
-        List<Experiment> experiments = findAllByDeploymentIdAndCourseId(securedInfo.getPlatformDeploymentId(), securedInfo.getContextId());
+        List<Experiment> experiments = allRepositories.experimentRepository.findByPlatformDeployment_KeyIdAndLtiContextEntity_ContextId(securedInfo.getPlatformDeploymentId(), securedInfo.getContextId());
         List<ExperimentDto> experimentDtoList = new ArrayList<>();
 
         for (Experiment experiment : experiments) {
@@ -230,11 +214,6 @@ public class ExperimentServiceImpl implements ExperimentService {
     }
 
     @Override
-    public Optional<Experiment> findOneByDeploymentIdAndCourseIdAndExperimentId(long deploymentId, long contextId, long id) {
-        return allRepositories.experimentRepository.findByPlatformDeployment_KeyIdAndLtiContextEntity_ContextIdAndExperimentId(deploymentId,contextId, id);
-    }
-
-    @Override
     public ExperimentDto toDto(Experiment experiment, boolean conditions, boolean exposures, boolean participants) {
         ExperimentDto experimentDto = new ExperimentDto();
         experimentDto.setExperimentId(experiment.getExperimentId());
@@ -361,19 +340,8 @@ public class ExperimentServiceImpl implements ExperimentService {
         return experiment;
     }
 
-    @Override
-    public Experiment save(Experiment experiment) {
+    private Experiment save(Experiment experiment) {
         return allRepositories.experimentRepository.save(experiment);
-    }
-
-    @Override
-    public Optional<Experiment> findById(Long id) {
-        return allRepositories.experimentRepository.findById(id);
-    }
-
-    @Override
-    public void saveAndFlush(Experiment experimentToChange) {
-        allRepositories.experimentRepository.saveAndFlush(experimentToChange);
     }
 
     @Override
@@ -405,16 +373,6 @@ public class ExperimentServiceImpl implements ExperimentService {
     }
 
     @Override
-    public boolean experimentBelongsToDeploymentAndCourse(Long experimentId, Long platformDeploymentId, Long contextId) {
-        return allRepositories.experimentRepository.existsByExperimentIdAndPlatformDeployment_KeyIdAndLtiContextEntity_ContextId(experimentId, platformDeploymentId, contextId);
-    }
-
-    @Override
-    public ConsentDocument saveConsentDocument(ConsentDocument consentDocument) {
-        return allRepositories.consentDocumentRepository.save(consentDocument);
-    }
-
-    @Override
     public void deleteConsentDocument(ConsentDocument consentDocument) {
         allRepositories.consentDocumentRepository.delete(consentDocument);
     }
@@ -436,8 +394,7 @@ public class ExperimentServiceImpl implements ExperimentService {
         return null;
     }
 
-    @Override
-    public boolean titleAlreadyExists(String title, Long contextId, Long experimentId) {
+    private boolean titleAlreadyExists(String title, Long contextId, Long experimentId) {
         return allRepositories.experimentRepository.existsByTitleAndLtiContextEntity_ContextIdAndExperimentIdIsNot(title, contextId, experimentId);
     }
 

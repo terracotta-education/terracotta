@@ -41,20 +41,13 @@ import java.util.Optional;
 @Component
 public class QuestionServiceImpl implements QuestionService {
 
-    @Autowired
-    private AllRepositories allRepositories;
+    @Autowired private AllRepositories allRepositories;
+    @Autowired private AnswerService answerService;
+    @Autowired private FileStorageService fileStorageService;
 
-    @Autowired
-    private AnswerService answerService;
+    @PersistenceContext private EntityManager entityManager;
 
-    @Autowired
-    private FileStorageService fileStorageService;
-
-    @PersistenceContext
-    private EntityManager entityManager;
-
-    @Override
-    public List<Question> findAllByAssessmentId(Long assessmentId) {
+    private List<Question> findAllByAssessmentId(Long assessmentId) {
         return allRepositories.questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(assessmentId);
     }
 
@@ -172,11 +165,6 @@ public class QuestionServiceImpl implements QuestionService {
     }
 
     @Override
-    public Optional<Question> findById(Long id) {
-        return allRepositories.questionRepository.findById(id);
-    }
-
-    @Override
     @Transactional
     public void updateQuestion(Map<Question, QuestionDto> map) throws NegativePointsException {
         for(Map.Entry<Question, QuestionDto> entry : map.entrySet()) {
@@ -200,18 +188,8 @@ public class QuestionServiceImpl implements QuestionService {
     }
 
     @Override
-    public Question saveAndFlush(Question questionToChange) {
-        return allRepositories.questionRepository.saveAndFlush(questionToChange);
-    }
-
-    @Override
     public void deleteById(Long id) throws EmptyResultDataAccessException {
         allRepositories.questionRepository.deleteByQuestionId(id);
-    }
-
-    @Override
-    public boolean questionBelongsToAssessment(Long assessmentId, Long questionId) {
-        return allRepositories.questionRepository.existsByAssessment_AssessmentIdAndQuestionId(assessmentId, questionId);
     }
 
     @Override

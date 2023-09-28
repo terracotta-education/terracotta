@@ -17,7 +17,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Optional;
 
 public interface OutcomeService {
 
@@ -31,13 +30,9 @@ public interface OutcomeService {
 
     Outcome fromDto(OutcomeDto outcomeDto) throws DataServiceException;
 
-    Optional<Outcome> findById(long id);
-
     void updateOutcome(long outcomeId, OutcomeDto outcomeDto) throws TitleValidationException;
 
     void deleteById(long id) throws EmptyResultDataAccessException;
-
-    boolean outcomeBelongsToExperimentAndExposure(long experimentId, long exposureId, long outcomeId);
 
     List<OutcomePotentialDto> potentialOutcomes(long experimentId, SecuredInfo securedInfo) throws DataServiceException, CanvasApiException;
 

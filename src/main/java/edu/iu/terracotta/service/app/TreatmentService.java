@@ -15,7 +15,6 @@ import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
 import edu.iu.terracotta.exceptions.RevealResponsesSettingValidationException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
-import edu.iu.terracotta.model.app.Assignment;
 import edu.iu.terracotta.model.app.Treatment;
 import edu.iu.terracotta.model.app.dto.TreatmentDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
@@ -25,11 +24,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
-import java.util.Optional;
 
 public interface TreatmentService {
-
-    List<Treatment> findAllByConditionId(Long conditionId);
 
     /**
      * Get all treatments for the given condition.
@@ -54,27 +50,9 @@ public interface TreatmentService {
 
     TreatmentDto putTreatment(TreatmentDto treatmentDto, long treatmentId, SecuredInfo securedInfo, boolean questions) throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, IdMissingException, IdMismatchException, TreatmentNotMatchingException, TitleValidationException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, CanvasApiException, AssignmentNotEditedException, NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException;
 
-    TreatmentDto duplicateTreatment(long treatmentId, Assignment assignment, SecuredInfo securedInfo)
-            throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException,
-            NumberFormatException, CanvasApiException, TreatmentNotMatchingException, QuestionNotMatchingException;
-
-    TreatmentDto duplicateTreatment(long treatmentId, SecuredInfo securedInfo)
-            throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException,
-            NumberFormatException, CanvasApiException, TreatmentNotMatchingException, QuestionNotMatchingException;
-
-    TreatmentDto toDto(Treatment treatment, boolean submissions, boolean addAssignmentDto) throws AssessmentNotMatchingException;
-
     Treatment fromDto(TreatmentDto treatmentDto) throws DataServiceException, TreatmentNotMatchingException, AssessmentNotMatchingException;
 
-    Treatment save(Treatment treatment);
-
-    Optional<Treatment> findById(Long id);
-
-    Treatment saveAndFlush(Treatment treatmentToChange);
-
     void deleteById(Long id) throws EmptyResultDataAccessException;
-
-    boolean treatmentBelongsToExperimentAndCondition(Long experimentId, Long conditionId, Long treatmentId);
 
     void limitToOne(long assignmentId, long conditionId) throws ExceedingLimitException;
 

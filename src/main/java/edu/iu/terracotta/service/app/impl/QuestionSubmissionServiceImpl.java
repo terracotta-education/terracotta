@@ -67,30 +67,14 @@ import java.util.Optional;
 @SuppressWarnings({"squid:S2229", "PMD.GuardLogStatement"})
 public class QuestionSubmissionServiceImpl implements QuestionSubmissionService {
 
-    @Autowired
-    private AllRepositories allRepositories;
-
-    @Autowired
-    private AnswerService answerService;
-
-    @Autowired
-    private AnswerSubmissionService answerSubmissionService;
-
-    @Autowired
-    private FileStorageService fileStorageService;
-
-    @Autowired
-    private QuestionSubmissionCommentService questionSubmissionCommentService;
-
-    @Autowired
-    private CanvasAPIClient canvasAPIClient;
+    @Autowired private AllRepositories allRepositories;
+    @Autowired private AnswerService answerService;
+    @Autowired private AnswerSubmissionService answerSubmissionService;
+    @Autowired private FileStorageService fileStorageService;
+    @Autowired private QuestionSubmissionCommentService questionSubmissionCommentService;
+    @Autowired private CanvasAPIClient canvasAPIClient;
 
     private ObjectMapper objectMapper = new ObjectMapper();
-
-    @Override
-    public List<QuestionSubmission> findAllBySubmissionId(Long submissionId) {
-        return allRepositories.questionSubmissionRepository.findBySubmission_SubmissionId(submissionId);
-    }
 
     @Override
     public List<QuestionSubmissionDto> getQuestionSubmissions(long submissionId, boolean answerSubmissions, boolean questionSubmissionComments, long assessmentId, boolean isStudent) throws AssessmentNotMatchingException, IOException {
@@ -114,7 +98,7 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
             showCorrectAnswers = assessment.get().canViewCorrectAnswers() && hasSubmitted;
         }
 
-        List<QuestionSubmission> questionSubmissions = findAllBySubmissionId(submissionId);
+        List<QuestionSubmission> questionSubmissions = allRepositories.questionSubmissionRepository.findBySubmission_SubmissionId(submissionId);
         List<QuestionSubmissionDto> questionSubmissionDtoList = new ArrayList<>();
 
         for (QuestionSubmission questionSubmission : questionSubmissions) {
@@ -255,34 +239,13 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
         return questionSubmission;
     }
 
-    @Override
-    public QuestionSubmission save(QuestionSubmission questionSubmission) {
+    private QuestionSubmission save(QuestionSubmission questionSubmission) {
         return allRepositories.questionSubmissionRepository.save(questionSubmission);
-    }
-
-    @Override
-    public Optional<QuestionSubmission> findById(Long id) {
-        return allRepositories.questionSubmissionRepository.findById(id);
-    }
-
-    @Override
-    public boolean existsByAssessmentIdAndSubmissionIdAndQuestionId(Long assessmentId, Long submissionId, Long questionId) {
-        return allRepositories.questionSubmissionRepository.existsBySubmission_Assessment_AssessmentIdAndSubmission_SubmissionIdAndQuestion_QuestionId(assessmentId, submissionId, questionId);
-    }
-
-    @Override
-    public void saveAndFlush(QuestionSubmission questionSubmissionToChange) {
-        allRepositories.questionSubmissionRepository.saveAndFlush(questionSubmissionToChange);
     }
 
     @Override
     public void deleteById(Long id) {
         allRepositories.questionSubmissionRepository.deleteByQuestionSubmissionId(id);
-    }
-
-    @Override
-    public boolean questionSubmissionBelongsToAssessmentAndSubmission(Long assessmentId, Long submissionId, Long questionSubmissionId) {
-        return allRepositories.questionSubmissionRepository.existsBySubmission_Assessment_AssessmentIdAndSubmission_SubmissionIdAndQuestionSubmissionId(assessmentId, submissionId, questionSubmissionId);
     }
 
     @Override
@@ -303,7 +266,7 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
             throw new IdMissingException(TextConstants.ID_MISSING);
         }
 
-        if (existsByAssessmentIdAndSubmissionIdAndQuestionId(assessmentId, submissionId, questionSubmissionDto.getQuestionId())) {
+        if (allRepositories.questionSubmissionRepository.existsBySubmission_Assessment_AssessmentIdAndSubmission_SubmissionIdAndQuestion_QuestionId(assessmentId, submissionId, questionSubmissionDto.getQuestionId())) {
             throw new DuplicateQuestionException("Error 123: A question submission with question id " + questionSubmissionDto.getQuestionId() + " already exists in assessment with id " + assessmentId);
         }
 

@@ -16,7 +16,6 @@ import edu.iu.terracotta.model.canvas.AssignmentExtended;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.APIJWTService;
-import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.service.canvas.CanvasAPIClient;
 import edu.iu.terracotta.utils.TextConstants;
@@ -65,6 +64,10 @@ import java.util.UUID;
 })
 public class FileStorageServiceImpl implements FileStorageService {
 
+    @Autowired private AllRepositories allRepositories;
+    @Autowired private CanvasAPIClient canvasAPIClient;
+    @Autowired private APIJWTService apijwtService;
+
     @Value("${upload.path}")
     private String uploadDir;
 
@@ -79,18 +82,6 @@ public class FileStorageServiceImpl implements FileStorageService {
 
     @Value("${consent.file.local.path.root}")
     private String consentFileLocalPathRoot;
-
-    @Autowired
-    private ExperimentService experimentService;
-
-    @Autowired
-    private CanvasAPIClient canvasAPIClient;
-
-    @Autowired
-    private APIJWTService apijwtService;
-
-    @Autowired
-    private AllRepositories allRepositories;
 
     private Path decompressedSubmissionFileTempDirectory;
     private Path decompressedConsentFileTempDirectory;
@@ -227,7 +218,7 @@ public class FileStorageServiceImpl implements FileStorageService {
     public FileInfoDto uploadConsentFile(long experimentId, String title, MultipartFile multipartFile, SecuredInfo securedInfo)
             throws AssignmentNotCreatedException, CanvasApiException, AssignmentNotEditedException, AssignmentNotMatchingException {
         FileInfoDto fileInfoDto = uploadFile(multipartFile, experimentId);
-        Experiment experiment = experimentService.getExperiment(experimentId);
+        Experiment experiment = allRepositories.experimentRepository.findByExperimentId(experimentId);
         ConsentDocument consentDocument = experiment.getConsentDocument();
         LtiUserEntity instructorUser = allRepositories.ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
         String canvasCourseId = org.apache.commons.lang3.StringUtils.substringBetween(experiment.getLtiContextEntity().getContext_memberships_url(), "courses/", "/names");
@@ -294,9 +285,9 @@ public class FileStorageServiceImpl implements FileStorageService {
             consentDocument.setTitle(title);
         }
 
-        consentDocument = experimentService.saveConsentDocument(consentDocument);
+        consentDocument = allRepositories.consentDocumentRepository.save(consentDocument);
         experiment.setConsentDocument(consentDocument);
-        experimentService.saveAndFlush(experiment);
+        allRepositories.experimentRepository.saveAndFlush(experiment);
 
         return fileInfoDto;
     }
@@ -318,7 +309,7 @@ public class FileStorageServiceImpl implements FileStorageService {
 
     @Override
     public void deleteConsentAssignment(long experimentId, SecuredInfo securedInfo) throws AssignmentNotEditedException, CanvasApiException {
-        Experiment experiment = experimentService.getExperiment(experimentId);
+        Experiment experiment = allRepositories.experimentRepository.findByExperimentId(experimentId);
         LtiUserEntity instructorUser = allRepositories.ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
         ConsentDocument consentDocument = experiment.getConsentDocument();
 

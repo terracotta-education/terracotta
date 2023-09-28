@@ -20,30 +20,15 @@ import edu.iu.terracotta.exceptions.QuestionSubmissionNotMatchingException;
 import edu.iu.terracotta.exceptions.SubmissionCommentNotMatchingException;
 import edu.iu.terracotta.exceptions.SubmissionNotMatchingException;
 import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
+import edu.iu.terracotta.model.ApiOneUseToken;
 import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.enumerator.ExposureTypes;
 import edu.iu.terracotta.model.oauth2.Roles;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.AllRepositories;
-import edu.iu.terracotta.service.app.APIDataService;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.AdminService;
-import edu.iu.terracotta.service.app.AnswerService;
-import edu.iu.terracotta.service.app.AnswerSubmissionService;
-import edu.iu.terracotta.service.app.AssessmentService;
-import edu.iu.terracotta.service.app.AssignmentService;
-import edu.iu.terracotta.service.app.ConditionService;
-import edu.iu.terracotta.service.app.ExperimentService;
-import edu.iu.terracotta.service.app.ExposureService;
-import edu.iu.terracotta.service.app.OutcomeScoreService;
-import edu.iu.terracotta.service.app.OutcomeService;
-import edu.iu.terracotta.service.app.QuestionService;
-import edu.iu.terracotta.service.app.QuestionSubmissionCommentService;
-import edu.iu.terracotta.service.app.QuestionSubmissionService;
-import edu.iu.terracotta.service.app.SubmissionCommentService;
-import edu.iu.terracotta.service.app.SubmissionService;
-import edu.iu.terracotta.service.app.TreatmentService;
 import edu.iu.terracotta.service.lti.LTIDataService;
 import edu.iu.terracotta.utils.lti.LTI3Request;
 import io.jsonwebtoken.Claims;
@@ -98,23 +83,7 @@ public class APIJWTServiceImpl implements APIJWTService {
 
     @Autowired private AllRepositories allRepositories;
     @Autowired private AdminService adminService;
-    @Autowired private AnswerService answerService;
-    @Autowired private AnswerSubmissionService answerSubmissionService;
-    @Autowired private APIDataService apiDataService;
-    @Autowired private AssessmentService assessmentService;
-    @Autowired private AssignmentService assignmentService;
-    @Autowired private ConditionService conditionService;
-    @Autowired private ExperimentService experimentService;
-    @Autowired private ExposureService exposureService;
     @Autowired private LTIDataService ltiDataService;
-    @Autowired private OutcomeScoreService outcomeScoreService;
-    @Autowired private OutcomeService outcomeService;
-    @Autowired private QuestionService questionService;
-    @Autowired private QuestionSubmissionCommentService questionSubmissionCommentService;
-    @Autowired private QuestionSubmissionService questionSubmissionService;
-    @Autowired private SubmissionCommentService submissionCommentService;
-    @Autowired private SubmissionService submissionService;
-    @Autowired private TreatmentService treatmentService;
 
     @Value("${app.token.logging.enabled:true}")
     private boolean tokenLoggingEnabled;
@@ -233,7 +202,7 @@ public class APIJWTServiceImpl implements APIJWTService {
 
         Date date = new Date();
         Key toolPrivateKey = OAuthUtils.loadPrivateKey(ltiDataService.getOwnPrivateKey());
-        Optional<PlatformDeployment> platformDeployment = ltiDataService.getAllRepositories().platformDeploymentRepository.findById(platformDeploymentId);
+        Optional<PlatformDeployment> platformDeployment = allRepositories.platformDeploymentRepository.findById(platformDeploymentId);
 
         JwtBuilder builder = Jwts.builder()
             .setHeaderParam("kid", TextConstants.DEFAULT_KID)
@@ -269,7 +238,7 @@ public class APIJWTServiceImpl implements APIJWTService {
         String token = builder.compact();
 
         if (oneUse) {
-            apiDataService.addOneUseToken(token);
+            allRepositories.apiOneUseTokenRepository.save(new ApiOneUseToken(token));
         }
 
         if (tokenLoggingEnabled) {
@@ -598,14 +567,14 @@ public class APIJWTServiceImpl implements APIJWTService {
             throw new BadTokenException(TextConstants.BAD_TOKEN);
         }
 
-        if (!experimentService.experimentBelongsToDeploymentAndCourse(experimentId, securedInfo.getPlatformDeploymentId(), securedInfo.getContextId())) {
+        if (!allRepositories.experimentRepository.existsByExperimentIdAndPlatformDeployment_KeyIdAndLtiContextEntity_ContextId(experimentId, securedInfo.getPlatformDeploymentId(), securedInfo.getContextId())) {
             throw new ExperimentNotMatchingException(TextConstants.EXPERIMENT_NOT_MATCHING);
         }
     }
 
     @Override
     public boolean experimentLocked(Long experimentId, boolean throwException) throws ExperimentLockedException, ExperimentNotMatchingException {
-        Optional<Experiment> experiment = experimentService.findById(experimentId);
+        Optional<Experiment> experiment = allRepositories.experimentRepository.findById(experimentId);
 
         if (!experiment.isPresent()) {
             throw new ExperimentNotMatchingException("The experiment with id " + experimentId + " does not exist");
@@ -624,7 +593,7 @@ public class APIJWTServiceImpl implements APIJWTService {
 
     @Override
     public boolean conditionsLocked(Long experimentId, boolean throwException) throws ConditionsLockedException, ExperimentNotMatchingException {
-        Optional<Experiment> experiment = experimentService.findById(experimentId);
+        Optional<Experiment> experiment = allRepositories.experimentRepository.findById(experimentId);
 
         if (!experiment.isPresent()) {
             throw new ExperimentNotMatchingException("The experiment with id " + experimentId + " does not exist");
@@ -643,7 +612,7 @@ public class APIJWTServiceImpl implements APIJWTService {
 
     @Override
     public void conditionAllowed(SecuredInfo securedInfo, Long experimentId, Long conditionId) throws ConditionNotMatchingException {
-        if (!conditionService.conditionBelongsToExperiment(experimentId, conditionId)) {
+        if (!allRepositories.conditionRepository.existsByExperiment_ExperimentIdAndConditionId(experimentId, conditionId)) {
             throw new ConditionNotMatchingException(TextConstants.CONDITION_NOT_MATCHING);
         }
     }
@@ -657,7 +626,7 @@ public class APIJWTServiceImpl implements APIJWTService {
 
     @Override
     public void exposureAllowed(SecuredInfo securedInfo, Long experimentId, Long exposureId) throws ExposureNotMatchingException {
-        if (!exposureService.exposureBelongsToExperiment(experimentId, exposureId)) {
+        if (!allRepositories.exposureRepository.existsByExperiment_ExperimentIdAndExposureId(experimentId, exposureId)) {
             throw new ExposureNotMatchingException(TextConstants.EXPOSURE_NOT_MATCHING);
         }
     }
@@ -671,35 +640,37 @@ public class APIJWTServiceImpl implements APIJWTService {
 
     @Override
     public void assignmentAllowed(SecuredInfo securedInfo, Long experimentId, Long assignmentId) throws AssignmentNotMatchingException {
-        if (!assignmentService.assignmentBelongsToExperiment(experimentId, assignmentId)) {
+        if (!allRepositories.assignmentRepository.existsByExposure_Experiment_ExperimentIdAndAssignmentId(experimentId, assignmentId)) {
             throw new AssignmentNotMatchingException(TextConstants.ASSIGNMENT_NOT_MATCHING);
         }
     }
 
     @Override
     public void assignmentAllowed(SecuredInfo securedInfo, Long experimentId, Long exposureId, Long assignmentId) throws AssignmentNotMatchingException {
-        if (!assignmentService.assignmentBelongsToExperimentAndExposure(experimentId, exposureId, assignmentId)) {
+        if (!allRepositories.assignmentRepository.existsByExposure_Experiment_ExperimentIdAndExposure_ExposureIdAndAssignmentId(experimentId, exposureId, assignmentId)) {
             throw new AssignmentNotMatchingException(TextConstants.ASSIGNMENT_NOT_MATCHING);
         }
     }
 
     @Override
     public void treatmentAllowed(SecuredInfo securedInfo, Long experimentId, Long conditionId, Long treatmentId) throws TreatmentNotMatchingException {
-        if (!treatmentService.treatmentBelongsToExperimentAndCondition(experimentId, conditionId, treatmentId)) {
+        if (!allRepositories.treatmentRepository.existsByCondition_Experiment_ExperimentIdAndCondition_ConditionIdAndTreatmentId(experimentId, conditionId, treatmentId)) {
             throw new TreatmentNotMatchingException(TextConstants.TREATMENT_NOT_MATCHING);
         }
     }
 
     @Override
     public void assessmentAllowed(SecuredInfo securedInfo, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId) throws AssessmentNotMatchingException {
-        if (!assessmentService.assessmentBelongsToExperimentAndConditionAndTreatment(experimentId, conditionId, treatmentId, assessmentId)) {
+        if (!allRepositories.assessmentRepository.existsByTreatment_Condition_Experiment_ExperimentIdAndTreatment_Condition_ConditionIdAndTreatment_TreatmentIdAndAssessmentId(
+            experimentId, conditionId, treatmentId, assessmentId)
+        ) {
             throw new AssessmentNotMatchingException(TextConstants.ASSESSMENT_NOT_MATCHING);
         }
     }
 
     @Override
     public void questionAllowed(SecuredInfo securedInfo, Long assessmentId, Long questionId) throws QuestionNotMatchingException {
-        if (!questionService.questionBelongsToAssessment(assessmentId, questionId)) {
+        if (!allRepositories.questionRepository.existsByAssessment_AssessmentIdAndQuestionId(assessmentId, questionId)) {
             throw new QuestionNotMatchingException(TextConstants.QUESTION_NOT_MATCHING);
         }
     }
@@ -707,7 +678,7 @@ public class APIJWTServiceImpl implements APIJWTService {
     @Override
     public void answerAllowed(SecuredInfo securedInfo, Long assessmentId, Long questionId, String answerType, Long answerId) throws AnswerNotMatchingException {
         if ("MC".equals(answerType)) {
-            if (!answerService.mcAnswerBelongsToQuestionAndAssessment(assessmentId, questionId, answerId)) {
+            if (!allRepositories.answerMcRepository.existsByQuestion_Assessment_AssessmentIdAndQuestion_QuestionIdAndAnswerMcId(assessmentId, questionId, answerId)) {
                 throw new AnswerNotMatchingException(TextConstants.ANSWER_NOT_MATCHING);
             }
         } //Note: as more answer types are added, continue checking. Same exception can be thrown.
@@ -716,11 +687,11 @@ public class APIJWTServiceImpl implements APIJWTService {
     @Override
     public void answerSubmissionAllowed(SecuredInfo securedInfo, Long questionSubmissionId, String answerType, Long answerSubmissionId) throws AnswerSubmissionNotMatchingException{
         if ("MC".equals(answerType)) {
-            if (!answerSubmissionService.mcAnswerSubmissionBelongsToQuestionSubmission(questionSubmissionId, answerSubmissionId)) {
+            if (!allRepositories.answerMcSubmissionRepository.existsByQuestionSubmission_QuestionSubmissionIdAndAnswerMcSubId(questionSubmissionId, answerSubmissionId)) {
                 throw new AnswerSubmissionNotMatchingException(TextConstants.ANSWER_SUBMISSION_NOT_MATCHING);
             }
         } else if ("ESSAY".equals(answerType)) {
-            if (!answerSubmissionService.essayAnswerSubmissionBelongsToQuestionSubmission(questionSubmissionId, answerSubmissionId)) {
+            if (!allRepositories.answerEssaySubmissionRepository.existsByQuestionSubmission_QuestionSubmissionIdAndAnswerEssaySubmissionId(questionSubmissionId, answerSubmissionId)) {
                 throw new AnswerSubmissionNotMatchingException(TextConstants.ANSWER_SUBMISSION_NOT_MATCHING);
             }
         }
@@ -729,42 +700,42 @@ public class APIJWTServiceImpl implements APIJWTService {
 
     @Override
     public void submissionAllowed(SecuredInfo securedInfo, Long assessmentId, Long submissionId) throws SubmissionNotMatchingException {
-        if (!submissionService.submissionBelongsToAssessment(assessmentId, submissionId)) {
+        if (!allRepositories.submissionRepository.existsByAssessment_AssessmentIdAndSubmissionId(assessmentId, submissionId)) {
             throw new SubmissionNotMatchingException(TextConstants.SUBMISSION_NOT_MATCHING);
         }
     }
 
     @Override
     public void questionSubmissionAllowed(SecuredInfo securedInfo, Long assessmentId, Long submissionId, Long questionSubmissionId) throws QuestionSubmissionNotMatchingException {
-        if (!questionSubmissionService.questionSubmissionBelongsToAssessmentAndSubmission(assessmentId, submissionId, questionSubmissionId)) {
+        if (!allRepositories.questionSubmissionRepository.existsBySubmission_Assessment_AssessmentIdAndSubmission_SubmissionIdAndQuestionSubmissionId(assessmentId, submissionId, questionSubmissionId)) {
             throw new QuestionSubmissionNotMatchingException(TextConstants.QUESTION_SUBMISSION_NOT_MATCHING);
         }
     }
 
     @Override
     public void submissionCommentAllowed(SecuredInfo securedInfo, Long assessmentId, Long submissionId, Long submissionCommentId) throws SubmissionCommentNotMatchingException {
-        if (!submissionCommentService.submissionCommentBelongsToAssessmentAndSubmission(assessmentId, submissionId, submissionCommentId)) {
+        if (!allRepositories.submissionCommentRepository.existsBySubmission_Assessment_AssessmentIdAndSubmission_SubmissionIdAndSubmissionCommentId(assessmentId, submissionId, submissionCommentId)) {
             throw new SubmissionCommentNotMatchingException(TextConstants.SUBMISSION_COMMENT_NOT_MATCHING);
         }
     }
 
     @Override
     public void questionSubmissionCommentAllowed(SecuredInfo securedInfo, Long questionSubmissionId, Long questionSubmissionCommentId) throws QuestionSubmissionCommentNotMatchingException {
-        if (!questionSubmissionCommentService.questionSubmissionCommentBelongsToQuestionSubmission(questionSubmissionId, questionSubmissionCommentId)) {
+        if (!allRepositories.questionSubmissionCommentRepository.existsByQuestionSubmission_QuestionSubmissionIdAndQuestionSubmissionCommentId(questionSubmissionId, questionSubmissionCommentId)) {
             throw new QuestionSubmissionCommentNotMatchingException(TextConstants.QUESTION_SUBMISSION_COMMENT_NOT_MATCHING);
         }
     }
 
     @Override
     public void outcomeAllowed(SecuredInfo securedInfo, Long experimentId, Long exposureId, Long outcomeId) throws OutcomeNotMatchingException {
-        if (!outcomeService.outcomeBelongsToExperimentAndExposure(experimentId, exposureId, outcomeId)) {
+        if (!allRepositories.outcomeRepository.existsByExposure_Experiment_ExperimentIdAndExposure_ExposureIdAndOutcomeId(experimentId, exposureId, outcomeId)) {
             throw new OutcomeNotMatchingException(TextConstants.OUTCOME_NOT_MATCHING);
         }
     }
 
     @Override
     public void outcomeScoreAllowed(SecuredInfo securedInfo, Long outcomeId, Long outcomeScoreId) throws OutcomeScoreNotMatchingException {
-        if (!outcomeScoreService.outcomeScoreBelongsToOutcome(outcomeId, outcomeScoreId)) {
+        if (!allRepositories.outcomeScoreRepository.existsByOutcome_OutcomeIdAndOutcomeScoreId(outcomeId, outcomeScoreId)) {
             throw new OutcomeScoreNotMatchingException(TextConstants.OUTCOME_SCORE_NOT_MATCHING);
         }
     }

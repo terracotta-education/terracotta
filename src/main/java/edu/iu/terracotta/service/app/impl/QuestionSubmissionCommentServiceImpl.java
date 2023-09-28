@@ -24,17 +24,11 @@ import java.util.Optional;
 @Component
 public class QuestionSubmissionCommentServiceImpl implements QuestionSubmissionCommentService {
 
-    @Autowired
-    private AllRepositories allRepositories;
-
-    @Override
-    public List<QuestionSubmissionComment> findAllByQuestionSubmissionId(Long questionSubmissionId) {
-        return allRepositories.questionSubmissionCommentRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmissionId);
-    }
+    @Autowired private AllRepositories allRepositories;
 
     @Override
     public List<QuestionSubmissionCommentDto> getQuestionSubmissionComments(Long questionSubmissionId) {
-        return CollectionUtils.emptyIfNull(findAllByQuestionSubmissionId(questionSubmissionId)).stream()
+        return CollectionUtils.emptyIfNull(allRepositories.questionSubmissionCommentRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmissionId)).stream()
             .map(questionSubmissionComment -> toDto(questionSubmissionComment))
             .toList();
     }
@@ -61,7 +55,7 @@ public class QuestionSubmissionCommentServiceImpl implements QuestionSubmissionC
             throw new DataServiceException("Error 105: Unable to create question submission comment: " + ex.getMessage(), ex);
         }
 
-        return toDto(save(questionSubmissionComment));
+        return toDto(allRepositories.questionSubmissionCommentRepository.save(questionSubmissionComment));
     }
 
     @Override
@@ -74,7 +68,7 @@ public class QuestionSubmissionCommentServiceImpl implements QuestionSubmissionC
         }
 
         questionSubmissionComment.setComment(questionSubmissionCommentDto.getComment());
-        saveAndFlush(questionSubmissionComment);
+        allRepositories.questionSubmissionCommentRepository.saveAndFlush(questionSubmissionComment);
     }
 
     @Override
@@ -106,29 +100,8 @@ public class QuestionSubmissionCommentServiceImpl implements QuestionSubmissionC
     }
 
     @Override
-    public QuestionSubmissionComment save(QuestionSubmissionComment questionSubmissionComment) {
-        return allRepositories.questionSubmissionCommentRepository.save(questionSubmissionComment);
-    }
-
-    @Override
-    public Optional<QuestionSubmissionComment> findById(Long id) {
-        return allRepositories.questionSubmissionCommentRepository.findById(id);
-    }
-
-    @Override
-    public void saveAndFlush(QuestionSubmissionComment questionSubmissionCommentToChange) {
-        allRepositories.questionSubmissionCommentRepository.saveAndFlush(questionSubmissionCommentToChange);
-    }
-
-    @Override
     public void deleteById(Long id) throws EmptyResultDataAccessException {
         allRepositories.questionSubmissionCommentRepository.deleteByQuestionSubmissionCommentId(id);
-    }
-
-    @Override
-    public boolean questionSubmissionCommentBelongsToQuestionSubmission(Long questionSubmissionId, Long questionSubmissionCommentId) {
-        return allRepositories.questionSubmissionCommentRepository.existsByQuestionSubmission_QuestionSubmissionIdAndQuestionSubmissionCommentId(
-                questionSubmissionId, questionSubmissionCommentId);
     }
 
     @Override

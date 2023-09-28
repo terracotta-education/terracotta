@@ -18,21 +18,13 @@ import edu.iu.terracotta.service.app.APIDataService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.Date;
-
 /**
  * This manages all the access to data related with the main APP
  */
 @Service
 public class APIDataServiceImpl implements APIDataService {
 
-    @Autowired
-    private AllRepositories allRepositories;
-
-    @Override
-    public void addOneUseToken(String token) {
-        allRepositories.apiOneUseTokenRepository.save(new ApiOneUseToken(token));
-    }
+    @Autowired private AllRepositories allRepositories;
 
     @Override
     public boolean findAndDeleteOneUseToken(String token) {
@@ -45,11 +37,6 @@ public class APIDataServiceImpl implements APIDataService {
         allRepositories.apiOneUseTokenRepository.delete(apiOneUseToken);
 
         return true;
-    }
-
-    @Override
-    public void cleanOldTokens() {
-        allRepositories.apiOneUseTokenRepository.deleteByCreatedAtBefore(new Date(System.currentTimeMillis()-24*60*60*1000));
     }
 
 }

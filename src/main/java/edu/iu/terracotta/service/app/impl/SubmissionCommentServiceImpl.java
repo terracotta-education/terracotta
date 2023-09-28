@@ -24,17 +24,11 @@ import java.util.Optional;
 @Component
 public class SubmissionCommentServiceImpl implements SubmissionCommentService {
 
-    @Autowired
-    private AllRepositories allRepositories;
-
-    @Override
-    public List<SubmissionComment> findAllBySubmissionId(Long submissionId) {
-        return allRepositories.submissionCommentRepository.findBySubmission_SubmissionId(submissionId);
-    }
+    @Autowired private AllRepositories allRepositories;
 
     @Override
     public List<SubmissionCommentDto> getSubmissionComments(Long submissionId) {
-        return CollectionUtils.emptyIfNull(findAllBySubmissionId(submissionId)).stream()
+        return CollectionUtils.emptyIfNull(allRepositories.submissionCommentRepository.findBySubmission_SubmissionId(submissionId)).stream()
             .map(submissionComment -> toDto(submissionComment))
             .toList();
     }
@@ -56,13 +50,13 @@ public class SubmissionCommentServiceImpl implements SubmissionCommentService {
             throw new DataServiceException("Error 105: Unable to create submission comment: " + ex.getMessage(), ex);
         }
 
-        return toDto(save(submissionComment));
+        return toDto(allRepositories.submissionCommentRepository.save(submissionComment));
     }
 
     @Override
     public void updateSubmissionComment(SubmissionComment submissionComment, SubmissionCommentDto submissionCommentDto) {
         submissionComment.setComment(submissionCommentDto.getComment());
-        saveAndFlush(submissionComment);
+        allRepositories.submissionCommentRepository.saveAndFlush(submissionComment);
     }
 
     @Override
@@ -100,34 +94,8 @@ public class SubmissionCommentServiceImpl implements SubmissionCommentService {
     }
 
     @Override
-    public SubmissionComment save(SubmissionComment submissionComment) {
-        return allRepositories.submissionCommentRepository.save(submissionComment);
-    }
-
-    @Override
-    public Optional<SubmissionComment> findById(Long id) {
-        return allRepositories.submissionCommentRepository.findById(id);
-    }
-
-    @Override
-    public Optional<SubmissionComment> findBySubmissionIdAndSubmissionCommentId(Long submissionId, Long submissionCommentId) {
-        return allRepositories.submissionCommentRepository.findBySubmission_SubmissionIdAndSubmissionCommentId(submissionId, submissionCommentId);
-    }
-
-    @Override
-    public void saveAndFlush(SubmissionComment submissionCommentToChange) {
-        allRepositories.submissionCommentRepository.saveAndFlush(submissionCommentToChange);
-    }
-
-    @Override
     public void deleteById(Long id) throws EmptyResultDataAccessException {
         allRepositories.submissionCommentRepository.deleteBySubmissionCommentId(id);
-    }
-
-    @Override
-    public boolean submissionCommentBelongsToAssessmentAndSubmission(Long assessmentId, Long submissionId, Long submissionCommentId) {
-        return allRepositories.submissionCommentRepository.existsBySubmission_Assessment_AssessmentIdAndSubmission_SubmissionIdAndSubmissionCommentId(
-                assessmentId, submissionId, submissionCommentId);
     }
 
     @Override

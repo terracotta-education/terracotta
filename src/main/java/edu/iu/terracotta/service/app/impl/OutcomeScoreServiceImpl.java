@@ -9,7 +9,6 @@ import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.dto.OutcomeScoreDto;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.OutcomeScoreService;
-import edu.iu.terracotta.service.app.OutcomeService;
 import edu.iu.terracotta.utils.TextConstants;
 
 import org.apache.commons.collections4.CollectionUtils;
@@ -25,16 +24,10 @@ import java.util.Optional;
 public class OutcomeScoreServiceImpl implements OutcomeScoreService {
 
     @Autowired private AllRepositories allRepositories;
-    @Autowired private OutcomeService outcomeService;
-
-    @Override
-    public List<OutcomeScore> findAllByOutcomeId(Long outcomeId) {
-        return allRepositories.outcomeScoreRepository.findByOutcome_OutcomeId(outcomeId);
-    }
 
     @Override
     public List<OutcomeScoreDto> getOutcomeScores(Long outcomeId) {
-        return CollectionUtils.emptyIfNull(findAllByOutcomeId(outcomeId)).stream()
+        return CollectionUtils.emptyIfNull(allRepositories.outcomeScoreRepository.findByOutcome_OutcomeId(outcomeId)).stream()
             .map(outcomeScore -> toDto(outcomeScore))
             .toList();
     }
@@ -79,7 +72,7 @@ public class OutcomeScoreServiceImpl implements OutcomeScoreService {
         OutcomeScore outcomeScore = new OutcomeScore();
         outcomeScore.setOutcomeScoreId(outcomeScoreDto.getOutcomeScoreId());
         outcomeScore.setScoreNumeric(outcomeScoreDto.getScoreNumeric());
-        Optional<Outcome> outcome =  outcomeService.findById(outcomeScoreDto.getOutcomeId());
+        Optional<Outcome> outcome =  allRepositories.outcomeRepository.findById(outcomeScoreDto.getOutcomeId());
 
         if (!outcome.isPresent()) {
             throw new DataServiceException("The outcome for the outcome score does not exist.");
@@ -98,36 +91,21 @@ public class OutcomeScoreServiceImpl implements OutcomeScoreService {
         return outcomeScore;
     }
 
-    @Override
-    public OutcomeScore save(OutcomeScore outcomeScore) {
+    private OutcomeScore save(OutcomeScore outcomeScore) {
         return allRepositories.outcomeScoreRepository.save(outcomeScore);
     }
 
-    @Override
-    public Optional<OutcomeScore> findById(Long id) {
-        return allRepositories.outcomeScoreRepository.findById(id);
-    }
 
     @Override
     public void updateOutcomeScore(Long outcomeScoreId, OutcomeScoreDto outcomeScoreDto) {
         OutcomeScore outcomeScore = getOutcomeScore(outcomeScoreId);
         outcomeScore.setScoreNumeric(outcomeScoreDto.getScoreNumeric());
-        saveAndFlush(outcomeScore);
-    }
-
-    @Override
-    public void saveAndFlush(OutcomeScore outcomeScoreToChange) {
-        allRepositories.outcomeScoreRepository.saveAndFlush(outcomeScoreToChange);
+        allRepositories.outcomeScoreRepository.saveAndFlush(outcomeScore);
     }
 
     @Override
     public void deleteById(Long id) {
         allRepositories.outcomeScoreRepository.deleteByOutcomeScoreId(id);
-    }
-
-    @Override
-    public boolean outcomeScoreBelongsToOutcome(Long outcomeId, Long outcomeScoreId) {
-        return allRepositories.outcomeScoreRepository.existsByOutcome_OutcomeIdAndOutcomeScoreId(outcomeId, outcomeScoreId);
     }
 
     @Override

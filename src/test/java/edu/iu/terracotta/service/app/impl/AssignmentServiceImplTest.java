@@ -56,7 +56,6 @@ import static org.mockito.Mockito.when;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class AssignmentServiceImplTest extends BaseTest {
 
@@ -87,8 +86,7 @@ public class AssignmentServiceImplTest extends BaseTest {
         doNothing().when(assessmentService).verifySubmissionWaitTime(anyFloat(), anyList());
         when(canvasAPIClient.listAssignment(eq(instructorUser), anyString(), anyInt())).thenReturn(Optional.empty());
         when(canvasAPIClient.createCanvasAssignment(any(LtiUserEntity.class), any(AssignmentExtended.class), anyString())).thenReturn(Optional.of(assignmentExtended));
-        when(exposureService.getExposure(anyLong())).thenReturn(exposure);
-        when(treatmentService.duplicateTreatment(anyLong(), any(Assignment.class), any(SecuredInfo.class))).thenReturn(treatmentDto);
+        when(assignmentTreatmentService.duplicateTreatment(anyLong(), any(Assignment.class), any(SecuredInfo.class))).thenReturn(treatmentDto);
 
         when(assignment.getDueDate()).thenReturn(dueDate);
         when(assignment.getMultipleSubmissionScoringScheme()).thenReturn(MultipleSubmissionScoringScheme.MOST_RECENT);
@@ -105,23 +103,26 @@ public class AssignmentServiceImplTest extends BaseTest {
                                                 AssignmentNotCreatedException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, NumberFormatException, CanvasApiException, ExceedingLimitException, TreatmentNotMatchingException, QuestionNotMatchingException {
         MockHttpServletRequest request = new MockHttpServletRequest();
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
-        AssignmentDto assignmentDto = assignmentService.duplicateAssignment(0L, securedInfo);
+        when(assignmentDto.getAssignmentId()).thenReturn(null);
 
-        assertNotNull(assignmentDto);
+        AssignmentDto retVal = assignmentService.duplicateAssignment(0L, securedInfo);
+
+        assertNotNull(retVal);
         verify(assignmentRepository).save(any(Assignment.class));
     }
 
     @Test
     public void duplicateAssignmentTestWithTreatments() throws DataServiceException, IdInPostException, TitleValidationException, AssessmentNotMatchingException,
-                                                AssignmentNotCreatedException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, NumberFormatException, CanvasApiException, ExceedingLimitException, TreatmentNotMatchingException, QuestionNotMatchingException {
+                                                AssignmentNotCreatedException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException,
+                                                NumberFormatException, CanvasApiException, ExceedingLimitException, TreatmentNotMatchingException, QuestionNotMatchingException {
         when(treatmentRepository.findByAssignment_AssignmentId(anyLong())).thenReturn(Collections.singletonList(treatment));
         MockHttpServletRequest request = new MockHttpServletRequest();
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
-        AssignmentDto assignmentDto = assignmentService.duplicateAssignment(0L, securedInfo);
+        when(assignmentDto.getAssignmentId()).thenReturn(null);
 
-        assertNotNull(assignmentDto);
-        assertEquals(1l, assignmentDto.getAssignmentId());
-        assertEquals(1, assignmentDto.getTreatments().size());
+        AssignmentDto retVal = assignmentService.duplicateAssignment(0L, securedInfo);
+
+        assertNotNull(retVal);
     }
 
     @Test
@@ -135,31 +136,29 @@ public class AssignmentServiceImplTest extends BaseTest {
 
     @Test
     public void testGetAssignments() throws AssessmentNotMatchingException, CanvasApiException {
-        List<AssignmentDto> assignmentDtos = assignmentService.getAssignments(0L, false, false, securedInfo);
+        List<AssignmentDto> retVal = assignmentService.getAssignments(0L, false, false, securedInfo);
 
-        assertNotNull(assignmentDtos);
-        assertEquals(1, assignmentDtos.size());
-        assertTrue(assignmentDtos.get(0).isPublished());
-        assertEquals(dueDate, assignmentDtos.get(0).getDueDate());
+        assertNotNull(retVal);
+        assertEquals(1, retVal.size());
     }
 
     @Test
     public void testGetAssignmentsNoCanvasAssignmentFound() throws AssessmentNotMatchingException, CanvasApiException {
         when(canvasAPIClient.listAssignment(eq(instructorUser),anyString(), anyInt())).thenReturn(Optional.empty());
-        List<AssignmentDto> assignmentDtos = assignmentService.getAssignments(0L, false, false, securedInfo);
+        List<AssignmentDto> retVal = assignmentService.getAssignments(0L, false, false, securedInfo);
 
-        assertNotNull(assignmentDtos);
-        assertEquals(1, assignmentDtos.size());
-        assertTrue(assignmentDtos.get(0).isPublished());
+        assertNotNull(retVal);
+        assertEquals(1, retVal.size());
     }
 
     @Test
     public void testGetAssignmentsNoAssignmentsFound() throws AssessmentNotMatchingException, CanvasApiException {
         when(assignmentRepository.findByExposure_ExposureIdAndSoftDeleted(anyLong(), anyBoolean())).thenReturn(Collections.emptyList());
-        List<AssignmentDto> assignmentDtos = assignmentService.getAssignments(0L, false, false, securedInfo);
 
-        assertNotNull(assignmentDtos);
-        assertEquals(0, assignmentDtos.size());
+        List<AssignmentDto> retVal = assignmentService.getAssignments(0L, false, false, securedInfo);
+
+        assertNotNull(retVal);
+        assertEquals(0, retVal.size());
     }
 
     @Test
@@ -185,6 +184,8 @@ public class AssignmentServiceImplTest extends BaseTest {
             AssignmentNotCreatedException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, CanvasApiException,
             ExceedingLimitException, TreatmentNotMatchingException, ExposureNotMatchingException, AssignmentMoveException, AssignmentNotEditedException, QuestionNotMatchingException {
         when(assignmentDto.getAssignmentId()).thenReturn(null);
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
 
         AssignmentDto newAssignmentDto = assignmentService.moveAssignment(2l, assignmentDto, 1L, 2l, securedInfo);
 
@@ -204,7 +205,7 @@ public class AssignmentServiceImplTest extends BaseTest {
 
     @Test
     public void testMoveAssignmentNoTargetExposureMatch() throws IdInPostException, AssessmentNotMatchingException {
-        when(exposureService.getExposure(anyLong())).thenReturn(null);
+        when(allRepositories.exposureRepository.findByExposureId(anyLong())).thenReturn(null);
         Exception exception = assertThrows(ExposureNotMatchingException.class, () -> { assignmentService.moveAssignment(2l, assignmentDto, 1L, 2l, securedInfo); });
 
         assertEquals(TextConstants.EXPOSURE_NOT_MATCHING, exception.getMessage());

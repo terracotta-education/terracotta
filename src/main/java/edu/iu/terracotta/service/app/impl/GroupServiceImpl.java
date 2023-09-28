@@ -1,18 +1,14 @@
 package edu.iu.terracotta.service.app.impl;
 
-import edu.iu.terracotta.exceptions.AssignmentNotMatchingException;
 import edu.iu.terracotta.exceptions.DataServiceException;
-import edu.iu.terracotta.exceptions.GroupNotMatchingException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
-import edu.iu.terracotta.model.app.Assignment;
 import edu.iu.terracotta.model.app.Condition;
 import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.Exposure;
 import edu.iu.terracotta.model.app.ExposureGroupCondition;
 import edu.iu.terracotta.model.app.Group;
 import edu.iu.terracotta.model.app.dto.GroupDto;
-import edu.iu.terracotta.model.app.enumerator.DistributionTypes;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.GroupService;
@@ -30,11 +26,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.Random;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
 
 @Component
 @SuppressWarnings({"PMD.PreserveStackTrace", "squid:S1192"})
@@ -42,8 +34,6 @@ public class GroupServiceImpl implements GroupService {
 
     @Autowired private AllRepositories allRepositories;
     @Autowired private ParticipantService participantService;
-
-    private Random random = new Random();
 
     @Override
     public List<Group> findAllByExperimentId(long experimentId) {
@@ -248,74 +238,6 @@ public class GroupServiceImpl implements GroupService {
     }
 
     @Override
-    public Group nextGroup(Experiment experiment) {
-        AtomicLong totalParticipants = new AtomicLong(0);
-
-        Map<Long, Long> count = CollectionUtils.emptyIfNull(allRepositories.groupRepository.findByExperiment_ExperimentId(experiment.getExperimentId()))
-            .stream()
-            .collect(
-                Collectors.toMap(
-                    Group::getGroupId,
-                    group -> {
-                        long groupCount = allRepositories.participantRepository.countByGroup_GroupId(group.getGroupId());
-                        totalParticipants.addAndGet(groupCount);
-
-                        return groupCount;
-                    }
-                )
-            );
-
-        /**
-         *  If the experiment has just one exposure, we look at the groups/Exposures/etc to see the group assigned to the condition.
-         *  If the experiment has more than one exposure, we shouldn't be doing this.
-         */
-        List<ExposureGroupCondition> exposureGroupConditionList =
-            allRepositories.exposureGroupConditionRepository.findByExposure_ExposureId(experiment.getExposures().get(0).getExposureId());
-
-        List<Group> unbalancedGroups = CollectionUtils.emptyIfNull(exposureGroupConditionList).stream()
-            .filter(
-                exposureGroupCondition -> {
-                    Long countGroup = count.get(exposureGroupCondition.getGroup().getGroupId());
-                    float groupUnbalancement;
-
-                    if (DistributionTypes.EVEN.equals(experiment.getDistributionType())) {
-                        float evenPercent = 100f / experiment.getConditions().size();
-
-                        if (totalParticipants.get() != 0) {
-                            groupUnbalancement = evenPercent - (100 * (countGroup / (float) totalParticipants.get()));
-                        } else {
-                            groupUnbalancement = evenPercent;
-                        }
-                    } else {
-                        if (totalParticipants.get() != 0) {
-                            groupUnbalancement = exposureGroupCondition.getCondition().getDistributionPct() - (100 * (countGroup / (float) totalParticipants.get()));
-                        } else {
-                            groupUnbalancement = exposureGroupCondition.getCondition().getDistributionPct();
-                        }
-                    }
-
-                    return groupUnbalancement > 0;
-                }
-            )
-            .map(ExposureGroupCondition::getGroup)
-            .toList();
-
-        if (CollectionUtils.isEmpty(unbalancedGroups)) {
-            /**
-             *  No unbalanced groups exist. Pick a random group from all available groups;
-             *  index is chosen via Java's random number generator
-             */
-            return exposureGroupConditionList.get(random.nextInt(exposureGroupConditionList.size())).getGroup();
-        }
-
-        /**
-         *  Pick a random group from the available unbalanced groups;
-         *  index is chosen via Java's random number generator
-         */
-        return unbalancedGroups.get(random.nextInt(unbalancedGroups.size()));
-    }
-
-    @Override
     public void validateTitle(String title) throws TitleValidationException{
         if (StringUtils.isNotBlank(title) && title.length() > 255) {
             throw new TitleValidationException("Error 101: Title must be 255 characters or less.");
@@ -328,23 +250,6 @@ public class GroupServiceImpl implements GroupService {
         headers.setLocation(ucBuilder.path("/api/experiment/{experimentId}/groups/{id}").buildAndExpand(experimentId, groupId).toUri());
 
         return headers;
-    }
-
-    @Override
-    public Group getUniqueGroupByConditionId(Long experimentId, String canvasAssignmentId, Long conditionId) throws GroupNotMatchingException, AssignmentNotMatchingException {
-        Assignment assignment = allRepositories.assignmentRepository.findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(experimentId, canvasAssignmentId);
-
-        if (assignment == null) {
-            throw new AssignmentNotMatchingException(TextConstants.ASSIGNMENT_NOT_MATCHING);
-        }
-
-        Optional<ExposureGroupCondition> exposureGroupCondition = allRepositories.exposureGroupConditionRepository.getByCondition_ConditionIdAndExposure_ExposureId(conditionId, assignment.getExposure().getExposureId());
-
-        if (!exposureGroupCondition.isPresent()) {
-            throw new GroupNotMatchingException("Error 130: This assignment does not have a condition assigned for the participant group.");
-        }
-
-        return exposureGroupCondition.get().getGroup();
     }
 
 }

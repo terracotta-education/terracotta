@@ -16,7 +16,6 @@ import java.util.Collections;
 import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -73,39 +72,12 @@ public class TreatmentServiceImplTest extends BaseTest {
     }
 
     @Test
-    public void testDuplicateTreatment() throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, NumberFormatException, CanvasApiException, TreatmentNotMatchingException, QuestionNotMatchingException {
-        TreatmentDto treatmentDto = treatmentService.duplicateTreatment(1L, assignment, securedInfo);
-
-        assertNotNull(treatmentDto);
-        assertEquals(1L, treatmentDto.getTreatmentId());
-    }
-
-    @Test
-    public void testDuplicateTreatmentNoAssessmentFound() throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, NumberFormatException, CanvasApiException, TreatmentNotMatchingException, QuestionNotMatchingException {
-        when(treatment.getAssessment()).thenReturn(null);
-        TreatmentDto treatmentDto = treatmentService.duplicateTreatment(1L, assignment, securedInfo);
-
-        assertNotNull(treatmentDto);
-        assertEquals(1L, treatmentDto.getTreatmentId());
-        assertNull(treatmentDto.getAssessmentDto());
-    }
-
-    @Test
-    public void testDuplicateTreatmentNotFound() throws IdInPostException, ExceedingLimitException, AssessmentNotMatchingException {
-        when(allRepositories.treatmentRepository.findByTreatmentId(anyLong())).thenReturn(null);
-
-        Exception exception = assertThrows(DataServiceException.class, () -> { treatmentService.duplicateTreatment(1L, assignment, securedInfo); });
-
-        assertEquals("The treatment with the given ID does not exist", exception.getMessage());
-    }
-
-    @Test
     public void testGetTreatments() throws NumberFormatException, AssessmentNotMatchingException, CanvasApiException {
         List<TreatmentDto> treatmentDtos = treatmentService.getTreatments(0L, false, securedInfo);
 
         assertNotNull(treatmentDtos);
         assertEquals(1, treatmentDtos.size());
-        verify(assignmentService).setAssignmentDtoAttrs(any(Assignment.class), anyString(), any(LtiUserEntity.class));
+        verify(assignmentTreatmentService).setAssignmentDtoAttrs(any(Assignment.class), anyString(), any(LtiUserEntity.class));
     }
 
     @Test
@@ -117,7 +89,7 @@ public class TreatmentServiceImplTest extends BaseTest {
 
         assertNotNull(treatmentDtos);
         assertEquals(1, treatmentDtos.size());
-        verify(assignmentService, never()).setAssignmentDtoAttrs(any(Assignment.class), anyString(), any(LtiUserEntity.class));
+        verify(assignmentTreatmentService, never()).setAssignmentDtoAttrs(any(Assignment.class), anyString(), any(LtiUserEntity.class));
     }
 
     @Test

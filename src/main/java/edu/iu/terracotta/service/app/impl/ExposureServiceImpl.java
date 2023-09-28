@@ -30,17 +30,11 @@ import java.util.Optional;
 @Component
 public class ExposureServiceImpl implements ExposureService {
 
-    @Autowired
-    private AllRepositories allRepositories;
-
-    @Override
-    public List<Exposure> findAllByExperimentId(long experimentId) {
-        return allRepositories.exposureRepository.findByExperiment_ExperimentId(experimentId);
-    }
+    @Autowired private AllRepositories allRepositories;
 
     @Override
     public List<ExposureDto> getExposures(Long experimentId) {
-        return CollectionUtils.emptyIfNull(findAllByExperimentId(experimentId))
+        return CollectionUtils.emptyIfNull(allRepositories.exposureRepository.findByExperiment_ExperimentId(experimentId))
             .stream()
             .map(exposure -> toDto(exposure))
             .toList();
@@ -146,14 +140,8 @@ public class ExposureServiceImpl implements ExposureService {
         }
     }
 
-    @Override
-    public Exposure save(Exposure exposure) {
+    private Exposure save(Exposure exposure) {
         return allRepositories.exposureRepository.save(exposure);
-    }
-
-    @Override
-    public Optional<Exposure> findById(Long id) {
-        return allRepositories.exposureRepository.findById(id);
     }
 
     @Override
@@ -174,22 +162,12 @@ public class ExposureServiceImpl implements ExposureService {
         }
 
         exposure.setTitle(exposureDto.getTitle());
-        saveAndFlush(exposure);
-    }
-
-    @Override
-    public void saveAndFlush(Exposure exposureToChange) {
-        allRepositories.exposureRepository.saveAndFlush(exposureToChange);
+        allRepositories.exposureRepository.saveAndFlush(exposure);
     }
 
     @Override
     public void deleteById(Long id) throws EmptyResultDataAccessException {
         allRepositories.exposureRepository.deleteByExposureId(id);
-    }
-
-    @Override
-    public boolean exposureBelongsToExperiment(Long experimentId, Long exposureId) {
-        return allRepositories.exposureRepository.existsByExperiment_ExperimentIdAndExposureId(experimentId,exposureId);
     }
 
     @Override

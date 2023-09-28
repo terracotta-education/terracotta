@@ -22,6 +22,7 @@ import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
 import edu.iu.terracotta.model.app.dto.TreatmentDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
+import edu.iu.terracotta.service.app.AssignmentTreatmentService;
 import edu.iu.terracotta.service.app.TreatmentService;
 import edu.iu.terracotta.utils.TextConstants;
 import lombok.extern.slf4j.Slf4j;
@@ -54,11 +55,9 @@ public class TreatmentController {
 
     public static final String REQUEST_ROOT = "api/experiments/{experimentId}/conditions/{conditionId}/treatments";
 
-    @Autowired
-    private TreatmentService treatmentService;
-
-    @Autowired
-    private APIJWTService apijwtService;
+    @Autowired private APIJWTService apijwtService;
+    @Autowired private AssignmentTreatmentService assignmentTreatmentService;
+    @Autowired private TreatmentService treatmentService;
 
     @GetMapping
     public ResponseEntity<List<TreatmentDto>> allTreatmentsByCondition(@PathVariable long experimentId,
@@ -98,7 +97,7 @@ public class TreatmentController {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
 
-        TreatmentDto treatmentDto = treatmentService.toDto(treatmentService.getTreatment(treatmentId), submissions, true);
+        TreatmentDto treatmentDto = assignmentTreatmentService.toTreatmentDto(treatmentService.getTreatment(treatmentId), submissions, true);
 
         return new ResponseEntity<>(treatmentDto, HttpStatus.OK);
     }
@@ -192,7 +191,7 @@ public class TreatmentController {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
-        TreatmentDto returnedDto = treatmentService.duplicateTreatment(treatmentId, securedInfo);
+        TreatmentDto returnedDto = assignmentTreatmentService.duplicateTreatment(treatmentId, securedInfo);
         HttpHeaders headers = treatmentService.buildHeaders(ucBuilder, experimentId, conditionId, returnedDto.getTreatmentId());
 
         return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);

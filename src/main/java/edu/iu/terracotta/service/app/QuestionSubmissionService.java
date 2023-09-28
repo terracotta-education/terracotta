@@ -26,11 +26,8 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 public interface QuestionSubmissionService {
-
-    List<QuestionSubmission> findAllBySubmissionId(Long submissionId);
 
     List<QuestionSubmissionDto> getQuestionSubmissions(long submissionId, boolean answerSubmissions, boolean questionSubmissionComments, long assessmentId, boolean isStudent) throws AssessmentNotMatchingException, IOException;
 
@@ -44,17 +41,7 @@ public interface QuestionSubmissionService {
 
     QuestionSubmission fromDto(QuestionSubmissionDto questionSubmissionDto) throws DataServiceException;
 
-    QuestionSubmission save(QuestionSubmission questionSubmission);
-
-    Optional<QuestionSubmission> findById(Long id);
-
-    boolean existsByAssessmentIdAndSubmissionIdAndQuestionId(Long assessmentId, Long submissionId, Long questionId);
-
-    void saveAndFlush(QuestionSubmission questionSubmissionToChange);
-
     void deleteById(Long id) throws EmptyResultDataAccessException;
-
-    boolean questionSubmissionBelongsToAssessmentAndSubmission(Long assessmentId, Long submissionId, Long questionSubmissionId);
 
     QuestionSubmission automaticGradingMC(QuestionSubmission questionSubmission, AnswerMcSubmission answerMcSubmission);
 
