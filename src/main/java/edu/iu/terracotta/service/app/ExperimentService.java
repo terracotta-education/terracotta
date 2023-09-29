@@ -14,10 +14,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
-import java.util.Optional;
 
 public interface ExperimentService {
-    List<Experiment> findAllByDeploymentIdAndCourseId(long deploymentId, long contextId);
 
     List<ExperimentDto> getExperiments(SecuredInfo securedInfo, boolean syncWithCanvas);
 
@@ -27,31 +25,17 @@ public interface ExperimentService {
 
     void updateExperiment(long experimentId, long contextId, ExperimentDto experimentDto, SecuredInfo securedInfo) throws TitleValidationException, WrongValueException, ParticipantNotUpdatedException, ExperimentNotMatchingException;
 
-    Optional<Experiment> findOneByDeploymentIdAndCourseIdAndExperimentId(long deploymentId, long contextId, long id);
-
     ExperimentDto toDto(Experiment experiment, boolean conditions, boolean exposures, boolean participants);
 
     Experiment fromDto(ExperimentDto experimentDto) throws DataServiceException;
-
-    Experiment save(Experiment experiment);
-
-    Optional<Experiment> findById(Long id);
-
-    void saveAndFlush(Experiment experimentToChange);
 
     void deleteById(Long id, SecuredInfo securedInfo) throws EmptyResultDataAccessException;
 
     ExperimentDto fillContextInfo(ExperimentDto experimentDto, SecuredInfo securedInfo);
 
-    boolean experimentBelongsToDeploymentAndCourse(Long experimentId, Long platformDeploymentId, Long contextId);
-
-    ConsentDocument saveConsentDocument(ConsentDocument consentDocument);
-
     void deleteConsentDocument(ConsentDocument consentDocument);
 
     ExperimentDto getEmptyExperiment(SecuredInfo securedInfo, ExperimentDto experimentDto);
-
-    boolean titleAlreadyExists(String title, Long contextId, Long experimentId);
 
     void copyDto(ExperimentDto existingEmpty, ExperimentDto experimentDto);
 

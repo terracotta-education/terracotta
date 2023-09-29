@@ -11,11 +11,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
-import java.util.Optional;
 
 public interface SubmissionCommentService {
-
-    List<SubmissionComment> findAllBySubmissionId(Long submissionId);
 
     List<SubmissionCommentDto> getSubmissionComments(Long submissionId);
 
@@ -29,17 +26,7 @@ public interface SubmissionCommentService {
 
     SubmissionComment fromDto(SubmissionCommentDto submissionCommentDto) throws DataServiceException;
 
-    SubmissionComment save(SubmissionComment submissionComment);
-
-    Optional<SubmissionComment> findById(Long id);
-
-    Optional<SubmissionComment> findBySubmissionIdAndSubmissionCommentId(Long submissionId, Long submissionCommentId);
-
-    void saveAndFlush(SubmissionComment submissionCommentToChange);
-
     void deleteById(Long id) throws EmptyResultDataAccessException;
-
-    boolean submissionCommentBelongsToAssessmentAndSubmission(Long assessmentId, Long submissionId, Long submissionCommendId);
 
     HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, long experimentId, long conditionId, long treatmentId, long assessmentId, long submissionId, long submissionCommentId);
 }

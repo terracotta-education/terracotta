@@ -122,7 +122,6 @@ public class AssessmentServiceImplTest extends BaseTest {
         when(fileStorageService.parseHTMLFiles(anyString(), anyString())).thenReturn(StringUtils.EMPTY);
         when(participantService.handleExperimentParticipant(any(Experiment.class), any(SecuredInfo.class))).thenReturn(participant);
         when(questionService.duplicateQuestionsForAssessment(anyLong(), any(Assessment.class))).thenReturn(Collections.singletonList(question));
-        when(questionService.findAllByAssessmentId(anyLong())).thenReturn(Arrays.asList(question)); // requires modifiable list
 
         when(assessment.isAllowStudentViewResponses()).thenReturn(true);
         when(assessment.getMultipleSubmissionScoringScheme()).thenReturn(MultipleSubmissionScoringScheme.MOST_RECENT);
@@ -171,7 +170,7 @@ public class AssessmentServiceImplTest extends BaseTest {
     public void testViewAssessmentNoSubmissions() throws ExperimentNotMatchingException, ParticipantNotMatchingException, AssessmentNotMatchingException, GroupNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, DataServiceException, CanvasApiException, IOException, AssignmentDatesException, ConnectionException {
         when(submission.getAssessment()).thenReturn(assessment1);
         when(assessment1.getAssessmentId()).thenReturn(2L);
-        when(submissionService.findByParticipantIdAndAssessmentId(anyLong(), anyLong())).thenReturn(Collections.emptyList());
+        when(submissionRepository.findByParticipant_ParticipantIdAndAssessment_AssessmentId(anyLong(), anyLong())).thenReturn(Collections.emptyList());
         AssessmentDto assessmentDto = assessmentService.viewAssessment(1l, securedInfo);
 
         assertNotNull(assessmentDto);
@@ -200,7 +199,7 @@ public class AssessmentServiceImplTest extends BaseTest {
 
     @Test
     public void testViewAssessmentWaitTimeNoSubmissions() throws ExperimentNotMatchingException, ParticipantNotMatchingException, AssessmentNotMatchingException, GroupNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, AssignmentAttemptException, DataServiceException, CanvasApiException, IOException, AssignmentDatesException, ConnectionException {
-        when(submissionService.findByParticipantIdAndAssessmentId(anyLong(), anyLong())).thenReturn(Collections.emptyList());
+        when(submissionRepository.findByParticipant_ParticipantIdAndAssessment_AssessmentId(anyLong(), anyLong())).thenReturn(Collections.emptyList());
         AssessmentDto assessmentDto = assessmentService.viewAssessment(1l, securedInfo);
 
         assertNotNull(assessmentDto);
@@ -246,7 +245,7 @@ public class AssessmentServiceImplTest extends BaseTest {
     @Test
     public void testViewAssessmentNoSubmittedScores() throws ExperimentNotMatchingException, ParticipantNotMatchingException, AssessmentNotMatchingException, GroupNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, DataServiceException, CanvasApiException, IOException, AssignmentDatesException, ConnectionException {
         when(submissionService.getScoreFromMultipleSubmissions(any(Participant.class), any(Assessment.class))).thenReturn(0F);
-        when(submissionService.findByParticipantIdAndAssessmentId(anyLong(), anyLong())).thenReturn(Collections.emptyList());
+        when(allRepositories.submissionRepository.findByParticipant_ParticipantIdAndAssessment_AssessmentId(anyLong(), anyLong())).thenReturn(Collections.emptyList());
         AssessmentDto assessmentDto = assessmentService.viewAssessment(1l, securedInfo);
 
         assertNotNull(assessmentDto);
@@ -309,14 +308,14 @@ public class AssessmentServiceImplTest extends BaseTest {
     public void testUpdateAssessmentWithNewQuestion()
         throws TitleValidationException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException,
         AssessmentNotMatchingException, IdInPostException, DataServiceException, NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException {
-            when(questionService.findAllByAssessmentId(anyLong())).thenReturn(Collections.emptyList());
+        when(questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(anyLong())).thenReturn(Collections.emptyList());
         when(questionDto.getQuestionId()).thenReturn(null);
         assessmentService.updateAssessment(1L, assessmentDto, true);
 
         verify(questionService).postQuestion(any(QuestionDto.class), anyLong(), anyBoolean());
-        verify(questionService, never()).getQuestion(anyLong());
+        verify(questionRepository, never()).findByQuestionId(anyLong());
         verify(questionService, never()).updateQuestion(anyMap());
-        verify(questionService, never()).deleteById(anyLong());
+        verify(questionRepository, never()).deleteById(anyLong());
     }
 
     @Test
@@ -327,14 +326,14 @@ public class AssessmentServiceImplTest extends BaseTest {
         assessmentService.updateAssessment(1L, assessmentDto, true);
 
         verify(questionService, never()).postQuestion(any(QuestionDto.class), anyLong(), anyBoolean());
-        verify(questionService).getQuestion(anyLong());
+        verify(questionRepository).findByQuestionId(anyLong());
         verify(questionService).updateQuestion(anyMap());
-        verify(questionService, never()).deleteById(anyLong());
+        verify(questionRepository, never()).deleteById(anyLong());
     }
 
     @Test
     public void testUpdateAssessmentWithQuestionNotFound() throws QuestionNotMatchingException {
-        when(questionService.getQuestion(anyLong())).thenReturn(null);
+        when(allRepositories.questionRepository.findByQuestionId(anyLong())).thenReturn(null);
         Exception exception = assertThrows(QuestionNotMatchingException.class, () -> { assessmentService.updateAssessment(1L, assessmentDto, true); });
 
         assertEquals(TextConstants.QUESTION_NOT_MATCHING, exception.getMessage());
@@ -345,12 +344,14 @@ public class AssessmentServiceImplTest extends BaseTest {
         throws TitleValidationException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException,
         AssessmentNotMatchingException, IdInPostException, DataServiceException, NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException {
         when(assessmentDto.getQuestions()).thenReturn(Collections.emptyList());
+        when(questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(anyLong())).thenReturn(Arrays.asList(question)); // requires modifiable list
+
         assessmentService.updateAssessment(1L, assessmentDto, true);
 
         verify(questionService, never()).postQuestion(any(QuestionDto.class), anyLong(), anyBoolean());
-        verify(questionService, never()).getQuestion(anyLong());
+        verify(questionRepository, never()).findByQuestionId(anyLong());
         verify(questionService, never()).updateQuestion(anyMap());
-        verify(questionService).deleteById(anyLong());
+        verify(questionRepository).deleteByQuestionId(anyLong());
     }
 
     @Test
@@ -358,13 +359,14 @@ public class AssessmentServiceImplTest extends BaseTest {
         throws TitleValidationException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException,
         AssessmentNotMatchingException, IdInPostException, DataServiceException, NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException {
         when(assessmentDto.getQuestions()).thenReturn(Collections.emptyList());
-        when(questionService.findAllByAssessmentId(anyLong())).thenReturn(Collections.emptyList());
+        when(questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(anyLong())).thenReturn(Collections.emptyList());
+
         assessmentService.updateAssessment(1L, assessmentDto, true);
 
         verify(questionService, never()).postQuestion(any(QuestionDto.class), anyLong(), anyBoolean());
-        verify(questionService, never()).getQuestion(anyLong());
+        verify(questionRepository, never()).findByQuestionId(anyLong());
         verify(questionService, never()).updateQuestion(anyMap());
-        verify(questionService, never()).deleteById(anyLong());
+        verify(questionRepository, never()).deleteById(anyLong());
     }
 
     @Test
@@ -428,7 +430,7 @@ public class AssessmentServiceImplTest extends BaseTest {
     public void testRegradeQuestions() throws DataServiceException, ConnectionException, CanvasApiException, IOException {
         assessmentService.regradeQuestions(regradeDetails, 1L);
 
-        verify(submissionService).gradeSubmission(any(Submission.class), any(RegradeDetails.class));
+        verify(assessmentSubmissionService).gradeSubmission(any(Submission.class), any(RegradeDetails.class));
         verify(submissionService).sendSubmissionGradeToCanvasWithLTI(any(Submission.class), anyBoolean());
     }
 
@@ -438,7 +440,7 @@ public class AssessmentServiceImplTest extends BaseTest {
 
         assessmentService.regradeQuestions(regradeDetails, 1L);
 
-        verify(submissionService, never()).gradeSubmission(any(Submission.class), any(RegradeDetails.class));
+        verify(assessmentSubmissionService, never()).gradeSubmission(any(Submission.class), any(RegradeDetails.class));
     }
 
     @Test
@@ -447,14 +449,14 @@ public class AssessmentServiceImplTest extends BaseTest {
 
         assessmentService.regradeQuestions(regradeDetails, 1L);
 
-        verify(submissionService, never()).gradeSubmission(any(Submission.class), any(RegradeDetails.class));
+        verify(assessmentSubmissionService, never()).gradeSubmission(any(Submission.class), any(RegradeDetails.class));
     }
 
     @Test
     public void testRegradeQuestionsNoRegradeDetails() throws DataServiceException, ConnectionException, CanvasApiException, IOException {
         assessmentService.regradeQuestions(null, 1L);
 
-        verify(submissionService, never()).gradeSubmission(any(Submission.class), any(RegradeDetails.class));
+        verify(assessmentSubmissionService, never()).gradeSubmission(any(Submission.class), any(RegradeDetails.class));
     }
 
     @Test
@@ -463,15 +465,7 @@ public class AssessmentServiceImplTest extends BaseTest {
 
         assessmentService.regradeQuestions(regradeDetails, 1L);
 
-        verify(submissionService, never()).gradeSubmission(any(Submission.class), any(RegradeDetails.class));
-    }
-
-    @Test
-    public void testFindAllAssessmentsByTreatmentId() throws IdInPostException, DataServiceException, TitleValidationException, AssessmentNotMatchingException {
-        List<Assessment> retVal = assessmentService.findAllByTreatmentId(1L);
-
-        assertNotNull(retVal);
-        assertEquals(1, retVal.size());
+        verify(assessmentSubmissionService, never()).gradeSubmission(any(Submission.class), any(RegradeDetails.class));
     }
 
     @Test

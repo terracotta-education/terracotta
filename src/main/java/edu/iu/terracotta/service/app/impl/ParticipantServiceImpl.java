@@ -32,8 +32,7 @@ import edu.iu.terracotta.model.oauth2.Roles;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.APIJWTService;
-import edu.iu.terracotta.service.app.ExperimentService;
-import edu.iu.terracotta.service.app.GroupService;
+import edu.iu.terracotta.service.app.GroupParticipantService;
 import edu.iu.terracotta.service.app.ParticipantService;
 import edu.iu.terracotta.service.canvas.CanvasAPIClient;
 import edu.iu.terracotta.service.lti.AdvantageAGSService;
@@ -74,8 +73,7 @@ public class ParticipantServiceImpl implements ParticipantService {
     @Autowired private AdvantageMembershipService advantageMembershipService;
     @Autowired private APIJWTService apijwtService;
     @Autowired private CanvasAPIClient canvasAPIClient;
-    @Autowired private ExperimentService experimentService;
-    @Autowired private GroupService groupService;
+    @Autowired private GroupParticipantService groupParticipantService;
     @Autowired private LTIDataService ltiDataService;
 
     @Override
@@ -422,7 +420,7 @@ public class ParticipantServiceImpl implements ParticipantService {
         for (Map.Entry<Participant, ParticipantDto> entry : map.entrySet()) {
             Participant participantToChange = entry.getKey();
             ParticipantDto participantDto = entry.getValue();
-            Experiment experiment = experimentService.getExperiment(experimentId);
+            Experiment experiment = allRepositories.experimentRepository.findByExperimentId(experimentId);
 
             // If they had consent, and now they don't have, we change the dateRevoked to now.
             // In any other case, we leave the date as it is. Ignoring any value in the PUT
@@ -659,7 +657,7 @@ public class ParticipantServiceImpl implements ParticipantService {
                 if (lineItem.isPresent()) {
                     log.info("Updating the resourceLinkId to {} for the consent assignment of experiment {}", resourceLinkId, experiment.getExperimentId());
                     experiment.getConsentDocument().setResourceLinkId(resourceLinkId);
-                    experimentService.saveConsentDocument(experiment.getConsentDocument());
+                    allRepositories.consentDocumentRepository.save(experiment.getConsentDocument());
                 }
             }
         } catch (CanvasApiException e) {
@@ -697,12 +695,12 @@ public class ParticipantServiceImpl implements ParticipantService {
             if (DistributionTypes.CUSTOM.equals(experiment.getDistributionType())) {
                 for (Condition condition : experiment.getConditions()) {
                     if (BooleanUtils.isTrue(condition.getDefaultCondition())) {
-                        participant.setGroup(groupService.getUniqueGroupByConditionId(experiment.getExperimentId(), securedInfo.getCanvasAssignmentId(), condition.getConditionId()));
+                        participant.setGroup(groupParticipantService.getUniqueGroupByConditionId(experiment.getExperimentId(), securedInfo.getCanvasAssignmentId(), condition.getConditionId()));
                         break;
                     }
                 }
             } else { // We assign it to the more unbalanced group (if consent is true)
-                participant.setGroup(groupService.nextGroup(experiment));
+                participant.setGroup(groupParticipantService.nextGroup(experiment));
             }
         }
 

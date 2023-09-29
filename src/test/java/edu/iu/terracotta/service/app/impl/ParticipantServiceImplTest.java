@@ -47,7 +47,6 @@ import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.model.LtiContextEntity;
 import edu.iu.terracotta.model.LtiUserEntity;
 import edu.iu.terracotta.model.PlatformDeployment;
-import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.Group;
 import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.dto.ParticipantDto;
@@ -74,8 +73,6 @@ public class ParticipantServiceImplTest extends BaseTest {
         when(condition.getDefaultCondition()).thenReturn(true);
         when(experiment.getDistributionType()).thenReturn(DistributionTypes.CUSTOM);
         when(experiment.getParticipationType()).thenReturn(ParticipationTypes.AUTO);
-        when(groupService.getUniqueGroupByConditionId(anyLong(), anyString(), anyLong())).thenReturn(group);
-        when(groupService.nextGroup(any(Experiment.class))).thenReturn(group);
         when(participant.getDateGiven()).thenReturn(Timestamp.from(Instant.now()));
         when(participant.getDateRevoked()).thenReturn(Timestamp.from(Instant.now()));
     }

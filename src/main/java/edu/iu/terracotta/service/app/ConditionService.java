@@ -12,7 +12,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 public interface ConditionService {
     List<ConditionDto> findAllByExperimentId(long experimentId);
@@ -23,23 +22,13 @@ public interface ConditionService {
 
     Condition fromDto(ConditionDto conditionDto) throws DataServiceException;
 
-    Condition save(Condition condition);
-
-    Optional<Condition> findById(Long id);
-
     Condition findByConditionId(Long conditionId);
 
     ConditionDto getCondition(Long id);
 
-    void saveAndFlush(Condition conditionToChange);
-
     void updateCondition(Map<Condition, ConditionDto> map);
 
     void deleteById(Long id) throws EmptyResultDataAccessException;
-
-    boolean conditionBelongsToExperiment(Long experimentId, Long conditionId);
-
-    boolean nameAlreadyExists(String name, Long experimentId, Long conditionId);
 
     boolean duplicateNameInPut(Map<Condition, ConditionDto> map, Condition condition);
 

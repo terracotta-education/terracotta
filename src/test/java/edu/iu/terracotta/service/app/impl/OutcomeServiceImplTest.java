@@ -3,7 +3,6 @@ package edu.iu.terracotta.service.app.impl;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.never;
@@ -63,7 +62,7 @@ public class OutcomeServiceImplTest extends BaseTest {
     public void testUpdateOutcomeGrades() throws CanvasApiException, IOException, ParticipantNotUpdatedException, ExperimentNotMatchingException, OutcomeNotMatchingException {
         outcomeService.updateOutcomeGrades(1l, securedInfo);
 
-        verify(outcomeScoreService, never()).save(any(OutcomeScore.class));
+        verify(outcomeScoreRepository, never()).save(any(OutcomeScore.class));
     }
 
     @Test
@@ -72,7 +71,7 @@ public class OutcomeServiceImplTest extends BaseTest {
 
         outcomeService.updateOutcomeGrades(1l, securedInfo);
 
-        verify(outcomeScoreService, never()).save(any(OutcomeScore.class));
+        verify(outcomeScoreRepository, never()).save(any(OutcomeScore.class));
     }
 
     @Test
@@ -81,7 +80,7 @@ public class OutcomeServiceImplTest extends BaseTest {
 
         outcomeService.updateOutcomeGrades(1l, securedInfo);
 
-        verify(outcomeScoreService).save(any(OutcomeScore.class));
+        verify(outcomeScoreRepository).save(any(OutcomeScore.class));
     }
 
     @Test
@@ -91,7 +90,7 @@ public class OutcomeServiceImplTest extends BaseTest {
 
         outcomeService.updateOutcomeGrades(1l, securedInfo);
 
-        verify(outcomeScoreService).save(any(OutcomeScore.class));
+        verify(outcomeScoreRepository).save(any(OutcomeScore.class));
     }
 
     @Test
@@ -137,13 +136,6 @@ public class OutcomeServiceImplTest extends BaseTest {
         outcomeService.updateOutcome(0, outcomeDto);
 
         verify(outcomeRepository).saveAndFlush(any(Outcome.class));
-    }
-
-    @Test
-    public void testOutcomeBelongsToExperimentAndExposure() {
-        boolean retVal = outcomeService.outcomeBelongsToExperimentAndExposure(0, 0, 0);
-
-        assertTrue(retVal);
     }
 
     @Test

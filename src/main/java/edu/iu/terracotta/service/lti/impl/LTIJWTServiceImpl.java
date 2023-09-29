@@ -26,6 +26,7 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.SigningKeyResolverAdapter;
 import lombok.extern.slf4j.Slf4j;
 import edu.iu.terracotta.model.PlatformDeployment;
+import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.utils.TextConstants;
 import edu.iu.terracotta.utils.oauth.OAuthUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -52,8 +53,8 @@ import java.util.UUID;
 @SuppressWarnings({"rawtypes"})
 public class LTIJWTServiceImpl implements LTIJWTService {
 
-    @Autowired
-    private LTIDataService ltiDataService;
+    @Autowired private AllRepositories allRepositories;
+    @Autowired private LTIDataService ltiDataService;
 
     @Value("${app.token.logging.enabled:true}")
     private boolean tokenLoggingEnabled;
@@ -106,7 +107,7 @@ public class LTIJWTServiceImpl implements LTIJWTService {
                 try {
                     // We are dealing with RS256 encryption, so we have some Oauth utils to manage the keys and
                     // convert them to keys from the string stored in DB. There are for sure other ways to manage this.
-                    platformDeployment = ltiDataService.getAllRepositories().platformDeploymentRepository.findByIssAndClientId(claims.getIssuer(), clientId).get(0);
+                    platformDeployment = allRepositories.platformDeploymentRepository.findByIssAndClientId(claims.getIssuer(), clientId).get(0);
                 } catch (IndexOutOfBoundsException ex) {
                     log.error("Kid not found in header", ex);
                     return null;

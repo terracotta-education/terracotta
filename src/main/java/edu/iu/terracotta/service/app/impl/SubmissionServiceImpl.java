@@ -9,9 +9,10 @@ import edu.iu.terracotta.exceptions.InvalidUserException;
 import edu.iu.terracotta.exceptions.NoSubmissionsException;
 import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
 import edu.iu.terracotta.exceptions.SubmissionNotMatchingException;
+import edu.iu.terracotta.model.ags.LineItem;
+import edu.iu.terracotta.model.ags.LineItems;
 import edu.iu.terracotta.model.ags.Score;
 import edu.iu.terracotta.model.app.AnswerMc;
-import edu.iu.terracotta.model.app.AnswerMcSubmission;
 import edu.iu.terracotta.model.app.AnswerMcSubmissionOption;
 import edu.iu.terracotta.model.app.Assessment;
 import edu.iu.terracotta.model.app.Assignment;
@@ -32,9 +33,7 @@ import edu.iu.terracotta.model.oauth2.LTIToken;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.APIJWTService;
-import edu.iu.terracotta.service.app.AnswerSubmissionService;
-import edu.iu.terracotta.service.app.AssessmentService;
-import edu.iu.terracotta.service.app.AssignmentService;
+import edu.iu.terracotta.service.app.AssessmentSubmissionService;
 import edu.iu.terracotta.service.app.QuestionSubmissionService;
 import edu.iu.terracotta.service.app.SubmissionCommentService;
 import edu.iu.terracotta.service.app.SubmissionService;
@@ -64,46 +63,22 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Component
-@SuppressWarnings({"PMD.PreserveStackTrace", "PMD.GuardLogStatement"})
+@SuppressWarnings({"PMD.PreserveStackTrace", "PMD.GuardLogStatement", "PMD.MethodNamingConventions"})
 public class SubmissionServiceImpl implements SubmissionService {
 
-    @Autowired
-    private AllRepositories allRepositories;
-
-    @Autowired
-    private QuestionSubmissionService questionSubmissionService;
-
-    @Autowired
-    private SubmissionCommentService submissionCommentService;
-
-    @Autowired
-    private AssignmentService assignmentService;
-
-    @Autowired
-    private AssessmentService assessmentService;
-
-    @Autowired
-    private AnswerSubmissionService answerSubmissionService;
-
-    @Autowired
-    private AdvantageAGSService advantageAGSService;
-
-    @Autowired
-    private CaliperService caliperService;
-
-    @Autowired
-    private APIJWTService apijwtService;
-
-    @Override
-    public List<Submission> findAllByAssessmentId(Long assessmentId) {
-        return allRepositories.submissionRepository.findByAssessment_AssessmentId(assessmentId);
-    }
+    @Autowired private AllRepositories allRepositories;
+    @Autowired private QuestionSubmissionService questionSubmissionService;
+    @Autowired private SubmissionCommentService submissionCommentService;
+    @Autowired private AssessmentSubmissionService assessmentSubmissionService;
+    @Autowired private AdvantageAGSService advantageAGSService;
+    @Autowired private CaliperService caliperService;
+    @Autowired private APIJWTService apijwtService;
 
     @Override
     public List<SubmissionDto> getSubmissions(Long experimentId, String userId, Long assessmentId, boolean student) throws NoSubmissionsException {
         //for instructor
         if (!student) {
-            List<Submission> submissions = findAllByAssessmentId(assessmentId);
+            List<Submission> submissions = allRepositories.submissionRepository.findByAssessment_AssessmentId(assessmentId);
             List<SubmissionDto> submissionDtoList = new ArrayList<>();
 
             for (Submission submission : submissions) {
@@ -115,7 +90,7 @@ public class SubmissionServiceImpl implements SubmissionService {
 
         //for student
         Participant participant = findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, userId);
-        List<Submission> submissions = findByParticipantId(participant.getParticipantId());
+        List<Submission> submissions = allRepositories.submissionRepository.findByParticipant_ParticipantId(participant.getParticipantId());
 
         if (submissions.isEmpty()) {
             throw new NoSubmissionsException("There are no existing submissions for current user.");
@@ -139,7 +114,7 @@ public class SubmissionServiceImpl implements SubmissionService {
 
         //for student
         Participant participant = findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, userId);
-        Optional<Submission> submission = findByParticipantIdAndSubmissionId(participant.getParticipantId(), submissionId);
+        Optional<Submission> submission = allRepositories.submissionRepository.findByParticipant_ParticipantIdAndSubmissionId(participant.getParticipantId(), submissionId);
 
         if (!submission.isPresent()) {
             throw new NoSubmissionsException("A submission for participant " + participant.getParticipantId() + "  with id " + submissionId + " not found");
@@ -277,49 +252,21 @@ public class SubmissionServiceImpl implements SubmissionService {
         return submission;
     }
 
-    @Override
-    public Submission save(Submission submission) {
+    private Submission save(Submission submission) {
         return allRepositories.submissionRepository.save(submission);
     }
 
-    @Override
-    public Optional<Submission> findById(Long id) {
-        return allRepositories.submissionRepository.findById(id);
-    }
-
-    @Override
-    public List<Submission> findByParticipantId(Long participantId) {
-        return allRepositories.submissionRepository.findByParticipant_ParticipantId(participantId);
-    }
-
-    @Override
-    public Optional<Submission> findByParticipantIdAndSubmissionId(Long participantId, Long submissionId) {
-        return allRepositories.submissionRepository.findByParticipant_ParticipantIdAndSubmissionId(participantId, submissionId);
-    }
-
-    @Override
-    public List<Submission> findByParticipantIdAndAssessmentId(Long participantId, Long assessmentId) {
-        return allRepositories.submissionRepository.findByParticipant_ParticipantIdAndAssessment_AssessmentId(participantId, assessmentId);
-    }
-
-    @Override
-    public Participant findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(Long experimentId, String userId) {
+    private Participant findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(Long experimentId, String userId) {
         return allRepositories.participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, userId);
     }
 
-    @Override
-    public void saveAndFlush(Submission submissionToChange) {
+    private void saveAndFlush(Submission submissionToChange) {
         allRepositories.submissionRepository.saveAndFlush(submissionToChange);
     }
 
     @Override
     public void deleteById(Long id) throws EmptyResultDataAccessException {
         allRepositories.submissionRepository.deleteBySubmissionId(id);
-    }
-
-    @Override
-    public boolean submissionBelongsToAssessment(Long assessmentId, Long submissionId) {
-        return allRepositories.submissionRepository.existsByAssessment_AssessmentIdAndSubmissionId(assessmentId, submissionId);
     }
 
     @Override
@@ -348,7 +295,7 @@ public class SubmissionServiceImpl implements SubmissionService {
         }
 
         if (securedInfo.getLockAt() == null || submission.get().getDateSubmitted().after(securedInfo.getLockAt())) {
-            saveAndFlush(gradeSubmission(submission.get(), new RegradeDetails()));
+            saveAndFlush(assessmentSubmissionService.gradeSubmission(submission.get(), new RegradeDetails()));
             caliperService.sendAssignmentSubmitted(submission.get(), securedInfo);
             sendSubmissionGradeToCanvasWithLTI(submission.get(), student);
         } else {
@@ -416,126 +363,7 @@ public class SubmissionServiceImpl implements SubmissionService {
             throw new DataServiceException("Error 105: Submission not found");
         }
 
-        saveAndFlush(gradeSubmission(submission.get(), new RegradeDetails()));
-    }
-
-    @Override
-    public Submission gradeSubmission(Submission submission, RegradeDetails regradeDetails) throws DataServiceException {
-        //We need to calculate the 2 the possible grades. Automatic and manual
-        float automatic = 0f;
-        float manual = 0f;
-
-        for (QuestionSubmission questionSubmission : submission.getQuestionSubmissions()) {
-            // If multiple choice, we take the automatic score for automatic and the manual if any for manual, and if no manual, then the automatic for manual
-            QuestionSubmission questionGraded = questionSubmission;
-
-            switch (questionSubmission.getQuestion().getQuestionType()) {
-                case MC:
-                    List<AnswerMcSubmission> answerMcSubmissions = answerSubmissionService.findByQuestionSubmissionIdMC(questionSubmission.getQuestionSubmissionId());
-
-                    if (answerMcSubmissions.size() == 1) {
-                        switch (regradeDetails.getRegradeOption()) {
-                            case FULL:
-                                if (!isRegradeEligible(regradeDetails.getEditedMCQuestionIds(), questionSubmission.getQuestion().getQuestionId())) {
-                                    // this is not an edited question submission; skip regrading
-                                    break;
-                                }
-
-                                // set score to full max points
-                                questionSubmission.setCalculatedPoints(questionSubmission.getQuestion().getPoints());
-                                questionSubmission.setAlteredGrade(null);
-                                questionGraded = allRepositories.questionSubmissionRepository.save(questionSubmission);
-                                break;
-
-                            case BOTH:
-                                if (!isRegradeEligible(regradeDetails.getEditedMCQuestionIds(), questionSubmission.getQuestion().getQuestionId())) {
-                                    // this is not an edited question submission; skip regrading
-                                    break;
-                                }
-
-                                // current answer is true or has previously-added points; set to max question points (in case point value changed)
-                                if (BooleanUtils.isTrue(answerMcSubmissions.get(0).getAnswerMc().getCorrect())
-                                        || questionSubmission.getCalculatedPoints() != null && questionSubmission.getCalculatedPoints() > 0) {
-                                    //
-                                    questionSubmission.setCalculatedPoints(questionSubmission.getQuestion().getPoints());
-                                }
-
-                                questionSubmission.setAlteredGrade(null);
-                                questionGraded = allRepositories.questionSubmissionRepository.save(questionSubmission);
-                                break;
-
-                            case CURRENT:
-                                if (!isRegradeEligible(regradeDetails.getEditedMCQuestionIds(), questionSubmission.getQuestion().getQuestionId())) {
-                                    // this is not an edited question submission; skip regrading
-                                    questionGraded = questionSubmission;
-                                    break;
-                                }
-
-                                questionSubmission.setAlteredGrade(null);
-                                questionGraded = questionSubmissionService.automaticGradingMC(questionSubmission, answerMcSubmissions.get(0));
-                                break;
-
-                            case NA:
-                                if (RegradeOption.FULL == questionSubmission.getQuestion().getRegradeOption()) {
-                                    // regrade FULL option previously selected; set score to full max points
-                                    questionSubmission.setCalculatedPoints(questionSubmission.getQuestion().getPoints());
-                                    questionSubmission.setAlteredGrade(null);
-                                    questionGraded = allRepositories.questionSubmissionRepository.save(questionSubmission);
-                                    break;
-                                }
-
-                                questionGraded = questionSubmissionService.automaticGradingMC(questionSubmission, answerMcSubmissions.get(0));
-                                break;
-
-                            case NONE:
-                            default:
-                                questionGraded = questionSubmission;
-                                break;
-                        }
-                    } else if (answerMcSubmissions.size() > 1) {
-                        throw new DataServiceException("Error 135: Cannot have more than one answer submission for a multiple choice question.");
-                    } else {
-                        questionGraded.setCalculatedPoints(0f);
-                    }
-
-                    break;
-                case ESSAY:
-                case FILE:
-                    questionGraded = questionSubmission;
-
-                    if (RegradeOption.NA == regradeDetails.getRegradeOption()) {
-                        // not a regrade
-                        questionGraded.setCalculatedPoints(0f);
-                    }
-
-                    break;
-                default:
-                    break;
-            }
-
-            automatic = automatic + (questionGraded.getCalculatedPoints() != null ? questionGraded.getCalculatedPoints() : 0f);
-
-            if (questionGraded.getAlteredGrade() != null && !questionGraded.getAlteredGrade().isNaN()) {
-                manual = manual + questionGraded.getAlteredGrade();
-            } else {
-                manual = manual + (questionGraded.getCalculatedPoints() != null ? questionGraded.getCalculatedPoints() : 0f);
-            }
-            // TODO: If open question, we take the manual score for both, because the automatic will be always 0
-        }
-
-        submission.setCalculatedGrade(automatic);
-        submission.setAlteredCalculatedGrade(manual);
-
-        if (!isGradeAltered(submission) || RegradeOption.NA != regradeDetails.getRegradeOption()) {
-            // grade is not altered or this is a regrade
-            submission.setTotalAlteredGrade(manual);
-        }
-
-        return allRepositories.submissionRepository.save(submission);
-    }
-
-    private boolean isRegradeEligible(List<Long> editedMCQuestionIds, long questionId) {
-        return editedMCQuestionIds.contains(questionId);
+        saveAndFlush(assessmentSubmissionService.gradeSubmission(submission.get(), new RegradeDetails()));
     }
 
     @Override
@@ -547,7 +375,7 @@ public class SubmissionServiceImpl implements SubmissionService {
         LTIToken ltiTokenScore = advantageAGSService.getToken("scores", experiment.getPlatformDeployment());
         LTIToken ltiTokenResults = advantageAGSService.getToken("results", experiment.getPlatformDeployment());
         //find the right id to pass based on the assignment
-        String lineitemId = assignmentService.lineItemId(assignment);
+        String lineitemId = lineItemId(assignment);
 
         if (lineitemId == null) {
             throw new DataServiceException("Error 136: The assignment is not linked to any Canvas assignment");
@@ -563,7 +391,7 @@ public class SubmissionServiceImpl implements SubmissionService {
             score.setScoreGiven(scoreGiven.toString());
         }
 
-        Float maxTerracottaScore = assessmentService.calculateMaxScore(assessment);
+        Float maxTerracottaScore = assessmentSubmissionService.calculateMaxScore(assessment);
 
         if (maxTerracottaScore == 0) {
             // zero point assignments full credit (1 point) is given for completion so the
@@ -615,7 +443,7 @@ public class SubmissionServiceImpl implements SubmissionService {
         // submission has been manually graded.
         // If any of the ESSAY questions with positive max points have a null
         // alteredGrade, then the assessment still needs to be manually graded.
-        return !isGradeAltered(submission)
+        return !assessmentSubmissionService.isGradeAltered(submission)
             && submission.getQuestionSubmissions().stream().anyMatch(qs -> {
                 return qs.getQuestion().getQuestionType() == QuestionTypes.ESSAY
                         && qs.getQuestion().getPoints() > 0
@@ -731,7 +559,7 @@ public class SubmissionServiceImpl implements SubmissionService {
     @Override
     public Float getSubmissionScore(Submission submission) {
         Assessment assessment = submission.getAssessment();
-        Float maxTerracottaScore = assessmentService.calculateMaxScore(assessment);
+        Float maxTerracottaScore = assessmentSubmissionService.calculateMaxScore(assessment);
 
         // zero point assignments should be given full credit for completion
         if (maxTerracottaScore == 0) {
@@ -743,12 +571,6 @@ public class SubmissionServiceImpl implements SubmissionService {
         }
 
         return submission.getAlteredCalculatedGrade();
-    }
-
-    private boolean isGradeAltered(Submission submission) {
-        Float totalAlteredGrade = submission.getTotalAlteredGrade();
-
-        return totalAlteredGrade != null && !totalAlteredGrade.equals(submission.getAlteredCalculatedGrade());
     }
 
     private Timestamp getLastUpdatedTimeForSubmission(Submission submission) {
@@ -868,7 +690,22 @@ public class SubmissionServiceImpl implements SubmissionService {
         }
 
         assignment.setStarted(Timestamp.valueOf(LocalDateTime.now()));
-        assignmentService.save(assignment);
+        allRepositories.assignmentRepository.save(assignment);
+    }
+
+    private String lineItemId(Assignment assignment) throws ConnectionException {
+        Experiment experiment = assignment.getExposure().getExperiment();
+        LTIToken ltiToken = advantageAGSService.getToken("lineitems", experiment.getPlatformDeployment());
+        //find the right id to pass based on the assignment
+        LineItems lineItems = advantageAGSService.getLineItems(ltiToken, experiment.getLtiContextEntity());
+
+        for (LineItem lineItem : lineItems.getLineItemList()) {
+            if (lineItem.getResourceLinkId().equals(assignment.getResourceLinkId())) {
+                return lineItem.getId();
+            }
+        }
+
+        return null;
     }
 
 }

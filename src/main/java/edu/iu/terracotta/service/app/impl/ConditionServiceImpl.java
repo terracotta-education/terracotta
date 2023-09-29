@@ -30,8 +30,7 @@ public class ConditionServiceImpl implements ConditionService {
 
     private static final int CONDITION_COUNT_ALLOWED = 16;
 
-    @Autowired
-    private AllRepositories allRepositories;
+    @Autowired private AllRepositories allRepositories;
 
     @Override
     public List<ConditionDto> findAllByExperimentId(long experimentId) {
@@ -91,14 +90,8 @@ public class ConditionServiceImpl implements ConditionService {
         return condition;
     }
 
-    @Override
-    public Condition save(Condition condition) {
+    private Condition save(Condition condition) {
         return allRepositories.conditionRepository.save(condition);
-    }
-
-    @Override
-    public Optional<Condition> findById(Long id) {
-        return allRepositories.conditionRepository.findById(id);
     }
 
     @Override
@@ -109,11 +102,6 @@ public class ConditionServiceImpl implements ConditionService {
     @Override
     public ConditionDto getCondition(Long id) {
         return toDto(findByConditionId(id));
-    }
-
-    @Override
-    public void saveAndFlush(Condition conditionToChange) {
-        allRepositories.conditionRepository.saveAndFlush(conditionToChange);
     }
 
     @Override
@@ -132,16 +120,6 @@ public class ConditionServiceImpl implements ConditionService {
     @Override
     public void deleteById(Long id) throws EmptyResultDataAccessException {
         allRepositories.conditionRepository.deleteByConditionId(id);
-    }
-
-    @Override
-    public boolean conditionBelongsToExperiment(Long experimentId, Long conditionId) {
-        return allRepositories.conditionRepository.existsByExperiment_ExperimentIdAndConditionId(experimentId, conditionId);
-    }
-
-    @Override
-    public boolean nameAlreadyExists(String name, Long experimentId, Long conditionId) {
-        return allRepositories.conditionRepository.existsByNameAndExperiment_ExperimentIdAndConditionIdIsNot(name, experimentId, conditionId);
     }
 
     @Override
@@ -184,7 +162,7 @@ public class ConditionServiceImpl implements ConditionService {
                 throw new TitleValidationException("Error 101: Condition name must be 255 characters or less.");
             }
 
-            if (nameAlreadyExists(dtoName, experimentId, conditionId)) {
+            if (allRepositories.conditionRepository.existsByNameAndExperiment_ExperimentIdAndConditionIdIsNot(dtoName, experimentId, conditionId)) {
                 throw new TitleValidationException("Error 102: Unable to create the condition. A condition with title \"" + dtoName + "\" already exists in this experiment. It is possible " +
                         "that one of the other conditions has that name and has not been updated with a new one yet. If that is the case and you wish to use this name, " +
                         "please change that condition's name first, then try again.");

@@ -40,7 +40,7 @@ import edu.iu.terracotta.model.app.enumerator.export.SubmissionsCsv;
 import edu.iu.terracotta.model.events.Event;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.AllRepositories;
-import edu.iu.terracotta.service.app.AssignmentService;
+import edu.iu.terracotta.service.app.AssignmentTreatmentService;
 import edu.iu.terracotta.service.app.ExportService;
 import edu.iu.terracotta.service.app.OutcomeService;
 import edu.iu.terracotta.service.app.SubmissionService;
@@ -86,23 +86,12 @@ public class ExportServiceImpl implements ExportService {
     private static final String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
     private static final String NA = "N/A";
 
-    @Autowired
-    private AllRepositories allRepositories;
-
-    @Autowired
-    private AssignmentService assignmentService;
-
-    @Autowired
-    private AWSService awsService;
-
-    @Autowired
-    private Environment env;
-
-    @Autowired
-    private OutcomeService outcomeService;
-
-    @Autowired
-    private SubmissionService submissionService;
+    @Autowired private AllRepositories allRepositories;
+    @Autowired private AssignmentTreatmentService assignmentTreatmentService;
+    @Autowired private AWSService awsService;
+    @Autowired private Environment env;
+    @Autowired private OutcomeService outcomeService;
+    @Autowired private SubmissionService submissionService;
 
     @Value("${app.export.batch.size:50}")
     private int exportBatchSize;
@@ -113,7 +102,7 @@ public class ExportServiceImpl implements ExportService {
     @Value("${app.export.events.output.participant.threshold:400}")
     private int eventsOutputParticipantThreshold;
 
-    long consentedParticipantsCount;
+    private long consentedParticipantsCount;
     private List<Assignment> assignments;
     private List<ExposureGroupCondition> exposureGroupConditions;
     private List<Treatment> treatments;
@@ -719,7 +708,7 @@ public class ExportServiceImpl implements ExportService {
             .forEach(
                 assignment -> {
                     try {
-                        assignmentService.setAssignmentDtoAttrs(assignment, securedInfo.getCanvasCourseId(), ltiUserEntity);
+                        assignmentTreatmentService.setAssignmentDtoAttrs(assignment, securedInfo.getCanvasCourseId(), ltiUserEntity);
                     } catch (NumberFormatException | CanvasApiException e) {
                         log.warn("Exception finding assignment ID: '{}' for course ID: '{}' in Canvas.", assignment.getLmsAssignmentId(), securedInfo.getCanvasCourseId(), e);
                     }

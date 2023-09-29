@@ -11,7 +11,6 @@ import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
 import edu.iu.terracotta.exceptions.SubmissionNotMatchingException;
 import edu.iu.terracotta.model.app.Assessment;
 import edu.iu.terracotta.model.app.Participant;
-import edu.iu.terracotta.model.app.RegradeDetails;
 import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.dto.SubmissionDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
@@ -22,12 +21,9 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 @SuppressWarnings({"PMD.MethodNamingConventions"})
 public interface SubmissionService {
-
-    List<Submission> findAllByAssessmentId(Long assessmentId);
 
     List<SubmissionDto> getSubmissions(Long experimentId, String userId, Long assessmentId, boolean student) throws NoSubmissionsException;
 
@@ -41,30 +37,12 @@ public interface SubmissionService {
 
     Submission fromDto(SubmissionDto submissionDto, boolean student) throws DataServiceException;
 
-    Submission save(Submission submission);
-
-    Optional<Submission> findById(Long id);
-
-    List<Submission> findByParticipantId(Long participantId);
-
-    Optional<Submission> findByParticipantIdAndSubmissionId(Long participantId, Long submissionId);
-
-    List<Submission> findByParticipantIdAndAssessmentId(Long participantId, Long assessmentId);
-
-    Participant findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(Long experimentId, String userId);
-
-    void saveAndFlush(Submission submissionToChange);
-
     void deleteById(Long id) throws EmptyResultDataAccessException;
-
-    boolean submissionBelongsToAssessment(Long assessmentId, Long submissionId);
 
     void finalizeAndGrade(Long submissionId, SecuredInfo securedInfo, boolean student)
             throws DataServiceException, CanvasApiException, IOException, AssignmentDatesException, ConnectionException;
 
     void grade(Long submissionId, SecuredInfo securedInfo) throws DataServiceException;
-
-    Submission gradeSubmission(Submission submission, RegradeDetails regradeDetails) throws DataServiceException;
 
     void sendSubmissionGradeToCanvasWithLTI(Submission submission, boolean studentSubmission)
             throws ConnectionException, DataServiceException, CanvasApiException, IOException;

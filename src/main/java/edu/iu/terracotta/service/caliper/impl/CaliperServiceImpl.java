@@ -13,8 +13,7 @@ import edu.iu.terracotta.model.app.dto.media.MediaObjectDto;
 import edu.iu.terracotta.model.events.Event;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.AllRepositories;
-import edu.iu.terracotta.service.app.AssessmentService;
-import edu.iu.terracotta.service.app.SubmissionService;
+import edu.iu.terracotta.service.app.AssessmentSubmissionService;
 import edu.iu.terracotta.service.caliper.CaliperService;
 import edu.iu.terracotta.service.common.Utils;
 import edu.iu.terracotta.utils.LtiStrings;
@@ -68,6 +67,9 @@ public class CaliperServiceImpl implements CaliperService {
 
     public static final String DATA_VERSION = "http://purl.imsglobal.org/ctx/caliper/v1p2";
 
+    @Autowired private AllRepositories allRepositories;
+    @Autowired private AssessmentSubmissionService assessmentSubmissionService;
+
     private Sensor defaultSensor;
     private String applicationName;
     private String applicationUrl;
@@ -75,15 +77,6 @@ public class CaliperServiceImpl implements CaliperService {
     private final JsonldContext context;
     private final boolean caliperSend;
     private final boolean caliperDB;
-
-    @Autowired
-    private AllRepositories allRepositories;
-
-    @Autowired
-    private AssessmentService assessmentService;
-
-    @Autowired
-    private SubmissionService submissionService;
 
     @Autowired
     public CaliperServiceImpl(@Value("${caliper.sensor-id:1}") final String sensorId,
@@ -592,7 +585,7 @@ public class CaliperServiceImpl implements CaliperService {
             .extensions(extensions)
             .type(EntityType.ASSESSMENT)
             .maxAttempts(maxAttempts)
-            .maxScore(assessmentService.calculateMaxScore(submission.getAssessment()))
+            .maxScore(assessmentSubmissionService.calculateMaxScore(submission.getAssessment()))
             .version(String.valueOf(submission.getAssessment().getVersion()))
             .build();
     }
@@ -634,7 +627,7 @@ public class CaliperServiceImpl implements CaliperService {
             .type(EntityType.ATTEMPT)
             .assignee(actor)
             .assignable(assessment)
-            .count(submissionService.findByParticipantIdAndAssessmentId(submission.getParticipant().getParticipantId(), submission.getAssessment().getAssessmentId()).size())
+            .count(allRepositories.submissionRepository.findByParticipant_ParticipantIdAndAssessment_AssessmentId(submission.getParticipant().getParticipantId(), submission.getAssessment().getAssessmentId()).size())
             .dateCreated(convertTimestamp(submission.getCreatedAt(), false))
             .startedAtTime(convertTimestamp(submission.getCreatedAt(), false))
             .endedAtTime(convertTimestamp(submission.getDateSubmitted(), true)) //To avoid the error if they submit instantaneously for some reason.
@@ -658,7 +651,7 @@ public class CaliperServiceImpl implements CaliperService {
             .id(assessment.getId() + "/submissions/" + submission.getSubmissionId())
             .type(EntityType.RESULT)
             .attempt(attempt)
-            .maxResultScore(assessmentService.calculateMaxScore(submission.getAssessment()))
+            .maxResultScore(assessmentSubmissionService.calculateMaxScore(submission.getAssessment()))
             .resultScore(submission.getTotalAlteredGrade())
             .dateCreated(convertTimestamp(submission.getCreatedAt(), false))
             .comment(comment)

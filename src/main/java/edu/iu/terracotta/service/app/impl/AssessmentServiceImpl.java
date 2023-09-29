@@ -39,8 +39,8 @@ import edu.iu.terracotta.model.app.enumerator.RegradeOption;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.APIJWTService;
-import edu.iu.terracotta.service.app.AnswerSubmissionService;
 import edu.iu.terracotta.service.app.AssessmentService;
+import edu.iu.terracotta.service.app.AssessmentSubmissionService;
 import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.service.app.ParticipantService;
 import edu.iu.terracotta.service.app.QuestionService;
@@ -82,32 +82,17 @@ public class AssessmentServiceImpl implements AssessmentService {
 
     public static final int TITLE_MAX_LENGTH = 255;
 
-    @Autowired
-    private AllRepositories allRepositories;
+    @Autowired private AllRepositories allRepositories;
+    @Autowired private APIJWTService apijwtService;
+    @Autowired private AssessmentSubmissionService assessmentSubmissionService;
+    @Autowired private FileStorageService fileStorageService;
+    @Autowired private ParticipantService participantService;
+    @Autowired private QuestionService questionService;
+    @Autowired private SubmissionService submissionService;
 
-    @Autowired
-    private AnswerSubmissionService answerSubmissionService;
+    @PersistenceContext private EntityManager entityManager;
 
-    @Autowired
-    private APIJWTService apijwtService;
-
-    @Autowired
-    private FileStorageService fileStorageService;
-
-    @Autowired
-    private ParticipantService participantService;
-
-    @Autowired
-    private QuestionService questionService;
-
-    @Autowired
-    private SubmissionService submissionService;
-
-    @PersistenceContext
-    private EntityManager entityManager;
-
-    @Override
-    public List<Assessment> findAllByTreatmentId(Long treatmentId) {
+    private List<Assessment> findAllByTreatmentId(Long treatmentId) {
         return allRepositories.assessmentRepository.findByTreatment_TreatmentId(treatmentId);
     }
 
@@ -153,7 +138,7 @@ public class AssessmentServiceImpl implements AssessmentService {
     private AssessmentDto toDto(Assessment assessment, Participant participant, boolean canViewSubmissions) throws AssessmentNotMatchingException {
         AssessmentDto assessmentDto = toDto(assessment, null, false, false, false, false);
 
-        List<Submission> participantAssessmentSubmissionsSubmitted = CollectionUtils.emptyIfNull(submissionService.findByParticipantIdAndAssessmentId(participant.getParticipantId(), assessment.getAssessmentId())).stream()
+        List<Submission> participantAssessmentSubmissionsSubmitted = CollectionUtils.emptyIfNull(allRepositories.submissionRepository.findByParticipant_ParticipantIdAndAssessment_AssessmentId(participant.getParticipantId(), assessment.getAssessmentId())).stream()
             .filter(submission -> submission.getDateSubmitted() != null)
             .toList();
 
@@ -270,7 +255,7 @@ public class AssessmentServiceImpl implements AssessmentService {
 
         assessmentDto.setSubmissions(submissionDtoList);
         assessmentDto.setTreatmentId(assessment.getTreatment().getTreatmentId());
-        assessmentDto.setMaxPoints(calculateMaxScore(assessment));
+        assessmentDto.setMaxPoints(assessmentSubmissionService.calculateMaxScore(assessment));
 
         return assessmentDto;
     }
@@ -313,14 +298,8 @@ public class AssessmentServiceImpl implements AssessmentService {
         return assessment;
     }
 
-    @Override
-    public Assessment save(Assessment assessment) {
+    private Assessment save(Assessment assessment) {
         return allRepositories.assessmentRepository.save(assessment);
-    }
-
-    @Override
-    public Optional<Assessment> findById(Long id) {
-        return allRepositories.assessmentRepository.findById(id);
     }
 
     @Override
@@ -371,7 +350,7 @@ public class AssessmentServiceImpl implements AssessmentService {
 
     private void processAssessmentQuestions(AssessmentDto assessmentDto) throws IdInPostException, DataServiceException, QuestionNotMatchingException, NegativePointsException, MultipleChoiceLimitReachedException {
         if (CollectionUtils.isNotEmpty(assessmentDto.getQuestions())) {
-            List<Long> existingQuestionIds = CollectionUtils.emptyIfNull(questionService.findAllByAssessmentId(assessmentDto.getAssessmentId())).stream()
+            List<Long> existingQuestionIds = CollectionUtils.emptyIfNull(allRepositories.questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(assessmentDto.getAssessmentId())).stream()
                 .map(Question::getQuestionId)
                 .collect(Collectors.toList()); // needs to be a modifiable list
 
@@ -385,7 +364,7 @@ public class AssessmentServiceImpl implements AssessmentService {
                 }
 
                 // update question
-                Question question = questionService.getQuestion(questionDto.getQuestionId());
+                Question question = allRepositories.questionRepository.findByQuestionId(questionDto.getQuestionId());
 
                 if (question == null) {
                     throw new QuestionNotMatchingException(TextConstants.QUESTION_NOT_MATCHING);
@@ -402,42 +381,19 @@ public class AssessmentServiceImpl implements AssessmentService {
 
             // remove questions not passed in
             CollectionUtils.emptyIfNull(existingQuestionIds).stream()
-                .forEach(existingQuestionId -> questionService.deleteById(existingQuestionId));
+                .forEach(existingQuestionId -> allRepositories.questionRepository.deleteByQuestionId(existingQuestionId));
         } else {
             // delete all questions from the assessment; none were passed in
-            List<Question> questions = questionService.findAllByAssessmentId(assessmentDto.getAssessmentId());
+            List<Question> questions = allRepositories.questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(assessmentDto.getAssessmentId());
 
             CollectionUtils.emptyIfNull(questions).stream()
-                .forEach(question -> questionService.deleteById(question.getQuestionId()));
+                .forEach(question -> allRepositories.questionRepository.deleteByQuestionId(question.getQuestionId()));
         }
-    }
-
-    @Override
-    public Assessment saveAndFlush(Assessment assessmentToChange) {
-        return allRepositories.assessmentRepository.saveAndFlush(assessmentToChange);
     }
 
     @Override
     public void deleteById(Long id) throws EmptyResultDataAccessException {
         allRepositories.assessmentRepository.deleteByAssessmentId(id);
-    }
-
-    @Override
-    public boolean assessmentBelongsToExperimentAndConditionAndTreatment(Long experimentId, Long conditionId, Long treatmentId, Long assessmentId) {
-        return allRepositories.assessmentRepository
-                .existsByTreatment_Condition_Experiment_ExperimentIdAndTreatment_Condition_ConditionIdAndTreatment_TreatmentIdAndAssessmentId(
-                        experimentId, conditionId, treatmentId, assessmentId);
-    }
-
-    @Override
-    public Float calculateMaxScore(Assessment assessment) {
-        float score = Float.parseFloat("0");
-
-        for (Question question : assessment.getQuestions()) {
-            score += question.getPoints();
-        }
-
-        return score;
     }
 
     private void validateMultipleAttemptsSettings(AssessmentDto assessmentDto) throws MultipleAttemptsSettingsValidationException {
@@ -695,7 +651,7 @@ public class AssessmentServiceImpl implements AssessmentService {
             throw new AssessmentNotMatchingException("There is no assessment available for this user");
         }
 
-        List<Submission> submissionList = submissionService.findByParticipantIdAndAssessmentId(participant.getParticipantId(), assessment.getAssessmentId());
+        List<Submission> submissionList = allRepositories.submissionRepository.findByParticipant_ParticipantIdAndAssessment_AssessmentId(participant.getParticipantId(), assessment.getAssessmentId());
 
         if (CollectionUtils.isNotEmpty(submissionList)) {
             for (Submission submission : submissionList) {
@@ -705,9 +661,9 @@ public class AssessmentServiceImpl implements AssessmentService {
                     submission.getQuestionSubmissions()
                         .forEach(
                             questionSubmission -> {
-                                answerSubmissionCount.addAndGet(answerSubmissionService.findAllByQuestionSubmissionIdEssay(questionSubmission.getQuestionSubmissionId()).size());
-                                answerSubmissionCount.addAndGet(answerSubmissionService.findAllByQuestionSubmissionIdFile(questionSubmission.getQuestionSubmissionId()).size());
-                                answerSubmissionCount.addAndGet(answerSubmissionService.findByQuestionSubmissionIdMC(questionSubmission.getQuestionSubmissionId()).size());
+                                answerSubmissionCount.addAndGet(allRepositories.answerEssaySubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmission.getQuestionSubmissionId()).size());
+                                answerSubmissionCount.addAndGet(allRepositories.answerFileSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmission.getQuestionSubmissionId()).size());
+                                answerSubmissionCount.addAndGet(allRepositories.answerMcSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmission.getQuestionSubmissionId()).size());
                             }
                         );
 
@@ -799,7 +755,7 @@ public class AssessmentServiceImpl implements AssessmentService {
 
         // regrade option selected; perform regrade
         for (Submission submission : submissions) {
-            Submission gradedSubmission = submissionService.gradeSubmission(submission, regradeDetails);
+            Submission gradedSubmission = assessmentSubmissionService.gradeSubmission(submission, regradeDetails);
             submissionService.sendSubmissionGradeToCanvasWithLTI(gradedSubmission, false);
         }
 

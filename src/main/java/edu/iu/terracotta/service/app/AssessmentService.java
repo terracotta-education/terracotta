@@ -34,17 +34,13 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Optional;
 
 public interface AssessmentService {
-
-    List<Assessment> findAllByTreatmentId(Long treatmentId);
 
     List<AssessmentDto> getAllAssessmentsByTreatment(Long treatmentId, boolean submissions) throws AssessmentNotMatchingException;
 
     AssessmentDto postAssessment(AssessmentDto assessmentDto, long treatmentId)
-                    throws IdInPostException, AssessmentNotMatchingException, DataServiceException,
-                    TitleValidationException;
+                    throws IdInPostException, AssessmentNotMatchingException, DataServiceException, TitleValidationException;
 
     Assessment duplicateAssessment(long assessmentId, long treatmentId) throws DataServiceException, AssessmentNotMatchingException, TreatmentNotMatchingException, QuestionNotMatchingException;
 
@@ -56,10 +52,6 @@ public interface AssessmentService {
 
     Assessment fromDto(AssessmentDto assessmentDto) throws DataServiceException;
 
-    Assessment save(Assessment assessment);
-
-    Optional<Assessment> findById(Long id);
-
     Assessment getAssessment(Long id);
 
     AssessmentDto putAssessment(Long id, AssessmentDto assessmentDto, boolean processQuestions)
@@ -70,13 +62,7 @@ public interface AssessmentService {
                     throws TitleValidationException, RevealResponsesSettingValidationException,
                     MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException, IdInPostException, DataServiceException, NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException;
 
-    Assessment saveAndFlush(Assessment assessmentToChange);
-
     void deleteById(Long id) throws EmptyResultDataAccessException;
-
-    boolean assessmentBelongsToExperimentAndConditionAndTreatment(Long experimentId, Long conditionId, Long treatmentId, Long assessmentId);
-
-    Float calculateMaxScore(Assessment assessment);
 
     AssessmentDto defaultAssessment(AssessmentDto assessmentDto, Long treatmentId);
 

@@ -12,6 +12,7 @@ import edu.iu.terracotta.model.app.ConsentDocument;
 import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.dto.FileInfoDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
+import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.FileStorageService;
@@ -45,14 +46,10 @@ public class ConsentFileController {
 
     public static final String REQUEST_ROOT = "api/experiments/{experimentId}/consent";
 
-    @Autowired
-    private FileStorageService fileStorageService;
-
-    @Autowired
-    private APIJWTService apijwtService;
-
-    @Autowired
-    private ExperimentService experimentService;
+    @Autowired private AllRepositories allRepositories;
+    @Autowired private APIJWTService apijwtService;
+    @Autowired private ExperimentService experimentService;
+    @Autowired private FileStorageService fileStorageService;
 
     @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     @Transactional(rollbackFor = {AssignmentNotCreatedException.class, CanvasApiException.class})
@@ -114,7 +111,7 @@ public class ConsentFileController {
 
         fileStorageService.deleteConsentFile(experimentId);
 
-        Optional<Experiment> experimentOptional = experimentService.findById(experimentId);
+        Optional<Experiment> experimentOptional = allRepositories.experimentRepository.findById(experimentId);
 
         if (!experimentOptional.isPresent()) {
             return new ResponseEntity<>(HttpStatus.OK);
@@ -123,7 +120,7 @@ public class ConsentFileController {
         Experiment experiment = experimentOptional.get();
         ConsentDocument consentDocument = experiment.getConsentDocument();
         experiment.setConsentDocument(null);
-        experimentService.saveAndFlush(experiment);
+        allRepositories.experimentRepository.saveAndFlush(experiment);
         experimentService.deleteConsentDocument(consentDocument);
 
         return new ResponseEntity<>(HttpStatus.OK);

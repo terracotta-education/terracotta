@@ -22,8 +22,6 @@ import edu.iu.terracotta.model.app.enumerator.LmsType;
 import edu.iu.terracotta.model.canvas.AssignmentExtended;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.AllRepositories;
-import edu.iu.terracotta.service.app.ExperimentService;
-import edu.iu.terracotta.service.app.ExposureService;
 import edu.iu.terracotta.service.app.OutcomeScoreService;
 import edu.iu.terracotta.service.app.OutcomeService;
 import edu.iu.terracotta.service.app.ParticipantService;
@@ -49,23 +47,10 @@ import java.util.Optional;
 @Component
 public class OutcomeServiceImpl implements OutcomeService {
 
-    @Autowired
-    private AllRepositories allRepositories;
-
-    @Autowired
-    private ExperimentService experimentService;
-
-    @Autowired
-    private ExposureService exposureService;
-
-    @Autowired
-    private OutcomeScoreService outcomeScoreService;
-
-    @Autowired
-    private ParticipantService participantService;
-
-    @Autowired
-    private CanvasAPIClient canvasAPIClient;
+    @Autowired private AllRepositories allRepositories;
+    @Autowired private OutcomeScoreService outcomeScoreService;
+    @Autowired private ParticipantService participantService;
+    @Autowired private CanvasAPIClient canvasAPIClient;
 
     @Override
     public List<OutcomeDto> getOutcomesForExposure(long exposureId) {
@@ -125,7 +110,7 @@ public class OutcomeServiceImpl implements OutcomeService {
 
     @Override
     public Outcome fromDto(OutcomeDto outcomeDto) throws DataServiceException {
-        Optional<Exposure> exposure = exposureService.findById(outcomeDto.getExposureId());
+        Optional<Exposure> exposure = allRepositories.exposureRepository.findById(outcomeDto.getExposureId());
 
         if (!exposure.isPresent()) {
             throw new DataServiceException("Exposure for outcome does not exist.");
@@ -143,8 +128,7 @@ public class OutcomeServiceImpl implements OutcomeService {
         return outcome;
     }
 
-    @Override
-    public Optional<Outcome> findById(long id) {
+    private Optional<Outcome> findById(long id) {
         return allRepositories.outcomeRepository.findById(id);
     }
 
@@ -185,13 +169,8 @@ public class OutcomeServiceImpl implements OutcomeService {
     }
 
     @Override
-    public boolean outcomeBelongsToExperimentAndExposure(long experimentId, long exposureId, long outcomeId) {
-        return allRepositories.outcomeRepository.existsByExposure_Experiment_ExperimentIdAndExposure_ExposureIdAndOutcomeId(experimentId, exposureId, outcomeId);
-    }
-
-    @Override
     public List<OutcomePotentialDto> potentialOutcomes(long experimentId, SecuredInfo securedInfo) throws DataServiceException, CanvasApiException {
-        Optional<Experiment> experiment = experimentService.findById(experimentId);
+        Optional<Experiment> experiment = allRepositories.experimentRepository.findById(experimentId);
 
         if (!experiment.isPresent()) {
             throw new DataServiceException("Error 105: Experiment does not exist.");
@@ -351,7 +330,7 @@ public class OutcomeServiceImpl implements OutcomeService {
         }
 
         newScores.forEach(
-            outcomeScore -> outcomeScoreService.save(outcomeScore)
+            outcomeScore -> allRepositories.outcomeScoreRepository.save(outcomeScore)
         );
 
         // TODO what to do if the outcome score is there but the participant is dropped.

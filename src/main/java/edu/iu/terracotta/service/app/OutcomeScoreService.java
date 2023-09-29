@@ -9,11 +9,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
-import java.util.Optional;
 
 public interface OutcomeScoreService {
-
-    List<OutcomeScore> findAllByOutcomeId(Long outcomeId);
 
     List<OutcomeScoreDto> getOutcomeScores(Long outcomeId);
 
@@ -25,17 +22,9 @@ public interface OutcomeScoreService {
 
     OutcomeScore fromDto(OutcomeScoreDto outcomeScoreDto) throws DataServiceException;
 
-    OutcomeScore save(OutcomeScore outcomeScore);
-
-    Optional<OutcomeScore> findById(Long id);
-
     void updateOutcomeScore(Long outcomeId, OutcomeScoreDto outcomeScoreDto);
 
-    void saveAndFlush(OutcomeScore outcomeScoreToChange);
-
     void deleteById(Long id);
-
-    boolean outcomeScoreBelongsToOutcome(Long outcomeId, Long outcomeScoreId);
 
     void validateParticipant(Long participantId, Long experimentId) throws InvalidParticipantException;
 

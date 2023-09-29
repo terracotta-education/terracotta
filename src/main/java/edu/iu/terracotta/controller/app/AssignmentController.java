@@ -22,6 +22,7 @@ import edu.iu.terracotta.model.app.dto.AssignmentDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.AssignmentService;
+import edu.iu.terracotta.service.app.AssignmentTreatmentService;
 import edu.iu.terracotta.utils.TextConstants;
 import lombok.extern.slf4j.Slf4j;
 
@@ -54,11 +55,9 @@ public class AssignmentController {
 
     public static final String REQUEST_ROOT = "api/experiments/{experimentId}/exposures/{exposureId}/assignments";
 
-    @Autowired
-    private AssignmentService assignmentService;
-
-    @Autowired
-    private APIJWTService apijwtService;
+    @Autowired private AssignmentService assignmentService;
+    @Autowired private AssignmentTreatmentService assignmentTreatmentService;
+    @Autowired private APIJWTService apijwtService;
 
     @GetMapping
     public ResponseEntity<List<AssignmentDto>> allAssignmentsByExposure(@PathVariable long experimentId,
@@ -99,7 +98,7 @@ public class AssignmentController {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
 
-        AssignmentDto assignmentDto = assignmentService.toDto(assignmentService.getAssignment(assignmentId), submissions, true);
+        AssignmentDto assignmentDto = assignmentTreatmentService.toAssignmentDto(assignmentService.getAssignment(assignmentId), submissions, true);
 
         return new ResponseEntity<>(assignmentDto, HttpStatus.OK);
     }

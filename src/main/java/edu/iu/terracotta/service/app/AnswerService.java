@@ -30,15 +30,11 @@ public interface AnswerService {
 
     AnswerMc fromDtoMC(AnswerDto answerDto) throws DataServiceException;
 
-    AnswerMc saveMC(AnswerMc answer);
-
     AnswerMc findByAnswerId(Long answerId);
 
     List<AnswerDto> updateAnswerMC(Map<AnswerMc, AnswerDto> map);
 
     void deleteByIdMC(Long id) throws EmptyResultDataAccessException;
-
-    boolean mcAnswerBelongsToQuestionAndAssessment(Long assessmentId, Long questionId, Long answerId);
 
     HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId, Long questionId, Long answerId);
 

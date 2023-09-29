@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyFloat;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.clearInvocations;
@@ -55,7 +54,7 @@ public class SubmissionServiceImplTest extends BaseTest {
         when(answerMcSubmissionOptionRepository.save(any(AnswerMcSubmissionOption.class))).thenReturn(null);
         when(participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(anyLong(), anyString())).thenReturn(participant);
 
-        when(answerSubmissionService.findByQuestionSubmissionIdMC(anyLong())).thenReturn(Collections.singletonList(answerMcSubmission));
+        when(allRepositories.answerMcSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(anyLong())).thenReturn(Collections.singletonList(answerMcSubmission));
         when(questionSubmissionService.automaticGradingMC(any(QuestionSubmission.class), any(AnswerMcSubmission.class))).thenReturn(questionSubmission);
 
         when(answerMc.getCorrect()).thenReturn(true);
@@ -70,7 +69,7 @@ public class SubmissionServiceImplTest extends BaseTest {
     public void testPostSubmissionNotStarted() throws IdInPostException, ParticipantNotMatchingException, InvalidUserException, DataServiceException {
         submissionService.postSubmission(new SubmissionDto(), 0l, securedInfo, 0l, false);
 
-        verify(assignmentService).save(assignment);
+        verify(assignmentRepository).save(assignment);
     }
 
     @Test
@@ -78,7 +77,7 @@ public class SubmissionServiceImplTest extends BaseTest {
         when(assignment.isStarted()).thenReturn(true);
         submissionService.postSubmission(new SubmissionDto(), 0l, securedInfo, 0l, false);
 
-        verify(assignmentService, never()).save(assignment);
+        verify(assignmentRepository, never()).save(assignment);
     }
 
     @Test
@@ -87,7 +86,7 @@ public class SubmissionServiceImplTest extends BaseTest {
 
         submissionService.createNewSubmission(assessment, participant, securedInfo);
 
-        verify(assignmentService).save(assignment);
+        verify(assignmentRepository).save(assignment);
     }
 
     @Test
@@ -96,7 +95,7 @@ public class SubmissionServiceImplTest extends BaseTest {
         when(assignment.isStarted()).thenReturn(true);
         submissionService.createNewSubmission(assessment, participant, securedInfo);
 
-        verify(assignmentService, never()).save(assignment);
+        verify(assignmentRepository, never()).save(assignment);
     }
 
     @Test
@@ -105,7 +104,7 @@ public class SubmissionServiceImplTest extends BaseTest {
         when(apijwtService.isTestStudent(any(SecuredInfo.class))).thenReturn(true);
         submissionService.createNewSubmission(assessment, participant, securedInfo);
 
-        verify(assignmentService, never()).save(assignment);
+        verify(assignmentRepository, never()).save(assignment);
     }
 
     // test toDto when questionSubmissions is true and not submitted, calls
@@ -196,96 +195,6 @@ public class SubmissionServiceImplTest extends BaseTest {
         assertThrows(SubmissionNotMatchingException.class, () -> {
             submissionService.allowedSubmission(1l, securedInfo);
         });
-    }
-
-    @Test
-    public void testRegradeFull() throws DataServiceException {
-        submissionService.gradeSubmission(submission, regradeDetails);
-
-        verify(questionSubmissionRepository).save(any(QuestionSubmission.class));
-        verify(submissionRepository).save(submission);
-    }
-
-    @Test
-    public void testRegradeFullIdNotFound() throws DataServiceException {
-        when(question.getQuestionId()).thenReturn(2L);
-        submissionService.gradeSubmission(submission, regradeDetails);
-
-        verify(questionSubmission, never()).setCalculatedPoints(anyFloat());
-        verify(questionSubmission, never()).setAlteredGrade(null);
-        verify(questionSubmissionRepository, never()).save(any(QuestionSubmission.class));
-        verify(submissionRepository).save(submission);
-    }
-
-    @Test
-    public void testRegradeBoth() throws DataServiceException {
-        when(regradeDetails.getRegradeOption()).thenReturn(RegradeOption.BOTH);
-        submissionService.gradeSubmission(submission, regradeDetails);
-
-        verify(questionSubmissionRepository).save(any(QuestionSubmission.class));
-        verify(submissionRepository).save(submission);
-    }
-
-    @Test
-    public void testRegradeBothIdNotFound() throws DataServiceException {
-        when(question.getQuestionId()).thenReturn(2L);
-        submissionService.gradeSubmission(submission, regradeDetails);
-
-        verify(questionSubmission, never()).setAlteredGrade(null);
-        verify(questionSubmissionRepository, never()).save(any(QuestionSubmission.class));
-        verify(submissionRepository).save(submission);
-    }
-
-    @Test
-    public void testRegradeBothAnswerIncorrect() throws DataServiceException {
-        when(regradeDetails.getRegradeOption()).thenReturn(RegradeOption.BOTH);
-        when(answerMc.getCorrect()).thenReturn(false);
-        when(questionSubmission.getCalculatedPoints()).thenReturn(0F);
-        submissionService.gradeSubmission(submission, regradeDetails);
-
-        verify(questionSubmission, never()).setCalculatedPoints(anyFloat());
-        verify(questionSubmission).setAlteredGrade(null);
-        verify(questionSubmissionRepository).save(any(QuestionSubmission.class));
-        verify(submissionRepository).save(submission);
-    }
-
-    @Test
-    public void testRegradeCurrent() throws DataServiceException {
-        when(regradeDetails.getRegradeOption()).thenReturn(RegradeOption.CURRENT);
-        submissionService.gradeSubmission(submission, regradeDetails);
-
-        verify(questionSubmissionRepository, never()).save(any(QuestionSubmission.class));
-        verify(questionSubmissionService).automaticGradingMC(any(QuestionSubmission.class), any(AnswerMcSubmission.class));
-        verify(submissionRepository).save(submission);
-    }
-
-    @Test
-    public void testRegradeCurrentIdNotFound() throws DataServiceException {
-        when(question.getQuestionId()).thenReturn(2L);
-        submissionService.gradeSubmission(submission, regradeDetails);
-
-        verify(questionSubmissionRepository, never()).save(any(QuestionSubmission.class));
-        verify(submissionRepository).save(submission);
-    }
-
-    @Test
-    public void testRegradeNone() throws DataServiceException {
-        when(regradeDetails.getRegradeOption()).thenReturn(RegradeOption.NONE);
-        submissionService.gradeSubmission(submission, regradeDetails);
-
-        verify(questionSubmissionRepository, never()).save(any(QuestionSubmission.class));
-        verify(questionSubmissionService, never()).automaticGradingMC(any(QuestionSubmission.class), any(AnswerMcSubmission.class));
-        verify(submissionRepository).save(submission);
-    }
-
-    @Test
-    public void testRegradeNA() throws DataServiceException {
-        when(regradeDetails.getRegradeOption()).thenReturn(RegradeOption.NA);
-        submissionService.gradeSubmission(submission, regradeDetails);
-
-        verify(questionSubmissionRepository, never()).save(any(QuestionSubmission.class));
-        verify(questionSubmissionService).automaticGradingMC(any(QuestionSubmission.class), any(AnswerMcSubmission.class));
-        verify(submissionRepository).save(submission);
     }
 
 }
