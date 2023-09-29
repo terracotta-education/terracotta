@@ -19,21 +19,21 @@
         <aws-java-sdk-s3.version>1.12.401</aws-java-sdk-s3.version>
         <canvas-api.version>1.0.24</canvas-api.version>
         <commons-collections4.version>4.4</commons-collections4.version>
-        <commons-io.version>2.11.0</commons-io.version>
-        <commons-lang3.version>3.12.0</commons-lang3.version>
-        <guava.version>31.1-jre</guava.version>
-        <jackson-datatype-joda.version>2.13.4</jackson-datatype-joda.version>
+        <commons-io.version>2.13.0</commons-io.version>
+        <commons-lang3.version>3.13.0</commons-lang3.version>
+        <guava.version>32.1.2-jre</guava.version>
+        <jackson-datatype-joda.version>2.15.2</jackson-datatype-joda.version>
         <java.version>17</java.version>
         <jjwt.version>0.11.5</jjwt.version>
-        <joda-time.version>2.12.0</joda-time.version>
-        <json.version>20230227</json.version>
-        <jsoup.version>1.15.3</jsoup.version>
-        <liquibase.version>4.17.0</liquibase.version>
+        <joda-time.version>2.12.5</joda-time.version>
+        <json.version>20230618</json.version>
+        <jsoup.version>1.16.1</jsoup.version>
+        <liquibase.version>4.23.2</liquibase.version>
         <log4j2.version>2.17.2</log4j2.version>
-        <lombok.version>1.18.26</lombok.version>
-        <mysql-connector-j.version>8.0.33</mysql-connector-j.version>
-        <nimbus-jose-jwt.version>9.25.6</nimbus-jose-jwt.version>
-        <opencsv.version>5.7.1</opencsv.version>
+        <lombok.version>1.18.30</lombok.version>
+        <mysql-connector-j.version>8.1.0</mysql-connector-j.version>
+        <nimbus-jose-jwt.version>9.35</nimbus-jose-jwt.version>
+        <opencsv.version>5.8</opencsv.version>
         <spring-security-oauth.version>2.5.2.RELEASE</spring-security-oauth.version>
         <zip4j.version>2.11.3</zip4j.version>
     </properties>
