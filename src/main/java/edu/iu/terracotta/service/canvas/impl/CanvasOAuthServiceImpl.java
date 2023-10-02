@@ -14,6 +14,7 @@ import java.util.Set;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.BufferingClientHttpRequestFactory;
@@ -190,7 +191,7 @@ public class CanvasOAuthServiceImpl implements LMSOAuthService<CanvasAPITokenEnt
                 return response.getBody();
             }
         } catch (UnknownContentTypeException unknownContentTypeException) {
-            if (unknownContentTypeException.getRawStatusCode() == 302) {
+            if (unknownContentTypeException.getStatusCode() == HttpStatusCode.valueOf(302)) {
 
                 URI location = unknownContentTypeException.getResponseHeaders().getLocation();
                 String queryParameters = location.getQuery();

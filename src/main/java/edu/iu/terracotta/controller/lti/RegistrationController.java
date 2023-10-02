@@ -24,6 +24,8 @@ import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.lti.RegistrationService;
 import edu.iu.terracotta.utils.LtiStrings;
 import edu.iu.terracotta.utils.TextConstants;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,7 +34,7 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.BufferingClientHttpRequestFactory;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
@@ -44,8 +46,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.client.RestTemplate;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpSession;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -115,7 +115,7 @@ public class RegistrationController {
             PlatformRegistrationDTO platformRegistrationDTO = null;
 
             if (platformConfiguration != null) {
-                HttpStatus status = platformConfiguration.getStatusCode();
+                HttpStatusCode status = platformConfiguration.getStatusCode();
 
                 if (status.is2xxSuccessful()) {
                     platformRegistrationDTO = platformConfiguration.getBody();

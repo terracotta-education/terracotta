@@ -15,6 +15,7 @@ package edu.iu.terracotta.database;
 import edu.iu.terracotta.repository.LtiUserRepository;
 import edu.iu.terracotta.repository.PlatformDeploymentRepository;
 import edu.iu.terracotta.repository.ToolDeploymentRepository;
+import jakarta.annotation.PostConstruct;
 import edu.iu.terracotta.config.ApplicationConfig;
 import edu.iu.terracotta.model.LtiUserEntity;
 import edu.iu.terracotta.model.PlatformDeployment;
@@ -26,7 +27,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.util.Set;
 
@@ -36,6 +36,7 @@ import java.util.Set;
  */
 @Component
 @Profile("!test")
+@SuppressWarnings({"PMD.GuardLogStatement"})
 // only load this when running the application (not for unit tests which have the 'testing' profile active)
 public class DatabasePreload {
 

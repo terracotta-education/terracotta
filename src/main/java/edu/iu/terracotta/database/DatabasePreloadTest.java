@@ -22,13 +22,14 @@ import edu.iu.terracotta.model.test.Conditions;
 import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.repository.LtiContextRepository;
+import jakarta.annotation.PostConstruct;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.util.Set;
 
@@ -38,6 +39,7 @@ import java.util.Set;
  */
 @Component
 @Profile("test")
+@SuppressWarnings({"PMD.GuardLogStatement"})
 // only load this when running unit tests (not for for the application which has the '!testing' profile active)
 public class DatabasePreloadTest {
 
@@ -71,7 +73,6 @@ public class DatabasePreloadTest {
 
     @Autowired
     ExposureResourceServiceTest exposureResourceService;
-
 
     @PostConstruct
     public void initTest() throws IOException {

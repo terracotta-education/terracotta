@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.7.18</version>
+        <version>3.2.4</version>
         <relativePath/>
     </parent>
     <groupId>edu.iu</groupId>
@@ -27,13 +27,12 @@
         <guava.version>33.1.0-jre</guava.version>
         <jackson-datatype-joda.version>2.17.0</jackson-datatype-joda.version>
         <jacoco.version>0.8.11</jacoco.version>
-        <java.version>17</java.version>
+        <java.version>21</java.version>
         <jjwt.version>0.12.5</jjwt.version>
         <joda-time.version>2.12.7</joda-time.version>
         <json.version>20240303</json.version>
         <jsoup.version>1.17.2</jsoup.version>
         <liquibase.version>4.26.0</liquibase.version>
-        <log4j2.version>2.17.2</log4j2.version>
         <lombok.version>1.18.30</lombok.version>
         <mysql-connector-j.version>8.3.0</mysql-connector-j.version>
         <nimbus-jose-jwt.version>9.37.3</nimbus-jose-jwt.version>
@@ -246,7 +245,7 @@
                         <groupId>org.springframework.boot</groupId>
                         <artifactId>spring-boot-maven-plugin</artifactId>
                         <configuration>
-                            <jvmArguments><!-- debug on port 5005 -->
+                            <jvmArguments>
                                 -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005
                             </jvmArguments>
                         </configuration>
@@ -274,19 +273,13 @@
                     <nodeVersion>${node.version}</nodeVersion>
                     <yarnVersion>${yarn.version}</yarnVersion>
                     <workingDirectory>src/main/javascript</workingDirectory>
-                    <!-- optional: where to download node from. Defaults to https://nodejs.org/dist/ -->
-                    <!--<nodeDownloadRoot>http://myproxy.example.org/nodejs/</nodeDownloadRoot>-->
-                    <!-- optional: where to download yarn from. Defaults to https://github.com/yarnpkg/yarn/releases/download/ -->
-                    <!--<yarnDownloadRoot>http://myproxy.example.org/yarn/</yarnDownloadRoot>-->
                 </configuration>
                 <executions>
                     <execution>
-                        <!-- optional: you don't really need execution ids, but it looks nice in your build log. -->
                         <id>install node and yarn</id>
                         <goals>
                             <goal>install-node-and-yarn</goal>
                         </goals>
-                        <!-- optional: default phase is "generate-resources" -->
                         <phase>generate-resources</phase>
                     </execution>
                     <execution>
@@ -295,10 +288,6 @@
                             <goal>yarn</goal>
                         </goals>
                         <configuration>
-                            <!-- optional: The default argument is actually
-                            "install", so unless you need to run some other yarn command,
-                            you can remove this whole <configuration> section.
-                            -->
                             <arguments>install</arguments>
                         </configuration>
                     </execution>
@@ -308,10 +297,6 @@
                             <goal>yarn</goal>
                         </goals>
                         <configuration>
-                            <!-- optional: The default argument is actually
-                            "install", so unless you need to run some other yarn command,
-                            you can remove this whole <configuration> section.
-                            -->
                             <arguments>build</arguments>
                         </configuration>
                     </execution>
@@ -345,99 +330,6 @@
                         </execution>
                     </executions>
             </plugin>
-            <!--Uncomment for PMD-->
-            <!--<plugin>
-                     <groupId>org.apache.maven.plugins</groupId>
-                     <artifactId>maven-pmd-plugin</artifactId>
-                     <version>3.13.0</version>
-                     <configuration>
-                        <printFailingErrors>true</printFailingErrors>
-                    </configuration>
-            </plugin>-->
-            <!-- OWASP PLUGIN. Uncomment to run the report -->
-            <!--<plugin>
-                <groupId>org.owasp</groupId>
-                <artifactId>dependency-check-maven</artifactId>
-                <version>6.1.5</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>-->
-
-<!--            <plugin>-->
-<!--                &lt;!&ndash; Used to replace the headers of files with proper licenses - -->
-<!--                  http://code.google.com/p/maven-license-plugin - -->
-<!--                  Run mvn license:format to fix up licenses on all files in the project &ndash;&gt;-->
-<!--                <groupId>com.mycila.maven-license-plugin</groupId>-->
-<!--                <artifactId>maven-license-plugin</artifactId>-->
-<!--                <version>1.10.b1</version>-->
-<!--                <configuration>-->
-<!--                    <strictCheck>true</strictCheck>-->
-<!--                    <header>${basedir}/LICENSE_HEADER</header>-->
-<!--                    <properties>-->
-<!--                        <name>${project.name}</name>-->
-<!--                        <year>${project.inceptionYear}</year>-->
-<!--                        <holder>Unicon (R)</holder>-->
-<!--                    </properties>-->
-<!--                    <excludes>-->
-<!--                        <exclude>.gitignore</exclude>-->
-<!--                        <exclude>.scannerwork/**</exclude>-->
-<!--                        <exclude>target/**</exclude>-->
-<!--                        <exclude>bin/**</exclude>-->
-<!--                        <exclude>.idea/**</exclude>-->
-<!--                        <exclude>**/*.iml</exclude>-->
-<!--                        <exclude>LICENSE*</exclude>-->
-<!--                        <exclude>NOTICE*</exclude>-->
-<!--                        <exclude>**/*.properties</exclude>-->
-<!--                        <exclude>**/*.csv</exclude>-->
-<!--                        <exclude>**/*.txt</exclude>-->
-<!--                        <exclude>**/*.md</exclude>-->
-<!--                        <exclude>**/*.css</exclude>-->
-<!--                        <exclude>**/*.sql</exclude>-->
-<!--                        <exclude>**/*.json</exclude>-->
-<!--                        <exclude>**/*.jks</exclude>-->
-<!--                        <exclude>mvnw*</exclude>-->
-<!--                        <exclude>**/js/jquery/**</exclude>-->
-<!--                        <exclude>**/SameSiteCookieValve.java</exclude>-->
-<!--                        <exclude>**/db/changelog/**</exclude>-->
-<!--                        <exclude>.jpb/**</exclude>-->
-<!--                    </excludes>-->
-<!--                    <mapping>-->
-<!--                        <tag>DYNASCRIPT_STYLE</tag>-->
-<!--                    </mapping>-->
-<!--                    <encoding>UTF-8</encoding>-->
-<!--                </configuration>-->
-<!--                <executions>-->
-<!--                    <execution>-->
-<!--                        <goals>-->
-<!--                            <goal>check</goal>-->
-<!--                        </goals>-->
-<!--                    </execution>-->
-<!--                </executions>-->
-<!--            </plugin>-->
         </plugins>
-
     </build>
-    <!--Uncomment for PMD-->
-    <!-- <reporting>
-     <plugins>
-         <plugin>
-             <groupId>org.apache.maven.plugins</groupId>
-             <artifactId>maven-pmd-plugin</artifactId>
-             <version>3.13.0</version>
-         </plugin>
-         <plugin>
-             <groupId>org.apache.maven.plugins</groupId>
-             <artifactId>maven-jxr-plugin</artifactId>
-             <version>3.1.1</version>
-             <configuration>
-                 <htmlExtension>true</htmlExtension>
-             </configuration>
-         </plugin>
-     </plugins>
- </reporting>-->
 </project>

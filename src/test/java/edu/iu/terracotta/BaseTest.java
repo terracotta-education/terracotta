@@ -16,7 +16,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 
-import javax.persistence.EntityManager;
+import jakarta.persistence.EntityManager;
 
 import org.mockito.Mock;
 import org.springframework.core.env.Environment;

@@ -102,6 +102,9 @@ public class ExportServiceImpl implements ExportService {
     @Value("${app.export.events.output.participant.threshold:400}")
     private int eventsOutputParticipantThreshold;
 
+    @Value("${app.export.enable.readme:true}")
+    private boolean readmeEnabled;
+
     private long consentedParticipantsCount;
     private List<Assignment> assignments;
     private List<ExposureGroupCondition> exposureGroupConditions;
@@ -170,7 +173,9 @@ public class ExportServiceImpl implements ExportService {
         }
 
         // README
-        getReadMeFile(files);
+        if (readmeEnabled) {
+            getReadMeFile(files);
+        }
 
         return files;
     }

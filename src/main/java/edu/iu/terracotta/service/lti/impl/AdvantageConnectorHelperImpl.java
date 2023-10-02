@@ -119,7 +119,7 @@ public class AdvantageConnectorHelperImpl implements AdvantageConnectorHelper {
             }
 
             if (!reportPostResponse.getStatusCode().is2xxSuccessful()) {
-                String exceptionMsg = "Can't get the token: " + reportPostResponse.getStatusCode().getReasonPhrase();
+                String exceptionMsg = "Can't get the token.";
                 log.error(exceptionMsg);
                 throw new ConnectionException(exceptionMsg);
             }

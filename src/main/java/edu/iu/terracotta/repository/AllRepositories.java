@@ -15,11 +15,10 @@ package edu.iu.terracotta.repository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
 
 /**
  * Special service to give access to all the repositories in one place
@@ -58,6 +57,7 @@ public class AllRepositories {
     @Autowired public LtiResultRepository results;
     @Autowired public LtiMembershipRepository ltiMembershipRepository;
     @Autowired public LtiUserRepository ltiUserRepository;
+    @Autowired public NonceStateRepository nonceStateRepository;
     @Autowired public OutcomeRepository outcomeRepository;
     @Autowired public OutcomeScoreRepository outcomeScoreRepository;
     @Autowired public ParticipantRepository participantRepository;
