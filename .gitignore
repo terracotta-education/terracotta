@@ -34,3 +34,8 @@
 ### VS Code ###
 .vscode/
 terracotta.code-workspace
+
+### Bob local ###
+application.properties
+dev/
+docker-compose.yml
