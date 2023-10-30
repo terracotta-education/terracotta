@@ -16,13 +16,20 @@ import java.io.InputStream;
 @Component
 public class AWSServiceImpl implements AWSService {
 
-    @Value("${aws.region}")
+    @Value("${aws.region:US_EAST_1}")
     private String region;
+
+    @Value("${aws.enabled:true}")
+    private boolean enabled;
 
     private AmazonS3 amazonS3;
 
     @PostConstruct
     protected void initializeAmazon() {
+        if (!enabled) {
+            return;
+        }
+
         this.amazonS3 = AmazonS3ClientBuilder.standard()
             .withCredentials(new InstanceProfileCredentialsProvider(false))
             .withRegion(Regions.valueOf(region))
