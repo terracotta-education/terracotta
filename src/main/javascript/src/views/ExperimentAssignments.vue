@@ -100,7 +100,7 @@
                     <v-chip
                       v-if="item.treatments.length == 1"
                       label
-                      :color="lightGrey"
+                      color="lightgrey"
                     >
                       Only One Version
                     </v-chip>
