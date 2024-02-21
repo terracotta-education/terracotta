@@ -46,11 +46,8 @@ public class OutcomeController {
 
     public static final String REQUEST_ROOT = "api/experiments/{experimentId}";
 
-    @Autowired
-    private APIJWTService apijwtService;
-
-    @Autowired
-    private OutcomeService outcomeService;
+    @Autowired private APIJWTService apijwtService;
+    @Autowired private OutcomeService outcomeService;
 
     @GetMapping("/exposures/{exposureId}/outcomes")
     public ResponseEntity<List<OutcomeDto>> allOutcomesByExposure(@PathVariable long experimentId,
@@ -180,6 +177,22 @@ public class OutcomeController {
         List<OutcomePotentialDto> potentialDtoList = outcomeService.potentialOutcomes(experimentId, securedInfo);
 
         return new ResponseEntity<>(potentialDtoList, HttpStatus.OK);
+    }
+
+    @GetMapping("/outcomes")
+    public ResponseEntity<List<OutcomeDto>> getOutcomesForExperiment(@PathVariable long experimentId, HttpServletRequest req)
+            throws ExperimentNotMatchingException, OutcomeNotMatchingException, BadTokenException, CanvasApiException, ParticipantNotUpdatedException, IOException {
+
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+
+        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
+            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
+        }
+
+        List<OutcomeDto> outcomeDtos = outcomeService.getAllByExperiment(experimentId);
+
+        return new ResponseEntity<>(outcomeDtos, HttpStatus.OK);
     }
 
 }

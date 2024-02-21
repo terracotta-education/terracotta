@@ -1,11 +1,11 @@
-import Vue from 'vue'
+import { TiptapVuetifyPlugin } from 'tiptap-vuetify'
 import App from './App.vue'
 import router from './router'
-import vuetify from './plugins/vuetify'
 import store from './store/index'
+import Vue from 'vue'
 import VueRouterBackButton from 'vue-router-back-button'
-import { TiptapVuetifyPlugin } from 'tiptap-vuetify'
 import VueSweetalert2 from 'vue-sweetalert2';
+import vuetify from './plugins/vuetify'
 
 Vue.config.productionTip = false
 

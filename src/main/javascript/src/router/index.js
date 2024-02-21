@@ -1,7 +1,7 @@
+import Home from '../views/Home.vue'
 import OAuth2Redirect from '@/views/OAuth2Redirect.vue'
 import Vue from 'vue'
 import VueRouter from 'vue-router'
-import Home from '../views/Home.vue'
 
 Vue.use(VueRouter)
 
@@ -22,9 +22,9 @@ const routes = [
         component: () => import('../views/ExperimentSummary.vue')
       },
       {
-            path:'experiment-summary-status',
-            name: 'ExperimentSummaryStatus',
-            component: () => import('../views/ExperimentSummary.vue')
+        path:'experiment-summary-status',
+        name: 'ExperimentSummaryStatus',
+        component: () => import('../views/ExperimentSummary.vue')
       },
       {
         path: 'exposure/:exposure_id',

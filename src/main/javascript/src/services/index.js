@@ -13,3 +13,4 @@ export * from './exportdata.service';
 export * from './submission.service';
 export * from './mediaevents.service';
 export * from './groups.service';
+export * from './dashboard/results.service';

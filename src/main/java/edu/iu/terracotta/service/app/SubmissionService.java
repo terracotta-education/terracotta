@@ -63,4 +63,6 @@ public interface SubmissionService {
 
     Float getSubmissionScore(Submission submission);
 
+    boolean isManualGradingNeeded(Submission submission);
+
 }

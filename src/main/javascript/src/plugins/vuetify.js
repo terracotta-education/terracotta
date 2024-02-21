@@ -1,7 +1,7 @@
 import '@mdi/font/css/materialdesignicons.css'
+import DatetimePicker from 'vuetify-datetime-picker';
 import Vue from 'vue';
 import Vuetify from 'vuetify/lib/framework';
-import DatetimePicker from 'vuetify-datetime-picker';
 
 Vue.use(Vuetify);
 Vue.use(DatetimePicker);

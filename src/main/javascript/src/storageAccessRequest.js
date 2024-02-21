@@ -1,6 +1,6 @@
+import StorageAccessRequest from "./StorageAccessRequest.vue";
 import Vue from "vue";
 import vuetify from "./plugins/vuetify";
-import StorageAccessRequest from "./StorageAccessRequest.vue";
 
 Vue.config.productionTip = false;
 

@@ -103,10 +103,10 @@
 </template>
 
 <script>
-import Vue from 'vue';
 import {mapActions, mapGetters} from 'vuex';
 import ConditionDeleteAlert from '@/components/ConditionDeleteAlert';
 import store from '@/store';
+import Vue from 'vue';
 
 export default {
   name: 'DesignConditions',

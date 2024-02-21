@@ -8,6 +8,7 @@
   <script>
   import { mapActions, mapMutations } from "vuex";
   import QuestionEditor from "./QuestionEditor.vue";
+
   export default {
     props: ["question"],
     components: { QuestionEditor },

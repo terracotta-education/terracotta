@@ -80,6 +80,13 @@ const actions = {
         commit('setExperimentOutcomes', response)
       })
   },
+  async fetchOutcomesByExperimentId({commit}, payload) {
+    // payload = experiment_id
+    return outcomeService.getAllByExperimentId(...payload)
+      .then(response => {
+        commit('setOutcomes', response.data)
+      })
+  },
   async fetchOutcomeScores({commit}, payload) {
     // payload = experiment_id, exposure_id, outcome_id
     return outcomeService.getOutcomeScoresById(...payload)
