@@ -12,7 +12,7 @@
 </template>
 
 <script>
-import DataTable from "./subsection/DataTable.vue"
+import DataTable from "./subsection/DataTable"
 
 export default {
   name: "Conditions",

@@ -15,7 +15,7 @@
 </template>
 
 <script>
-import DataTable from "./subsection/DataTable.vue"
+import DataTable from "./subsection/DataTable"
 
 export default {
   name: "Assignments",
@@ -41,13 +41,19 @@ div.container-data-table {
   & .data-table {
     & tbody {
       & tr:last-child {
-        background-color: rgba(204,229,255,0.25);
+        background-color: #f6fbff;
+        -webkit-box-shadow: 26px 0 0 2px #f6fbff, -26px 0 0 2px #f6fbff;
+        -moz-box-shadow: 26px 0 0 2px #f6fbff, -26px 0 0 2px #f6fbff;
+        box-shadow: 26px 0 0 2px #f6fbff, -26px 0 0 2px #f6fbff;
+        border-bottom-left-radius: 10px;
+        border-bottom-right-radius: 10px;
       }
     }
   }
   > div.note-included-data {
     width: fit-content;
     float: left;
+    color: #666666;
   }
 }
 </style>

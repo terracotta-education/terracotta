@@ -8,12 +8,14 @@
     >
       <v-btn
         :class="selectedTable === 'condition' ? 'btn-selected' : ''"
+        :elevation="0"
         @click="setSelectedTable('condition')"
       >
         By condition
       </v-btn>
       <v-btn
         :class="selectedTable === 'exposure' ? 'btn-selected' : ''"
+        :elevation="0"
         @click="setSelectedTable('exposure')"
       >
         By exposure set
@@ -34,8 +36,8 @@
 
 <script>
 import { mapGetters } from "vuex";
-import Conditions from "./Conditions.vue";
-import Exposures from "./Exposures.vue"
+import Conditions from "./Conditions";
+import Exposures from "./Exposures"
 
 export default {
     name: "Tables",
@@ -78,15 +80,12 @@ div.container-tables {
     width: 100%;
   }
   > .buttons {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
     margin: 0;
     > button {
-      width: 48%;
-      &.v-btn--is-elevated {
-        box-shadow: none;
-      }
+      width: 100%;
     }
     > .btn-selected {
       background-color: #323A46;
@@ -97,10 +96,6 @@ div.container-tables {
     width: 100%;
     min-width: 100%;
     margin: 20px auto;
-    > .v-data-table {
-      width: 100%;
-      min-width: 100%;
-    }
   }
 }
 </style>

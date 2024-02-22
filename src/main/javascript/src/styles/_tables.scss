@@ -1,6 +1,7 @@
 .v-data-table {
     &--no-outline {
         border: none;
+
         .v-data-table__wrapper {
             border: none;
         }
@@ -9,15 +10,95 @@
         td:first-child {
             padding-left: 0 !important;
         }
+
         th:last-child,
         td:last-child {
             padding-right: 0 !important;
         }
     }
+
     &--light-header {
         th {
             color: rgba(black, .6) !important;
             font-weight: normal;
+        }
+    }
+}
+
+.v-data-table-alt {
+    width: 100%;
+    min-width: 100%;
+
+    >.v-data-table__wrapper {
+        overflow: visible;
+        border: none !important;
+
+        >table {
+            position: relative;
+            border-spacing: 0;
+
+            >thead * {
+                border: none !important;
+                font-weight: normal;
+            }
+
+            >thead {
+                line-height: 1.2;
+
+                >tr {
+                    & th:first-child {
+                        padding-left: 20px !important;
+                    }
+
+                    & th:last-child {
+                        padding-right: 20px !important;
+                    }
+                }
+            }
+
+            >tbody {
+                &::after {
+                    content: "";
+                    position: absolute;
+                    bottom: 0;
+                    left: 0;
+                    display: block;
+                    width: 100%;
+                    height: calc(100% - 52px);
+                    border-radius: 10px;
+                    box-shadow: 0px 0px 0px 1px rgba(0, 0, 0, 0.12);
+                    -webkit-box-shadow: 0px 0px 0px 1px rgba(0, 0, 0, 0.12);
+                    -moz-box-shadow: 0px 0px 0px 1px rgba(0, 0, 0, 0.12);
+                }
+
+                >tr {
+                    scale: .94;
+
+                    &:hover {
+                        background: unset !important;
+                    }
+
+                    &:first-child {
+                        >td {
+                            padding-top: 8px !important;
+                        }
+                    }
+
+                    &:last-child {
+                        >td {
+                            padding-bottom: 8px !important;
+                        }
+                    }
+
+                    >td {
+                        padding: 0 !important;
+
+                        &:first-child {
+                            padding-left: 0 !important;
+                        }
+                    }
+                }
+            }
         }
     }
 }

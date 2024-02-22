@@ -1,5 +1,6 @@
 <template>
   <v-data-table
+    class="v-data-table-alt"
     :headers="tableHeaders"
     :items="computedTableData"
     :mobile-breakpoint="mobileBreakpoint"
@@ -80,32 +81,3 @@ export default {
 }
 </script>
 
-<style scoped>
-div.v-data-table {
-  width: 100%;
-  > .v-data-table__wrapper {
-    > table {
-      > thead {
-        > tr {
-          & th:first-child {
-            padding-left: 20px !important;
-          }
-          & th:last-child {
-            padding-right: 20px !important;
-          }
-        }
-      }
-      > tbody {
-        > tr {
-          > td:first-child {
-            padding-left: 20px !important;
-          }
-          > td:last-child {
-            padding-right: 20px !important;
-          }
-        }
-      }
-    }
-  }
-}
-</style>

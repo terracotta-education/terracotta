@@ -146,7 +146,7 @@ div.container-overview {
     padding: 20px;
     & h3 {
       width: fit-content;
-      padding-bottom: 30px;
+      padding-bottom: 8px;
     }
     & .container-table {
       > h3 {

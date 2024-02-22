@@ -132,6 +132,7 @@ div.container-input {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  padding-bottom: 60px;
   > .row {
     margin: 0 !important;
     &.description {

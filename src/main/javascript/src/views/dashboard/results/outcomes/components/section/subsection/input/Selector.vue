@@ -18,7 +18,6 @@
           item-text="title"
           item-value="outcomeId"
           @change="onOutcomeSelect(i)"
-          clearable
           dense
           hide-details
           hide-selected

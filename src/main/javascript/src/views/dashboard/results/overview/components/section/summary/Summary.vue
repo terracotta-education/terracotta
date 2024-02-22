@@ -81,7 +81,7 @@ export default {
 div.row-summary {
   justify-content: space-between;
   > div.col {
-    max-width: 20%;
+    max-width: 24%;
     border: thin solid #e0e0e0;
     border-radius: 10px;
     > .container-summary {

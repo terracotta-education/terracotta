@@ -8,7 +8,7 @@
       :items-per-page="tableData.length"
       :mobile-breakpoint="mobileBreakpoint"
       :show-expand="displayExpand"
-      class="data-table"
+      class="data-table v-data-table-alt"
       item-key="title"
       disable-sort
       hide-default-footer
@@ -23,7 +23,7 @@
             {{ title(item) }}
             <v-chip
               v-if="item.treatments && item.treatments.rows && item.treatments.rows.length == 1"
-              :color="lightGrey"
+              color="lightgrey"
               class="label-one-version"
               label
             >
@@ -231,57 +231,3 @@ export default {
   }
 }
 </script>
-
-<style scoped>
-div.container-data-table {
-  flex-direction: column;
-  justify-content: space-evenly;
-  width: 98%;
-  max-width: 98%;
-  padding: 0 !important;
-  & span.no-submissions-text {
-    font-size: 0.9em !important;
-    font-style: italic;
-  }
-  & .v-data-table__wrapper {
-    > table {
-      width: unset;
-      padding-left: 20px;
-      padding-right: 20px;
-    }
-  }
-  & thead {
-    > tr {
-      > th {
-        font-weight: normal;
-      }
-      > th:first-child {
-        padding-left: 0 !important;
-      }
-      > th:last-child {
-        padding-right: 0 !important;
-      }
-    }
-  }
-  & tbody {
-    max-width: 80%;
-    min-width: 80%;
-    width: 80%;
-    > tr {
-      > td:first-child {
-        padding-left: 0 !important;
-      }
-      > td:last-child {
-        padding-right: 0 !important;
-      }
-    }
-  }
-  & .label-one-version {
-    margin-left: 10px;
-    > span {
-      min-height: 24px !important;
-      font-size: 14px !important;
-    }
-  }
-}
-</style>
