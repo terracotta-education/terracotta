@@ -69,9 +69,9 @@
 </template>
 
 <script>
+    import {mapActions, mapGetters} from "vuex";
     import Steps from '../components/Steps'
     import store from '@/store'
-    import {mapActions, mapGetters} from "vuex";
 
     export default {
         name: 'ExperimentSteps',

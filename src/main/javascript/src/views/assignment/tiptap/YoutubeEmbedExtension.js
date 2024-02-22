@@ -1,8 +1,8 @@
-import Vue from "vue";
 import {
   ExtensionActionRenderBtn,
   VuetifyIcon,
 } from "./tiptap-vuetify-extensions";
+import Vue from "vue";
 import YoutubeEmbedDialog from "./YoutubeEmbedDialog.vue";
 
 // tiptap-vuetify extension - adds a button to the toolbar

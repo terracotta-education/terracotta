@@ -87,9 +87,9 @@ import {
   HorizontalRule,
   History,
 } from "tiptap-vuetify";
+import { mapActions, mapGetters, mapMutations } from "vuex";
 import YoutubeEmbed from "./tiptap/YoutubeEmbed";
 import YoutubeEmbedExtension from "./tiptap/YoutubeEmbedExtension";
-import { mapActions, mapGetters, mapMutations } from "vuex";
 
 export default {
   props: [

@@ -11,8 +11,9 @@
 
 <script>
 import { mapGetters, mapMutations } from "vuex";
-import RevealResponsesSetting from "./RevealResponsesSetting.vue";
 import MultipleAttemptsSetting from "./MultipleAttemptsSetting.vue"
+import RevealResponsesSetting from "./RevealResponsesSetting.vue";
+
 export default {
   components: {
     RevealResponsesSetting,

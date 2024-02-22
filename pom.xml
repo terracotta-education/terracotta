@@ -19,10 +19,12 @@
         <aws-java-sdk-s3.version>1.12.401</aws-java-sdk-s3.version>
         <canvas-api.version>1.0.24</canvas-api.version>
         <commons-collections4.version>4.4</commons-collections4.version>
-        <commons-io.version>2.13.0</commons-io.version>
+        <commons-io.version>2.15.0</commons-io.version>
         <commons-lang3.version>3.13.0</commons-lang3.version>
+        <commons-math3.version>3.6.1</commons-math3.version>
         <guava.version>32.1.2-jre</guava.version>
         <jackson-datatype-joda.version>2.15.2</jackson-datatype-joda.version>
+        <jacoco.version>0.8.11</jacoco.version>
         <java.version>17</java.version>
         <jjwt.version>0.11.5</jjwt.version>
         <joda-time.version>2.12.5</joda-time.version>
@@ -113,6 +115,11 @@
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-collections4</artifactId>
             <version>${commons-collections4.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-math3</artifactId>
+            <version>${commons-math3.version}</version>
         </dependency>
 
         <dependency>
@@ -309,21 +316,30 @@
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
-                <version>0.8.10</version>
+                <version>${jacoco.version}</version>
                 <executions>
-                    <execution>
-                        <goals>
+                <execution>
+                    <id>prepare-agent</id>
+                            <goals>
                             <goal>prepare-agent</goal>
-                        </goals>
+                            </goals>
+                            <configuration>
+                                <destFile>${project.build.directory}/coverage-reports/jacoco-ut.exec</destFile>
+                                <propertyName>surefireArgLine</propertyName>
+                            </configuration>
                     </execution>
                     <execution>
-                        <id>report</id>
-                        <phase>prepare-package</phase>
-                        <goals>
+                            <id>report</id>
+                            <phase>test</phase>
+                            <goals>
                             <goal>report</goal>
-                        </goals>
-                    </execution>
-                </executions>
+                            </goals>
+                            <configuration>
+                                <dataFile>${project.build.directory}/coverage-reports/jacoco-ut.exec</dataFile>
+                                <outputDirectory>${project.reporting.outputDirectory}/jacoco-ut</outputDirectory>
+                            </configuration>
+                        </execution>
+                    </executions>
             </plugin>
             <!--Uncomment for PMD-->
             <!--<plugin>

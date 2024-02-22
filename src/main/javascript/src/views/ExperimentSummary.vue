@@ -54,7 +54,9 @@
             </v-tab>
           </v-tabs>
           <v-divider></v-divider>
-          <v-tabs-items v-model="tab">
+          <v-tabs-items
+            v-model="tab"
+          >
             <v-tab-item
               class="tab-section pt-6"
               v-for="item in setupTabs"
@@ -64,7 +66,7 @@
               <div class="tab-heading">
                 <!-- Setup Panel -->
                 <v-card
-                  v-if="hasPublishedAssignment"
+                  v-if="hasPublishedAssignment && item.tab !== 'results'"
                   class="pt-5 px-5 mx-auto blue lighten-5 rounded-lg"
                   outlined
                   :key="item.title"
@@ -73,7 +75,10 @@
                     <strong>Note:</strong> You are currently collecting assignment submissions. Some setup functionality may not be available to avoid disrupting the experiment.
                   </p>
                 </v-card>
-                <div class="container-section-summary px-5">
+                <div
+                  v-if="item.tab !== 'results'"
+                  class="container-section-summary px-5"
+                >
                   <div class="panel-overview py-6">
                     <div
                       class="panelInformation d-flex flex-column justify-center"
@@ -300,6 +305,11 @@
                   </table>
                 </template>
               </div>
+              <template
+                v-if="item.tab === 'results'"
+              >
+                <ResultsDashboard />
+              </template>
             </v-tab-item>
           </v-tabs-items>
         </v-col>
@@ -316,19 +326,22 @@
 </template>
 
 <script>
-import store from "@/store";
-import { mapGetters, mapActions } from "vuex";
-import { saveAs } from "file-saver";
-import ExperimentSummaryStatus from "@/views/ExperimentSummaryStatus";
-import ExperimentAssignments from "@/views/ExperimentAssignments";
-import Spinner from "@/components/Spinner";
-import VuePdfEmbed from 'vue-pdf-embed/dist/vue2-pdf-embed';
+import { mapGetters, mapActions } from "vuex"
+import { saveAs } from "file-saver"
+import { EventBus } from "@/helpers/event-bus"
+import ExperimentAssignments from "@/views/ExperimentAssignments"
+import ExperimentSummaryStatus from "@/views/ExperimentSummaryStatus"
+import ResultsDashboard from "@/views/dashboard/results/ResultsDashboard"
+import Spinner from "@/components/Spinner"
+import store from "@/store"
+import VuePdfEmbed from 'vue-pdf-embed/dist/vue2-pdf-embed'
 
 export default {
   name: "ExperimentSummary",
   components: {
     ExperimentSummaryStatus,
     ExperimentAssignments,
+    ResultsDashboard,
     Spinner,
     VuePdfEmbed
   },
@@ -453,15 +466,9 @@ export default {
 
   data: () => ({
     tab: null,
-    items: ["status", "design", "participant", "assignment"],
+    items: ["design", "participant", "assignment", "status", "results"],
     // Expansion Tab Header Values
     setupTabs: [
-      {
-        title: "Experiment Status",
-        tab: "status",
-        description:
-          "Once your experiment is running, you will see status updates below",
-      },
       {
         title: "Design",
         tab: "design",
@@ -485,6 +492,16 @@ export default {
                       they're completing assignments as usual within Canvas.`,
         image: require("@/assets/assignments_summary.svg"),
       },
+      {
+        title: "Experiment Status",
+        tab: "status",
+        description:
+          "Once your experiment is running, you will see status updates below",
+      },
+      {
+        title: "Results",
+        tab: "results"
+      }
     ],
     conditionTreatments: {},
     conditionColors: [""],
@@ -669,6 +686,10 @@ export default {
     this.getAssignmentDetails();
     this.isLoading = false;
   },
+  created() {
+    // status page nav from Results Dashboard > Outcomes > Input
+    EventBus.$on("statusPageNav", () => { this.tab = this.setupTabs.findIndex((s) => s.tab === "status") });
+  },
   beforeRouteEnter(to, from, next) {
     return store
       .dispatch("experiment/fetchExperimentById", to.params.experiment_id)
@@ -703,11 +724,9 @@ export default {
     border-bottom: 2px solid #e0e0e0 !important;
   }
 }
-
 .v-application .v-sheet--outlined.blue.lighten-5 {
   border-color: rgba(29, 157, 255, 0.6) !important;
 }
-
 .v-tooltip__content {
   max-width: 400px;
   opacity: 1.0 !important;
@@ -833,5 +852,8 @@ div.vue-pdf-embed {
   max-height: 600px;
   overflow-y: scroll;
   box-shadow: 0 3px 1px -2px rgba(0,0,0,.2),0 2px 2px 0 rgba(0,0,0,.14),0 1px 5px 0 rgba(0,0,0,.12);
+}
+div.results {
+  padding-top: 0 !important;
 }
 </style>

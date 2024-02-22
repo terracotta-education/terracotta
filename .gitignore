@@ -40,3 +40,8 @@ application.properties
 dev/
 docker-compose.yml
 log4j2.xml
+terracotta_files
+
+### Mac ###
+.DS_Store
+**/.DS_Store

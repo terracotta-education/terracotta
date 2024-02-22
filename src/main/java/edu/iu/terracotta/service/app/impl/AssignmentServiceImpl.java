@@ -502,6 +502,13 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     @Override
+    public Optional<AssignmentExtended> getCanvasAssignmentById(int assignmentId, SecuredInfo securedInfo) throws CanvasApiException {
+        LtiUserEntity instructorUser = allRepositories.ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
+
+        return canvasAPIClient.listAssignment(instructorUser, securedInfo.getCanvasCourseId(), assignmentId);
+    }
+
+    @Override
     public boolean checkCanvasAssignmentExists(Assignment assignment, LtiUserEntity instructorUser) throws CanvasApiException {
         String canvasCourseId = StringUtils.substringBetween(
                 assignment.getExposure().getExperiment().getLtiContextEntity().getContext_memberships_url(), "courses/",

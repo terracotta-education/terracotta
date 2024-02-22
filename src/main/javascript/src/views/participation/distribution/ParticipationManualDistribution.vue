@@ -44,10 +44,10 @@
 </template>
 
 <script>
-import ListParticipants from '../../../components/ListParticipants.vue'
-import store from '@/store'
 import { mapGetters, mapActions } from 'vuex'
 import { participantService } from '@/services'
+import ListParticipants from '../../../components/ListParticipants.vue'
+import store from '@/store'
 
 export default {
   name: 'ParticipationManualDistribution',
