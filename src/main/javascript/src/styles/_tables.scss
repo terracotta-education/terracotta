@@ -57,13 +57,14 @@
             }
 
             >tbody {
-                &::after {
+                &::before {
                     content: "";
                     position: absolute;
                     bottom: 0;
-                    left: 0;
+                    left: -1px;
                     display: block;
-                    width: 100%;
+                    // width: 100%;
+                    width: calc(100% + 2px);
                     height: calc(100% - 52px);
                     border-radius: 10px;
                     box-shadow: 0px 0px 0px 1px rgba(0, 0, 0, 0.12);
