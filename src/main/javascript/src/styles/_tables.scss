@@ -30,6 +30,13 @@
     tbody table {
         padding: 8px 40px 0 !important;
     }
+    .treatment-row > div.v-data-table {
+        padding: 0 32px;
+
+        td {
+            padding: 0;
+        }
+    }
 }
 
 .v-data-table-alt {
