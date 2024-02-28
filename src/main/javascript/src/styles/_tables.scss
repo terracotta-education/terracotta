@@ -23,6 +23,13 @@
             font-weight: normal;
         }
     }
+
+    td.text-start {
+        vertical-align: middle !important;
+    }
+    tbody table {
+        padding: 8px 40px 0 !important;
+    }
 }
 
 .v-data-table-alt {
