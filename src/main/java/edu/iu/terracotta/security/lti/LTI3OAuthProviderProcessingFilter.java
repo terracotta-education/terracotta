@@ -131,7 +131,7 @@ public class LTI3OAuthProviderProcessingFilter extends GenericFilterBean {
 
             if (StringUtils.hasText(jwt)) {
                 //Now we validate the JWT token
-                Jws<Claims> jws = ltijwtService.validateJWT(jwt, stateClaims.getBody().getAudience());
+                Jws<Claims> jws = ltijwtService.validateJWT(jwt, stateClaims.getPayload().getAudience().toArray(new String[stateClaims.getPayload().getAudience().size()])[0]);
                 if (jws != null) {
                     //Here we create and populate the LTI3Request object and we will add it to the httpServletRequest, so the redirect endpoint will have all that information
                     //ready and will be able to use it.

@@ -1,5 +1,8 @@
 package edu.iu.terracotta.utils.lti;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.hash.Hashing;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.jwk.AsymmetricJWK;
@@ -10,11 +13,12 @@ import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.service.lti.LTIDataService;
 import edu.iu.terracotta.service.lti.impl.LTIDataServiceImpl;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Header;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.JwsHeader;
 import io.jsonwebtoken.JwtParserBuilder;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SigningKeyResolverAdapter;
+import io.jsonwebtoken.Locator;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -39,13 +43,15 @@ import org.thymeleaf.util.ListUtils;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
-import java.net.URL;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.Key;
 import java.text.MessageFormat;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -55,7 +61,6 @@ import java.util.Map;
 
 /**
  * LTI3 Request object holds all the details for a valid LTI3 request
- *
  *
  * Obtain this class using the static instance methods like so (recommended):
  * LTI3Request lti3Request = LTI3Request.getInstanceOrDie();
@@ -266,34 +271,50 @@ public class LTI3Request {
         this.httpServletRequest = request;
         // extract the typical LTI data from the request
         String jwt = httpServletRequest.getParameter("id_token");
-        JwtParserBuilder parser = Jwts.parserBuilder();
-        parser.setSigningKeyResolver(new SigningKeyResolverAdapter() {
+        JwtParserBuilder parser = Jwts.parser();
+        String[] jwtSections = jwt.split("\\.");
+        String jwtPayload = new String(Base64.getUrlDecoder().decode(jwtSections[1]));
+        Map<String, Object> jwtClaims = null;
 
-            // This is done because each state is signed with a different key based on the issuer... so
-            // we don't know the key and we need to check it pre-extracting the claims and finding the kid
-            @Override
-            public Key resolveSigningKey(JwsHeader header, Claims claims) {
-                // We are dealing with RS256 encryption, so we have some Oauth utils to manage the keys and
-                // convert them to keys from the string stored in DB. There are for sure other ways to manage this.
-                PlatformDeployment platformDeployment = ltiDataService.getAllRepositories().platformDeploymentRepository.findByIssAndClientId(claims.getIssuer(), claims.getAudience()).get(0);
+        try {
+            jwtClaims = new ObjectMapper().readValue(jwtPayload, new TypeReference<Map<String,Object>>(){});
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Request is not a valid LTI3 request.", e);
+        }
 
-                if (StringUtils.isNoneEmpty(platformDeployment.getJwksEndpoint())) {
-                    try {
-                        JWKSet publicKeys = JWKSet.load(new URL(platformDeployment.getJwksEndpoint()));
-                        JWK jwk = publicKeys.getKeyByKeyId(header.getKeyId());
-                        return ((AsymmetricJWK) jwk).toPublicKey();
-                    } catch (JOSEException | ParseException | IOException ex) {
-                        log.error("Error getting the iss public key", ex);
-                        return null;
+        String audience = (String) jwtClaims.get(LtiStrings.AUD);
+        String issuer = (String) jwtClaims.get(LtiStrings.ISS);
+
+        parser.keyLocator(
+            new Locator<Key>() {
+                @Override
+                public Key locate(Header header) {
+                    if (header instanceof JwsHeader) {
+                        JwsHeader jwsHeader = (JwsHeader) header;
+                        PlatformDeployment platformDeployment = ltiDataService.getAllRepositories().platformDeploymentRepository.findByIssAndClientId(issuer, audience).get(0);
+
+                        if (StringUtils.isEmpty(platformDeployment.getJwksEndpoint())) {
+                            log.error("The platform configuration must contain a Jwks endpoint");
+                            return null;
+                        }
+
+                        try {
+                            JWKSet publicKeys = JWKSet.load(new URI(platformDeployment.getJwksEndpoint()).toURL());
+                            JWK jwk = publicKeys.getKeyByKeyId(jwsHeader.getKeyId());
+
+                            return ((AsymmetricJWK) jwk).toPublicKey();
+                        } catch (JOSEException | ParseException | IOException | URISyntaxException ex) {
+                            log.error("Error getting the iss public key", ex);
+                            return null;
+                        }
                     }
-                } else {
-                    log.error("The platform configuration must contain a Jwks endpoint");
+
                     return null;
                 }
             }
-        });
+        );
 
-        Jws<Claims> jws = parser.build().parseClaimsJws(jwt);
+        Jws<Claims> jws = parser.build().parseSignedClaims(jwt);
         //This is just for logging.
         if (ltiDataVerboseLoggingEnabled) {
             Enumeration<String> sessionAttributes = httpServletRequest.getSession().getAttributeNames();
@@ -364,11 +385,11 @@ public class LTI3Request {
 
         assert this.httpServletRequest != null;
 
-        iss = jws.getBody().getIssuer();
-        aud = jws.getBody().getAudience();
-        iat = jws.getBody().getIssuedAt();
-        exp = jws.getBody().getExpiration();
-        sub = jws.getBody().getSubject();
+        iss = jws.getPayload().getIssuer();
+        aud = jws.getPayload().getAudience().toArray(new String[jws.getPayload().getAudience().size()])[0];
+        iat = jws.getPayload().getIssuedAt();
+        exp = jws.getPayload().getExpiration();
+        sub = jws.getPayload().getSubject();
         nonce = getStringFromLTIRequest(jws, LtiStrings.LTI_NONCE);
         azp = getStringFromLTIRequest(jws, LtiStrings.LTI_AZP);
 
@@ -530,8 +551,8 @@ public class LTI3Request {
     }
 
     private String getStringFromLTIRequest(Jws<Claims> jws, String stringToGet) {
-        if (jws.getBody().containsKey(stringToGet) && jws.getBody().get(stringToGet) != null) {
-            return jws.getBody().get(stringToGet, String.class);
+        if (jws.getPayload().containsKey(stringToGet) && jws.getPayload().get(stringToGet) != null) {
+            return jws.getPayload().get(stringToGet, String.class);
         }
 
         return null;
@@ -572,9 +593,9 @@ public class LTI3Request {
     }
 
     private Map<String, Object> getMapFromLTIRequest(Jws<Claims> jws, String mapToGet) {
-        if (jws.getBody().containsKey(mapToGet)) {
+        if (jws.getPayload().containsKey(mapToGet)) {
             try {
-                return jws.getBody().get(mapToGet, Map.class);
+                return jws.getPayload().get(mapToGet, Map.class);
             } catch (Exception ex) {
                 log.error("No map integer when expected in: {0}. Returning null", mapToGet);
                 return new HashMap<>();
@@ -585,9 +606,9 @@ public class LTI3Request {
     }
 
     private List<String> getListFromLTIRequest(Jws<Claims> jws, String listToGet) {
-        if (jws.getBody().containsKey(listToGet)) {
+        if (jws.getPayload().containsKey(listToGet)) {
             try {
-                return jws.getBody().get(listToGet, List.class);
+                return jws.getPayload().get(listToGet, List.class);
             } catch (Exception ex) {
                 log.error("No map integer when expected in: '{}'. Returning null", listToGet);
                 return new ArrayList<>();
@@ -730,7 +751,7 @@ public class LTI3Request {
         List<String> ltiNonce = (List) httpServletRequest.getSession().getAttribute("lti_nonce");
         List<String> ltiNonceNew = new ArrayList<>();
         boolean found = false;
-        String nonceToCheck = jws.getBody().get(LtiStrings.LTI_NONCE, String.class);
+        String nonceToCheck = jws.getPayload().get(LtiStrings.LTI_NONCE, String.class);
 
         if (nonceToCheck == null || ListUtils.isEmpty(ltiNonce)) {
             return "Nonce = null in the JWT or in the session.";
@@ -763,13 +784,13 @@ public class LTI3Request {
     public static String isLTI3Request(Jws<Claims> jws) {
         String errorDetail = "";
         boolean valid = false;
-        String ltiVersion = jws.getBody().get(LtiStrings.LTI_VERSION, String.class);
+        String ltiVersion = jws.getPayload().get(LtiStrings.LTI_VERSION, String.class);
 
         if (ltiVersion == null) {
             errorDetail = "LTI Version = null. ";
         }
 
-        String ltiMessageType = jws.getBody().get(LtiStrings.LTI_MESSAGE_TYPE, String.class);
+        String ltiMessageType = jws.getPayload().get(LtiStrings.LTI_MESSAGE_TYPE, String.class);
 
         if (ltiMessageType == null) {
             errorDetail += "LTI Message Type = null. ";

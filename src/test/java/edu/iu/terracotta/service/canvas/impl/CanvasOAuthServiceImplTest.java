@@ -107,12 +107,12 @@ public class CanvasOAuthServiceImplTest extends BaseTest {
     }
 
     @Test
-    public void testGetAuthorizationRequestURI() throws LMSOAuthException, MalformedURLException {
+    public void testGetAuthorizationRequestURI() throws LMSOAuthException, MalformedURLException, URISyntaxException {
         when(canvasAPIOAuthSettingsRepository.findByPlatformDeployment(eq(platformDeployment))).thenReturn(Optional.of(canvasAPIOAuthSettings));
 
         String state = "abc123";
         String url = canvasOAuthService.getAuthorizationRequestURI(platformDeployment, state);
-        URL parsedURL = new URL(url);
+        URL parsedURL = new URI(url).toURL();
         assertTrue(parsedURL.getQuery().contains(encodeQueryParam("client_id", clientId)));
         assertTrue(parsedURL.getQuery().contains(encodeQueryParam("response_type", "code")));
         assertTrue(parsedURL.getQuery().contains(encodeQueryParam("redirect_uri",localUrl + "/lms/oauth2/oauth_response")));

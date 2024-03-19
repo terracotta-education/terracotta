@@ -12,6 +12,7 @@ import java.io.InputStream;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Optional;
 
 import javax.persistence.EntityManager;
@@ -128,13 +129,9 @@ import edu.iu.terracotta.service.lti.AdvantageMembershipService;
 import edu.iu.terracotta.service.lti.LTIDataService;
 import edu.iu.terracotta.utils.lti.LTI3Request;
 import edu.ksu.canvas.model.User;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Header;
-import io.jsonwebtoken.Jwt;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@SuppressWarnings({"rawtypes"})
 public class BaseTest {
 
     public static final String ASSIGNMENT_TITLE = "test assignment title";
@@ -214,7 +211,6 @@ public class BaseTest {
     @Mock protected AssignmentDto assignmentDto;
     @Mock protected AssignmentExtended assignmentExtended;
     @Mock protected AssignmentWriterExtended assignmentWriterExtended;
-    @Mock protected Claims claims;
     @Mock protected Condition condition;
     @Mock protected ConsentDocument consentDocument;
     @Mock protected CourseUser courseUser;
@@ -226,7 +222,7 @@ public class BaseTest {
     @Mock protected ExposureGroupCondition exposureGroupCondition;
     @Mock protected Group group;
     @Mock protected InputStream inputStream;
-    @Mock protected Jwt<Header, Claims> jwt;
+    @Mock protected Map<String, Object> jwt;
     @Mock protected LineItem lineItem;
     @Mock protected LineItems lineItems;
     @Mock protected LtiContextEntity ltiContextEntity;
@@ -391,7 +387,6 @@ public class BaseTest {
             when(assignmentDto.getTreatments()).thenReturn(Collections.singletonList(treatmentDto));
             when(assignmentExtended.getId()).thenReturn(1);
             when(assignmentExtended.getSecureParams()).thenReturn(RESOURCE_LINK_ID);
-            when(claims.get(anyString())).thenReturn(RESOURCE_LINK_ID);
             when(condition.getConditionId()).thenReturn(1L);
             when(condition.getExperiment()).thenReturn(experiment);
             when(condition.getName()).thenReturn(CONDITION_TITLE);
@@ -421,7 +416,7 @@ public class BaseTest {
             when(exposureGroupCondition.getExposure()).thenReturn(exposure);
             when(exposureGroupCondition.getGroup()).thenReturn(group);
             when(group.getGroupId()).thenReturn(1L);
-            when(jwt.getBody()).thenReturn(claims);
+            when(jwt.get(anyString())).thenReturn(RESOURCE_LINK_ID);
             when(lineItem.getId()).thenReturn("1");
             when(lineItem.getResourceLinkId()).thenReturn(RESOURCE_LINK_ID);
             when(lineItems.getLineItemList()).thenReturn(Collections.singletonList(lineItem));

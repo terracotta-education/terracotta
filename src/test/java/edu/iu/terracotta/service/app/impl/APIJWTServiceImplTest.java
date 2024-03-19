@@ -17,11 +17,7 @@ import org.mockito.MockitoAnnotations;
 import edu.iu.terracotta.BaseTest;
 import edu.iu.terracotta.model.LtiContextEntity;
 import edu.iu.terracotta.model.LtiUserEntity;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Header;
-import io.jsonwebtoken.Jwt;
 
-@SuppressWarnings({"rawtypes"})
 public class APIJWTServiceImplTest extends BaseTest {
 
     @InjectMocks private APIJWTServiceImpl apiJWTService;
@@ -64,10 +60,10 @@ public class APIJWTServiceImplTest extends BaseTest {
         customVars.put("student_attempts", "$Canvas.assignment.submission.studentAttempts");
 
         String jwt = apiJWTService.buildJwt(false, lti3Request);
-        Jwt<Header, Claims> claims = this.apiJWTService.unsecureToken(jwt);
+        Map<String, Object> claims = this.apiJWTService.unsecureToken(jwt);
 
-        assertFalse(claims.getBody().containsKey("allowedAttempts"));
-        assertFalse(claims.getBody().containsKey("studentAttempts"));
+        assertFalse(claims.containsKey("allowedAttempts"));
+        assertFalse(claims.containsKey("studentAttempts"));
     }
 
     // assignment context, test with allowed_attempts = null
@@ -78,12 +74,12 @@ public class APIJWTServiceImplTest extends BaseTest {
         customVars.put("student_attempts", "3");
 
         String jwt = apiJWTService.buildJwt(false, lti3Request);
-        Jwt<Header, Claims> claims = this.apiJWTService.unsecureToken(jwt);
+        Map<String, Object> claims = this.apiJWTService.unsecureToken(jwt);
 
         // populate allowedAttempts with -1 to indicate that there are unlimited
         // attempts
-        assertEquals(-1, claims.getBody().get("allowedAttempts", Integer.class));
-        assertEquals(3, claims.getBody().get("studentAttempts", Integer.class));
+        assertEquals(-1, claims.get("allowedAttempts"));
+        assertEquals(3, claims.get("studentAttempts"));
     }
 
     // assignment context, test with allowed_attempts = 3
@@ -94,10 +90,10 @@ public class APIJWTServiceImplTest extends BaseTest {
         customVars.put("student_attempts", "1");
 
         String jwt = apiJWTService.buildJwt(false, lti3Request);
-        Jwt<Header, Claims> claims = this.apiJWTService.unsecureToken(jwt);
+        Map<String, Object> claims = this.apiJWTService.unsecureToken(jwt);
 
-        assertEquals(3, claims.getBody().get("allowedAttempts", Integer.class));
-        assertEquals(1, claims.getBody().get("studentAttempts", Integer.class));
+        assertEquals(3, claims.get("allowedAttempts"));
+        assertEquals(1, claims.get("studentAttempts"));
     }
 
     // assignment context, test with allowed_attempts = 3, student_attempts = null
@@ -108,9 +104,10 @@ public class APIJWTServiceImplTest extends BaseTest {
         customVars.put("student_attempts", null);
 
         String jwt = apiJWTService.buildJwt(false, lti3Request);
-        Jwt<Header, Claims> claims = this.apiJWTService.unsecureToken(jwt);
+        Map<String, Object> claims = this.apiJWTService.unsecureToken(jwt);
 
-        assertEquals(3, claims.getBody().get("allowedAttempts", Integer.class));
-        assertEquals(0, claims.getBody().get("studentAttempts", Integer.class));
+        assertEquals(3, claims.get("allowedAttempts"));
+        assertEquals(0, claims.get("studentAttempts"));
     }
+
 }

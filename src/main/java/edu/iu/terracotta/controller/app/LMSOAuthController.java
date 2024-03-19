@@ -84,10 +84,10 @@ public class LMSOAuthController {
             return TextConstants.OAUTH2_ERROR;
         }
 
-        long platformDeploymentId = claims.get().getBody().get("platformDeploymentId", Long.class);
+        long platformDeploymentId = claims.get().getPayload().get("platformDeploymentId", Long.class);
         LMSOAuthService<?> lmsoAuthService = lmsoAuthServiceManager.getLMSOAuthService(platformDeploymentId);
 
-        String userKey = claims.get().getBody().get("userId", String.class);
+        String userKey = claims.get().getPayload().get("userId", String.class);
         LtiUserEntity user = allRepositories.ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(userKey, platformDeploymentId);
 
         try {
@@ -97,7 +97,7 @@ public class LMSOAuthController {
             return TextConstants.OAUTH2_ERROR;
         }
 
-        String oneTimeToken = createOneTimeToken(platformDeploymentId, userKey, claims.get().getBody());
+        String oneTimeToken = createOneTimeToken(platformDeploymentId, userKey, claims.get().getPayload());
 
         return "redirect:/app/app.html?token=" + oneTimeToken;
     }

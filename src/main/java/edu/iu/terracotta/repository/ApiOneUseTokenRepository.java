@@ -19,7 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Date;
 
 @Transactional
-public interface ApiOneUseTokenRepository extends JpaRepository<ApiOneUseToken, String> {
+public interface ApiOneUseTokenRepository extends JpaRepository<ApiOneUseToken, Long> {
 
     ApiOneUseToken findByToken(String token);
     //TODO, decide when we want to delete those.

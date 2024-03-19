@@ -78,7 +78,6 @@ public class CaliperServiceImpl implements CaliperService {
     private final boolean caliperSend;
     private final boolean caliperDB;
 
-    @Autowired
     public CaliperServiceImpl(@Value("${caliper.sensor-id:1}") final String sensorId,
                               @Value("${caliper.client-id:1}") final String clientId,
                               @Value("${caliper.api-key:1}") final String apiKey,
