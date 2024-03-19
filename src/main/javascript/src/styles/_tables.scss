@@ -24,24 +24,74 @@
         }
     }
 
+    &--sorted {
+        .v-data-table-header + tbody > tr > td.text-start:first-child {
+            width: 20px;
+            border-bottom: 0 !important;
+        }
+        .v-data-table-header + tbody > tr > td.text-start:last-child {
+            width: 20px;
+            padding-right: 20px !important;
+        }
+    }
+
+    &.grey {
+        position: relative;
+
+        &::before {
+            content: '';
+            position: absolute;
+            left: -21px;
+            right: -21px;
+            top: 0;
+            bottom: 0;
+            background: #fafafa;
+            pointer-events: none;
+            z-index: -1;
+        }
+    }
+
+    .v-data-table__wrapper > table {
+        padding-top: 0 !important;
+
+        > tbody > tr > td, 
+        > thead > tr > td, 
+        > tfoot > tr > td {
+           height: 40px; 
+        }
+    }
+    th {
+        font-weight: normal !important;
+    }
+
     td.text-start {
         vertical-align: middle !important;
+        line-height: 40px;
     }
+
     tbody table {
         padding: 8px 40px 0 !important;
     }
     .treatment-row > div.v-data-table {
-        padding: 0 32px;
+        // padding: 0 32px;
 
         td {
             padding: 0;
         }
+
+        .v-data-table__wrapper > table {
+            padding-top: 0;
+        }
+    }
+    .v-chip--only-one .v-chip__content {
+        font-size: 14px !important;
     }
 }
 
 .v-data-table-alt {
     width: 100%;
     min-width: 100%;
+    transform: scale(.99);
 
     >.v-data-table__wrapper {
         overflow: visible;
@@ -83,11 +133,11 @@
                     border-radius: 10px;
                     box-shadow: 0px 0px 0px 1px rgba(0, 0, 0, 0.12);
                     -webkit-box-shadow: 0px 0px 0px 1px rgba(0, 0, 0, 0.12);
-                    -moz-box-shadow: 0px 0px 0px 1px rgba(0, 0, 0, 0.12);
+                    z-index: 1;
+                    pointer-events: none;
                 }
 
                 >tr {
-                    scale: .94;
 
                     &:hover {
                         background: unset !important;
@@ -111,9 +161,22 @@
                         &:first-child {
                             padding-left: 0 !important;
                         }
+
+                        .v-data-table {
+                            margin-top: -6px;
+                        }
                     }
                 }
             }
+        }
+    }
+}
+.data-table {
+    .v-data-table__wrapper {
+        transform: scale(.99);
+
+        > table {
+            padding: 0 20px;
         }
     }
 }

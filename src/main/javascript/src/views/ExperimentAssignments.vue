@@ -85,7 +85,7 @@
                   v-sortable-data-table
                   item-key="assignmentId"
                   show-expand
-                  class="data-table-assignments mx-3 mb-5 mt-3"
+                  class="v-data-table-alt v-data-table--sorted data-table-assignments mx-3 mb-5 mt-3"
                   @sorted="
                     (event) =>
                       saveOrder(
@@ -101,6 +101,7 @@
                       v-if="item.treatments.length == 1"
                       label
                       color="lightgrey"
+                      class="v-chip--only-one"
                     >
                       Only One Version
                     </v-chip>
@@ -785,7 +786,8 @@ export default {
   tbody
   tr.v-data-table__expanded__content {
   box-shadow: none;
-  border-bottom: thin solid rgba(0, 0, 0, 0.12) !important;
+  border-bottom: 0 !important;
+  // border-bottom: thin solid rgba(0, 0, 0, 0.12) !important;
 
   > td {
     background-color: #fafafa !important;
@@ -889,6 +891,13 @@ td.treatments-table-container td,
 td.treatments-table-container td span {
   white-space: normal;
 }
+td.treatments-table-container .v-data-table__wrapper table {
+  padding: 0 35px !important;
+  
+  // @media screen and (min-width: 1264px) {
+  //   padding: 0 35px !important;
+  // }
+}
 .v-application--is-ltr .v-data-table > .v-data-table__wrapper > table > tbody > tr > th,
 .v-application--is-ltr .v-data-table > .v-data-table__wrapper > table > tfoot > tr > th,
 .v-application--is-ltr .v-data-table > .v-data-table__wrapper > table > thead > tr > th,
@@ -901,6 +910,7 @@ div.data-table-design > div.groupNames > span.v-chip.v-chip--label > span.v-chip
 }
 button.btn-treatment-edit {
   float: right;
+  margin-top: 5px;
 }
 span.v-chip.v-chip--label,
 span.v-chip.v-chip--label > span.v-chip__content {
