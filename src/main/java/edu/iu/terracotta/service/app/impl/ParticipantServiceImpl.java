@@ -647,7 +647,7 @@ public class ParticipantServiceImpl implements ParticipantService {
 
             if (consentAssignment.isPresent()) {
                 String jwtTokenAssignment = consentAssignment.get().getSecureParams();
-                String resourceLinkId = apijwtService.unsecureToken(jwtTokenAssignment).getBody().get("lti_assignment_id").toString();
+                String resourceLinkId = apijwtService.unsecureToken(jwtTokenAssignment).get("lti_assignment_id").toString();
                 lineItem = lineItems.getLineItemList().stream()
                     .filter(li -> li.getResourceLinkId()
                     .equals(resourceLinkId))

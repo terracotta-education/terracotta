@@ -12,6 +12,9 @@
  */
 package edu.iu.terracotta.service.lti.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.jwk.AsymmetricJWK;
 import com.nimbusds.jose.jwk.JWK;
@@ -19,14 +22,16 @@ import com.nimbusds.jose.jwk.JWKSet;
 import edu.iu.terracotta.service.lti.LTIDataService;
 import edu.iu.terracotta.service.lti.LTIJWTService;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Header;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.JwsHeader;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.SigningKeyResolverAdapter;
+import io.jsonwebtoken.Locator;
+import io.jsonwebtoken.Jwts.SIG;
 import lombok.extern.slf4j.Slf4j;
 import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.repository.AllRepositories;
+import edu.iu.terracotta.utils.LtiStrings;
 import edu.iu.terracotta.utils.TextConstants;
 import edu.iu.terracotta.utils.oauth.OAuthUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -36,12 +41,15 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.net.URL;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.security.GeneralSecurityException;
 import java.security.Key;
 import java.security.PublicKey;
 import java.text.ParseException;
+import java.util.Base64;
 import java.util.Date;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -50,7 +58,6 @@ import java.util.UUID;
  */
 @Slf4j
 @Service
-@SuppressWarnings({"rawtypes"})
 public class LTIJWTServiceImpl implements LTIJWTService {
 
     @Autowired private AllRepositories allRepositories;
@@ -66,26 +73,33 @@ public class LTIJWTServiceImpl implements LTIJWTService {
     //Here we could add other checks like expiration of the state (not implemented)
     @Override
     public Jws<Claims> validateState(String state) {
-        return Jwts.parserBuilder().setSigningKeyResolver(new SigningKeyResolverAdapter() {
+        return Jwts.parser().keyLocator(
             // This is done because each state is signed with a different key based on the issuer... so
             // we don't know the key and we need to check it pre-extracting the claims and finding the kid
-            @Override
-            public Key resolveSigningKey(JwsHeader header, Claims claims) {
-                PublicKey toolPublicKey;
-                try {
-                    // We are dealing with RS256 encryption, so we have some Oauth utils to manage the keys and
-                    // convert them to keys from the string stored in DB. There are for sure other ways to manage this.
-                    toolPublicKey = OAuthUtils.loadPublicKey(ltiDataService.getOwnPublicKey());
-                } catch (GeneralSecurityException ex) {
-                    log.error("Error validating the state. Error generating the tool public key", ex);
+            new Locator<Key>() {
+                @Override
+                public Key locate(Header header) {
+                    if (header instanceof JwsHeader) {
+                        PublicKey toolPublicKey;
+                        try {
+                            // We are dealing with RS256 encryption, so we have some Oauth utils to manage the keys and
+                            // convert them to keys from the string stored in DB. There are for sure other ways to manage this.
+                            toolPublicKey = OAuthUtils.loadPublicKey(ltiDataService.getOwnPublicKey());
+                        } catch (GeneralSecurityException ex) {
+                            log.error("Error validating the state. Error generating the tool public key", ex);
+                            return null;
+                        }
+
+                        return toolPublicKey;
+                    }
+
                     return null;
                 }
-
-                return toolPublicKey;
             }
-        })
+        )
         .build()
-        .parseClaimsJws(state);
+        .parseSignedClaims(state);
+
         // If we are on this point, then the state signature has been validated. We can start other tasks now.
     }
 
@@ -97,44 +111,66 @@ public class LTIJWTServiceImpl implements LTIJWTService {
      */
     @Override
     public Jws<Claims> validateJWT(String jwt, String clientId) {
-        return Jwts.parserBuilder().setSigningKeyResolver(new SigningKeyResolverAdapter() {
+        return Jwts.parser().keyLocator(
             // This is done because each state is signed with a different key based on the issuer... so
             // we don't know the key and we need to check it pre-extracting the claims and finding the kid
-            @Override
-            public Key resolveSigningKey(JwsHeader header, Claims claims) {
-                PlatformDeployment platformDeployment;
+            new Locator<Key>() {
+                @Override
+                public Key locate(Header header) {
+                    if (header instanceof JwsHeader) {
+                        JwsHeader jwsHeader = (JwsHeader) header;
+                        PlatformDeployment platformDeployment;
 
-                try {
-                    // We are dealing with RS256 encryption, so we have some Oauth utils to manage the keys and
-                    // convert them to keys from the string stored in DB. There are for sure other ways to manage this.
-                    platformDeployment = allRepositories.platformDeploymentRepository.findByIssAndClientId(claims.getIssuer(), clientId).get(0);
-                } catch (IndexOutOfBoundsException ex) {
-                    log.error("Kid not found in header", ex);
-                    return null;
-                }
+                        try {
+                            // We are dealing with RS256 encryption, so we have some Oauth utils to manage the keys and
+                            // convert them to keys from the string stored in DB. There are for sure other ways to manage this.
 
-                // If the platform has a JWK Set endpoint... we try that.
-                if (StringUtils.isNoneEmpty(platformDeployment.getJwksEndpoint())) {
-                    try {
-                        JWKSet publicKeys = JWKSet.load(new URL(platformDeployment.getJwksEndpoint()));
-                        JWK jwk = publicKeys.getKeyByKeyId(header.getKeyId());
-                        return ((AsymmetricJWK) jwk).toPublicKey();
-                    } catch (JOSEException | ParseException | IOException ex) {
-                        log.error("Error getting the iss public key", ex);
-                        return null;
-                    } catch (NullPointerException ex) {
-                        log.error("Kid not found in header", ex);
+                            String[] jwtSections = jwt.split("\\.");
+                            String jwtPayload = new String(Base64.getUrlDecoder().decode(jwtSections[1]));
+                            Map<String, Object> jwtClaims = null;
+
+                            try {
+                                jwtClaims = new ObjectMapper().readValue(jwtPayload, new TypeReference<Map<String,Object>>(){});
+                            } catch (JsonProcessingException e) {
+                                throw new IllegalStateException("Request is not a valid LTI3 request.", e);
+                            }
+
+                            String issuer = (String) jwtClaims.get(LtiStrings.ISS);
+                            platformDeployment = allRepositories.platformDeploymentRepository.findByIssAndClientId(issuer, clientId).get(0);
+                        } catch (IndexOutOfBoundsException ex) {
+                            log.error("kid not found in header", ex);
+                            return null;
+                        }
+
+                        // If the platform has a JWK Set endpoint... we try that.
+                        if (StringUtils.isNoneEmpty(platformDeployment.getJwksEndpoint())) {
+                            try {
+                                JWKSet publicKeys = JWKSet.load(new URI(platformDeployment.getJwksEndpoint()).toURL());
+                                JWK jwk = publicKeys.getKeyByKeyId(jwsHeader.getKeyId());
+                                return ((AsymmetricJWK) jwk).toPublicKey();
+                            } catch (JOSEException | ParseException | IOException ex) {
+                                log.error("Error getting the iss public key", ex);
+                                return null;
+                            } catch (NullPointerException ex) {
+                                log.error("Kid not found in header", ex);
+                                return null;
+                            } catch (URISyntaxException e) {
+                                log.error("The platform configuration must contain a Jwks endpoint");
+                                return null;
+                            }
+                        }
+
+                        // If not, we get the key stored in our configuration
+                        log.error("The platform configuration must contain a valid JWKS");
                         return null;
                     }
-                }
 
-                // If not, we get the key stored in our configuration
-                log.error("The platform configuration must contain a valid JWKS");
-                return null;
+                    return null;
+                }
             }
-        })
+        )
         .build()
-        .parseClaimsJws(jwt);
+        .parseSignedClaims(jwt);
     }
 
     /**
@@ -153,16 +189,20 @@ public class LTIJWTServiceImpl implements LTIJWTService {
         }
 
         String state = Jwts.builder()
-            .setHeaderParam("kid", TextConstants.DEFAULT_KID)
-            .setHeaderParam("typ", "JWT")
-            .setIssuer(platformDeployment.getClientId())  // D2L needs the issuer to be the clientId
-            .setSubject(platformDeployment.getClientId()) // The clientId
-            .setAudience(aud)  //We send here the authToken url.
-            .setExpiration(DateUtils.addSeconds(date, 3600)) //a java.util.Date
-            .setNotBefore(date) //a java.util.Date
-            .setIssuedAt(date) // for example, now
-            .claim("jti", UUID.randomUUID().toString())  //This is an specific claim to ask for tokens.
-            .signWith(OAuthUtils.loadPrivateKey(ltiDataService.getOwnPrivateKey()), SignatureAlgorithm.RS256)  //We sign it with our own private key. The platform has the public one.
+            .header()
+            .add(LtiStrings.KID, TextConstants.DEFAULT_KID)
+            .add(LtiStrings.TYP, LtiStrings.JWT)
+            .and()
+            .issuer(platformDeployment.getClientId())  // D2L needs the issuer to be the clientId
+            .subject(platformDeployment.getClientId()) // The clientId
+            .audience()
+            .add(aud)  //We send here the authToken url.
+            .and()
+            .expiration(DateUtils.addSeconds(date, 3600)) //a java.util.Date
+            .notBefore(date) //a java.util.Date
+            .issuedAt(date) // for example, now
+            .claim(LtiStrings.JTI, UUID.randomUUID().toString())  //This is an specific claim to ask for tokens.
+            .signWith(OAuthUtils.loadPrivateKey(ltiDataService.getOwnPrivateKey()), SIG.RS256)  //We sign it with our own private key. The platform has the public one.
             .compact();
 
         if (tokenLoggingEnabled) {

@@ -97,7 +97,7 @@ public class LTI3Controller {
 
             // This is just an extra check that we have added, but it is not necessary.
             // Checking that the clientId in the status matches the one coming with the ltiRequest.
-            if (!claims.getBody().get("clientId").equals(lti3Request.getAud())) {
+            if (!claims.getPayload().get("clientId").equals(lti3Request.getAud())) {
                 model.addAttribute(TextConstants.ERROR, " Bad Client Id");
 
                 return TextConstants.LTI3ERROR;
@@ -108,8 +108,8 @@ public class LTI3Controller {
             // Note: there may not be an ltiDeploymentId claim if
             // lti_deployment_id was not included in the initial login
             // parameters and the platform has multiple tool deployments
-            if (claims.getBody().containsKey("ltiDeploymentId") && claims.getBody().get("ltiDeploymentId") != null
-                    && !claims.getBody().get("ltiDeploymentId").equals(lti3Request.getLtiDeploymentId())) {
+            if (claims.getPayload().containsKey("ltiDeploymentId") && claims.getPayload().get("ltiDeploymentId") != null
+                    && !claims.getPayload().get("ltiDeploymentId").equals(lti3Request.getLtiDeploymentId())) {
                 model.addAttribute(TextConstants.ERROR, " Bad Deployment Id");
 
                 return TextConstants.LTI3ERROR;
