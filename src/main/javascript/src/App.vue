@@ -58,8 +58,8 @@
 <script>
 import { mapActions, mapGetters } from "vuex";
 import PageLoading from "@/components/PageLoading";
-import StudentQuiz from './views/student/StudentQuiz.vue';
 import StudentConsent from './views/student/StudentConsent.vue';
+import StudentQuiz from './views/student/StudentQuiz.vue';
 
 export default {
   name: 'App',

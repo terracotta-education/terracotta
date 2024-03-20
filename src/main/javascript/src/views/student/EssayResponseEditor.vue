@@ -12,8 +12,8 @@
 </template>
 
 <script>
-import ResponseRow from "./ResponseRow.vue";
 import Countable from "countable";
+import ResponseRow from "./ResponseRow.vue";
 
 export default {
   props: ["value", "readonly", "answer"],
