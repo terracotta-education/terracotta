@@ -1,34 +1,22 @@
-/**
- * Copyright 2021 Unicon (R)
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- * http://www.apache.org/licenses/LICENSE-2.0
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package edu.iu.terracotta.config;
 
 import edu.iu.terracotta.security.app.APIOAuthProviderProcessingFilter;
 import edu.iu.terracotta.security.lti.LTI3OAuthProviderProcessingFilter;
+import edu.iu.terracotta.security.lti.LTI3OAuthProviderProcessingFilterStateNonceChecked;
 import edu.iu.terracotta.service.lti.LTIDataService;
 import edu.iu.terracotta.service.lti.LTIJWTService;
+import jakarta.annotation.PostConstruct;
+import lombok.extern.slf4j.Slf4j;
 import edu.iu.terracotta.service.app.APIDataService;
 import edu.iu.terracotta.service.app.APIJWTService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.filter.CorsFilter;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
@@ -37,204 +25,177 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
-
-import javax.annotation.PostConstruct;
 import java.util.UUID;
 
 import static org.springframework.security.config.Customizer.withDefaults;
 
+@Slf4j
 @Configuration
 @EnableWebSecurity
-@Import(SecurityAutoConfiguration.class)
+@SuppressWarnings({"PMD.GuardLogStatement"})
 public class WebSecurityConfig {
 
-    private static final Logger logger = LoggerFactory.getLogger(WebSecurityConfig.class);
-
     @Value("${terracotta.admin.user:admin}")
-    private String adminUser;
+    String adminUser;
 
     @Value("${terracotta.admin.password:admin}")
-    private String adminPassword;
+    String adminPassword;
 
-    @Value("${api.oauth.provider.processing.filter.enabled:true}")
-    private boolean apioAuthProviderProcessingFilterEnabled;
+    @Autowired private LTIDataService ltiDataService;
+    @Autowired private LTIJWTService ltijwtService;
+    @Autowired private APIJWTService apiJwtService;
+    @Autowired private APIDataService apiDataService;
 
-    @Autowired
-    private APIJWTService apiJwtService;
-
-    @Autowired
-    private APIDataService apiDataService;
-
-    @Autowired
-    private LTIDataService ltiDataService;
-
-    @Autowired
-    private LTIJWTService ltijwtService;
-
+    private LTI3OAuthProviderProcessingFilterStateNonceChecked lti3OAuthProviderProcessingFilterStateNonceChecked;
     private LTI3OAuthProviderProcessingFilter lti3oAuthProviderProcessingFilter;
     private APIOAuthProviderProcessingFilter apioAuthProviderProcessingFilter;
 
     @PostConstruct
     public void init() {
-        apioAuthProviderProcessingFilter = new APIOAuthProviderProcessingFilter(apiJwtService, apiDataService);
+        lti3OAuthProviderProcessingFilterStateNonceChecked = new LTI3OAuthProviderProcessingFilterStateNonceChecked(ltiDataService, ltijwtService);
         lti3oAuthProviderProcessingFilter = new LTI3OAuthProviderProcessingFilter(ltiDataService, ltijwtService);
+        apioAuthProviderProcessingFilter = new APIOAuthProviderProcessingFilter(apiJwtService, apiDataService);
     }
 
     @Autowired
     @Order(Ordered.HIGHEST_PRECEDENCE + 10)
-    @SuppressWarnings("SpringJavaAutowiringInspection")
     public void configureSimpleAuthUsers(AuthenticationManagerBuilder auth) throws Exception {
         PasswordEncoder encoder = PasswordEncoderFactories.createDelegatingPasswordEncoder();
 
-        if ("admin".equals(adminPassword)) {
-            String adminRandomPwd = UUID.randomUUID().toString();
-            logger.warn("Admin password not specified, please add one to the application properties file and restart the application. Meanwhile, you can use this one (only valid until the next restart): {}",
-                adminRandomPwd);
-            auth
-                .inMemoryAuthentication()
-                .withUser(adminUser)
-                .password(encoder.encode(adminRandomPwd))
-                .roles("ADMIN", "USER");
-        } else {
+        if (!StringUtils.equals(adminPassword, "admin")) {
             auth
                 .inMemoryAuthentication()
                 .withUser(adminUser)
                 .password(encoder.encode(adminPassword))
-                .roles("ADMIN", "USER");
+                .roles(
+                    "ADMIN",
+                    "USER"
+                );
+
+            return;
         }
-    }
 
-    @Bean
-    @Order(10) // VERY HIGH
-    public SecurityFilterChain openEndpointsFilterChain(HttpSecurity http) throws Exception {
-        // this is open
-        http.requestMatchers(matchers -> matchers
-                .antMatchers("/oidc/**")
-                .antMatchers("/registration/**")
-                .antMatchers("/jwks/**")
-                .antMatchers("/files/**")
-                .antMatchers("/lms/oauth2/**"))
-                .authorizeRequests(
-                    requests ->
-                        requests
-                            .anyRequest()
-                            .permitAll()
-                    )
-                    .csrf(
-                        csrf -> csrf.disable()
-                    )
-                    .headers(
-                        headers ->
-                            headers
-                                .frameOptions()
-                                .disable()
-                    );
-
-            return http.build();
+        String adminRandomPwd = UUID.randomUUID().toString();
+        log.warn("Admin password not specified, please add one to the application properties file and restart the application." +
+                " Meanwhile, you can use this one (only valid until the next restart): {}", adminRandomPwd);
+        auth
+            .inMemoryAuthentication()
+            .withUser(adminUser)
+            .password(encoder.encode(adminRandomPwd))
+            .roles(
+                "ADMIN",
+                "USER"
+            );
     }
 
     @Bean
     @Order(30) // VERY HIGH
-    public SecurityFilterChain configFilterChain(HttpSecurity http) throws Exception {
-        http.antMatcher("/config/**").authorizeRequests(requests -> requests.anyRequest().authenticated()).httpBasic(withDefaults()).csrf(csrf -> csrf.disable()).headers(headers -> headers.frameOptions().disable());
+    public SecurityFilterChain filterChain2(HttpSecurity http) throws Exception {
+        http.securityMatcher("/config/**");
 
-        return http.build();
+        return http
+            .authorizeHttpRequests(
+                authz ->
+                    authz
+                        .requestMatchers("/config/**")
+                        .authenticated()
+            )
+            .httpBasic(withDefaults())
+            .csrf(csrf -> csrf.disable())
+            .headers(frameOptions -> frameOptions.disable())
+            .build();
+    }
+
+    @Bean
+    @Order(35) // HIGH
+    public SecurityFilterChain filterChain3(HttpSecurity http) throws Exception {
+        http.securityMatcher("/lti3/stateNonceChecked");
+
+        return http
+            .authorizeHttpRequests(
+                authz ->
+                    authz
+                        .requestMatchers("/lti3/stateNonceChecked")
+                        .permitAll()
+            )
+            .addFilterAfter(
+                lti3OAuthProviderProcessingFilterStateNonceChecked,
+                UsernamePasswordAuthenticationFilter.class
+            )
+            .csrf(csrf -> csrf.disable())
+            .headers(frameOptions -> frameOptions.disable())
+            .build();
     }
 
     @Bean
     @Order(40) // HIGH
-    public SecurityFilterChain lti3OAuthProviderProcessingFilterChain(HttpSecurity http) throws Exception {
-        http
-            .requestMatchers(
-                matchers -> matchers.antMatchers("/lti3/**")
+    public SecurityFilterChain filterChain4(HttpSecurity http) throws Exception {
+        http.securityMatcher("/lti3/**");
+
+        return http
+            .authorizeHttpRequests(
+                authz ->
+                    authz
+                        .requestMatchers("/lti3/**").permitAll()
             )
             .addFilterBefore(
                 lti3oAuthProviderProcessingFilter,
                 UsernamePasswordAuthenticationFilter.class
             )
-            .authorizeRequests(
-                requests ->
-                    requests
-                        .anyRequest()
-                        .permitAll()
-                    )
-                    .csrf(
-                        csrf ->
-                            csrf.disable()
-                    )
-                    .headers(
-                        headers ->
-                            headers
-                                .frameOptions()
-                                .disable()
-                    );
-
-        return http.build();
+            .csrf(csrf -> csrf.disable())
+            .headers(frameOptions -> frameOptions.disable())
+            .build();
     }
 
     @Bean
-    @Order(50) // HIGH
-    public SecurityFilterChain apiSecurityConfigurerFilterChain(HttpSecurity http) throws Exception {
-        HttpSecurity httpSecurity = http.requestMatchers(
-            matchers ->
-                matchers
-                    .antMatchers("/api/**")
+    @Order(70)
+    public SecurityFilterChain filterChain5(HttpSecurity http) throws Exception {
+        http.securityMatcher("/api/**");
+
+        return http
+            .authorizeHttpRequests(
+                authz ->
+                    authz
+                        .requestMatchers("/api/**")
+                        .permitAll()
             )
             .addFilterBefore(
-                new CorsFilter(new CorsConfigurationSourceImpl()),
+                new CorsFilter(
+                    new CorsConfigurationSourceImpl()
+                ),
                 BasicAuthenticationFilter.class
-            );
-
-        if (apioAuthProviderProcessingFilterEnabled) {
-            logger.info("Adding APIOAuthProviderProcessingFilter to all /api/ requests");
-            httpSecurity = httpSecurity
-                .addFilterBefore(
-                    apioAuthProviderProcessingFilter,
-                    UsernamePasswordAuthenticationFilter.class
-                );
-        }
-
-        httpSecurity
-            .authorizeRequests(
-                requests ->
-                    requests
-                        .anyRequest()
-                        .permitAll())
-            .csrf(
-                csrf ->
-                    csrf
-                        .disable()
             )
-            .headers(
-                headers ->
-                    headers
-                        .frameOptions()
-                        .disable()
-            );
-
-            return httpSecurity.build();
+            .addFilterBefore(
+                apioAuthProviderProcessingFilter,
+                UsernamePasswordAuthenticationFilter.class
+            )
+            .csrf(csrf -> csrf.disable())
+            .headers(frameOptions -> frameOptions.disable())
+            .build();
     }
 
     @Bean
     @Order(80) // LOWEST
-    public SecurityFilterChain noAuthFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain6(HttpSecurity http) throws Exception {
         // this ensures security context info (Principal, sec:authorize, etc.) is accessible on all paths
-        http
-            .antMatcher("/**")
-            .authorizeRequests(
-                requests ->
-                    requests
+        return http
+            .authorizeHttpRequests(
+                authz ->
+                    authz
+                        .requestMatchers(
+                            "/oidc/**",
+                            "/registration/**",
+                            "/jwks/**",
+                            "/deeplink/**",
+                            "/ags/**"
+                        )
+                        .permitAll()
                         .anyRequest()
                         .permitAll()
             )
-            .headers(
-                headers ->
-                    headers
-                        .frameOptions()
-                        .disable()
-            );
-
-        return http.build();
+            .csrf(csrf -> csrf.disable())
+            .headers(frameOptions -> frameOptions.disable())
+            .build();
     }
 
 }

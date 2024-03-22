@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.EnumUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -43,7 +44,6 @@ import edu.iu.terracotta.service.app.dashboard.results.ResultsOutcomesAverageGra
 import edu.iu.terracotta.service.app.dashboard.results.ResultsOutcomesService;
 import edu.iu.terracotta.service.app.dashboard.results.ResultsOutcomesTimeOnTaskService;
 import edu.iu.terracotta.utils.TextConstants;
-import io.micrometer.core.instrument.util.StringUtils;
 
 import static edu.iu.terracotta.service.app.dashboard.results.util.ListDataUtils.findAssessmentsByConditionIdAndExposureId;
 import static edu.iu.terracotta.service.app.dashboard.results.util.ListDataUtils.findAssessmentsByExposureId;

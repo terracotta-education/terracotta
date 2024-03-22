@@ -24,6 +24,8 @@ import edu.iu.terracotta.service.common.LMSOAuthServiceManager;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.security.SignatureException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
 import edu.iu.terracotta.model.LtiLinkEntity;
 import edu.iu.terracotta.model.LtiUserEntity;
@@ -44,9 +46,6 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpSession;
 
 import java.io.IOException;
 import java.net.URISyntaxException;

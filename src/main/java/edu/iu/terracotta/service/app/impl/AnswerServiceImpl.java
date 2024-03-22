@@ -15,6 +15,8 @@ import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.service.app.AnswerService;
 import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.utils.TextConstants;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,9 +33,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
-
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
 
 @Component
 @SuppressWarnings({"PMD.PreserveStackTrace"})

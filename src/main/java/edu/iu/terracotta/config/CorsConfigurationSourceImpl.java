@@ -12,11 +12,11 @@
  */
 package edu.iu.terracotta.config;
 
-import javax.servlet.http.HttpServletRequest;
-
 import org.springframework.http.HttpMethod;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 public class CorsConfigurationSourceImpl implements CorsConfigurationSource {
     private CorsConfiguration corsConfig = new DefaultCorsConfiguration();

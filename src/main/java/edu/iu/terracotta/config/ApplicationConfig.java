@@ -21,14 +21,15 @@ import org.springframework.context.ApplicationContextAware;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 
 /**
  * Allows for easy access to the application configuration,
  * merges config settings from spring and local application config
  */
 @Component
+@SuppressWarnings({"PMD.GuardLogStatement"})
 public class ApplicationConfig implements ApplicationContextAware {
 
     static final Logger log = LoggerFactory.getLogger(ApplicationConfig.class);

@@ -46,6 +46,8 @@ import edu.iu.terracotta.service.app.ParticipantService;
 import edu.iu.terracotta.service.app.QuestionService;
 import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.utils.TextConstants;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.collections4.CollectionUtils;
@@ -57,9 +59,6 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
-
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
 
 import java.io.IOException;
 import java.sql.Timestamp;

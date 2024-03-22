@@ -20,6 +20,8 @@ import edu.iu.terracotta.model.lti.dto.LoginInitiationDTO;
 import edu.iu.terracotta.service.lti.LTIDataService;
 import edu.iu.terracotta.utils.TextConstants;
 import edu.iu.terracotta.utils.lti.LtiOidcUtils;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,8 +32,6 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpSession;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;

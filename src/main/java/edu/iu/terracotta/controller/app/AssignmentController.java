@@ -24,6 +24,7 @@ import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.app.AssignmentTreatmentService;
 import edu.iu.terracotta.utils.TextConstants;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,7 +45,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.http.HttpHeaders;
 
-import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 
 @Slf4j
