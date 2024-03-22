@@ -1,0 +1,60 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+    xmlns:pro="http://www.liquibase.org/xml/ns/pro"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd http://www.liquibase.org/xml/ns/pro http://www.liquibase.org/xml/ns/pro/liquibase-pro-latest.xsd http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd"
+>
+    <changeSet
+        author="rlong (generated)"
+        id="1711126871406-23"
+    >
+        <createTable
+            tableName="nonce_state"
+        >
+            <column
+                name="nonce"
+                type="VARCHAR(255)"
+            >
+                <constraints
+                    nullable="false"
+                    primaryKey="true"
+                />
+            </column>
+            <column
+                defaultValueComputed="CURRENT_TIMESTAMP"
+                name="created_at"
+                type="timestamp"
+            />
+            <column
+                name="updated_at"
+                type="datetime"
+            />
+            <column
+                name="entity_version"
+                type="INT"
+            />
+            <column
+                name="lti_storage_target"
+                type="TEXT"
+            />
+            <column
+                name="state"
+                type="TEXT"
+            >
+                <constraints
+                    nullable="false"
+                />
+            </column>
+            <column
+                name="state_hash"
+                type="TEXT"
+            >
+                <constraints
+                    nullable="false"
+                />
+            </column>
+        </createTable>
+    </changeSet>
+</databaseChangeLog>
