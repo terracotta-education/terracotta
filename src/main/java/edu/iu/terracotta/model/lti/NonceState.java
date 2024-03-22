@@ -28,7 +28,7 @@ public class NonceState extends BaseEntity {
     private String stateHash;
 
 
-    @Column(nullable = false, length = 4096)
+    @Column(nullable = false)
     private String state;
 
     @Column
