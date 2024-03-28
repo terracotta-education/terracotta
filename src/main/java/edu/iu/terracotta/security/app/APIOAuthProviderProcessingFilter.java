@@ -136,7 +136,7 @@ public class APIOAuthProviderProcessingFilter extends GenericFilterBean {
         }
 
         if (rawHeaderValue == null) {
-          return null;
+            return null;
         }
 
         // very similar to BearerTokenExtractor.java in Spring spring-security-oauth2

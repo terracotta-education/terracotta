@@ -36,10 +36,13 @@ import static org.springframework.security.config.Customizer.withDefaults;
 public class WebSecurityConfig {
 
     @Value("${terracotta.admin.user:admin}")
-    String adminUser;
+    private String adminUser;
 
     @Value("${terracotta.admin.password:admin}")
-    String adminPassword;
+    private String adminPassword;
+
+    @Value("${api.oauth.provider.processing.filter.enabled:true}")
+    private boolean apioAuthProviderProcessingFilterEnabled;
 
     @Autowired private LTIDataService ltiDataService;
     @Autowired private LTIJWTService ltijwtService;
@@ -86,6 +89,30 @@ public class WebSecurityConfig {
                 "ADMIN",
                 "USER"
             );
+    }
+
+    @Bean
+    @Order(10) // LOWEST
+    public SecurityFilterChain filterChain1(HttpSecurity http) throws Exception {
+        // this ensures security context info (Principal, sec:authorize, etc.) is accessible on all paths
+        return http
+            .authorizeHttpRequests(
+                authz ->
+                    authz
+                        .requestMatchers(
+                            "/oidc/**",
+                            "/registration/**",
+                            "/jwks/**",
+                            "/lms/oauth2/**",
+                            "/files/**"
+                        )
+                        .permitAll()
+                        .anyRequest()
+                        .permitAll()
+            )
+            .csrf(csrf -> csrf.disable())
+            .headers(frameOptions -> frameOptions.disable())
+            .build();
     }
 
     @Bean
@@ -136,7 +163,8 @@ public class WebSecurityConfig {
             .authorizeHttpRequests(
                 authz ->
                     authz
-                        .requestMatchers("/lti3/**").permitAll()
+                        .requestMatchers("/lti3/**")
+                        .permitAll()
             )
             .addFilterBefore(
                 lti3oAuthProviderProcessingFilter,
@@ -152,7 +180,7 @@ public class WebSecurityConfig {
     public SecurityFilterChain filterChain5(HttpSecurity http) throws Exception {
         http.securityMatcher("/api/**");
 
-        return http
+        HttpSecurity httpSecurity = http
             .authorizeHttpRequests(
                 authz ->
                     authz
@@ -164,18 +192,25 @@ public class WebSecurityConfig {
                     new CorsConfigurationSourceImpl()
                 ),
                 BasicAuthenticationFilter.class
-            )
-            .addFilterBefore(
-                apioAuthProviderProcessingFilter,
-                UsernamePasswordAuthenticationFilter.class
-            )
-            .csrf(csrf -> csrf.disable())
-            .headers(frameOptions -> frameOptions.disable())
-            .build();
+            );
+
+            if (apioAuthProviderProcessingFilterEnabled) {
+                log.info("Adding APIOAuthProviderProcessingFilter to all /api/ requests");
+                httpSecurity = httpSecurity
+                    .addFilterBefore(
+                        apioAuthProviderProcessingFilter,
+                        UsernamePasswordAuthenticationFilter.class
+                    );
+            }
+
+            return httpSecurity
+                .csrf(csrf -> csrf.disable())
+                .headers(frameOptions -> frameOptions.disable())
+                .build();
     }
 
     @Bean
-    @Order(80) // LOWEST
+    @Order(85) // LOWEST
     public SecurityFilterChain filterChain6(HttpSecurity http) throws Exception {
         // this ensures security context info (Principal, sec:authorize, etc.) is accessible on all paths
         return http
@@ -183,11 +218,7 @@ public class WebSecurityConfig {
                 authz ->
                     authz
                         .requestMatchers(
-                            "/oidc/**",
-                            "/registration/**",
-                            "/jwks/**",
-                            "/deeplink/**",
-                            "/ags/**"
+                            "/**"
                         )
                         .permitAll()
                         .anyRequest()
