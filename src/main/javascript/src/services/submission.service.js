@@ -68,7 +68,8 @@ async function updateSubmission(
   assessment_id,
   submission_id,
   alteredCalculatedGrade,
-  totalAlteredGrade
+  totalAlteredGrade,
+  gradeOverridden
 ) {
   const requestOptions = {
     method: "PUT",
@@ -76,6 +77,7 @@ async function updateSubmission(
     body: JSON.stringify({
       alteredCalculatedGrade: alteredCalculatedGrade,
       totalAlteredGrade: totalAlteredGrade,
+      gradeOverridden: gradeOverridden
     }),
   };
 

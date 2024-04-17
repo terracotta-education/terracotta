@@ -34,7 +34,7 @@
 <script>
 import { mapGetters, mapActions } from "vuex"
 import { EventBus } from "@/helpers/event-bus"
-import InfoTooltip from "../../../elements/InfoTooltip.vue"
+import InfoTooltip from "@/components/InfoTooltip.vue"
 import Selector from "./subsection/input/Selector.vue"
 
 export default {

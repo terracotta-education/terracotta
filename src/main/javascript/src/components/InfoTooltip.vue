@@ -1,6 +1,9 @@
 <template>
   <v-tooltip
-    top
+    :top="getLocationTop"
+    :bottom="getLocationBottom"
+    :right="getLocationRight"
+    :left="getLocationLeft"
   >
     <template
       #activator="{ on }"
@@ -10,6 +13,7 @@
       >
         <v-icon
           v-if="getActivatorType === 'icon'"
+          :style="getIconStyle"
         >
           {{  getActivatorText }}
         </v-icon>
@@ -37,7 +41,9 @@ export default {
     "header",
     "message",
     "activator", // {type, text}
-    "linkClass"
+    "linkClass",
+    "iconStyle", // {css styles}
+    "location", // [top, bottom, right, left] (default to top)
   ],
   computed: {
     hasHeader() {
@@ -60,6 +66,24 @@ export default {
     },
     getLinkClass() {
       return this.linkClass || "";
+    },
+    getIconStyle() {
+      return this.iconStyle || "";
+    },
+    getLocation() {
+      return this.location || "top";
+    },
+    getLocationTop() {
+      return this.getLocation === "top";
+    },
+    getLocationBottom() {
+      return this.getLocation === "bottom";
+    },
+    getLocationRight() {
+      return this.getLocation === "right";
+    },
+    getLocationLeft() {
+      return this.getLocation === "left";
     }
   }
 }

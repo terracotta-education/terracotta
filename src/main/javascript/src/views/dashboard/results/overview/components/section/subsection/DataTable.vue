@@ -115,7 +115,7 @@
 
 <script>
 import DataTableTreatment from "./DataTableTreatment.vue";
-import InfoTooltip from "../../../../elements/InfoTooltip.vue";
+import InfoTooltip from "@/components/InfoTooltip.vue";
 import { round, percent } from "@/helpers/dashboard/utils.js";
 
 export default {

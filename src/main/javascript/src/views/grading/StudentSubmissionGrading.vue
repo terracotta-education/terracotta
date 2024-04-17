@@ -1,187 +1,319 @@
 <template>
   <div>
-    <!-- Heading -->
-    <v-row>
-      <v-col cols="10">
-        <h1>{{ participantName() }}'s response</h1>
-      </v-col>
+    <v-row
+      class="header-row"
+    >
       <v-col>
-        <v-row class="studentGrade" v-if="selectedSubmission">
-          <v-text-field
-            type="number"
-            name="maxPoints"
-            outlined
-            style="max-width: 70px;max-height: 50px;"
-            v-model="selectedSubmission.totalAlteredGrade"
-            @input="
-              (value) => {
-                selectedSubmission.totalAlteredGrade = parseInt(value);
-                touched = true;
-              }
-            "
-          ></v-text-field>
-          <span class="totalPoints ml-2">
-            / {{ assessment.maxPoints }} Total Score</span
-          >
-        </v-row>
+        <span
+          class="header-participant-response"
+        >
+          {{ participantName() }}'s response
+        </span>
       </v-col>
-    </v-row>
-    <v-row no-gutters>
-      <v-col :cols="6">
-        <div class="d-flex align-center">
-          <submission-selector
-            :submissions="participantSubmissions"
-            @select="(id) => selectedSubmissionId = id" />
-          <span :style="{visibility: `${ touched ? 'visible' : 'hidden' }`}"  class="red--text">
-            <v-icon class="red--text">mdi-alert-circle-outline</v-icon>
-            Unsaved Changes
-          </span>
-        </div>
+      <v-col
+        class="col-attempts"
+      >
+        <v-card
+          class="card-header"
+          outlined
+        >
+          <v-card-text
+            class="p-2"
+          >
+            <v-row>
+              <v-col
+                pb-0
+              >
+                <h3>Attempts</h3>
+              </v-col>
+            </v-row>
+            <v-row
+              class="mt-0"
+            >
+              <v-col>
+                <submission-selector
+                  :submissions="participantSubmissions"
+                  @select="(id) => selectedSubmissionId = id"
+                />
+              </v-col>
+            </v-row>
+          </v-card-text>
+        </v-card>
+      </v-col>
+      <v-col
+        class="col-score"
+      >
+        <v-card
+          class="card-header"
+          outlined
+        >
+          <v-card-text
+            class="p-2"
+          >
+            <v-row
+              class="pb-0"
+            >
+              <v-col
+                class="col-score-title"
+              >
+                <h3>{{ scoreHeader }}</h3>
+              </v-col>
+              <v-col
+               class="col-score-tooltip px-1"
+              >
+                <InfoTooltip
+                  :header="scoreTooltipHeader"
+                  :message="scoreTooltip"
+                  :activator="scoreTooltipActivator"
+                  :iconStyle="tooltipStyles"
+                  :location="`bottom`"
+                />
+              </v-col>
+              <v-col
+                class="col-score-toggle"
+              >
+                <a
+                  @click="changeScoreType()"
+                >
+                  {{ scoreLink }}
+                </a>
+              </v-col>
+            </v-row>
+            <v-row>
+              <v-col
+                v-if="getScoreType === 'calculated'"
+              >
+                <span
+                  class="total-points"
+                >
+                  {{ currentAttemptCalculatedGrade }}/{{ assessment.maxPoints }}
+                </span>
+              </v-col>
+              <v-col
+                v-else
+              >
+                <v-row
+                  v-if="selectedSubmission"
+                  class="student-grade"
+                >
+                  <v-text-field
+                    @input="
+                      (value) => {
+                        selectedSubmission.totalAlteredGrade = parseInt(value);
+                        currentAttempt.overrideGrade.touched = true;
+                      }
+                    "
+                    v-model="selectedSubmission.totalAlteredGrade"
+                    style="max-width: 70px;max-height: 50px;"
+                    class="input-override-grade"
+                    type="number"
+                    name="maxPoints"
+                    outlined
+                  ></v-text-field>
+                  <span
+                    class="total-points ml-2"
+                  >
+                    /{{ assessment.maxPoints }}
+                  </span>
+                </v-row>
+              </v-col>
+            </v-row>
+            <v-row
+              v-if="showUnsavedChangeWarning"
+              class="unsaved-warn"
+            >
+              <v-col>
+                <span
+                  class="red--text"
+                >
+                  <v-icon
+                    class="red--text"
+                  >
+                    mdi-alert-circle-outline
+                  </v-icon>
+                  Unsaved Changes
+                </span>
+              </v-col>
+            </v-row>
+          </v-card-text>
+        </v-card>
       </v-col>
     </v-row>
 
     <v-card
-      v-if="
-        hasEssayAndNonEssayQuestions && ungradedEssayQuestionIndices.length > 0
-      "
+      v-if="showUngradedText"
       class="ungraded-essay-questions-notice"
       outlined
     >
       <v-card-text>
         <v-row>
-          <v-col cols="1"
-            ><v-icon class="ungraded-essay-questions-notice__icon"
-              >mdi-text-box-check-outline</v-icon
-            ></v-col
+          <v-col
+            cols="1"
           >
-          <v-col class="ungraded-essay-questions-notice__message">
-            Please grade short answer responses ({{
-              ungradedEssayQuestionIndices.join(", ")
-            }}) manually
+            <v-icon
+              class="ungraded-essay-questions-notice__icon"
+            >
+              mdi-text-box-check-outline
+          </v-icon>
+          </v-col>
+          <v-col
+            class="ungraded-essay-questions-notice__message"
+          >
+            {{ manualGradeText }}
           </v-col>
         </v-row>
       </v-card-text>
     </v-card>
 
-    <template v-if="this.selectedSubmissionId">
+    <template
+      v-if="this.selectedSubmissionId"
+    >
       <template>
-        <div v-for="questionPage in questionPages" :key="questionPage.key">
+        <div
+          v-for="questionPage in questionPages"
+          :key="questionPage.key"
+        >
           <!-- Individual Question -->
           <v-card
-            class="mt-5 mb-2"
-            :class="studentResponseCardClasses[question.questionId]"
-            outlined
             v-for="(question, index) in questionPage.questions"
             :key="question.questionId"
+            :class="studentResponseCardClasses[question.questionId]"
+            class="mt-5 mb-2"
+            outlined
           >
             <v-chip
+              v-if="!isGradeOverridden && (ungradedEssayQuestions.includes(question) || ungradedFileUploadQuestions.includes(question))"
               class="ungraded-essay-question-chip"
               color="rgba(255, 224, 178, 1)"
-              v-if="ungradedEssayQuestions.includes(question)"
             >
-              <v-icon class="ungraded-essay-question-chip__icon"
-                >mdi-text-box-check-outline</v-icon
+              <v-icon
+                class="ungraded-essay-question-chip__icon"
               >
-              Manual grade needed</v-chip
+                mdi-text-box-check-outline
+              </v-icon>
+              Manual grade needed
+            </v-chip>
+            <v-card-title
+              class="question-section"
             >
-            <v-card-title class="questionSection">
-              <div class="cardDetails">
+              <div
+                class="card-details"
+              >
                 <v-row>
-                  <v-col cols="1">
-                    <span>{{ questionPage.questionStartIndex + index + 1 }}</span>
+                  <v-col
+                    cols="1"
+                  >
+                    <span>
+                      {{ questionPage.questionStartIndex + index + 1 }}
+                    </span>
                   </v-col>
-                  <v-col cols="9">
-                    <span v-html="question.html"></span>
+                  <v-col
+                    cols="9">
+                    <span
+                      v-html="question.html"
+                    >
+                    </span>
                   </v-col>
                   <v-col>
-                    <v-row class="studentGrade individualScore">
+                    <v-row
+                      class="student-grade individual-score"
+                    >
                       <v-text-field
+                        :disabled="question.points === 0"
+                        @input="
+                          (value) => {
+                            currentAttempt.questionScoreMap[question.questionId] = value || null;
+                            currentAttempt.calculatedGrade.touched = true;
+                            updateCalculatedGrade();
+                          }
+                        "
                         type="number"
                         name="questionPoints"
                         outlined
                         required
                         style="max-width: 70px;max-height: 50px;"
-                        v-model="questionScoreMap[question.questionId]"
-                        :disabled="question.points === 0"
-                        @input="
-                          (value) => {
-                            questionScoreMap[question.questionId] = value;
-                            touched = true;
-                          }
-                        "
-                      ></v-text-field>
-                      <span class="totalPoints  ml-2">
-                        / {{ question.points }} Point</span
+                        v-model="currentAttempt.questionScoreMap[question.questionId]"
                       >
+                      </v-text-field>
+                      <span
+                        class="total-points ml-2"
+                      >
+                        / {{ question.points }} Point{{ question.points > 1 ? 's' : ''}}
+                      </span>
                     </v-row>
                   </v-col>
                 </v-row>
               </div>
 
               <!-- Answer Section -->
-              <div class="answerSection mt-5 w-100">
-                <template v-if="question.questionType === 'MC'">
+              <div
+                class="answer-section mt-5 w-100"
+              >
+                <template
+                  v-if="question.questionType === 'MC'"
+                >
                   <div
                     v-for="answer in question.answers"
                     :key="answer.answerId"
                     class="w-100"
                   >
                     <v-row>
-                      <v-col cols="1">
+                      <v-col
+                        cols="1"
+                      >
                         &nbsp;
                       </v-col>
-                      <v-col cols="10">
+                      <v-col
+                        cols="10"
+                      >
                         <v-card
                           :class="[
                             'abc',
-                            answer.correct ? 'correctAnswer' : '',
-                            studentSubmittedAnswers[question.questionId].includes(
-                              answer.answerId
-                            )
-                              ? 'wrongAnswer'
-                              : '',
+                            answer.correct ? 'correct-answer' : '',
+                            studentSubmittedAnswers[question.questionId].includes(answer.answerId) ? 'wrong-answer' : '',
                           ]"
                           outlined
                         >
                           <v-card-title>
                             <v-row>
-                              <v-col cols="1">
+                              <v-col
+                                cols="1"
+                              >
                                 <!-- Radio Button -->
                                 <v-radio-group
-                                  :value="
-                                    studentSubmittedAnswers[
-                                      question.questionId
-                                    ].find((a) => a === answer.answerId)
-                                  "
+                                  :value="studentSubmittedAnswers[question.questionId].find((a) => a === answer.answerId)"
                                 >
                                   <v-radio
-                                    class="radioButton"
                                     :value="answer.answerId"
+                                    class="radio-button"
                                     readonly
                                   >
                                   </v-radio>
                                 </v-radio-group>
                               </v-col>
-                              <v-col cols="8">
+                              <v-col
+                                cols="8"
+                              >
                                 <!-- Answer Text -->
-                                <span v-html="answer.html"></span>
+                                <span
+                                  v-html="answer.html"
+                                >
+                                </span>
                               </v-col>
                               <v-col>
                                 <!-- Correct / Student Response -->
                                 <span
                                   v-if="answer.correct"
-                                  class="correctAnswerText"
-                                  >Correct Response</span
+                                  class="correct-answer-text"
                                 >
+                                  Correct Response
+                                </span>
                                 <span
-                                  v-else-if="
-                                    studentSubmittedAnswers[
-                                      question.questionId
-                                    ].includes(answer.answerId)
-                                  "
-                                  class="studentResponse"
-                                  >Student Response</span
+                                  v-else-if="studentSubmittedAnswers[question.questionId].includes(answer.answerId)"
+                                  class="student-response"
                                 >
+                                  Student Response
+                                </span>
                               </v-col>
                             </v-row>
                           </v-card-title>
@@ -190,12 +322,18 @@
                     </v-row>
                   </div>
                 </template>
-                <template v-else-if="question.questionType === 'ESSAY'">
+                <template
+                  v-else-if="question.questionType === 'ESSAY'"
+                >
                   <v-row>
-                    <v-col cols="1">
+                    <v-col
+                      cols="1"
+                    >
                       &nbsp;
                     </v-col>
-                    <v-col cols="10">
+                    <v-col
+                      cols="10"
+                    >
                       <v-card outlined>
                         <v-card-title>
                           {{ studentSubmittedAnswers[question.questionId] }}
@@ -204,36 +342,58 @@
                     </v-col>
                   </v-row>
                 </template>
-                <template v-else-if="question.questionType === 'FILE'">
-                  <v-card width="100%" height="100%">
+                <template
+                  v-else-if="question.questionType === 'FILE'"
+                >
+                  <v-card
+                    class="w-100 h-100"
+                  >
                     <v-card-text>
-                      <v-row class="d-flex flex-column" dense align="center" justify="center">
-                        <h2>File submitted:</h2>
+                      <v-row
+                        class="d-flex flex-column"
+                        dense
+                        align="center"
+                        justify="center"
+                      >
+                        <h2>
+                          File submitted:
+                        </h2>
                         <div
-                          v-for="fileResponse in studentSubmittedFileResponse(question.questionId)" :key="fileResponse.answerSubmissionId"
+                          v-for="fileResponse in studentSubmittedFileResponse(question.questionId)"
+                          :key="fileResponse.answerSubmissionId"
                           class="v-btn uploaded-file-row"
                           outlined
                         >
-                          {{fileResponse.fileName}}
+                          {{ fileResponse.fileName }}
                           <v-tooltip
                             v-if="fileResponse.answerSubmissionId != downloadId"
                             top
                           >
-                            <template v-slot:activator="{on, attrs}">
+                            <template
+                              v-slot:activator="{on, attrs}"
+                            >
                               <v-btn
+                                @click="downloadFileResponse(fileResponse)"
                                 v-bind="attrs"
                                 v-on="on"
-                                @click="downloadFileResponse(fileResponse)"
                                 class="btn-uploaded-file"
                                 target="_blank"
                               >
-                                <v-icon class="btn-uploaded-file-icon">mdi-file-download-outline</v-icon>
+                                <v-icon
+                                  class="btn-uploaded-file-icon"
+                                >
+                                  mdi-file-download-outline
+                                </v-icon>
                               </v-btn>
                             </template>
-                            <span>Download file</span>
+                            <span>
+                              Download file
+                            </span>
                           </v-tooltip>
-                          <span v-if="fileResponse.answerSubmissionId === downloadId">
-                            <Spinner></Spinner>
+                          <span
+                            v-if="fileResponse.answerSubmissionId === downloadId"
+                          >
+                            <Spinner />
                           </span>
                         </div>
                       </v-row>
@@ -251,12 +411,14 @@
 
 <script>
 import { mapActions, mapGetters } from "vuex";
+import InfoTooltip from "@/components/InfoTooltip.vue";
 import Spinner from "@/components/Spinner";
-import SubmissionSelector from '../assignment/SubmissionSelector';
+import SubmissionSelector from "../assignment/SubmissionSelector";
 
 export default {
   name: "StudentSubmissionGrading",
   components: {
+    InfoTooltip,
     Spinner,
     SubmissionSelector
   },
@@ -295,42 +457,41 @@ export default {
       if (this.assessment && this.assessment.questions) {
         for (const question of this.assessment.questions) {
           if (question.questionType === "MC") {
-            answers[question.questionId] = this.studentSubmittedMCAnswers(
-              question.questionId
-            );
+            answers[question.questionId] = this.studentSubmittedMCAnswers(question.questionId);
           } else if (question.questionType === "ESSAY") {
-            answers[question.questionId] = this.studentSubmittedEssayResponse(
-              question.questionId
-            );
+            answers[question.questionId] = this.studentSubmittedEssayResponse(question.questionId);
           } else if (question.questionType === "FILE") {
-            answers[question.questionId] = this.studentSubmittedFileResponse(
-                question.questionId
-            );
+            answers[question.questionId] = this.studentSubmittedFileResponse(question.questionId);
           }
         }
       }
       return answers;
     },
     gradableQuestions() {
-      return this.assessment && this.assessment.questions
-        ? this.assessment.questions.filter(
-            (q) => q.questionType !== "PAGE_BREAK"
-          )
-        : [];
+      return this.assessment && this.assessment.questions ? this.assessment.questions.filter((q) => q.questionType !== "PAGE_BREAK") : [];
     },
-    hasEssayAndNonEssayQuestions() {
+    hasEssayOrFileAndNonEssayQuestions() {
       return (
-        this.gradableQuestions.some((q) => q.questionType === "ESSAY") &&
-        this.gradableQuestions.some((q) => q.questionType !== "ESSAY")
+        (this.gradableQuestions.some((q) => q.questionType === "ESSAY") && this.gradableQuestions.some((q) => q.questionType !== "ESSAY")) ||
+        (this.gradableQuestions.some((q) => q.questionType === "FILE") && this.gradableQuestions.some((q) => q.questionType !== "FILE"))
       );
     },
     ungradedEssayQuestionIndices() {
       return this.ungradedEssayQuestions.map((q) => this.getQuestionIndex(q));
     },
+    ungradedFileQuestionIndices() {
+      return this.ungradedFileUploadQuestions.map((q) => this.getQuestionIndex(q));
+    },
     studentResponseCardClasses() {
+      if (this.isGradeOverridden) {
+        return {};
+      }
       const result = {};
       for (const question of this.ungradedEssayQuestions) {
-        result[question.questionId] = ["unanswered-essay-response"];
+        result[question.questionId] = ["ungraded-response"];
+      }
+      for (const question of this.ungradedFileUploadQuestions) {
+        result[question.questionId] = ["ungraded-response"];
       }
       return result;
     },
@@ -338,11 +499,18 @@ export default {
       const questions = [];
       if (this.assessment && this.assessment.questions) {
         for (const question of this.assessment.questions) {
-          if (
-            question.questionType === "ESSAY" &&
-            question.points > 0 &&
-            this.questionScoreMap[question.questionId] === null
-          ) {
+          if (question.questionType === "ESSAY" && question.points > 0 && this.currentAttempt && (this.currentAttempt.questionScoreMap[question.questionId] === null || isNaN(this.currentAttempt.questionScoreMap[question.questionId]))) {
+            questions.push(question);
+          }
+        }
+      }
+      return questions;
+    },
+    ungradedFileUploadQuestions() {
+      const questions = [];
+      if (this.assessment && this.assessment.questions) {
+        for (const question of this.assessment.questions) {
+          if (question.questionType === "FILE" && question.points > 0 && this.currentAttempt && (this.currentAttempt.questionScoreMap[question.questionId] === null || isNaN(this.currentAttempt.questionScoreMap[question.questionId]))) {
             questions.push(question);
           }
         }
@@ -352,27 +520,157 @@ export default {
     selectedSubmission() {
       return this.allSubmissions.find(s => s.submissionId === this.selectedSubmissionId);
     },
+    selectedSubmissionPoints() {
+      return this.selectedSubmission?.totalAlteredGrade || 0;
+    },
     participantSubmissions() {
       // return only this participant's submissions
       return this.allSubmissions.filter(s => s.participantId == this.participant_id);
+    },
+    manualGradeText() {
+      var text = "Please grade ";
+
+      if (this.ungradedEssayQuestions.length > 0) {
+        text += "short answer responses (" + this.ungradedEssayQuestionIndices.join(", ") + ")";
+      }
+
+      if (this.ungradedFileUploadQuestions.length > 0) {
+        if (this.ungradedEssayQuestions.length > 0) {
+          text += " and ";
+        }
+
+        text += "file uploads (" + this.ungradedFileQuestionIndices.join(", ") + ")";
+      }
+
+      text += " manually";
+      return text;
+    },
+    showUngradedText() {
+      if (this.isGradeOverridden) {
+        return false;
+      }
+
+      return this.hasEssayOrFileAndNonEssayQuestions && (this.ungradedEssayQuestionIndices.length > 0 || this.ungradedFileQuestionIndices.length > 0);
+    },
+    scoreHeader() {
+      switch(this.getScoreType) {
+        case "calculated":
+          return "Calculated Score";
+        case "override":
+          return "Override Score";
+        default:
+          return "";
+      }
+    },
+    scoreLink() {
+      switch(this.getScoreType) {
+        case "calculated":
+          return "Override";
+        case "override":
+          return "Revert";
+        default:
+          return "";
+      }
+    },
+    scoreTooltipHeader() {
+      switch(this.getScoreType) {
+        case "calculated":
+          return "Calculated score";
+        case "override":
+          return "Override score";
+        default:
+          return "";
+      }
+    },
+    scoreTooltip() {
+      switch(this.getScoreType) {
+        case "calculated":
+          return `This score updates based on points students earn on individual items (as input by Canvas for multiple choice questions or by instructors for short answer or file
+              upload questions). The instructor can override this score by clicking Override (which can be reversed after the change).`;
+        case "override":
+          return "You have overridden the calculated score. This score will not change based on changes made to points earned on individual questions. Click Revert to go back to the calculated score.";
+        default:
+          return "";
+      }
+    },
+    scoreTooltipActivator() {
+      return {"type": "icon", "text": "mdi-help-circle-outline"};
+    },
+    tooltipStyles() {
+      return {
+        "font-size": "20px",
+        "vertical-align": "top"
+      }
+    },
+    getScoreType() {
+      return this.isGradeOverridden ? "override" : "calculated";
+    },
+    isGradeOverridden() {
+      return this.currentAttempt ? (this.currentAttempt.gradeOverridden || false) : false;
+    },
+    showUnsavedChangeWarning() {
+      if (this.currentAttemptTypeChanged) {
+        return true;
+      }
+
+      switch (this.getScoreType) {
+        case "calculated":
+          return this.currentAttemptCalculatedGradeTouched;
+        case "override":
+          return this.currentAttemptOverrideGradeTouched;
+        default:
+          return false;
+      }
+    },
+    currentAttempt() {
+      return this.attempts.find(attempt => attempt.submissionId === this.selectedSubmissionId) ||
+        {
+          submissionId: null,
+          initialScoreType: "calculated",
+          typeChanged: false,
+          calculatedGrade: {
+            grade: 0,
+            touched: false
+          },
+          overrideGrade: {
+            grade: 0,
+            touched: false
+          },
+          gradeOverridden: false,
+          studentResponse: [],
+          questionScoreMap: []
+        };
+    },
+    currentAttemptTypeChanged() {
+      return this.currentAttempt?.typeChanged || false;
+    },
+    currentAttemptQuestionScoreMap() {
+      return this.currentAttempt?.questionScoreMap || [];
+    },
+    currentAttemptCalculatedGrade() {
+      return this.currentAttempt?.calculatedGrade?.grade || 0;
+    },
+    currentAttemptOverrideGrade() {
+      return this.currentAttempt?.overrideGrade?.grade || 0;
+    },
+    currentAttemptCalculatedGradeTouched() {
+      return this.currentAttempt?.calculatedGrade?.touched || false;
+    },
+    currentAttemptOverrideGradeTouched() {
+      return this.currentAttempt?.overrideGrade?.touched || false;
     }
   },
   watch: {
     selectedSubmissionId(newValue) {
       this.loadSubmissionResponses(newValue);
-    },
-    maxPoints(newValue) {
-      console.log(newValue);
     }
   },
   data() {
     return {
-      questionScoreMap: {},
-      updatedSubmissions: {},
       maxPoints: 0,
       selectedSubmissionId: null,
-      touched: false,
-      downloadId: null
+      downloadId: null,
+      attempts: [] // [{submissionId, initialScoreType, typeChanged, calculatedGrade: {grade, touched}, overrideGrade: {grade, touched}, gradeOverridden, studentResponse, questionScoreMap, loaded}]
     };
   },
   methods: {
@@ -389,28 +687,25 @@ export default {
         (participant) => participant.participantId === this.participant_id
       )?.[0].user.displayName;
     },
-
+    findSubmissionById(id) {
+      return this.allSubmissions.find(s => s.submissionId === id);
+    },
     isSameAssessmentQuestion(questionId) {
       return this.assessment.questions
         ?.map((question) => question.questionId)
         ?.includes(+questionId);
     },
-
     studentResponseForQuestionId(questionId) {
-      const filteredResponse = this.studentResponse?.filter(
+      const filteredResponse = this.currentAttempt.studentResponse?.filter(
         (resp) => resp.questionId === questionId
       );
-      return filteredResponse?.length > 0
-        ? filteredResponse[0]
-        : { answerSubmissionDtoList: [] };
+      return filteredResponse?.length > 0 ? filteredResponse[0] : { answerSubmissionDtoList: [] };
     },
-
     studentSubmittedMCAnswers(questionId) {
       return this.studentResponseForQuestionId(
         questionId
       ).answerSubmissionDtoList.map((answer) => answer.answerId);
     },
-
     studentSubmittedEssayResponse(questionId) {
       const answerSubmissionDtoList = this.studentResponseForQuestionId(
         questionId
@@ -421,7 +716,6 @@ export default {
         return answerSubmissionDtoList[0].response;
       }
     },
-
     studentSubmittedFileResponse(questionId) {
       const answerSubmissionDtoList = this.studentResponseForQuestionId(
           questionId
@@ -430,14 +724,13 @@ export default {
         return null;
       } else {
         return [{
-          'fileName':answerSubmissionDtoList[0].fileName,
-          'mimeType':answerSubmissionDtoList[0].mimeType,
-          'answerSubmissionId':answerSubmissionDtoList[0].answerSubmissionId,
-          'questionSubmissionId':answerSubmissionDtoList[0].questionSubmissionId
+          "fileName": answerSubmissionDtoList[0].fileName,
+          "mimeType": answerSubmissionDtoList[0].mimeType,
+          "answerSubmissionId": answerSubmissionDtoList[0].answerSubmissionId,
+          "questionSubmissionId": answerSubmissionDtoList[0].questionSubmissionId
         }];
       }
     },
-
     async downloadFileResponse(fileResponse) {
       this.downloadId = fileResponse.answerSubmissionId;
 
@@ -460,54 +753,55 @@ export default {
           this.downloadId = null;
       }
     },
-
     async saveExit() {
-      const updateSubmissions = this.studentResponse.map((response) => {
-        return {
-          questionSubmissionId: response.questionSubmissionId,
-          answerSubmissionDtoList: response.answerSubmissionDtoList,
-          alteredGrade:
-            this.questionScoreMap[response.questionId] !== null
-              ? +this.questionScoreMap[response.questionId]
-              : null,
-        };
+      // update grades for attempts
+      this.attempts.forEach(attempt => {
+        attempt.typeChanged = false;
+        attempt.calculatedGrade.touched = false;
+        attempt.overrideGrade.touched = false;
       });
 
-      const submission = this.selectedSubmission;
+      for (var attempt of this.attempts) {
+        const submission = this.findSubmissionById(attempt.submissionId);
 
-      try {
-        await this.updateSubmission([
-          submission.experimentId,
-          submission.conditionId,
-          submission.treatmentId,
-          submission.assessmentId,
-          submission.submissionId,
-          submission.alteredCalculatedGrade,
-          submission.totalAlteredGrade,
-        ]);
-        // Update Question Submissions
-        await this.updateQuestionSubmissions([
-          this.experiment_id,
-          this.condition_id,
-          this.treatment_id,
-          this.assessment_id,
-          this.selectedSubmissionId,
-          updateSubmissions,
-        ]);
-        // Post Step to Experiment
-        await this.reportStep({
-          experimentId: this.experiment_id,
-          step: "student_submission",
-          parameters: { submissionIds: "" + this.selectedSubmissionId },
+        const updateSubmissions = attempt.studentResponse.map((response) => {
+          return {
+            questionSubmissionId: response.questionSubmissionId,
+            answerSubmissionDtoList: response.answerSubmissionDtoList,
+            alteredGrade: attempt.questionScoreMap[response.questionId] !== null ? +attempt.questionScoreMap[response.questionId] : null,
+          };
         });
-        this.touched = false;
-        /*this.$router.push({
-          name: this.$router.currentRoute.meta.previousStep,
-        });*/
-      } catch (error) {
-        return Promise.reject(error);
-      }
 
+        try {
+          await this.updateSubmission([
+            submission.experimentId,
+            submission.conditionId,
+            submission.treatmentId,
+            submission.assessmentId,
+            submission.submissionId,
+            attempt.calculatedGrade.grade,
+            submission.totalAlteredGrade,
+            attempt.gradeOverridden
+          ]);
+          // Update Question Submissions
+          await this.updateQuestionSubmissions([
+            this.experiment_id,
+            this.condition_id,
+            this.treatment_id,
+            this.assessment_id,
+            attempt.submissionId,
+            updateSubmissions
+          ]);
+          // Post Step to Experiment
+          await this.reportStep({
+            experimentId: this.experiment_id,
+            step: "student_submission",
+            parameters: { submissionIds: "" + attempt.submissionId },
+          });
+        } catch (error) {
+          return Promise.reject(error);
+        }
+      }
     },
     getQuestionIndex(question) {
       for (const questionPage of this.questionPages) {
@@ -522,8 +816,12 @@ export default {
       return -1;
     },
     async loadSubmissionResponses(submissionId) {
-      this.questionScoreMap = {};
+      if (this.currentAttempt.loaded) {
+        // already loaded once; skip reloading
+        return;
+      }
 
+      // get the student response for this attempt
       await this.fetchStudentResponse([
         this.experiment.experimentId,
         this.condition_id,
@@ -532,44 +830,86 @@ export default {
         submissionId,
       ]);
 
-      // Initialize questionScoreMap
+      this.currentAttempt.studentResponse = this.studentResponse;
+
+      // initialize questionScoreMap
       const questionScoreMap = {};
+
       for (const question of this.gradableQuestions) {
         const questionId = question.questionId;
-        const alteredGrade = this.studentResponseForQuestionId(questionId)
-          .alteredGrade;
-        const calculatedPoints = this.studentResponseForQuestionId(questionId)
-          .calculatedPoints;
+        const alteredGrade = this.studentResponseForQuestionId(questionId).alteredGrade;
+        const calculatedPoints = this.studentResponseForQuestionId(questionId).calculatedPoints;
 
-        if (question.questionType === "ESSAY") {
-          // Essay questions have to be manually graded. The alteredGrade will be
-          // null if it hasn't been manually graded.
+        if (question.questionType === "ESSAY" || question.questionType === "FILE") {
+          // Essay / File questions have to be manually graded. The alteredGrade will be null if it hasn't been manually graded.
           questionScoreMap[questionId] = alteredGrade;
         } else {
-          questionScoreMap[questionId] = alteredGrade
-            ? alteredGrade
-            : calculatedPoints;
+          questionScoreMap[questionId] = alteredGrade ? alteredGrade : calculatedPoints;
         }
       }
-      this.questionScoreMap = questionScoreMap;
 
-      // Initialize maxPoints
+      this.currentAttempt.questionScoreMap = questionScoreMap;
+      this.updateCalculatedGrade();
+
+      // initialize maxPoints
       let sum = 0;
-      Object.keys(this.questionScoreMap)?.map((qId) => {
-        this.isSameAssessmentQuestion(qId)
-          ? (sum = sum + this.questionScoreMap[qId])
-          : sum;
+      Object.keys(this.currentAttempt.questionScoreMap)?.map((qId) => {
+        this.isSameAssessmentQuestion(qId) ? (sum = sum + this.currentAttempt.questionScoreMap[qId]) : sum;
       });
       this.maxPoints = sum;
+      this.currentAttempt.loaded = true;
+    },
+    updateCalculatedGrade() {
+      this.currentAttempt.calculatedGrade.grade = 0;
+      Object.values(this.currentAttemptQuestionScoreMap)
+        .filter(s => s !== null)
+        .filter(s => !isNaN(Number(s)))
+        .forEach(s => this.currentAttempt.calculatedGrade.grade += Number(s));
+    },
+    changeScoreType() {
+      switch(this.getScoreType) {
+        case "calculated":
+          this.currentAttempt.gradeOverridden = true;
+          this.currentAttempt.typeChanged = this.currentAttempt.initialScoreType === "calculated";
+          break;
+        case "override":
+          this.currentAttempt.gradeOverridden = false;
+          this.currentAttempt.typeChanged = this.currentAttempt.initialScoreType === "override";
+          break;
+        default:
+          break;
+      }
     }
   },
   async created() {
-    this.fetchAssessment([
+    await this.fetchAssessment([
       this.experiment.experimentId,
       this.condition_id,
       this.treatment_id,
       this.assessment_id,
     ]);
+
+    for (var submission of this.participantSubmissions) {
+      this.attempts.push(
+        {
+          submissionId: submission.submissionId,
+          initialScoreType: submission.gradeOverridden ? "override" : "calculated",
+          typeChanged: false,
+          calculatedGrade: {
+            grade: 0,
+            touched: false
+          },
+          overrideGrade: {
+            grade: 0,
+            touched: false
+          },
+          gradeOverridden: submission.gradeOverridden || false,
+          studentResponse: [],
+          questionScoreMap: [],
+          loaded: false
+        }
+      )
+    }
   },
 };
 </script>
@@ -583,7 +923,7 @@ export default {
     color: #afdcff;
   }
 }
-.questionSection {
+.question-section {
   display: flex;
   flex-direction: column;
   align-content: flex-start;
@@ -591,40 +931,34 @@ export default {
 .v-input--selection-controls {
   margin-top: 0;
 }
-.studentGrade {
+.student-grade {
   align-items: center;
+  padding-left: 12px;
 }
-
-.answerSection {
+.answer-section {
   min-width: 100%;
 }
-
-.totalPoints {
+.total-points {
   line-height: 24px;
-  font-size: 16px;
-  font-weight: 400;
+  font-size: 18px;
+  font-weight: bold;
 }
-
-.individualScore {
+.individual-score {
   margin-left: 1px;
 }
-
-.radioButton {
+.radio-button {
   margin-top: 2px;
 }
-
-.cardDetails {
+.card-details {
   min-width: 100%;
 }
-
-.wrongAnswer {
+.wrong-answer {
   border: 1px solid rgb(229, 21, 62);
 }
-
-.correctAnswer {
+.correct-answer {
   border: 1px solid rgb(56, 173, 182);
 }
-.studentResponse {
+.student-response {
   color: rgb(229, 21, 62);
   font-family: Roboto;
   font-size: 14px;
@@ -633,7 +967,7 @@ export default {
   letter-spacing: 0.25px;
   text-align: left;
 }
-.correctAnswerText {
+.correct-answer-text {
   color: rgba(56, 173, 182, 1);
   font-family: Roboto;
   font-size: 14px;
@@ -642,23 +976,26 @@ export default {
   letter-spacing: 0.25px;
   text-align: left;
 }
-.unanswered-essay-response {
+.ungraded-response {
   border: 1px solid #ffe0b2;
   background-color: rgba(255, 224, 178, 0.1);
 }
 .ungraded-essay-questions-notice {
   border: 1px solid #ffe0b2;
   background-color: rgba(255, 224, 178, 0.1);
+  margin-top: 40px;
   margin-bottom: 40px;
 }
-.ungraded-essay-questions-notice .v-card__text {
-  color: rgba(0, 0, 0, 0.87);
-  font-family: Roboto;
-  font-size: 16px;
-  font-weight: 400;
-  line-height: 24px;
-  letter-spacing: 0.15000000596046448px;
-  text-align: left;
+.ungraded-essay-questions-notice {
+  & .v-card__text {
+    color: rgba(0, 0, 0, 0.87);
+    font-family: Roboto;
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 24px;
+    letter-spacing: 0.15000000596046448px;
+    text-align: left;
+  }
 }
 .ungraded-essay-questions-notice__icon {
   display: flex;
@@ -679,7 +1016,6 @@ export default {
   font-weight: 400;
   font-size: 12px;
   line-height: 24px;
-
   letter-spacing: 0.15px;
 }
 .ungraded-essay-question-chip {
@@ -711,5 +1047,45 @@ export default {
 }
 .btn-uploaded-file-icon {
   color: rgba(0,0,0,.54) !important;
+}
+.header-row {
+  & .col-attempts,
+  & .col-score {
+    max-width: 300px;
+  }
+  & .card-header {
+    max-width: 300px;
+    min-height: 100%;
+    max-height: 100%;
+    background-color: rgba(29, 157, 255, .04);
+    & .col-score-title,
+    & .col-score-tooltip,
+    & .col-score-toggle {
+      min-width: fit-content;
+      max-width: fit-content;
+    }
+    & .col-score-title {
+      padding-right: 0;
+    }
+    & .col-score-toggle {
+      min-width: unset;
+      max-width: unset;
+      > a {
+        font-size: 1.17em;
+        float: right;
+      }
+    }
+    > .v-card__text {
+      min-width: 100%;
+      max-width: 100%;
+    }
+  }
+  & .header-participant-response {
+    font-size: 24px;
+  }
+  & .select-submissions,
+  & .input-override-grade {
+    background: white;
+  }
 }
 </style>
