@@ -69,33 +69,35 @@ export default {
 </script>
 
 <style scoped>
-div.container-tables {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  width: 100%;
-  min-width: 100%;
-  > .row {
-    margin: 0;
-    width: 100%;
-  }
-  > .buttons {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-    margin: 0;
-    > button {
-      width: 100%;
-    }
-    > .btn-selected {
-      background-color: #323A46;
-      color: white;
-    }
-  }
-  > .tables {
+  div.container-tables {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
     width: 100%;
     min-width: 100%;
-    margin: 20px auto;
+    
+    > .row {
+      margin: 0;
+      width: 100%;
+    }
+    > .buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin: 0;
+      
+      > button {
+        width: 100%;
+      }
+      > .btn-selected {
+        background-color: #323A46;
+        color: white;
+      }
+    }
+    > .tables {
+      width: 100%;
+      min-width: 100%;
+      margin: 20px auto;
+    }
   }
-}
 </style>
