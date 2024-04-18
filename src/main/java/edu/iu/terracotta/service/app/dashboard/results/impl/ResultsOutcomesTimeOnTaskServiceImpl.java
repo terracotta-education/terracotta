@@ -258,6 +258,4 @@ public class ResultsOutcomesTimeOnTaskServiceImpl implements ResultsOutcomesTime
         outcomesExposures.add(outcomesExposureOverall.build());
     }
 
-    
-
 }

@@ -47,7 +47,7 @@ public class WebConfig implements WebMvcConfigurer {
         filter.setMaxPayloadLength(10000);
         filter.setIncludeHeaders(true);
         filter.setIncludeClientInfo(true);
-        // filter.setAfterMessagePrefix("REQUEST DATA : ");
         return filter;
     }
+
 }

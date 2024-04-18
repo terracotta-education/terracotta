@@ -45,41 +45,41 @@ public class TokenController {
         String token = apijwtService.extractJwtStringValue(req, true);
         Jws<Claims> claims = apijwtService.validateToken(token);
 
-        if ((Boolean) claims.getBody().get("oneUse")) {
+        if ((Boolean) claims.getPayload().get("oneUse")) {
             try {
                 // experimentId and assignmentId are optionals so check the null.
                 Long assignmentId = null;
 
-                if (claims.getBody().get("assignmentId")!=null){
-                    assignmentId = Long.parseLong(claims.getBody().get("assignmentId").toString());
+                if (claims.getPayload().get("assignmentId")!=null){
+                    assignmentId = Long.parseLong(claims.getPayload().get("assignmentId").toString());
                 }
 
                 Long experimentId = null;
 
-                if (claims.getBody().get("experimentId")!=null){
-                    experimentId = Long.parseLong(claims.getBody().get("experimentId").toString());
+                if (claims.getPayload().get("experimentId")!=null){
+                    experimentId = Long.parseLong(claims.getPayload().get("experimentId").toString());
                 }
 
                 return new ResponseEntity<>(apijwtService.buildJwt(false,
-                        (List<String>)claims.getBody().get("roles"),
-                        Long.parseLong(claims.getBody().get("contextId").toString()),
-                        Long.parseLong(claims.getBody().get("platformDeploymentId").toString()),
-                        claims.getBody().get("userId").toString(),
+                        (List<String>)claims.getPayload().get("roles"),
+                        Long.parseLong(claims.getPayload().get("contextId").toString()),
+                        Long.parseLong(claims.getPayload().get("platformDeploymentId").toString()),
+                        claims.getPayload().get("userId").toString(),
                         assignmentId,
                         experimentId,
-                        (Boolean) claims.getBody().get("consent"),
-                        claims.getBody().get("canvasUserId").toString(),
-                        claims.getBody().get("canvasUserGlobalId").toString(),
-                        claims.getBody().get("canvasLoginId").toString(),
-                        claims.getBody().get("canvasUserName").toString(),
-                        claims.getBody().get("canvasCourseId").toString(),
-                        claims.getBody().get("canvasAssignmentId").toString(),
-                        claims.getBody().get("dueAt").toString(),
-                        claims.getBody().get("lockAt").toString(),
-                        claims.getBody().get("unlockAt").toString(),
-                        claims.getBody().get("nonce").toString(),
-                        claims.getBody().get("allowedAttempts", Integer.class),
-                        claims.getBody().get("studentAttempts", Integer.class))
+                        (Boolean) claims.getPayload().get("consent"),
+                        claims.getPayload().get("canvasUserId").toString(),
+                        claims.getPayload().get("canvasUserGlobalId").toString(),
+                        claims.getPayload().get("canvasLoginId").toString(),
+                        claims.getPayload().get("canvasUserName").toString(),
+                        claims.getPayload().get("canvasCourseId").toString(),
+                        claims.getPayload().get("canvasAssignmentId").toString(),
+                        claims.getPayload().get("dueAt").toString(),
+                        claims.getPayload().get("lockAt").toString(),
+                        claims.getPayload().get("unlockAt").toString(),
+                        claims.getPayload().get("nonce").toString(),
+                        claims.getPayload().get("allowedAttempts", Integer.class),
+                        claims.getPayload().get("studentAttempts", Integer.class))
                         , HttpStatus.OK);
             } catch (GeneralSecurityException | IOException e) {
                 return new ResponseEntity<>("Error generating token: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);

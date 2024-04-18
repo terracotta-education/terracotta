@@ -5,6 +5,6 @@ public enum OutcomeType {
     AVERAGE_ASSIGNMENT_SCORE,
     OTHER,
     STANDARD,
-    TIME_ON_TASK,
+    TIME_ON_TASK
 
 }

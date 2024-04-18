@@ -95,13 +95,13 @@ public class APIOAuthProviderProcessingFilter extends GenericFilterBean {
             if (StringUtils.hasText(token)) {
                 Jws<Claims> tokenClaims = apiJwtService.validateToken(token);
                 if (tokenClaims != null) {
-                    if (!"TERRACOTTA".equals(tokenClaims.getBody().getIssuer())){
+                    if (!"TERRACOTTA".equals(tokenClaims.getPayload().getIssuer())){
                         throw new IllegalStateException("API token is invalid");
                     }
 
                     // TODO add here any other checks we want to perform.
 
-                    if ((Boolean) tokenClaims.getBody().get("oneUse")) {
+                    if ((Boolean) tokenClaims.getPayload().get("oneUse")) {
                         boolean exists = apiDataService.findAndDeleteOneUseToken(token);
 
                         if (!exists){

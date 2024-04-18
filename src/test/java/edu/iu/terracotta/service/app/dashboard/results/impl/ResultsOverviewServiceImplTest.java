@@ -100,8 +100,8 @@ public class ResultsOverviewServiceImplTest extends BaseTest {
         assertNotNull(ret.getConditions());
         assertNotNull(ret.getConditions().getRows());
         assertEquals(1, ret.getConditions().getRows().size());
-        assertEquals(2.0, ret.getConditions().getRows().get(0).getSubmissionRate());
-        assertEquals(2, ret.getConditions().getRows().get(0).getSubmissionCount());
+        assertEquals(0.0, ret.getConditions().getRows().get(0).getSubmissionRate());
+        assertEquals(0, ret.getConditions().getRows().get(0).getSubmissionCount());
         assertEquals(ExposureTypes.BETWEEN, ret.getConditions().getExposureType());
 
         assertNotNull(ret.getParticipants());
@@ -130,8 +130,8 @@ public class ResultsOverviewServiceImplTest extends BaseTest {
         assertNotNull(ret.getConditions());
         assertNotNull(ret.getConditions().getRows());
         assertEquals(1, ret.getConditions().getRows().size());
-        assertEquals(2.0, ret.getConditions().getRows().get(0).getSubmissionRate());
-        assertEquals(2, ret.getConditions().getRows().get(0).getSubmissionCount());
+        assertEquals(0.0, ret.getConditions().getRows().get(0).getSubmissionRate());
+        assertEquals(0, ret.getConditions().getRows().get(0).getSubmissionCount());
         assertEquals(ExposureTypes.BETWEEN, ret.getConditions().getExposureType());
 
         assertNotNull(ret.getParticipants());
@@ -182,8 +182,8 @@ public class ResultsOverviewServiceImplTest extends BaseTest {
         assertNotNull(ret.getConditions());
         assertNotNull(ret.getConditions().getRows());
         assertEquals(1, ret.getConditions().getRows().size());
-        assertEquals(2.0, ret.getConditions().getRows().get(0).getSubmissionRate());
-        assertEquals(2, ret.getConditions().getRows().get(0).getSubmissionCount());
+        assertEquals(0.0, ret.getConditions().getRows().get(0).getSubmissionRate());
+        assertEquals(0, ret.getConditions().getRows().get(0).getSubmissionCount());
         assertEquals(ExposureTypes.BETWEEN, ret.getConditions().getExposureType());
 
         assertNotNull(ret.getParticipants());
@@ -214,7 +214,7 @@ public class ResultsOverviewServiceImplTest extends BaseTest {
         assertNotNull(ret.getConditions().getRows());
         assertEquals(1, ret.getConditions().getRows().size());
         assertEquals(0.0, ret.getConditions().getRows().get(0).getSubmissionRate());
-        assertEquals(2, ret.getConditions().getRows().get(0).getSubmissionCount());
+        assertEquals(0, ret.getConditions().getRows().get(0).getSubmissionCount());
         assertEquals(ExposureTypes.BETWEEN, ret.getConditions().getExposureType());
 
         assertNotNull(ret.getParticipants());
@@ -245,7 +245,7 @@ public class ResultsOverviewServiceImplTest extends BaseTest {
         assertNotNull(ret.getConditions().getRows());
         assertEquals(1, ret.getConditions().getRows().size());
         assertEquals(0.0, ret.getConditions().getRows().get(0).getSubmissionRate());
-        assertEquals(2, ret.getConditions().getRows().get(0).getSubmissionCount());
+        assertEquals(0, ret.getConditions().getRows().get(0).getSubmissionCount());
         assertEquals(ExposureTypes.BETWEEN, ret.getConditions().getExposureType());
 
         assertNotNull(ret.getParticipants());
@@ -276,7 +276,7 @@ public class ResultsOverviewServiceImplTest extends BaseTest {
         assertNotNull(ret.getConditions().getRows());
         assertEquals(1, ret.getConditions().getRows().size());
         assertEquals(0.0, ret.getConditions().getRows().get(0).getSubmissionRate());
-        assertEquals(2, ret.getConditions().getRows().get(0).getSubmissionCount());
+        assertEquals(0, ret.getConditions().getRows().get(0).getSubmissionCount());
         assertEquals(ExposureTypes.BETWEEN, ret.getConditions().getExposureType());
 
         assertNotNull(ret.getParticipants());

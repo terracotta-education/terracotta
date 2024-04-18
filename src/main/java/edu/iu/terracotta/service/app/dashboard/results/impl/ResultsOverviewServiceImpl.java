@@ -221,8 +221,7 @@ public class ResultsOverviewServiceImpl implements ResultsOverviewService {
     private void overallAssignment(List<OverviewAssignment> overviewAssignments) {
         OverviewAssignmentBuilder overviewAssignmentOverall = OverviewAssignment.builder()
             .title(ASSIGNMENT_OVERALL_TITLE);
-
-        AtomicLong submissionCount = new AtomicLong(0);
+        AtomicLong submissionCount = new AtomicLong(0l);
 
         overviewAssignments.forEach(
             assignmentOverview -> submissionCount.addAndGet(assignmentOverview.getSubmissionCount())
@@ -269,7 +268,6 @@ public class ResultsOverviewServiceImpl implements ResultsOverviewService {
 
         assessments.forEach(
             assessment -> {
-                // if the 
                 hasOnlyMC.set(
                     hasOnlyMC.get() &&
                     assessment.getQuestions().stream()

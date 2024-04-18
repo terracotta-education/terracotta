@@ -238,6 +238,4 @@ public class ResultsOutcomesAverageGradeServiceImpl implements ResultsOutcomesAv
         outcomesExposures.add(outcomesExposureOverall.build());
     }
 
-    
-
 }

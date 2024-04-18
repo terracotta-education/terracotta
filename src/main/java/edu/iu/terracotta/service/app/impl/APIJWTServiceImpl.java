@@ -36,13 +36,13 @@ import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Header;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.JwsHeader;
-import io.jsonwebtoken.Jwt;
 import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.SigningKeyResolverAdapter;
+import io.jsonwebtoken.Jwts.SIG;
+import io.jsonwebtoken.Locator;
 import lombok.extern.slf4j.Slf4j;
 import edu.iu.terracotta.utils.oauth.OAuthUtils;
+import edu.iu.terracotta.utils.LtiStrings;
 import edu.iu.terracotta.utils.TextConstants;
 
 import org.apache.commons.lang3.BooleanUtils;
@@ -54,13 +54,19 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.Key;
+import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.util.Base64;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -73,7 +79,7 @@ import java.util.Optional;
  */
 @Slf4j
 @Service
-@SuppressWarnings({"unchecked", "rawtypes", "PMD.GuardLogStatement"})
+@SuppressWarnings({"unchecked", "PMD.GuardLogStatement"})
 public class APIJWTServiceImpl implements APIJWTService {
 
     private static final String ISSUER_LMS_OAUTH_API_TOKEN_REQUEST = "lmsOAuthAPITokenRequest";
@@ -95,26 +101,33 @@ public class APIJWTServiceImpl implements APIJWTService {
     //Here we could add other checks like expiration of the state (not implemented)
     @Override
     public Jws<Claims> validateToken(String token) {
+        // This is done because each state is signed with a different key based on the issuer... so
+        // we don't know the key and we need to check it pre-extracting the claims and finding the kid
         try {
-            return Jwts.parserBuilder().setSigningKeyResolver(new SigningKeyResolverAdapter() {
-                // This is done because each state is signed with a different key based on the issuer... so
-                // we don't know the key and we need to check it pre-extracting the claims and finding the kid
-                @Override
-                public Key resolveSigningKey(JwsHeader header, Claims claims) {
-                    PublicKey toolPublicKey;
-                    try {
-                        // We are dealing with RS256 encryption, so we have some Oauth utils to manage the keys and
-                        // convert them to keys from the string stored in DB. There are for sure other ways to manage this.
-                        toolPublicKey = OAuthUtils.loadPublicKey(ltiDataService.getOwnPublicKey());
-                    } catch (GeneralSecurityException ex) {
-                        log.error("Error validating the state. Error generating the tool public key", ex);
-                        return null;
-                    }
-                    return toolPublicKey;
+            return Jwts.parser().keyLocator(
+                new Locator<Key>() {
+                    @Override
+                    public Key locate(Header header) {
+                        if (header instanceof JwsHeader) {
+                            PublicKey toolPublicKey;
+
+                            try {
+                                // We are dealing with RS256 encryption, so we have some Oauth utils to manage the keys and
+                                // convert them to keys from the string stored in DB. There are for sure other ways to manage this.
+                                toolPublicKey = OAuthUtils.loadPublicKey(ltiDataService.getOwnPublicKey());
+                            } catch (GeneralSecurityException ex) {
+                                log.error("Error validating the state. Error generating the tool public key", ex);
+                                return null;
+                            }
+                            return toolPublicKey;
+                                }
+
+                                return null;
+                            }
                 }
-            })
+            )
             .build()
-            .parseClaimsJws(token);
+            .parseSignedClaims(token);
         } catch (ExpiredJwtException e) {
             log.warn("JWT expired. {}", e.getMessage());
             return null;
@@ -127,7 +140,7 @@ public class APIJWTServiceImpl implements APIJWTService {
         Jws<Claims> claims = validateToken(token);
 
         if (claims != null) {
-            if (claims.getBody().get("fileId").toString().equals(fileId)) {
+            if (claims.getPayload().get("fileId").toString().equals(fileId)) {
                 return true;
             }
         }
@@ -135,13 +148,16 @@ public class APIJWTServiceImpl implements APIJWTService {
         return false;
     }
 
-
     @Override
-    public Jwt<Header, Claims> unsecureToken(String token) {
-        int i = token.lastIndexOf('.');
-        String withoutSignature = token.substring(0, i + 1);
+    public Map<String, Object> unsecureToken(String token) {
+        String[] jwtSections = token.split("\\.");
+        String jwtPayload = new String(Base64.getUrlDecoder().decode(jwtSections[1]));
 
-        return Jwts.parserBuilder().build().parseClaimsJwt(withoutSignature);
+        try {
+            return new ObjectMapper().readValue(jwtPayload, new TypeReference<Map<String,Object>>(){});
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Request is not a valid LTI3 request.", e);
+        }
     }
 
     @Override
@@ -201,18 +217,22 @@ public class APIJWTServiceImpl implements APIJWTService {
         }
 
         Date date = new Date();
-        Key toolPrivateKey = OAuthUtils.loadPrivateKey(ltiDataService.getOwnPrivateKey());
+        PrivateKey toolPrivateKey = OAuthUtils.loadPrivateKey(ltiDataService.getOwnPrivateKey());
         Optional<PlatformDeployment> platformDeployment = allRepositories.platformDeploymentRepository.findById(platformDeploymentId);
 
         JwtBuilder builder = Jwts.builder()
-            .setHeaderParam("kid", TextConstants.DEFAULT_KID)
-            .setHeaderParam("typ", "JWT")
-            .setIssuer(issuer)
-            .setSubject(userId) // The clientId
-            .setAudience(platformDeployment.isPresent() ? platformDeployment.get().getLocalUrl() : PlatformDeployment.LOCAL_URL) // We send here the authToken url.
-            .setExpiration(DateUtils.addSeconds(date, length)) // a java.util.Date
-            .setNotBefore(date) // a java.util.Date
-            .setIssuedAt(date) // for example, now
+            .header()
+            .add(LtiStrings.KID, TextConstants.DEFAULT_KID)
+            .add(LtiStrings.TYP, LtiStrings.JWT)
+            .and()
+            .issuer(issuer)
+            .subject(userId) // The clientId
+            .audience()
+            .add(platformDeployment.isPresent() ? platformDeployment.get().getLocalUrl() : PlatformDeployment.LOCAL_URL) // We send here the authToken url.
+            .and()
+            .expiration(DateUtils.addSeconds(date, length)) // a java.util.Date
+            .notBefore(date) // a java.util.Date
+            .issuedAt(date) // for example, now
             .claim("contextId", contextId) // This is an specific claim to ask for tokens.
             .claim("platformDeploymentId", platformDeploymentId) // This is an specific claim to ask for tokens.
             .claim("userId", userId) // This is an specific claim to ask for tokens.
@@ -233,7 +253,7 @@ public class APIJWTServiceImpl implements APIJWTService {
             .claim("nonce", nonce)
             .claim("allowedAttempts", allowedAttempts)
             .claim("studentAttempts", studentAttempts)
-            .signWith(toolPrivateKey, SignatureAlgorithm.RS256);  //We sign it with our own private key. The platform has the public one.
+            .signWith(toolPrivateKey, SIG.RS256);  //We sign it with our own private key. The platform has the public one.
 
         String token = builder.compact();
 
@@ -307,7 +327,7 @@ public class APIJWTServiceImpl implements APIJWTService {
         Jws<Claims> claims = validateToken(state);
 
         if (claims != null) {
-            String issuer = claims.getBody().getIssuer();
+            String issuer = claims.getPayload().getIssuer();
 
             if (!ISSUER_LMS_OAUTH_API_TOKEN_REQUEST.equals(issuer)) {
                 return Optional.empty();
@@ -322,18 +342,22 @@ public class APIJWTServiceImpl implements APIJWTService {
     @Override
     public String buildFileToken(String fileId, String localUrl) throws GeneralSecurityException {
         Date date = new Date();
-        Key toolPrivateKey = OAuthUtils.loadPrivateKey(ltiDataService.getOwnPrivateKey());
+        PrivateKey toolPrivateKey = OAuthUtils.loadPrivateKey(ltiDataService.getOwnPrivateKey());
         JwtBuilder builder = Jwts.builder()
-            .setHeaderParam("kid", TextConstants.DEFAULT_KID)
-            .setHeaderParam("typ", "JWT")
-            .setIssuer("TERRACOTTA")
-            .setSubject("no_user") // The clientId
-            .setAudience(localUrl)  //We send here the authToken url.
-            .setExpiration(DateUtils.addSeconds(date, 3600)) //a java.util.Date
-            .setNotBefore(date) //a java.util.Date
-            .setIssuedAt(date) // for example, now
+            .header()
+            .add(LtiStrings.KID, TextConstants.DEFAULT_KID)
+            .add(LtiStrings.TYP, LtiStrings.JWT)
+            .and()
+            .issuer("TERRACOTTA")
+            .subject("no_user") // The clientId
+            .audience()
+            .add(localUrl)  //We send here the authToken url.
+            .and()
+            .expiration(DateUtils.addSeconds(date, 3600)) //a java.util.Date
+            .notBefore(date) //a java.util.Date
+            .issuedAt(date) // for example, now
             .claim("fileId", fileId)  //This is an specific claim to ask for tokens.
-            .signWith(toolPrivateKey, SignatureAlgorithm.RS256);  //We sign it with our own private key. The platform has the public one.
+            .signWith(toolPrivateKey, SIG.RS256);  //We sign it with our own private key. The platform has the public one.
         String token = builder.compact();
 
         if (tokenLoggingEnabled) {
@@ -352,42 +376,46 @@ public class APIJWTServiceImpl implements APIJWTService {
             throw new BadTokenException("Token is invalid.");
         }
 
-        if (BooleanUtils.isTrue((Boolean) tokenClaims.getBody().get("oneUse"))) {
+        if (BooleanUtils.isTrue((Boolean) tokenClaims.getPayload().get("oneUse"))) {
             throw new BadTokenException("Trying to refresh an one use token");
         }
 
         Date date = new Date();
-        Key toolPrivateKey = OAuthUtils.loadPrivateKey(ltiDataService.getOwnPrivateKey());
+        PrivateKey toolPrivateKey = OAuthUtils.loadPrivateKey(ltiDataService.getOwnPrivateKey());
         JwtBuilder builder = Jwts.builder()
-            .setHeaderParam("kid", tokenClaims.getHeader().getKeyId())
-            .setHeaderParam("typ", "JWT")
-            .setIssuer(tokenClaims.getBody().getIssuer())
-            .setSubject(tokenClaims.getBody().getSubject()) // The clientId
-            .setAudience(tokenClaims.getBody().getAudience())  //We send here the authToken url.
-            .setExpiration(DateUtils.addDays(date, length)) //a java.util.Date
-            .setNotBefore(date) //a java.util.Date
-            .setIssuedAt(date) // for example, now
-            .claim("contextId", tokenClaims.getBody().get("contextId"))
-            .claim("platformDeploymentId", tokenClaims.getBody().get("platformDeploymentId"))
-            .claim("userId", tokenClaims.getBody().get("userId"))
-            .claim("roles", tokenClaims.getBody().get("roles"))
-            .claim("assignmentId", tokenClaims.getBody().get("assignmentId"))
-            .claim("consent", tokenClaims.getBody().get("consent"))
-            .claim("experimentId", tokenClaims.getBody().get("experimentId"))
+            .header()
+            .add(LtiStrings.KID, tokenClaims.getHeader().getKeyId())
+            .add(LtiStrings.TYP, LtiStrings.JWT)
+            .and()
+            .issuer(tokenClaims.getPayload().getIssuer())
+            .subject(tokenClaims.getPayload().getSubject()) // The clientId
+            .audience()
+            .add(tokenClaims.getPayload().getAudience())  //We send here the authToken url.
+            .and()
+            .expiration(DateUtils.addDays(date, length)) //a java.util.Date
+            .notBefore(date) //a java.util.Date
+            .issuedAt(date) // for example, now
+            .claim("contextId", tokenClaims.getPayload().get("contextId"))
+            .claim("platformDeploymentId", tokenClaims.getPayload().get("platformDeploymentId"))
+            .claim("userId", tokenClaims.getPayload().get("userId"))
+            .claim("roles", tokenClaims.getPayload().get("roles"))
+            .claim("assignmentId", tokenClaims.getPayload().get("assignmentId"))
+            .claim("consent", tokenClaims.getPayload().get("consent"))
+            .claim("experimentId", tokenClaims.getPayload().get("experimentId"))
             .claim("oneUse", false)
-            .claim("canvasUserId", tokenClaims.getBody().get("canvasUserId"))
-            .claim("canvasUserGlobalId", tokenClaims.getBody().get("canvasUserGlobalId"))
-            .claim("canvasLoginId", tokenClaims.getBody().get("canvasLoginId"))
-            .claim("canvasUserName", tokenClaims.getBody().get("canvasUserName"))
-            .claim("canvasCourseId", tokenClaims.getBody().get("canvasCourseId"))
-            .claim("canvasAssignmentId", tokenClaims.getBody().get("canvasAssignmentId"))
-            .claim("dueAt", tokenClaims.getBody().get("dueAt"))
-            .claim("lockAt", tokenClaims.getBody().get("lockAt"))
-            .claim("unlockAt", tokenClaims.getBody().get("unlockAt"))
-            .claim("nonce", tokenClaims.getBody().get("nonce"))
-            .claim("allowedAttempts", tokenClaims.getBody().get("allowedAttempts"))
-            .claim("studentAttempts", tokenClaims.getBody().get("studentAttempts"))
-            .signWith(toolPrivateKey, SignatureAlgorithm.RS256);  //We sign it with our own private key. The platform has the public one.
+            .claim("canvasUserId", tokenClaims.getPayload().get("canvasUserId"))
+            .claim("canvasUserGlobalId", tokenClaims.getPayload().get("canvasUserGlobalId"))
+            .claim("canvasLoginId", tokenClaims.getPayload().get("canvasLoginId"))
+            .claim("canvasUserName", tokenClaims.getPayload().get("canvasUserName"))
+            .claim("canvasCourseId", tokenClaims.getPayload().get("canvasCourseId"))
+            .claim("canvasAssignmentId", tokenClaims.getPayload().get("canvasAssignmentId"))
+            .claim("dueAt", tokenClaims.getPayload().get("dueAt"))
+            .claim("lockAt", tokenClaims.getPayload().get("lockAt"))
+            .claim("unlockAt", tokenClaims.getPayload().get("unlockAt"))
+            .claim("nonce", tokenClaims.getPayload().get("nonce"))
+            .claim("allowedAttempts", tokenClaims.getPayload().get("allowedAttempts"))
+            .claim("studentAttempts", tokenClaims.getPayload().get("studentAttempts"))
+            .signWith(toolPrivateKey, SIG.RS256);  //We sign it with our own private key. The platform has the public one.
 
         String newToken = builder.compact();
 
@@ -430,23 +458,23 @@ public class APIJWTServiceImpl implements APIJWTService {
         }
 
         SecuredInfo securedInfo = new SecuredInfo();
-        securedInfo.setUserId(claims.getBody().get("userId").toString());
-        securedInfo.setPlatformDeploymentId(Long.valueOf((Integer) claims.getBody().get("platformDeploymentId")));
-        securedInfo.setContextId(Long.valueOf((Integer) claims.getBody().get("contextId")));
-        securedInfo.setRoles((List<String>) claims.getBody().get("roles"));
-        securedInfo.setCanvasUserId(claims.getBody().get("canvasUserId").toString());
-        securedInfo.setCanvasUserGlobalId(claims.getBody().get("canvasUserGlobalId").toString());
-        securedInfo.setCanvasLoginId(claims.getBody().get("canvasLoginId").toString());
-        securedInfo.setCanvasUserName(claims.getBody().get("canvasUserName").toString());
-        securedInfo.setCanvasCourseId(claims.getBody().get("canvasCourseId").toString());
-        securedInfo.setCanvasAssignmentId(claims.getBody().get("canvasAssignmentId").toString());
+        securedInfo.setUserId(claims.getPayload().get("userId").toString());
+        securedInfo.setPlatformDeploymentId(Long.valueOf((Integer) claims.getPayload().get("platformDeploymentId")));
+        securedInfo.setContextId(Long.valueOf((Integer) claims.getPayload().get("contextId")));
+        securedInfo.setRoles((List<String>) claims.getPayload().get("roles"));
+        securedInfo.setCanvasUserId(claims.getPayload().get("canvasUserId").toString());
+        securedInfo.setCanvasUserGlobalId(claims.getPayload().get("canvasUserGlobalId").toString());
+        securedInfo.setCanvasLoginId(claims.getPayload().get("canvasLoginId").toString());
+        securedInfo.setCanvasUserName(claims.getPayload().get("canvasUserName").toString());
+        securedInfo.setCanvasCourseId(claims.getPayload().get("canvasCourseId").toString());
+        securedInfo.setCanvasAssignmentId(claims.getPayload().get("canvasAssignmentId").toString());
         securedInfo.setDueAt(extractTimestamp(claims,"dueAt"));
         securedInfo.setLockAt(extractTimestamp(claims,"lockAt"));
         securedInfo.setUnlockAt(extractTimestamp(claims,"unlockAt"));
-        securedInfo.setNonce(claims.getBody().get("nonce").toString());
-        securedInfo.setConsent((Boolean)claims.getBody().get("consent"));
-        securedInfo.setAllowedAttempts(claims.getBody().get("allowedAttempts", Integer.class));
-        securedInfo.setStudentAttempts(claims.getBody().get("studentAttempts", Integer.class));
+        securedInfo.setNonce(claims.getPayload().get("nonce").toString());
+        securedInfo.setConsent((Boolean)claims.getPayload().get("consent"));
+        securedInfo.setAllowedAttempts(claims.getPayload().get("allowedAttempts", Integer.class));
+        securedInfo.setStudentAttempts(claims.getPayload().get("studentAttempts", Integer.class));
 
         return securedInfo;
     }
@@ -455,7 +483,7 @@ public class APIJWTServiceImpl implements APIJWTService {
         Timestamp extracted;
 
         try {
-            extracted = Timestamp.valueOf(LocalDateTime.parse(claims.getBody().get(id).toString()));
+            extracted = Timestamp.valueOf(LocalDateTime.parse(claims.getPayload().get(id).toString()));
         } catch (Exception ex) {
             return null;
         }
