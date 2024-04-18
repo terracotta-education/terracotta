@@ -221,7 +221,6 @@ public class ResultsOverviewServiceImpl implements ResultsOverviewService {
     private void overallAssignment(List<OverviewAssignment> overviewAssignments) {
         OverviewAssignmentBuilder overviewAssignmentOverall = OverviewAssignment.builder()
             .title(ASSIGNMENT_OVERALL_TITLE);
-
         AtomicLong submissionCount = new AtomicLong(0l);
 
         overviewAssignments.forEach(
