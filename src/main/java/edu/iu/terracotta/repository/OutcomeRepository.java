@@ -11,7 +11,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+@SuppressWarnings({"PMD.MethodNamingConventions"})
 public interface OutcomeRepository extends JpaRepository<Outcome, Long> {
+
     List<Outcome> findByExposure_ExposureId(Long exposureId);
 
     List<Outcome> findByExposure_Experiment_ExperimentId(Long experimentId);
@@ -22,8 +24,9 @@ public interface OutcomeRepository extends JpaRepository<Outcome, Long> {
 
     boolean existsByExposure_Experiment_ExperimentIdAndExposure_ExposureIdAndOutcomeId(Long experimentId, Long exposureId, Long outcomeId);
 
-    @Transactional
     @Modifying
+    @Transactional
     @Query("delete from Outcome s where s.outcomeId = ?1")
     void deleteByOutcomeId(Long outcomeId);
+
 }

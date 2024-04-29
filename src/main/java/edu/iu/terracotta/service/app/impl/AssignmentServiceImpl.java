@@ -502,6 +502,13 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     @Override
+    public Optional<AssignmentExtended> getCanvasAssignmentById(int assignmentId, SecuredInfo securedInfo) throws CanvasApiException {
+        LtiUserEntity instructorUser = allRepositories.ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
+
+        return canvasAPIClient.listAssignment(instructorUser, securedInfo.getCanvasCourseId(), assignmentId);
+    }
+
+    @Override
     public boolean checkCanvasAssignmentExists(Assignment assignment, LtiUserEntity instructorUser) throws CanvasApiException {
         String canvasCourseId = StringUtils.substringBetween(
                 assignment.getExposure().getExperiment().getLtiContextEntity().getContext_memberships_url(), "courses/",
@@ -538,7 +545,7 @@ public class AssignmentServiceImpl implements AssignmentService {
         Optional<AssignmentExtended> canvasAssignmentReturned = canvasAPIClient.createCanvasAssignment(assignment.getExposure().getExperiment().getCreatedBy(), canvasAssignment, canvasCourseId);
         assignment.setLmsAssignmentId(Integer.toString(canvasAssignmentReturned.get().getId()));
         String jwtTokenAssignment = canvasAssignmentReturned.get().getSecureParams();
-        String resourceLinkId = apijwtService.unsecureToken(jwtTokenAssignment).getBody().get("lti_assignment_id").toString();
+        String resourceLinkId = apijwtService.unsecureToken(jwtTokenAssignment).get("lti_assignment_id").toString();
         assignment.setResourceLinkId(resourceLinkId);
         save(assignment);
 
@@ -660,7 +667,7 @@ public class AssignmentServiceImpl implements AssignmentService {
             Optional<AssignmentExtended> canvasAssignmentReturned = canvasAPIClient.createCanvasAssignment(instructorUser, canvasAssignment, canvasCourseId);
             assignment.setLmsAssignmentId(Integer.toString(canvasAssignmentReturned.get().getId()));
             String jwtTokenAssignment = canvasAssignmentReturned.get().getSecureParams();
-            String resourceLinkId = apijwtService.unsecureToken(jwtTokenAssignment).getBody().get("lti_assignment_id").toString();
+            String resourceLinkId = apijwtService.unsecureToken(jwtTokenAssignment).get("lti_assignment_id").toString();
             assignment.setResourceLinkId(resourceLinkId);
         } catch (CanvasApiException e) {
             log.error("Create the assignment failed", e);

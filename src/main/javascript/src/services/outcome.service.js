@@ -8,6 +8,7 @@ export const outcomeService = {
   getAll,
   getById,
   getByExperimentId,
+  getAllByExperimentId,
   create,
   updateOutcome,
   deleteOutcome,
@@ -59,6 +60,21 @@ async function getByExperimentId(experiment_id, exposures = []) {
       fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/exposures/${exposure_id}/outcomes`, requestOptions).then(handleResponse)
     ))
   }
+}
+
+/**
+ * Get all Outcomes by Experiment and Exposure Id
+ */
+function getAllByExperimentId(experiment_id) {
+  const requestOptions = {
+    method: 'GET',
+    headers: authHeader(),
+  }
+
+  return fetch(
+    `${store.getters['api/aud']}/api/experiments/${experiment_id}/outcomes`,
+    requestOptions
+  ).then(handleResponse)
 }
 
 /**

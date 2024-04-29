@@ -1,5 +1,5 @@
-import Vue from "vue";
 import FirstParty from "./FirstParty.vue";
+import Vue from "vue";
 import vuetify from "./plugins/vuetify";
 
 Vue.config.productionTip = false;

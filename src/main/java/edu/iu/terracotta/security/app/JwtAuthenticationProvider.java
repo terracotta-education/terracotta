@@ -44,7 +44,7 @@ public class JwtAuthenticationProvider implements AuthenticationProvider {
         try {
             Jws<Claims> jwtClaims = jwtService.validateToken(jwtValue);
             return new JwtAuthenticationToken(
-                    jwtValue, jwtClaims.getBody().getSubject(), extractGrantedAuthorities(jwtClaims.getBody()), jwtClaims.getBody());
+                    jwtValue, jwtClaims.getPayload().getSubject(), extractGrantedAuthorities(jwtClaims.getPayload()), jwtClaims.getPayload());
         } catch (JwtException e) {
             throw new BadCredentialsException("Failed to authenticate JWT", e);
         }
@@ -64,4 +64,3 @@ public class JwtAuthenticationProvider implements AuthenticationProvider {
         return JwtAuthenticationToken.class.isAssignableFrom(authentication);
     }
 }
-

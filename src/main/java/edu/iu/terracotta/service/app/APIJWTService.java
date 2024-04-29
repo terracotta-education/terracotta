@@ -23,17 +23,14 @@ import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.utils.lti.LTI3Request;
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Header;
 import io.jsonwebtoken.Jws;
-import io.jsonwebtoken.Jwt;
-
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
-@SuppressWarnings({"rawtypes"})
 public interface APIJWTService {
 
     String ISSUER_TERRACOTTA_API = "TERRACOTTA";
@@ -41,7 +38,7 @@ public interface APIJWTService {
     //Here we could add other checks like expiration of the state (not implemented)
     Jws<Claims> validateToken(String token);
 
-    Jwt<Header, Claims> unsecureToken(String token);
+    Map<String, Object> unsecureToken(String token);
 
     String buildJwt(boolean oneUse,
             List<String> roles,

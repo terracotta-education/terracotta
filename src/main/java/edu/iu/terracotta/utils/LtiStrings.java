@@ -12,7 +12,7 @@
  */
 package edu.iu.terracotta.utils;
 
-public class LtiStrings {
+public final class LtiStrings {
 
     private LtiStrings() {
         throw new IllegalStateException("Utility class");
@@ -172,6 +172,10 @@ public class LtiStrings {
     public static final String TYP = "typ";
     public static final String JWT = "JWT";
     public static final String RS256 = "RS256";
+
+    public static final String AUD = "aud";
+    public static final String ISS = "iss";
+    public static final String JTI = "jti";
 
     //Dynamic Registration
     public static final String REGISTRATION_TOKEN = "registration_token";

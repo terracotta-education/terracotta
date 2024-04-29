@@ -264,7 +264,7 @@ public class FileStorageServiceImpl implements FileStorageService {
                 // log.debug("getExternalToolTagAttributes().getResourceLinkId()={}", assignment.get().getExternalToolTagAttributes().getResourceLinkId());
                 // This seems to be a more accurate way to get the resourceLinkId
                 String jwtTokenAssignment = assignment.get().getSecureParams();
-                String resourceLinkId = apijwtService.unsecureToken(jwtTokenAssignment).getBody().get("lti_assignment_id").toString();
+                String resourceLinkId = apijwtService.unsecureToken(jwtTokenAssignment).get("lti_assignment_id").toString();
                 log.debug("jwtTokenAssignment lti_assignment_id = {}", resourceLinkId);
                 consentDocument.setResourceLinkId(resourceLinkId);
             } catch (CanvasApiException e) {
