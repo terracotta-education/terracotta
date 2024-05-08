@@ -28,15 +28,33 @@
                         class="saveButton"
                         @click="handleSaveClick()"
                     >
-                        <span v-if="this.$router.currentRoute.meta.stepActionText">{{ this.$router.currentRoute.meta.stepActionText }}</span>
-                        <span v-else-if="editMode">SAVE & CLOSE</span>
-                        <span v-else>SAVE & EXIT</span>
+                        <span
+                            v-if="this.$router.currentRoute.meta.stepActionText"
+                        >
+                            {{ this.$router.currentRoute.meta.stepActionText }}
+                        </span>
+                        <span
+                            v-else-if="editMode"
+                        >
+                            SAVE & CLOSE
+                        </span>
+                        <span
+                            v-else
+                        >
+                            SAVE & EXIT
+                        </span>
                     </v-btn>
                 </nav>
-                <article class="experiment-steps__body">
+                <article
+                    class="experiment-steps__body"
+                >
                     <v-container>
-                        <v-row justify="center">
-                            <v-col md="6">
+                        <v-row
+                            justify="center"
+                        >
+                            <v-col
+                                md="6"
+                            >
                                 <router-view
                                     :key="$route.fullPath"
                                     ref="childComponent"
@@ -49,15 +67,25 @@
                 </article>
             </div>
         </template>
-        <template v-else>
-            <v-row justify="center">
-                <v-col md="6">
+        <template
+            v-else
+        >
+            <v-row
+                justify="center"
+            >
+                <v-col
+                    md="6"
+                >
                     <v-alert
                         prominent
                         type="error"
                     >
-                        <v-row align="center">
-                            <v-col class="grow">
+                        <v-row
+                            align="center"
+                        >
+                            <v-col
+                                class="grow"
+                            >
                                 Experiment not found
                             </v-col>
                         </v-row>
@@ -75,11 +103,12 @@
 
     export default {
         name: 'ExperimentSteps',
-
+        components: {
+            Steps
+        },
         data: () => ({
             saveButtonClicked: false
         }),
-
         computed: {
             ...mapGetters({
                 experiment: 'experiment/experiment',
@@ -115,18 +144,22 @@
                 return this.conditions.length === 1;
             }
         },
-
         beforeRouteEnter (to, from, next) {
             // don't load new data after consent title screen
-            if (from.name==='ParticipationTypeConsentTitle' && to.name==='ParticipationTypeConsentFile') { next(); return;}
-            return store.dispatch('experiment/fetchExperimentById', to.params.experiment_id).then(next, next)
+            if (from.name === "ParticipationTypeConsentTitle" && to.name === "ParticipationTypeConsentFile") {
+                next();
+                return;
+            }
+            return store.dispatch("experiment/fetchExperimentById", to.params.experiment_id).then(next, next)
         },
         beforeRouteUpdate (to, from, next) {
             // don't load new data after consent title screen
-            if (from.name==='ParticipationTypeConsentTitle' && to.name==='ParticipationTypeConsentFile') { next(); return;}
+            if (from.name === "ParticipationTypeConsentTitle" && to.name === "ParticipationTypeConsentFile") {
+                next();
+                return;
+            }
             return store.dispatch('experiment/fetchExperimentById', to.params.experiment_id).then(next, next)
         },
-
         methods: {
             ...mapActions({
                 fetchExperimentById: 'experiment/fetchExperimentById'
@@ -139,10 +172,6 @@
                     this.saveButtonClicked = false;
                 }
             }
-        },
-
-        components: {
-            Steps
         }
     }
 </script>

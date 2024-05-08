@@ -53,6 +53,9 @@ public class Submission extends BaseEntity {
     @Column
     private boolean lateSubmission;
 
+    @Column
+    private boolean gradeOverridden;
+
     @OneToMany(mappedBy = "submission", orphanRemoval = true)
     private List<QuestionSubmission> questionSubmissions;
 

@@ -97,7 +97,7 @@
 <script>
 import { round, percent } from "@/helpers/dashboard/utils.js";
 import { mapGetters } from "vuex";
-import InfoTooltip from "../../../../elements/InfoTooltip.vue";
+import InfoTooltip from "@/components/InfoTooltip.vue";
 
 export default {
   name: "DataTableTreatment",

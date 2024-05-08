@@ -5,6 +5,7 @@
       v-model="activeSubmissionId"
       item-text="label"
       item-value="value"
+      class="select-submissions"
       outlined
       hide-details
     ></v-select>

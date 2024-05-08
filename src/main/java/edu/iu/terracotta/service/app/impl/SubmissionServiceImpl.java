@@ -154,6 +154,7 @@ public class SubmissionServiceImpl implements SubmissionService {
                 SubmissionDto submissionDto = entry.getValue();
                 submission.setAlteredCalculatedGrade(submissionDto.getAlteredCalculatedGrade());
                 submission.setTotalAlteredGrade(submissionDto.getTotalAlteredGrade());
+                submission.setGradeOverridden(submissionDto.isGradeOverridden());
                 save(submission);
             }
         }
@@ -176,6 +177,7 @@ public class SubmissionServiceImpl implements SubmissionService {
         submissionDto.setDateCreated(submission.getCreatedAt());
         submissionDto.setQuestionSubmissionDtoList(Collections.emptyList());
         submissionDto.setSubmissionCommentDtoList(Collections.emptyList());
+        submissionDto.setGradeOverridden(submission.isGradeOverridden());
 
         if (questionSubmissions) {
             List<QuestionSubmission> questionSubmissionList = allRepositories.questionSubmissionRepository
@@ -229,6 +231,7 @@ public class SubmissionServiceImpl implements SubmissionService {
             submission.setCalculatedGrade(submissionDto.getCalculatedGrade());
             submission.setAlteredCalculatedGrade(submissionDto.getAlteredCalculatedGrade());
             submission.setTotalAlteredGrade(submissionDto.getTotalAlteredGrade());
+            submission.setGradeOverridden(submissionDto.isGradeOverridden());
         }
 
         submission.setDateSubmitted(submissionDto.getDateSubmitted());
@@ -323,11 +326,7 @@ public class SubmissionServiceImpl implements SubmissionService {
         assessment.getQuestions().stream()
             .filter(
                 question -> {
-                    if (question.getQuestionType() != QuestionTypes.MC) {
-                        return false;
-                    }
-
-                    return ((QuestionMc) question).isRandomizeAnswers();
+                    return question.getQuestionType() == QuestionTypes.MC && ((QuestionMc) question).isRandomizeAnswers();
                 })
             .forEach(
                 question -> {

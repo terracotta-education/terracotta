@@ -25,6 +25,7 @@ public class SubmissionDto {
     private Timestamp dateSubmitted;
     private boolean lateSubmission;
     private String assessmentLink;
+    private boolean gradeOverridden;
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<QuestionSubmissionDto> questionSubmissionDtoList;

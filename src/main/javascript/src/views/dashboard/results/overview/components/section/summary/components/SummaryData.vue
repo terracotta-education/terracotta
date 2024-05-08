@@ -32,7 +32,7 @@
 </template>
 
 <script>
-import InfoTooltip from "../../../../../elements/InfoTooltip.vue";
+import InfoTooltip from "@/components/InfoTooltip.vue";
 
 export default {
   name: "SummaryCount",

@@ -1,27 +1,55 @@
 <template>
-  <div v-if="experiment && assignment && submissions">
-    <h1 class="mb-6">{{ assignment.title }}</h1>
+  <div
+    v-if="experiment && assignment && submissions"
+  >
+    <h1
+      class="mb-6"
+    >
+      {{ assignment.title }}
+    </h1>
     <template>
-      <div v-for="(selectedTreatment, index) in selectedAssignmentTreatments" :key="selectedTreatment.treatmentId" class="mt-6">
+      <div
+        v-for="(selectedTreatment, index) in selectedAssignmentTreatments"
+        :key="selectedTreatment.treatmentId"
+        class="mt-6"
+      >
         <h3>
           {{ selectedTreatment.assessmentDto.title }}
         </h3>
-        <form @submit.prevent="saveExit">
-          <v-simple-table class="mb-9 v-data-table--light-header">
-            <template v-slot:default>
+        <form
+          @submit.prevent="saveExit"
+        >
+          <v-simple-table
+            class="mb-9 v-data-table--light-header"
+          >
+            <template
+              v-slot:default
+            >
               <thead>
                 <tr>
-                  <th class="text-left">Student Name</th>
-                  <th class="text-left" style="width:250px;">
-                    Score (out of
-                    {{ selectedTreatment.assessmentDto.maxPoints }})
+                  <th
+                    class="text-left"
+                  >
+                    Student Name
+                  </th>
+                  <th
+                    class="text-left"
+                    style="width:250px;"
+                  >
+                    Score (out of {{ selectedTreatment.assessmentDto.maxPoints }})
                   </th>
                 </tr>
               </thead>
               <tbody>
-                <template v-for="(participant, pidx) in getParticipantWithSubmission(participants, selectedTreatment)">
-                  <template v-if="participant.submission">
-                    <tr :key="pidx">
+                <template
+                  v-for="(participant, pidx) in getParticipantWithSubmission(participants, selectedTreatment)"
+                >
+                  <template
+                    v-if="participant.submission"
+                  >
+                    <tr
+                      :key="pidx"
+                    >
                       <td>
                         <router-link
                           :to="{
@@ -49,7 +77,9 @@
             </template>
           </v-simple-table>
         </form>
-        <template v-if="index !== selectedAssignmentTreatments.length - 1">
+        <template
+          v-if="index !== selectedAssignmentTreatments.length - 1"
+        >
           <hr />
         </template>
       </div>
@@ -68,7 +98,7 @@ export default {
       experiment: "experiment/experiment",
       assignment: "assignment/assignment",
       participants: "participants/participants",
-      editMode: 'navigation/editMode'
+      editMode: "navigation/editMode"
     }),
     assignment_id() {
       return parseInt(this.$route.params.assignment_id);
@@ -83,7 +113,7 @@ export default {
       return this.assignment.treatments;
     },
     getSaveExitPage() {
-      return this.editMode?.callerPage?.name || 'ExperimentSummaryStatus';
+      return this.editMode?.callerPage?.name || "ExperimentSummaryStatus";
     },
   },
   data() {
@@ -121,9 +151,7 @@ export default {
       return [...subs].sort((a, b) => a.dateSubmitted - b.dateSubmitted).reverse()[0];
     },
     getParticipantName(participantId) {
-      return this.participants?.filter(
-        (participant) => participant.participantId === participantId
-      )[0]?.user.displayName;
+      return this.participants?.filter((participant) => participant.participantId === participantId)[0]?.user.displayName;
     },
     async saveExit() {
       try {
@@ -138,7 +166,7 @@ export default {
       // scores sorted by date descending
       const scores = participantSubmissions
         .sort((a, b) => a.dateSubmitted - b.dateSubmitted).reverse()
-        .map((ps) => ps.totalAlteredGrade || ps.alteredCalculatedGrade);
+        .map((ps) => ps.gradeOverridden ? ps.totalAlteredGrade : ps.alteredCalculatedGrade);
 
       if (!scores.length) {
         return "N/A";
@@ -157,24 +185,30 @@ export default {
     },
     round(n) {
       return n % 1 ? n.toFixed(2) : n;
+    },
+    async loadData() {
+      await this.fetchAssignment([
+        this.experiment_id,
+        this.exposure_id,
+        this.assignment_id,
+        true,
+      ]);
+      await this.fetchParticipants(this.experiment_id);
+      const submissions = {};
+      for (const treatment of this.assignment.treatments) {
+        for (const submission of treatment.assessmentDto.submissions) {
+          // Create a clone of each submission that can be mutated
+          submissions[submission.submissionId] = clone(submission);
+        }
+      }
+      this.submissions = submissions;
     }
   },
+  beforeRouteUpdate() {
+    this.loadData();
+  },
   async mounted() {
-    await this.fetchAssignment([
-      this.experiment_id,
-      this.exposure_id,
-      this.assignment_id,
-      true,
-    ]);
-    await this.fetchParticipants(this.experiment_id);
-    const submissions = {};
-    for (const treatment of this.assignment.treatments) {
-      for (const submission of treatment.assessmentDto.submissions) {
-        // Create a clone of each submission that can be mutated
-        submissions[submission.submissionId] = clone(submission);
-      }
-    }
-    this.submissions = submissions;
+    this.loadData();
   },
 };
 </script>
