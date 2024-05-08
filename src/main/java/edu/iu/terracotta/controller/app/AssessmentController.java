@@ -56,14 +56,9 @@ public class AssessmentController {
 
     public static final String REQUEST_ROOT = "api/experiments/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments";
 
-    @Autowired
-    private APIJWTService apijwtService;
-
-    @Autowired
-    private AssessmentService assessmentService;
-
-    @Autowired
-    private SubmissionService submissionService;
+    @Autowired private APIJWTService apijwtService;
+    @Autowired private AssessmentService assessmentService;
+    @Autowired private SubmissionService submissionService;
 
     @GetMapping
     public ResponseEntity<List<AssessmentDto>> getAssessmentByTreatment(@PathVariable long experimentId,
