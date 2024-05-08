@@ -59,6 +59,8 @@
               <strong>Questions</strong>
             </h4>
             <v-btn
+              @click="handleClearQuestions()"
+              :disabled="!canClearAll"
               color="primary"
               elevation="0"
               class="saveButton"
