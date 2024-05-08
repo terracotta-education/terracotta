@@ -12,7 +12,7 @@
         <p>
           Choose a regrade option for the <b>{{ studentCountLabel }}</b> who {{ studentCountHaveLabel }} already completed the <b>{{ conditionName }} version</b> of the {{ assignmentName }} assignment.
           Canvas will regrade all submissions for this version of the assignment after you save the treatment (students' scores MAY be affected).
-          Scores for short answer and file upload questions that have already been graded will remain the same.
+          Scores for short answer and file submission questions that have already been graded will remain the same.
         </p>
       </template>
       <v-radio

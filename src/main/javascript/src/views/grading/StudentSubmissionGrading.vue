@@ -539,7 +539,7 @@ export default {
           text += " and ";
         }
 
-        text += "file uploads (" + this.ungradedFileQuestionIndices.join(", ") + ")";
+        text += "file submissions (" + this.ungradedFileQuestionIndices.join(", ") + ")";
       }
 
       text += " manually";
