@@ -59,8 +59,6 @@
               <strong>Questions</strong>
             </h4>
             <v-btn
-              @click="handleClearQuestions()"
-              :disabled="!canClearAll"
               color="primary"
               elevation="0"
               class="saveButton"
@@ -86,8 +84,8 @@
                   outlined
                 >
                   <draggable
-                    @change="(ev) => handleQuestionOrderChange(ev)"
                     :list="questionPage.questions"
+                    @change="(ev) => handleQuestionOrderChange(ev)"
                     group="questions"
                     handle=".dragger"
                     style="width:100%"
@@ -100,18 +98,10 @@
                       :class="[qIndex === 0 ? 'rounded-lg' : qIndex === questionPage.questions.length - 1 ? 'rounded-lg rounded-t-0' : '',
                         qIndex === questionPage.questions.length - 1 ? '' : 'rounded-b-0']"
                     >
-                      <template
-                        v-if="question"
-                      >
-                        <v-expansion-panel-header
-                          class="text-left"
-                        >
-                          <div
-                            class="d-flex align-start"
-                          >
-                            <span
-                              class="dragger me-2"
-                            >
+                      <template v-if="question">
+                        <v-expansion-panel-header class="text-left">
+                          <div class="d-flex align-start">
+                            <span class="dragger me-2">
                               <v-icon>mdi-drag</v-icon>
                             </span>
                             <h2
@@ -159,10 +149,10 @@
               v-slot:activator="{ on, attrs }"
             >
               <v-btn
-                color="primary"
-                elevation="0"
                 v-bind="attrs"
                 v-on="on"
+                color="primary"
+                elevation="0"
                 class="mb-3 mt-3"
                 plain
               >
@@ -175,41 +165,27 @@
                 @click="handleAddQuestion('ESSAY')"
               >
                 <v-list-item-title>
-                  <v-icon
-                    class="mr-1"
-                  >
-                    mdi-text
-                  </v-icon> Short answer
+                  <v-icon class="mr-1">mdi-text</v-icon> Short answer
                 </v-list-item-title>
               </v-list-item>
               <v-list-item
                 @click="handleAddQuestion('MC')"
               >
                 <v-list-item-title>
-                  <v-icon
-                    class="mr-1"
-                  >
-                    mdi-radiobox-marked
-                  </v-icon> Multiple choice
+                  <v-icon class="mr-1">mdi-radiobox-marked</v-icon> Multiple choice
                 </v-list-item-title>
               </v-list-item>
               <v-list-item
                 @click="handleAddQuestion('FILE')"
               >
                 <v-list-item-title>
-                  <v-icon
-                    class="mr-1"
-                  >
-                    mdi-file-upload-outline
-                  </v-icon> File submission
+                  <v-icon class="mr-1">mdi-file-upload-outline</v-icon> File upload
                 </v-list-item-title>
               </v-list-item>
             </v-list>
           </v-menu>
           <v-menu
             v-if="assignmentsAvailableToCopy.length > 0"
-            transition="slide-y-transition"
-            v-model="copyMenuShown"
             offset-y
             close-on-click
             close-on-content-click
@@ -218,11 +194,10 @@
               v-slot:activator="{ on, attrs }"
             >
               <v-btn
-                :disabled="questions.length > 0"
-                color="primary"
-                elevation="0"
                 v-bind="attrs"
                 v-on="on"
+                color="primary"
+                elevation="0"
                 class="mb-3 mt-3"
                 plain
               >
@@ -235,12 +210,14 @@
                 >
                   <v-menu
                     v-if="assignment.treatments.length > 0 && hasTreatmentsNotCurrent(assignment.treatments)"
-                    transition="slide-x-transition"
                     :key="assignment.assignmentId"
-                    open-on-hover
+                    transition="slide-x-transition"
                     offset-x
+                    open-on-hover
                   >
-                    <template v-slot:activator="{ on, attrs }">
+                    <template
+                      v-slot:activator="{ on, attrs }"
+                    >
                       <v-list-item
                         :key="index"
                         v-bind="attrs"
@@ -269,15 +246,8 @@
                             Treatment
                             <v-chip
                               v-if="assignment.treatments.length > 1"
-                              :color="
-                                conditionColorMapping[
-                                  conditionForTreatment(
-                                    getGroupConditionListForAssignment(assignment),
-                                    treatment.conditionId
-                                  ).conditionName
-                                ]
-                              "
                               label
+                              :color="conditionColorMapping[conditionForTreatment(getGroupConditionListForAssignment(assignment), treatment.conditionId).conditionName]"
                             >
                               {{ conditionForTreatment(getGroupConditionListForAssignment(assignment), treatment.conditionId).conditionName }}
                             </v-chip>
@@ -480,7 +450,8 @@ export default {
       updateAnswer: "assessment/updateAnswer",
       updateTreatment: "treatment/updateTreatment",
       fetchSubmissions: "submissions/fetchSubmissions",
-      regradeQuestions: "assessment/regradeQuestions"
+      regradeQuestions: "assessment/regradeQuestions",
+      createAnswer: "assessment/createAnswer",
     }),
     getAssignmentsForExposure(exp) {
       return this.assignments
@@ -511,11 +482,36 @@ export default {
           1, // points
           "",
         ]);
+
+        // add two default options on MC question creation
+        if (questionType === "MC") {
+          for (var i = 0; i <= 1; i++) {
+            await this.handleAddMCOption(this.questions[this.questions.length - 1]);
+          }
+        }
+
         // open the added question panel
         var questionPageIndex = this.questionPages.length > 0 ? this.questionPages.length - 1 : 0;
         var questionIndex = this.questionPages[questionPageIndex] && this.questionPages[questionPageIndex].questions && this.questionPages[questionPageIndex].questions.length > 0 ?
           this.questionPages[questionPageIndex].questions.length - 1 : 0;
         this.expandQuestionPanel(questionPageIndex, questionIndex);
+      } catch (error) {
+        console.error(error);
+      }
+    },
+    async handleAddMCOption(question) {
+      // POST ANSWER
+      try {
+        await this.createAnswer([
+          this.experiment.experimentId,
+          this.condition_id,
+          this.treatment_id,
+          this.assessment_id,
+          question.questionId,
+          "",
+          false,
+          0,
+        ]);
       } catch (error) {
         console.error(error);
       }
