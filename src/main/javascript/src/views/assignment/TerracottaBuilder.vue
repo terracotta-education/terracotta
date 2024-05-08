@@ -3,19 +3,27 @@
     v-if="experiment && assessment"
     class="terracotta-builder"
   >
-    <div class="header-container">
+    <div
+      class="header-container"
+    >
       <h1>
         {{ this.assignment_title }}
       </h1>
       <div
         v-if="!hasSingleTreatment"
       >
-        <h4 class="label-treatment">Treatment</h4>
-        <v-chip
-          label
-          :color="condition_color"
+        <h4
+          class="label-treatment"
         >
-          <h4 class="label-condition-name">
+          Treatment
+        </h4>
+        <v-chip
+          :color="condition_color"
+          label
+        >
+          <h4
+            class="label-condition-name"
+          >
             {{ this.condition_name }}
           </h4>
         </v-chip>
@@ -28,7 +36,9 @@
       <v-tab>Treatment</v-tab>
       <v-tab>Settings</v-tab>
     </v-tabs>
-    <v-tabs-items v-model="tab">
+    <v-tabs-items
+      v-model="tab"
+    >
       <v-tab-item>
         <form
           @submit.prevent="saveAll('AssignmentYourAssignments')"
@@ -40,20 +50,25 @@
             placeholder="e.g. Lorem ipsum"
             outlined
           ></v-textarea>
-          <div class="d-flex align-center mb-3 justify-space-between">
-            <h4 class="pa-0"><strong>Questions</strong></h4>
+          <div
+            class="d-flex align-center mb-3 justify-space-between"
+          >
+            <h4
+              class="pa-0"
+            >
+              <strong>Questions</strong>
+            </h4>
             <v-btn
-              color="primary"
-              text
-              elevation="0"
-              class="saveButton"
               @click="handleClearQuestions()"
               :disabled="!canClearAll"
+              color="primary"
+              elevation="0"
+              class="saveButton"
+              text
             >
               Clear All
             </v-btn>
           </div>
-
           <template
             v-if="questionPages && questionPages.length > 0"
           >
@@ -63,36 +78,45 @@
                 :key="questionPage.key"
               >
                 <v-expansion-panels
+                  v-model="expandedQuestionPanel[qpIndex]"
+                  :key="questionPage.key"
+                  class="v-expansion-panels--outlined"
                   flat
                   accordion
                   outlined
-                  class="v-expansion-panels--outlined"
-                  :key="questionPage.key"
-                  v-model="expandedQuestionPanel[qpIndex]"
                 >
                   <draggable
+                    @change="(ev) => handleQuestionOrderChange(ev)"
                     :list="questionPage.questions"
                     group="questions"
                     handle=".dragger"
-                    @change="(ev) => handleQuestionOrderChange(ev)"
-                    class=""
                     style="width:100%"
                   >
                     <v-expansion-panel
                       v-for="(question, qIndex) in questionPage.questions"
+                      @click="expandedQuestionPagePanel = qpIndex"
                       :key="qIndex"
                       :ref="buildExpandedQuestionPanelId(qpIndex, qIndex)"
                       :class="[qIndex === 0 ? 'rounded-lg' : qIndex === questionPage.questions.length - 1 ? 'rounded-lg rounded-t-0' : '',
                         qIndex === questionPage.questions.length - 1 ? '' : 'rounded-b-0']"
-                      @click="expandedQuestionPagePanel = qpIndex"
                     >
-                      <template v-if="question">
-                        <v-expansion-panel-header class="text-left">
-                          <div class="d-flex align-start">
-                            <span class="dragger me-2">
+                      <template
+                        v-if="question"
+                      >
+                        <v-expansion-panel-header
+                          class="text-left"
+                        >
+                          <div
+                            class="d-flex align-start"
+                          >
+                            <span
+                              class="dragger me-2"
+                            >
                               <v-icon>mdi-drag</v-icon>
                             </span>
-                            <h2 class="pa-0">
+                            <h2
+                              class="pa-0"
+                            >
                               {{ questionPage.questionStartIndex + qIndex + 1 }}
                               <span
                                 v-if="question.html"
@@ -104,72 +128,103 @@
                         </v-expansion-panel-header>
                         <v-expansion-panel-content>
                           <component
+                            @edited="addEditedQuestion(question.questionId)"
                             :is="questionTypeComponents[question.questionType]"
                             :question="question"
-                            @edited="addEditedQuestion(question.questionId)"
                           />
                         </v-expansion-panel-content>
                       </template>
                     </v-expansion-panel>
                   </draggable>
                 </v-expansion-panels>
-                <page-break v-if="questionPage.pageBreakAfter" />
+                <page-break
+                  v-if="questionPage.pageBreakAfter"
+                />
               </div>
             </template>
           </template>
-          <template v-else>
-            <p class="grey--text">Add questions to continue</p>
+          <template
+            v-else
+          >
+            <p
+              class="grey--text"
+            >
+              Add questions to continue
+            </p>
           </template>
-
-          <v-menu offset-y>
-            <template v-slot:activator="{ on, attrs }">
+          <v-menu
+            offset-y
+          >
+            <template
+              v-slot:activator="{ on, attrs }"
+            >
               <v-btn
                 color="primary"
                 elevation="0"
-                plain
                 v-bind="attrs"
                 v-on="on"
                 class="mb-3 mt-3"
+                plain
               >
                 Add Question
                 <v-icon>mdi-chevron-down</v-icon>
               </v-btn>
             </template>
             <v-list>
-              <v-list-item @click="handleAddQuestion('ESSAY')">
+              <v-list-item
+                @click="handleAddQuestion('ESSAY')"
+              >
                 <v-list-item-title>
-                  <v-icon class="mr-1">mdi-text</v-icon> Short answer
+                  <v-icon
+                    class="mr-1"
+                  >
+                    mdi-text
+                  </v-icon> Short answer
                 </v-list-item-title>
               </v-list-item>
-              <v-list-item @click="handleAddQuestion('MC')">
+              <v-list-item
+                @click="handleAddQuestion('MC')"
+              >
                 <v-list-item-title>
-                  <v-icon class="mr-1">mdi-radiobox-marked</v-icon> Multiple choice
+                  <v-icon
+                    class="mr-1"
+                  >
+                    mdi-radiobox-marked
+                  </v-icon> Multiple choice
                 </v-list-item-title>
               </v-list-item>
-              <v-list-item @click="handleAddQuestion('FILE')">
+              <v-list-item
+                @click="handleAddQuestion('FILE')"
+              >
                 <v-list-item-title>
-                  <v-icon class="mr-1">mdi-file-upload-outline</v-icon> File upload
+                  <v-icon
+                    class="mr-1"
+                  >
+                    mdi-file-upload-outline
+                  </v-icon> File submission
                 </v-list-item-title>
               </v-list-item>
             </v-list>
           </v-menu>
           <v-menu
             v-if="assignmentsAvailableToCopy.length > 0"
+            transition="slide-y-transition"
+            v-model="copyMenuShown"
             offset-y
             close-on-click
             close-on-content-click
-            transition="slide-y-transition"
-            v-model="copyMenuShown"
           >
-            <template v-slot:activator="{ on, attrs }">
+            <template
+              v-slot:activator="{ on, attrs }"
+            >
               <v-btn
+                :disabled="questions.length > 0"
                 color="primary"
                 elevation="0"
-                plain
                 v-bind="attrs"
                 v-on="on"
                 class="mb-3 mt-3"
-                :disabled="questions.length > 0"
+                plain
               >
                 Copy Treatment From <v-icon>mdi-chevron-down</v-icon>
               </v-btn>
@@ -180,10 +235,10 @@
                 >
                   <v-menu
                     v-if="assignment.treatments.length > 0 && hasTreatmentsNotCurrent(assignment.treatments)"
-                    offset-x
+                    transition="slide-x-transition"
                     :key="assignment.assignmentId"
                     open-on-hover
-                    transition="slide-x-transition"
+                    offset-x
                   >
                     <template v-slot:activator="{ on, attrs }">
                       <v-list-item
@@ -192,15 +247,19 @@
                         v-on="on"
                       >
                         <v-list-item-title>
-                          {{ assignment.title}}
+                          {{ assignment.title }}
                         </v-list-item-title>
-                        <v-list-item-action class="justify-end">
+                        <v-list-item-action
+                          class="justify-end"
+                        >
                           <v-icon>mdi-menu-right</v-icon>
                         </v-list-item-action>
                       </v-list-item>
                     </template>
                     <v-list>
-                      <template v-for="treatment in assignment.treatments">
+                      <template
+                        v-for="treatment in assignment.treatments"
+                      >
                         <v-list-item
                           v-if="treatment.treatmentId != treatment_id"
                           :key="treatment.treatmentId"
@@ -210,7 +269,6 @@
                             Treatment
                             <v-chip
                               v-if="assignment.treatments.length > 1"
-                              label
                               :color="
                                 conditionColorMapping[
                                   conditionForTreatment(
@@ -219,13 +277,9 @@
                                   ).conditionName
                                 ]
                               "
+                              label
                             >
-                              {{
-                                conditionForTreatment(
-                                  getGroupConditionListForAssignment(assignment),
-                                  treatment.conditionId
-                                ).conditionName
-                              }}
+                              {{ conditionForTreatment(getGroupConditionListForAssignment(assignment), treatment.conditionId).conditionName }}
                             </v-chip>
                           </v-list-item-title>
                         </v-list-item>
@@ -238,7 +292,9 @@
           <br />
         </form>
       </v-tab-item>
-      <v-tab-item class="my-5">
+      <v-tab-item
+        class="my-5"
+      >
         <treatment-settings />
       </v-tab-item>
     </v-tabs-items>
