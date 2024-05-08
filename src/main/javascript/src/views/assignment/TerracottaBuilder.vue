@@ -179,7 +179,7 @@
                 @click="handleAddQuestion('FILE')"
               >
                 <v-list-item-title>
-                  <v-icon class="mr-1">mdi-file-upload-outline</v-icon> File upload
+                  <v-icon class="mr-1">mdi-file-upload-outline</v-icon> File submission
                 </v-list-item-title>
               </v-list-item>
             </v-list>
