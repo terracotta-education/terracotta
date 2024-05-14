@@ -10,6 +10,7 @@
       :showExpand="true"
       :hasOverall="true"
       :noSubmissionsMessage="`No submissions yet`"
+      :tooltips="tooltips"
     />
   </v-row>
 </template>
@@ -26,6 +27,14 @@ export default {
     DataTable
   },
   computed: {
+    tooltips() {
+      return [
+        {
+          id: "submissionRate",
+          message: "This value is calculated by dividing the total number of assignment submissions by the total number of consenting participants."
+        }
+      ]
+    },
     sectionData() {
         return this.assignmentsData || {};
     },

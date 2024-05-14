@@ -14,6 +14,18 @@
       hide-default-footer
     >
       <template
+        v-if="submissionRateTooltip"
+        v-slot:header.submissionRate="{ header }"
+      >
+        {{ header.text }}
+        <InfoTooltip
+          :header="submissionRateTooltip.header"
+          :message="submissionRateTooltip.message"
+          :activator="submissionRateTooltip.activator"
+          :iconStyle="submissionRateTooltip.iconStyle"
+        />
+      </template>
+      <template
         v-slot:item="{ headers, item, expand, isExpanded }"
       >
         <tr>
@@ -126,7 +138,8 @@ export default {
     "includeNote",
     "showExpand",
     "hasOverall",
-    "noSubmissionsMessage"
+    "noSubmissionsMessage",
+    "tooltips" // [{tooltip1}, {tooltip2}, {...}]
   ],
   components: {
     DataTableTreatment,
@@ -175,6 +188,27 @@ export default {
         }
       ]
     },
+    submissionRateTooltip() {
+      const submissionRate = this.customTooltips.find(tooltip => tooltip.id === "submissionRate");
+
+      if (!submissionRate) {
+        return null;
+      }
+
+      return {
+        id: "submissionRate",
+        header: submissionRate.header || "Submissions per participant",
+        message: submissionRate.message || "N/A",
+        activator: {
+          "type": submissionRate.activator?.type || "icon",
+          "text": submissionRate.activator?.text || "mdi-help-circle-outline"
+        },
+        iconStyle: submissionRate.iconStyle || {
+          "font-size": "16px",
+          "vertical-align": "middle"
+        }
+      }
+    },
     displayNote() {
       return this.includeNote || false;
     },
@@ -201,6 +235,9 @@ export default {
     },
     avgGradeTooltipActivator() {
       return {"type": "icon", "text": "mdi-information-outline"};
+    },
+    customTooltips() {
+      return this.tooltips || [];
     }
   },
   methods: {
