@@ -19,57 +19,30 @@
         flat
       >
         <v-expansion-panel
-          :disabled="experiment.exposureType !== 'WITHIN'"
-          :class="{'panel-not-selected': exposureType !== 'WITHIN', 'panel-selected': exposureType === 'WITHIN'}"
-          :key="getExposureTypes.indexOf('WITHIN')"
+          v-for="(panel, i) in panels"
+          :key="i"
+          :disabled="hasSelectedExposureType && experiment.exposureType !== panel.type"
+          :class="{'panel-not-selected': exposureType !== panel.type, 'panel-selected': exposureType === panel.type}"
           @click.stop=""
-          class="panel-within"
         >
           <v-expansion-panel-header
             hide-actions
           >
             <img
-              src="@/assets/all_conditions.svg"
-              alt="all conditions"
+              :src="panel.img.src"
+              :alt="panel.img.alt"
             >
-            All conditions
+            <strong>{{ panel.header }}</strong>
           </v-expansion-panel-header>
           <v-expansion-panel-content>
-            <p>All students are exposed to every condition, in different orders. This way you can compare how the different conditions affected each individual student. This is called a within-subject design.</p>
+            <p>{{ panel.body }}</p>
             <v-btn
-              v-if="!this.hasSelectedExposureType || exposureType === 'WITHIN'"
-              @click="saveType('WITHIN')"
+              v-if="!hasSelectedExposureType || exposureType === panel.type"
+              @click="saveType(panel.type)"
               color="primary"
               elevation="0"
             >
               Select
-            </v-btn>
-          </v-expansion-panel-content>
-        </v-expansion-panel>
-        <v-expansion-panel
-          :disabled="experiment.exposureType !== 'BETWEEN'"
-          :class="{'panel-not-selected': exposureType !== 'BETWEEN', 'panel-selected': exposureType === 'BETWEEN'}"
-          :key="getExposureTypes.indexOf('BETWEEN')"
-          @click.stop=""
-        >
-          <v-expansion-panel-header
-            hide-actions
-          >
-            <img
-              src="@/assets/one_condition.svg"
-              alt="only one condition"
-            >
-            Only one condition
-          </v-expansion-panel-header>
-          <v-expansion-panel-content>
-            <p>Each student is only exposed to one condition, so that you can compare how the different conditions affected different students. This is called a between-subjects design.</p>
-            <v-btn
-            v-if="!this.hasSelectedExposureType || exposureType === 'BETWEEN'"
-              @click="saveType('BETWEEN')"
-              color="primary"
-              elevation="0"
-            >
-                Select
             </v-btn>
           </v-expansion-panel-content>
         </v-expansion-panel>
@@ -129,7 +102,27 @@ export default {
   data() {
     return {
       initialExposureType: null,
-      expanded: [0, 1]
+      expanded: [0, 1],
+      panels: [
+        {
+          type: "WITHIN",
+          img: {
+            src: require("@/assets/all_conditions.svg"),
+            alt: "all conditions"
+          },
+          header: "All conditions",
+          body: "All students are exposed to every condition, in different orders. This way you can compare how the different conditions affected each individual student. This is called a within-subject design."
+        },
+        {
+          type: "BETWEEN",
+          img: {
+            src: require("@/assets/one_condition.svg"),
+            alt: "only one condition"
+          },
+          header: "Only one condition",
+          body: "Each student is only exposed to one condition, so that you can compare how the different conditions affected different students. This is called a between-subjects design."
+        }
+      ]
     }
   },
   computed: {
@@ -155,7 +148,7 @@ export default {
       return this.editMode?.callerPage?.name || "Home";
     },
     hasSelectedExposureType() {
-      return this.getExposureTypes.includes(this.initialExposureType);
+      return this.initialExposureType && this.initialExposureType !== "NOSET";
     }
   },
   methods: {
@@ -219,17 +212,11 @@ export default {
 </script>
 
 <style scoped>
-.panel-within {
+.v-expansion-panel {
   margin-bottom: 30px !important;
-}
-.card-warning {
-  margin-top: 30px !important;
 }
 .panel-selected {
   border-color: rgba(3, 169, 244, 1) !important;
-  > .v-expansion-panel-header {
-    font-weight: 700;
-  }
 }
 .panel-not-selected {
   border-color: #e0e0e0 !important;
