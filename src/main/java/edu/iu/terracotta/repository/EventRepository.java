@@ -8,11 +8,11 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import edu.iu.terracotta.model.events.Event;
 
+@SuppressWarnings({"PMD.MethodNamingConventions"})
 public interface EventRepository extends JpaRepository<Event, Long> {
 
     List<Event> findByParticipant_Experiment_ExperimentId(Long experimentId);
-
     Page<Event> findByParticipant_Experiment_ExperimentId(Long experimentId, Pageable pageable);
-
     List<Event> findByType(String type);
+
 }

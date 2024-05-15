@@ -39,7 +39,22 @@ import edu.iu.terracotta.model.app.enumerator.export.ResponseOptionsCsv;
 import edu.iu.terracotta.model.app.enumerator.export.SubmissionsCsv;
 import edu.iu.terracotta.model.events.Event;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
-import edu.iu.terracotta.repository.AllRepositories;
+import edu.iu.terracotta.repository.AnswerEssaySubmissionRepository;
+import edu.iu.terracotta.repository.AnswerMcRepository;
+import edu.iu.terracotta.repository.AnswerMcSubmissionRepository;
+import edu.iu.terracotta.repository.AssignmentRepository;
+import edu.iu.terracotta.repository.ConditionRepository;
+import edu.iu.terracotta.repository.EventRepository;
+import edu.iu.terracotta.repository.ExperimentRepository;
+import edu.iu.terracotta.repository.ExposureGroupConditionRepository;
+import edu.iu.terracotta.repository.LtiUserRepository;
+import edu.iu.terracotta.repository.OutcomeRepository;
+import edu.iu.terracotta.repository.OutcomeScoreRepository;
+import edu.iu.terracotta.repository.ParticipantRepository;
+import edu.iu.terracotta.repository.QuestionRepository;
+import edu.iu.terracotta.repository.QuestionSubmissionRepository;
+import edu.iu.terracotta.repository.SubmissionRepository;
+import edu.iu.terracotta.repository.TreatmentRepository;
 import edu.iu.terracotta.service.app.AssignmentTreatmentService;
 import edu.iu.terracotta.service.app.ExportService;
 import edu.iu.terracotta.service.app.OutcomeService;
@@ -86,7 +101,22 @@ public class ExportServiceImpl implements ExportService {
     private static final String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
     private static final String NA = "N/A";
 
-    @Autowired private AllRepositories allRepositories;
+    @Autowired private AnswerEssaySubmissionRepository answerEssaySubmissionRepository;
+    @Autowired private AnswerMcRepository answerMcRepository;
+    @Autowired private AnswerMcSubmissionRepository answerMcSubmissionRepository;
+    @Autowired private AssignmentRepository assignmentRepository;
+    @Autowired private ConditionRepository conditionRepository;
+    @Autowired private EventRepository eventRepository;
+    @Autowired private ExperimentRepository experimentRepository;
+    @Autowired private ExposureGroupConditionRepository exposureGroupConditionRepository;
+    @Autowired private LtiUserRepository ltiUserRepository;
+    @Autowired private OutcomeRepository outcomeRepository;
+    @Autowired private OutcomeScoreRepository outcomeScoreRepository;
+    @Autowired private ParticipantRepository participantRepository;
+    @Autowired private QuestionRepository questionRepository;
+    @Autowired private QuestionSubmissionRepository questionSubmissionRepository;
+    @Autowired private SubmissionRepository submissionRepository;
+    @Autowired private TreatmentRepository treatmentRepository;
     @Autowired private AssignmentTreatmentService assignmentTreatmentService;
     @Autowired private AWSService awsService;
     @Autowired private Environment env;
@@ -124,7 +154,7 @@ public class ExportServiceImpl implements ExportService {
 
         int page = 0;
         long participantCount = 0;
-        List<Participant> participants = allRepositories.participantRepository.findByExperiment_ExperimentId(experimentId, PageRequest.of(page, exportBatchSize)).getContent();
+        List<Participant> participants = participantRepository.findByExperiment_ExperimentId(experimentId, PageRequest.of(page, exportBatchSize)).getContent();
 
         while (CollectionUtils.isNotEmpty(participants)) {
             // remove test students
@@ -143,7 +173,7 @@ public class ExportServiceImpl implements ExportService {
             // participants.csv
             handleParticpantsCsv(participants, files);
 
-            participants = allRepositories.participantRepository.findByExperiment_ExperimentId(experimentId, PageRequest.of(++page, exportBatchSize)).getContent();
+            participants = participantRepository.findByExperiment_ExperimentId(experimentId, PageRequest.of(++page, exportBatchSize)).getContent();
         }
 
         // experiment.csv
@@ -182,7 +212,7 @@ public class ExportServiceImpl implements ExportService {
         try (CSVWriter writer = createCsvFileWriter(path)) {
             writer.writeNext(ExperimentCsv.getHeaderRow());
 
-            Experiment experiment = allRepositories.experimentRepository.findByExperimentId(experimentId);
+            Experiment experiment = experimentRepository.findByExperimentId(experimentId);
 
             writer.writeNext(new String[] {
                 experiment.getExperimentId().toString(),
@@ -195,7 +225,7 @@ public class ExportServiceImpl implements ExportService {
                 LocalDateTime.now().withNano(0).format(dateTimeFormatter),
                 String.valueOf(participantCount),
                 String.valueOf(consentedParticipantsCount),
-                String.valueOf(allRepositories.conditionRepository.countByExperiment_ExperimentId(experimentId)),
+                String.valueOf(conditionRepository.countByExperiment_ExperimentId(experimentId)),
                 experiment.getCreatedAt().toLocalDateTime().format(dateTimeFormatter),
                 experiment.isStarted() ? experiment.getStarted().toLocalDateTime().format(dateTimeFormatter) : NA
             });
@@ -205,14 +235,14 @@ public class ExportServiceImpl implements ExportService {
     private void handleOutcomesCsv(long experimentId,  SecuredInfo securedInfo, Map<String, String> files)
             throws CanvasApiException, IOException, ParticipantNotUpdatedException, ExperimentNotMatchingException, OutcomeNotMatchingException {
         int outcomesPage = 0;
-        List<Outcome> outcomes = allRepositories.outcomeRepository.findByExposure_Experiment_ExperimentId(experimentId, PageRequest.of(outcomesPage, exportBatchSize)).getContent();
+        List<Outcome> outcomes = outcomeRepository.findByExposure_Experiment_ExperimentId(experimentId, PageRequest.of(outcomesPage, exportBatchSize)).getContent();
 
         while (CollectionUtils.isNotEmpty(outcomes)) {
             for (Outcome outcome : outcomes) {
                 outcomeService.updateOutcomeGrades(outcome.getOutcomeId(), securedInfo);
             }
 
-            outcomes = allRepositories.outcomeRepository.findByExposure_Experiment_ExperimentId(experimentId, PageRequest.of(++outcomesPage, exportBatchSize)).getContent();
+            outcomes = outcomeRepository.findByExposure_Experiment_ExperimentId(experimentId, PageRequest.of(++outcomesPage, exportBatchSize)).getContent();
         }
 
         Path path = createTempFile();
@@ -222,7 +252,7 @@ public class ExportServiceImpl implements ExportService {
             writer.writeNext(OutcomesCsv.getHeaderRow());
 
             int page = 0;
-            List<OutcomeScore> outcomeScores = allRepositories.outcomeScoreRepository.findByOutcome_Exposure_Experiment_ExperimentId(experimentId, PageRequest.of(page, exportBatchSize)).getContent();
+            List<OutcomeScore> outcomeScores = outcomeScoreRepository.findByOutcome_Exposure_Experiment_ExperimentId(experimentId, PageRequest.of(page, exportBatchSize)).getContent();
 
             while (CollectionUtils.isNotEmpty(outcomeScores)) {
                 outcomeScores.stream()
@@ -266,7 +296,7 @@ public class ExportServiceImpl implements ExportService {
                         });
                     });
 
-                outcomeScores = allRepositories.outcomeScoreRepository.findByOutcome_Exposure_Experiment_ExperimentId(experimentId, PageRequest.of(++page, exportBatchSize)).getContent();
+                outcomeScores = outcomeScoreRepository.findByOutcome_Exposure_Experiment_ExperimentId(experimentId, PageRequest.of(++page, exportBatchSize)).getContent();
             }
         }
     }
@@ -383,7 +413,7 @@ public class ExportServiceImpl implements ExportService {
             writer.writeNext(SubmissionsCsv.getHeaderRow());
 
             int page = 0;
-            List<Submission> submissions = allRepositories.submissionRepository.findByParticipant_Experiment_ExperimentId(experimentId, PageRequest.of(page, exportBatchSize)).getContent();
+            List<Submission> submissions = submissionRepository.findByParticipant_Experiment_ExperimentId(experimentId, PageRequest.of(page, exportBatchSize)).getContent();
 
             while (CollectionUtils.isNotEmpty(submissions)) {
                 CollectionUtils.emptyIfNull(submissions).stream()
@@ -403,7 +433,7 @@ public class ExportServiceImpl implements ExportService {
                         })
                 );
 
-                submissions = allRepositories.submissionRepository.findByParticipant_Experiment_ExperimentId(experimentId, PageRequest.of(++page, exportBatchSize)).getContent();
+                submissions = submissionRepository.findByParticipant_Experiment_ExperimentId(experimentId, PageRequest.of(++page, exportBatchSize)).getContent();
             }
         }
     }
@@ -416,7 +446,7 @@ public class ExportServiceImpl implements ExportService {
             writer.writeNext(ItemsCsv.getHeaderRow());
 
             int page = 0;
-            List<Question> questions = allRepositories.questionRepository.findByAssessment_Treatment_Condition_Experiment_ExperimentId(experimentId, PageRequest.of(page, exportBatchSize)).getContent();
+            List<Question> questions = questionRepository.findByAssessment_Treatment_Condition_Experiment_ExperimentId(experimentId, PageRequest.of(page, exportBatchSize)).getContent();
 
             while (CollectionUtils.isNotEmpty(questions)) {
                 CollectionUtils.emptyIfNull(questions).stream()
@@ -431,7 +461,7 @@ public class ExportServiceImpl implements ExportService {
                         })
                     );
 
-                questions = allRepositories.questionRepository.findByAssessment_Treatment_Condition_Experiment_ExperimentId(experimentId, PageRequest.of(++page, exportBatchSize)).getContent();
+                questions = questionRepository.findByAssessment_Treatment_Condition_Experiment_ExperimentId(experimentId, PageRequest.of(++page, exportBatchSize)).getContent();
             }
         }
     }
@@ -444,7 +474,7 @@ public class ExportServiceImpl implements ExportService {
             writer.writeNext(ItemResponsesCsv.getHeaderRow());
 
             int page = 0;
-            List<QuestionSubmission> questionSubmissions = allRepositories.questionSubmissionRepository.findBySubmission_Participant_Experiment_ExperimentId(experimentId, PageRequest.of(page, exportBatchSize)).getContent();
+            List<QuestionSubmission> questionSubmissions = questionSubmissionRepository.findBySubmission_Participant_Experiment_ExperimentId(experimentId, PageRequest.of(page, exportBatchSize)).getContent();
 
             while (CollectionUtils.isNotEmpty(questionSubmissions)) {
                 CollectionUtils.emptyIfNull(questionSubmissions).stream()
@@ -460,7 +490,7 @@ public class ExportServiceImpl implements ExportService {
 
                         switch (questionSubmission.getQuestion().getQuestionType()) {
                             case MC:
-                                List<AnswerMcSubmission> answerMcSubmissions = allRepositories.answerMcSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmission.getQuestionSubmissionId());
+                                List<AnswerMcSubmission> answerMcSubmissions = answerMcSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmission.getQuestionSubmissionId());
                                 if (CollectionUtils.isEmpty(answerMcSubmissions)) {
                                     break;
                                 }
@@ -488,7 +518,7 @@ public class ExportServiceImpl implements ExportService {
                                 break;
 
                             case ESSAY:
-                                List<AnswerEssaySubmission> answerEssaySubmissions = allRepositories.answerEssaySubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmission.getQuestionSubmissionId());
+                                List<AnswerEssaySubmission> answerEssaySubmissions = answerEssaySubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmission.getQuestionSubmissionId());
 
                                 if (CollectionUtils.isEmpty(answerEssaySubmissions)) {
                                     break;
@@ -534,7 +564,7 @@ public class ExportServiceImpl implements ExportService {
                         });
                     });
 
-                questionSubmissions = allRepositories.questionSubmissionRepository.findBySubmission_Participant_Experiment_ExperimentId(experimentId, PageRequest.of(++page, exportBatchSize)).getContent();
+                questionSubmissions = questionSubmissionRepository.findBySubmission_Participant_Experiment_ExperimentId(experimentId, PageRequest.of(++page, exportBatchSize)).getContent();
             }
         }
     }
@@ -547,7 +577,7 @@ public class ExportServiceImpl implements ExportService {
             writer.writeNext(ResponseOptionsCsv.getHeaderRow());
 
             int page = 0;
-            List<AnswerMc> answerMcs = allRepositories.answerMcRepository.findByQuestion_Assessment_Treatment_Condition_Experiment_ExperimentId(experimentId, PageRequest.of(page, exportBatchSize)).getContent();
+            List<AnswerMc> answerMcs = answerMcRepository.findByQuestion_Assessment_Treatment_Condition_Experiment_ExperimentId(experimentId, PageRequest.of(page, exportBatchSize)).getContent();
 
             while (CollectionUtils.isNotEmpty(answerMcs)) {
                 CollectionUtils.emptyIfNull(answerMcs).stream()
@@ -562,7 +592,7 @@ public class ExportServiceImpl implements ExportService {
                         })
                     );
 
-                answerMcs = allRepositories.answerMcRepository.findByQuestion_Assessment_Treatment_Condition_Experiment_ExperimentId(experimentId, PageRequest.of(++page, exportBatchSize)).getContent();
+                answerMcs = answerMcRepository.findByQuestion_Assessment_Treatment_Condition_Experiment_ExperimentId(experimentId, PageRequest.of(++page, exportBatchSize)).getContent();
             }
         }
     }
@@ -575,7 +605,7 @@ public class ExportServiceImpl implements ExportService {
             printStream.println("[");
 
             int page = 0;
-            List<Event> events = allRepositories.eventRepository.findByParticipant_Experiment_ExperimentId(experimentId, PageRequest.of(page, exportBatchSize)).getContent();
+            List<Event> events = eventRepository.findByParticipant_Experiment_ExperimentId(experimentId, PageRequest.of(page, exportBatchSize)).getContent();
             AtomicBoolean isFirstElement = new AtomicBoolean(true);
 
             while (CollectionUtils.isNotEmpty(events)) {
@@ -590,7 +620,7 @@ public class ExportServiceImpl implements ExportService {
                         printStream.print(removePersonalIdentifiersFromEvent(event.getJson()));
                     });
 
-                events = allRepositories.eventRepository.findByParticipant_Experiment_ExperimentId(experimentId, PageRequest.of(++page, exportBatchSize)).getContent();
+                events = eventRepository.findByParticipant_Experiment_ExperimentId(experimentId, PageRequest.of(++page, exportBatchSize)).getContent();
             }
 
             printStream.println();
@@ -626,7 +656,7 @@ public class ExportServiceImpl implements ExportService {
                 .map(AnswerMcSubmissionOption::getAnswerMc)
                 .toList();
         } else {
-            answerList = allRepositories.answerMcRepository.findByQuestion_QuestionId(questionId);
+            answerList = answerMcRepository.findByQuestion_QuestionId(questionId);
             answerList.sort(Comparator.comparingLong(AnswerMc::getAnswerOrder));
         }
 
@@ -694,15 +724,15 @@ public class ExportServiceImpl implements ExportService {
 
     private void prepareData(long experimentId, SecuredInfo securedInfo) {
         consentedParticipantsCount = 0l;
-        exposureGroupConditions = allRepositories.exposureGroupConditionRepository.findByCondition_Experiment_ExperimentId(experimentId);
-        assignments = allRepositories.assignmentRepository.findByExposure_Experiment_ExperimentId(experimentId);
-        treatments = allRepositories.treatmentRepository.findByCondition_Experiment_ExperimentId(experimentId);
+        exposureGroupConditions = exposureGroupConditionRepository.findByCondition_Experiment_ExperimentId(experimentId);
+        assignments = assignmentRepository.findByExposure_Experiment_ExperimentId(experimentId);
+        treatments = treatmentRepository.findByCondition_Experiment_ExperimentId(experimentId);
 
         if (CollectionUtils.isEmpty(assignments)) {
             return;
         }
 
-        LtiUserEntity ltiUserEntity = allRepositories.ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
+        LtiUserEntity ltiUserEntity = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
 
         assignments.stream()
             .forEach(
@@ -744,11 +774,7 @@ public class ExportServiceImpl implements ExportService {
     }
 
     private boolean isEventExportAllowed() {
-        if (!eventsOutputEnabled) {
-            return false;
-        }
-
-        return consentedParticipantsCount <= eventsOutputParticipantThreshold;
+        return eventsOutputEnabled && consentedParticipantsCount <= eventsOutputParticipantThreshold;
     }
 
 }

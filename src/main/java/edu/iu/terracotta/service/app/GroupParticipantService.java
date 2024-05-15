@@ -8,7 +8,6 @@ import edu.iu.terracotta.model.app.Group;
 public interface GroupParticipantService {
 
     Group getUniqueGroupByConditionId(Long experimentId, String canvasAssignmentId, Long conditionId) throws GroupNotMatchingException, AssignmentNotMatchingException;
-
     Group nextGroup(Experiment experiment);
 
 }

@@ -1,7 +1,12 @@
 package edu.iu.terracotta.service.lti.impl;
 
 import edu.iu.terracotta.exceptions.DataServiceException;
-import edu.iu.terracotta.repository.AllRepositories;
+import edu.iu.terracotta.repository.LtiContextRepository;
+import edu.iu.terracotta.repository.LtiLinkRepository;
+import edu.iu.terracotta.repository.LtiMembershipRepository;
+import edu.iu.terracotta.repository.LtiUserRepository;
+import edu.iu.terracotta.repository.PlatformDeploymentRepository;
+import edu.iu.terracotta.repository.ToolDeploymentRepository;
 import edu.iu.terracotta.model.LtiContextEntity;
 import edu.iu.terracotta.model.LtiLinkEntity;
 import edu.iu.terracotta.model.LtiMembershipEntity;
@@ -11,6 +16,7 @@ import edu.iu.terracotta.model.ToolDeployment;
 import edu.iu.terracotta.service.lti.LTIDataService;
 import edu.iu.terracotta.utils.LtiStrings;
 import edu.iu.terracotta.utils.lti.LTI3Request;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.collections4.CollectionUtils;
@@ -19,7 +25,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.persistence.Query;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.Query;
 import java.util.List;
 
 /**
@@ -31,8 +39,17 @@ import java.util.List;
 @SuppressWarnings({"PMD.GuardLogStatement"})
 public class LTIDataServiceImpl implements LTIDataService {
 
+    @Autowired private LtiContextRepository ltiContextRepository;
+    @Autowired private LtiLinkRepository ltiLinkRepository;
+    @Autowired private LtiMembershipRepository ltiMembershipRepository;
+    @Autowired private LtiUserRepository ltiUserRepository;
+    @Autowired private ToolDeploymentRepository toolDeploymentRepository;
+
+    @Getter
     @Autowired
-    private AllRepositories allRepositories;
+    private PlatformDeploymentRepository platformDeploymentRepository;
+
+    @PersistenceContext private EntityManager entityManager;
 
     @Value("${oicd.privatekey}")
     private String ownPrivateKey;
@@ -46,20 +63,9 @@ public class LTIDataServiceImpl implements LTIDataService {
     @Value("${app.lti.data.verbose.logging.enabled:false}")
     private boolean ltiDataVerboseLoggingEnabled;
 
-    /**
-     * Allows convenient access to the DAO repositories which manage the stored LTI data
-     *
-     * @return the repositories access service
-     */
-    @Override
-    public AllRepositories getAllRepositories() {
-        return allRepositories;
-    }
-
     @Override
     @Transactional
     public boolean loadLTIDataFromDB(LTI3Request lti, String link) {
-        assert allRepositories != null;
         lti.setLoaded(false);
 
         if (lti.getLtiDeploymentId() == null || lti.getAud() == null) {
@@ -79,7 +85,7 @@ public class LTIDataServiceImpl implements LTIDataService {
                 "LEFT JOIN c.links l ON l.linkKey = :link " + // LtiLinkEntity
                 "LEFT JOIN c.memberships m ON m.user = u " + // LtiMembershipEntity
                 " WHERE k.clientId = :clientId AND t.ltiDeploymentId = :deploymentId AND k.iss = :iss AND (m IS NULL OR (m.context = c AND m.user = u))";
-        Query qDeployment = allRepositories.entityManager.createQuery(sqlDeployment);
+        Query qDeployment = entityManager.createQuery(sqlDeployment);
         qDeployment.setMaxResults(1);
         qDeployment.setParameter("clientId", lti.getAud());
         qDeployment.setParameter("deploymentId", lti.getLtiDeploymentId());
@@ -143,10 +149,6 @@ public class LTIDataServiceImpl implements LTIDataService {
     @Transactional
     // We update the information for the context, user, membership, link (if received), etc...  with new information on the LTI Request.
     public int upsertLTIDataInDB(LTI3Request lti, ToolDeployment toolDeployment, String link) throws DataServiceException {
-        if (allRepositories == null) {
-            throw new DataServiceException("access to the repos is required");
-        }
-
         if (toolDeployment == null) {
             throw new DataServiceException("ToolDeployment data must not be null to update data");
         }
@@ -162,17 +164,17 @@ public class LTIDataServiceImpl implements LTIDataService {
         // For the next elements, we will check if we have it already in the lti object, and if not
         // we check if it exists in the database or not.
         // if exists we get it, if not we create it.
-        allRepositories.entityManager.merge(lti.getKey());
+        entityManager.merge(lti.getKey());
         int inserts = 0;
         int updates = 0;
 
         if (lti.getContext() == null && lti.getLtiDeploymentId() != null) {
             //Context is not in the lti request at this moment. Let's see if it exists:
-            LtiContextEntity ltiContextEntity = allRepositories.contexts.findByContextKeyAndToolDeployment(lti.getLtiContextId(), toolDeployment);
+            LtiContextEntity ltiContextEntity = ltiContextRepository.findByContextKeyAndToolDeployment(lti.getLtiContextId(), toolDeployment);
 
             if (ltiContextEntity == null) {
                 LtiContextEntity newContext = new LtiContextEntity(lti.getLtiContextId(), lti.getToolDeployment(), lti.getLtiContextTitle(), lti.getLtiNamesRoleServiceContextMembershipsUrl(), lti.getLtiEndpointLineItems(), null);
-                lti.setContext(allRepositories.contexts.save(newContext));
+                lti.setContext(ltiContextRepository.save(newContext));
                 inserts++;
 
                 if (ltiDataVerboseLoggingEnabled) {
@@ -184,7 +186,7 @@ public class LTIDataServiceImpl implements LTIDataService {
                 ltiContextEntity.setContext_memberships_url(lti.getLtiNamesRoleServiceContextMembershipsUrl());
                 ltiContextEntity.setLineitems(lti.getLtiEndpointLineItems());
                 lti.setContext(ltiContextEntity);
-                allRepositories.entityManager.merge(lti.getContext()); // reconnect object for this transaction
+                entityManager.merge(lti.getContext()); // reconnect object for this transaction
                 lti.setLtiContextId(lti.getContext().getContextKey());
 
                 if (ltiDataVerboseLoggingEnabled) {
@@ -195,7 +197,7 @@ public class LTIDataServiceImpl implements LTIDataService {
             lti.getContext().setTitle(lti.getLtiContextTitle());
             lti.getContext().setContext_memberships_url(lti.getLtiNamesRoleServiceContextMembershipsUrl());
             lti.getContext().setLineitems(lti.getLtiEndpointLineItems());
-            lti.setContext(allRepositories.entityManager.merge(lti.getContext())); // reconnect object for this transaction
+            lti.setContext(entityManager.merge(lti.getContext())); // reconnect object for this transaction
             lti.setLtiContextId(lti.getContext().getContextKey());
 
             if (ltiDataVerboseLoggingEnabled) {
@@ -206,7 +208,7 @@ public class LTIDataServiceImpl implements LTIDataService {
         //If we are getting a link in the url we do this, if not we skip it.
         if (lti.getLink() == null && lti.getLtiLinkId() != null) {
             //Link is not in the lti request at this moment. Let's see if it exists:
-            List<LtiLinkEntity> ltiLinkEntityList = allRepositories.links.findByLinkKeyAndContext(link, lti.getContext());
+            List<LtiLinkEntity> ltiLinkEntityList = ltiLinkRepository.findByLinkKeyAndContext(link, lti.getContext());
 
             if (CollectionUtils.isEmpty(ltiLinkEntityList)) {
                 //START HARDCODING VALUES
@@ -222,7 +224,7 @@ public class LTIDataServiceImpl implements LTIDataService {
 
                 //END HARDCODING VALUES
                 LtiLinkEntity newLink = new LtiLinkEntity(link, lti.getContext(), title);
-                lti.setLink(allRepositories.links.save(newLink));
+                lti.setLink(ltiLinkRepository.save(newLink));
                 inserts++;
 
                 if (ltiDataVerboseLoggingEnabled) {
@@ -230,7 +232,7 @@ public class LTIDataServiceImpl implements LTIDataService {
                 }
             } else {
                 lti.setLink(ltiLinkEntityList.get(0));
-                allRepositories.entityManager.merge(lti.getLink()); // reconnect object for this transaction
+                entityManager.merge(lti.getLink()); // reconnect object for this transaction
                 lti.setLtiLinkId(lti.getLink().getLinkKey());
 
                 if (ltiDataVerboseLoggingEnabled) {
@@ -238,7 +240,7 @@ public class LTIDataServiceImpl implements LTIDataService {
                 }
             }
         } else if (lti.getLink() != null) {
-            lti.setLink(allRepositories.entityManager.merge(lti.getLink())); // reconnect object for this transaction
+            lti.setLink(entityManager.merge(lti.getLink())); // reconnect object for this transaction
             lti.setLtiLinkId(lti.getLink().getLinkKey());
 
             if (ltiDataVerboseLoggingEnabled) {
@@ -247,7 +249,7 @@ public class LTIDataServiceImpl implements LTIDataService {
         }
 
         if (lti.getUser() == null && lti.getSub() != null) {
-            LtiUserEntity ltiUserEntity = allRepositories.ltiUserRepository.findByUserKeyAndPlatformDeployment(lti.getSub(), toolDeployment.getPlatformDeployment());
+            LtiUserEntity ltiUserEntity = ltiUserRepository.findByUserKeyAndPlatformDeployment(lti.getSub(), toolDeployment.getPlatformDeployment());
 
             if (ltiUserEntity == null) {
                 LtiUserEntity newUser = new LtiUserEntity(lti.getSub(), null, toolDeployment.getPlatformDeployment());
@@ -258,7 +260,7 @@ public class LTIDataServiceImpl implements LTIDataService {
                     newUser.setLmsUserId(lti.getLtiCustom().get("canvas_user_id").toString());
                 }
 
-                lti.setUser(allRepositories.ltiUserRepository.save(newUser));
+                lti.setUser(ltiUserRepository.save(newUser));
                 inserts++;
 
                 if (ltiDataVerboseLoggingEnabled) {
@@ -266,7 +268,7 @@ public class LTIDataServiceImpl implements LTIDataService {
                 }
             } else {
                 lti.setUser(ltiUserEntity);
-                allRepositories.entityManager.merge(lti.getUser()); // reconnect object for this transaction
+                entityManager.merge(lti.getUser()); // reconnect object for this transaction
                 lti.setSub(lti.getUser().getUserKey());
                 lti.setLtiName(lti.getUser().getDisplayName());
                 lti.setLtiEmail(lti.getUser().getEmail());
@@ -276,7 +278,7 @@ public class LTIDataServiceImpl implements LTIDataService {
                 }
             }
         } else if (lti.getUser() != null) {
-            lti.setUser(allRepositories.entityManager.merge(lti.getUser())); // reconnect object for this transaction
+            lti.setUser(entityManager.merge(lti.getUser())); // reconnect object for this transaction
             lti.setSub(lti.getUser().getUserKey());
             lti.setLtiName(lti.getUser().getDisplayName());
             lti.setLtiEmail(lti.getUser().getEmail());
@@ -287,12 +289,12 @@ public class LTIDataServiceImpl implements LTIDataService {
         }
 
         if (lti.getMembership() == null && lti.getContext() != null && lti.getUser() != null) {
-            LtiMembershipEntity ltiMembershipEntity = allRepositories.members.findByUserAndContext(lti.getUser(), lti.getContext());
+            LtiMembershipEntity ltiMembershipEntity = ltiMembershipRepository.findByUserAndContext(lti.getUser(), lti.getContext());
 
             if (ltiMembershipEntity == null) {
                 int roleNum = lti.makeUserRoleNum(lti.getLtiRoles()); // NOTE: do not use userRoleNumber here, it may have been overridden
                 LtiMembershipEntity newMember = new LtiMembershipEntity(lti.getContext(), lti.getUser(), roleNum);
-                lti.setMembership(allRepositories.members.save(newMember));
+                lti.setMembership(ltiMembershipRepository.save(newMember));
                 inserts++;
 
                 if (ltiDataVerboseLoggingEnabled) {
@@ -301,7 +303,7 @@ public class LTIDataServiceImpl implements LTIDataService {
                 }
             } else {
                 lti.setMembership(ltiMembershipEntity);
-                allRepositories.entityManager.merge(lti.getMembership()); // reconnect object for this transaction
+                entityManager.merge(lti.getMembership()); // reconnect object for this transaction
                 lti.setSub(lti.getUser().getUserKey());
                 lti.setLtiContextId(lti.getContext().getContextKey());
 
@@ -310,7 +312,7 @@ public class LTIDataServiceImpl implements LTIDataService {
                 }
             }
         } else if (lti.getMembership() != null) {
-            lti.setMembership(allRepositories.entityManager.merge(lti.getMembership())); // reconnect object for this transaction
+            lti.setMembership(entityManager.merge(lti.getMembership())); // reconnect object for this transaction
             lti.setSub(lti.getUser().getUserKey());
             lti.setLtiContextId(lti.getContext().getContextKey());
 
@@ -324,7 +326,7 @@ public class LTIDataServiceImpl implements LTIDataService {
 
         if (lti.getLtiContextTitle() != null && context != null && !lti.getLtiContextTitle().equals(lti.getContext().getTitle())) {
             context.setTitle(lti.getLtiContextTitle());
-            lti.setContext(allRepositories.contexts.save(context));
+            lti.setContext(ltiContextRepository.save(context));
             updates++;
 
             if (ltiDataVerboseLoggingEnabled) {
@@ -336,7 +338,7 @@ public class LTIDataServiceImpl implements LTIDataService {
 
         if (lti.getLtiLinkTitle() != null && ltiLink != null && !lti.getLtiLinkTitle().equals(ltiLink.getTitle())) {
             ltiLink.setTitle(lti.getLtiLinkTitle());
-            lti.setLink(allRepositories.links.save(ltiLink));
+            lti.setLink(ltiLinkRepository.save(ltiLink));
             updates++;
 
             if (ltiDataVerboseLoggingEnabled) {
@@ -363,7 +365,7 @@ public class LTIDataServiceImpl implements LTIDataService {
         }
 
         if (userChanged) {
-            lti.setUser(allRepositories.ltiUserRepository.save(user));
+            lti.setUser(ltiUserRepository.save(user));
             updates++;
 
             if (ltiDataVerboseLoggingEnabled) {
@@ -375,7 +377,7 @@ public class LTIDataServiceImpl implements LTIDataService {
 
         if (lti.getLtiRoles() != null && lti.getUserRoleNumber() != membership.getRole()) {
             membership.setRole(lti.getUserRoleNumber());
-            lti.setMembership(allRepositories.members.save(membership));
+            lti.setMembership(ltiMembershipRepository.save(membership));
             updates++;
 
             if (ltiDataVerboseLoggingEnabled) {
@@ -409,36 +411,35 @@ public class LTIDataServiceImpl implements LTIDataService {
 
     @Override
     public LtiUserEntity findByUserKeyAndPlatformDeployment(String userKey, PlatformDeployment platformDeployment) {
-        return allRepositories.ltiUserRepository.findByUserKeyAndPlatformDeployment(userKey,platformDeployment);
+        return ltiUserRepository.findByUserKeyAndPlatformDeployment(userKey,platformDeployment);
     }
 
     @Override
     public LtiUserEntity saveLtiUserEntity(LtiUserEntity ltiUserEntity) {
-        return allRepositories.ltiUserRepository.save(ltiUserEntity);
+        return ltiUserRepository.save(ltiUserEntity);
     }
 
     @Override
     public LtiMembershipEntity findByUserAndContext(LtiUserEntity ltiUserEntity, LtiContextEntity ltiContextEntity) {
-        return allRepositories.members.findByUserAndContext(ltiUserEntity,ltiContextEntity);
+        return ltiMembershipRepository.findByUserAndContext(ltiUserEntity,ltiContextEntity);
     }
 
     @Override
     public LtiMembershipEntity saveLtiMembershipEntity(LtiMembershipEntity ltiMembershipEntity) {
-        return allRepositories.members.save(ltiMembershipEntity);
+        return ltiMembershipRepository.save(ltiMembershipEntity);
     }
 
     @Override
     public ToolDeployment findOrCreateToolDeployment(String iss, String clientId, String ltiDeploymentId) {
         ToolDeployment toolDeployment = null;
-        List<ToolDeployment> toolDeployments = allRepositories.toolDeploymentRepository
-            .findByPlatformDeployment_IssAndPlatformDeployment_ClientIdAndLtiDeploymentId(iss, clientId, ltiDeploymentId);
+        List<ToolDeployment> toolDeployments = toolDeploymentRepository.findByPlatformDeployment_IssAndPlatformDeployment_ClientIdAndLtiDeploymentId(iss, clientId, ltiDeploymentId);
 
         if (CollectionUtils.isNotEmpty(toolDeployments)) {
             return toolDeployments.get(0);
         }
 
         // if missing, look for platformDeployment by iss and clientId
-        List<PlatformDeployment> platformDeployments = allRepositories.platformDeploymentRepository.findByIssAndClientId(iss, clientId);
+        List<PlatformDeployment> platformDeployments = platformDeploymentRepository.findByIssAndClientId(iss, clientId);
 
         if (CollectionUtils.isNotEmpty(platformDeployments)) {
             // if enableAutomaticDeployments is true then add this ltiDeploymentId as a new ToolDeployment
@@ -451,7 +452,7 @@ public class LTIDataServiceImpl implements LTIDataService {
                 toolDeployment = new ToolDeployment();
                 toolDeployment.setLtiDeploymentId(ltiDeploymentId);
                 toolDeployment.setPlatformDeployment(platformDeployment);
-                toolDeployment = allRepositories.toolDeploymentRepository.save(toolDeployment);
+                toolDeployment = toolDeploymentRepository.save(toolDeployment);
             }
         }
 

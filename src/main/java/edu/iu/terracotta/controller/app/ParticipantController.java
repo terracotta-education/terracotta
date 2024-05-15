@@ -33,7 +33,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -48,11 +48,8 @@ public class ParticipantController {
 
     public static final String REQUEST_ROOT = "api/experiments/{experimentId}/participants";
 
-    @Autowired
-    private ParticipantService participantService;
-
-    @Autowired
-    private APIJWTService apijwtService;
+    @Autowired private ParticipantService participantService;
+    @Autowired private APIJWTService apijwtService;
 
     @GetMapping
     public ResponseEntity<List<ParticipantDto>> allParticipantsByExperiment(@PathVariable long experimentId,
@@ -85,7 +82,6 @@ public class ParticipantController {
                                                         @PathVariable long participantId,
                                                         HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ParticipantNotMatchingException, InvalidUserException {
-
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.participantAllowed(securedInfo, experimentId, participantId);
@@ -192,11 +188,11 @@ public class ParticipantController {
             participantMap.put(participant, participantDto);
         }
 
-        try{
+        try {
             participantService.changeParticipant(participantMap, experimentId);
 
             return new ResponseEntity<>(HttpStatus.OK);
-        }catch (Exception ex) {
+        } catch (Exception ex) {
             throw new DataServiceException("Error 105: There was an error updating the participant list. No participants were updated.");
         }
     }

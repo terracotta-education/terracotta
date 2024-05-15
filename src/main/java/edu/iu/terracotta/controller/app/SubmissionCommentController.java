@@ -12,7 +12,7 @@ import edu.iu.terracotta.model.LtiUserEntity;
 import edu.iu.terracotta.model.app.SubmissionComment;
 import edu.iu.terracotta.model.app.dto.SubmissionCommentDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
-import edu.iu.terracotta.repository.AllRepositories;
+import edu.iu.terracotta.repository.LtiUserRepository;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.SubmissionCommentService;
 import edu.iu.terracotta.service.app.SubmissionService;
@@ -35,7 +35,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 
 @Slf4j
@@ -44,19 +44,12 @@ import java.util.List;
 @RequestMapping(value = SubmissionCommentController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
 public class SubmissionCommentController {
 
-    public static final String REQUEST_ROOT = "api/experiments/{experiment_id}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}/submissions/{submissionId}/submission_comments";
+    public static final String REQUEST_ROOT = "api/experiments/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}/submissions/{submissionId}/submission_comments";
 
-    @Autowired
-    private AllRepositories allRepositories;
-
-    @Autowired
-    private APIJWTService apijwtService;
-
-    @Autowired
-    private SubmissionService submissionService;
-
-    @Autowired
-    private SubmissionCommentService submissionCommentService;
+    @Autowired private LtiUserRepository ltiUserRepository;
+    @Autowired private APIJWTService apijwtService;
+    @Autowired private SubmissionService submissionService;
+    @Autowired private SubmissionCommentService submissionCommentService;
 
     @GetMapping
     public ResponseEntity<List<SubmissionCommentDto>> getSubmissionCommentsBySubmission(@PathVariable long experimentId,
@@ -155,7 +148,6 @@ public class SubmissionCommentController {
                                                         @RequestBody SubmissionCommentDto submissionCommentDto,
                                                         HttpServletRequest req)
                 throws ExperimentNotMatchingException, AssessmentNotMatchingException, SubmissionCommentNotMatchingException, BadTokenException, InvalidUserException {
-
         log.debug("Updating submission comment with id {}", submissionCommentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -171,7 +163,7 @@ public class SubmissionCommentController {
         }
 
         SubmissionComment submissionComment = submissionCommentService.getSubmissionComment(submissionCommentId);
-        LtiUserEntity user = allRepositories.ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
+        LtiUserEntity user = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
 
         if (!user.getDisplayName().equals(submissionComment.getCreator())) {
             return new ResponseEntity("Error 122: Only the creator of a comment can edit their own comment.", HttpStatus.UNAUTHORIZED);
@@ -200,7 +192,7 @@ public class SubmissionCommentController {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
-        try{
+        try {
             submissionCommentService.deleteById(submissionCommentId);
 
             return new ResponseEntity<>(HttpStatus.OK);

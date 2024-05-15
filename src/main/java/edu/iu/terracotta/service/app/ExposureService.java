@@ -15,22 +15,14 @@ import java.util.List;
 public interface ExposureService {
 
     List<ExposureDto> getExposures(Long experimentId);
-
     ExposureDto postExposure(ExposureDto exposureDto, long experimentId) throws IdInPostException, DataServiceException, TitleValidationException;
-
     ExposureDto toDto(Exposure exposure);
-
     Exposure fromDto(ExposureDto exposureDto) throws DataServiceException;
-
     Exposure getExposure(Long id);
-
     void updateExposure(Long exposureId, ExposureDto exposureDto)throws TitleValidationException;
-
     void deleteById(Long id) throws EmptyResultDataAccessException;
-
     void createExposures(Long experimentId) throws DataServiceException, ExperimentStartedException;
-
     void validateTitle(String title) throws TitleValidationException;
-
     HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long exposureId);
+
 }

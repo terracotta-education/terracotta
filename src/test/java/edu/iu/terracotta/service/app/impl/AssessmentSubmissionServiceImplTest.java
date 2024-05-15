@@ -41,7 +41,7 @@ public class AssessmentSubmissionServiceImplTest extends BaseTest {
         when(answerMcSubmissionOptionRepository.save(any(AnswerMcSubmissionOption.class))).thenReturn(null);
         when(participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(anyLong(), anyString())).thenReturn(participant);
 
-        when(allRepositories.answerMcSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(anyLong())).thenReturn(Collections.singletonList(answerMcSubmission));
+        when(answerMcSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(anyLong())).thenReturn(Collections.singletonList(answerMcSubmission));
         when(questionSubmissionService.automaticGradingMC(any(QuestionSubmission.class), any(AnswerMcSubmission.class))).thenReturn(questionSubmission);
 
         when(answerMc.getCorrect()).thenReturn(true);

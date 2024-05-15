@@ -30,36 +30,21 @@ import java.util.Map;
 public interface QuestionSubmissionService {
 
     List<QuestionSubmissionDto> getQuestionSubmissions(long submissionId, boolean answerSubmissions, boolean questionSubmissionComments, long assessmentId, boolean isStudent) throws AssessmentNotMatchingException, IOException;
-
     QuestionSubmission getQuestionSubmission(Long id);
-
     List<QuestionSubmissionDto> postQuestionSubmissions(List<QuestionSubmissionDto> questionSubmissionDtoList, long assessmentId, long submissionId, boolean student) throws DataServiceException, IdInPostException, InvalidUserException, DuplicateQuestionException, IdMissingException, TypeNotSupportedException;
-
     void updateQuestionSubmissions(Map<QuestionSubmission, QuestionSubmissionDto> map, boolean student) throws InvalidUserException, DataServiceException, AnswerNotMatchingException, AnswerSubmissionNotMatchingException, QuestionSubmissionNotMatchingException, IdMissingException;
-
     QuestionSubmissionDto toDto(QuestionSubmission questionSubmission, boolean answerSubmissions, boolean questionSubmissionComments) throws IOException;
-
     QuestionSubmission fromDto(QuestionSubmissionDto questionSubmissionDto) throws DataServiceException;
-
     void deleteById(Long id) throws EmptyResultDataAccessException;
-
     QuestionSubmission automaticGradingMC(QuestionSubmission questionSubmission, AnswerMcSubmission answerMcSubmission);
-
     void validateDtoPost(QuestionSubmissionDto questionSubmissionDto, Long assessmentId, Long submissionId, boolean student) throws IdMissingException, DuplicateQuestionException, InvalidUserException;
-
     HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId, Long submissionId);
-
     void validateAndPrepareQuestionSubmissionList(List<QuestionSubmissionDto> questionSubmissionDtoList, long assessmentId, long submissionId, boolean student) throws IdInPostException, DataServiceException, DuplicateQuestionException, InvalidUserException, IdMissingException, AnswerSubmissionNotMatchingException, AnswerNotMatchingException, ExceedingLimitException, TypeNotSupportedException;
-
     void validateQuestionSubmission(QuestionSubmissionDto questionSubmissionDto) throws DataServiceException;
-
-    void canSubmit(SecuredInfo securedInfo, long experimentId)
-            throws CanvasApiException, IOException, AssignmentAttemptException;
-
+    void canSubmit(SecuredInfo securedInfo, long experimentId) throws CanvasApiException, IOException, AssignmentAttemptException;
     List<QuestionSubmissionDto> handleFileQuestionSubmission(MultipartFile file, String questionSubmissionDtoStr, long experimentId, long assessmentId, long submissionId, boolean student, SecuredInfo securedInfo)
             throws IOException, CanvasApiException, AssignmentAttemptException, IdInPostException, DataServiceException, DuplicateQuestionException, InvalidUserException, IdMissingException,
                 AnswerSubmissionNotMatchingException, AnswerNotMatchingException, ExceedingLimitException, TypeNotSupportedException;
-
     List<QuestionSubmissionDto> handleFileQuestionSubmissionUpdate(MultipartFile file, String questionSubmissionDtoStr, long experimentId, long assessmentId, long submissionId, long questionSubmissionId, boolean student, SecuredInfo securedInfo)
             throws IOException, CanvasApiException, AssignmentAttemptException, IdInPostException, DataServiceException, DuplicateQuestionException, InvalidUserException, IdMissingException,
                 AnswerSubmissionNotMatchingException, AnswerNotMatchingException, ExceedingLimitException, TypeNotSupportedException, QuestionSubmissionNotMatchingException;

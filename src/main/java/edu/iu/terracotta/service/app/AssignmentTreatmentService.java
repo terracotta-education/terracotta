@@ -19,15 +19,11 @@ public interface AssignmentTreatmentService {
     TreatmentDto duplicateTreatment(long treatmentId, SecuredInfo securedInfo)
         throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, NumberFormatException,
             CanvasApiException, TreatmentNotMatchingException, QuestionNotMatchingException;
-
     TreatmentDto duplicateTreatment(long treatmentId, Assignment assignment, SecuredInfo securedInfo)
         throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, NumberFormatException,
             CanvasApiException, TreatmentNotMatchingException, QuestionNotMatchingException;
-
     TreatmentDto toTreatmentDto(Treatment treatment, boolean submissions, boolean addAssignmentDto) throws AssessmentNotMatchingException;
-
     AssignmentDto toAssignmentDto(Assignment assignment, boolean submissions, boolean addTreatmentDto) throws AssessmentNotMatchingException;
-
     void setAssignmentDtoAttrs(Assignment assignment, String canvasCourseId, LtiUserEntity instructorUser) throws NumberFormatException, CanvasApiException;
 
 }

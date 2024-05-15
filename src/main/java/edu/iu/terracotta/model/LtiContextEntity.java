@@ -1,15 +1,3 @@
-/**
- * Copyright 2021 Unicon (R)
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- * http://www.apache.org/licenses/LICENSE-2.0
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package edu.iu.terracotta.model;
 
 import org.apache.commons.lang3.StringUtils;
@@ -18,18 +6,18 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.FetchType;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.Lob;
-import javax.persistence.ManyToOne;
-import javax.persistence.OneToMany;
-import javax.persistence.Table;
-import javax.persistence.UniqueConstraint;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.Lob;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 
 import java.util.Objects;
 import java.util.Set;
@@ -38,19 +26,28 @@ import java.util.Set;
 @Getter
 @Setter
 @NoArgsConstructor
-@Table(name = "lti_context", uniqueConstraints = {
+@Table(name = "lti_context",
+    uniqueConstraints = {
         @UniqueConstraint(columnNames = { "context_key", "deployment_id" })
-})
+    }
+)
 public class LtiContextEntity extends BaseEntity {
 
     @Id
-    @Column(name = "context_id", nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(
+        name = "context_id",
+        nullable = false
+    )
     private long contextId;
 
     // per LTI 1.3, the 'Context.id' claim must not be more than 255 characters
     // in length.
-    @Column(name = "context_key", nullable = false, length = 255)
+    @Column(
+        name = "context_key",
+        nullable = false,
+        length = 255
+    )
     private String contextKey;
 
     @Column(length = 4096)
@@ -70,8 +67,15 @@ public class LtiContextEntity extends BaseEntity {
     @Column
     private String settings;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "deployment_id", referencedColumnName = "deployment_id", nullable = false)
+    @ManyToOne(
+        fetch = FetchType.LAZY,
+        optional = false
+    )
+    @JoinColumn(
+        name = "deployment_id",
+        referencedColumnName = "deployment_id",
+        nullable = false
+    )
     private ToolDeployment toolDeployment;
 
     @OneToMany(mappedBy = "context")
@@ -124,11 +128,7 @@ public class LtiContextEntity extends BaseEntity {
 
         LtiContextEntity that = (LtiContextEntity) o;
 
-        if (contextId != that.contextId) {
-            return false;
-        }
-
-        return Objects.equals(contextKey, that.contextKey);
+        return contextId == that.contextId || Objects.equals(contextKey, that.contextKey);
     }
 
     @Override

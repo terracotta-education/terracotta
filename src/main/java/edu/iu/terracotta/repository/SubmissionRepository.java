@@ -16,33 +16,21 @@ import java.util.Optional;
 public interface SubmissionRepository extends JpaRepository<Submission, Long> {
 
     List<Submission> findByAssessment_AssessmentId(Long assessmentId);
-
     long countByAssessment_AssessmentId(Long assessmentId);
-
     List<Submission> findByParticipant_ParticipantId(Long participantId);
-
     List<Submission> findByParticipant_Experiment_ExperimentId(Long experimentId);
-
     Page<Submission> findByParticipant_Experiment_ExperimentId(Long experimentId, Pageable pageable);
-
     long countByAssessment_Treatment_Assignment_AssignmentId(Long assignmentId);
-
     Optional<Submission> findByParticipant_ParticipantIdAndSubmissionId(Long participantId, Long submissionId);
-
     Submission findBySubmissionId(Long submissionId);
-
     List<Submission> findByParticipant_ParticipantIdAndAssessment_AssessmentId(Long participantId, Long assessmentId);
-
     List<Submission> findByParticipant_ParticipantIdAndAssessment_AssessmentIdAndDateSubmittedNotNullOrderByDateSubmitted(Long participantId, Long assessmentId);
-
     List<Submission> findByAssessment_Treatment_Assignment_AssignmentId(Long assignmentId);
-
     long countByAssessment_Treatment_TreatmentId(Long treatmentId);
-
     boolean existsByAssessment_AssessmentIdAndSubmissionId(Long assessmentId, Long submissionId);
 
-    @Transactional
     @Modifying
+    @Transactional
     @Query("delete from Submission s where s.submissionId = ?1")
     void deleteBySubmissionId(Long submissionId);
 

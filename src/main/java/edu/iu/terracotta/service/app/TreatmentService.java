@@ -41,20 +41,13 @@ public interface TreatmentService {
      * @throws NumberFormatException
      * @throws CanvasApiException
      */
-    List<TreatmentDto> getTreatments(Long conditionId, boolean submissions, SecuredInfo securedInfo)
-                    throws AssessmentNotMatchingException, NumberFormatException, CanvasApiException;
-
+    List<TreatmentDto> getTreatments(Long conditionId, boolean submissions, SecuredInfo securedInfo) throws AssessmentNotMatchingException, NumberFormatException, CanvasApiException;
     Treatment getTreatment(Long id);
-
     TreatmentDto postTreatment(TreatmentDto treatmentDto, long conditionId) throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, TreatmentNotMatchingException;
-
     TreatmentDto putTreatment(TreatmentDto treatmentDto, long treatmentId, SecuredInfo securedInfo, boolean questions) throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, IdMissingException, IdMismatchException, TreatmentNotMatchingException, TitleValidationException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, CanvasApiException, AssignmentNotEditedException, NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException;
-
     Treatment fromDto(TreatmentDto treatmentDto) throws DataServiceException, TreatmentNotMatchingException, AssessmentNotMatchingException;
-
     void deleteById(Long id) throws EmptyResultDataAccessException;
-
     void limitToOne(long assignmentId, long conditionId) throws ExceedingLimitException;
-
     HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, long experimentId, long conditionId, long treatmentId);
+
 }

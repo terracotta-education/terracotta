@@ -26,43 +26,23 @@ import java.util.Map;
 public interface SubmissionService {
 
     List<SubmissionDto> getSubmissions(Long experimentId, String userId, Long assessmentId, boolean student) throws NoSubmissionsException;
-
     Submission getSubmission(Long experimentId, String userId, Long submissionId, boolean student) throws NoSubmissionsException;
-
     SubmissionDto postSubmission(SubmissionDto submissionDto, long experimentId, SecuredInfo securedInfo, long assessmentId, boolean student) throws IdInPostException, ParticipantNotMatchingException, InvalidUserException, DataServiceException;
-
     void updateSubmissions(Map<Submission, SubmissionDto> map, boolean student) throws ConnectionException, DataServiceException;
-
     SubmissionDto toDto(Submission submission, boolean questionSubmissions, boolean submissionComments);
-
     Submission fromDto(SubmissionDto submissionDto, boolean student) throws DataServiceException;
-
     void deleteById(Long id) throws EmptyResultDataAccessException;
-
-    void finalizeAndGrade(Long submissionId, SecuredInfo securedInfo, boolean student)
-            throws DataServiceException, CanvasApiException, IOException, AssignmentDatesException, ConnectionException;
-
+    void finalizeAndGrade(Long submissionId, SecuredInfo securedInfo, boolean student) throws DataServiceException, CanvasApiException, IOException, AssignmentDatesException, ConnectionException;
     void grade(Long submissionId, SecuredInfo securedInfo) throws DataServiceException;
-
-    void sendSubmissionGradeToCanvasWithLTI(Submission submission, boolean studentSubmission)
-            throws ConnectionException, DataServiceException, CanvasApiException, IOException;
-
+    void sendSubmissionGradeToCanvasWithLTI(Submission submission, boolean studentSubmission) throws ConnectionException, DataServiceException, CanvasApiException, IOException;
     boolean datesAllowed(Long experimentId, Long treatmentId, SecuredInfo securedInfo);
-
     Submission createNewSubmission(Assessment assessment, Participant participant, SecuredInfo securedInfo);
-
     void validateUser(Long experimentId, String userId, Long submissionId) throws InvalidUserException;
-
     void validateDto(Long experimentId, String userId, SubmissionDto submissionDto) throws InvalidUserException, ParticipantNotMatchingException;
-
     HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, long experimentId, long conditionId, long treatmentId, long assessmentId, long submissionId);
-
     void allowedSubmission(Long submissionId, SecuredInfo securedInfo) throws SubmissionNotMatchingException;
-
     Float getScoreFromMultipleSubmissions(Participant participant, Assessment assessment);
-
     Float getSubmissionScore(Submission submission);
-
     boolean isManualGradingNeeded(Submission submission);
 
 }

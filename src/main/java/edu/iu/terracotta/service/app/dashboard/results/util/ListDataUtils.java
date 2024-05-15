@@ -118,7 +118,7 @@ public final class ListDataUtils {
 
     public static Optional<AssignmentExtended> findCanvasAssignmentByLmsAssignmentId(String lmsAssignmentId, List<AssignmentExtended> experimentAssignmentsExtended) {
         return experimentAssignmentsExtended.stream()
-            .filter(assignmentExtended -> assignmentExtended.getId().equals(Integer.parseInt(lmsAssignmentId)))
+            .filter(assignmentExtended -> assignmentExtended.getId().equals(Long.parseLong(lmsAssignmentId)))
             .findFirst();
     }
 

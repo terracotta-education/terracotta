@@ -14,7 +14,10 @@ import edu.iu.terracotta.model.app.FileSubmissionLocal;
 import edu.iu.terracotta.model.app.dto.FileInfoDto;
 import edu.iu.terracotta.model.canvas.AssignmentExtended;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
-import edu.iu.terracotta.repository.AllRepositories;
+import edu.iu.terracotta.repository.AnswerFileSubmissionRepository;
+import edu.iu.terracotta.repository.ConsentDocumentRepository;
+import edu.iu.terracotta.repository.ExperimentRepository;
+import edu.iu.terracotta.repository.LtiUserRepository;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.service.canvas.CanvasAPIClient;
@@ -39,7 +42,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.core.io.Resource;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
-import javax.annotation.PostConstruct;
+import jakarta.annotation.PostConstruct;
 
 import java.io.File;
 import java.io.IOException;
@@ -64,7 +67,10 @@ import java.util.UUID;
 })
 public class FileStorageServiceImpl implements FileStorageService {
 
-    @Autowired private AllRepositories allRepositories;
+    @Autowired private AnswerFileSubmissionRepository answerFileSubmissionRepository;
+    @Autowired private ConsentDocumentRepository consentDocumentRepository;
+    @Autowired private ExperimentRepository experimentRepository;
+    @Autowired private LtiUserRepository ltiUserRepository;
     @Autowired private CanvasAPIClient canvasAPIClient;
     @Autowired private APIJWTService apijwtService;
 
@@ -94,7 +100,7 @@ public class FileStorageServiceImpl implements FileStorageService {
             Files.createDirectories(Paths.get(consentFileLocalPathRoot));
             this.decompressedSubmissionFileTempDirectory = Files.createTempDirectory(Paths.get(uploadSubmissionsLocalPath).toString() + ".");
             this.decompressedConsentFileTempDirectory = Files.createTempDirectory(Paths.get(consentFileLocalPath).toString() + ".");
-        }catch (IOException e) {
+        } catch (IOException e) {
             throw new RuntimeException("Error 138: Could not create upload folder!");
         }
     }
@@ -102,13 +108,13 @@ public class FileStorageServiceImpl implements FileStorageService {
     @Override
     public Resource getConsentFile(long experimentId) {
         try {
-            Optional<ConsentDocument> consentDocument = allRepositories.consentDocumentRepository.findByExperiment_ExperimentId(experimentId);
+            Optional<ConsentDocument> consentDocument = consentDocumentRepository.findByExperiment_ExperimentId(experimentId);
 
-            if (!consentDocument.isPresent()) {
+            if (consentDocument.isEmpty()) {
                 throw new MyFileNotFoundException("Error 126: Consent file not found for experiment ID: '{}'" + experimentId);
             }
 
-            if (!consentDocument.isPresent()) {
+            if (consentDocument.isEmpty()) {
                 return null;
             }
 
@@ -218,9 +224,9 @@ public class FileStorageServiceImpl implements FileStorageService {
     public FileInfoDto uploadConsentFile(long experimentId, String title, MultipartFile multipartFile, SecuredInfo securedInfo)
             throws AssignmentNotCreatedException, CanvasApiException, AssignmentNotEditedException, AssignmentNotMatchingException {
         FileInfoDto fileInfoDto = uploadFile(multipartFile, experimentId);
-        Experiment experiment = allRepositories.experimentRepository.findByExperimentId(experimentId);
+        Experiment experiment = experimentRepository.findByExperimentId(experimentId);
         ConsentDocument consentDocument = experiment.getConsentDocument();
-        LtiUserEntity instructorUser = allRepositories.ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
+        LtiUserEntity instructorUser = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
         String canvasCourseId = org.apache.commons.lang3.StringUtils.substringBetween(experiment.getLtiContextEntity().getContext_memberships_url(), "courses/", "/names");
 
         if (consentDocument == null) {
@@ -255,11 +261,11 @@ public class FileStorageServiceImpl implements FileStorageService {
             try {
                 Optional<AssignmentExtended> assignment = canvasAPIClient.createCanvasAssignment(instructorUser, canvasAssignment, canvasCourseId);
 
-                if (!assignment.isPresent()) {
+                if (assignment.isEmpty()) {
                     throw new AssignmentNotMatchingException(TextConstants.ASSIGNMENT_NOT_MATCHING);
                 }
 
-                consentDocument.setLmsAssignmentId(Integer.toString(assignment.get().getId()));
+                consentDocument.setLmsAssignmentId(Long.toString(assignment.get().getId()));
                 // consentDocument.setResourceLinkId(assignment.get().getExternalToolTagAttributes().getResourceLinkId());
                 // log.debug("getExternalToolTagAttributes().getResourceLinkId()={}", assignment.get().getExternalToolTagAttributes().getResourceLinkId());
                 // This seems to be a more accurate way to get the resourceLinkId
@@ -275,7 +281,7 @@ public class FileStorageServiceImpl implements FileStorageService {
             String lmsId = consentDocument.getLmsAssignmentId();
             Optional<AssignmentExtended> assignmentExtendedOptional = canvasAPIClient.listAssignment(instructorUser, canvasCourseId, Integer.parseInt(lmsId));
 
-            if (!assignmentExtendedOptional.isPresent()) {
+            if (assignmentExtendedOptional.isEmpty()) {
                 throw new AssignmentNotEditedException("Error 136: The assignment is not linked to any Canvas assignment");
             }
 
@@ -285,18 +291,18 @@ public class FileStorageServiceImpl implements FileStorageService {
             consentDocument.setTitle(title);
         }
 
-        consentDocument = allRepositories.consentDocumentRepository.save(consentDocument);
+        consentDocument = consentDocumentRepository.save(consentDocument);
         experiment.setConsentDocument(consentDocument);
-        allRepositories.experimentRepository.saveAndFlush(experiment);
+        experimentRepository.saveAndFlush(experiment);
 
         return fileInfoDto;
     }
 
     @Override
     public void deleteConsentFile(long experimentId) {
-        Optional<ConsentDocument> consentDocument = allRepositories.consentDocumentRepository.findByExperiment_ExperimentId(experimentId);
+        Optional<ConsentDocument> consentDocument = consentDocumentRepository.findByExperiment_ExperimentId(experimentId);
 
-        if (!consentDocument.isPresent()) {
+        if (consentDocument.isEmpty()) {
             return;
         }
 
@@ -309,8 +315,8 @@ public class FileStorageServiceImpl implements FileStorageService {
 
     @Override
     public void deleteConsentAssignment(long experimentId, SecuredInfo securedInfo) throws AssignmentNotEditedException, CanvasApiException {
-        Experiment experiment = allRepositories.experimentRepository.findByExperimentId(experimentId);
-        LtiUserEntity instructorUser = allRepositories.ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
+        Experiment experiment = experimentRepository.findByExperimentId(experimentId);
+        LtiUserEntity instructorUser = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
         ConsentDocument consentDocument = experiment.getConsentDocument();
 
         if (consentDocument == null) {
@@ -326,7 +332,7 @@ public class FileStorageServiceImpl implements FileStorageService {
         }
 
         deleteConsentFile(experimentId);
-        allRepositories.consentDocumentRepository.deleteById(consentDocument.getConsentDocumentId());
+        consentDocumentRepository.deleteById(consentDocument.getConsentDocumentId());
     }
 
     @Override
@@ -428,9 +434,9 @@ public class FileStorageServiceImpl implements FileStorageService {
 
     @Override
     public File getFileSubmissionLocal(long id) {
-        Optional<AnswerFileSubmission> answerFileSubmission = allRepositories.answerFileSubmissionRepository.findById(id);
+        Optional<AnswerFileSubmission> answerFileSubmission = answerFileSubmissionRepository.findById(id);
 
-        if (!answerFileSubmission.isPresent()) {
+        if (answerFileSubmission.isEmpty()) {
             return null;
         }
 

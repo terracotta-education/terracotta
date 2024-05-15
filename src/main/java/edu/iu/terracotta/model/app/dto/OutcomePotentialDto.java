@@ -9,7 +9,7 @@ public class OutcomePotentialDto {
 
     public String name;
     public String type;
-    public Integer assignmentId;
+    public Long assignmentId;
     public Double pointsPossible;
     public boolean terracotta;
 

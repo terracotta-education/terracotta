@@ -5,7 +5,6 @@ import edu.iu.terracotta.service.canvas.AssignmentWriterExtended;
 import edu.iu.terracotta.service.canvas.CourseReaderExtended;
 import edu.iu.terracotta.service.canvas.CourseWriterExtended;
 import edu.iu.terracotta.service.canvas.SubmissionReaderExtended;
-import edu.ksu.canvas.CanvasApiFactory;
 import edu.ksu.canvas.impl.AccountImpl;
 import edu.ksu.canvas.impl.AccountReportImpl;
 import edu.ksu.canvas.impl.AccountReportSummaryImpl;
@@ -94,26 +93,27 @@ import edu.ksu.canvas.interfaces.UserWriter;
 import edu.ksu.canvas.net.RefreshingRestClient;
 import edu.ksu.canvas.net.RestClient;
 import edu.ksu.canvas.oauth.OauthToken;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
 
+@Slf4j
 @SuppressWarnings({"PMD.GuardLogStatement", "rawtypes", "unchecked"})
 public class CanvasApiFactoryExtended {
+
     public static final Integer CANVAS_API_VERSION = 1;
-    private static final Logger LOG = LoggerFactory.getLogger(CanvasApiFactory.class);
-    Map<Class<? extends CanvasReader>, Class<? extends BaseImpl>> readerMap;
-    Map<Class<? extends CanvasWriter>, Class<? extends BaseImpl>> writerMap;
+
+    public Map<Class<? extends CanvasReader>, Class<? extends BaseImpl>> readerMap;
+    public Map<Class<? extends CanvasWriter>, Class<? extends BaseImpl>> writerMap;
     private String canvasBaseUrl;
     private int connectTimeout;
     private int readTimeout;
 
     public CanvasApiFactoryExtended(String canvasBaseUrl) {
-        LOG.debug("Creating Canvas API factory with base URL: " + canvasBaseUrl);
+        log.debug("Creating Canvas API factory with base URL: " + canvasBaseUrl);
         this.canvasBaseUrl = canvasBaseUrl;
         this.connectTimeout = 5000;
         this.readTimeout = 120000;
@@ -132,13 +132,13 @@ public class CanvasApiFactoryExtended {
     }
 
     public <T extends CanvasReader> T getReader(Class<T> type, OauthToken oauthToken, Integer paginationPageSize) {
-        LOG.debug("Factory call to instantiate class: " + type.getName());
+        log.debug("Factory call to instantiate class: " + type.getName());
         RestClient restClient = new RefreshingRestClient();
         Class<T> concreteClass = (Class) this.readerMap.get(type);
         if (concreteClass == null) {
             throw new UnsupportedOperationException("No implementation for requested interface found: " + type.getName());
         } else {
-            LOG.debug("got class: " + concreteClass);
+            log.debug("got class: " + concreteClass);
 
             try {
                 Constructor<T> constructor = concreteClass.getConstructor(String.class, Integer.class, OauthToken.class, RestClient.class, Integer.TYPE, Integer.TYPE, Integer.class, Boolean.class);
@@ -154,13 +154,13 @@ public class CanvasApiFactoryExtended {
     }
 
     public <T extends CanvasWriter> T getWriter(Class<T> type, OauthToken oauthToken, Boolean serializeNulls) {
-        LOG.debug("Factory call to instantiate class: " + type.getName());
+        log.debug("Factory call to instantiate class: " + type.getName());
         RestClient restClient = new RefreshingRestClient();
         Class<T> concreteClass = (Class) this.writerMap.get(type);
         if (concreteClass == null) {
             throw new UnsupportedOperationException("No implementation for requested interface found: " + type.getName());
         } else {
-            LOG.debug("got writer class: " + concreteClass);
+            log.debug("got writer class: " + concreteClass);
 
             try {
                 Constructor<T> constructor = concreteClass.getConstructor(String.class, Integer.class, OauthToken.class, RestClient.class, Integer.TYPE, Integer.TYPE, Integer.class, Boolean.class);

@@ -11,7 +11,8 @@ import edu.iu.terracotta.model.app.QuestionMc;
 import edu.iu.terracotta.model.app.QuestionSubmission;
 import edu.iu.terracotta.model.app.dto.AnswerDto;
 import edu.iu.terracotta.model.app.enumerator.QuestionTypes;
-import edu.iu.terracotta.repository.AllRepositories;
+import edu.iu.terracotta.repository.AnswerMcRepository;
+import edu.iu.terracotta.repository.QuestionRepository;
 import edu.iu.terracotta.service.app.AnswerService;
 import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.utils.TextConstants;
@@ -32,14 +33,15 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 
 @Component
 @SuppressWarnings({"PMD.PreserveStackTrace"})
 public class AnswerServiceImpl implements AnswerService {
 
-    @Autowired private AllRepositories allRepositories;
+    @Autowired private AnswerMcRepository answerMcRepository;
+    @Autowired private QuestionRepository questionRepository;
     @Autowired private FileStorageService fileStorageService;
 
     @PersistenceContext private EntityManager entityManager;
@@ -49,7 +51,7 @@ public class AnswerServiceImpl implements AnswerService {
      */
     @Override
     public List<AnswerDto> findAllByQuestionIdMC(Long questionId, boolean showCorrectAnswer) {
-        return CollectionUtils.emptyIfNull(allRepositories.answerMcRepository.findByQuestion_QuestionId(questionId)).stream()
+        return CollectionUtils.emptyIfNull(answerMcRepository.findByQuestion_QuestionId(questionId)).stream()
             .map(answerMc -> toDtoMC(answerMc, answerMc.getAnswerOrder(), showCorrectAnswer))
             .toList();
     }
@@ -59,7 +61,7 @@ public class AnswerServiceImpl implements AnswerService {
      */
     @Override
     public List<AnswerDto> findAllByQuestionIdMC(QuestionSubmission questionSubmission, boolean showCorrectAnswer) {
-        List<AnswerMc> answerList = allRepositories.answerMcRepository.findByQuestion_QuestionId(questionSubmission.getQuestion().getQuestionId());
+        List<AnswerMc> answerList = answerMcRepository.findByQuestion_QuestionId(questionSubmission.getQuestion().getQuestionId());
 
         // Get the answers in the order they are to be presented for this submission
         List<AnswerMcSubmissionOption> answerMcSubmissionOptions = questionSubmission.getAnswerMcSubmissionOptions();
@@ -87,7 +89,7 @@ public class AnswerServiceImpl implements AnswerService {
 
     @Override
     public AnswerDto getAnswerMC(Long answerId) {
-        AnswerMc answerMc = allRepositories.answerMcRepository.findByAnswerMcId(answerId);
+        AnswerMc answerMc = answerMcRepository.findByAnswerMcId(answerId);
 
         return toDtoMC(answerMc, answerMc.getAnswerOrder(), false);
     }
@@ -145,9 +147,9 @@ public class AnswerServiceImpl implements AnswerService {
         answer.setHtml(answerDto.getHtml());
         answer.setCorrect(answerDto.getCorrect());
         answer.setAnswerOrder(answerDto.getAnswerOrder());
-        Optional<Question> question = allRepositories.questionRepository.findById(answerDto.getQuestionId());
+        Optional<Question> question = questionRepository.findById(answerDto.getQuestionId());
 
-        if (!question.isPresent()) {
+        if (question.isEmpty()) {
             throw new DataServiceException("The question for the answer does not exist");
         }
 
@@ -157,12 +159,12 @@ public class AnswerServiceImpl implements AnswerService {
     }
 
     private AnswerMc saveMC(AnswerMc answer) {
-        return allRepositories.answerMcRepository.save(answer);
+        return answerMcRepository.save(answer);
     }
 
     @Override
     public AnswerMc findByAnswerId(Long answerId) {
-        return allRepositories.answerMcRepository.findByAnswerMcId(answerId);
+        return answerMcRepository.findByAnswerMcId(answerId);
     }
 
     @Override
@@ -195,12 +197,12 @@ public class AnswerServiceImpl implements AnswerService {
 
     @Override
     public void deleteByIdMC(Long id) {
-        allRepositories.answerMcRepository.deleteByAnswerMcId(id);
+        answerMcRepository.deleteByAnswerMcId(id);
     }
 
     @Override
     public void limitReached(Long questionId) throws MultipleChoiceLimitReachedException {
-        List<AnswerMc> answerList = allRepositories.answerMcRepository.findByQuestion_QuestionId(questionId);
+        List<AnswerMc> answerList = answerMcRepository.findByQuestion_QuestionId(questionId);
 
         if (answerList.size() == 20) {
             throw new MultipleChoiceLimitReachedException("Error 120: The multiple choice option limit of 20 options has been reached.");
@@ -209,7 +211,7 @@ public class AnswerServiceImpl implements AnswerService {
 
     @Override
     public String getQuestionType(Long questionId) {
-        return allRepositories.questionRepository.findByQuestionId(questionId).getQuestionType().toString();
+        return questionRepository.findByQuestionId(questionId).getQuestionType().toString();
     }
 
     @Override
@@ -234,7 +236,7 @@ public class AnswerServiceImpl implements AnswerService {
         }
 
         // copy MC options
-        return CollectionUtils.emptyIfNull(allRepositories.answerMcRepository.findByQuestion_QuestionId(originalQuestionId)).stream()
+        return CollectionUtils.emptyIfNull(answerMcRepository.findByQuestion_QuestionId(originalQuestionId)).stream()
             .map(
                 answerMc -> {
                     entityManager.detach(answerMc);

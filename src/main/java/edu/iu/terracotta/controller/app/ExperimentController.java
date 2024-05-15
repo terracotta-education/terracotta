@@ -38,7 +38,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.io.IOException;
 import java.util.List;
@@ -51,14 +51,9 @@ public class ExperimentController {
 
     public static final String REQUEST_ROOT = "api/experiments";
 
-    @Autowired
-    private ExperimentService experimentService;
-
-    @Autowired
-    private ExportService exportService;
-
-    @Autowired
-    private APIJWTService apijwtService;
+    @Autowired private ExperimentService experimentService;
+    @Autowired private ExportService exportService;
+    @Autowired private APIJWTService apijwtService;
 
     /**
      * To show the experiment in a course (context) in a platform deployment.
@@ -67,7 +62,7 @@ public class ExperimentController {
     public ResponseEntity<List<ExperimentDto>> allExperimentsByCourse(HttpServletRequest req) throws BadTokenException {
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
 
-        if (securedInfo == null){
+        if (securedInfo == null) {
             throw new BadTokenException(TextConstants.BAD_TOKEN);
         }
 
@@ -114,7 +109,7 @@ public class ExperimentController {
         log.debug("Creating Experiment with title : {}", experimentDto.getTitle());
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
 
-        if (securedInfo ==null){
+        if (securedInfo ==null) {
             throw new BadTokenException(TextConstants.BAD_TOKEN);
         }
 
@@ -129,9 +124,10 @@ public class ExperimentController {
         //if an empty experiment has been created but not used, use it.
         ExperimentDto existingEmpty = experimentService.getEmptyExperiment(securedInfo, experimentDto);
 
-        if (existingEmpty!=null){
+        if (existingEmpty != null) {
             experimentService.copyDto(existingEmpty, experimentDto);
             HttpHeaders headers = experimentService.buildHeaders(ucBuilder, existingEmpty.getExperimentId());
+
             return new ResponseEntity<>(existingEmpty, headers, HttpStatus.ALREADY_REPORTED);
         }
 

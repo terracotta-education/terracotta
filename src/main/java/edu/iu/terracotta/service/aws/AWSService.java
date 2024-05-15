@@ -4,5 +4,6 @@ import java.io.InputStream;
 
 public interface AWSService {
 
-    public InputStream readFileFromS3Bucket(String bucketName, String key);
+    InputStream readFileFromS3Bucket(String bucketName, String key);
+
 }

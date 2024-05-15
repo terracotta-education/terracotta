@@ -31,7 +31,16 @@ import edu.iu.terracotta.model.app.enumerator.QuestionTypes;
 import edu.iu.terracotta.model.app.enumerator.RegradeOption;
 import edu.iu.terracotta.model.oauth2.LTIToken;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
-import edu.iu.terracotta.repository.AllRepositories;
+import edu.iu.terracotta.repository.AnswerMcRepository;
+import edu.iu.terracotta.repository.AnswerMcSubmissionOptionRepository;
+import edu.iu.terracotta.repository.AssessmentRepository;
+import edu.iu.terracotta.repository.AssignmentRepository;
+import edu.iu.terracotta.repository.ExposureGroupConditionRepository;
+import edu.iu.terracotta.repository.ParticipantRepository;
+import edu.iu.terracotta.repository.QuestionSubmissionRepository;
+import edu.iu.terracotta.repository.SubmissionCommentRepository;
+import edu.iu.terracotta.repository.SubmissionRepository;
+import edu.iu.terracotta.repository.TreatmentRepository;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.AssessmentSubmissionService;
 import edu.iu.terracotta.service.app.QuestionSubmissionService;
@@ -66,7 +75,16 @@ import java.util.concurrent.atomic.AtomicInteger;
 @SuppressWarnings({"PMD.PreserveStackTrace", "PMD.GuardLogStatement", "PMD.MethodNamingConventions"})
 public class SubmissionServiceImpl implements SubmissionService {
 
-    @Autowired private AllRepositories allRepositories;
+    @Autowired private AnswerMcRepository answerMcRepository;
+    @Autowired private AnswerMcSubmissionOptionRepository answerMcSubmissionOptionRepository;
+    @Autowired private AssessmentRepository assessmentRepository;
+    @Autowired private AssignmentRepository assignmentRepository;
+    @Autowired private ExposureGroupConditionRepository exposureGroupConditionRepository;
+    @Autowired private ParticipantRepository participantRepository;
+    @Autowired private QuestionSubmissionRepository questionSubmissionRepository;
+    @Autowired private SubmissionCommentRepository submissionCommentRepository;
+    @Autowired private SubmissionRepository submissionRepository;
+    @Autowired private TreatmentRepository treatmentRepository;
     @Autowired private QuestionSubmissionService questionSubmissionService;
     @Autowired private SubmissionCommentService submissionCommentService;
     @Autowired private AssessmentSubmissionService assessmentSubmissionService;
@@ -78,7 +96,7 @@ public class SubmissionServiceImpl implements SubmissionService {
     public List<SubmissionDto> getSubmissions(Long experimentId, String userId, Long assessmentId, boolean student) throws NoSubmissionsException {
         //for instructor
         if (!student) {
-            List<Submission> submissions = allRepositories.submissionRepository.findByAssessment_AssessmentId(assessmentId);
+            List<Submission> submissions = submissionRepository.findByAssessment_AssessmentId(assessmentId);
             List<SubmissionDto> submissionDtoList = new ArrayList<>();
 
             for (Submission submission : submissions) {
@@ -90,7 +108,7 @@ public class SubmissionServiceImpl implements SubmissionService {
 
         //for student
         Participant participant = findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, userId);
-        List<Submission> submissions = allRepositories.submissionRepository.findByParticipant_ParticipantId(participant.getParticipantId());
+        List<Submission> submissions = submissionRepository.findByParticipant_ParticipantId(participant.getParticipantId());
 
         if (submissions.isEmpty()) {
             throw new NoSubmissionsException("There are no existing submissions for current user.");
@@ -109,14 +127,14 @@ public class SubmissionServiceImpl implements SubmissionService {
     public Submission getSubmission(Long experimentId, String userId, Long submissionId, boolean student) throws NoSubmissionsException {
         //for instructor
         if (!student) {
-            return allRepositories.submissionRepository.findBySubmissionId(submissionId);
+            return submissionRepository.findBySubmissionId(submissionId);
         }
 
         //for student
         Participant participant = findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, userId);
-        Optional<Submission> submission = allRepositories.submissionRepository.findByParticipant_ParticipantIdAndSubmissionId(participant.getParticipantId(), submissionId);
+        Optional<Submission> submission = submissionRepository.findByParticipant_ParticipantIdAndSubmissionId(participant.getParticipantId(), submissionId);
 
-        if (!submission.isPresent()) {
+        if (submission.isEmpty()) {
             throw new NoSubmissionsException("A submission for participant " + participant.getParticipantId() + "  with id " + submissionId + " not found");
         }
 
@@ -180,7 +198,7 @@ public class SubmissionServiceImpl implements SubmissionService {
         submissionDto.setGradeOverridden(submission.isGradeOverridden());
 
         if (questionSubmissions) {
-            List<QuestionSubmission> questionSubmissionList = allRepositories.questionSubmissionRepository
+            List<QuestionSubmission> questionSubmissionList = questionSubmissionRepository
                     .findBySubmission_SubmissionId(submission.getSubmissionId());
             // If submission has not been submitted for grading yet, also return the answer
             // submissions (so the frontend can tell whether it needs to create or update
@@ -192,7 +210,7 @@ public class SubmissionServiceImpl implements SubmissionService {
                         questionSubmission -> {
                             try {
                                 return questionSubmissionService.toDto(questionSubmission, !hasSubmitted, false);
-                            } catch(Exception e) {
+                            } catch (Exception e) {
                                 return null;
                             }
                         })
@@ -202,7 +220,7 @@ public class SubmissionServiceImpl implements SubmissionService {
 
         if (submissionComments) {
             submissionDto.setSubmissionCommentDtoList(
-                CollectionUtils.emptyIfNull(allRepositories.submissionCommentRepository.findBySubmission_SubmissionId(submission.getSubmissionId())).stream()
+                CollectionUtils.emptyIfNull(submissionCommentRepository.findBySubmission_SubmissionId(submission.getSubmissionId())).stream()
                     .map(submissionComment -> submissionCommentService.toDto(submissionComment))
                     .toList()
             );
@@ -236,17 +254,17 @@ public class SubmissionServiceImpl implements SubmissionService {
 
         submission.setDateSubmitted(submissionDto.getDateSubmitted());
         submission.setLateSubmission(submissionDto.isLateSubmission());
-        Optional<Participant> participant = allRepositories.participantRepository.findById(submissionDto.getParticipantId());
+        Optional<Participant> participant = participantRepository.findById(submissionDto.getParticipantId());
 
-        if (!participant.isPresent()) {
+        if (participant.isEmpty()) {
             throw new DataServiceException("The participant for the submission does not exist.");
         }
 
         submission.setParticipant(participant.get());
 
-        Optional<Assessment> assessment = allRepositories.assessmentRepository.findById(submissionDto.getAssessmentId());
+        Optional<Assessment> assessment = assessmentRepository.findById(submissionDto.getAssessmentId());
 
-        if (!assessment.isPresent()) {
+        if (assessment.isEmpty()) {
             throw new DataServiceException("The assessment for the submission does not exist.");
         }
 
@@ -256,20 +274,20 @@ public class SubmissionServiceImpl implements SubmissionService {
     }
 
     private Submission save(Submission submission) {
-        return allRepositories.submissionRepository.save(submission);
+        return submissionRepository.save(submission);
     }
 
     private Participant findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(Long experimentId, String userId) {
-        return allRepositories.participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, userId);
+        return participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, userId);
     }
 
     private void saveAndFlush(Submission submissionToChange) {
-        allRepositories.submissionRepository.saveAndFlush(submissionToChange);
+        submissionRepository.saveAndFlush(submissionToChange);
     }
 
     @Override
     public void deleteById(Long id) throws EmptyResultDataAccessException {
-        allRepositories.submissionRepository.deleteBySubmissionId(id);
+        submissionRepository.deleteBySubmissionId(id);
     }
 
     @Override
@@ -281,9 +299,9 @@ public class SubmissionServiceImpl implements SubmissionService {
     @Transactional
     public void finalizeAndGrade(Long submissionId, SecuredInfo securedInfo, boolean student, RegradeOption regradeOption)
             throws DataServiceException, AssignmentDatesException, CanvasApiException, IOException, ConnectionException {
-        Optional<Submission> submission = allRepositories.submissionRepository.findById(submissionId);
+        Optional<Submission> submission = submissionRepository.findById(submissionId);
 
-        if (!submission.isPresent()) {
+        if (submission.isEmpty()) {
             throw new DataServiceException("Error 105: Submission not found");
         }
 
@@ -333,8 +351,8 @@ public class SubmissionServiceImpl implements SubmissionService {
                     QuestionSubmission questionSubmission = new QuestionSubmission();
                     questionSubmission.setQuestion(question);
                     questionSubmission.setSubmission(newSubmission);
-                    final QuestionSubmission newQuestionSubmission = allRepositories.questionSubmissionRepository.save(questionSubmission);
-                    List<AnswerMc> answers = allRepositories.answerMcRepository.findByQuestion_QuestionId(question.getQuestionId());
+                    final QuestionSubmission newQuestionSubmission = questionSubmissionRepository.save(questionSubmission);
+                    List<AnswerMc> answers = answerMcRepository.findByQuestion_QuestionId(question.getQuestionId());
                     Collections.shuffle(answers);
                     AtomicInteger order = new AtomicInteger(0);
 
@@ -344,7 +362,7 @@ public class SubmissionServiceImpl implements SubmissionService {
                             answerMcSubmissionOption.setAnswerMc(answerMc);
                             answerMcSubmissionOption.setAnswerOrder(order.getAndIncrement());
                             answerMcSubmissionOption.setQuestionSubmission(newQuestionSubmission);
-                            allRepositories.answerMcSubmissionOptionRepository.save(answerMcSubmissionOption);
+                            answerMcSubmissionOptionRepository.save(answerMcSubmissionOption);
                         });
                 });
 
@@ -356,9 +374,9 @@ public class SubmissionServiceImpl implements SubmissionService {
     @Override
     @Transactional
     public void grade(Long submissionId, SecuredInfo securedInfo) throws DataServiceException {
-        Optional<Submission> submission = allRepositories.submissionRepository.findById(submissionId);
+        Optional<Submission> submission = submissionRepository.findById(submissionId);
 
-        if (!submission.isPresent()) {
+        if (submission.isEmpty()) {
             throw new DataServiceException("Error 105: Submission not found");
         }
 
@@ -459,7 +477,7 @@ public class SubmissionServiceImpl implements SubmissionService {
      * @return null if all submissions require manual grading
      */
     public Float getScoreFromMultipleSubmissions(Participant participant, Assessment assessment) {
-        List<Submission> submissionList = allRepositories.submissionRepository.findByParticipant_ParticipantIdAndAssessment_AssessmentIdAndDateSubmittedNotNullOrderByDateSubmitted(
+        List<Submission> submissionList = submissionRepository.findByParticipant_ParticipantIdAndAssessment_AssessmentIdAndDateSubmittedNotNullOrderByDateSubmitted(
                 participant.getParticipantId(), assessment.getAssessmentId());
 
         // Handle case where only one submission is allowed
@@ -608,10 +626,10 @@ public class SubmissionServiceImpl implements SubmissionService {
 
     @Override
     public void validateUser(Long experimentId, String userId, Long submissionId) throws InvalidUserException {
-        Participant participant = allRepositories.participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, userId);
-        Optional<Submission> submission = allRepositories.submissionRepository.findByParticipant_ParticipantIdAndSubmissionId(participant.getParticipantId(), submissionId);
+        Participant participant = participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, userId);
+        Optional<Submission> submission = submissionRepository.findByParticipant_ParticipantIdAndSubmissionId(participant.getParticipantId(), submissionId);
 
-        if (!submission.isPresent()) {
+        if (submission.isEmpty()) {
             throw new InvalidUserException("Error 121: Students can only access answer submissions from their own submissions. Submission with id "
                     + submissionId + " does not belong to participant with id " + participant.getParticipantId());
         }
@@ -629,7 +647,7 @@ public class SubmissionServiceImpl implements SubmissionService {
     @Override
     public void allowedSubmission(Long submissionId, SecuredInfo securedInfo) throws SubmissionNotMatchingException {
         try {
-            Optional<Submission> submission = allRepositories.submissionRepository.findById(submissionId);
+            Optional<Submission> submission = submissionRepository.findById(submissionId);
 
             if (submission.isPresent()) {
                 if (!submission.get().getParticipant().getLtiUserEntity().getUserKey().equals(securedInfo.getUserId())) {
@@ -649,13 +667,13 @@ public class SubmissionServiceImpl implements SubmissionService {
 
                     throw new SubmissionNotMatchingException("Student not in a group, but not sending the default condition");
                 } else {
-                    Optional<ExposureGroupCondition> exposureGroupCondition = allRepositories.exposureGroupConditionRepository.getByCondition_ConditionIdAndExposure_ExposureId(condition.getConditionId(), treatment.getAssignment().getExposure().getExposureId());
+                    Optional<ExposureGroupCondition> exposureGroupCondition = exposureGroupConditionRepository.getByCondition_ConditionIdAndExposure_ExposureId(condition.getConditionId(), treatment.getAssignment().getExposure().getExposureId());
 
                     if (exposureGroupCondition.isPresent() && group == exposureGroupCondition.get().getGroup()) {
                         return;
                     }
 
-                    List<Treatment> treatments = allRepositories.treatmentRepository.findByAssignment_AssignmentId(submission.get().getAssessment().getTreatment().getAssignment().getAssignmentId());
+                    List<Treatment> treatments = treatmentRepository.findByAssignment_AssignmentId(submission.get().getAssessment().getTreatment().getAssignment().getAssignmentId());
 
                     if (treatments.size() == 1) {
                         // this is a single treatment assignment; allow submission from other exposure groups
@@ -690,7 +708,7 @@ public class SubmissionServiceImpl implements SubmissionService {
         }
 
         assignment.setStarted(Timestamp.valueOf(LocalDateTime.now()));
-        allRepositories.assignmentRepository.save(assignment);
+        assignmentRepository.save(assignment);
     }
 
     private String lineItemId(Assignment assignment) throws ConnectionException {

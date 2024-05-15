@@ -9,7 +9,6 @@ import edu.iu.terracotta.exceptions.DataServiceException;
 public interface AdminService {
 
     void resyncTargetUris(long platformDeploymentId, String tokenOverride) throws CanvasApiException, DataServiceException, ConnectionException, IOException;
-
     boolean isTerracottaAdmin(String userKey);
 
 }

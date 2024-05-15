@@ -10,19 +10,19 @@ import lombok.Setter;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.EnumType;
-import javax.persistence.Enumerated;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
-import javax.persistence.OneToOne;
-import javax.persistence.Table;
-import javax.persistence.Transient;
-import javax.persistence.UniqueConstraint;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
+import jakarta.persistence.UniqueConstraint;
 
 import java.sql.Timestamp;
 
@@ -45,17 +45,26 @@ public class Participant extends BaseEntity {
 
     @ManyToOne(optional = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
-    @JoinColumn(name = "experiment_experiment_id", nullable = false)
+    @JoinColumn(
+        name = "experiment_experiment_id",
+        nullable = false
+    )
     private Experiment experiment;
 
     @ManyToOne(optional = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
-    @JoinColumn(name = "lti_user_entity_user_id", nullable = false)
+    @JoinColumn(
+        name = "lti_user_entity_user_id",
+        nullable = false
+    )
     private LtiUserEntity ltiUserEntity;
 
     @ManyToOne(optional = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
-    @JoinColumn(name = "lti_membership_entity_membership_id", nullable = false)
+    @JoinColumn(
+        name = "lti_membership_entity_membership_id",
+        nullable = false
+    )
     private LtiMembershipEntity ltiMembershipEntity;
 
     @Column
@@ -80,11 +89,7 @@ public class Participant extends BaseEntity {
 
     @Transient
     public boolean isTestStudent() {
-        if (ltiUserEntity == null) {
-            return true;
-        }
-
-        return ltiUserEntity.isTestStudent();
+        return ltiUserEntity == null || ltiUserEntity.isTestStudent();
     }
 
 }

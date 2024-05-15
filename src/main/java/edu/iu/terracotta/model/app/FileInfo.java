@@ -7,12 +7,12 @@ import lombok.Setter;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
-import javax.persistence.Table;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 
 @Entity
 @Getter
@@ -21,7 +21,10 @@ import javax.persistence.Table;
 public class FileInfo extends BaseEntity {
 
     @Id
-    @Column(name = "file_id", nullable = false)
+    @Column(
+        name = "file_id",
+        nullable = false
+    )
     private String fileId;
 
     @Column
@@ -29,7 +32,10 @@ public class FileInfo extends BaseEntity {
 
     @ManyToOne(optional = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
-    @JoinColumn(name = "experiment_experiment_id", nullable = false)
+    @JoinColumn(
+        name = "experiment_experiment_id",
+        nullable = false
+    )
     private Experiment experiment;
 
     @Column

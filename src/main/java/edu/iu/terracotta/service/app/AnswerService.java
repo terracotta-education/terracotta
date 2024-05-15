@@ -17,31 +17,18 @@ import java.util.Map;
 
 public interface AnswerService {
 
-    //METHODS FOR MC ANSWERS
     List<AnswerDto> findAllByQuestionIdMC(Long questionId, boolean showCorrectAnswer);
-
     List<AnswerDto> findAllByQuestionIdMC(QuestionSubmission questionSubmission, boolean showCorrectAnswer);
-
     AnswerDto getAnswerMC(Long answerId);
-
     AnswerDto postAnswerMC(AnswerDto answerDto, long questionId) throws IdInPostException, DataServiceException, MultipleChoiceLimitReachedException;
-
     AnswerDto toDtoMC(AnswerMc answer, int answerOrder, boolean showCorrectAnswer);
-
     AnswerMc fromDtoMC(AnswerDto answerDto) throws DataServiceException;
-
     AnswerMc findByAnswerId(Long answerId);
-
     List<AnswerDto> updateAnswerMC(Map<AnswerMc, AnswerDto> map);
-
     void deleteByIdMC(Long id) throws EmptyResultDataAccessException;
-
     HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId, Long questionId, Long answerId);
-
     void limitReached(Long questionId) throws MultipleChoiceLimitReachedException;
-
     List<AnswerMc> duplicateAnswersForQuestion(Long originalQuestionId, Question newQuestion) throws QuestionNotMatchingException;
-
-    //METHODS FOR ALL ANSWER TYPES
     String getQuestionType(Long questionId);
+
 }

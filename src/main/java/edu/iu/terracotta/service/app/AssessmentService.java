@@ -38,50 +38,29 @@ import java.util.List;
 public interface AssessmentService {
 
     List<AssessmentDto> getAllAssessmentsByTreatment(Long treatmentId, boolean submissions) throws AssessmentNotMatchingException;
-
-    AssessmentDto postAssessment(AssessmentDto assessmentDto, long treatmentId)
-                    throws IdInPostException, AssessmentNotMatchingException, DataServiceException, TitleValidationException;
-
+    AssessmentDto postAssessment(AssessmentDto assessmentDto, long treatmentId) throws IdInPostException, AssessmentNotMatchingException, DataServiceException, TitleValidationException;
     Assessment duplicateAssessment(long assessmentId, long treatmentId) throws DataServiceException, AssessmentNotMatchingException, TreatmentNotMatchingException, QuestionNotMatchingException;
-
     Assessment duplicateAssessment(long assessmentId, Treatment treatment, Assignment assignment) throws DataServiceException, AssessmentNotMatchingException, QuestionNotMatchingException;
-
     AssessmentDto toDto(Assessment assessment, boolean questions, boolean answers, boolean submissions, boolean isStudent) throws AssessmentNotMatchingException;
-
     AssessmentDto toDto(Assessment assessment, Long submissionId, boolean questions, boolean answers, boolean submissions, boolean isStudent) throws AssessmentNotMatchingException;
-
     Assessment fromDto(AssessmentDto assessmentDto) throws DataServiceException;
-
     Assessment getAssessment(Long id);
-
     AssessmentDto putAssessment(Long id, AssessmentDto assessmentDto, boolean processQuestions)
                     throws TitleValidationException, RevealResponsesSettingValidationException,
                     MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException, IdInPostException, DataServiceException, NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException;
-
     Assessment updateAssessment(Long id, AssessmentDto assessmentDto, boolean processQuestions)
                     throws TitleValidationException, RevealResponsesSettingValidationException,
                     MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException, IdInPostException, DataServiceException, NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException;
-
     void deleteById(Long id) throws EmptyResultDataAccessException;
-
     AssessmentDto defaultAssessment(AssessmentDto assessmentDto, Long treatmentId);
-
     void updateTreatment(Long treatmentId, Assessment assessment);
-
     HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId);
-
     Assessment getAssessmentForParticipant(Participant participant, SecuredInfo securedInfo) throws AssessmentNotMatchingException;
-
     Assessment getAssessmentByGroupId(Long experimentId, String canvasAssignmentId, Long groupId) throws AssessmentNotMatchingException;
-
     Assessment getAssessmentByConditionId(Long experimentId, String canvasAssignmentId, Long conditionId) throws AssessmentNotMatchingException;
-
     AssessmentDto viewAssessment(long expermientId, SecuredInfo securedInfo) throws ExperimentNotMatchingException, ParticipantNotMatchingException, AssessmentNotMatchingException, GroupNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, DataServiceException, CanvasApiException, IOException, AssignmentDatesException, ConnectionException;
-
     void verifySubmissionLimit(Integer limit, int existingSubmissionsCount) throws AssignmentAttemptException;
-
     void verifySubmissionWaitTime(Float waitTime, List<Submission> submissionList) throws AssignmentAttemptException;
-
     void regradeQuestions(RegradeDetails regradeDetails, long assessmentId) throws DataServiceException, ConnectionException, CanvasApiException, IOException;
 
 }

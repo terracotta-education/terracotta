@@ -12,27 +12,21 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 
+@SuppressWarnings({"PMD.MethodNamingConventions"})
 public interface QuestionSubmissionRepository extends JpaRepository<QuestionSubmission, Long> {
 
     List<QuestionSubmission> findBySubmission_SubmissionId(Long submissionId);
-
     List<QuestionSubmission> findBySubmission_Participant_Experiment_ExperimentId(Long experimentId);
-
     Page<QuestionSubmission> findBySubmission_Participant_Experiment_ExperimentId(Long experimentId, Pageable pageable);
-
     QuestionSubmission findByQuestionSubmissionId(Long questionSubmissionId);
-
-    Optional<QuestionSubmission> findByQuestion_QuestionIdAndSubmission_SubmissionId(long questionId,
-            long submissionId);
-
+    Optional<QuestionSubmission> findByQuestion_QuestionIdAndSubmission_SubmissionId(long questionId, long submissionId);
     boolean existsBySubmission_Assessment_AssessmentIdAndQuestion_QuestionId(Long assessmentId, Long questionId);
-
     boolean existsBySubmission_Assessment_AssessmentIdAndSubmission_SubmissionIdAndQuestion_QuestionId(Long assessmentId, Long submissionId, Long questionId);
-
     boolean existsBySubmission_Assessment_AssessmentIdAndSubmission_SubmissionIdAndQuestionSubmissionId(Long assessmentId, Long submissionId, Long questionSubmissionId);
 
-    @Transactional
     @Modifying
+    @Transactional
     @Query("delete from QuestionSubmission s where s.questionSubmissionId = ?1")
     void deleteByQuestionSubmissionId(Long questionSubmissionId);
+
 }

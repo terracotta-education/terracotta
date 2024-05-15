@@ -33,7 +33,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Optional;
 
@@ -47,11 +47,8 @@ import java.util.Optional;
 @RequestMapping("/config")
 public class ConfigurationController {
 
-    @Autowired
-    private PlatformDeploymentRepository platformDeploymentRepository;
-
-    @Autowired
-    private ToolDeploymentRepository toolDeploymentRepository;
+    @Autowired private PlatformDeploymentRepository platformDeploymentRepository;
+    @Autowired private ToolDeploymentRepository toolDeploymentRepository;
 
     /**
      * To show the configurations.
@@ -112,7 +109,7 @@ public class ConfigurationController {
         log.info("Updating User with id {}", id);
         Optional<PlatformDeployment> platformDeploymentSearchResult = platformDeploymentRepository.findById(id);
 
-        if (!platformDeploymentSearchResult.isPresent()) {
+        if (platformDeploymentSearchResult.isEmpty()) {
             log.error("Unable to update. PlatformDeployment with id {} not found.", id);
             return new ResponseEntity<>("Unable to update. User with id " + id + TextConstants.NOT_FOUND_SUFFIX, HttpStatus.NOT_FOUND);
         }

@@ -9,7 +9,6 @@ import edu.iu.terracotta.model.oauth2.LTIToken;
 public interface AdvantageMembershipService {
 
     LTIToken getToken(PlatformDeployment platformDeployment) throws ConnectionException;
-
     CourseUsers callMembershipService(LTIToken ltiToken, LtiContextEntity context) throws ConnectionException;
 
 }

@@ -30,7 +30,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 
 @Slf4j
@@ -41,11 +41,8 @@ public class GroupController {
 
     public static final String REQUEST_ROOT = "api/experiments/{experimentId}/groups";
 
-    @Autowired
-    private GroupService groupService;
-
-    @Autowired
-    private APIJWTService apijwtService;
+    @Autowired private GroupService groupService;
+    @Autowired private APIJWTService apijwtService;
 
     @GetMapping
     public ResponseEntity<List<GroupDto>> allGroupsByExperiment(@PathVariable long experimentId, HttpServletRequest req)
@@ -59,7 +56,7 @@ public class GroupController {
 
         List<GroupDto> groupList = groupService.getGroups(experimentId);
 
-        if(groupList.isEmpty()) {
+        if (groupList.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }
 
@@ -151,7 +148,7 @@ public class GroupController {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
-        try{
+        try {
             groupService.deleteById(groupId);
         } catch (EmptyResultDataAccessException ex) {
             log.warn(ex.getMessage());

@@ -22,60 +22,27 @@ import java.util.List;
 public interface AnswerSubmissionService {
 
     List<AnswerSubmissionDto> getAnswerSubmissions(long questionSubmissionId, String answerType) throws DataServiceException, IOException;
-
     AnswerSubmissionDto getAnswerSubmission(long answerSubmissionId, String answerType) throws DataServiceException, IOException;
-
     AnswerSubmissionDto postAnswerSubmission(AnswerSubmissionDto answerSubmissionDto, long questionSubmissionId) throws IdInPostException, DataServiceException, TypeNotSupportedException, IOException;
-
-    List<AnswerSubmissionDto> postAnswerSubmissions(List<AnswerSubmissionDto> answerSubmissionDto)
-            throws IdInPostException, DataServiceException, TypeNotSupportedException, IdMissingException, ExceedingLimitException, IOException;
-
+    List<AnswerSubmissionDto> postAnswerSubmissions(List<AnswerSubmissionDto> answerSubmissionDto) throws IdInPostException, DataServiceException, TypeNotSupportedException, IdMissingException, ExceedingLimitException, IOException;
     void updateAnswerSubmission(AnswerSubmissionDto answerSubmissionDto, long answerSubmissionId, String answerType) throws AnswerNotMatchingException, DataServiceException;
-
     void deleteAnswerSubmission(long answerSubmissionId, String answerType) throws DataServiceException;
-
-    //METHODS FOR MC ANSWER SUBMISSIONS
-
     List<AnswerSubmissionDto> getAnswerMcSubmissions(Long questionSubmissionId);
-
     AnswerSubmissionDto toDtoMC(AnswerMcSubmission mcAnswer);
-
     AnswerMcSubmission fromDtoMC(AnswerSubmissionDto answerSubmissionDto) throws DataServiceException;
-
     void updateAnswerMcSubmission(Long id, AnswerSubmissionDto answerSubmissionDto) throws AnswerNotMatchingException;
-
-    //METHODS FOR ESSAY ANSWER SUBMISSIONS
-
     List<AnswerSubmissionDto> getAnswerEssaySubmissions(Long questionSubmissionId);
-
     AnswerSubmissionDto toDtoEssay(AnswerEssaySubmission essayAnswer);
-
     AnswerEssaySubmission fromDtoEssay(AnswerSubmissionDto answerSubmissionDto) throws DataServiceException;
-
     void updateAnswerEssaySubmission(Long id, AnswerSubmissionDto answerSubmissionDto);
-
-    //USED BY ALL TYPES
-
     String getAnswerType(Long questionSubmissionId);
-
     HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId, Long submissionId, Long questionSubmissionId, Long answerSubmissionId);
-
-    //METHODS FOR FILE SUBMISSIONS
-
     AnswerSubmissionDto toDtoFile(AnswerFileSubmission essayAnswer) throws IOException;
-
     AnswerFileSubmission fromDtoFile(AnswerSubmissionDto answerSubmissionDto) throws DataServiceException;
-
     List<AnswerSubmissionDto> getAnswerFileSubmissions(Long questionSubmissionId) throws IOException;
-
     void updateAnswerFileSubmission(Long id, AnswerSubmissionDto answerSubmissionDto);
-
-    AnswerSubmissionDto handleFileAnswerSubmission(AnswerSubmissionDto answerSubmissionDto, MultipartFile file)
-        throws IdInPostException, DataServiceException, TypeNotSupportedException, IOException;
-
-    AnswerSubmissionDto handleFileAnswerSubmissionUpdate(AnswerSubmissionDto answerSubmissionDto, MultipartFile file)
-        throws IdInPostException, DataServiceException, TypeNotSupportedException, IOException;
-
+    AnswerSubmissionDto handleFileAnswerSubmission(AnswerSubmissionDto answerSubmissionDto, MultipartFile file) throws IdInPostException, DataServiceException, TypeNotSupportedException, IOException;
+    AnswerSubmissionDto handleFileAnswerSubmissionUpdate(AnswerSubmissionDto answerSubmissionDto, MultipartFile file) throws IdInPostException, DataServiceException, TypeNotSupportedException, IOException;
     FileResponseDto getFileResponseDto(long answerSubmissionId) throws IOException;
 
 }

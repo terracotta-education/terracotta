@@ -15,21 +15,13 @@ import java.io.File;
 public interface FileStorageService {
 
     void deleteConsentFile(long experimentId);
-
     Resource getConsentFile(long experimentId);
-
     FileSubmissionLocal saveConsentFile(MultipartFile file, long experimentId);
-
     FileInfoDto uploadConsentFile(long experimentId, String title, MultipartFile multipartFile, SecuredInfo securedInfo) throws AssignmentNotCreatedException, CanvasApiException, AssignmentNotEditedException, AssignmentNotMatchingException;
-
     void deleteConsentAssignment(long experimentId, SecuredInfo securedInfo) throws AssignmentNotEditedException, CanvasApiException;
-
     String parseHTMLFiles (String html, String localUrl);
-
     FileSubmissionLocal saveFileSubmissionLocal(MultipartFile file);
-
     File getFileSubmissionLocal(long id);
-
     boolean compressFile(String filePathToCompress, String encryptionPhrase, String compressedFileExtension);
 
 }

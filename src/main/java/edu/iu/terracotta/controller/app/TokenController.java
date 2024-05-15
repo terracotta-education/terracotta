@@ -26,7 +26,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.List;
@@ -37,8 +37,7 @@ import java.util.List;
 @RequestMapping(value = "/api/oauth", produces = MediaType.APPLICATION_JSON_VALUE)
 public class TokenController {
 
-    @Autowired
-    private APIJWTService apijwtService;
+    @Autowired private APIJWTService apijwtService;
 
     @PostMapping("/trade")
     public ResponseEntity getTimedToken(HttpServletRequest req) {
@@ -50,13 +49,13 @@ public class TokenController {
                 // experimentId and assignmentId are optionals so check the null.
                 Long assignmentId = null;
 
-                if (claims.getPayload().get("assignmentId")!=null){
+                if (claims.getPayload().get("assignmentId") != null) {
                     assignmentId = Long.parseLong(claims.getPayload().get("assignmentId").toString());
                 }
 
                 Long experimentId = null;
 
-                if (claims.getPayload().get("experimentId")!=null){
+                if (claims.getPayload().get("experimentId") != null) {
                     experimentId = Long.parseLong(claims.getPayload().get("experimentId").toString());
                 }
 
@@ -84,9 +83,9 @@ public class TokenController {
             } catch (GeneralSecurityException | IOException e) {
                 return new ResponseEntity<>("Error generating token: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
             }
-        } else {
-            return new ResponseEntity<>("Token passed was not a one time valid token", HttpStatus.UNAUTHORIZED);
         }
+
+            return new ResponseEntity<>("Token passed was not a one time valid token", HttpStatus.UNAUTHORIZED);
     }
 
     @PostMapping("/refresh")

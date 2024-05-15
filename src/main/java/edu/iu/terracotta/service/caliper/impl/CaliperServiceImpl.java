@@ -12,7 +12,9 @@ import edu.iu.terracotta.model.app.dto.media.MediaLocationDto;
 import edu.iu.terracotta.model.app.dto.media.MediaObjectDto;
 import edu.iu.terracotta.model.events.Event;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
-import edu.iu.terracotta.repository.AllRepositories;
+import edu.iu.terracotta.repository.EventRepository;
+import edu.iu.terracotta.repository.ExposureGroupConditionRepository;
+import edu.iu.terracotta.repository.SubmissionRepository;
 import edu.iu.terracotta.service.app.AssessmentSubmissionService;
 import edu.iu.terracotta.service.caliper.CaliperService;
 import edu.iu.terracotta.service.common.Utils;
@@ -67,16 +69,19 @@ public class CaliperServiceImpl implements CaliperService {
 
     public static final String DATA_VERSION = "http://purl.imsglobal.org/ctx/caliper/v1p2";
 
-    @Autowired private AllRepositories allRepositories;
+    @Autowired private EventRepository eventRepository;
+    @Autowired private ExposureGroupConditionRepository exposureGroupConditionRepository;
+    @Autowired private SubmissionRepository submissionRepository;
     @Autowired private AssessmentSubmissionService assessmentSubmissionService;
 
-    private Sensor defaultSensor;
-    private String applicationName;
-    private String applicationUrl;
     private final SoftwareApplication softwareApplication;
     private final JsonldContext context;
     private final boolean caliperSend;
     private final boolean caliperDB;
+
+    private Sensor defaultSensor;
+    private String applicationName;
+    private String applicationUrl;
 
     public CaliperServiceImpl(@Value("${caliper.sensor-id:1}") final String sensorId,
                               @Value("${caliper.client-id:1}") final String clientId,
@@ -517,7 +522,7 @@ public class CaliperServiceImpl implements CaliperService {
     }
 
     private void saveEvent(Event event) {
-        allRepositories.eventRepository.save(event);
+        eventRepository.save(event);
     }
 
     private Person prepareActor(LtiMembershipEntity ltiMembershipEntity, String canvasGlobalId) {
@@ -626,7 +631,7 @@ public class CaliperServiceImpl implements CaliperService {
             .type(EntityType.ATTEMPT)
             .assignee(actor)
             .assignable(assessment)
-            .count(allRepositories.submissionRepository.findByParticipant_ParticipantIdAndAssessment_AssessmentId(submission.getParticipant().getParticipantId(), submission.getAssessment().getAssessmentId()).size())
+            .count(submissionRepository.findByParticipant_ParticipantIdAndAssessment_AssessmentId(submission.getParticipant().getParticipantId(), submission.getAssessment().getAssessmentId()).size())
             .dateCreated(convertTimestamp(submission.getCreatedAt(), false))
             .startedAtTime(convertTimestamp(submission.getCreatedAt(), false))
             .endedAtTime(convertTimestamp(submission.getDateSubmitted(), true)) //To avoid the error if they submit instantaneously for some reason.
@@ -711,7 +716,7 @@ public class CaliperServiceImpl implements CaliperService {
     }
 
     private Role roleToCaliperRole(int role) {
-        switch(role) {
+        switch (role) {
             case 2:
                 return Role.ADMINISTRATOR;
             case LtiStrings.ROLE_INSTRUCTOR:
@@ -724,7 +729,7 @@ public class CaliperServiceImpl implements CaliperService {
     }
 
     private String roleToString(int role) {
-        switch(role) {
+        switch (role) {
             case 2:
                 return LtiStrings.LTI_ROLE_MEMBERSHIP_ADMIN;
             case LtiStrings.ROLE_INSTRUCTOR:
@@ -790,7 +795,7 @@ public class CaliperServiceImpl implements CaliperService {
         if (participant.getGroup() != null) {
             extensions.put("terracotta_condition_id", submission.getAssessment().getTreatment().getCondition().getConditionId());
 
-            Optional<ExposureGroupCondition> groupCondition = allRepositories.exposureGroupConditionRepository.getByGroup_GroupIdAndCondition_ConditionId(participant.getGroup().getGroupId(), submission.getAssessment().getTreatment().getCondition().getConditionId());
+            Optional<ExposureGroupCondition> groupCondition = exposureGroupConditionRepository.getByGroup_GroupIdAndCondition_ConditionId(participant.getGroup().getGroupId(), submission.getAssessment().getTreatment().getCondition().getConditionId());
 
             if (groupCondition.isPresent()) {
                 extensions.put("terracotta_exposure_id", groupCondition.get().getExposure().getExposureId());

@@ -13,7 +13,9 @@ import edu.iu.terracotta.model.app.QuestionSubmission;
 import edu.iu.terracotta.model.app.dto.AnswerDto;
 import edu.iu.terracotta.model.app.dto.QuestionDto;
 import edu.iu.terracotta.model.app.enumerator.QuestionTypes;
-import edu.iu.terracotta.repository.AllRepositories;
+import edu.iu.terracotta.repository.AssessmentRepository;
+import edu.iu.terracotta.repository.QuestionRepository;
+import edu.iu.terracotta.repository.QuestionSubmissionRepository;
 import edu.iu.terracotta.service.app.AnswerService;
 import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.service.app.QuestionService;
@@ -29,8 +31,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -41,14 +43,16 @@ import java.util.Optional;
 @Component
 public class QuestionServiceImpl implements QuestionService {
 
-    @Autowired private AllRepositories allRepositories;
+    @Autowired private AssessmentRepository assessmentRepository;
+    @Autowired private QuestionRepository questionRepository;
+    @Autowired private QuestionSubmissionRepository questionSubmissionRepository;
     @Autowired private AnswerService answerService;
     @Autowired private FileStorageService fileStorageService;
 
     @PersistenceContext private EntityManager entityManager;
 
     private List<Question> findAllByAssessmentId(Long assessmentId) {
-        return allRepositories.questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(assessmentId);
+        return questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(assessmentId);
     }
 
     @Override
@@ -60,7 +64,7 @@ public class QuestionServiceImpl implements QuestionService {
 
     @Override
     public Question getQuestion(Long id) {
-        return allRepositories.questionRepository.findByQuestionId(id);
+        return questionRepository.findByQuestionId(id);
     }
 
     @Override
@@ -108,7 +112,7 @@ public class QuestionServiceImpl implements QuestionService {
                 Optional<QuestionSubmission> questionSubmission = Optional.empty();
 
                 if (submissionId != null) {
-                    questionSubmission = this.allRepositories.questionSubmissionRepository.findByQuestion_QuestionIdAndSubmission_SubmissionId(question.getQuestionId(), submissionId);
+                    questionSubmission = questionSubmissionRepository.findByQuestion_QuestionIdAndSubmission_SubmissionId(question.getQuestionId(), submissionId);
                 }
 
                 if (questionSubmission.isPresent()) {
@@ -148,9 +152,9 @@ public class QuestionServiceImpl implements QuestionService {
         question.setPoints(questionDto.getPoints());
         question.setQuestionOrder(questionDto.getQuestionOrder());
         question.setQuestionType(questionType);
-        Optional<Assessment> assessment = allRepositories.assessmentRepository.findById(questionDto.getAssessmentId());
+        Optional<Assessment> assessment = assessmentRepository.findById(questionDto.getAssessmentId());
 
-        if (!assessment.isPresent()) {
+        if (assessment.isEmpty()) {
             throw new DataServiceException("The assessment for the question does not exist");
         }
 
@@ -161,13 +165,13 @@ public class QuestionServiceImpl implements QuestionService {
 
     @Override
     public Question save(Question question) {
-        return allRepositories.questionRepository.save(question);
+        return questionRepository.save(question);
     }
 
     @Override
     @Transactional
     public void updateQuestion(Map<Question, QuestionDto> map) throws NegativePointsException {
-        for(Map.Entry<Question, QuestionDto> entry : map.entrySet()) {
+        for (Map.Entry<Question, QuestionDto> entry : map.entrySet()) {
             Question question = entry.getKey();
             QuestionDto questionDto = entry.getValue();
             question.setHtml(questionDto.getHtml());
@@ -189,12 +193,12 @@ public class QuestionServiceImpl implements QuestionService {
 
     @Override
     public void deleteById(Long id) throws EmptyResultDataAccessException {
-        allRepositories.questionRepository.deleteByQuestionId(id);
+        questionRepository.deleteByQuestionId(id);
     }
 
     @Override
     public Question findByQuestionId(Long id) {
-        return allRepositories.questionRepository.findByQuestionId(id);
+        return questionRepository.findByQuestionId(id);
     }
 
     @Override

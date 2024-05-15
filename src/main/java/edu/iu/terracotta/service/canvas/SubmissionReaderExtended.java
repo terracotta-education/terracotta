@@ -10,8 +10,6 @@ import java.util.List;
 
 public interface SubmissionReaderExtended extends CanvasReader<Submission, SubmissionReaderExtended> {
 
-
     List<Submission> listSubmissionsForMultipleAssignments(GetSubmissionsOptions options) throws IOException;
-
 
 }

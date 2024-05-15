@@ -18,28 +18,34 @@ import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.ExposureGroupCondition;
 import edu.iu.terracotta.model.app.Group;
 import edu.iu.terracotta.model.app.enumerator.DistributionTypes;
-import edu.iu.terracotta.repository.AllRepositories;
+import edu.iu.terracotta.repository.AssignmentRepository;
+import edu.iu.terracotta.repository.ExposureGroupConditionRepository;
+import edu.iu.terracotta.repository.GroupRepository;
+import edu.iu.terracotta.repository.ParticipantRepository;
 import edu.iu.terracotta.service.app.GroupParticipantService;
 import edu.iu.terracotta.utils.TextConstants;
 
 @Service
 public class GroupParticipantServiceImpl implements GroupParticipantService {
 
-    @Autowired private AllRepositories allRepositories;
+    @Autowired private AssignmentRepository assignmentRepository;
+    @Autowired private ExposureGroupConditionRepository exposureGroupConditionRepository;
+    @Autowired private GroupRepository groupRepository;
+    @Autowired private ParticipantRepository participantRepository;
 
     private Random random = new Random();
 
     @Override
     public Group getUniqueGroupByConditionId(Long experimentId, String canvasAssignmentId, Long conditionId) throws GroupNotMatchingException, AssignmentNotMatchingException {
-        Assignment assignment = allRepositories.assignmentRepository.findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(experimentId, canvasAssignmentId);
+        Assignment assignment = assignmentRepository.findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(experimentId, canvasAssignmentId);
 
         if (assignment == null) {
             throw new AssignmentNotMatchingException(TextConstants.ASSIGNMENT_NOT_MATCHING);
         }
 
-        Optional<ExposureGroupCondition> exposureGroupCondition = allRepositories.exposureGroupConditionRepository.getByCondition_ConditionIdAndExposure_ExposureId(conditionId, assignment.getExposure().getExposureId());
+        Optional<ExposureGroupCondition> exposureGroupCondition = exposureGroupConditionRepository.getByCondition_ConditionIdAndExposure_ExposureId(conditionId, assignment.getExposure().getExposureId());
 
-        if (!exposureGroupCondition.isPresent()) {
+        if (exposureGroupCondition.isEmpty()) {
             throw new GroupNotMatchingException("Error 130: This assignment does not have a condition assigned for the participant group.");
         }
 
@@ -50,13 +56,13 @@ public class GroupParticipantServiceImpl implements GroupParticipantService {
     public Group nextGroup(Experiment experiment) {
         AtomicLong totalParticipants = new AtomicLong(0);
 
-        Map<Long, Long> count = CollectionUtils.emptyIfNull(allRepositories.groupRepository.findByExperiment_ExperimentId(experiment.getExperimentId()))
+        Map<Long, Long> count = CollectionUtils.emptyIfNull(groupRepository.findByExperiment_ExperimentId(experiment.getExperimentId()))
             .stream()
             .collect(
                 Collectors.toMap(
                     Group::getGroupId,
                     group -> {
-                        long groupCount = allRepositories.participantRepository.countByGroup_GroupId(group.getGroupId());
+                        long groupCount = participantRepository.countByGroup_GroupId(group.getGroupId());
                         totalParticipants.addAndGet(groupCount);
 
                         return groupCount;
@@ -69,7 +75,7 @@ public class GroupParticipantServiceImpl implements GroupParticipantService {
          *  If the experiment has more than one exposure, we shouldn't be doing this.
          */
         List<ExposureGroupCondition> exposureGroupConditionList =
-            allRepositories.exposureGroupConditionRepository.findByExposure_ExposureId(experiment.getExposures().get(0).getExposureId());
+            exposureGroupConditionRepository.findByExposure_ExposureId(experiment.getExposures().get(0).getExposureId());
 
         List<Group> unbalancedGroups = CollectionUtils.emptyIfNull(exposureGroupConditionList).stream()
             .filter(

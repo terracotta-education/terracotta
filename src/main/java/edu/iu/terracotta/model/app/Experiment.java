@@ -13,19 +13,19 @@ import lombok.Setter;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Enumerated;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.Lob;
-import javax.persistence.ManyToOne;
-import javax.persistence.OneToMany;
-import javax.persistence.OneToOne;
-import javax.persistence.Table;
-import javax.persistence.Transient;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.Lob;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 
 import java.sql.Timestamp;
 import java.util.List;
@@ -37,18 +37,27 @@ import java.util.List;
 public class Experiment extends BaseEntity {
 
     @Id
-    @Column(name = "experiment_id", nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(
+        name = "experiment_id",
+        nullable = false
+    )
     private Long experimentId;
 
     @ManyToOne(optional = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
-    @JoinColumn(name = "platform_deployment_key_id", nullable = false)
+    @JoinColumn(
+        name = "platform_deployment_key_id",
+        nullable = false
+    )
     private PlatformDeployment platformDeployment;
 
     @ManyToOne(optional = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
-    @JoinColumn(name = "lti_context_entity_context_id", nullable = false)
+    @JoinColumn(
+        name = "lti_context_entity_context_id",
+        nullable = false
+    )
     private LtiContextEntity ltiContextEntity;
 
     @Column

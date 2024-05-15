@@ -7,9 +7,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-@CanvasObject(
-        postKey = "assignment"
-)
+@CanvasObject(postKey = "assignment")
 public class AssignmentExtended extends Assignment {
 
     private String secureParams;

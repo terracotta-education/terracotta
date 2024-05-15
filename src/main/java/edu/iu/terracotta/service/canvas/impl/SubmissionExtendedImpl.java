@@ -15,8 +15,7 @@ import java.util.List;
 
 public class SubmissionExtendedImpl extends BaseImpl<Submission, SubmissionReaderExtended, SubmissionWriterExtended> implements SubmissionReaderExtended, SubmissionWriterExtended {
 
-    public SubmissionExtendedImpl(String canvasBaseUrl, Integer apiVersion, OauthToken oauthToken, RestClient restClient,
-                                  int connectTimeout, int readTimeout, Integer paginationPageSize, Boolean serializeNulls) {
+    public SubmissionExtendedImpl(String canvasBaseUrl, Integer apiVersion, OauthToken oauthToken, RestClient restClient, int connectTimeout, int readTimeout, Integer paginationPageSize, Boolean serializeNulls) {
         super(canvasBaseUrl, apiVersion, oauthToken, restClient, connectTimeout, readTimeout, paginationPageSize, serializeNulls);
     }
 

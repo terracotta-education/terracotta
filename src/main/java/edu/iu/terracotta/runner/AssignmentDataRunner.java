@@ -13,15 +13,16 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 
 import edu.iu.terracotta.model.app.Assignment;
-import edu.iu.terracotta.repository.AllRepositories;
+import edu.iu.terracotta.repository.AssignmentRepository;
+import edu.iu.terracotta.repository.SubmissionRepository;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component
 public class AssignmentDataRunner implements ApplicationListener<ApplicationReadyEvent> {
 
-    @Autowired
-    private AllRepositories allRepositories;
+    @Autowired private AssignmentRepository assignmentRepository;
+    @Autowired private SubmissionRepository submissionRepository;
 
     @Value("${app.assignments.fix.start.dates.enabled:false}")
     private boolean enabled;
@@ -40,7 +41,7 @@ public class AssignmentDataRunner implements ApplicationListener<ApplicationRead
                 {
                     // fix legacy assignment started date
                     int page = 0;
-                    Page<Assignment> assignments = allRepositories.assignmentRepository.findAll(PageRequest.of(page++, batchSize));
+                    Page<Assignment> assignments = assignmentRepository.findAll(PageRequest.of(page++, batchSize));
 
                     log.info("Starting assignment start date fix...");
                     int processed = 0;
@@ -51,17 +52,17 @@ public class AssignmentDataRunner implements ApplicationListener<ApplicationRead
                             .filter(assignment -> !assignment.isStarted())
                             .forEach(
                                 assignment -> {
-                                    long submissionsCount = allRepositories.submissionRepository.countByAssessment_Treatment_Assignment_AssignmentId(assignment.getAssignmentId());
+                                    long submissionsCount = submissionRepository.countByAssessment_Treatment_Assignment_AssignmentId(assignment.getAssignmentId());
 
                                     if (submissionsCount > 0) {
                                         assignment.setStarted(Timestamp.valueOf(LocalDateTime.now()));
-                                        allRepositories.assignmentRepository.save(assignment);
+                                        assignmentRepository.save(assignment);
                                     }
                                 }
                             );
 
                         log.info("Processed {} assignment records...", processed);
-                        assignments = allRepositories.assignmentRepository.findAll(PageRequest.of(page++, batchSize));
+                        assignments = assignmentRepository.findAll(PageRequest.of(page++, batchSize));
                     }
 
                     log.info("Assignment start date fix complete! {} assignment records processed.", processed);

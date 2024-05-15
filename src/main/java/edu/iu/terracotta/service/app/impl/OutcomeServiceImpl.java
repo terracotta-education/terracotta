@@ -21,7 +21,13 @@ import edu.iu.terracotta.model.app.dto.OutcomeScoreDto;
 import edu.iu.terracotta.model.app.enumerator.LmsType;
 import edu.iu.terracotta.model.canvas.AssignmentExtended;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
-import edu.iu.terracotta.repository.AllRepositories;
+import edu.iu.terracotta.repository.AssignmentRepository;
+import edu.iu.terracotta.repository.ExperimentRepository;
+import edu.iu.terracotta.repository.ExposureRepository;
+import edu.iu.terracotta.repository.LtiUserRepository;
+import edu.iu.terracotta.repository.OutcomeRepository;
+import edu.iu.terracotta.repository.OutcomeScoreRepository;
+import edu.iu.terracotta.repository.PlatformDeploymentRepository;
 import edu.iu.terracotta.service.app.OutcomeScoreService;
 import edu.iu.terracotta.service.app.OutcomeService;
 import edu.iu.terracotta.service.app.ParticipantService;
@@ -47,26 +53,32 @@ import java.util.Optional;
 @Component
 public class OutcomeServiceImpl implements OutcomeService {
 
-    @Autowired private AllRepositories allRepositories;
+    @Autowired private AssignmentRepository assignmentRepository;
+    @Autowired private ExperimentRepository experimentRepository;
+    @Autowired private ExposureRepository exposureRepository;
+    @Autowired private LtiUserRepository ltiUserRepository;
+    @Autowired private OutcomeRepository outcomeRepository;
+    @Autowired private OutcomeScoreRepository outcomeScoreRepository;
+    @Autowired private PlatformDeploymentRepository platformDeploymentRepository;
     @Autowired private OutcomeScoreService outcomeScoreService;
     @Autowired private ParticipantService participantService;
     @Autowired private CanvasAPIClient canvasAPIClient;
 
     @Override
     public List<OutcomeDto> getOutcomesForExposure(long exposureId) {
-        return CollectionUtils.emptyIfNull(allRepositories.outcomeRepository.findByExposure_ExposureId(exposureId)).stream()
+        return CollectionUtils.emptyIfNull(outcomeRepository.findByExposure_ExposureId(exposureId)).stream()
             .map(outcome -> toDto(outcome, false))
             .toList();
     }
 
     @Override
     public Outcome getOutcome(long id) {
-        return allRepositories.outcomeRepository.findByOutcomeId(id);
+        return outcomeRepository.findByOutcomeId(id);
     }
 
     @Override
     public List<OutcomeDto> getAllByExperiment(long experimentId) {
-        return CollectionUtils.emptyIfNull(allRepositories.outcomeRepository.findByExposure_Experiment_ExperimentId(experimentId)).stream()
+        return CollectionUtils.emptyIfNull(outcomeRepository.findByExposure_Experiment_ExperimentId(experimentId)).stream()
             .map(
                 outcome -> toDto(outcome, false)
             )
@@ -89,7 +101,7 @@ public class OutcomeServiceImpl implements OutcomeService {
             throw new DataServiceException("Error 105: Unable to create Outcome: " + ex.getMessage(), ex);
         }
 
-        return toDto(allRepositories.outcomeRepository.save(outcome), false);
+        return toDto(outcomeRepository.save(outcome), false);
     }
 
     @Override
@@ -105,7 +117,7 @@ public class OutcomeServiceImpl implements OutcomeService {
         List<OutcomeScoreDto> outcomeScoreDtoList = new ArrayList<>();
 
         if (outcomeScores) {
-            List<OutcomeScore> outcomeScoreList = allRepositories.outcomeScoreRepository.findByOutcome_OutcomeId(outcome.getOutcomeId());
+            List<OutcomeScore> outcomeScoreList = outcomeScoreRepository.findByOutcome_OutcomeId(outcome.getOutcomeId());
 
             for (OutcomeScore outcomeScore : outcomeScoreList) {
                 outcomeScoreDtoList.add(outcomeScoreService.toDto(outcomeScore));
@@ -119,9 +131,9 @@ public class OutcomeServiceImpl implements OutcomeService {
 
     @Override
     public Outcome fromDto(OutcomeDto outcomeDto) throws DataServiceException {
-        Optional<Exposure> exposure = allRepositories.exposureRepository.findById(outcomeDto.getExposureId());
+        Optional<Exposure> exposure = exposureRepository.findById(outcomeDto.getExposureId());
 
-        if (!exposure.isPresent()) {
+        if (exposure.isEmpty()) {
             throw new DataServiceException("Exposure for outcome does not exist.");
         }
 
@@ -138,12 +150,12 @@ public class OutcomeServiceImpl implements OutcomeService {
     }
 
     private Optional<Outcome> findById(long id) {
-        return allRepositories.outcomeRepository.findById(id);
+        return outcomeRepository.findById(id);
     }
 
     @Override
     public void updateOutcome(long outcomeId, OutcomeDto outcomeDto) throws TitleValidationException {
-        Outcome outcome = allRepositories.outcomeRepository.findByOutcomeId(outcomeId);
+        Outcome outcome = outcomeRepository.findByOutcomeId(outcomeId);
 
         if (StringUtils.isAllBlank(outcomeDto.getTitle(), outcome.getTitle())) {
             throw new TitleValidationException("Error 100: Please give the outcome a title.");
@@ -169,24 +181,24 @@ public class OutcomeServiceImpl implements OutcomeService {
         outcome.setTitle(outcomeDto.getTitle());
         outcome.setMaxPoints(outcomeDto.getMaxPoints());
 
-        allRepositories.outcomeRepository.saveAndFlush(outcome);
+        outcomeRepository.saveAndFlush(outcome);
     }
 
     @Override
     public void deleteById(long id) {
-        allRepositories.outcomeRepository.deleteByOutcomeId(id);
+        outcomeRepository.deleteByOutcomeId(id);
     }
 
     @Override
     public List<OutcomePotentialDto> potentialOutcomes(long experimentId, SecuredInfo securedInfo) throws DataServiceException, CanvasApiException {
-        Optional<Experiment> experiment = allRepositories.experimentRepository.findById(experimentId);
+        Optional<Experiment> experiment = experimentRepository.findById(experimentId);
 
-        if (!experiment.isPresent()) {
+        if (experiment.isEmpty()) {
             throw new DataServiceException("Error 105: Experiment does not exist.");
         }
 
-        LtiUserEntity instructorUser = allRepositories.ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
-        List<Assignment> assignmentList = allRepositories.assignmentRepository.findByExposure_Experiment_ExperimentId(experimentId);
+        LtiUserEntity instructorUser = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
+        List<Assignment> assignmentList = assignmentRepository.findByExposure_Experiment_ExperimentId(experimentId);
         List<OutcomePotentialDto> outcomePotentialDtos = new ArrayList<>();
         String canvasCourseId = StringUtils.substringBetween(experiment.get().getLtiContextEntity().getContext_memberships_url(), "courses/", "/names");
         List<AssignmentExtended> assignmentExtendedList = canvasAPIClient.listAssignments(instructorUser, canvasCourseId);
@@ -215,7 +227,7 @@ public class OutcomeServiceImpl implements OutcomeService {
         potentialDto.setType(assignmentExtended.getSubmissionTypes().get(0));
         potentialDto.setPointsPossible(assignmentExtended.getPointsPossible());
 
-        Optional<PlatformDeployment> platformDeployment = allRepositories.platformDeploymentRepository.findById(securedInfo.getPlatformDeploymentId());
+        Optional<PlatformDeployment> platformDeployment = platformDeploymentRepository.findById(securedInfo.getPlatformDeploymentId());
         potentialDto.setTerracotta(assignmentExtended.getSubmissionTypes().contains("external_tool") && assignmentExtended.getExternalToolTagAttributes().getUrl().contains(platformDeployment.get().getLocalUrl()));
 
         return potentialDto;
@@ -226,7 +238,7 @@ public class OutcomeServiceImpl implements OutcomeService {
     public void updateOutcomeGrades(long outcomeId, SecuredInfo securedInfo) throws CanvasApiException, IOException, ParticipantNotUpdatedException, ExperimentNotMatchingException, OutcomeNotMatchingException {
         Optional<Outcome> outcomeSearchResult = this.findById(outcomeId);
 
-        if (!outcomeSearchResult.isPresent()) {
+        if (outcomeSearchResult.isEmpty()) {
             throw new OutcomeNotMatchingException(TextConstants.OUTCOME_NOT_MATCHING);
         }
 
@@ -240,8 +252,8 @@ public class OutcomeServiceImpl implements OutcomeService {
         participantService.refreshParticipants(outcome.getExposure().getExperiment().getExperimentId(), outcome.getExposure().getExperiment().getParticipants());
         List<OutcomeScore> newScores = new ArrayList<>();
         String canvasCourseId = StringUtils.substringBetween(outcome.getExposure().getExperiment().getLtiContextEntity().getContext_memberships_url(), "courses/", "/names");
-        LtiUserEntity instructorUser = allRepositories.ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
-        List<Submission> submissions = canvasAPIClient.listSubmissions(instructorUser, Integer.parseInt(outcome.getLmsOutcomeId()), canvasCourseId);
+        LtiUserEntity instructorUser = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
+        List<Submission> submissions = canvasAPIClient.listSubmissions(instructorUser, Long.parseLong(outcome.getLmsOutcomeId()), canvasCourseId);
 
         for (Submission submission : submissions) {
             boolean found = false;
@@ -339,7 +351,7 @@ public class OutcomeServiceImpl implements OutcomeService {
         }
 
         newScores.forEach(
-            outcomeScore -> allRepositories.outcomeScoreRepository.save(outcomeScore)
+            outcomeScore -> outcomeScoreRepository.save(outcomeScore)
         );
 
         // TODO what to do if the outcome score is there but the participant is dropped.

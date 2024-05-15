@@ -245,7 +245,7 @@ public class AssessmentServiceImplTest extends BaseTest {
     @Test
     public void testViewAssessmentNoSubmittedScores() throws ExperimentNotMatchingException, ParticipantNotMatchingException, AssessmentNotMatchingException, GroupNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, DataServiceException, CanvasApiException, IOException, AssignmentDatesException, ConnectionException {
         when(submissionService.getScoreFromMultipleSubmissions(any(Participant.class), any(Assessment.class))).thenReturn(0F);
-        when(allRepositories.submissionRepository.findByParticipant_ParticipantIdAndAssessment_AssessmentId(anyLong(), anyLong())).thenReturn(Collections.emptyList());
+        when(submissionRepository.findByParticipant_ParticipantIdAndAssessment_AssessmentId(anyLong(), anyLong())).thenReturn(Collections.emptyList());
         AssessmentDto assessmentDto = assessmentService.viewAssessment(1l, securedInfo);
 
         assertNotNull(assessmentDto);
@@ -333,7 +333,7 @@ public class AssessmentServiceImplTest extends BaseTest {
 
     @Test
     public void testUpdateAssessmentWithQuestionNotFound() throws QuestionNotMatchingException {
-        when(allRepositories.questionRepository.findByQuestionId(anyLong())).thenReturn(null);
+        when(questionRepository.findByQuestionId(anyLong())).thenReturn(null);
         Exception exception = assertThrows(QuestionNotMatchingException.class, () -> { assessmentService.updateAssessment(1L, assessmentDto, true); });
 
         assertEquals(TextConstants.QUESTION_NOT_MATCHING, exception.getMessage());

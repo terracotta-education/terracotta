@@ -16,7 +16,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 
-import javax.persistence.EntityManager;
+import jakarta.persistence.EntityManager;
 
 import org.mockito.Mock;
 import org.springframework.core.env.Environment;
@@ -85,7 +85,6 @@ import edu.iu.terracotta.model.membership.CourseUsers;
 import edu.iu.terracotta.model.oauth2.LTIToken;
 import edu.iu.terracotta.model.oauth2.Roles;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
-import edu.iu.terracotta.repository.AllRepositories;
 import edu.iu.terracotta.repository.AnswerEssaySubmissionRepository;
 import edu.iu.terracotta.repository.AnswerFileSubmissionRepository;
 import edu.iu.terracotta.repository.AnswerMcRepository;
@@ -159,7 +158,6 @@ public class BaseTest {
     public static final String RESOURCE_LINK_ID = "resource_link_id";
     public static final String USER_ID = "user_id";
 
-    @Mock protected AllRepositories allRepositories;
     @Mock protected AnswerEssaySubmissionRepository answerEssaySubmissionRepository;
     @Mock protected AnswerFileSubmissionRepository answerFileSubmissionRepository;
     @Mock protected AnswerMcRepository answerMcRepository;
@@ -282,34 +280,6 @@ public class BaseTest {
     @Mock protected UserDto userDto;
 
     public void setup() {
-        allRepositories.answerEssaySubmissionRepository = answerEssaySubmissionRepository;
-        allRepositories.answerFileSubmissionRepository = answerFileSubmissionRepository;
-        allRepositories.answerMcRepository = answerMcRepository;
-        allRepositories.answerMcSubmissionOptionRepository = answerMcSubmissionOptionRepository;
-        allRepositories.answerMcSubmissionRepository = answerMcSubmissionRepository;
-        allRepositories.assessmentRepository = assessmentRepository;
-        allRepositories.assignmentRepository = assignmentRepository;
-        allRepositories.canvasAPIOAuthSettingsRepository = canvasAPIOAuthSettingsRepository;
-        allRepositories.canvasAPITokenRepository = canvasAPITokenRepository;
-        allRepositories.conditionRepository = conditionRepository;
-        allRepositories.consentDocumentRepository = consentDocumentRepository;
-        allRepositories.eventRepository = eventRepository;
-        allRepositories.experimentRepository = experimentRepository;
-        allRepositories.exposureGroupConditionRepository = exposureGroupConditionRepository;
-        allRepositories.exposureRepository = exposureRepository;
-        allRepositories.groupRepository = groupRepository;
-        allRepositories.ltiUserRepository = ltiUserRepository;
-        allRepositories.outcomeRepository = outcomeRepository;
-        allRepositories.outcomeScoreRepository = outcomeScoreRepository;
-        allRepositories.participantRepository = participantRepository;
-        allRepositories.platformDeploymentRepository = platformDeploymentRepository;
-        allRepositories.questionMcRepository = questionMcRepository;
-        allRepositories.questionRepository = questionRepository;
-        allRepositories.questionSubmissionCommentRepository = questionSubmissionCommentRepository;
-        allRepositories.questionSubmissionRepository = questionSubmissionRepository;
-        allRepositories.submissionRepository = submissionRepository;
-        allRepositories.treatmentRepository = treatmentRepository;
-
         try {
             when(answerMcRepository.save(any(AnswerMc.class))).thenReturn(answerMc);
             when(answerEssaySubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(anyLong())).thenReturn(Collections.singletonList(answerEssaySubmission));
@@ -383,9 +353,9 @@ public class BaseTest {
             when(assignmentService.save(any(Assignment.class))).thenReturn(assignment);
             when(assignmentTreatmentService.toAssignmentDto(any(Assignment.class), anyBoolean(), anyBoolean())).thenReturn(assignmentDto);
             when(assignmentTreatmentService.toTreatmentDto(any(Treatment.class), anyBoolean(), anyBoolean())).thenReturn(treatmentDto);
-            when(canvasAPIClient.listAssignment(any(LtiUserEntity.class), anyString(), anyInt())).thenReturn(Optional.of(assignmentExtended));
+            when(canvasAPIClient.listAssignment(any(LtiUserEntity.class), anyString(), anyLong())).thenReturn(Optional.of(assignmentExtended));
             when(canvasAPIClient.listAssignments(any(LtiUserEntity.class), anyString())).thenReturn(Collections.singletonList(assignmentExtended));
-            when(canvasAPIClient.listSubmissions(any(LtiUserEntity.class), anyInt(), anyString())).thenReturn(Collections.singletonList(submissionCanvas));
+            when(canvasAPIClient.listSubmissions(any(LtiUserEntity.class), anyLong(), anyString())).thenReturn(Collections.singletonList(submissionCanvas));
             when(groupParticipantService.getUniqueGroupByConditionId(anyLong(), anyString(), anyLong())).thenReturn(group);
             when(groupParticipantService.nextGroup(any(Experiment.class))).thenReturn(group);
             when(participantService.refreshParticipants(anyLong(), anyList())).thenReturn(Collections.singletonList(participant));
@@ -425,7 +395,7 @@ public class BaseTest {
             when(assignment.getTitle()).thenReturn(ASSIGNMENT_TITLE);
             when(assignmentDto.getAssignmentId()).thenReturn(1L);
             when(assignmentDto.getTreatments()).thenReturn(Collections.singletonList(treatmentDto));
-            when(assignmentExtended.getId()).thenReturn(1);
+            when(assignmentExtended.getId()).thenReturn(1L);
             when(assignmentExtended.getSecureParams()).thenReturn(RESOURCE_LINK_ID);
             when(condition.getConditionId()).thenReturn(1L);
             when(condition.getExperiment()).thenReturn(experiment);
@@ -533,7 +503,7 @@ public class BaseTest {
             when(treatment.getAssignment()).thenReturn(assignment);
             when(treatment.getCondition()).thenReturn(condition);
             when(treatment.getTreatmentId()).thenReturn(1L);
-            when(user.getId()).thenReturn(1);
+            when(user.getId()).thenReturn(1L);
             when(user.getLoginId()).thenReturn(EMAIL);
             when(user.getName()).thenReturn(DISPLAY_NAME);
             when(userDto.getUserId()).thenReturn(1L);

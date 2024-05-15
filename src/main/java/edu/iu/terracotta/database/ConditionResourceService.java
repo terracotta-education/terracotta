@@ -6,13 +6,19 @@ import org.springframework.stereotype.Component;
 
 
 @Component
+@SuppressWarnings({"PMD.UncommentedEmptyMethodBody"})
 public class ConditionResourceService implements ResourceService<Conditions> {
 
-    static final String CONDITIONS_RESOURCE = "classpath:test_data/conditions";
+    private static final String CONDITIONS_RESOURCE = "classpath:test_data/conditions";
 
     @Override
-    public String getDirectoryPath(){ return CONDITIONS_RESOURCE; }
+    public String getDirectoryPath() {
+        return CONDITIONS_RESOURCE;
+    }
 
     @Override
-    public void setDefaults(){}
+    public void setDefaults() {
+
+    }
+
 }

@@ -14,14 +14,18 @@ import edu.iu.terracotta.model.app.QuestionSubmission;
 import edu.iu.terracotta.model.app.RegradeDetails;
 import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.enumerator.RegradeOption;
-import edu.iu.terracotta.repository.AllRepositories;
+import edu.iu.terracotta.repository.AnswerMcSubmissionRepository;
+import edu.iu.terracotta.repository.QuestionSubmissionRepository;
+import edu.iu.terracotta.repository.SubmissionRepository;
 import edu.iu.terracotta.service.app.AssessmentSubmissionService;
 import edu.iu.terracotta.service.app.QuestionSubmissionService;
 
 @Service
 public class AssessmentSubmissionServiceImpl implements AssessmentSubmissionService {
 
-    @Autowired private AllRepositories allRepositories;
+    @Autowired private AnswerMcSubmissionRepository answerMcSubmissionRepository;
+    @Autowired private QuestionSubmissionRepository questionSubmissionRepository;
+    @Autowired private SubmissionRepository submissionRepository;
     @Autowired private QuestionSubmissionService questionSubmissionService;
 
     @Override
@@ -36,7 +40,7 @@ public class AssessmentSubmissionServiceImpl implements AssessmentSubmissionServ
 
             switch (questionSubmission.getQuestion().getQuestionType()) {
                 case MC:
-                    List<AnswerMcSubmission> answerMcSubmissions = allRepositories.answerMcSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmission.getQuestionSubmissionId());
+                    List<AnswerMcSubmission> answerMcSubmissions = answerMcSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmission.getQuestionSubmissionId());
 
                     if (answerMcSubmissions.size() == 1) {
                         switch (regradeDetails.getRegradeOption()) {
@@ -49,7 +53,7 @@ public class AssessmentSubmissionServiceImpl implements AssessmentSubmissionServ
                                 // set score to full max points
                                 questionSubmission.setCalculatedPoints(questionSubmission.getQuestion().getPoints());
                                 questionSubmission.setAlteredGrade(null);
-                                questionGraded = allRepositories.questionSubmissionRepository.save(questionSubmission);
+                                questionGraded = questionSubmissionRepository.save(questionSubmission);
                                 break;
 
                             case BOTH:
@@ -66,7 +70,7 @@ public class AssessmentSubmissionServiceImpl implements AssessmentSubmissionServ
                                 }
 
                                 questionSubmission.setAlteredGrade(null);
-                                questionGraded = allRepositories.questionSubmissionRepository.save(questionSubmission);
+                                questionGraded = questionSubmissionRepository.save(questionSubmission);
                                 break;
 
                             case CURRENT:
@@ -85,7 +89,7 @@ public class AssessmentSubmissionServiceImpl implements AssessmentSubmissionServ
                                     // regrade FULL option previously selected; set score to full max points
                                     questionSubmission.setCalculatedPoints(questionSubmission.getQuestion().getPoints());
                                     questionSubmission.setAlteredGrade(null);
-                                    questionGraded = allRepositories.questionSubmissionRepository.save(questionSubmission);
+                                    questionGraded = questionSubmissionRepository.save(questionSubmission);
                                     break;
                                 }
 
@@ -136,7 +140,7 @@ public class AssessmentSubmissionServiceImpl implements AssessmentSubmissionServ
             submission.setTotalAlteredGrade(manual);
         }
 
-        return allRepositories.submissionRepository.save(submission);
+        return submissionRepository.save(submission);
     }
 
     private boolean isRegradeEligible(List<Long> editedMCQuestionIds, long questionId) {

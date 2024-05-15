@@ -11,7 +11,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface ConsentDocumentRepository extends JpaRepository<ConsentDocument, Long> {
 
     Optional<ConsentDocument> findByExperiment_ExperimentId(long experimentId);
-
     List<ConsentDocument> findAllByExperiment_PlatformDeployment_KeyId(long platformDeploymentId);
 
 }

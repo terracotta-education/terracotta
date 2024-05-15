@@ -25,28 +25,25 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 @Controller
 @SuppressWarnings({"rawtypes"})
 @RequestMapping(value = MediaProfileController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
 public class MediaProfileController {
 
-    public static final String REQUEST_ROOT = "api/experiments";
+    public static final String REQUEST_ROOT = "api/experiments/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}/submissions/{submissionId}/questions/{questionId}/media_event";
 
-    @Autowired
-    private MediaService mediaService;
+    @Autowired private MediaService mediaService;
+    @Autowired private APIJWTService apijwtService;
 
-    @Autowired
-    private APIJWTService apijwtService;
-
-    @PostMapping("/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}/questions/{question_id}/media_event")
-    public ResponseEntity postMediaEvent(@PathVariable("experiment_id") Long experimentId,
-                                         @PathVariable("condition_id") Long conditionId,
-                                         @PathVariable("treatment_id") Long treatmentId,
-                                         @PathVariable("assessment_id") Long assessmentId,
-                                         @PathVariable("submission_id") Long submissionId,
-                                         @PathVariable("question_id") Long questionId,
+    @PostMapping
+    public ResponseEntity postMediaEvent(@PathVariable long experimentId,
+                                         @PathVariable long conditionId,
+                                         @PathVariable long treatmentId,
+                                         @PathVariable long assessmentId,
+                                         @PathVariable long submissionId,
+                                         @PathVariable long questionId,
                                          @RequestBody MediaEventDto mediaEventDto,
                                          UriComponentsBuilder ucBuilder,
                                          HttpServletRequest req)

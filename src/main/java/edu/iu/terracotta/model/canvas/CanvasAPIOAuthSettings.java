@@ -1,13 +1,13 @@
 package edu.iu.terracotta.model.canvas;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.OneToOne;
-import javax.persistence.Table;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Table;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
@@ -32,15 +32,24 @@ public class CanvasAPIOAuthSettings {
     @Column(nullable = false)
     private String clientSecret;
 
-    @Column(name = "oauth2_auth_url", nullable = false)
+    @Column(
+        name = "oauth2_auth_url",
+        nullable = false
+    )
     private String oauth2AuthUrl;
 
-    @Column(name = "oauth2_token_url", nullable = false)
+    @Column(
+        name = "oauth2_token_url",
+        nullable = false
+    )
     private String oauth2TokenUrl;
 
     @JsonIgnore
     @OneToOne(optional = false)
-    @JoinColumn(name = "key_id", nullable = false)
+    @JoinColumn(
+        name = "key_id",
+        nullable = false
+    )
     private PlatformDeployment platformDeployment;
 
     @Override

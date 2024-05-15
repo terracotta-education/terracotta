@@ -13,9 +13,7 @@ import java.util.Optional;
 public interface AssignmentReaderExtended extends CanvasReader<AssignmentExtended, AssignmentReaderExtended> {
 
     Optional<AssignmentExtended> getSingleAssignment(GetSingleAssignmentOptions var1) throws IOException;
-
     List<AssignmentExtended> listCourseAssignments(ListCourseAssignmentsOptions var1) throws IOException;
-
     List<AssignmentExtended> listUserAssignments(ListUserAssignmentOptions var1) throws IOException;
 
 }

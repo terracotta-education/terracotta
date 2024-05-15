@@ -1,15 +1,3 @@
-/**
- * Copyright 2021 Unicon (R)
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- * http://www.apache.org/licenses/LICENSE-2.0
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package edu.iu.terracotta.config;
 
 import edu.iu.terracotta.security.app.APIOAuthProviderProcessingFilter;
@@ -18,8 +6,6 @@ import edu.iu.terracotta.service.lti.LTIDataService;
 import edu.iu.terracotta.service.lti.LTIJWTService;
 import edu.iu.terracotta.service.app.APIDataService;
 import edu.iu.terracotta.service.app.APIJWTService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -31,6 +17,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -38,38 +25,27 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 
-import javax.annotation.PostConstruct;
+import jakarta.annotation.PostConstruct;
+import lombok.extern.slf4j.Slf4j;
+
 import java.util.UUID;
 
-import static org.springframework.security.config.Customizer.withDefaults;
-
+@Slf4j
 @Configuration
 @EnableWebSecurity
 @Import(SecurityAutoConfiguration.class)
 public class WebSecurityConfig {
 
-    private static final Logger logger = LoggerFactory.getLogger(WebSecurityConfig.class);
+    @Autowired private APIJWTService apiJwtService;
+    @Autowired private APIDataService apiDataService;
+    @Autowired private LTIDataService ltiDataService;
+    @Autowired private LTIJWTService ltijwtService;
 
     @Value("${terracotta.admin.user:admin}")
     private String adminUser;
 
     @Value("${terracotta.admin.password:admin}")
     private String adminPassword;
-
-    @Value("${api.oauth.provider.processing.filter.enabled:true}")
-    private boolean apioAuthProviderProcessingFilterEnabled;
-
-    @Autowired
-    private APIJWTService apiJwtService;
-
-    @Autowired
-    private APIDataService apiDataService;
-
-    @Autowired
-    private LTIDataService ltiDataService;
-
-    @Autowired
-    private LTIJWTService ltijwtService;
 
     private LTI3OAuthProviderProcessingFilter lti3oAuthProviderProcessingFilter;
     private APIOAuthProviderProcessingFilter apioAuthProviderProcessingFilter;
@@ -88,153 +64,129 @@ public class WebSecurityConfig {
 
         if ("admin".equals(adminPassword)) {
             String adminRandomPwd = UUID.randomUUID().toString();
-            logger.warn("Admin password not specified, please add one to the application properties file and restart the application. Meanwhile, you can use this one (only valid until the next restart): {}",
-                adminRandomPwd);
+            log.warn(
+                "Admin password not specified, please add one to the application properties file and restart the application. Meanwhile, you can use this one (only valid until the next restart): {}",
+                adminRandomPwd
+            );
             auth
                 .inMemoryAuthentication()
                 .withUser(adminUser)
                 .password(encoder.encode(adminRandomPwd))
                 .roles("ADMIN", "USER");
-        } else {
-            auth
-                .inMemoryAuthentication()
-                .withUser(adminUser)
-                .password(encoder.encode(adminPassword))
-                .roles("ADMIN", "USER");
+
+                return;
         }
-    }
 
-    @Bean
-    @Order(10) // VERY HIGH
-    public SecurityFilterChain openEndpointsFilterChain(HttpSecurity http) throws Exception {
-        // this is open
-        http.requestMatchers(matchers -> matchers
-                .antMatchers("/oidc/**")
-                .antMatchers("/registration/**")
-                .antMatchers("/jwks/**")
-                .antMatchers("/files/**")
-                .antMatchers("/lms/oauth2/**"))
-                .authorizeRequests(
-                    requests ->
-                        requests
-                            .anyRequest()
-                            .permitAll()
-                    )
-                    .csrf(
-                        csrf -> csrf.disable()
-                    )
-                    .headers(
-                        headers ->
-                            headers
-                                .frameOptions()
-                                .disable()
-                    );
-
-            return http.build();
+        auth
+            .inMemoryAuthentication()
+            .withUser(adminUser)
+            .password(encoder.encode(adminPassword))
+            .roles("ADMIN", "USER");
     }
 
     @Bean
     @Order(30) // VERY HIGH
-    public SecurityFilterChain configFilterChain(HttpSecurity http) throws Exception {
-        http.antMatcher("/config/**").authorizeRequests(requests -> requests.anyRequest().authenticated()).httpBasic(withDefaults()).csrf(csrf -> csrf.disable()).headers(headers -> headers.frameOptions().disable());
-
-        return http.build();
+    SecurityFilterChain filterChain2(HttpSecurity http) throws Exception {
+        http.securityMatcher("/config/**");
+        return http
+                .authorizeHttpRequests(
+                    authz -> authz
+                        .requestMatchers("/config/**")
+                        .authenticated()
+                )
+                .httpBasic(Customizer.withDefaults())
+                .csrf(csrf -> csrf.disable())
+                .headers(frameOptions -> frameOptions.disable())
+                .build();
     }
 
     @Bean
     @Order(40) // HIGH
-    public SecurityFilterChain lti3OAuthProviderProcessingFilterChain(HttpSecurity http) throws Exception {
+    SecurityFilterChain filterChain4(HttpSecurity http) throws Exception {
         http
-            .requestMatchers(
-                matchers -> matchers.antMatchers("/lti3/**")
+            .securityMatcher("/lti3/**");
+
+        return http
+            .authorizeHttpRequests(
+                authz -> authz
+                    .requestMatchers("/lti3/**")
+                    .permitAll()
             )
             .addFilterBefore(
                 lti3oAuthProviderProcessingFilter,
                 UsernamePasswordAuthenticationFilter.class
             )
-            .authorizeRequests(
-                requests ->
-                    requests
-                        .anyRequest()
-                        .permitAll()
-                    )
-                    .csrf(
-                        csrf ->
-                            csrf.disable()
-                    )
-                    .headers(
-                        headers ->
-                            headers
-                                .frameOptions()
-                                .disable()
-                    );
-
-        return http.build();
+            .csrf(csrf -> csrf.disable())
+            .headers(frameOptions -> frameOptions.disable())
+            .build();
     }
 
     @Bean
-    @Order(50) // HIGH
-    public SecurityFilterChain apiSecurityConfigurerFilterChain(HttpSecurity http) throws Exception {
-        HttpSecurity httpSecurity = http.requestMatchers(
-            matchers ->
-                matchers
-                    .antMatchers("/api/**")
+    @Order(70)
+    SecurityFilterChain filterChain5(HttpSecurity http) throws Exception {
+        http
+            .securityMatcher("/api/**");
+
+        return http
+            .authorizeHttpRequests(
+                authz ->
+                    authz
+                        .requestMatchers("/api/**")
+                        .permitAll()
             )
             .addFilterBefore(
                 new CorsFilter(new CorsConfigurationSourceImpl()),
                 BasicAuthenticationFilter.class
-            );
-
-        if (apioAuthProviderProcessingFilterEnabled) {
-            logger.info("Adding APIOAuthProviderProcessingFilter to all /api/ requests");
-            httpSecurity = httpSecurity
-                .addFilterBefore(
-                    apioAuthProviderProcessingFilter,
-                    UsernamePasswordAuthenticationFilter.class
-                );
-        }
-
-        httpSecurity
-            .authorizeRequests(
-                requests ->
-                    requests
-                        .anyRequest()
-                        .permitAll())
-            .csrf(
-                csrf ->
-                    csrf
-                        .disable()
             )
-            .headers(
-                headers ->
-                    headers
-                        .frameOptions()
-                        .disable()
-            );
-
-            return httpSecurity.build();
+            .addFilterBefore(
+                apioAuthProviderProcessingFilter,
+                UsernamePasswordAuthenticationFilter.class
+            )
+            .csrf(csrf -> csrf.disable())
+            .headers(frameOptions -> frameOptions.disable())
+            .build();
     }
 
     @Bean
     @Order(80) // LOWEST
-    public SecurityFilterChain noAuthFilterChain(HttpSecurity http) throws Exception {
+    SecurityFilterChain filterChain6(HttpSecurity http) throws Exception {
         // this ensures security context info (Principal, sec:authorize, etc.) is accessible on all paths
-        http
-            .antMatcher("/**")
-            .authorizeRequests(
-                requests ->
-                    requests
+        return http
+            .authorizeHttpRequests(
+                authz ->
+                    authz
+                        .requestMatchers(
+                            "/oidc/**",
+                            "/registration/**",
+                            "/jwks/**",
+                            "/deeplink/**",
+                            "/ags/**",
+                            "/files/**",
+                            "/lms/oauth2/**"
+                        )
+                        .permitAll()
                         .anyRequest()
                         .permitAll()
             )
-            .headers(
-                headers ->
-                    headers
-                        .frameOptions()
-                        .disable()
-            );
+            .csrf(csrf -> csrf.disable())
+            .headers(frameOptions -> frameOptions.disable())
+            .build();
+    }
 
-        return http.build();
+    @Bean
+    @Order(90) // LOWEST
+    SecurityFilterChain noAuthFilterChain(HttpSecurity http) throws Exception {
+        // this ensures security context info (Principal, sec:authorize, etc.) is accessible on all paths
+        return http
+            .authorizeHttpRequests(
+                authz ->
+                    authz
+                        .requestMatchers("/**")
+                        .permitAll()
+            )
+            .csrf(csrf -> csrf.disable())
+            .headers(frameOptions -> frameOptions.disable())
+            .build();
     }
 
 }

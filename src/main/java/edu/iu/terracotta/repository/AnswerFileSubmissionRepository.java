@@ -10,9 +10,7 @@ import java.util.List;
 public interface AnswerFileSubmissionRepository extends JpaRepository<AnswerFileSubmission, Long> {
 
     List<AnswerFileSubmission> findByQuestionSubmission_QuestionSubmissionId(Long questionSubmissionId);
-
     AnswerFileSubmission findByAnswerFileSubmissionId(Long answerFileSubmissionId);
-
     boolean existsByQuestionSubmission_QuestionSubmissionIdAndAnswerFileSubmissionId(Long questionSubmissionId, Long answerFileSubmissionId);
 
     @Transactional

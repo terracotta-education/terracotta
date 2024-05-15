@@ -1,6 +1,6 @@
 package edu.iu.terracotta.controller.app.dashboard;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -31,15 +31,11 @@ public class ResultsDashboardController {
 
     public static final String REQUEST_ROOT = "api/experiments/{experimentId}/dashboard/results";
 
-    @Autowired
-    private APIJWTService apijwtService;
-
-    @Autowired
-    private ResultsDashboardService resultsDashboardService;
+    @Autowired private APIJWTService apijwtService;
+    @Autowired private ResultsDashboardService resultsDashboardService;
 
     @GetMapping("/overview")
-    public ResponseEntity<ResultsDashboardDto> getOverview(@PathVariable long experimentId, HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException {
+    public ResponseEntity<ResultsDashboardDto> getOverview(@PathVariable long experimentId, HttpServletRequest req) throws ExperimentNotMatchingException, BadTokenException {
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
 

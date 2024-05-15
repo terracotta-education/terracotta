@@ -6,7 +6,7 @@ import java.text.MessageFormat;
 import java.util.List;
 import java.util.Optional;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 
 import edu.iu.terracotta.exceptions.LMSOAuthException;
 import edu.iu.terracotta.model.LtiUserEntity;
-import edu.iu.terracotta.repository.AllRepositories;
+import edu.iu.terracotta.repository.LtiUserRepository;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.common.LMSOAuthService;
 import edu.iu.terracotta.service.common.LMSOAuthServiceManager;
@@ -33,18 +33,12 @@ public class LMSOAuthController {
 
     public static final String SESSION_LMS_OAUTH2_STATE = "lms_oauth2_state";
 
-    @Autowired
-    private AllRepositories allRepositories;
-
-    @Autowired
-    private LMSOAuthServiceManager lmsoAuthServiceManager;
-
-    @Autowired
-    private APIJWTService apijwtService;
+    @Autowired private LtiUserRepository ltiUserRepository;
+    @Autowired private LMSOAuthServiceManager lmsoAuthServiceManager;
+    @Autowired private APIJWTService apijwtService;
 
     @GetMapping("/oauth_response")
     public String handleOauthResponse(HttpServletRequest req, Model model) throws GeneralSecurityException, IOException, LMSOAuthException {
-
         String code = req.getParameter("code");
         log.debug("/oauth_response: code={}", code);
 
@@ -78,7 +72,7 @@ public class LMSOAuthController {
             return TextConstants.OAUTH2_ERROR;
         }
 
-        if (!claims.isPresent()) {
+        if (claims.isEmpty()) {
             String errMessage = "OAuth2 request doesn't contain the expected state";
             model.addAttribute(TextConstants.ERROR, MessageFormat.format("Error getting LMS API access token: {0}", errMessage));
             return TextConstants.OAUTH2_ERROR;
@@ -88,7 +82,7 @@ public class LMSOAuthController {
         LMSOAuthService<?> lmsoAuthService = lmsoAuthServiceManager.getLMSOAuthService(platformDeploymentId);
 
         String userKey = claims.get().getPayload().get("userId", String.class);
-        LtiUserEntity user = allRepositories.ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(userKey, platformDeploymentId);
+        LtiUserEntity user = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(userKey, platformDeploymentId);
 
         try {
             lmsoAuthService.fetchAndSaveAccessToken(user, code);

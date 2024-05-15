@@ -3,7 +3,7 @@ package edu.iu.terracotta.controller.app;
 import java.io.IOException;
 import java.util.Map;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -31,11 +31,8 @@ public class AdminController {
 
     public static final String REQUEST_ROOT = "api/platformdeployment/{id}/resync/targeturis";
 
-    @Autowired
-    private APIJWTService apijwtService;
-
-    @Autowired
-    private AdminService adminService;
+    @Autowired private APIJWTService apijwtService;
+    @Autowired private AdminService adminService;
 
     @PostMapping
     public ResponseEntity<Void> resyncTargetUris(@PathVariable long id, @RequestBody Map<String, String> options, HttpServletRequest req)
