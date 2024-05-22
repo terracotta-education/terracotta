@@ -99,7 +99,7 @@
                   <v-text-field
                     @input="
                       (value) => {
-                        selectedSubmission.totalAlteredGrade = parseInt(value);
+                        selectedSubmission.totalAlteredGrade = parseFloat(value);
                         currentAttempt.overrideGrade.touched = true;
                       }
                     "
