@@ -662,6 +662,10 @@ export default {
   },
   watch: {
     selectedSubmissionId(newValue) {
+      if (!newValue) {
+        return;
+      }
+
       this.loadSubmissionResponses(newValue);
     }
   },
