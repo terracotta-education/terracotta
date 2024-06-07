@@ -26,13 +26,20 @@
             v-for="item in setupTabs"
             :class="item.tab"
             :key="item.tab"
+            :transition="false"
             class="tab-section pt-0"
           >
-            <div class="tab-heading">
-              <template v-if="item.tab === 'overview'">
+            <div
+              class="tab-heading"
+            >
+              <template
+                v-if="item.tab === 'overview'"
+              >
                 <Overview />
               </template>
-              <template v-if="item.tab === 'outcomes'">
+              <template
+                v-if="item.tab === 'outcomes'"
+              >
                 <Outcomes />
               </template>
             </div>
