@@ -23,41 +23,22 @@ import java.util.Map;
 public interface ParticipantService {
 
     List<Participant> findAllByExperimentId(long experimentId);
-
     List<ParticipantDto> getParticipants(List<Participant> participants, long experimentId, String userId, boolean student);
-
     Participant getParticipant(long id, long experimentId, String userId, boolean student) throws InvalidUserException;
-
     ParticipantDto postParticipant(ParticipantDto participantDto, long experimentId) throws IdInPostException, DataServiceException;
-
     ParticipantDto toDto(Participant participant);
-
     Participant fromDto(ParticipantDto participantDto) throws DataServiceException;
-
     void saveAndFlush(Participant participantToChange);
-
-    List<Participant> refreshParticipants(long experimentId, List<Participant> currentParticipantList)
-        throws ParticipantNotUpdatedException, ExperimentNotMatchingException;
-
+    List<Participant> refreshParticipants(long experimentId, List<Participant> currentParticipantList) throws ParticipantNotUpdatedException, ExperimentNotMatchingException;
     void prepareParticipation(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException, ExperimentNotMatchingException;
-
     void changeParticipant(Map<Participant, ParticipantDto> map, Long experimentId);
-
     Participant findParticipant(List<Participant> participants, String userId);
-
     HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, long experimentId, long participantId);
-
     void setAllToNull(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException, ExperimentNotMatchingException;
-
     void setAllToTrue(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException, ExperimentNotMatchingException;
-
     void setAllToFalse(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException, ExperimentNotMatchingException;
-
     boolean changeConsent(ParticipantDto participantDto, SecuredInfo securedInfo, Long experimentId) throws ParticipantAlreadyStartedException, ExperimentNotMatchingException;
-
     void postConsentSubmission(Participant participant, SecuredInfo securedInfo) throws ConnectionException, DataServiceException;
-
-    Participant handleExperimentParticipant(Experiment experiment, SecuredInfo securedInfo)
-        throws GroupNotMatchingException, ParticipantNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, ExperimentNotMatchingException;
+    Participant handleExperimentParticipant(Experiment experiment, SecuredInfo securedInfo) throws GroupNotMatchingException, ParticipantNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, ExperimentNotMatchingException;
 
 }

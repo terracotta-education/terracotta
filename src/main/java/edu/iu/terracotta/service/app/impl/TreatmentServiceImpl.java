@@ -21,7 +21,10 @@ import edu.iu.terracotta.model.app.Assignment;
 import edu.iu.terracotta.model.app.Treatment;
 import edu.iu.terracotta.model.app.dto.TreatmentDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
-import edu.iu.terracotta.repository.AllRepositories;
+import edu.iu.terracotta.repository.AssignmentRepository;
+import edu.iu.terracotta.repository.ConditionRepository;
+import edu.iu.terracotta.repository.LtiUserRepository;
+import edu.iu.terracotta.repository.TreatmentRepository;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.AssessmentService;
 import edu.iu.terracotta.service.app.AssignmentTreatmentService;
@@ -35,8 +38,8 @@ import org.springframework.stereotype.Component;
 import edu.iu.terracotta.model.app.Condition;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -46,7 +49,10 @@ import java.util.Optional;
 @Component
 public class TreatmentServiceImpl implements TreatmentService {
 
-    @Autowired private AllRepositories allRepositories;
+    @Autowired private AssignmentRepository assignmentRepository;
+    @Autowired private ConditionRepository conditionRepository;
+    @Autowired private LtiUserRepository ltiUserRepository;
+    @Autowired private TreatmentRepository treatmentRepository;
     @Autowired private APIJWTService apijwtService;
     @Autowired private AssessmentService assessmentService;
     @Autowired private AssignmentTreatmentService assignmentTreatmentService;
@@ -56,7 +62,7 @@ public class TreatmentServiceImpl implements TreatmentService {
     @Override
     public List<TreatmentDto> getTreatments(Long conditionId, boolean submissions, SecuredInfo securedInfo)
             throws AssessmentNotMatchingException, NumberFormatException, CanvasApiException {
-        List<Treatment> treatments = allRepositories.treatmentRepository.findByCondition_ConditionId(conditionId);
+        List<Treatment> treatments = treatmentRepository.findByCondition_ConditionId(conditionId);
 
         if (CollectionUtils.isEmpty(treatments)) {
             return Collections.emptyList();
@@ -65,7 +71,7 @@ public class TreatmentServiceImpl implements TreatmentService {
         LtiUserEntity instructorUser = null;
 
         if (apijwtService.isInstructorOrHigher(securedInfo)) {
-            instructorUser = allRepositories.ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
+            instructorUser = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
         }
 
         List<TreatmentDto> treatmentDtoList = new ArrayList<>();
@@ -84,7 +90,7 @@ public class TreatmentServiceImpl implements TreatmentService {
 
     @Override
     public Treatment getTreatment(Long id) {
-        return allRepositories.treatmentRepository.findByTreatmentId(id);
+        return treatmentRepository.findByTreatmentId(id);
     }
 
     @Override
@@ -101,7 +107,7 @@ public class TreatmentServiceImpl implements TreatmentService {
 
         Treatment treatment = null;
 
-        try{
+        try {
             treatment = fromDto(treatmentDto);
         } catch (DataServiceException ex) {
             throw new DataServiceException(String.format(TextConstants.UNABLE_TO_CREATE_TREATMENT, ex.getMessage()), ex);
@@ -135,9 +141,9 @@ public class TreatmentServiceImpl implements TreatmentService {
             throw new TreatmentNotMatchingException(TextConstants.TREATMENT_NOT_MATCHING);
         }
 
-        Optional<Condition> condition = allRepositories.conditionRepository.findById(treatmentDto.getConditionId());
+        Optional<Condition> condition = conditionRepository.findById(treatmentDto.getConditionId());
 
-        if (!condition.isPresent()) {
+        if (condition.isEmpty()) {
             throw new DataServiceException(TextConstants.NO_CONDITION_FOR_TREATMENT);
         }
 
@@ -157,16 +163,16 @@ public class TreatmentServiceImpl implements TreatmentService {
     public Treatment fromDto(TreatmentDto treatmentDto) throws DataServiceException{
         Treatment treatment = new Treatment();
         treatment.setTreatmentId(treatmentDto.getTreatmentId());
-        Optional<Assignment> assignment = allRepositories.assignmentRepository.findById(treatmentDto.getAssignmentId());
+        Optional<Assignment> assignment = assignmentRepository.findById(treatmentDto.getAssignmentId());
 
-        if (!assignment.isPresent()) {
+        if (assignment.isEmpty()) {
             throw new DataServiceException(TextConstants.NO_ASSIGNMENT_IN_TREATMENTDTO);
         }
 
         treatment.setAssignment(assignment.get());
-        Optional<Condition> condition = allRepositories.conditionRepository.findById(treatmentDto.getConditionId());
+        Optional<Condition> condition = conditionRepository.findById(treatmentDto.getConditionId());
 
-        if (!condition.isPresent()) {
+        if (condition.isEmpty()) {
             throw new DataServiceException(TextConstants.NO_CONDITION_FOR_TREATMENT);
         }
 
@@ -176,17 +182,17 @@ public class TreatmentServiceImpl implements TreatmentService {
     }
 
     private Treatment save(Treatment treatment) {
-        return allRepositories.treatmentRepository.save(treatment);
+        return treatmentRepository.save(treatment);
     }
 
     @Override
     public void deleteById(Long id) {
-        allRepositories.treatmentRepository.deleteByTreatmentId(id);
+        treatmentRepository.deleteByTreatmentId(id);
     }
 
     @Override
     public void limitToOne(long assignmentId, long conditionId) throws ExceedingLimitException {
-        if (allRepositories.treatmentRepository.existsByAssignment_AssignmentIdAndCondition_ConditionId(assignmentId, conditionId)) {
+        if (treatmentRepository.existsByAssignment_AssignmentIdAndCondition_ConditionId(assignmentId, conditionId)) {
             throw new ExceedingLimitException("Error 141: A treatment for the condition " + conditionId + " and assignment " + assignmentId + " already exists.");
         }
     }

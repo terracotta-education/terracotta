@@ -33,7 +33,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -60,13 +60,13 @@ public class QuestionController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
 
-        if(!apijwtService.isLearnerOrHigher(securedInfo)) {
+        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
         List<QuestionDto> questionList = questionService.getQuestions(assessmentId);
 
-        if(questionList.isEmpty()) {
+        if (questionList.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }
 
@@ -87,7 +87,7 @@ public class QuestionController {
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
         apijwtService.questionAllowed(securedInfo, assessmentId, questionId);
 
-        if(!apijwtService.isLearnerOrHigher(securedInfo)){
+        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
@@ -111,7 +111,7 @@ public class QuestionController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
 
-        if(!apijwtService.isInstructorOrHigher(securedInfo)) {
+        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
@@ -133,13 +133,13 @@ public class QuestionController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
 
-        if(!apijwtService.isInstructorOrHigher(securedInfo)) {
+        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
         Map<Question, QuestionDto> map = new HashMap<>();
 
-        for(QuestionDto questionDto : questionDtoList) {
+        for (QuestionDto questionDto : questionDtoList) {
             apijwtService.questionAllowed(securedInfo, assessmentId, questionDto.getQuestionId());
             Question question = questionService.getQuestion(questionDto.getQuestionId());
             log.debug("Updating question with id: {}", question.getQuestionId());
@@ -169,7 +169,7 @@ public class QuestionController {
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
         apijwtService.questionAllowed(securedInfo, assessmentId, questionId);
 
-        if(!apijwtService.isInstructorOrHigher(securedInfo)) {
+        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
@@ -194,11 +194,11 @@ public class QuestionController {
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
         apijwtService.questionAllowed(securedInfo, assessmentId, questionId);
 
-        if(!apijwtService.isInstructorOrHigher(securedInfo)) {
+        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
-        try{
+        try {
             questionService.deleteById(questionId);
             return new ResponseEntity<>(HttpStatus.OK);
         } catch (EmptyResultDataAccessException ex) {

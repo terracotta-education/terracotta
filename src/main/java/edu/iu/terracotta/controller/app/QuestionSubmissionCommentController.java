@@ -32,7 +32,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 
 @Slf4j
@@ -43,14 +43,9 @@ public class QuestionSubmissionCommentController {
 
     public static final String REQUEST_ROOT = "api/experiments/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}/submissions/{submissionId}/question_submissions/{questionSubmissionId}/question_submission_comments";
 
-    @Autowired
-    private APIJWTService apijwtService;
-
-    @Autowired
-    private SubmissionService submissionService;
-
-    @Autowired
-    private QuestionSubmissionCommentService questionSubmissionCommentService;
+    @Autowired private APIJWTService apijwtService;
+    @Autowired private SubmissionService submissionService;
+    @Autowired private QuestionSubmissionCommentService questionSubmissionCommentService;
 
     @GetMapping
     public ResponseEntity<List<QuestionSubmissionCommentDto>> getQuestionSubmissionComments(@PathVariable long experimentId,
@@ -177,7 +172,6 @@ public class QuestionSubmissionCommentController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
-
     @DeleteMapping("/{questionSubmissionCommentId}")
     public ResponseEntity<Void> deleteQuestionSubmissionComment(@PathVariable long experimentId,
                                                                 @PathVariable long conditionId,
@@ -199,7 +193,7 @@ public class QuestionSubmissionCommentController {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
-        try{
+        try {
             questionSubmissionCommentService.deleteById(questionSubmissionCommentId);
             return new ResponseEntity<>(HttpStatus.OK);
         } catch (EmptyResultDataAccessException ex) {

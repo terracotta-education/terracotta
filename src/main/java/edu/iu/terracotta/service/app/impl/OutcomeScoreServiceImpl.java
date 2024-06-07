@@ -7,7 +7,9 @@ import edu.iu.terracotta.model.app.Outcome;
 import edu.iu.terracotta.model.app.OutcomeScore;
 import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.dto.OutcomeScoreDto;
-import edu.iu.terracotta.repository.AllRepositories;
+import edu.iu.terracotta.repository.OutcomeRepository;
+import edu.iu.terracotta.repository.OutcomeScoreRepository;
+import edu.iu.terracotta.repository.ParticipantRepository;
 import edu.iu.terracotta.service.app.OutcomeScoreService;
 import edu.iu.terracotta.utils.TextConstants;
 
@@ -23,18 +25,20 @@ import java.util.Optional;
 @Component
 public class OutcomeScoreServiceImpl implements OutcomeScoreService {
 
-    @Autowired private AllRepositories allRepositories;
+    @Autowired private OutcomeRepository outcomeRepository;
+    @Autowired private OutcomeScoreRepository outcomeScoreRepository;
+    @Autowired private ParticipantRepository participantRepository;
 
     @Override
     public List<OutcomeScoreDto> getOutcomeScores(Long outcomeId) {
-        return CollectionUtils.emptyIfNull(allRepositories.outcomeScoreRepository.findByOutcome_OutcomeId(outcomeId)).stream()
+        return CollectionUtils.emptyIfNull(outcomeScoreRepository.findByOutcome_OutcomeId(outcomeId)).stream()
             .map(outcomeScore -> toDto(outcomeScore))
             .toList();
     }
 
     @Override
     public OutcomeScore getOutcomeScore(Long id) {
-        return allRepositories.outcomeScoreRepository.findByOutcomeScoreId(id);
+        return outcomeScoreRepository.findByOutcomeScoreId(id);
     }
 
     @Override
@@ -47,7 +51,7 @@ public class OutcomeScoreServiceImpl implements OutcomeScoreService {
         outcomeScoreDto.setOutcomeId(outcomeId);
         OutcomeScore outcomeScore;
 
-        try{
+        try {
             outcomeScore = fromDto(outcomeScoreDto);
         } catch (DataServiceException ex) {
             throw new DataServiceException("Error 105: Unable to create outcome score: " + ex.getMessage(), ex);
@@ -72,17 +76,17 @@ public class OutcomeScoreServiceImpl implements OutcomeScoreService {
         OutcomeScore outcomeScore = new OutcomeScore();
         outcomeScore.setOutcomeScoreId(outcomeScoreDto.getOutcomeScoreId());
         outcomeScore.setScoreNumeric(outcomeScoreDto.getScoreNumeric());
-        Optional<Outcome> outcome =  allRepositories.outcomeRepository.findById(outcomeScoreDto.getOutcomeId());
+        Optional<Outcome> outcome =  outcomeRepository.findById(outcomeScoreDto.getOutcomeId());
 
-        if (!outcome.isPresent()) {
+        if (outcome.isEmpty()) {
             throw new DataServiceException("The outcome for the outcome score does not exist.");
         }
 
         outcomeScore.setOutcome(outcome.get());
 
-        Optional<Participant> participant = allRepositories.participantRepository.findById(outcomeScoreDto.getParticipantId());
+        Optional<Participant> participant = participantRepository.findById(outcomeScoreDto.getParticipantId());
 
-        if (!participant.isPresent()) {
+        if (participant.isEmpty()) {
             throw new DataServiceException("The participant for the outcome score does not exist.");
         }
 
@@ -92,7 +96,7 @@ public class OutcomeScoreServiceImpl implements OutcomeScoreService {
     }
 
     private OutcomeScore save(OutcomeScore outcomeScore) {
-        return allRepositories.outcomeScoreRepository.save(outcomeScore);
+        return outcomeScoreRepository.save(outcomeScore);
     }
 
 
@@ -100,12 +104,12 @@ public class OutcomeScoreServiceImpl implements OutcomeScoreService {
     public void updateOutcomeScore(Long outcomeScoreId, OutcomeScoreDto outcomeScoreDto) {
         OutcomeScore outcomeScore = getOutcomeScore(outcomeScoreId);
         outcomeScore.setScoreNumeric(outcomeScoreDto.getScoreNumeric());
-        allRepositories.outcomeScoreRepository.saveAndFlush(outcomeScore);
+        outcomeScoreRepository.saveAndFlush(outcomeScore);
     }
 
     @Override
     public void deleteById(Long id) {
-        allRepositories.outcomeScoreRepository.deleteByOutcomeScoreId(id);
+        outcomeScoreRepository.deleteByOutcomeScoreId(id);
     }
 
     @Override
@@ -114,9 +118,9 @@ public class OutcomeScoreServiceImpl implements OutcomeScoreService {
             throw new InvalidParticipantException("Error 105: Must include a valid participant id in the POST");
         }
 
-        Optional<Participant> participant = allRepositories.participantRepository.findByParticipantIdAndExperiment_ExperimentId(participantId, experimentId);
+        Optional<Participant> participant = participantRepository.findByParticipantIdAndExperiment_ExperimentId(participantId, experimentId);
 
-        if (!participant.isPresent()) {
+        if (participant.isEmpty()) {
             throw new InvalidParticipantException("Error 109: The participant provided does not belong to this experiment.");
         }
     }

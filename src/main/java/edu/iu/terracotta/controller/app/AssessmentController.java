@@ -43,7 +43,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.io.IOException;
 import java.util.List;
@@ -105,7 +105,7 @@ public class AssessmentController {
             apijwtService.submissionAllowed(securedInfo, assessmentId, submissionId);
         }
 
-        if(!apijwtService.isLearnerOrHigher(securedInfo)) {
+        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
 
@@ -131,7 +131,6 @@ public class AssessmentController {
                                                         HttpServletRequest req)
             throws ExperimentNotMatchingException, TreatmentNotMatchingException, BadTokenException,
             TitleValidationException, AssessmentNotMatchingException, IdInPostException, DataServiceException {
-
         log.debug("Creating Assessment for experiment ID: {}", experimentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -157,13 +156,12 @@ public class AssessmentController {
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, BadTokenException,
             TitleValidationException, RevealResponsesSettingValidationException,
             MultipleAttemptsSettingsValidationException, IdInPostException, DataServiceException, NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException {
-
         log.debug("Updating assessment with id: {}", assessmentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
 
-        if(!apijwtService.isInstructorOrHigher(securedInfo)){
+        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
@@ -180,7 +178,6 @@ public class AssessmentController {
                                                  @PathVariable long assessmentId,
                                                  HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, BadTokenException {
-
         log.debug("Deleting assessment with id: {}", assessmentId);
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
@@ -191,7 +188,7 @@ public class AssessmentController {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
-        try{
+        try {
             assessmentService.deleteById(assessmentId);
         } catch (EmptyResultDataAccessException ex) {
             log.warn(ex.getMessage());
@@ -209,7 +206,6 @@ public class AssessmentController {
                                                 HttpServletRequest req)
         throws ExperimentNotMatchingException, TreatmentNotMatchingException, BadTokenException,
             TitleValidationException, AssessmentNotMatchingException, IdInPostException, DataServiceException, ConnectionException, CanvasApiException, IOException {
-
         log.debug("Regrading questions for assessment ID: {}", assessmentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);

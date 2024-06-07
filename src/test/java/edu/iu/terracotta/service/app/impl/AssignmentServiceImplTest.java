@@ -205,7 +205,7 @@ public class AssignmentServiceImplTest extends BaseTest {
 
     @Test
     public void testMoveAssignmentNoTargetExposureMatch() throws IdInPostException, AssessmentNotMatchingException {
-        when(allRepositories.exposureRepository.findByExposureId(anyLong())).thenReturn(null);
+        when(exposureRepository.findByExposureId(anyLong())).thenReturn(null);
         Exception exception = assertThrows(ExposureNotMatchingException.class, () -> { assignmentService.moveAssignment(2l, assignmentDto, 1L, 2l, securedInfo); });
 
         assertEquals(TextConstants.EXPOSURE_NOT_MATCHING, exception.getMessage());

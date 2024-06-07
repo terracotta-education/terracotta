@@ -8,16 +8,15 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+@SuppressWarnings({"PMD.MethodNamingConventions"})
 public interface QuestionSubmissionCommentRepository extends JpaRepository<QuestionSubmissionComment, Long> {
 
     List<QuestionSubmissionComment> findByQuestionSubmission_QuestionSubmissionId(Long questionSubmissionId);
-
     QuestionSubmissionComment findByQuestionSubmissionCommentId(Long questionSubmissionCommentId);
-
     boolean existsByQuestionSubmission_QuestionSubmissionIdAndQuestionSubmissionCommentId(Long questionSubmissionId, Long questionSubmissionCommentId);
 
-    @Transactional
     @Modifying
+    @Transactional
     @Query("delete from QuestionSubmissionComment s where s.questionSubmissionCommentId = ?1")
     void deleteByQuestionSubmissionCommentId(Long questionSubmissionCommentId);
 

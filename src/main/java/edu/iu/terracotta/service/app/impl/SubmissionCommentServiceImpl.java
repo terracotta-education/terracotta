@@ -7,7 +7,9 @@ import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.SubmissionComment;
 import edu.iu.terracotta.model.app.dto.SubmissionCommentDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
-import edu.iu.terracotta.repository.AllRepositories;
+import edu.iu.terracotta.repository.LtiUserRepository;
+import edu.iu.terracotta.repository.SubmissionCommentRepository;
+import edu.iu.terracotta.repository.SubmissionRepository;
 import edu.iu.terracotta.service.app.SubmissionCommentService;
 import edu.iu.terracotta.utils.TextConstants;
 
@@ -24,11 +26,13 @@ import java.util.Optional;
 @Component
 public class SubmissionCommentServiceImpl implements SubmissionCommentService {
 
-    @Autowired private AllRepositories allRepositories;
+    @Autowired private LtiUserRepository ltiUserRepository;
+    @Autowired private SubmissionCommentRepository submissionCommentRepository;
+    @Autowired private SubmissionRepository submissionRepository;
 
     @Override
     public List<SubmissionCommentDto> getSubmissionComments(Long submissionId) {
-        return CollectionUtils.emptyIfNull(allRepositories.submissionCommentRepository.findBySubmission_SubmissionId(submissionId)).stream()
+        return CollectionUtils.emptyIfNull(submissionCommentRepository.findBySubmission_SubmissionId(submissionId)).stream()
             .map(submissionComment -> toDto(submissionComment))
             .toList();
     }
@@ -40,7 +44,7 @@ public class SubmissionCommentServiceImpl implements SubmissionCommentService {
         }
 
         submissionCommentDto.setSubmissionId(submissionId);
-        LtiUserEntity user = allRepositories.ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
+        LtiUserEntity user = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
         submissionCommentDto.setCreator(user.getDisplayName());
         SubmissionComment submissionComment;
 
@@ -50,18 +54,18 @@ public class SubmissionCommentServiceImpl implements SubmissionCommentService {
             throw new DataServiceException("Error 105: Unable to create submission comment: " + ex.getMessage(), ex);
         }
 
-        return toDto(allRepositories.submissionCommentRepository.save(submissionComment));
+        return toDto(submissionCommentRepository.save(submissionComment));
     }
 
     @Override
     public void updateSubmissionComment(SubmissionComment submissionComment, SubmissionCommentDto submissionCommentDto) {
         submissionComment.setComment(submissionCommentDto.getComment());
-        allRepositories.submissionCommentRepository.saveAndFlush(submissionComment);
+        submissionCommentRepository.saveAndFlush(submissionComment);
     }
 
     @Override
     public SubmissionComment getSubmissionComment(Long id) {
-        return allRepositories.submissionCommentRepository.findBySubmissionCommentId(id);
+        return submissionCommentRepository.findBySubmissionCommentId(id);
     }
 
     @Override
@@ -77,9 +81,9 @@ public class SubmissionCommentServiceImpl implements SubmissionCommentService {
 
     @Override
     public SubmissionComment fromDto(SubmissionCommentDto submissionCommentDto) throws DataServiceException {
-        Optional<Submission> submission = allRepositories.submissionRepository.findById(submissionCommentDto.getSubmissionId());
+        Optional<Submission> submission = submissionRepository.findById(submissionCommentDto.getSubmissionId());
 
-        if (!submission.isPresent()) {
+        if (submission.isEmpty()) {
             throw new DataServiceException("The submission for the submission comment doesn't exist.");
         }
 
@@ -95,7 +99,7 @@ public class SubmissionCommentServiceImpl implements SubmissionCommentService {
 
     @Override
     public void deleteById(Long id) throws EmptyResultDataAccessException {
-        allRepositories.submissionCommentRepository.deleteBySubmissionCommentId(id);
+        submissionCommentRepository.deleteBySubmissionCommentId(id);
     }
 
     @Override

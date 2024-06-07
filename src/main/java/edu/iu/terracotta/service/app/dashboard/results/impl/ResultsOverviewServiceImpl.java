@@ -43,7 +43,12 @@ import edu.iu.terracotta.model.app.dto.dashboard.results.overview.participant.Ov
 import edu.iu.terracotta.model.app.enumerator.QuestionTypes;
 import edu.iu.terracotta.model.canvas.AssignmentExtended;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
-import edu.iu.terracotta.repository.AllRepositories;
+import edu.iu.terracotta.repository.AssessmentRepository;
+import edu.iu.terracotta.repository.AssignmentRepository;
+import edu.iu.terracotta.repository.ExposureGroupConditionRepository;
+import edu.iu.terracotta.repository.ParticipantRepository;
+import edu.iu.terracotta.repository.SubmissionRepository;
+import edu.iu.terracotta.repository.TreatmentRepository;
 import edu.iu.terracotta.service.app.AssessmentSubmissionService;
 import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.app.SubmissionService;
@@ -69,7 +74,12 @@ import static edu.iu.terracotta.service.app.dashboard.results.util.StatisticsUti
 @SuppressWarnings({"rawtypes", "PMD.GuardLogStatement"})
 public class ResultsOverviewServiceImpl implements ResultsOverviewService {
 
-    @Autowired private AllRepositories allRepositories;
+    @Autowired private AssessmentRepository assessmentRepository;
+    @Autowired private AssignmentRepository assignmentRepository;
+    @Autowired private ExposureGroupConditionRepository exposureGroupConditionRepository;
+    @Autowired private ParticipantRepository participantRepository;
+    @Autowired private SubmissionRepository submissionRepository;
+    @Autowired private TreatmentRepository treatmentRepository;
     @Autowired private AssessmentSubmissionService assessmentSubmissionService;
     @Autowired private AssignmentService assignmentService;
     @Autowired private SubmissionService submissionService;
@@ -168,13 +178,14 @@ public class ResultsOverviewServiceImpl implements ResultsOverviewService {
             return now.before(assignmentExtended.get().getLockAt());
         }
 
-        if (assignmentExtended.get().getUnlockAt() != null && assignmentExtended.get().getLockAt() != null) {
+        //if (assignmentExtended.get().getUnlockAt() != null && assignmentExtended.get().getLockAt() != null) {
             // unlock and lock set; check now is after unlock and now is before lock
-            return now.after(assignmentExtended.get().getUnlockAt()) && now.before(assignmentExtended.get().getLockAt());
-        }
+            return assignmentExtended.get().getUnlockAt() != null && assignmentExtended.get().getLockAt() != null &&
+                now.after(assignmentExtended.get().getUnlockAt()) && now.before(assignmentExtended.get().getLockAt());
+        //}
 
         // default to true
-        return true;
+        //return true;
     }
 
     /**
@@ -342,7 +353,7 @@ public class ResultsOverviewServiceImpl implements ResultsOverviewService {
                             assessment -> {
                                 submissionsCount.addAndGet(
                                     // filter out non-consenting participant submissions
-                                    allRepositories.submissionRepository.findByAssessment_AssessmentId(assessment.getAssessmentId()).stream()
+                                    submissionRepository.findByAssessment_AssessmentId(assessment.getAssessmentId()).stream()
                                         .filter(submission -> BooleanUtils.isTrue(submission.getParticipant().getConsent()))
                                         .filter(submission -> submission.getParticipant().getDateRevoked() == null)
                                         .count()
@@ -426,7 +437,7 @@ public class ResultsOverviewServiceImpl implements ResultsOverviewService {
         assessments
             .forEach(
                 assessment -> {
-                    submissionsCount.addAndGet(allRepositories.submissionRepository.countByAssessment_AssessmentId(assessment.getAssessmentId()));
+                    submissionsCount.addAndGet(submissionRepository.countByAssessment_AssessmentId(assessment.getAssessmentId()));
                 }
             );
 
@@ -473,9 +484,9 @@ public class ResultsOverviewServiceImpl implements ResultsOverviewService {
      * @param experiment
      */
     private void prepareData(Experiment experiment, SecuredInfo securedInfo) {
-        experimentAssignments = allRepositories.assignmentRepository.findByExposure_Experiment_ExperimentId(experiment.getExperimentId());
+        experimentAssignments = assignmentRepository.findByExposure_Experiment_ExperimentId(experiment.getExperimentId());
 
-        experimentParticipants = allRepositories.participantRepository.findByExperiment_ExperimentId(experiment.getExperimentId()).stream()
+        experimentParticipants = participantRepository.findByExperiment_ExperimentId(experiment.getExperimentId()).stream()
             .filter(participant -> !participant.isTestStudent())
             .toList();
 
@@ -488,24 +499,24 @@ public class ResultsOverviewServiceImpl implements ResultsOverviewService {
         for (Assignment experimentAssignment : experimentAssignments) {
             allAssessmentsByAssignment.put(
                 experimentAssignment.getAssignmentId(),
-                allRepositories.assessmentRepository.findByTreatment_Assignment_AssignmentId(experimentAssignment.getAssignmentId())
+                assessmentRepository.findByTreatment_Assignment_AssignmentId(experimentAssignment.getAssignmentId())
             );
         }
 
-        experimentTreatments = allRepositories.treatmentRepository.findByCondition_Experiment_ExperimentId(experiment.getExperimentId());
+        experimentTreatments = treatmentRepository.findByCondition_Experiment_ExperimentId(experiment.getExperimentId());
 
         allTreatmentsByAssignment = new HashMap<>();
 
         for (Assignment assignment : experimentAssignments) {
             allTreatmentsByAssignment.put(
                 assignment.getAssignmentId(),
-                allRepositories.treatmentRepository.findByAssignment_AssignmentId(assignment.getAssignmentId())
+                treatmentRepository.findByAssignment_AssignmentId(assignment.getAssignmentId())
             );
         }
 
-        experimentExposureGroupConditions = allRepositories.exposureGroupConditionRepository.findByCondition_Experiment_ExperimentId(experiment.getExperimentId());
+        experimentExposureGroupConditions = exposureGroupConditionRepository.findByCondition_Experiment_ExperimentId(experiment.getExperimentId());
         // experiment submissions without non-consented participants' submissions
-        experimentSubmissions = allRepositories.submissionRepository.findByParticipant_Experiment_ExperimentId(experiment.getExperimentId()).stream()
+        experimentSubmissions = submissionRepository.findByParticipant_Experiment_ExperimentId(experiment.getExperimentId()).stream()
             .filter(submission -> BooleanUtils.isTrue(submission.getParticipant().getConsent()))
             .filter(submission -> submission.getParticipant().getDateRevoked() == null)
             .toList();

@@ -21,7 +21,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import edu.iu.terracotta.model.app.ConsentDocument;
 import edu.iu.terracotta.model.app.FileSubmissionLocal;
-import edu.iu.terracotta.repository.AllRepositories;
+import edu.iu.terracotta.repository.ConsentDocumentRepository;
 import edu.iu.terracotta.service.app.FileStorageService;
 import lombok.extern.slf4j.Slf4j;
 import net.lingala.zip4j.model.enums.EncryptionMethod;
@@ -31,11 +31,10 @@ import net.lingala.zip4j.model.enums.EncryptionMethod;
 @SuppressWarnings({"PMD.GuardLogStatement"})
 public class ConsentDocumentConversionRunner implements ApplicationListener<ApplicationReadyEvent> {
 
-    @Autowired
-    private AllRepositories allRepositories;
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy/MM/dd/HH");
 
-    @Autowired
-    private FileStorageService fileStorageService;
+    @Autowired private ConsentDocumentRepository consentDocumentRepository;
+    @Autowired private FileStorageService fileStorageService;
 
     @Value("${app.consent.documents.conversion.enabled:false}")
     private boolean enabled;
@@ -45,8 +44,6 @@ public class ConsentDocumentConversionRunner implements ApplicationListener<Appl
 
     @Value("${consent.file.local.path.root}")
     private String consentFileLocalPathRoot;
-
-    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy/MM/dd/HH");
 
     @Override
     public void onApplicationEvent(ApplicationReadyEvent event) {
@@ -58,7 +55,7 @@ public class ConsentDocumentConversionRunner implements ApplicationListener<Appl
             () ->
                 {
                     // fix experiment started date; if has an assignment started, mark experiment started, else set to null
-                    List<ConsentDocument> consentDocuments = allRepositories.consentDocumentRepository.findAll();
+                    List<ConsentDocument> consentDocuments = consentDocumentRepository.findAll();
 
                     log.info("Starting conversion of consent documents...");
                     AtomicInteger processed = new AtomicInteger(0);
@@ -115,7 +112,7 @@ public class ConsentDocumentConversionRunner implements ApplicationListener<Appl
                                     consentDocument.setEncryptionPhrase(encryptionPhrase);
                                     consentDocument.setFileUri(fileSubmissionLocal.getFilePath());
 
-                                    allRepositories.consentDocumentRepository.save(consentDocument);
+                                    consentDocumentRepository.save(consentDocument);
 
                                     log.info(
                                         "Converted consent document '{}' for experiment ID: '{}'. Old path: '{}'. New path: '{}'",

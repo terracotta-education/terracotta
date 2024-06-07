@@ -55,7 +55,7 @@ public class AssignmentTreatmentServiceImplTest extends BaseTest {
 
     @Test
     public void testDuplicateTreatmentNotFound() throws IdInPostException, ExceedingLimitException, AssessmentNotMatchingException {
-        when(allRepositories.treatmentRepository.findByTreatmentId(anyLong())).thenReturn(null);
+        when(treatmentRepository.findByTreatmentId(anyLong())).thenReturn(null);
 
         Exception exception = assertThrows(DataServiceException.class, () -> { assignmentTreatmentService.duplicateTreatment(1L, assignment, securedInfo); });
 

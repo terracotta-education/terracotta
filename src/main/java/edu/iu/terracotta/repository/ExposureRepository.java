@@ -8,18 +8,17 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+@SuppressWarnings({"PMD.MethodNamingConventions"})
 public interface ExposureRepository extends JpaRepository<Exposure, Long> {
 
     List<Exposure> findByExperiment_ExperimentId(Long experimentId);
-
     Exposure findByExposureId(Long exposureId);
-
     boolean existsByExperiment_ExperimentIdAndExposureId(Long experimentId, Long exposureId);
-
     void deleteByExperiment_ExperimentId(Long experimentId);
 
-    @Transactional
     @Modifying
+    @Transactional
     @Query("delete from Exposure s where s.exposureId = ?1")
     void deleteByExposureId(Long exposureId);
+
 }

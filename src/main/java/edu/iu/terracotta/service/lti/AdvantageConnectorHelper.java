@@ -13,19 +13,12 @@ import org.springframework.web.client.RestTemplate;
 public interface AdvantageConnectorHelper {
 
     HttpEntity createRequestEntity(String apiKey);
-
     HttpEntity createTokenizedRequestEntity(LTIToken ltiToken);
-
     HttpEntity<LineItem> createTokenizedRequestEntity(LTIToken ltiToken, LineItem lineItem);
-
     HttpEntity<LineItems> createTokenizedRequestEntity(LTIToken ltiToken, LineItems lineItems);
-
     HttpEntity<String> createTokenizedRequestEntity(LTIToken ltiToken, String score);
-
     LTIToken getToken(PlatformDeployment platformDeployment, String scope) throws ConnectionException;
-
     RestTemplate createRestTemplate();
-
     String nextPage(HttpHeaders headers);
 
 }

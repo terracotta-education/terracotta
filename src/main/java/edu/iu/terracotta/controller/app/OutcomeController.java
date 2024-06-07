@@ -34,7 +34,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.util.List;
 
@@ -155,7 +155,7 @@ public class OutcomeController {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
-        try{
+        try {
             outcomeService.deleteById(outcomeId);
             return new ResponseEntity<>(HttpStatus.OK);
         } catch (EmptyResultDataAccessException ex) {

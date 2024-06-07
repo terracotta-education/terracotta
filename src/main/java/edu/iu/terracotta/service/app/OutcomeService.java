@@ -21,27 +21,16 @@ import java.util.List;
 public interface OutcomeService {
 
     List<OutcomeDto> getOutcomesForExposure(long exposureId);
-
     List<OutcomeDto> getAllByExperiment(long experimentId);
-
     Outcome getOutcome(long id);
-
     OutcomeDto postOutcome(OutcomeDto outcomeDto, long exposureId) throws IdInPostException, DataServiceException, TitleValidationException;
-
     OutcomeDto toDto(Outcome outcome, boolean outcomeScores);
-
     Outcome fromDto(OutcomeDto outcomeDto) throws DataServiceException;
-
     void updateOutcome(long outcomeId, OutcomeDto outcomeDto) throws TitleValidationException;
-
     void deleteById(long id) throws EmptyResultDataAccessException;
-
     List<OutcomePotentialDto> potentialOutcomes(long experimentId, SecuredInfo securedInfo) throws DataServiceException, CanvasApiException;
-
     void updateOutcomeGrades(long outcomeId, SecuredInfo securedInfo) throws CanvasApiException, IOException, ParticipantNotUpdatedException, ExperimentNotMatchingException, OutcomeNotMatchingException;
-
     void defaultOutcome(OutcomeDto outcomeDto) throws TitleValidationException;
-
     HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, long experimentId, long exposureId, long outcomeId);
 
 }

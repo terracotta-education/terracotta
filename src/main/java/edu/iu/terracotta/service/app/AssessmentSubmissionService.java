@@ -8,9 +8,7 @@ import edu.iu.terracotta.model.app.Submission;
 public interface AssessmentSubmissionService {
 
     Submission gradeSubmission(Submission submission, RegradeDetails regradeDetails) throws DataServiceException;
-
     boolean isGradeAltered(Submission submission);
-
     Float calculateMaxScore(Assessment assessment);
 
 }

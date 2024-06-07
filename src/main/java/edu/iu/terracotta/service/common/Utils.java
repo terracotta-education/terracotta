@@ -90,7 +90,7 @@ public class Utils {
             .build();
     }
 
-    public static CaliperOrganization prepareGroup(LtiMembershipEntity participant, SecuredInfo securedInfo){
+    public static CaliperOrganization prepareGroup(LtiMembershipEntity participant, SecuredInfo securedInfo) {
         String canvasCourseId = participant.getUser().getPlatformDeployment().getBaseUrl() + "/courses/" + securedInfo.getCanvasCourseId();
 
         return CourseSection.builder()

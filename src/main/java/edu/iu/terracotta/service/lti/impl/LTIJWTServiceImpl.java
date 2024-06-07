@@ -1,15 +1,3 @@
-/**
- * Copyright 2021 Unicon (R)
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- * http://www.apache.org/licenses/LICENSE-2.0
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package edu.iu.terracotta.service.lti.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -30,7 +18,7 @@ import io.jsonwebtoken.Locator;
 import io.jsonwebtoken.Jwts.SIG;
 import lombok.extern.slf4j.Slf4j;
 import edu.iu.terracotta.model.PlatformDeployment;
-import edu.iu.terracotta.repository.AllRepositories;
+import edu.iu.terracotta.repository.PlatformDeploymentRepository;
 import edu.iu.terracotta.utils.LtiStrings;
 import edu.iu.terracotta.utils.TextConstants;
 import edu.iu.terracotta.utils.oauth.OAuthUtils;
@@ -60,7 +48,7 @@ import java.util.UUID;
 @Service
 public class LTIJWTServiceImpl implements LTIJWTService {
 
-    @Autowired private AllRepositories allRepositories;
+    @Autowired private PlatformDeploymentRepository platformDeploymentRepository;
     @Autowired private LTIDataService ltiDataService;
 
     @Value("${app.token.logging.enabled:true}")
@@ -130,13 +118,13 @@ public class LTIJWTServiceImpl implements LTIJWTService {
                             Map<String, Object> jwtClaims = null;
 
                             try {
-                                jwtClaims = new ObjectMapper().readValue(jwtPayload, new TypeReference<Map<String,Object>>(){});
+                                jwtClaims = new ObjectMapper().readValue(jwtPayload, new TypeReference<Map<String,Object>>() {});
                             } catch (JsonProcessingException e) {
                                 throw new IllegalStateException("Request is not a valid LTI3 request.", e);
                             }
 
                             String issuer = (String) jwtClaims.get(LtiStrings.ISS);
-                            platformDeployment = allRepositories.platformDeploymentRepository.findByIssAndClientId(issuer, clientId).get(0);
+                            platformDeployment = platformDeploymentRepository.findByIssAndClientId(issuer, clientId).get(0);
                         } catch (IndexOutOfBoundsException ex) {
                             log.error("kid not found in header", ex);
                             return null;

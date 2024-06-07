@@ -5,13 +5,18 @@ import edu.iu.terracotta.service.common.ResourceService;
 import org.springframework.stereotype.Component;
 
 @Component
+@SuppressWarnings({"PMD.UncommentedEmptyMethodBody"})
 public class ExposureResourceServiceTest implements ResourceService<Exposure> {
 
-    static final String EXPOSURE_RESOURCE = "classpath:test_data/exposures";
+    private static final String EXPOSURE_RESOURCE = "classpath:test_data/exposures";
 
     @Override
-    public String getDirectoryPath(){return EXPOSURE_RESOURCE;}
+    public String getDirectoryPath() {
+        return EXPOSURE_RESOURCE;
+    }
 
     @Override
-    public void setDefaults(){ }
+    public void setDefaults() {
+
+    }
 }

@@ -18,29 +18,17 @@ import java.util.List;
 public interface ExperimentService {
 
     List<ExperimentDto> getExperiments(SecuredInfo securedInfo, boolean syncWithCanvas);
-
     Experiment getExperiment(long experimentId);
-
     ExperimentDto postExperiment(ExperimentDto experimentDto, SecuredInfo securedInfo) throws DataServiceException, TitleValidationException;
-
     void updateExperiment(long experimentId, long contextId, ExperimentDto experimentDto, SecuredInfo securedInfo) throws TitleValidationException, WrongValueException, ParticipantNotUpdatedException, ExperimentNotMatchingException;
-
     ExperimentDto toDto(Experiment experiment, boolean conditions, boolean exposures, boolean participants);
-
     Experiment fromDto(ExperimentDto experimentDto) throws DataServiceException;
-
     void deleteById(Long id, SecuredInfo securedInfo) throws EmptyResultDataAccessException;
-
     ExperimentDto fillContextInfo(ExperimentDto experimentDto, SecuredInfo securedInfo);
-
     void deleteConsentDocument(ConsentDocument consentDocument);
-
     ExperimentDto getEmptyExperiment(SecuredInfo securedInfo, ExperimentDto experimentDto);
-
     void copyDto(ExperimentDto existingEmpty, ExperimentDto experimentDto);
-
     HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, long experimentId);
-
     void validateTitle(String title, long contextId) throws TitleValidationException;
 
 }

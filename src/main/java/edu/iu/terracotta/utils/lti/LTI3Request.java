@@ -40,8 +40,8 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.thymeleaf.util.ListUtils;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpSession;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -277,7 +277,7 @@ public class LTI3Request {
         Map<String, Object> jwtClaims = null;
 
         try {
-            jwtClaims = new ObjectMapper().readValue(jwtPayload, new TypeReference<Map<String,Object>>(){});
+            jwtClaims = new ObjectMapper().readValue(jwtPayload, new TypeReference<Map<String,Object>>() {});
         } catch (JsonProcessingException e) {
             throw new IllegalStateException("Request is not a valid LTI3 request.", e);
         }
@@ -291,7 +291,7 @@ public class LTI3Request {
                 public Key locate(Header header) {
                     if (header instanceof JwsHeader) {
                         JwsHeader jwsHeader = (JwsHeader) header;
-                        PlatformDeployment platformDeployment = ltiDataService.getAllRepositories().platformDeploymentRepository.findByIssAndClientId(issuer, audience).get(0);
+                        PlatformDeployment platformDeployment = ltiDataService.getPlatformDeploymentRepository().findByIssAndClientId(issuer, audience).get(0);
 
                         if (StringUtils.isEmpty(platformDeployment.getJwksEndpoint())) {
                             log.error("The platform configuration must contain a Jwks endpoint");
@@ -516,7 +516,7 @@ public class LTI3Request {
             try {
                 deepLinkJwts = DeepLinkUtils.generateDeepLinkJWT(
                     ltiDataService,
-                    ltiDataService.getAllRepositories().platformDeploymentRepository.findByToolDeployments_LtiDeploymentId(ltiDeploymentId).get(0),
+                    ltiDataService.getPlatformDeploymentRepository().findByToolDeployments_LtiDeploymentId(ltiDeploymentId).get(0),
                     this,
                     toolDeployment.getPlatformDeployment().getLocalUrl());
             } catch (GeneralSecurityException | IOException | NullPointerException ex) {

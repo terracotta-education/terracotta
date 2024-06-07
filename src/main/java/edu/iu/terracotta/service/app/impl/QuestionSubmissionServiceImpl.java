@@ -31,7 +31,16 @@ import edu.iu.terracotta.model.app.dto.QuestionSubmissionDto;
 import edu.iu.terracotta.model.app.enumerator.QuestionTypes;
 import edu.iu.terracotta.model.canvas.AssignmentExtended;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
-import edu.iu.terracotta.repository.AllRepositories;
+import edu.iu.terracotta.repository.AnswerEssaySubmissionRepository;
+import edu.iu.terracotta.repository.AnswerFileSubmissionRepository;
+import edu.iu.terracotta.repository.AnswerMcRepository;
+import edu.iu.terracotta.repository.AnswerMcSubmissionRepository;
+import edu.iu.terracotta.repository.AssessmentRepository;
+import edu.iu.terracotta.repository.AssignmentRepository;
+import edu.iu.terracotta.repository.QuestionRepository;
+import edu.iu.terracotta.repository.QuestionSubmissionCommentRepository;
+import edu.iu.terracotta.repository.QuestionSubmissionRepository;
+import edu.iu.terracotta.repository.SubmissionRepository;
 import edu.iu.terracotta.service.app.AnswerService;
 import edu.iu.terracotta.service.app.AnswerSubmissionService;
 import edu.iu.terracotta.service.app.FileStorageService;
@@ -67,7 +76,16 @@ import java.util.Optional;
 @SuppressWarnings({"squid:S2229", "PMD.GuardLogStatement"})
 public class QuestionSubmissionServiceImpl implements QuestionSubmissionService {
 
-    @Autowired private AllRepositories allRepositories;
+    @Autowired private AnswerEssaySubmissionRepository answerEssaySubmissionRepository;
+    @Autowired private AnswerFileSubmissionRepository answerFileSubmissionRepository;
+    @Autowired private AnswerMcRepository answerMcRepository;
+    @Autowired private AnswerMcSubmissionRepository answerMcSubmissionRepository;
+    @Autowired private AssessmentRepository assessmentRepository;
+    @Autowired private AssignmentRepository assignmentRepository;
+    @Autowired private QuestionRepository questionRepository;
+    @Autowired private QuestionSubmissionCommentRepository questionSubmissionCommentRepository;
+    @Autowired private QuestionSubmissionRepository questionSubmissionRepository;
+    @Autowired private SubmissionRepository submissionRepository;
     @Autowired private AnswerService answerService;
     @Autowired private AnswerSubmissionService answerSubmissionService;
     @Autowired private FileStorageService fileStorageService;
@@ -81,13 +99,13 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
         boolean showCorrectAnswers = true;
 
         if (isStudent) {
-            Optional<Assessment> assessment = allRepositories.assessmentRepository.findById(assessmentId);
+            Optional<Assessment> assessment = assessmentRepository.findById(assessmentId);
 
-            if (!assessment.isPresent()) {
+            if (assessment.isEmpty()) {
                 throw new AssessmentNotMatchingException(TextConstants.ASSESSMENT_NOT_MATCHING);
             }
 
-            Submission submission = allRepositories.submissionRepository.findBySubmissionId(submissionId);
+            Submission submission = submissionRepository.findBySubmissionId(submissionId);
             boolean hasSubmitted = submission.getDateSubmitted() != null;
             // allow answerSubmissions if submission is unsubmitted (student users are
             // allowed to retrieve their previously saved answers in order, in the future,
@@ -98,7 +116,7 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
             showCorrectAnswers = assessment.get().canViewCorrectAnswers() && hasSubmitted;
         }
 
-        List<QuestionSubmission> questionSubmissions = allRepositories.questionSubmissionRepository.findBySubmission_SubmissionId(submissionId);
+        List<QuestionSubmission> questionSubmissions = questionSubmissionRepository.findBySubmission_SubmissionId(submissionId);
         List<QuestionSubmissionDto> questionSubmissionDtoList = new ArrayList<>();
 
         for (QuestionSubmission questionSubmission : questionSubmissions) {
@@ -110,7 +128,7 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
 
     @Override
     public QuestionSubmission getQuestionSubmission(Long id) {
-        return allRepositories.questionSubmissionRepository.findByQuestionSubmissionId(id);
+        return questionSubmissionRepository.findByQuestionSubmissionId(id);
     }
 
     @Override
@@ -183,7 +201,7 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
         List<QuestionSubmissionCommentDto> questionSubmissionCommentDtoList = new ArrayList<>();
 
         if (questionSubmissionComments) {
-            for (QuestionSubmissionComment questionSubmissionComment : allRepositories.questionSubmissionCommentRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmission.getQuestionSubmissionId())) {
+            for (QuestionSubmissionComment questionSubmissionComment : questionSubmissionCommentRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmission.getQuestionSubmissionId())) {
                 questionSubmissionCommentDtoList.add(questionSubmissionCommentService.toDto(questionSubmissionComment));
             }
         }
@@ -192,9 +210,9 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
         List<AnswerSubmissionDto> answerSubmissionDtoList = new ArrayList<>();
 
         if (answerSubmissions) {
-            List<AnswerMcSubmission> answerMcSubmissions = allRepositories.answerMcSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmission.getQuestionSubmissionId());
-            List<AnswerEssaySubmission> answerEssaySubmissions = allRepositories.answerEssaySubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmission.getQuestionSubmissionId());
-            List<AnswerFileSubmission> answerFileSubmissions = allRepositories.answerFileSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmission.getQuestionSubmissionId());
+            List<AnswerMcSubmission> answerMcSubmissions = answerMcSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmission.getQuestionSubmissionId());
+            List<AnswerEssaySubmission> answerEssaySubmissions = answerEssaySubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmission.getQuestionSubmissionId());
+            List<AnswerFileSubmission> answerFileSubmissions = answerFileSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmission.getQuestionSubmissionId());
 
             for (AnswerMcSubmission answerMcSubmission : answerMcSubmissions) {
                 answerSubmissionDtoList.add(answerSubmissionService.toDtoMC(answerMcSubmission));
@@ -220,17 +238,17 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
         questionSubmission.setQuestionSubmissionId(questionSubmissionDto.getQuestionSubmissionId());
         questionSubmission.setCalculatedPoints(questionSubmissionDto.getCalculatedPoints());
         questionSubmission.setAlteredGrade(questionSubmissionDto.getAlteredGrade());
-        Optional<Submission> submission = allRepositories.submissionRepository.findById(questionSubmissionDto.getSubmissionId());
+        Optional<Submission> submission = submissionRepository.findById(questionSubmissionDto.getSubmissionId());
 
-        if (!submission.isPresent()) {
+        if (submission.isEmpty()) {
             throw new DataServiceException("Submission with submissionID: " + questionSubmissionDto.getQuestionSubmissionId() + "  does not exist");
         }
 
         questionSubmission.setSubmission(submission.get());
 
-        Optional<Question> question = allRepositories.questionRepository.findByAssessment_AssessmentIdAndQuestionId(submission.get().getAssessment().getAssessmentId(), questionSubmissionDto.getQuestionId());
+        Optional<Question> question = questionRepository.findByAssessment_AssessmentIdAndQuestionId(submission.get().getAssessment().getAssessmentId(), questionSubmissionDto.getQuestionId());
 
-        if (!question.isPresent()) {
+        if (question.isEmpty()) {
             throw new DataServiceException("Question does not exist or does not belong to the submission and assessment");
         }
 
@@ -240,12 +258,12 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
     }
 
     private QuestionSubmission save(QuestionSubmission questionSubmission) {
-        return allRepositories.questionSubmissionRepository.save(questionSubmission);
+        return questionSubmissionRepository.save(questionSubmission);
     }
 
     @Override
     public void deleteById(Long id) {
-        allRepositories.questionSubmissionRepository.deleteByQuestionSubmissionId(id);
+        questionSubmissionRepository.deleteByQuestionSubmissionId(id);
     }
 
     @Override
@@ -257,7 +275,7 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
             questionSubmission.setCalculatedPoints(0f);
         }
 
-        return allRepositories.questionSubmissionRepository.save(questionSubmission);
+        return questionSubmissionRepository.save(questionSubmission);
     }
 
     @Override
@@ -266,7 +284,7 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
             throw new IdMissingException(TextConstants.ID_MISSING);
         }
 
-        if (allRepositories.questionSubmissionRepository.existsBySubmission_Assessment_AssessmentIdAndSubmission_SubmissionIdAndQuestion_QuestionId(assessmentId, submissionId, questionSubmissionDto.getQuestionId())) {
+        if (questionSubmissionRepository.existsBySubmission_Assessment_AssessmentIdAndSubmission_SubmissionIdAndQuestion_QuestionId(assessmentId, submissionId, questionSubmissionDto.getQuestionId())) {
             throw new DuplicateQuestionException("Error 123: A question submission with question id " + questionSubmissionDto.getQuestionId() + " already exists in assessment with id " + assessmentId);
         }
 
@@ -314,9 +332,9 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
 
                 for (AnswerSubmissionDto answerSubmissionDto : questionSubmissionDto.getAnswerSubmissionDtoList()) {
                     if (answerSubmissionDto.getAnswerId() != null) {
-                        Optional<AnswerMc> answerMc = allRepositories.answerMcRepository.findByQuestion_QuestionIdAndAnswerMcId(questionSubmission.getQuestion().getQuestionId(), answerSubmissionDto.getAnswerId());
+                        Optional<AnswerMc> answerMc = answerMcRepository.findByQuestion_QuestionIdAndAnswerMcId(questionSubmission.getQuestion().getQuestionId(), answerSubmissionDto.getAnswerId());
 
-                        if (!answerMc.isPresent()) {
+                        if (answerMc.isEmpty()) {
                             throw new AnswerNotMatchingException(TextConstants.ANSWER_NOT_MATCHING);
                         }
                     }
@@ -330,7 +348,7 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
     @Override
     public void validateQuestionSubmission(QuestionSubmissionDto questionSubmissionDto) throws DataServiceException {
         try {
-            QuestionSubmission questionSubmission = allRepositories.questionSubmissionRepository.findByQuestionSubmissionId(questionSubmissionDto.getQuestionSubmissionId());
+            QuestionSubmission questionSubmission = questionSubmissionRepository.findByQuestionSubmissionId(questionSubmissionDto.getQuestionSubmissionId());
 
             for (AnswerSubmissionDto answerSubmissionDto : questionSubmissionDto.getAnswerSubmissionDtoList()) {
                 if (answerSubmissionDto.getAnswerSubmissionId() == null) {
@@ -339,24 +357,25 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
 
                 switch (questionSubmission.getQuestion().getQuestionType().toString()) {
                     case "MC":
-                        Optional<AnswerMcSubmission> answerMcSubmission = allRepositories.answerMcSubmissionRepository.findById(answerSubmissionDto.getAnswerSubmissionId());
+                        Optional<AnswerMcSubmission> answerMcSubmission = answerMcSubmissionRepository.findById(answerSubmissionDto.getAnswerSubmissionId());
 
-                        if (!answerMcSubmission.isPresent()) {
+                        if (answerMcSubmission.isEmpty()) {
                             throw new AnswerSubmissionNotMatchingException(TextConstants.ANSWER_SUBMISSION_NOT_MATCHING);
                         }
 
                         if (answerSubmissionDto.getAnswerId() != null) {
-                            Optional<AnswerMc> answerMc = allRepositories.answerMcRepository.findByQuestion_QuestionIdAndAnswerMcId(questionSubmission.getQuestion().getQuestionId(), answerSubmissionDto.getAnswerId());
-                            if (!answerMc.isPresent()) {
+                            Optional<AnswerMc> answerMc = answerMcRepository.findByQuestion_QuestionIdAndAnswerMcId(questionSubmission.getQuestion().getQuestionId(), answerSubmissionDto.getAnswerId());
+
+                            if (answerMc.isEmpty()) {
                                 throw new AnswerNotMatchingException(TextConstants.ANSWER_NOT_MATCHING);
                             }
                         }
 
                         break;
                     case "ESSAY":
-                        Optional<AnswerEssaySubmission> answerEssaySubmission = allRepositories.answerEssaySubmissionRepository.findById(answerSubmissionDto.getAnswerSubmissionId());
+                        Optional<AnswerEssaySubmission> answerEssaySubmission = answerEssaySubmissionRepository.findById(answerSubmissionDto.getAnswerSubmissionId());
 
-                        if (!answerEssaySubmission.isPresent()) {
+                        if (answerEssaySubmission.isEmpty()) {
                             throw new AnswerSubmissionNotMatchingException(TextConstants.ANSWER_SUBMISSION_NOT_MATCHING);
                         }
 
@@ -392,8 +411,8 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
         }
 
         // (Approach #2) Using Canvas API calls
-        int assignmentIdInt = Integer.parseInt(securedInfo.getCanvasAssignmentId());
-        Assignment assignment = allRepositories.assignmentRepository.findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(experimentId, securedInfo.getCanvasAssignmentId());
+        long assignmentIdInt = Long.parseLong(securedInfo.getCanvasAssignmentId());
+        Assignment assignment = assignmentRepository.findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(experimentId, securedInfo.getCanvasAssignmentId());
         LtiUserEntity instructorUser = assignment.getExposure().getExperiment().getCreatedBy();
         Optional<AssignmentExtended> assignmentExtended = canvasAPIClient.listAssignment(instructorUser, securedInfo.getCanvasCourseId(), assignmentIdInt);
         List<edu.ksu.canvas.model.assignment.Submission> submissionsList = canvasAPIClient.listSubmissions(instructorUser, assignmentIdInt, securedInfo.getCanvasCourseId());
@@ -403,7 +422,7 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
             .filter(sub -> sub.getUser().getId() == Integer.parseInt(securedInfo.getCanvasUserId()))
             .findFirst();
 
-        if (!assignmentExtended.isPresent() || !submission.isPresent()) {
+        if (assignmentExtended.isEmpty() || submission.isEmpty()) {
             // no extends assignment and no submissions exist
             return;
         }
@@ -415,9 +434,9 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
             return;
         }
 
-        int attempt = submission.get().getAttempt();
+        Long attempt = submission.get().getAttempt();
 
-        if (attempt < allowedAttempts) {
+        if (attempt.intValue() < allowedAttempts) {
             return;
         }
 
@@ -461,13 +480,13 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
             throws IOException, CanvasApiException, AssignmentAttemptException, IdInPostException, DataServiceException, DuplicateQuestionException, InvalidUserException, IdMissingException,
                 AnswerSubmissionNotMatchingException, AnswerNotMatchingException, ExceedingLimitException, TypeNotSupportedException, QuestionSubmissionNotMatchingException {
         QuestionSubmissionDto questionSubmissionDto = objectMapper.readValue(questionSubmissionDtoStr, QuestionSubmissionDto.class);
-        QuestionSubmission questionSubmission = allRepositories.questionSubmissionRepository.findByQuestionSubmissionId(questionSubmissionId);
+        QuestionSubmission questionSubmission = questionSubmissionRepository.findByQuestionSubmissionId(questionSubmissionId);
 
         if (questionSubmission == null) {
             throw new QuestionSubmissionNotMatchingException(TextConstants.QUESTION_SUBMISSION_NOT_MATCHING);
         }
 
-        List<AnswerFileSubmission> answerFileSubmissions = allRepositories.answerFileSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmissionId);
+        List<AnswerFileSubmission> answerFileSubmissions = answerFileSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmissionId);
 
         CollectionUtils.emptyIfNull(answerFileSubmissions).stream()
             .forEach(
@@ -486,7 +505,7 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
                     }
 
                     // remove row from database
-                    allRepositories.answerFileSubmissionRepository.delete(answerFileSubmission);
+                    answerFileSubmissionRepository.delete(answerFileSubmission);
                 }
             );
 

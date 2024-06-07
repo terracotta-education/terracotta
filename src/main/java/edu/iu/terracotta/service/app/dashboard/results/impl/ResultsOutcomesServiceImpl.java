@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.EnumUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -36,14 +37,19 @@ import edu.iu.terracotta.model.app.dto.dashboard.results.outcomes.exposure.Outco
 import edu.iu.terracotta.model.app.dto.dashboard.results.outcomes.exposure.OutcomesExposure.OutcomesExposureBuilder;
 import edu.iu.terracotta.model.app.dto.dashboard.results.outcomes.exposure.OutcomesExposureOverall.OutcomesExposureOverallBuilder;
 import edu.iu.terracotta.model.app.dto.dashboard.results.outcomes.request.ResultsOutcomesRequestDto;
-import edu.iu.terracotta.repository.AllRepositories;
+import edu.iu.terracotta.repository.AssessmentRepository;
+import edu.iu.terracotta.repository.AssignmentRepository;
+import edu.iu.terracotta.repository.ExposureGroupConditionRepository;
+import edu.iu.terracotta.repository.ExposureRepository;
+import edu.iu.terracotta.repository.OutcomeRepository;
+import edu.iu.terracotta.repository.ParticipantRepository;
+import edu.iu.terracotta.repository.TreatmentRepository;
 import edu.iu.terracotta.service.app.AssessmentSubmissionService;
 import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.service.app.dashboard.results.ResultsOutcomesAverageGradeService;
 import edu.iu.terracotta.service.app.dashboard.results.ResultsOutcomesService;
 import edu.iu.terracotta.service.app.dashboard.results.ResultsOutcomesTimeOnTaskService;
 import edu.iu.terracotta.utils.TextConstants;
-import io.micrometer.core.instrument.util.StringUtils;
 
 import static edu.iu.terracotta.service.app.dashboard.results.util.ListDataUtils.findAssessmentsByConditionIdAndExposureId;
 import static edu.iu.terracotta.service.app.dashboard.results.util.ListDataUtils.findAssessmentsByExposureId;
@@ -56,7 +62,13 @@ import static edu.iu.terracotta.service.app.dashboard.results.util.StatisticsUti
 @SuppressWarnings({"rawtypes", "unchecked"})
 public class ResultsOutcomesServiceImpl implements ResultsOutcomesService {
 
-    @Autowired private AllRepositories allRepositories;
+    @Autowired private AssessmentRepository assessmentRepository;
+    @Autowired private AssignmentRepository assignmentRepository;
+    @Autowired private ExposureGroupConditionRepository exposureGroupConditionRepository;
+    @Autowired private ExposureRepository exposureRepository;
+    @Autowired private OutcomeRepository outcomeRepository;
+    @Autowired private ParticipantRepository participantRepository;
+    @Autowired private TreatmentRepository treatmentRepository;
     @Autowired private AssessmentSubmissionService assessmentSubmissionService;
     @Autowired private ResultsOutcomesAverageGradeService resultsOutcomesAverageGradeService;
     @Autowired private ResultsOutcomesTimeOnTaskService resultsOutcomesTimeOnTaskService;
@@ -89,7 +101,7 @@ public class ResultsOutcomesServiceImpl implements ResultsOutcomesService {
             List<Outcome> outcomes = resultsOutcomesRequestDto.getOutcomeIds().stream()
                 .map(
                     outcomeId -> {
-                        Optional<Outcome> outcome = allRepositories.outcomeRepository.findById(Long.valueOf(outcomeId));
+                        Optional<Outcome> outcome = outcomeRepository.findById(Long.valueOf(outcomeId));
 
                         if (outcome.isEmpty()) {
                             // no outcome exists for this ID
@@ -394,44 +406,40 @@ public class ResultsOutcomesServiceImpl implements ResultsOutcomesService {
      * @param experiment
      */
     private void prepareData(Experiment experiment) {
-        experimentAssignments = allRepositories.assignmentRepository.findByExposure_Experiment_ExperimentId(experiment.getExperimentId());
+        experimentAssignments = assignmentRepository.findByExposure_Experiment_ExperimentId(experiment.getExperimentId());
 
         allAssessmentsByAssignment = new HashMap<>();
 
         for (Assignment experimentAssignment : experimentAssignments) {
             allAssessmentsByAssignment.put(
                 experimentAssignment.getAssignmentId(),
-                allRepositories.assessmentRepository.findByTreatment_Assignment_AssignmentId(experimentAssignment.getAssignmentId())
+                assessmentRepository.findByTreatment_Assignment_AssignmentId(experimentAssignment.getAssignmentId())
             );
         }
 
-        experimentConsentedParticipants = allRepositories.participantRepository.findByExperiment_ExperimentId(experiment.getExperimentId()).stream()
+        experimentConsentedParticipants = participantRepository.findByExperiment_ExperimentId(experiment.getExperimentId()).stream()
             .filter(participant -> !participant.isTestStudent())
             .filter(participant -> BooleanUtils.isTrue(participant.getConsent()))
             .toList();
 
-        experimentExposureGroupConditions = allRepositories.exposureGroupConditionRepository.findByCondition_Experiment_ExperimentId(experiment.getExperimentId());
-        experimentExposures = allRepositories.exposureRepository.findByExperiment_ExperimentId(experiment.getExperimentId());
+        experimentExposureGroupConditions = exposureGroupConditionRepository.findByCondition_Experiment_ExperimentId(experiment.getExperimentId());
+        experimentExposures = exposureRepository.findByExperiment_ExperimentId(experiment.getExperimentId());
 
-        experimentTreatments = allRepositories.treatmentRepository.findByCondition_Experiment_ExperimentId(experiment.getExperimentId());
+        experimentTreatments = treatmentRepository.findByCondition_Experiment_ExperimentId(experiment.getExperimentId());
 
         allTreatmentsByAssignment = new HashMap<>();
 
         for (Assignment assignment : experimentAssignments) {
             allTreatmentsByAssignment.put(
                 assignment.getAssignmentId(),
-                allRepositories.treatmentRepository.findByAssignment_AssignmentId(assignment.getAssignmentId())
+                treatmentRepository.findByAssignment_AssignmentId(assignment.getAssignmentId())
             );
         }
     }
 
     private boolean hasOutcomes(ResultsOutcomesRequestDto resultsOutcomesRequestDto) {
-        if (CollectionUtils.isNotEmpty(resultsOutcomesRequestDto.getOutcomeIds())) {
-            return true;
-        }
-
-        return StringUtils.isNotBlank(resultsOutcomesRequestDto.getAlternateId().getId()) &&
-            CollectionUtils.isNotEmpty(resultsOutcomesRequestDto.getAlternateId().getExposures());
+        return CollectionUtils.isNotEmpty(resultsOutcomesRequestDto.getOutcomeIds()) ||
+            (StringUtils.isNotBlank(resultsOutcomesRequestDto.getAlternateId().getId()) && CollectionUtils.isNotEmpty(resultsOutcomesRequestDto.getAlternateId().getExposures()));
     }
 
 }

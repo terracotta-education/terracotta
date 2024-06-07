@@ -12,7 +12,7 @@ import edu.iu.terracotta.model.app.ConsentDocument;
 import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.dto.FileInfoDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
-import edu.iu.terracotta.repository.AllRepositories;
+import edu.iu.terracotta.repository.ExperimentRepository;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.FileStorageService;
@@ -34,7 +34,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.core.io.Resource;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.util.Optional;
 
@@ -46,7 +46,7 @@ public class ConsentFileController {
 
     public static final String REQUEST_ROOT = "api/experiments/{experimentId}/consent";
 
-    @Autowired private AllRepositories allRepositories;
+    @Autowired private ExperimentRepository experimentRepository;
     @Autowired private APIJWTService apijwtService;
     @Autowired private ExperimentService experimentService;
     @Autowired private FileStorageService fileStorageService;
@@ -111,16 +111,16 @@ public class ConsentFileController {
 
         fileStorageService.deleteConsentFile(experimentId);
 
-        Optional<Experiment> experimentOptional = allRepositories.experimentRepository.findById(experimentId);
+        Optional<Experiment> experimentOptional = experimentRepository.findById(experimentId);
 
-        if (!experimentOptional.isPresent()) {
+        if (experimentOptional.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.OK);
         }
 
         Experiment experiment = experimentOptional.get();
         ConsentDocument consentDocument = experiment.getConsentDocument();
         experiment.setConsentDocument(null);
-        allRepositories.experimentRepository.saveAndFlush(experiment);
+        experimentRepository.saveAndFlush(experiment);
         experimentService.deleteConsentDocument(consentDocument);
 
         return new ResponseEntity<>(HttpStatus.OK);

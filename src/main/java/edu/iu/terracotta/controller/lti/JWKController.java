@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.security.GeneralSecurityException;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Base64;
@@ -40,8 +40,7 @@ import java.util.Map;
 @RequestMapping("/jwks")
 public class JWKController {
 
-    @Autowired
-    private LTIDataService ltiDataService;
+    @Autowired private LTIDataService ltiDataService;
 
     @GetMapping(value = "/jwk", produces = MediaType.APPLICATION_JSON_VALUE)
     public Map<String, List<Map<String, Object>>> jwk(HttpServletRequest req, Model model) throws GeneralSecurityException {

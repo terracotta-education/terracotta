@@ -11,7 +11,9 @@ import edu.iu.terracotta.model.app.Group;
 import edu.iu.terracotta.model.app.dto.ExposureDto;
 import edu.iu.terracotta.model.app.dto.GroupConditionDto;
 import edu.iu.terracotta.model.app.enumerator.ExposureTypes;
-import edu.iu.terracotta.repository.AllRepositories;
+import edu.iu.terracotta.repository.ExperimentRepository;
+import edu.iu.terracotta.repository.ExposureGroupConditionRepository;
+import edu.iu.terracotta.repository.ExposureRepository;
 import edu.iu.terracotta.service.app.ExposureService;
 import edu.iu.terracotta.utils.TextConstants;
 
@@ -30,11 +32,13 @@ import java.util.Optional;
 @Component
 public class ExposureServiceImpl implements ExposureService {
 
-    @Autowired private AllRepositories allRepositories;
+    @Autowired private ExperimentRepository experimentRepository;
+    @Autowired private ExposureGroupConditionRepository exposureGroupConditionRepository;
+    @Autowired private ExposureRepository exposureRepository;
 
     @Override
     public List<ExposureDto> getExposures(Long experimentId) {
-        return CollectionUtils.emptyIfNull(allRepositories.exposureRepository.findByExperiment_ExperimentId(experimentId))
+        return CollectionUtils.emptyIfNull(exposureRepository.findByExperiment_ExperimentId(experimentId))
             .stream()
             .map(exposure -> toDto(exposure))
             .toList();
@@ -50,7 +54,7 @@ public class ExposureServiceImpl implements ExposureService {
         exposureDto.setExperimentId(experimentId);
         Exposure exposure;
 
-        try{
+        try {
             exposure = fromDto(exposureDto);
         } catch (DataServiceException e) {
             throw new DataServiceException("Error 105: Unable to create exposure:" + e.getMessage(), e);
@@ -67,7 +71,7 @@ public class ExposureServiceImpl implements ExposureService {
         exposureDto.setTitle(exposure.getTitle());
 
         exposureDto.setGroupConditionList(
-            CollectionUtils.emptyIfNull(allRepositories.exposureGroupConditionRepository.findByExposure_ExposureId(exposure.getExposureId())).stream()
+            CollectionUtils.emptyIfNull(exposureGroupConditionRepository.findByExposure_ExposureId(exposure.getExposureId())).stream()
                 .map(exposureGroupCondition -> {
                     Group group = exposureGroupCondition.getGroup();
                     Condition condition = exposureGroupCondition.getCondition();
@@ -89,9 +93,9 @@ public class ExposureServiceImpl implements ExposureService {
     public Exposure fromDto(ExposureDto exposureDto) throws DataServiceException {
         Exposure exposure = new Exposure();
         exposure.setExposureId(exposureDto.getExposureId());
-        Optional<Experiment> experiment = allRepositories.experimentRepository.findById(exposureDto.getExperimentId());
+        Optional<Experiment> experiment = experimentRepository.findById(exposureDto.getExperimentId());
 
-        if (!experiment.isPresent()) {
+        if (experiment.isEmpty()) {
             throw new DataServiceException("The experiment for the exposure does not exist");
         }
 
@@ -104,9 +108,9 @@ public class ExposureServiceImpl implements ExposureService {
     @Override
     @Transactional
     public void createExposures(Long experimentId) throws DataServiceException, ExperimentStartedException {
-        Optional<Experiment> experiment = allRepositories.experimentRepository.findById(experimentId);
+        Optional<Experiment> experiment = experimentRepository.findById(experimentId);
 
-        if (!experiment.isPresent()) {
+        if (experiment.isEmpty()) {
             throw new DataServiceException("The experiment for the exposure does not exist");
         }
 
@@ -128,8 +132,8 @@ public class ExposureServiceImpl implements ExposureService {
             }
 
             // delete the existing exposures. That means delete the exposureGroupConditions too.
-            allRepositories.exposureGroupConditionRepository.deleteByExposure_Experiment_ExperimentId(experimentId);
-            allRepositories.exposureRepository.deleteByExperiment_ExperimentId(experimentId);
+            exposureGroupConditionRepository.deleteByExposure_Experiment_ExperimentId(experimentId);
+            exposureRepository.deleteByExperiment_ExperimentId(experimentId);
         }
 
         for (int order = 1; order <= exposuresToCreate; order++) {
@@ -141,17 +145,17 @@ public class ExposureServiceImpl implements ExposureService {
     }
 
     private Exposure save(Exposure exposure) {
-        return allRepositories.exposureRepository.save(exposure);
+        return exposureRepository.save(exposure);
     }
 
     @Override
     public Exposure getExposure(Long id) {
-        return allRepositories.exposureRepository.findByExposureId(id);
+        return exposureRepository.findByExposureId(id);
     }
 
     @Override
     public void updateExposure(Long exposureId, ExposureDto exposureDto) throws TitleValidationException {
-        Exposure exposure = allRepositories.exposureRepository.findByExposureId(exposureId);
+        Exposure exposure = exposureRepository.findByExposureId(exposureId);
 
         if (StringUtils.isAllBlank(exposureDto.getTitle(), exposure.getTitle())) {
             throw new TitleValidationException("Error 100: Please give the exposure a title.");
@@ -162,12 +166,12 @@ public class ExposureServiceImpl implements ExposureService {
         }
 
         exposure.setTitle(exposureDto.getTitle());
-        allRepositories.exposureRepository.saveAndFlush(exposure);
+        exposureRepository.saveAndFlush(exposure);
     }
 
     @Override
     public void deleteById(Long id) throws EmptyResultDataAccessException {
-        allRepositories.exposureRepository.deleteByExposureId(id);
+        exposureRepository.deleteByExposureId(id);
     }
 
     @Override

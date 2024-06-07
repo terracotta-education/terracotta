@@ -19,28 +19,17 @@ import java.util.Map;
 public interface QuestionService {
 
     List<QuestionDto> getQuestions(Long assessmentId);
-
     Question getQuestion(Long id);
-
     QuestionDto postQuestion(QuestionDto questionDto, long assessmentId, boolean answers) throws IdInPostException, DataServiceException, MultipleChoiceLimitReachedException;
-
     List<Question> duplicateQuestionsForAssessment(Long oldAssessmentId, Assessment newAssessment) throws DataServiceException, QuestionNotMatchingException;
-
     void updateQuestion(Map<Question, QuestionDto> map) throws NegativePointsException;
-
     QuestionDto toDto(Question question, boolean answers, boolean showCorrectAnswer);
-
     QuestionDto toDto(Question question, Long submissionId, boolean answers, boolean showCorrectAnswer);
-
     Question fromDto(QuestionDto questionDto) throws DataServiceException, NegativePointsException;
-
     Question save(Question question);
-
     Question findByQuestionId(Long id);
-
     void deleteById(Long id) throws EmptyResultDataAccessException;
-
     HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId, Long questionId);
-
     void validateQuestionType(QuestionDto questionDto) throws InvalidQuestionTypeException;
+
 }

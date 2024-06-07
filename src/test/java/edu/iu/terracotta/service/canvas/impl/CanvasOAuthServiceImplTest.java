@@ -148,7 +148,7 @@ public class CanvasOAuthServiceImplTest extends BaseTest {
         try {
             canvasOAuthService.fetchAndSaveAccessToken(user, "code");
             fail("Should have thrown an exception");
-        } catch (LMSOAuthException e ){
+        } catch (LMSOAuthException e ) {
             assertTrue(e.getMessage().contains("Could not fetch token"));
         }
     }
@@ -167,7 +167,7 @@ public class CanvasOAuthServiceImplTest extends BaseTest {
         try {
             canvasOAuthService.fetchAndSaveAccessToken(user, "code");
             fail("Should have thrown an exception");
-        } catch (LMSOAuthException e ){
+        } catch (LMSOAuthException e ) {
             assertTrue(e.getMessage().contains("a_error_code"));
             assertTrue(e.getMessage().contains("a_description"));
         }

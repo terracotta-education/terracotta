@@ -56,7 +56,7 @@ public class AssignmentExtendedImpl extends BaseImpl<AssignmentExtended, Assignm
         }
     }
 
-    public Optional<AssignmentExtended> deleteAssignment(String courseId, Integer assignmentId) throws IOException {
+    public Optional<AssignmentExtended> deleteAssignment(String courseId, Long assignmentId) throws IOException {
         Map<String, List<String>> postParams = new HashMap<>();
         postParams.put("event", Collections.singletonList("delete"));
         String createdUrl = this.buildCanvasUrl("courses/" + courseId + "/assignments/" + assignmentId, Collections.emptyMap());

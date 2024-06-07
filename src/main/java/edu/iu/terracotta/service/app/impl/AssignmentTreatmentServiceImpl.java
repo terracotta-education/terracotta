@@ -4,8 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,7 +26,10 @@ import edu.iu.terracotta.model.app.dto.AssignmentDto;
 import edu.iu.terracotta.model.app.dto.TreatmentDto;
 import edu.iu.terracotta.model.canvas.AssignmentExtended;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
-import edu.iu.terracotta.repository.AllRepositories;
+import edu.iu.terracotta.repository.AssessmentRepository;
+import edu.iu.terracotta.repository.LtiUserRepository;
+import edu.iu.terracotta.repository.SubmissionRepository;
+import edu.iu.terracotta.repository.TreatmentRepository;
 import edu.iu.terracotta.service.app.AssessmentService;
 import edu.iu.terracotta.service.app.AssignmentTreatmentService;
 import edu.iu.terracotta.service.canvas.CanvasAPIClient;
@@ -34,7 +37,10 @@ import edu.iu.terracotta.service.canvas.CanvasAPIClient;
 @Service
 public class AssignmentTreatmentServiceImpl implements AssignmentTreatmentService {
 
-    @Autowired private AllRepositories allRepositories;
+    @Autowired private AssessmentRepository assessmentRepository;
+    @Autowired private LtiUserRepository ltiUserRepository;
+    @Autowired private SubmissionRepository submissionRepository;
+    @Autowired private TreatmentRepository treatmentRepository;
     @Autowired private AssessmentService assessmentService;
     @Autowired private CanvasAPIClient canvasAPIClient;
 
@@ -51,7 +57,7 @@ public class AssignmentTreatmentServiceImpl implements AssignmentTreatmentServic
     public TreatmentDto duplicateTreatment(long treatmentId, Assignment assignment, SecuredInfo securedInfo)
         throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, NumberFormatException,
             CanvasApiException, TreatmentNotMatchingException, QuestionNotMatchingException {
-        Treatment from = allRepositories.treatmentRepository.findByTreatmentId(treatmentId);
+        Treatment from = treatmentRepository.findByTreatmentId(treatmentId);
 
         if (from == null) {
             throw new DataServiceException("The treatment with the given ID does not exist");
@@ -70,18 +76,18 @@ public class AssignmentTreatmentServiceImpl implements AssignmentTreatmentServic
         // unset the assessment
         from.setAssessment(null);
 
-        Treatment newTreatment = allRepositories.treatmentRepository.save(from);
-        LtiUserEntity instructorUser = allRepositories.ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
+        Treatment newTreatment = treatmentRepository.save(from);
+        LtiUserEntity instructorUser = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
         setAssignmentDtoAttrs(newTreatment.getAssignment(), securedInfo.getCanvasCourseId(), instructorUser);
         TreatmentDto treatmentDto = toTreatmentDto(newTreatment, false, true);
 
         // duplicate assessment
-        List<Assessment> existingAssessments = allRepositories.assessmentRepository.findByTreatment_TreatmentId(treatmentId);
+        List<Assessment> existingAssessments = assessmentRepository.findByTreatment_TreatmentId(treatmentId);
 
         if (CollectionUtils.isNotEmpty(existingAssessments)) {
             Assessment newAssessment = assessmentService.duplicateAssessment(existingAssessments.get(0).getAssessmentId(), newTreatment, assignment);
             newTreatment.setAssessment(newAssessment);
-            allRepositories.treatmentRepository.saveAndFlush(newTreatment);
+            treatmentRepository.saveAndFlush(newTreatment);
             treatmentDto.setAssessmentDto(assessmentService.toDto(newAssessment, true, true, true, false));
         }
 
@@ -130,14 +136,14 @@ public class AssignmentTreatmentServiceImpl implements AssignmentTreatmentServic
         assignmentDto.setStudentViewCorrectAnswersAfter(assignment.getStudentViewCorrectAnswersAfter());
         assignmentDto.setStudentViewCorrectAnswersBefore(assignment.getStudentViewCorrectAnswersBefore());
 
-        long submissionsCount = allRepositories.submissionRepository.countByAssessment_Treatment_Assignment_AssignmentId(assignment.getAssignmentId());
+        long submissionsCount = submissionRepository.countByAssessment_Treatment_Assignment_AssignmentId(assignment.getAssignmentId());
 
         if (submissionsCount > 0) {
             assignmentDto.setStarted(true);
         }
 
         if (addTreatmentDto) {
-            List<Treatment> treatments = allRepositories.treatmentRepository.findByAssignment_AssignmentId(assignment.getAssignmentId());
+            List<Treatment> treatments = treatmentRepository.findByAssignment_AssignmentId(assignment.getAssignmentId());
             List<TreatmentDto> treatmentDtoList = new ArrayList<>();
 
             for (Treatment treatment : treatments) {
@@ -158,7 +164,7 @@ public class AssignmentTreatmentServiceImpl implements AssignmentTreatmentServic
     public void setAssignmentDtoAttrs(Assignment assignment, String canvasCourseId, LtiUserEntity instructorUser) throws NumberFormatException, CanvasApiException {
         Optional<AssignmentExtended> canvasAssignment = canvasAPIClient.listAssignment(instructorUser, canvasCourseId, Integer.parseInt(assignment.getLmsAssignmentId()));
 
-        if (!canvasAssignment.isPresent()) {
+        if (canvasAssignment.isEmpty()) {
             return;
         }
 

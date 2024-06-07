@@ -41,11 +41,8 @@ import lombok.extern.slf4j.Slf4j;
 @SuppressWarnings({"PMD.GuardLogStatement"})
 public class CanvasOAuthServiceImpl implements LMSOAuthService<CanvasAPITokenEntity> {
 
-    @Autowired
-    private CanvasAPITokenRepository canvasAPITokenRepository;
-
-    @Autowired
-    private CanvasAPIOAuthSettingsRepository canvasAPIOAuthSettingsRepository;
+    @Autowired private CanvasAPITokenRepository canvasAPITokenRepository;
+    @Autowired private CanvasAPIOAuthSettingsRepository canvasAPIOAuthSettingsRepository;
 
     @Override
     public boolean isConfigured(PlatformDeployment platformDeployment) {
@@ -113,7 +110,7 @@ public class CanvasOAuthServiceImpl implements LMSOAuthService<CanvasAPITokenEnt
     public CanvasAPITokenEntity getAccessToken(LtiUserEntity user) throws LMSOAuthException {
         Optional<CanvasAPITokenEntity> canvasAPIToken = canvasAPITokenRepository.findByUser(user);
 
-        if (!canvasAPIToken.isPresent()) {
+        if (canvasAPIToken.isEmpty()) {
             throw new LMSOAuthException(MessageFormat.format("User {0} does not have a Canvas API access token nor refresh token!", user.getUserKey()));
         }
 
@@ -128,7 +125,7 @@ public class CanvasOAuthServiceImpl implements LMSOAuthService<CanvasAPITokenEnt
     public boolean isAccessTokenAvailable(LtiUserEntity user) {
         Optional<CanvasAPITokenEntity> canvasAPIToken = canvasAPITokenRepository.findByUser(user);
 
-        if (!canvasAPIToken.isPresent()) {
+        if (canvasAPIToken.isEmpty()) {
             return false;
         }
 
@@ -190,7 +187,7 @@ public class CanvasOAuthServiceImpl implements LMSOAuthService<CanvasAPITokenEnt
                 return response.getBody();
             }
         } catch (UnknownContentTypeException unknownContentTypeException) {
-            if (unknownContentTypeException.getRawStatusCode() == 302) {
+            if (unknownContentTypeException.getStatusCode().value() == 302) {
 
                 URI location = unknownContentTypeException.getResponseHeaders().getLocation();
                 String queryParameters = location.getQuery();

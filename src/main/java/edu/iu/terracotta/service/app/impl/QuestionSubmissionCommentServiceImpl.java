@@ -7,7 +7,9 @@ import edu.iu.terracotta.model.app.QuestionSubmission;
 import edu.iu.terracotta.model.app.QuestionSubmissionComment;
 import edu.iu.terracotta.model.app.dto.QuestionSubmissionCommentDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
-import edu.iu.terracotta.repository.AllRepositories;
+import edu.iu.terracotta.repository.LtiUserRepository;
+import edu.iu.terracotta.repository.QuestionSubmissionCommentRepository;
+import edu.iu.terracotta.repository.QuestionSubmissionRepository;
 import edu.iu.terracotta.service.app.QuestionSubmissionCommentService;
 import edu.iu.terracotta.utils.TextConstants;
 
@@ -24,18 +26,20 @@ import java.util.Optional;
 @Component
 public class QuestionSubmissionCommentServiceImpl implements QuestionSubmissionCommentService {
 
-    @Autowired private AllRepositories allRepositories;
+    @Autowired private LtiUserRepository ltiUserRepository;
+    @Autowired private QuestionSubmissionCommentRepository questionSubmissionCommentRepository;
+    @Autowired private QuestionSubmissionRepository questionSubmissionRepository;
 
     @Override
     public List<QuestionSubmissionCommentDto> getQuestionSubmissionComments(Long questionSubmissionId) {
-        return CollectionUtils.emptyIfNull(allRepositories.questionSubmissionCommentRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmissionId)).stream()
+        return CollectionUtils.emptyIfNull(questionSubmissionCommentRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmissionId)).stream()
             .map(questionSubmissionComment -> toDto(questionSubmissionComment))
             .toList();
     }
 
     @Override
     public QuestionSubmissionComment getQuestionSubmissionComment(Long id) {
-        return allRepositories.questionSubmissionCommentRepository.findByQuestionSubmissionCommentId(id);
+        return questionSubmissionCommentRepository.findByQuestionSubmissionCommentId(id);
     }
 
     @Override
@@ -45,7 +49,7 @@ public class QuestionSubmissionCommentServiceImpl implements QuestionSubmissionC
         }
 
         questionSubmissionCommentDto.setQuestionSubmissionId(questionSubmissionId);
-        LtiUserEntity user = allRepositories.ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
+        LtiUserEntity user = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
         questionSubmissionCommentDto.setCreator(user.getDisplayName());
         QuestionSubmissionComment questionSubmissionComment;
 
@@ -55,20 +59,20 @@ public class QuestionSubmissionCommentServiceImpl implements QuestionSubmissionC
             throw new DataServiceException("Error 105: Unable to create question submission comment: " + ex.getMessage(), ex);
         }
 
-        return toDto(allRepositories.questionSubmissionCommentRepository.save(questionSubmissionComment));
+        return toDto(questionSubmissionCommentRepository.save(questionSubmissionComment));
     }
 
     @Override
     public void updateQuestionSubmissionComment(QuestionSubmissionCommentDto questionSubmissionCommentDto, long questionSubmissionCommentId, long experimentId, long submissionId, SecuredInfo securedInfo) throws DataServiceException {
         QuestionSubmissionComment questionSubmissionComment = getQuestionSubmissionComment(questionSubmissionCommentId);
-        LtiUserEntity user = allRepositories.ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
+        LtiUserEntity user = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
 
         if (!user.getDisplayName().equals(questionSubmissionComment.getCreator())) {
             throw new DataServiceException("Error 122: Only the creator of a comment can edit their own comment.");
         }
 
         questionSubmissionComment.setComment(questionSubmissionCommentDto.getComment());
-        allRepositories.questionSubmissionCommentRepository.saveAndFlush(questionSubmissionComment);
+        questionSubmissionCommentRepository.saveAndFlush(questionSubmissionComment);
     }
 
     @Override
@@ -88,9 +92,9 @@ public class QuestionSubmissionCommentServiceImpl implements QuestionSubmissionC
         questionSubmissionComment.setQuestionSubmissionCommentId(questionSubmissionCommentDto.getQuestionSubmissionCommentId());
         questionSubmissionComment.setComment(questionSubmissionCommentDto.getComment());
         questionSubmissionComment.setCreator(questionSubmissionCommentDto.getCreator());
-        Optional<QuestionSubmission> questionSubmission = allRepositories.questionSubmissionRepository.findById(questionSubmissionCommentDto.getQuestionSubmissionId());
+        Optional<QuestionSubmission> questionSubmission = questionSubmissionRepository.findById(questionSubmissionCommentDto.getQuestionSubmissionId());
 
-        if (!questionSubmission.isPresent()) {
+        if (questionSubmission.isEmpty()) {
             throw new DataServiceException("The question submission for the question submission comment doesn't exist.");
         }
 
@@ -101,7 +105,7 @@ public class QuestionSubmissionCommentServiceImpl implements QuestionSubmissionC
 
     @Override
     public void deleteById(Long id) throws EmptyResultDataAccessException {
-        allRepositories.questionSubmissionCommentRepository.deleteByQuestionSubmissionCommentId(id);
+        questionSubmissionCommentRepository.deleteByQuestionSubmissionCommentId(id);
     }
 
     @Override

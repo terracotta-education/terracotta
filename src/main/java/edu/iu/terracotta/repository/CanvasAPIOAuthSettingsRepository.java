@@ -10,4 +10,5 @@ import edu.iu.terracotta.model.canvas.CanvasAPIOAuthSettings;
 public interface CanvasAPIOAuthSettingsRepository extends JpaRepository<CanvasAPIOAuthSettings, Long> {
 
     Optional<CanvasAPIOAuthSettings> findByPlatformDeployment(PlatformDeployment platformDeployment);
+
 }

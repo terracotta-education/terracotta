@@ -1,15 +1,3 @@
-/**
- * Copyright 2021 Unicon (R)
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- * http://www.apache.org/licenses/LICENSE-2.0
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package edu.iu.terracotta.utils.lti;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -18,6 +6,7 @@ import edu.iu.terracotta.service.lti.LTIDataService;
 import edu.iu.terracotta.utils.oauth.OAuthUtils;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.Jwts.SIG;
+import lombok.experimental.UtilityClass;
 import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.utils.LtiStrings;
 import edu.iu.terracotta.utils.TextConstants;
@@ -32,11 +21,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@UtilityClass
 public final class DeepLinkUtils {
-
-    private DeepLinkUtils() {
-        throw new IllegalStateException("Utility class");
-    }
 
     public static Map<String, String> generateDeepLinkJWT(LTIDataService ltiDataService, PlatformDeployment platformDeployment, LTI3Request lti3Request, String localUrl) throws GeneralSecurityException, IOException {
         Date date = new Date();

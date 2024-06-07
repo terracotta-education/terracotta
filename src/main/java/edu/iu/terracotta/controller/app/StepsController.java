@@ -42,7 +42,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
@@ -52,32 +52,7 @@ import java.util.Optional;
 @RequestMapping(value = StepsController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
 public class StepsController {
 
-    public static final String REQUEST_ROOT = "api/experiments";
-
-    @Autowired
-    private ExposureService exposureService;
-
-    @Autowired
-    private ParticipantService participantService;
-
-    @Autowired
-    private GroupService groupService;
-
-    @Autowired
-    private SubmissionService submissionService;
-
-    @Autowired
-    private AssessmentService assessmentService;
-
-    @Autowired
-    private AssignmentService assignmentService;
-
-    @Autowired
-    private QuestionSubmissionService questionSubmissionService;
-
-    @Autowired
-    private APIJWTService apijwtService;
-
+    public static final String REQUEST_ROOT = "api/experiments/{experimentId}/step";
     public static final String EXPOSURE_TYPE = "exposure_type";
     public static final String PARTICIPATION_TYPE = "participation_type";
     public static final String DISTRIBUTION_TYPE = "distribution_type";
@@ -87,7 +62,16 @@ public class StepsController {
     public static final String LAUNCH_CONSENT_ASSIGNMENT = "launch_consent_assignment";
     public static final String VIEW_ASSIGNMENT = "view_assignment";
 
-    @PostMapping("/{experimentId}/step")
+    @Autowired private ExposureService exposureService;
+    @Autowired private ParticipantService participantService;
+    @Autowired private GroupService groupService;
+    @Autowired private SubmissionService submissionService;
+    @Autowired private AssessmentService assessmentService;
+    @Autowired private AssignmentService assignmentService;
+    @Autowired private QuestionSubmissionService questionSubmissionService;
+    @Autowired private APIJWTService apijwtService;
+
+    @PostMapping
     public ResponseEntity<Object> postStep(@PathVariable long experimentId,
                                            @RequestBody StepDto stepDto,
                                            HttpServletRequest req)
@@ -95,42 +79,44 @@ public class StepsController {
             ParticipantNotUpdatedException, ExperimentStartedException, ConnectionException, CanvasApiException,
             IOException, AssignmentDatesException, AssessmentNotMatchingException, GroupNotMatchingException,
             ParticipantNotMatchingException, SubmissionNotMatchingException, NoSubmissionsException {
-
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
 
         switch (stepDto.getStep()) {
             case EXPOSURE_TYPE: // We create the exposures.
-                if (apijwtService.isInstructorOrHigher(securedInfo)) {
-                    exposureService.createExposures(experimentId);
-                } else {
+                if (!apijwtService.isInstructorOrHigher(securedInfo)) {
                     return new ResponseEntity<>(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
                 }
+
+                exposureService.createExposures(experimentId);
+
                 return new ResponseEntity<>(HttpStatus.OK);
             case PARTICIPATION_TYPE: //We prepare the participants with the right consent and consent related dates.
-                if (apijwtService.isInstructorOrHigher(securedInfo)) {
-                    participantService.prepareParticipation(experimentId, securedInfo);
-                } else {
+                if (!apijwtService.isInstructorOrHigher(securedInfo)) {
                     return new ResponseEntity<>(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
                 }
+
+                participantService.prepareParticipation(experimentId, securedInfo);
+
                 return new ResponseEntity<>(HttpStatus.OK);
             case DISTRIBUTION_TYPE: //We prepare the groups once the distribution type is selected.
-                if (apijwtService.isInstructorOrHigher(securedInfo)) {
-                    groupService.createAndAssignGroupsToConditionsAndExposures(experimentId, securedInfo, false);
-                } else {
+                if (!apijwtService.isInstructorOrHigher(securedInfo)) {
                     return new ResponseEntity<>(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
                 }
+
+                groupService.createAndAssignGroupsToConditionsAndExposures(experimentId, securedInfo, false);
+
                 return new ResponseEntity<>(HttpStatus.OK);
             case STUDENT_SUBMISSION: //Mark the submission as finished and calculate the automatic grade.
                 List<String> submissionsId;
 
-                if (stepDto.getParameters() != null) {
-                    submissionsId = Collections.arrayToList(StringUtils.split(stepDto.getParameters().get("submissionIds"), ","));
+                if (stepDto.getParameters() == null) {
+                    return new ResponseEntity<>(TextConstants.SUBMISSION_IDS_MISSING, HttpStatus.BAD_REQUEST);
+                }
 
-                    if (submissionsId.isEmpty()) {
-                        return new ResponseEntity<>(TextConstants.SUBMISSION_IDS_MISSING, HttpStatus.BAD_REQUEST);
-                    }
-                } else {
+                submissionsId = Collections.arrayToList(StringUtils.split(stepDto.getParameters().get("submissionIds"), ","));
+
+                if (submissionsId.isEmpty()) {
                     return new ResponseEntity<>(TextConstants.SUBMISSION_IDS_MISSING, HttpStatus.BAD_REQUEST);
                 }
 
@@ -159,33 +145,35 @@ public class StepsController {
                 }
 
                 return new ResponseEntity<>(HttpStatus.OK);
-
             case POST_ASSIGNMENT:
                 List<String> assignmentsId;
-                if (stepDto.getParameters() != null) {
-                    assignmentsId = Collections.arrayToList(StringUtils.split(stepDto.getParameters().get("assignmentIds"), ","));
-                    if (assignmentsId.isEmpty()) {
-                        return new ResponseEntity<>(TextConstants.SUBMISSION_IDS_MISSING, HttpStatus.BAD_REQUEST);
-                    }
-                } else {
+
+                if (stepDto.getParameters() == null) {
                     return new ResponseEntity<>(TextConstants.SUBMISSION_IDS_MISSING, HttpStatus.BAD_REQUEST);
                 }
 
-                if (apijwtService.isInstructorOrHigher(securedInfo)) {
-                    for (String assignmentIdString : assignmentsId) {
-                        Long assignmentId = Long.parseLong(assignmentIdString);
-                        Optional<Assignment> assignment = assignmentService.findById(assignmentId);
-                        if (assignment.isPresent()) {
-                            assignmentService.sendAssignmentGradeToCanvas(assignment.get());
-                        } else {
-                            return new ResponseEntity<>(TextConstants.ASSIGNMENT_NOT_MATCHING + ":" + assignmentId, HttpStatus.NOT_FOUND);
-                        }
-                    }
-                } else {
+                assignmentsId = Collections.arrayToList(StringUtils.split(stepDto.getParameters().get("assignmentIds"), ","));
+
+                if (assignmentsId.isEmpty()) {
+                    return new ResponseEntity<>(TextConstants.SUBMISSION_IDS_MISSING, HttpStatus.BAD_REQUEST);
+                }
+
+                if (!apijwtService.isInstructorOrHigher(securedInfo)) {
                     return new ResponseEntity<>(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
                 }
-                return new ResponseEntity<>(HttpStatus.OK);
 
+                for (String assignmentIdString : assignmentsId) {
+                    Long assignmentId = Long.parseLong(assignmentIdString);
+                    Optional<Assignment> assignment = assignmentService.findById(assignmentId);
+
+                    if (assignment.isEmpty()) {
+                        return new ResponseEntity<>(TextConstants.ASSIGNMENT_NOT_MATCHING + " : " + assignmentId, HttpStatus.NOT_FOUND);
+                    }
+
+                    assignmentService.sendAssignmentGradeToCanvas(assignment.get());
+                }
+
+                return new ResponseEntity<>(HttpStatus.OK);
             case LAUNCH_ASSIGNMENT:
                 if (!apijwtService.isLearner(securedInfo) || apijwtService.isInstructorOrHigher(securedInfo)) {
                     return new ResponseEntity<>(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
@@ -198,24 +186,21 @@ public class StepsController {
                 } catch (AssignmentAttemptException | AssignmentNotMatchingException e) {
                     return new ResponseEntity<>(e.getMessage(), HttpStatus.UNAUTHORIZED);
                 }
-
             case LAUNCH_CONSENT_ASSIGNMENT:
-                //Validate permissions.
                 if (apijwtService.isLearner(securedInfo) && !apijwtService.isInstructorOrHigher(securedInfo)) {
                     // Return this student's participant record, refreshing the list of participants if necessary
                     List<Participant> currentParticipantList = participantService.findAllByExperimentId(experimentId);
-                    List<ParticipantDto> studentUserAsParticipant = participantService.getParticipants(
-                            currentParticipantList, experimentId, securedInfo.getUserId(), true);
+                    List<ParticipantDto> studentUserAsParticipant = participantService.getParticipants(currentParticipantList, experimentId, securedInfo.getUserId(), true);
+
                     if (studentUserAsParticipant.isEmpty()) {
                         participantService.refreshParticipants(experimentId, currentParticipantList);
-                        studentUserAsParticipant = participantService.getParticipants(
-                                currentParticipantList, experimentId, securedInfo.getUserId(), true);
+                        studentUserAsParticipant = participantService.getParticipants(currentParticipantList, experimentId, securedInfo.getUserId(), true);
                     }
+
                     return new ResponseEntity<>(studentUserAsParticipant.get(0), HttpStatus.OK);
-                } else {
-                    return new ResponseEntity<>(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
                 }
 
+                return new ResponseEntity<>(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
             case VIEW_ASSIGNMENT:
                 if (!apijwtService.isLearner(securedInfo) || apijwtService.isInstructorOrHigher(securedInfo)) {
                     return new ResponseEntity<>(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);

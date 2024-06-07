@@ -60,8 +60,7 @@ public class CanvasAPIClientImpl implements CanvasAPIClient {
         SCOPE_SUBMISSIONS_FOR_ASSIGNMENT_LIST
     );
 
-    @Autowired
-    private CanvasOAuthServiceImpl canvasOAuthService;
+    @Autowired private CanvasOAuthServiceImpl canvasOAuthService;
 
     @Value("${app.token.logging.enabled:true}")
     private boolean tokenLoggingEnabled;
@@ -118,7 +117,7 @@ public class CanvasAPIClientImpl implements CanvasAPIClient {
      * </ul>
      */
     @Override
-    public Optional<AssignmentExtended> listAssignment(LtiUserEntity apiUser, String canvasCourseId, int assignmentId) throws CanvasApiException {
+    public Optional<AssignmentExtended> listAssignment(LtiUserEntity apiUser, String canvasCourseId, long assignmentId) throws CanvasApiException {
         try {
             return getReader(apiUser, AssignmentReaderExtended.class).getSingleAssignment(new GetSingleAssignmentOptions(canvasCourseId, assignmentId));
         } catch (ObjectNotFoundException ex) {
@@ -180,7 +179,7 @@ public class CanvasAPIClientImpl implements CanvasAPIClient {
      * </ul>
      */
     @Override
-    public List<Submission> listSubmissions(LtiUserEntity apiUser, Integer assignmentId, String canvasCourseId) throws CanvasApiException, IOException {
+    public List<Submission> listSubmissions(LtiUserEntity apiUser, Long assignmentId, String canvasCourseId) throws CanvasApiException, IOException {
         GetSubmissionsOptions submissionsOptions = new GetSubmissionsOptions(canvasCourseId, assignmentId);
         submissionsOptions.includes(Collections.singletonList(GetSubmissionsOptions.Include.USER));
 
@@ -210,7 +209,7 @@ public class CanvasAPIClientImpl implements CanvasAPIClient {
     //     int assignmentId = Integer.parseInt(submission.getAssessment().getTreatment().getAssignment().getLmsAssignmentId());
     //     String canvasUserId = submission.getParticipant().getLtiUserEntity().getLmsUserId();
     //     Optional<AssignmentExtended> assignmentExtended = listAssignment(apiUser, canvasCourseId, assignmentId);
-    //     if (!assignmentExtended.isPresent()) {
+    //     if (assignmentExtended.isEmpty()) {
     //         throw new CanvasApiException(
     //                 "Failed to get the assignments with id [" + assignmentId + "] from canvas course [" + canvasCourseId + "]");
     //     }
@@ -236,7 +235,7 @@ public class CanvasAPIClientImpl implements CanvasAPIClient {
     //     int assignmentId = Integer.parseInt(participant.getExperiment().getConsentDocument().getLmsAssignmentId());
     //     String canvasUserId = participant.getLtiUserEntity().getLmsUserId();
     //     Optional<AssignmentExtended> assignmentExtended = listAssignment(apiUser, canvasCourseId, assignmentId);
-    //     if (!assignmentExtended.isPresent()) {
+    //     if (assignmentExtended.isEmpty()) {
     //         throw new CanvasApiException(
     //                 "Failed to get the assignments with id [" + assignmentId + "] from canvas course [" + canvasCourseId + "]");
     //     }
@@ -278,7 +277,7 @@ public class CanvasAPIClientImpl implements CanvasAPIClient {
      * </ul>
      */
     @Override
-    public Optional<AssignmentExtended> checkAssignmentExists(LtiUserEntity apiUser, Integer assignmentId, String canvasCourseId) throws CanvasApiException {
+    public Optional<AssignmentExtended> checkAssignmentExists(LtiUserEntity apiUser, Long assignmentId, String canvasCourseId) throws CanvasApiException {
         try {
             return getReader(apiUser, AssignmentReaderExtended.class).getSingleAssignment(new GetSingleAssignmentOptions(canvasCourseId, assignmentId));
         } catch (ObjectNotFoundException e) {

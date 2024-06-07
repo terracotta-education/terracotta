@@ -11,7 +11,7 @@ import edu.iu.terracotta.model.app.dto.dashboard.ResultsDashboardDto;
 import edu.iu.terracotta.model.app.dto.dashboard.ResultsDashboardDto.ResultsDashboardDtoBuilder;
 import edu.iu.terracotta.model.app.dto.dashboard.results.outcomes.request.ResultsOutcomesRequestDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
-import edu.iu.terracotta.repository.AllRepositories;
+import edu.iu.terracotta.repository.ExperimentRepository;
 import edu.iu.terracotta.service.app.dashboard.results.ResultsOutcomesService;
 import edu.iu.terracotta.service.app.dashboard.results.ResultsDashboardService;
 import edu.iu.terracotta.service.app.dashboard.results.ResultsOverviewService;
@@ -23,14 +23,14 @@ import lombok.extern.slf4j.Slf4j;
 @SuppressWarnings({"rawtypes", "PMD.GuardLogStatement"})
 public class ResultsDashboardServiceImpl implements ResultsDashboardService {
 
-    @Autowired private AllRepositories allRepositories;
+    @Autowired private ExperimentRepository experimentRepository;
     @Autowired private ResultsOutcomesService resultsOutcomesService;
     @Autowired private ResultsOverviewService resultsOverviewService;
 
     @Override
     public ResultsDashboardDto overview(long experimentId, SecuredInfo securedInfo) throws ExperimentNotMatchingException {
         log.info("Starting results overview dashboard calculations for experiment ID: [{}]", experimentId);
-        Optional<Experiment> experiment = allRepositories.experimentRepository.findById(experimentId);
+        Optional<Experiment> experiment = experimentRepository.findById(experimentId);
 
         if (experiment.isEmpty()) {
             throw new ExperimentNotMatchingException(TextConstants.EXPERIMENT_NOT_MATCHING);
@@ -52,7 +52,7 @@ public class ResultsDashboardServiceImpl implements ResultsDashboardService {
             resultsOutcomesRequestDto.getOutcomeIds(),
             resultsOutcomesRequestDto.getAlternateId().getId()
         );
-        Optional<Experiment> experiment = allRepositories.experimentRepository.findById(experimentId);
+        Optional<Experiment> experiment = experimentRepository.findById(experimentId);
 
         if (experiment.isEmpty()) {
             throw new ExperimentNotMatchingException(TextConstants.EXPERIMENT_NOT_MATCHING);

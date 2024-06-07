@@ -34,7 +34,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.http.HttpHeaders;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,11 +47,8 @@ public class ConditionController {
 
     public static final String REQUEST_ROOT = "api/experiments/{experimentId}/conditions";
 
-    @Autowired
-    private ConditionService conditionService;
-
-    @Autowired
-    private APIJWTService apijwtService;
+    @Autowired private ConditionService conditionService;
+    @Autowired private APIJWTService apijwtService;
 
     @GetMapping
     public ResponseEntity<List<ConditionDto>> allConditionsByExperiment(@PathVariable long experimentId, HttpServletRequest req) throws ExperimentNotMatchingException, BadTokenException {

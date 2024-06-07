@@ -30,7 +30,7 @@ public final class ZipUtil {
                     byte[] bytes = new byte[1024];
                     int length;
 
-                    while((length = fileInputStream.read(bytes)) >= 0) {
+                    while ((length = fileInputStream.read(bytes)) >= 0) {
                         zipOutputStream.write(bytes, 0, length);
                     }
                 }

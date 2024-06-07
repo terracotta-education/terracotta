@@ -31,7 +31,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.http.HttpHeaders;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 
 @Slf4j
@@ -42,11 +42,8 @@ public class ExposureController {
 
     public static final String REQUEST_ROOT = "api/experiments/{experimentId}/exposures";
 
-    @Autowired
-    private ExposureService exposureService;
-
-    @Autowired
-    private APIJWTService apijwtService;
+    @Autowired private ExposureService exposureService;
+    @Autowired private APIJWTService apijwtService;
 
     @GetMapping
     public ResponseEntity<List<ExposureDto>> allExposuresByExperiment(@PathVariable long experimentId, HttpServletRequest req)
@@ -54,13 +51,13 @@ public class ExposureController {
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
 
-        if(!apijwtService.isLearnerOrHigher(securedInfo)) {
+        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
 
         List<ExposureDto> exposureList = exposureService.getExposures(experimentId);
 
-        if(exposureList.isEmpty()) {
+        if (exposureList.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }
 
@@ -76,7 +73,7 @@ public class ExposureController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
 
-        if(!apijwtService.isLearnerOrHigher(securedInfo)) {
+        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
@@ -114,7 +111,7 @@ public class ExposureController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.experimentLocked(experimentId,true);
 
-        if(!apijwtService.isInstructorOrHigher(securedInfo)) {
+        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
@@ -157,7 +154,7 @@ public class ExposureController {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
-        try{
+        try {
             exposureService.deleteById(exposureId);
             return new ResponseEntity<>(HttpStatus.OK);
         } catch (EmptyResultDataAccessException ex) {

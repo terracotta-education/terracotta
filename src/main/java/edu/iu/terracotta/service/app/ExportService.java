@@ -11,7 +11,6 @@ import java.util.Map;
 
 public interface ExportService {
 
-    Map<String, String> getFiles(long experimentId, SecuredInfo securedInfo)
-            throws CanvasApiException, ParticipantNotUpdatedException, IOException, ExperimentNotMatchingException, OutcomeNotMatchingException;
+    Map<String, String> getFiles(long experimentId, SecuredInfo securedInfo) throws CanvasApiException, ParticipantNotUpdatedException, IOException, ExperimentNotMatchingException, OutcomeNotMatchingException;
 
 }

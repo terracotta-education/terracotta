@@ -44,7 +44,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.http.HttpHeaders;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 
 @Slf4j
@@ -144,7 +144,7 @@ public class AssignmentController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assignmentAllowed(securedInfo, experimentId, exposureId, assignmentId);
 
-        if(!apijwtService.isInstructorOrHigher(securedInfo)) {
+        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
@@ -162,7 +162,6 @@ public class AssignmentController {
             throws ExperimentNotMatchingException, BadTokenException, AssignmentNotMatchingException,
                     TitleValidationException, CanvasApiException, AssignmentNotEditedException,
                     RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, ExposureNotMatchingException, AssessmentNotMatchingException {
-
         log.debug("Updating assignments for exposure with id: {}", exposureId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -172,7 +171,7 @@ public class AssignmentController {
             apijwtService.assignmentAllowed(securedInfo, experimentId, exposureId, assignmentDto.getAssignmentId());
         }
 
-        if(!apijwtService.isInstructorOrHigher(securedInfo)) {
+        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
@@ -188,17 +187,16 @@ public class AssignmentController {
                                                  @PathVariable long assignmentId,
                                                  HttpServletRequest req)
             throws ExperimentNotMatchingException, AssignmentNotMatchingException, BadTokenException, CanvasApiException, AssignmentNotEditedException, ExperimentLockedException {
-
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentLocked(experimentId, true);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assignmentAllowed(securedInfo, experimentId, exposureId, assignmentId);
 
-        if(!apijwtService.isInstructorOrHigher(securedInfo)) {
+        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
-        try{
+        try {
             assignmentService.deleteById(assignmentId, securedInfo);
             return new ResponseEntity<>(HttpStatus.OK);
         } catch (EmptyResultDataAccessException e) {
@@ -246,7 +244,6 @@ public class AssignmentController {
                     AssessmentNotMatchingException, TitleValidationException, AssignmentNotCreatedException, IdInPostException,
                     DataServiceException, RevealResponsesSettingValidationException,
                     MultipleAttemptsSettingsValidationException, NumberFormatException, CanvasApiException, ExceedingLimitException, TreatmentNotMatchingException, AssignmentMoveException, AssignmentNotEditedException, QuestionNotMatchingException {
-
         log.debug("Duplicating Assignment: {}", assignmentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);

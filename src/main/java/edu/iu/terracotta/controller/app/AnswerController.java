@@ -26,16 +26,16 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -50,20 +50,13 @@ public class AnswerController {
      but all of the requests can be updated with switch statements to support additional types.
      */
 
-    public static final String REQUEST_ROOT = "api/experiments";
+    public static final String REQUEST_ROOT = "api/experiments/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}/questions/{questionId}/answers";
 
-    @Autowired
-    private APIJWTService apijwtService;
+    @Autowired private APIJWTService apijwtService;
+    @Autowired private AnswerService answerService;
+    @Autowired private QuestionService questionService;
 
-    @Autowired
-    private AnswerService answerService;
-
-    @Autowired
-    private QuestionService questionService;
-
-    @GetMapping(value = "/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}/questions/{questionId}/answers",
-            produces = MediaType.APPLICATION_JSON_VALUE)
-    @ResponseBody
+    @GetMapping
     public ResponseEntity<List<AnswerDto>> getAnswersByQuestion(@PathVariable long experimentId,
                                                                 @PathVariable long conditionId,
                                                                 @PathVariable long treatmentId,
@@ -71,20 +64,19 @@ public class AnswerController {
                                                                 @PathVariable long questionId,
                                                                 HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionNotMatchingException, BadTokenException {
-
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
         apijwtService.questionAllowed(securedInfo, assessmentId, questionId);
 
-        if(!apijwtService.isLearnerOrHigher(securedInfo)) {
+        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
 
         if (answerService.getQuestionType(questionId).equals(QuestionTypes.MC.toString())) {
             List<AnswerDto> answerDtoList = answerService.findAllByQuestionIdMC(questionId, false);
 
-            if(answerDtoList.isEmpty()){
+            if (answerDtoList.isEmpty()) {
                 return new ResponseEntity<>(HttpStatus.NO_CONTENT);
             }
 
@@ -94,67 +86,61 @@ public class AnswerController {
         return new ResponseEntity("Error 103: Answer type is not supported.", HttpStatus.BAD_REQUEST);
     }
 
-    @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/questions/{question_id}/answers/{answer_id}",
-            method = RequestMethod.GET, produces = "application/json;")
-    @ResponseBody
-    public ResponseEntity<AnswerDto> getAnswer(@PathVariable("experiment_id") Long experimentId,
-                                               @PathVariable("condition_id") Long conditionId,
-                                               @PathVariable("treatment_id") Long treatmentId,
-                                               @PathVariable("assessment_id") Long assessmentId,
-                                               @PathVariable("question_id") Long questionId,
-                                               @PathVariable("answer_id") Long answerId,
+    @GetMapping("/{answerId}")
+    public ResponseEntity<AnswerDto> getAnswer(@PathVariable long experimentId,
+                                               @PathVariable long conditionId,
+                                               @PathVariable long treatmentId,
+                                               @PathVariable long assessmentId,
+                                               @PathVariable long questionId,
+                                               @PathVariable long answerId,
                                                HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionNotMatchingException, AnswerNotMatchingException, BadTokenException {
-
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
         apijwtService.questionAllowed(securedInfo, assessmentId, questionId);
         apijwtService.answerAllowed(securedInfo, assessmentId, questionId, answerService.getQuestionType(questionId), answerId);
 
-        if(apijwtService.isLearnerOrHigher(securedInfo)) {
-            String answerType = answerService.getQuestionType(questionId);
-
-            if(answerType.equals(QuestionTypes.MC.toString())){
-                return new ResponseEntity<>(answerService.getAnswerMC(answerId), HttpStatus.OK);
-            } else {
-                return new ResponseEntity("Error 103: Answer type not supported.", HttpStatus.BAD_REQUEST);
-            }
-        } else {
+        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
+
+        String answerType = answerService.getQuestionType(questionId);
+
+        if (answerType.equals(QuestionTypes.MC.toString())) {
+            return new ResponseEntity<>(answerService.getAnswerMC(answerId), HttpStatus.OK);
+        }
+
+        return new ResponseEntity("Error 103: Answer type not supported.", HttpStatus.BAD_REQUEST);
     }
 
-
-    @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/questions/{question_id}/answers",
-            method = RequestMethod.POST)
-    public ResponseEntity<AnswerDto> postAnswer(@PathVariable("experiment_id") Long experimentId,
-                                                @PathVariable("condition_id") Long conditionId,
-                                                @PathVariable("treatment_id") Long treatmentId,
-                                                @PathVariable("assessment_id") Long assessmentId,
-                                                @PathVariable("question_id") Long questionId,
+    @PostMapping
+    public ResponseEntity<AnswerDto> postAnswer(@PathVariable long experimentId,
+                                                @PathVariable long conditionId,
+                                                @PathVariable long treatmentId,
+                                                @PathVariable long assessmentId,
+                                                @PathVariable long questionId,
                                                 @RequestBody AnswerDto answerDto,
                                                 UriComponentsBuilder ucBuilder,
                                                 HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionNotMatchingException, BadTokenException, MultipleChoiceLimitReachedException, IdInPostException, DataServiceException {
-
         log.debug("Creating Answer for question ID: {}", questionId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
         apijwtService.questionAllowed(securedInfo, assessmentId, questionId);
 
-        if(apijwtService.isInstructorOrHigher(securedInfo)) {
-            AnswerDto returnedMcdDto = answerService.postAnswerMC(answerDto, questionId);
-            HttpHeaders mcHeaders = answerService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, questionId, returnedMcdDto.getAnswerId());
-            return new ResponseEntity<>(returnedMcdDto, mcHeaders, HttpStatus.CREATED);
-        } else {
+        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
+
+        AnswerDto returnedMcdDto = answerService.postAnswerMC(answerDto, questionId);
+        HttpHeaders mcHeaders = answerService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, questionId, returnedMcdDto.getAnswerId());
+
+        return new ResponseEntity<>(returnedMcdDto, mcHeaders, HttpStatus.CREATED);
     }
 
-
-    @PutMapping("/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}/questions/{questionId}/answers")
+    @PutMapping
     public ResponseEntity<List<AnswerDto>> updateAnswers(@PathVariable long experimentId,
                                               @PathVariable long conditionId,
                                               @PathVariable long treatmentId,
@@ -163,25 +149,24 @@ public class AnswerController {
                                               @RequestBody List<AnswerDto> answerDtoList,
                                               HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionNotMatchingException, AnswerNotMatchingException, BadTokenException, DataServiceException {
-
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
         apijwtService.questionAllowed(securedInfo, assessmentId, questionId);
 
-        if(!apijwtService.isInstructorOrHigher(securedInfo)){
+        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
         String answerType = answerService.getQuestionType(questionId);
 
-        if(!QuestionTypes.MC.toString().equals(answerType)){
+        if (!QuestionTypes.MC.toString().equals(answerType)) {
             return new ResponseEntity("Error 103: Answer type not supported.", HttpStatus.BAD_REQUEST);
         }
 
         Map<AnswerMc, AnswerDto> map = new HashMap<>();
 
-        for(AnswerDto answerDto : answerDtoList) {
+        for (AnswerDto answerDto : answerDtoList) {
             apijwtService.answerAllowed(securedInfo, assessmentId, questionId, answerType, answerDto.getAnswerId());
             AnswerMc mcAnswer = answerService.findByAnswerId(answerDto.getAnswerId());
             log.debug("Updating answer with id: {}", mcAnswer.getAnswerMcId());
@@ -195,7 +180,7 @@ public class AnswerController {
         }
     }
 
-    @PutMapping("/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}/questions/{questionId}/answers/{answerId}")
+    @PutMapping("/{answerId}")
     public ResponseEntity<AnswerDto> updateAnswer(@PathVariable long experimentId,
                                              @PathVariable long conditionId,
                                              @PathVariable long treatmentId,
@@ -205,7 +190,6 @@ public class AnswerController {
                                              @RequestBody AnswerDto answerDto,
                                              HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionNotMatchingException, AnswerNotMatchingException, BadTokenException, DataServiceException {
-
         log.debug("Updating answer with id: {}", answerId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -214,11 +198,11 @@ public class AnswerController {
         String answerType = questionService.findByQuestionId(questionId).getQuestionType().toString();
         apijwtService.answerAllowed(securedInfo, assessmentId, questionId, answerType, answerId);
 
-        if(!apijwtService.isInstructorOrHigher(securedInfo)) {
+        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
-        if(!QuestionTypes.MC.toString().equals(answerType)){
+        if (!QuestionTypes.MC.toString().equals(answerType)) {
             return new ResponseEntity("Error 103: Answer type not supported.", HttpStatus.BAD_REQUEST);
         }
 
@@ -235,17 +219,15 @@ public class AnswerController {
         return new ResponseEntity<>(answerDtos.get(0), HttpStatus.OK);
     }
 
-    @RequestMapping(value = "/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/questions/{question_id}/answers/{answer_id}",
-            method = RequestMethod.DELETE)
-    public ResponseEntity<Void> deleteAnswer(@PathVariable("experiment_id") Long experimentId,
-                                             @PathVariable("condition_id") Long conditionId,
-                                             @PathVariable("treatment_id") Long treatmentId,
-                                             @PathVariable("assessment_id") Long assessmentId,
-                                             @PathVariable("question_id") Long questionId,
-                                             @PathVariable("answer_id") Long answerId,
+    @DeleteMapping("/{answerId}")
+    public ResponseEntity<Void> deleteAnswer(@PathVariable long experimentId,
+                                             @PathVariable long conditionId,
+                                             @PathVariable long treatmentId,
+                                             @PathVariable long assessmentId,
+                                             @PathVariable long questionId,
+                                             @PathVariable long answerId,
                                              HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionNotMatchingException, AnswerNotMatchingException, BadTokenException {
-
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
@@ -253,20 +235,21 @@ public class AnswerController {
         String answerType = questionService.findByQuestionId(questionId).getQuestionType().toString();
         apijwtService.answerAllowed(securedInfo, assessmentId, questionId, answerType, answerId);
 
-        if(apijwtService.isInstructorOrHigher(securedInfo)) {
-            if(answerType.equals(QuestionTypes.MC.toString())){
-                try{
-                    answerService.deleteByIdMC(answerId);
-                    return new ResponseEntity<>(HttpStatus.OK);
-                } catch (EmptyResultDataAccessException ex) {
-                    log.warn(ex.getMessage());
-                    return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-                }
-            } else {
-                return new ResponseEntity("Error 103: Answer type not supported.", HttpStatus.BAD_REQUEST);
-            }
-        } else {
+        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
+
+        if (!answerType.equals(QuestionTypes.MC.toString())) {
+            return new ResponseEntity("Error 103: Answer type not supported.", HttpStatus.BAD_REQUEST);
+        }
+
+        try {
+            answerService.deleteByIdMC(answerId);
+            return new ResponseEntity<>(HttpStatus.OK);
+        } catch (EmptyResultDataAccessException ex) {
+            log.warn(ex.getMessage());
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
     }
+
 }

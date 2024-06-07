@@ -24,7 +24,14 @@ import edu.iu.terracotta.model.app.enumerator.DistributionTypes;
 import edu.iu.terracotta.model.app.enumerator.ExposureTypes;
 import edu.iu.terracotta.model.app.enumerator.ParticipationTypes;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
-import edu.iu.terracotta.repository.AllRepositories;
+import edu.iu.terracotta.repository.ConditionRepository;
+import edu.iu.terracotta.repository.ConsentDocumentRepository;
+import edu.iu.terracotta.repository.ExperimentRepository;
+import edu.iu.terracotta.repository.ExposureRepository;
+import edu.iu.terracotta.repository.LtiContextRepository;
+import edu.iu.terracotta.repository.LtiUserRepository;
+import edu.iu.terracotta.repository.ParticipantRepository;
+import edu.iu.terracotta.repository.PlatformDeploymentRepository;
 import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.app.ConditionService;
 import edu.iu.terracotta.service.app.ExperimentService;
@@ -52,7 +59,14 @@ import java.util.Optional;
 @SuppressWarnings({"PMD.GuardLogStatement"})
 public class ExperimentServiceImpl implements ExperimentService {
 
-    @Autowired private AllRepositories allRepositories;
+    @Autowired private ConditionRepository conditionRepository;
+    @Autowired private ConsentDocumentRepository consentDocumentRepository;
+    @Autowired private ExperimentRepository experimentRepository;
+    @Autowired private ExposureRepository exposureRepository;
+    @Autowired private LtiContextRepository ltiContextRepository;
+    @Autowired private LtiUserRepository ltiUserRepository;
+    @Autowired private ParticipantRepository participantRepository;
+    @Autowired private PlatformDeploymentRepository platformDeploymentRepository;
     @Autowired private AssignmentService assignmentService;
     @Autowired private ConditionService conditionService;
     @Autowired private ExposureService exposureService;
@@ -61,7 +75,7 @@ public class ExperimentServiceImpl implements ExperimentService {
 
     @Override
     public List<ExperimentDto> getExperiments(SecuredInfo securedInfo, boolean syncWithCanvas) {
-        List<Experiment> experiments = allRepositories.experimentRepository.findByPlatformDeployment_KeyIdAndLtiContextEntity_ContextId(securedInfo.getPlatformDeploymentId(), securedInfo.getContextId());
+        List<Experiment> experiments = experimentRepository.findByPlatformDeployment_KeyIdAndLtiContextEntity_ContextId(securedInfo.getPlatformDeploymentId(), securedInfo.getContextId());
         List<ExperimentDto> experimentDtoList = new ArrayList<>();
 
         for (Experiment experiment : experiments) {
@@ -90,7 +104,7 @@ public class ExperimentServiceImpl implements ExperimentService {
 
     @Override
     public Experiment getExperiment(long experimentId) {
-        return allRepositories.experimentRepository.findByExperimentId(experimentId);
+        return experimentRepository.findByExperimentId(experimentId);
     }
 
     @Override
@@ -178,7 +192,7 @@ public class ExperimentServiceImpl implements ExperimentService {
                         fileStorageService.deleteConsentAssignment(experimentId, securedInfo);
 
                         if (experimentToChange.getConsentDocument()!=null) {
-                            allRepositories.consentDocumentRepository.delete(experimentToChange.getConsentDocument());
+                            consentDocumentRepository.delete(experimentToChange.getConsentDocument());
                             experimentToChange.setConsentDocument(null);
                         }
                     } catch (CanvasApiException | AssignmentNotEditedException e) {
@@ -232,7 +246,7 @@ public class ExperimentServiceImpl implements ExperimentService {
         List<ConditionDto> conditionDtoList = new ArrayList<>();
 
         if (conditions) {
-            List<Condition> conditionList = allRepositories.conditionRepository.findByExperiment_ExperimentId(experiment.getExperimentId());
+            List<Condition> conditionList = conditionRepository.findByExperiment_ExperimentId(experiment.getExperimentId());
 
             for (Condition condition:conditionList) {
                 ConditionDto conditionDto = conditionService.toDto(condition);
@@ -245,7 +259,7 @@ public class ExperimentServiceImpl implements ExperimentService {
         List<ExposureDto> exposureDtoList = new ArrayList<>();
 
         if (exposures) {
-            List<Exposure> exposureList = allRepositories.exposureRepository.findByExperiment_ExperimentId(experiment.getExperimentId());
+            List<Exposure> exposureList = exposureRepository.findByExperiment_ExperimentId(experiment.getExperimentId());
 
             for (Exposure exposure : exposureList) {
                 ExposureDto exposureDto = exposureService.toDto(exposure);
@@ -256,7 +270,7 @@ public class ExperimentServiceImpl implements ExperimentService {
 
         if (participants) {
             experimentDto.setParticipants(
-                CollectionUtils.emptyIfNull(allRepositories.participantRepository.findByExperiment_ExperimentId(experiment.getExperimentId())).stream()
+                CollectionUtils.emptyIfNull(participantRepository.findByExperiment_ExperimentId(experiment.getExperimentId())).stream()
                     .filter(participant -> !participant.isTestStudent())
                     .map(participant -> participantService.toDto(participant))
                     .toList()
@@ -308,16 +322,16 @@ public class ExperimentServiceImpl implements ExperimentService {
     public Experiment fromDto(ExperimentDto experimentDto) throws DataServiceException {
         Experiment experiment = new Experiment();
         experiment.setExperimentId(experimentDto.getExperimentId());
-        Optional<LtiContextEntity> ltiContextEntity = allRepositories.contexts.findById(experimentDto.getContextId());
+        Optional<LtiContextEntity> ltiContextEntity = ltiContextRepository.findById(experimentDto.getContextId());
 
-        if (!ltiContextEntity.isPresent()) {
+        if (ltiContextEntity.isEmpty()) {
             throw new DataServiceException("The course defined in the experiment dto does not exist");
         }
 
         experiment.setLtiContextEntity(ltiContextEntity.get());
-        Optional<PlatformDeployment> platformDeployment = allRepositories.platformDeploymentRepository.findById(experimentDto.getPlatformDeploymentId());
+        Optional<PlatformDeployment> platformDeployment = platformDeploymentRepository.findById(experimentDto.getPlatformDeploymentId());
 
-        if (!platformDeployment.isPresent()) {
+        if (platformDeployment.isEmpty()) {
             throw new DataServiceException("The platform deployment defined in the experiment dto does not exist");
         }
 
@@ -329,7 +343,7 @@ public class ExperimentServiceImpl implements ExperimentService {
         experiment.setDistributionType(EnumUtils.getEnum(DistributionTypes.class, experimentDto.getDistributionType(), DistributionTypes.NOSET));
         experiment.setStarted(experimentDto.getStarted());
         experiment.setClosed(experimentDto.getClosed());
-        LtiUserEntity user = allRepositories.ltiUserRepository.findByUserIdAndPlatformDeployment_KeyId(experimentDto.getCreatedBy(),platformDeployment.get().getKeyId());
+        LtiUserEntity user = ltiUserRepository.findByUserIdAndPlatformDeployment_KeyId(experimentDto.getCreatedBy(),platformDeployment.get().getKeyId());
 
         if (user == null) {
             throw new DataServiceException("The user specified to create the experiment does not exist or does not belong to this course");
@@ -341,7 +355,7 @@ public class ExperimentServiceImpl implements ExperimentService {
     }
 
     private Experiment save(Experiment experiment) {
-        return allRepositories.experimentRepository.save(experiment);
+        return experimentRepository.save(experiment);
     }
 
     @Override
@@ -354,7 +368,7 @@ public class ExperimentServiceImpl implements ExperimentService {
             log.warn("Consent from experiment {} was not deleted", id);
         }
 
-        allRepositories.experimentRepository.deleteByExperimentId(id);
+        experimentRepository.deleteByExperimentId(id);
     }
 
     @Override
@@ -363,7 +377,7 @@ public class ExperimentServiceImpl implements ExperimentService {
         //than the one in the token.
         experimentDto.setContextId(securedInfo.getContextId());
         experimentDto.setPlatformDeploymentId(securedInfo.getPlatformDeploymentId());
-        LtiUserEntity user = allRepositories.ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
+        LtiUserEntity user = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
 
         if (user != null) {
             experimentDto.setCreatedBy(user.getUserId());
@@ -374,7 +388,7 @@ public class ExperimentServiceImpl implements ExperimentService {
 
     @Override
     public void deleteConsentDocument(ConsentDocument consentDocument) {
-        allRepositories.consentDocumentRepository.delete(consentDocument);
+        consentDocumentRepository.delete(consentDocument);
     }
 
     @Override
@@ -383,7 +397,7 @@ public class ExperimentServiceImpl implements ExperimentService {
             return null;
         }
 
-        List<Experiment> experimentList = allRepositories.experimentRepository.findByPlatformDeployment_KeyIdAndLtiContextEntity_ContextIdAndCreatedBy_UserKey(securedInfo.getPlatformDeploymentId(), securedInfo.getContextId(), securedInfo.getUserId());
+        List<Experiment> experimentList = experimentRepository.findByPlatformDeployment_KeyIdAndLtiContextEntity_ContextIdAndCreatedBy_UserKey(securedInfo.getPlatformDeploymentId(), securedInfo.getContextId(), securedInfo.getUserId());
 
         for (Experiment experiment : experimentList) {
             if (StringUtils.isBlank(experiment.getTitle())) {
@@ -395,7 +409,7 @@ public class ExperimentServiceImpl implements ExperimentService {
     }
 
     private boolean titleAlreadyExists(String title, Long contextId, Long experimentId) {
-        return allRepositories.experimentRepository.existsByTitleAndLtiContextEntity_ContextIdAndExperimentIdIsNot(title, contextId, experimentId);
+        return experimentRepository.existsByTitleAndLtiContextEntity_ContextIdAndExperimentIdIsNot(title, contextId, experimentId);
     }
 
     @Override

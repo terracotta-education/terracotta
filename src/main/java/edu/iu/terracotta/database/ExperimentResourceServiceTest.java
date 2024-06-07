@@ -5,13 +5,19 @@ import edu.iu.terracotta.service.common.ResourceService;
 import org.springframework.stereotype.Component;
 
 @Component
+@SuppressWarnings({"PMD.UncommentedEmptyMethodBody"})
 public class ExperimentResourceServiceTest implements ResourceService<Experiment> {
 
-    static final String EXPERIMENTS_RESOURCE = "classpath:test_data/experiments";
+    private static final String EXPERIMENTS_RESOURCE = "classpath:test_data/experiments";
 
     @Override
-    public String getDirectoryPath() { return EXPERIMENTS_RESOURCE; }
+    public String getDirectoryPath() {
+        return EXPERIMENTS_RESOURCE;
+    }
 
     @Override
-    public void setDefaults(){}
+    public void setDefaults() {
+
+    }
+
 }

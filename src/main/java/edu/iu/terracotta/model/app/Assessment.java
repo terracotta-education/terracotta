@@ -6,18 +6,18 @@ import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.List;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.EnumType;
-import javax.persistence.Enumerated;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.Lob;
-import javax.persistence.OneToMany;
-import javax.persistence.OneToOne;
-import javax.persistence.Table;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.Lob;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Table;
 import edu.iu.terracotta.model.BaseEntity;
 import edu.iu.terracotta.model.app.enumerator.MultipleSubmissionScoringScheme;
 import lombok.Getter;
@@ -30,19 +30,28 @@ import lombok.Setter;
 public class Assessment extends BaseEntity {
 
     @Id
-    @Column(name = "assessment_id", nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(
+        name = "assessment_id",
+        nullable = false
+    )
     private Long assessmentId;
 
     @Lob
     @Column
     private String html;
 
-    @OneToMany(mappedBy = "assessment", orphanRemoval = true)
+    @OneToMany(
+        mappedBy = "assessment",
+        orphanRemoval = true
+    )
     private List<Question> questions;
 
     @OneToOne(optional = false)
-    @JoinColumn(name = "treatment_treatment_id", nullable = false)
+    @JoinColumn(
+        name = "treatment_treatment_id",
+        nullable = false
+    )
     private Treatment treatment;
 
     @Column
@@ -60,31 +69,43 @@ public class Assessment extends BaseEntity {
     private Float hoursBetweenSubmissions;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "multiple_submission_scoring_scheme", nullable = false)
+    @Column(
+        name = "multiple_submission_scoring_scheme",
+        nullable = false
+    )
     private MultipleSubmissionScoringScheme multipleSubmissionScoringScheme = MultipleSubmissionScoringScheme.MOST_RECENT;
 
-    @Column(name = "cumulative_scoring_initial_percentage", nullable = true)
+    @Column
     private Float cumulativeScoringInitialPercentage;
 
-    @Column(name = "allow_student_view_responses", nullable = false)
+    @Column(
+        name = "allow_student_view_responses",
+        nullable = false
+    )
     private boolean allowStudentViewResponses = false;
 
-    @Column(name = "student_view_responses_after", nullable = true)
+    @Column
     private Timestamp studentViewResponsesAfter;
 
-    @Column(name = "student_view_responses_before", nullable = true)
+    @Column
     private Timestamp studentViewResponsesBefore;
 
-    @Column(name = "allow_student_view_correct_answers", nullable = false)
+    @Column(
+        name = "allow_student_view_correct_answers",
+        nullable = false
+    )
     private boolean allowStudentViewCorrectAnswers = false;
 
-    @Column(name = "student_view_correct_answers_after", nullable = true)
+    @Column
     private Timestamp studentViewCorrectAnswersAfter;
 
-    @Column(name = "student_view_correct_answers_before", nullable = true)
+    @Column
     private Timestamp studentViewCorrectAnswersBefore;
 
-    @OneToMany(mappedBy = "assessment", orphanRemoval = true)
+    @OneToMany(
+        mappedBy = "assessment",
+        orphanRemoval = true
+    )
     private List<Submission> submissions;
 
     public boolean canViewResponses() {

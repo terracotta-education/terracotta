@@ -15,21 +15,12 @@ import java.util.List;
 public interface QuestionSubmissionCommentService {
 
     List<QuestionSubmissionCommentDto> getQuestionSubmissionComments(Long questionSubmissionId);
-
     QuestionSubmissionComment getQuestionSubmissionComment(Long id);
-
-    QuestionSubmissionCommentDto postQuestionSubmissionComment(QuestionSubmissionCommentDto questionSubmissionCommentDto, long questionSubmissionId, SecuredInfo securedInfo)
-        throws IdInPostException, DataServiceException;
-
-    void updateQuestionSubmissionComment(QuestionSubmissionCommentDto questionSubmissionCommentDto, long questionSubmissionCommentId, long experimentId, long submissionId, SecuredInfo securedInfo)
-        throws DataServiceException;
-
+    QuestionSubmissionCommentDto postQuestionSubmissionComment(QuestionSubmissionCommentDto questionSubmissionCommentDto, long questionSubmissionId, SecuredInfo securedInfo) throws IdInPostException, DataServiceException;
+    void updateQuestionSubmissionComment(QuestionSubmissionCommentDto questionSubmissionCommentDto, long questionSubmissionCommentId, long experimentId, long submissionId, SecuredInfo securedInfo) throws DataServiceException;
     QuestionSubmissionCommentDto toDto(QuestionSubmissionComment questionSubmissionComment);
-
     QuestionSubmissionComment fromDto(QuestionSubmissionCommentDto questionSubmissionCommentDto) throws DataServiceException;
-
     void deleteById(Long id) throws EmptyResultDataAccessException;
-
     HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId, Long submissionId, Long questionSubmissionId, Long questionSubmissionCommentId);
 
 }

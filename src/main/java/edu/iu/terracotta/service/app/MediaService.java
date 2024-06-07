@@ -7,7 +7,6 @@ import edu.iu.terracotta.model.oauth2.SecuredInfo;
 
 public interface MediaService {
 
-    void fromDto(MediaEventDto mediaEventDto, SecuredInfo securedInfo, Long experimentId, Long submissionId, Long questionId)
-        throws ParameterMissingException, NoSubmissionsException;
+    void fromDto(MediaEventDto mediaEventDto, SecuredInfo securedInfo, Long experimentId, Long submissionId, Long questionId) throws ParameterMissingException, NoSubmissionsException;
 
 }
