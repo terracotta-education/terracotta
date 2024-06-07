@@ -93,14 +93,11 @@ import edu.ksu.canvas.interfaces.UserWriter;
 import edu.ksu.canvas.net.RefreshingRestClient;
 import edu.ksu.canvas.net.RestClient;
 import edu.ksu.canvas.oauth.OauthToken;
-import lombok.extern.slf4j.Slf4j;
-
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
 
-@Slf4j
 @SuppressWarnings({"PMD.GuardLogStatement", "rawtypes", "unchecked"})
 public class CanvasApiFactoryExtended {
 
@@ -113,39 +110,37 @@ public class CanvasApiFactoryExtended {
     private int readTimeout;
 
     public CanvasApiFactoryExtended(String canvasBaseUrl) {
-        log.debug("Creating Canvas API factory with base URL: " + canvasBaseUrl);
         this.canvasBaseUrl = canvasBaseUrl;
-        this.connectTimeout = 5000;
-        this.readTimeout = 120000;
-        this.setupClassMap();
+        connectTimeout = 5000;
+        readTimeout = 120000;
+        setupClassMap();
     }
 
     public CanvasApiFactoryExtended(String canvasBaseUrl, int connectTimeout, int readTimeout) {
         this.canvasBaseUrl = canvasBaseUrl;
         this.connectTimeout = connectTimeout;
         this.readTimeout = readTimeout;
-        this.setupClassMap();
+        setupClassMap();
     }
 
     public <T extends CanvasReader> T getReader(Class<T> type, OauthToken oauthToken) {
-        return this.getReader(type, oauthToken, (Integer) null);
+        return getReader(type, oauthToken, (Integer) null);
     }
 
     public <T extends CanvasReader> T getReader(Class<T> type, OauthToken oauthToken, Integer paginationPageSize) {
-        log.debug("Factory call to instantiate class: " + type.getName());
         RestClient restClient = new RefreshingRestClient();
         Class<T> concreteClass = (Class) this.readerMap.get(type);
+
         if (concreteClass == null) {
             throw new UnsupportedOperationException("No implementation for requested interface found: " + type.getName());
-        } else {
-            log.debug("got class: " + concreteClass);
+        }
 
-            try {
-                Constructor<T> constructor = concreteClass.getConstructor(String.class, Integer.class, OauthToken.class, RestClient.class, Integer.TYPE, Integer.TYPE, Integer.class, Boolean.class);
-                return (T) constructor.newInstance(this.canvasBaseUrl, CANVAS_API_VERSION, oauthToken, restClient, this.connectTimeout, this.readTimeout, paginationPageSize, false);
-            } catch (InvocationTargetException | IllegalAccessException | InstantiationException | NoSuchMethodException var7) {
-                throw new UnsupportedOperationException("Unknown error instantiating the concrete API class: " + type.getName(), var7);
-            }
+        try {
+            Constructor<T> constructor = concreteClass.getConstructor(String.class, Integer.class, OauthToken.class, RestClient.class, Integer.TYPE, Integer.TYPE, Integer.class, Boolean.class);
+
+            return (T) constructor.newInstance(this.canvasBaseUrl, CANVAS_API_VERSION, oauthToken, restClient, this.connectTimeout, this.readTimeout, paginationPageSize, false);
+        } catch (InvocationTargetException | IllegalAccessException | InstantiationException | NoSuchMethodException var7) {
+            throw new UnsupportedOperationException("Unknown error instantiating the concrete API class: " + type.getName(), var7);
         }
     }
 
@@ -154,85 +149,83 @@ public class CanvasApiFactoryExtended {
     }
 
     public <T extends CanvasWriter> T getWriter(Class<T> type, OauthToken oauthToken, Boolean serializeNulls) {
-        log.debug("Factory call to instantiate class: " + type.getName());
         RestClient restClient = new RefreshingRestClient();
         Class<T> concreteClass = (Class) this.writerMap.get(type);
+
         if (concreteClass == null) {
             throw new UnsupportedOperationException("No implementation for requested interface found: " + type.getName());
-        } else {
-            log.debug("got writer class: " + concreteClass);
+        }
 
-            try {
-                Constructor<T> constructor = concreteClass.getConstructor(String.class, Integer.class, OauthToken.class, RestClient.class, Integer.TYPE, Integer.TYPE, Integer.class, Boolean.class);
-                return (T) constructor.newInstance(this.canvasBaseUrl, CANVAS_API_VERSION, oauthToken, restClient, this.connectTimeout, this.readTimeout, null, serializeNulls);
-            } catch (InvocationTargetException | IllegalAccessException | InstantiationException | NoSuchMethodException var7) {
-                throw new UnsupportedOperationException("Unknown error instantiating the concrete API class: " + type.getName(), var7);
-            }
+        try {
+            Constructor<T> constructor = concreteClass.getConstructor(String.class, Integer.class, OauthToken.class, RestClient.class, Integer.TYPE, Integer.TYPE, Integer.class, Boolean.class);
+            return (T) constructor.newInstance(this.canvasBaseUrl, CANVAS_API_VERSION, oauthToken, restClient, this.connectTimeout, this.readTimeout, null, serializeNulls);
+        } catch (InvocationTargetException | IllegalAccessException | InstantiationException | NoSuchMethodException var7) {
+            throw new UnsupportedOperationException("Unknown error instantiating the concrete API class: " + type.getName(), var7);
         }
     }
 
     private void setupClassMap() {
-        this.readerMap = new HashMap<>();
-        this.writerMap = new HashMap<>();
-        this.readerMap.put(AccountReader.class, AccountImpl.class);
-        this.readerMap.put(AdminReader.class, AdminImpl.class);
-        this.readerMap.put(AssignmentOverrideReader.class, AssignmentOverrideImpl.class);
-        this.readerMap.put(AssignmentReader.class, AssignmentImpl.class);
-        this.readerMap.put(AssignmentReaderExtended.class, AssignmentExtendedImpl.class);
-        this.readerMap.put(ConversationReader.class, ConversationImpl.class);
-        this.readerMap.put(CourseReader.class, CourseImpl.class);
-        this.readerMap.put(TabReader.class, TabImpl.class);
-        this.readerMap.put(EnrollmentReader.class, EnrollmentImpl.class);
-        this.readerMap.put(QuizQuestionReader.class, QuizQuestionImpl.class);
-        this.readerMap.put(QuizReader.class, QuizImpl.class);
-        this.readerMap.put(QuizSubmissionQuestionReader.class, QuizSubmissionQuestionImpl.class);
-        this.readerMap.put(QuizSubmissionReader.class, QuizSubmissionImpl.class);
-        this.readerMap.put(SectionReader.class, SectionsImpl.class);
-        this.readerMap.put(UserReader.class, UserImpl.class);
-        this.readerMap.put(PageReader.class, PageImpl.class);
-        this.readerMap.put(EnrollmentTermReader.class, EnrollmentTermImpl.class);
-        this.readerMap.put(SubmissionReader.class, SubmissionImpl.class);
-        this.readerMap.put(SubmissionReaderExtended.class, SubmissionExtendedImpl.class);
-        this.readerMap.put(AssignmentGroupReader.class, AssignmentGroupImpl.class);
-        this.readerMap.put(RoleReader.class, RoleImpl.class);
-        this.readerMap.put(ExternalToolReader.class, ExternalToolImpl.class);
-        this.readerMap.put(LoginReader.class, LoginImpl.class);
-        this.readerMap.put(CalendarReader.class, CalendarEventImpl.class);
-        this.readerMap.put(AccountReportSummaryReader.class, AccountReportSummaryImpl.class);
-        this.readerMap.put(AccountReportReader.class, AccountReportImpl.class);
-        this.readerMap.put(ContentMigrationReader.class, ContentMigrationImpl.class);
-        this.readerMap.put(ProgressReader.class, ProgressImpl.class);
-        this.readerMap.put(CourseSettingsReader.class, CourseSettingsImpl.class);
-        this.readerMap.put(GradingStandardReader.class, GradingStandardImpl.class);
-        this.readerMap.put(CourseReaderExtended.class, CourseExtendedImpl.class);
-        this.writerMap.put(AssignmentOverrideWriter.class, AssignmentOverrideImpl.class);
-        this.writerMap.put(AdminWriter.class, AdminImpl.class);
-        this.writerMap.put(AssignmentWriter.class, AssignmentImpl.class);
-        this.writerMap.put(AssignmentWriterExtended.class, AssignmentExtendedImpl.class);
-        this.writerMap.put(ConversationWriter.class, ConversationImpl.class);
-        this.writerMap.put(CourseWriter.class, CourseImpl.class);
-        this.writerMap.put(TabWriter.class, TabImpl.class);
-        this.writerMap.put(EnrollmentWriter.class, EnrollmentImpl.class);
-        this.writerMap.put(QuizQuestionWriter.class, QuizQuestionImpl.class);
-        this.writerMap.put(QuizWriter.class, QuizImpl.class);
-        this.writerMap.put(QuizSubmissionQuestionWriter.class, QuizSubmissionQuestionImpl.class);
-        this.writerMap.put(QuizSubmissionWriter.class, QuizSubmissionImpl.class);
-        this.writerMap.put(UserWriter.class, UserImpl.class);
-        this.writerMap.put(PageWriter.class, PageImpl.class);
-        this.writerMap.put(SectionWriter.class, SectionsImpl.class);
-        this.writerMap.put(SubmissionWriter.class, SubmissionImpl.class);
-        this.writerMap.put(AssignmentGroupWriter.class, AssignmentGroupImpl.class);
-        this.writerMap.put(RoleWriter.class, RoleImpl.class);
-        this.writerMap.put(ExternalToolWriter.class, ExternalToolImpl.class);
-        this.writerMap.put(LoginWriter.class, LoginImpl.class);
-        this.writerMap.put(CalendarWriter.class, CalendarEventImpl.class);
-        this.writerMap.put(AccountReportSummaryWriter.class, AccountReportSummaryImpl.class);
-        this.writerMap.put(AccountReportWriter.class, AccountReportImpl.class);
-        this.writerMap.put(ContentMigrationWriter.class, ContentMigrationImpl.class);
-        this.writerMap.put(ProgressWriter.class, ProgressImpl.class);
-        this.writerMap.put(CourseSettingsWriter.class, CourseSettingsImpl.class);
-        this.writerMap.put(GradingStandardWriter.class, GradingStandardImpl.class);
-        this.writerMap.put(CourseWriterExtended.class, CourseExtendedImpl.class);
+        readerMap = new HashMap<>();
+        writerMap = new HashMap<>();
+        readerMap.put(AccountReader.class, AccountImpl.class);
+        readerMap.put(AdminReader.class, AdminImpl.class);
+        readerMap.put(AssignmentOverrideReader.class, AssignmentOverrideImpl.class);
+        readerMap.put(AssignmentReader.class, AssignmentImpl.class);
+        readerMap.put(AssignmentReaderExtended.class, AssignmentExtendedImpl.class);
+        readerMap.put(ConversationReader.class, ConversationImpl.class);
+        readerMap.put(CourseReader.class, CourseImpl.class);
+        readerMap.put(TabReader.class, TabImpl.class);
+        readerMap.put(EnrollmentReader.class, EnrollmentImpl.class);
+        readerMap.put(QuizQuestionReader.class, QuizQuestionImpl.class);
+        readerMap.put(QuizReader.class, QuizImpl.class);
+        readerMap.put(QuizSubmissionQuestionReader.class, QuizSubmissionQuestionImpl.class);
+        readerMap.put(QuizSubmissionReader.class, QuizSubmissionImpl.class);
+        readerMap.put(SectionReader.class, SectionsImpl.class);
+        readerMap.put(UserReader.class, UserImpl.class);
+        readerMap.put(PageReader.class, PageImpl.class);
+        readerMap.put(EnrollmentTermReader.class, EnrollmentTermImpl.class);
+        readerMap.put(SubmissionReader.class, SubmissionImpl.class);
+        readerMap.put(SubmissionReaderExtended.class, SubmissionExtendedImpl.class);
+        readerMap.put(AssignmentGroupReader.class, AssignmentGroupImpl.class);
+        readerMap.put(RoleReader.class, RoleImpl.class);
+        readerMap.put(ExternalToolReader.class, ExternalToolImpl.class);
+        readerMap.put(LoginReader.class, LoginImpl.class);
+        readerMap.put(CalendarReader.class, CalendarEventImpl.class);
+        readerMap.put(AccountReportSummaryReader.class, AccountReportSummaryImpl.class);
+        readerMap.put(AccountReportReader.class, AccountReportImpl.class);
+        readerMap.put(ContentMigrationReader.class, ContentMigrationImpl.class);
+        readerMap.put(ProgressReader.class, ProgressImpl.class);
+        readerMap.put(CourseSettingsReader.class, CourseSettingsImpl.class);
+        readerMap.put(GradingStandardReader.class, GradingStandardImpl.class);
+        readerMap.put(CourseReaderExtended.class, CourseExtendedImpl.class);
+        writerMap.put(AssignmentOverrideWriter.class, AssignmentOverrideImpl.class);
+        writerMap.put(AdminWriter.class, AdminImpl.class);
+        writerMap.put(AssignmentWriter.class, AssignmentImpl.class);
+        writerMap.put(AssignmentWriterExtended.class, AssignmentExtendedImpl.class);
+        writerMap.put(ConversationWriter.class, ConversationImpl.class);
+        writerMap.put(CourseWriter.class, CourseImpl.class);
+        writerMap.put(TabWriter.class, TabImpl.class);
+        writerMap.put(EnrollmentWriter.class, EnrollmentImpl.class);
+        writerMap.put(QuizQuestionWriter.class, QuizQuestionImpl.class);
+        writerMap.put(QuizWriter.class, QuizImpl.class);
+        writerMap.put(QuizSubmissionQuestionWriter.class, QuizSubmissionQuestionImpl.class);
+        writerMap.put(QuizSubmissionWriter.class, QuizSubmissionImpl.class);
+        writerMap.put(UserWriter.class, UserImpl.class);
+        writerMap.put(PageWriter.class, PageImpl.class);
+        writerMap.put(SectionWriter.class, SectionsImpl.class);
+        writerMap.put(SubmissionWriter.class, SubmissionImpl.class);
+        writerMap.put(AssignmentGroupWriter.class, AssignmentGroupImpl.class);
+        writerMap.put(RoleWriter.class, RoleImpl.class);
+        writerMap.put(ExternalToolWriter.class, ExternalToolImpl.class);
+        writerMap.put(LoginWriter.class, LoginImpl.class);
+        writerMap.put(CalendarWriter.class, CalendarEventImpl.class);
+        writerMap.put(AccountReportSummaryWriter.class, AccountReportSummaryImpl.class);
+        writerMap.put(AccountReportWriter.class, AccountReportImpl.class);
+        writerMap.put(ContentMigrationWriter.class, ContentMigrationImpl.class);
+        writerMap.put(ProgressWriter.class, ProgressImpl.class);
+        writerMap.put(CourseSettingsWriter.class, CourseSettingsImpl.class);
+        writerMap.put(GradingStandardWriter.class, GradingStandardImpl.class);
+        writerMap.put(CourseWriterExtended.class, CourseExtendedImpl.class);
     }
 
 }
