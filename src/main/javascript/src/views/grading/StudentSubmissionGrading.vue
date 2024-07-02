@@ -1,5 +1,12 @@
 <template>
   <div>
+    <PageLoading
+      v-if="isSaving"
+      :display="true"
+      :message="'Saving submission grades. Please wait.'"
+      :containerStyles="pageLoadingContainerStyles"
+      :spinnerStyles="pageLoadingSpinnerStyles"
+    />
     <v-row
       class="header-row"
     >
@@ -412,6 +419,7 @@
 <script>
 import { mapActions, mapGetters } from "vuex";
 import InfoTooltip from "@/components/InfoTooltip.vue";
+import PageLoading from "@/components/PageLoading";
 import Spinner from "@/components/Spinner";
 import SubmissionSelector from "../assignment/SubmissionSelector";
 
@@ -419,6 +427,7 @@ export default {
   name: "StudentSubmissionGrading",
   components: {
     InfoTooltip,
+    PageLoading,
     Spinner,
     SubmissionSelector
   },
@@ -602,6 +611,18 @@ export default {
         "vertical-align": "top"
       }
     },
+    pageLoadingContainerStyles() {
+      return {
+        "z-index": 1000,
+        "position": "relative",
+        "padding": 0
+      }
+    },
+    pageLoadingSpinnerStyles() {
+      return {
+        "margin-top": "200px"
+      }
+    },
     getScoreType() {
       return this.isGradeOverridden ? "override" : "calculated";
     },
@@ -674,7 +695,8 @@ export default {
       maxPoints: 0,
       selectedSubmissionId: null,
       downloadId: null,
-      attempts: [] // [{submissionId, initialScoreType, typeChanged, calculatedGrade: {grade, touched}, overrideGrade: {grade, touched}, gradeOverridden, studentResponse, questionScoreMap, loaded}]
+      attempts: [], // [{submissionId, initialScoreType, typeChanged, calculatedGrade: {grade, touched}, overrideGrade: {grade, touched}, gradeOverridden, studentResponse, questionScoreMap, loaded}]
+      isSaving: false
     };
   },
   methods: {
@@ -758,6 +780,9 @@ export default {
       }
     },
     async saveExit() {
+      // display wait screen
+      this.isSaving = true;
+
       // update grades for attempts
       this.attempts.forEach(attempt => {
         attempt.typeChanged = false;
@@ -803,9 +828,12 @@ export default {
             parameters: { submissionIds: "" + attempt.submissionId },
           });
         } catch (error) {
+          this.isSaving = false;
           return Promise.reject(error);
         }
       }
+
+      this.isSaving = false;
     },
     getQuestionIndex(question) {
       for (const questionPage of this.questionPages) {
