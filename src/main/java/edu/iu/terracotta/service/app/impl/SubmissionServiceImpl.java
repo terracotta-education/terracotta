@@ -584,7 +584,7 @@ public class SubmissionServiceImpl implements SubmissionService {
             return 1f;
         }
 
-        if (submission.getTotalAlteredGrade() != null) {
+        if (submission.isGradeOverridden()) {
             return submission.getTotalAlteredGrade();
         }
 
@@ -601,7 +601,7 @@ public class SubmissionServiceImpl implements SubmissionService {
         }
 
         if (lastTimestamp.equals(submission.getCreatedAt())) {
-            //We need to do this because the caliper event won't allow a submission time equals to the creation time,
+            // We need to do this because the caliper event won't allow a submission time equals to the creation time,
             // so we add 1 ms. This is not a very elegant solution, but it is needed.
             lastTimestamp = new Timestamp(lastTimestamp.getTime() + 1);
         }
