@@ -7,6 +7,7 @@ import store from "@/store/index.js";
 export const submissionService = {
   getAll,
   updateSubmission,
+  updateSubmissions,
   getQuestionSubmissions,
   createQuestionSubmissions,
   updateQuestionSubmissions,
@@ -85,6 +86,28 @@ async function updateSubmission(
     `${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/submissions/${submission_id}`,
     requestOptions
   ).then(handleResponse);
+}
+
+/**
+ * Update Individual Submission
+ */
+async function updateSubmissions(
+    experiment_id,
+    condition_id,
+    treatment_id,
+    assessment_id,
+    submissions
+) {
+const requestOptions = {
+    method: "PUT",
+    headers: authHeader(),
+    body: JSON.stringify(submissions)
+};
+
+return fetch(
+    `${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/submissions`,
+    requestOptions
+).then(handleResponse);
 }
 
 /**

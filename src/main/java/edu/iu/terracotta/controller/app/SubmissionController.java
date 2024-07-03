@@ -178,18 +178,17 @@ public class SubmissionController {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
-        boolean student = !apijwtService.isInstructorOrHigher(securedInfo);
         Map<Submission, SubmissionDto> map = new HashMap<>();
 
         for (SubmissionDto submissionDto : submissionDtoList) {
             apijwtService.submissionAllowed(securedInfo, assessmentId, submissionDto.getSubmissionId());
-            Submission submission = submissionService.getSubmission(experimentId, securedInfo.getUserId(), submissionDto.getSubmissionId(), student);
-            log.debug("Updating submission: " + submission.getSubmissionId());
+            Submission submission = submissionService.getSubmission(experimentId, securedInfo.getUserId(), submissionDto.getSubmissionId(), false);
+            log.debug("Updating submission ID: [{}]", submission.getSubmissionId());
             map.put(submission, submissionDto);
         }
 
         try {
-            submissionService.updateSubmissions(map, student);
+            submissionService.updateSubmissions(map, false);
             return new ResponseEntity<>(HttpStatus.OK);
         } catch (Exception e) {
             throw new DataServiceException("Error 105: There was an error updating the submission list. No submissions were updated. " + e.getMessage(), e);
