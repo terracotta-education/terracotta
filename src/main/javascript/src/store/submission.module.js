@@ -38,6 +38,14 @@ const actions = {
       console.log("updateSubmission catch", { error, state });
     }
   },
+  async updateSubmissions({ state }, payload) {
+    // payload = experiment_id, condition_id, treatment_id, assessment_id, submissions
+    try {
+      return await submissionService.updateSubmissions(...payload);
+    } catch (error) {
+      console.log("updateSubmissions catch", { error, state });
+    }
+  },
   fetchStudentResponse: ({ commit }, payload) => {
     // payload = experiment_id, condition_id, treatment_id, assessment_id, submission_id
     return submissionService

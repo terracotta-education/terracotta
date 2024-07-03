@@ -49,7 +49,10 @@ import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.service.caliper.CaliperService;
 import edu.iu.terracotta.service.lti.AdvantageAGSService;
 import edu.iu.terracotta.utils.TextConstants;
+import lombok.extern.slf4j.Slf4j;
+
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -71,6 +74,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
+@Slf4j
 @Component
 @SuppressWarnings({"PMD.PreserveStackTrace", "PMD.GuardLogStatement", "PMD.MethodNamingConventions"})
 public class SubmissionServiceImpl implements SubmissionService {
@@ -166,16 +170,29 @@ public class SubmissionServiceImpl implements SubmissionService {
     @Override
     @Transactional
     public void updateSubmissions(Map<Submission, SubmissionDto> map, boolean student) throws ConnectionException, DataServiceException {
-        if (!student) {
-            for (Map.Entry<Submission, SubmissionDto> entry : map.entrySet()) {
-                Submission submission = entry.getKey();
-                SubmissionDto submissionDto = entry.getValue();
-                submission.setAlteredCalculatedGrade(submissionDto.getAlteredCalculatedGrade());
-                submission.setTotalAlteredGrade(submissionDto.getTotalAlteredGrade());
-                submission.setGradeOverridden(submissionDto.isGradeOverridden());
-                save(submission);
-            }
+        if (student) {
+            // students cannot update submission scores
+            return;
         }
+
+        if (MapUtils.isEmpty(map)) {
+            // no submissions to process
+            return;
+        }
+
+        for (Map.Entry<Submission, SubmissionDto> entry : map.entrySet()) {
+            Submission submission = entry.getKey();
+            SubmissionDto submissionDto = entry.getValue();
+            submission.setAlteredCalculatedGrade(submissionDto.getAlteredCalculatedGrade());
+            submission.setTotalAlteredGrade(submissionDto.getTotalAlteredGrade());
+            submission.setGradeOverridden(submissionDto.isGradeOverridden());
+            submission = save(submission);
+        }
+
+        // only submit to Canvas once after all submissions have been saved
+        Submission submissionToSend = map.keySet().iterator().next();
+        log.info("Sending updated grade to Canvas for assessment ID: [{}] and participant ID: [{}]", submissionToSend.getAssessment().getAssessmentId(), submissionToSend.getParticipant().getParticipantId());
+        sendSubmissionGradeToCanvasWithLTI(submissionToSend, student);
     }
 
     @Override
@@ -401,7 +418,6 @@ public class SubmissionServiceImpl implements SubmissionService {
         Score score = new Score();
         Participant participant = submission.getParticipant();
         score.setUserId(participant.getLtiUserEntity().getUserKey());
-        boolean manualGradingNeeded = this.isManualGradingNeeded(submission);
         Float scoreGiven = getScoreFromMultipleSubmissions(participant, assessment);
 
         if (scoreGiven != null) {
@@ -413,14 +429,14 @@ public class SubmissionServiceImpl implements SubmissionService {
         if (maxTerracottaScore == 0) {
             // zero point assignments full credit (1 point) is given for completion so the
             // maximum is 1 point
-            score.setScoreMaximum(Float.valueOf(1).toString());
+            score.setScoreMaximum("1.0");
         } else {
             score.setScoreMaximum(maxTerracottaScore.toString());
         }
 
         score.setActivityProgress("Completed");
 
-        if (manualGradingNeeded) {
+        if (isManualGradingNeeded(submission)) {
             score.setGradingProgress("PendingManual");
         } else {
             score.setGradingProgress("FullyGraded");

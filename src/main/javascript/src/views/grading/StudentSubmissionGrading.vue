@@ -705,6 +705,7 @@ export default {
       fetchStudentResponse: "submissions/fetchStudentResponse",
       updateQuestionSubmissions: "submissions/updateQuestionSubmissions",
       updateSubmission: "submissions/updateSubmission",
+      updateSubmissions: "submissions/updateSubmissions",
       reportStep: "api/reportStep",
       downloadAnswerFileSubmission: "submissions/downloadAnswerFileSubmission",
     }),
@@ -790,10 +791,35 @@ export default {
         attempt.overrideGrade.touched = false;
       });
 
-      for (var attempt of this.attempts) {
-        const submission = this.findSubmissionById(attempt.submissionId);
+      var submissionsToUpdate = [];
 
-        const updateSubmissions = attempt.studentResponse.map((response) => {
+      for (var submissionAttempt of this.attempts) {
+        const submission = this.findSubmissionById(submissionAttempt.submissionId);
+        submissionsToUpdate.push(
+          {
+            submissionId: submission.submissionId,
+            alteredCalculatedGrade: submissionAttempt.calculatedGrade.grade,
+            totalAlteredGrade: submission.totalAlteredGrade,
+            gradeOverridden: submissionAttempt.gradeOverridden
+          }
+        );
+      }
+
+      try {
+        await this.updateSubmissions([
+          this.allSubmissions[0].experimentId,
+          this.allSubmissions[0].conditionId,
+          this.allSubmissions[0].treatmentId,
+          this.allSubmissions[0].assessmentId,
+          submissionsToUpdate
+        ]);
+      } catch (error) {
+        this.isSaving = false;
+        return Promise.reject(error);
+      }
+
+      for (var attempt of this.attempts) {
+        const updateQuestionSubmissions = attempt.studentResponse.map((response) => {
           return {
             questionSubmissionId: response.questionSubmissionId,
             answerSubmissionDtoList: response.answerSubmissionDtoList,
@@ -802,16 +828,6 @@ export default {
         });
 
         try {
-          await this.updateSubmission([
-            submission.experimentId,
-            submission.conditionId,
-            submission.treatmentId,
-            submission.assessmentId,
-            submission.submissionId,
-            attempt.calculatedGrade.grade,
-            submission.totalAlteredGrade,
-            attempt.gradeOverridden
-          ]);
           // Update Question Submissions
           await this.updateQuestionSubmissions([
             this.experiment_id,
@@ -819,7 +835,7 @@ export default {
             this.treatment_id,
             this.assessment_id,
             attempt.submissionId,
-            updateSubmissions
+            updateQuestionSubmissions
           ]);
           // Post Step to Experiment
           await this.reportStep({

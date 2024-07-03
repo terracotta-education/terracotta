@@ -178,7 +178,7 @@ public class QuestionSubmissionController {
                                                          @RequestBody QuestionSubmissionDto questionSubmissionDto,
                                                          HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, BadTokenException, InvalidUserException, DataServiceException, AnswerNotMatchingException, AnswerSubmissionNotMatchingException, IdMissingException {
-        log.debug("Updating question submission with id {}", questionSubmissionId);
+        log.debug("Updating question submission with id: [{}]", questionSubmissionId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
@@ -234,7 +234,7 @@ public class QuestionSubmissionController {
         for (QuestionSubmissionDto questionSubmissionDto : questionSubmissionDtoList) {
             apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, questionSubmissionDto.getQuestionSubmissionId());
             QuestionSubmission questionSubmission = questionSubmissionService.getQuestionSubmission(questionSubmissionDto.getQuestionSubmissionId());
-            log.debug("Updating question submission with id: {}", questionSubmission.getQuestionSubmissionId());
+            log.debug("Updating question submission with id: [{}]", questionSubmission.getQuestionSubmissionId());
             questionSubmissionService.validateQuestionSubmission(questionSubmissionDto);
             map.put(questionSubmission, questionSubmissionDto);
         }
