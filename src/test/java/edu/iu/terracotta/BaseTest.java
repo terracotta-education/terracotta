@@ -15,6 +15,7 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 import jakarta.persistence.EntityManager;
 
@@ -79,6 +80,8 @@ import edu.iu.terracotta.model.app.enumerator.MultipleSubmissionScoringScheme;
 import edu.iu.terracotta.model.app.enumerator.ParticipationTypes;
 import edu.iu.terracotta.model.app.enumerator.QuestionTypes;
 import edu.iu.terracotta.model.canvas.AssignmentExtended;
+import edu.iu.terracotta.model.canvas.CanvasAPIScope;
+import edu.iu.terracotta.model.canvas.CanvasAPITokenEntity;
 import edu.iu.terracotta.model.events.Event;
 import edu.iu.terracotta.model.membership.CourseUser;
 import edu.iu.terracotta.model.membership.CourseUsers;
@@ -93,6 +96,7 @@ import edu.iu.terracotta.repository.AnswerMcSubmissionRepository;
 import edu.iu.terracotta.repository.AssessmentRepository;
 import edu.iu.terracotta.repository.AssignmentRepository;
 import edu.iu.terracotta.repository.CanvasAPIOAuthSettingsRepository;
+import edu.iu.terracotta.repository.CanvasAPIScopeRepository;
 import edu.iu.terracotta.repository.CanvasAPITokenRepository;
 import edu.iu.terracotta.repository.ConditionRepository;
 import edu.iu.terracotta.repository.ConsentDocumentRepository;
@@ -139,6 +143,7 @@ import edu.iu.terracotta.service.app.dashboard.results.ResultsOverviewService;
 import edu.iu.terracotta.service.aws.AWSService;
 import edu.iu.terracotta.service.canvas.AssignmentWriterExtended;
 import edu.iu.terracotta.service.canvas.CanvasAPIClient;
+import edu.iu.terracotta.service.canvas.CanvasAPIScopeService;
 import edu.iu.terracotta.service.lti.AdvantageAGSService;
 import edu.iu.terracotta.service.lti.AdvantageMembershipService;
 import edu.iu.terracotta.service.lti.LTIDataService;
@@ -165,6 +170,7 @@ public class BaseTest {
     @Mock protected AnswerMcSubmissionRepository answerMcSubmissionRepository;
     @Mock protected AssessmentRepository assessmentRepository;
     @Mock protected AssignmentRepository assignmentRepository;
+    @Mock protected CanvasAPIScopeRepository canvasAPIScopeRepository;
     @Mock protected CanvasAPITokenRepository canvasAPITokenRepository;
     @Mock protected CanvasAPIOAuthSettingsRepository canvasAPIOAuthSettingsRepository;
     @Mock protected ConditionRepository conditionRepository;
@@ -197,6 +203,7 @@ public class BaseTest {
     @Mock protected AssignmentTreatmentService assignmentTreatmentService;
     @Mock protected AWSService awsService;
     @Mock protected CanvasAPIClient canvasAPIClient;
+    @Mock protected CanvasAPIScopeService canvasAPIScopeService;
     @Mock protected EntityManager entityManager;
     @Mock protected ExperimentService experimentService;
     @Mock protected ExposureService exposureService;
@@ -234,6 +241,8 @@ public class BaseTest {
     @Mock protected AssignmentDto assignmentDto;
     @Mock protected AssignmentExtended assignmentExtended;
     @Mock protected AssignmentWriterExtended assignmentWriterExtended;
+    @Mock protected CanvasAPIScope canvasAPIScope;
+    @Mock protected CanvasAPITokenEntity canvasAPITokenEntity;
     @Mock protected Condition condition;
     @Mock protected ConsentDocument consentDocument;
     @Mock protected CourseUser courseUser;
@@ -296,6 +305,10 @@ public class BaseTest {
             when(assignmentRepository.save(any(Assignment.class))).thenReturn(assignment);
             when(assignmentRepository.saveAndFlush(any(Assignment.class))).thenReturn(assignment);
             when(conditionRepository.findByExperiment_ExperimentId(anyLong())).thenReturn(Collections.singletonList(condition));
+            when(canvasAPIScopeRepository.findAll()).thenReturn(Collections.singletonList(canvasAPIScope));
+            when(canvasAPIScopeRepository.findById(anyLong())).thenReturn(Optional.of(canvasAPIScope));
+            when(canvasAPIScopeRepository.findByRequired(anyBoolean())).thenReturn(Collections.singletonList(canvasAPIScope));
+            when(canvasAPIScopeRepository.findByUuid(any(UUID.class))).thenReturn(Optional.of(canvasAPIScope));
             when(conditionRepository.findById(anyLong())).thenReturn(Optional.of(condition));
             when(experimentRepository.findByExperimentId(anyLong())).thenReturn(experiment);
             when(experimentRepository.findById(anyLong())).thenReturn(Optional.of(experiment));
@@ -356,6 +369,10 @@ public class BaseTest {
             when(canvasAPIClient.listAssignment(any(LtiUserEntity.class), anyString(), anyLong())).thenReturn(Optional.of(assignmentExtended));
             when(canvasAPIClient.listAssignments(any(LtiUserEntity.class), anyString())).thenReturn(Collections.singletonList(assignmentExtended));
             when(canvasAPIClient.listSubmissions(any(LtiUserEntity.class), anyLong(), anyString())).thenReturn(Collections.singletonList(submissionCanvas));
+            when(canvasAPIScopeService.getAllScopes()).thenReturn(Collections.singletonList(canvasAPIScope));
+            when(canvasAPIScopeService.getAllScopeValues()).thenReturn(Collections.singletonList("scope1"));
+            when(canvasAPIScopeService.getRequiredScopeValues(anyBoolean())).thenReturn(Collections.singletonList("scope1"));
+            when(canvasAPIScopeService.getScopesByRequired(anyBoolean())).thenReturn(Collections.singletonList(canvasAPIScope));
             when(groupParticipantService.getUniqueGroupByConditionId(anyLong(), anyString(), anyLong())).thenReturn(group);
             when(groupParticipantService.nextGroup(any(Experiment.class))).thenReturn(group);
             when(participantService.refreshParticipants(anyLong(), anyList())).thenReturn(Collections.singletonList(participant));
@@ -397,6 +414,8 @@ public class BaseTest {
             when(assignmentDto.getTreatments()).thenReturn(Collections.singletonList(treatmentDto));
             when(assignmentExtended.getId()).thenReturn(1L);
             when(assignmentExtended.getSecureParams()).thenReturn(RESOURCE_LINK_ID);
+            when(canvasAPIScope.getScope()).thenReturn("scope1");
+            when(canvasAPITokenEntity.getTokenId()).thenReturn(1L);
             when(condition.getConditionId()).thenReturn(1L);
             when(condition.getExperiment()).thenReturn(experiment);
             when(condition.getName()).thenReturn(CONDITION_TITLE);
