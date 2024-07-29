@@ -4,6 +4,8 @@ import java.net.URI;
 import java.sql.Timestamp;
 import java.text.MessageFormat;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -11,6 +13,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -33,6 +36,7 @@ import edu.iu.terracotta.model.canvas.CanvasAPIToken;
 import edu.iu.terracotta.model.canvas.CanvasAPITokenEntity;
 import edu.iu.terracotta.repository.CanvasAPIOAuthSettingsRepository;
 import edu.iu.terracotta.repository.CanvasAPITokenRepository;
+import edu.iu.terracotta.service.canvas.CanvasAPIScopeService;
 import edu.iu.terracotta.service.common.LMSOAuthService;
 import lombok.extern.slf4j.Slf4j;
 
@@ -43,6 +47,7 @@ public class CanvasOAuthServiceImpl implements LMSOAuthService<CanvasAPITokenEnt
 
     @Autowired private CanvasAPITokenRepository canvasAPITokenRepository;
     @Autowired private CanvasAPIOAuthSettingsRepository canvasAPIOAuthSettingsRepository;
+    @Autowired private CanvasAPIScopeService canvasAPIScopeService;
 
     @Override
     public boolean isConfigured(PlatformDeployment platformDeployment) {
@@ -65,12 +70,28 @@ public class CanvasOAuthServiceImpl implements LMSOAuthService<CanvasAPITokenEnt
             .toUriString();
     }
 
+    String getAllScopes() {
+        return StringUtils.join(canvasAPIScopeService.getAllScopeValues(), " ");
+    }
+
+    Set<String> getAllScopesAsSet() {
+        return new HashSet<>(canvasAPIScopeService.getAllScopeValues());
+    }
+
     String getAllRequiredScopes() {
-        return String.join(" ", CanvasAPIClientImpl.SCOPES_REQUIRED);
+        return StringUtils.join(canvasAPIScopeService.getRequiredScopeValues(true), " ");
     }
 
     Set<String> getAllRequiredScopesAsSet() {
-        return new HashSet<>(CanvasAPIClientImpl.SCOPES_REQUIRED);
+        return new HashSet<>(canvasAPIScopeService.getRequiredScopeValues(true));
+    }
+
+    String getAllOptionalScopes() {
+        return StringUtils.join(canvasAPIScopeService.getRequiredScopeValues(false), " ");
+    }
+
+    Set<String> getAllOptionalScopesAsSet() {
+        return new HashSet<>(canvasAPIScopeService.getRequiredScopeValues(false));
     }
 
     @Override
@@ -100,7 +121,7 @@ public class CanvasOAuthServiceImpl implements LMSOAuthService<CanvasAPITokenEnt
         newToken.setCanvasUserName(token.getUser().getName());
         newToken.setExpiresAt(new Timestamp(System.currentTimeMillis() + token.getExpiresIn() * 1000));
         newToken.setRefreshToken(token.getRefreshToken());
-        newToken.setScopes(getAllRequiredScopes());
+        newToken.setScopes(getAllScopes());
         newToken.setUser(user);
 
         return canvasAPITokenRepository.save(newToken);
@@ -130,19 +151,21 @@ public class CanvasOAuthServiceImpl implements LMSOAuthService<CanvasAPITokenEnt
         }
 
         // check that token's scopes include all required scopes
-        Set<String> allRequiredScopes = this.getAllRequiredScopesAsSet();
+        Set<String> allRequiredScopes = getAllRequiredScopesAsSet();
         Set<String> tokenScopes = canvasAPIToken.get().getScopesAsSet();
 
         if (tokenScopes == null || !tokenScopes.containsAll(allRequiredScopes)) {
             allRequiredScopes.removeAll(tokenScopes);
-            log.info("Token {} is missing required scopes. Has {} but needs {}", canvasAPIToken.get().getTokenId(), tokenScopes, allRequiredScopes);
+            log.info("Token [{}] is missing required scopes. Has [{}] but needs [{}]", canvasAPIToken.get().getTokenId(), tokenScopes, allRequiredScopes);
 
             return false; // need to get a new token with all required scopes
         }
 
-        // if exists, refresh and save the token, return true
+        // if exists and is expired, refresh and save the token, return true
         try {
-            refreshAccessToken(canvasAPIToken.get());
+            if (LocalDateTime.now().isAfter(LocalDateTime.ofInstant(Instant.ofEpochMilli(canvasAPIToken.get().getExpiresAt().getTime()), ZoneId.systemDefault()))) {
+                refreshAccessToken(canvasAPIToken.get());
+            }
 
             return true;
         } catch (LMSOAuthException e) {

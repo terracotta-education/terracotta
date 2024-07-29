@@ -1,0 +1,110 @@
+<?xml
+    version="1.1"
+    encoding="UTF-8"
+    standalone="no"
+?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+    xmlns:pro="http://www.liquibase.org/xml/ns/pro"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd http://www.liquibase.org/xml/ns/pro http://www.liquibase.org/xml/ns/pro/liquibase-pro-latest.xsd http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd"
+>
+    <property
+        name="u_id"
+        value="(UUID_TO_BIN(UUID()))"
+        dbms="mysql"
+    />
+    <changeSet
+        author="rlong (generated)"
+        id="1721749253122-92"
+    >
+        <createTable
+            tableName="canvas_api_scope"
+        >
+            <column
+                autoIncrement="true"
+                name="id"
+                type="BIGINT"
+            >
+                <constraints
+                    nullable="false"
+                    primaryKey="true"
+                />
+            </column>
+            <column
+                name="uuid"
+                type="BINARY(16)"
+                defaultValueComputed="${u_id}"
+            >
+                <constraints
+                    nullable="false"
+                />
+            </column>
+            <column
+                name="scope"
+                type="VARCHAR(255)"
+            >
+                <constraints
+                    nullable="false"
+                />
+            </column>
+            <column
+                name="required"
+                type="BIT(1)"
+                defaultValue="1"
+            >
+                <constraints
+                    nullable="false"
+                />
+            </column>
+        </createTable>
+    </changeSet>
+    <changeSet
+        author="rlong (generated)"
+        id="1721749253122-93"
+    >
+        <insert
+            tableName="canvas_api_scope"
+        >
+            <column
+                name="scope" value="url:POST|/api/v1/courses/:course_id/assignments"
+            />
+        </insert>
+        <insert
+            tableName="canvas_api_scope"
+        >
+            <column
+                name="scope" value="url:GET|/api/v1/courses/:course_id/assignments"
+            />
+        </insert>
+        <insert
+            tableName="canvas_api_scope"
+        >
+            <column
+                name="scope" value="url:GET|/api/v1/courses/:course_id/assignments/:id"
+            />
+        </insert>
+        <insert
+            tableName="canvas_api_scope"
+        >
+            <column
+                name="scope" value="url:PUT|/api/v1/courses/:course_id/assignments/:id"
+            />
+        </insert>
+        <insert
+            tableName="canvas_api_scope"
+        >
+            <column
+                name="scope" value="url:DELETE|/api/v1/courses/:course_id/assignments/:id"
+            />
+        </insert>
+        <insert
+            tableName="canvas_api_scope"
+        >
+            <column
+                name="scope" value="url:GET|/api/v1/courses/:course_id/assignments/:assignment_id/submissions"
+            />
+        </insert>
+    </changeSet>
+</databaseChangeLog>

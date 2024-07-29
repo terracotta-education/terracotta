@@ -31,7 +31,6 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.text.MessageFormat;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -40,25 +39,6 @@ import java.util.Optional;
 @Service
 @SuppressWarnings({"PMD.GuardLogStatement"})
 public class CanvasAPIClientImpl implements CanvasAPIClient {
-
-    private static final String SCOPE_ASSIGNMENT_CREATE = "url:POST|/api/v1/courses/:course_id/assignments";
-    private static final String SCOPE_ASSIGNMENTS_LIST = "url:GET|/api/v1/courses/:course_id/assignments";
-    private static final String SCOPE_ASSIGNMENT_GET = "url:GET|/api/v1/courses/:course_id/assignments/:id";
-    private static final String SCOPE_ASSIGNMENT_EDIT = "url:PUT|/api/v1/courses/:course_id/assignments/:id";
-    private static final String SCOPE_ASSIGNMENT_DELETE = "url:DELETE|/api/v1/courses/:course_id/assignments/:id";
-    private static final String SCOPE_SUBMISSIONS_FOR_ASSIGNMENT_LIST = "url:GET|/api/v1/courses/:course_id/assignments/:assignment_id/submissions";
-
-    /**
-     * All scopes that are required by the methods in this class.
-     */
-    public static final List<String> SCOPES_REQUIRED = Arrays.asList(
-        SCOPE_ASSIGNMENT_CREATE,
-        SCOPE_ASSIGNMENT_DELETE,
-        SCOPE_ASSIGNMENT_EDIT,
-        SCOPE_ASSIGNMENT_GET,
-        SCOPE_ASSIGNMENTS_LIST,
-        SCOPE_SUBMISSIONS_FOR_ASSIGNMENT_LIST
-    );
 
     @Autowired private CanvasOAuthServiceImpl canvasOAuthService;
 

@@ -244,7 +244,7 @@ public class CanvasOAuthServiceImplTest extends BaseTest {
         when(canvasAPITokenRepository.findByUser(eq(user))).thenReturn(Optional.of(tokenEntity));
 
         // Only include the first required scope
-        tokenEntity.setScopes(CanvasAPIClientImpl.SCOPES_REQUIRED.get(0));
+        tokenEntity.setScopes("url:POST|/api/v1/courses/:course_id/assignments");
 
         boolean result = canvasOAuthService.isAccessTokenAvailable(user);
 
@@ -260,7 +260,7 @@ public class CanvasOAuthServiceImplTest extends BaseTest {
 
         // Only include the first required scope
         tokenEntity.setAccessToken("old-access-token");
-        tokenEntity.setScopes(String.join(" ", CanvasAPIClientImpl.SCOPES_REQUIRED));
+        tokenEntity.setScopes(String.join(" ", "url:POST|/api/v1/courses/:course_id/assignments"));
         token.setAccessToken("new-access-token");
 
         // Should try to refresh token
@@ -281,7 +281,7 @@ public class CanvasOAuthServiceImplTest extends BaseTest {
         when(canvasAPITokenRepository.findByUser(eq(user))).thenReturn(Optional.of(tokenEntity));
 
         // Only include the first required scope
-        tokenEntity.setScopes(String.join(" ", CanvasAPIClientImpl.SCOPES_REQUIRED));
+        tokenEntity.setScopes(String.join(" ", "url:POST|/api/v1/courses/:course_id/assignments"));
 
         // Should try to refresh token
         when(canvasAPIOAuthSettingsRepository.findByPlatformDeployment(eq(platformDeployment))).thenReturn(Optional.of(canvasAPIOAuthSettings));
