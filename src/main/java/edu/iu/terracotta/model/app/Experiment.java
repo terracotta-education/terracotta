@@ -115,4 +115,9 @@ public class Experiment extends BaseEntity {
         return ExposureTypes.NOSET == exposureType;
     }
 
+    @Transient
+    public boolean isSingleCondition() {
+        return conditions.size() == 1;
+    }
+
 }

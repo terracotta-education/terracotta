@@ -830,4 +830,21 @@ public class AssignmentServiceImpl implements AssignmentService {
         return assignmentTreatmentService.toAssignmentDto(newAssignment, false, true);
     }
 
+    @Override
+    public boolean isSingleVersion(long assignmentId) {
+        return isSingleVersion(getAssignment(assignmentId));
+    }
+
+    @Override
+    public boolean isSingleVersion(Assignment assignment) {
+        if (assignment == null) {
+            throw new IllegalArgumentException("Assignment cannot be null");
+        }
+
+        List<Treatment> assignmentTreatments = treatmentRepository.findByAssignment_AssignmentId(assignment.getAssignmentId());
+
+        return assignmentTreatments.size() <= 1;
+    }
+
+
 }

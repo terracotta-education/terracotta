@@ -79,7 +79,7 @@ public class ExperimentServiceImpl implements ExperimentService {
         List<ExperimentDto> experimentDtoList = new ArrayList<>();
 
         for (Experiment experiment : experiments) {
-            experimentDtoList.add(toDto(experiment, false, false,  false));
+            experimentDtoList.add(toDto(experiment, false, false, false, securedInfo));
         }
 
         // sync assignments with Canvas, if configured
@@ -120,7 +120,7 @@ public class ExperimentServiceImpl implements ExperimentService {
             throw new DataServiceException("Error 105: Unable to create the experiment:" + e.getMessage(), e);
         }
 
-        return toDto(save(experiment), false, false, false);
+        return toDto(save(experiment), false, false, false, securedInfo);
     }
 
     @Override
@@ -228,7 +228,7 @@ public class ExperimentServiceImpl implements ExperimentService {
     }
 
     @Override
-    public ExperimentDto toDto(Experiment experiment, boolean conditions, boolean exposures, boolean participants) {
+    public ExperimentDto toDto(Experiment experiment, boolean conditions, boolean exposures, boolean participants, SecuredInfo securedInfo) {
         ExperimentDto experimentDto = new ExperimentDto();
         experimentDto.setExperimentId(experiment.getExperimentId());
         experimentDto.setContextId(experiment.getLtiContextEntity().getContextId());
@@ -272,7 +272,7 @@ public class ExperimentServiceImpl implements ExperimentService {
             experimentDto.setParticipants(
                 CollectionUtils.emptyIfNull(participantRepository.findByExperiment_ExperimentId(experiment.getExperimentId())).stream()
                     .filter(participant -> !participant.isTestStudent())
-                    .map(participant -> participantService.toDto(participant))
+                    .map(participant -> participantService.toDto(participant, securedInfo))
                     .toList()
             );
         } else {
@@ -401,7 +401,7 @@ public class ExperimentServiceImpl implements ExperimentService {
 
         for (Experiment experiment : experimentList) {
             if (StringUtils.isBlank(experiment.getTitle())) {
-                return toDto(experiment, false, false, false);
+                return toDto(experiment, false, false, false, securedInfo);
             }
         }
 

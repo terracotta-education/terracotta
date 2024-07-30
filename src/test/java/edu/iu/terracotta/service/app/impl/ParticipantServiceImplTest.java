@@ -469,14 +469,14 @@ public class ParticipantServiceImplTest extends BaseTest {
 
     @Test
     public void testGetParticpants() {
-        List<ParticipantDto> retVal = participantService.getParticipants(Arrays.asList(participant, participant), 1l, USER_ID, false);
+        List<ParticipantDto> retVal = participantService.getParticipants(Arrays.asList(participant, participant), 1l, USER_ID, false, securedInfo);
 
         assertEquals(2, retVal.size());
     }
 
     @Test
     public void testGetParticpantsStudent() {
-        List<ParticipantDto> retVal = participantService.getParticipants(Arrays.asList(participant, participant), 1l, USER_ID, true);
+        List<ParticipantDto> retVal = participantService.getParticipants(Arrays.asList(participant, participant), 1l, USER_ID, true, securedInfo);
 
         assertEquals(1, retVal.size());
     }
@@ -505,7 +505,7 @@ public class ParticipantServiceImplTest extends BaseTest {
     @Test
     public void testPostParticipant() throws IdInPostException, DataServiceException {
         when(participantDto.getParticipantId()).thenReturn(null);
-        ParticipantDto retVal = participantService.postParticipant(participantDto, 1l);
+        ParticipantDto retVal = participantService.postParticipant(participantDto, 1l, securedInfo);
 
         assertNotNull(retVal);
     }
@@ -528,7 +528,7 @@ public class ParticipantServiceImplTest extends BaseTest {
     @Test
     public void testChangeParticipant() {
         assertDoesNotThrow(() -> {
-            participantService.changeParticipant(Collections.singletonMap(participant, participantDto), 1l);
+            participantService.changeParticipant(Collections.singletonMap(participant, participantDto), 1l, securedInfo);
         });
     }
 
@@ -538,7 +538,7 @@ public class ParticipantServiceImplTest extends BaseTest {
         when(participantDto.getConsent()).thenReturn(true);
 
         assertDoesNotThrow(() -> {
-            participantService.changeParticipant(Collections.singletonMap(participant, participantDto), 1l);
+            participantService.changeParticipant(Collections.singletonMap(participant, participantDto), 1l, securedInfo);
         });
     }
 
@@ -547,7 +547,7 @@ public class ParticipantServiceImplTest extends BaseTest {
         when(participantDto.getConsent()).thenReturn(false);
 
         assertDoesNotThrow(() -> {
-            participantService.changeParticipant(Collections.singletonMap(participant, participantDto), 1l);
+            participantService.changeParticipant(Collections.singletonMap(participant, participantDto), 1l, securedInfo);
         });
     }
 
@@ -565,6 +565,9 @@ public class ParticipantServiceImplTest extends BaseTest {
         when(securedInfo.getConsent()).thenReturn(true);
         when(participant.getConsent()).thenReturn(false);
         when(participantDto.getConsent()).thenReturn(true);
+        when(experiment.isSingleCondition()).thenReturn(false);
+        when(treatmentRepository.findByAssignment_AssignmentId(anyLong())).thenReturn(Arrays.asList(treatment, treatment));
+        when(treatmentRepository.findByCondition_Experiment_ExperimentId(anyLong())).thenReturn(Collections.emptyList());
 
         Exception exception = assertThrows(ParticipantAlreadyStartedException.class, () -> { participantService.changeConsent(participantDto, securedInfo, 1L); });
 

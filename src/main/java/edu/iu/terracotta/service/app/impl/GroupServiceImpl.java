@@ -47,9 +47,9 @@ public class GroupServiceImpl implements GroupService {
     }
 
     @Override
-    public List<GroupDto> getGroups(Long experimentId) {
+    public List<GroupDto> getGroups(Long experimentId, SecuredInfo securedInfo) {
         return  CollectionUtils.emptyIfNull(findAllByExperimentId(experimentId)).stream()
-            .map(this::toDto)
+            .map(group -> toDto(group, securedInfo))
             .toList();
     }
 
@@ -59,7 +59,7 @@ public class GroupServiceImpl implements GroupService {
     }
 
     @Override
-    public GroupDto postGroup(GroupDto groupDto, long experimentId) throws IdInPostException, DataServiceException{
+    public GroupDto postGroup(GroupDto groupDto, long experimentId, SecuredInfo securedInfo) throws IdInPostException, DataServiceException{
         if (groupDto.getGroupId() != null) {
             throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
         }
@@ -67,14 +67,14 @@ public class GroupServiceImpl implements GroupService {
         groupDto.setExperimentId(experimentId);
 
         try {
-            return toDto(groupRepository.save(fromDto(groupDto)));
+            return toDto(groupRepository.save(fromDto(groupDto)), securedInfo);
         } catch (DataServiceException e) {
             throw new DataServiceException("Error 105: Unable to create group:" + e.getMessage());
         }
     }
 
     @Override
-    public GroupDto toDto(Group group) {
+    public GroupDto toDto(Group group, SecuredInfo securedInfo) {
         GroupDto groupDto = new GroupDto();
         groupDto.setGroupId(group.getGroupId());
         groupDto.setExperimentId(group.getExperiment().getExperimentId());
@@ -84,7 +84,7 @@ public class GroupServiceImpl implements GroupService {
             CollectionUtils.emptyIfNull(participantRepository.findByExperiment_ExperimentIdAndGroup_GroupId(groupDto.getExperimentId(), group.getGroupId()))
                 .stream()
                 .filter(participant -> !participant.isTestStudent())
-                .map(participant -> participantService.toDto(participant))
+                .map(participant -> participantService.toDto(participant, securedInfo))
                 .toList()
         );
 

@@ -54,7 +54,7 @@ public class GroupController {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
 
-        List<GroupDto> groupList = groupService.getGroups(experimentId);
+        List<GroupDto> groupList = groupService.getGroups(experimentId, securedInfo);
 
         if (groupList.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
@@ -74,7 +74,7 @@ public class GroupController {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
-        GroupDto groupDto = groupService.toDto(groupService.getGroup(groupId));
+        GroupDto groupDto = groupService.toDto(groupService.getGroup(groupId), securedInfo);
 
         return new ResponseEntity<>(groupDto, HttpStatus.OK);
     }
@@ -94,7 +94,7 @@ public class GroupController {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
-        GroupDto returnedDto = groupService.postGroup(groupDto, experimentId);
+        GroupDto returnedDto = groupService.postGroup(groupDto, experimentId, securedInfo);
         HttpHeaders headers = groupService.buildHeaders(ucBuilder, experimentId, returnedDto.getGroupId());
 
         return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);

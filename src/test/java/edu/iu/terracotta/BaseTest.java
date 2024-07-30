@@ -416,6 +416,7 @@ public class BaseTest {
             when(assignmentDto.getTreatments()).thenReturn(Collections.singletonList(treatmentDto));
             when(assignmentExtended.getId()).thenReturn(1L);
             when(assignmentExtended.getSecureParams()).thenReturn(RESOURCE_LINK_ID);
+            when(assignmentExtended.isPublished()).thenReturn(true);
             when(canvasAPIScope.getScope()).thenReturn(CANVAS_API_SCOPE);
             when(canvasAPITokenEntity.getTokenId()).thenReturn(1L);
             when(canvasAPITokenEntity.getExpiresAt()).thenReturn(Timestamp.from(Instant.now()));

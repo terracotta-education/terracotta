@@ -15,10 +15,10 @@ import java.util.List;
 public interface GroupService {
 
     List<Group> findAllByExperimentId(long experimentId);
-    List<GroupDto> getGroups(Long experimentId);
-    GroupDto postGroup(GroupDto groupDto, long experimentId) throws IdInPostException, DataServiceException;
+    List<GroupDto> getGroups(Long experimentId, SecuredInfo securedInfo);
+    GroupDto postGroup(GroupDto groupDto, long experimentId, SecuredInfo securedInfo) throws IdInPostException, DataServiceException;
     Group getGroup(Long id);
-    GroupDto toDto(Group group);
+    GroupDto toDto(Group group, SecuredInfo securedInfo);
     Group fromDto(GroupDto groupDto) throws DataServiceException;
     void updateGroup(Long groupId, GroupDto groupDto) throws TitleValidationException;
     void deleteById(Long id) throws EmptyResultDataAccessException;
