@@ -161,6 +161,7 @@ public class BaseTest {
     public static final String EXPOSURE_TITLE = "test exposure title";
     public static final String OUTCOME_TITLE = "test outcome title";
     public static final String RESOURCE_LINK_ID = "resource_link_id";
+    public static final String CANVAS_API_SCOPE = "url:POST|/api/v1/courses/:course_id/assignments";
     public static final String USER_ID = "user_id";
 
     @Mock protected AnswerEssaySubmissionRepository answerEssaySubmissionRepository;
@@ -309,6 +310,7 @@ public class BaseTest {
             when(canvasAPIScopeRepository.findById(anyLong())).thenReturn(Optional.of(canvasAPIScope));
             when(canvasAPIScopeRepository.findByRequired(anyBoolean())).thenReturn(Collections.singletonList(canvasAPIScope));
             when(canvasAPIScopeRepository.findByUuid(any(UUID.class))).thenReturn(Optional.of(canvasAPIScope));
+            when(canvasAPITokenRepository.findByUser(any(LtiUserEntity.class))).thenReturn(Optional.of(canvasAPITokenEntity));
             when(conditionRepository.findById(anyLong())).thenReturn(Optional.of(condition));
             when(experimentRepository.findByExperimentId(anyLong())).thenReturn(experiment);
             when(experimentRepository.findById(anyLong())).thenReturn(Optional.of(experiment));
@@ -370,8 +372,8 @@ public class BaseTest {
             when(canvasAPIClient.listAssignments(any(LtiUserEntity.class), anyString())).thenReturn(Collections.singletonList(assignmentExtended));
             when(canvasAPIClient.listSubmissions(any(LtiUserEntity.class), anyLong(), anyString())).thenReturn(Collections.singletonList(submissionCanvas));
             when(canvasAPIScopeService.getAllScopes()).thenReturn(Collections.singletonList(canvasAPIScope));
-            when(canvasAPIScopeService.getAllScopeValues()).thenReturn(Collections.singletonList("scope1"));
-            when(canvasAPIScopeService.getRequiredScopeValues(anyBoolean())).thenReturn(Collections.singletonList("scope1"));
+            when(canvasAPIScopeService.getAllScopeValues()).thenReturn(Collections.singletonList(CANVAS_API_SCOPE));
+            when(canvasAPIScopeService.getRequiredScopeValues(anyBoolean())).thenReturn(Collections.singletonList(CANVAS_API_SCOPE));
             when(canvasAPIScopeService.getScopesByRequired(anyBoolean())).thenReturn(Collections.singletonList(canvasAPIScope));
             when(groupParticipantService.getUniqueGroupByConditionId(anyLong(), anyString(), anyLong())).thenReturn(group);
             when(groupParticipantService.nextGroup(any(Experiment.class))).thenReturn(group);
@@ -414,8 +416,9 @@ public class BaseTest {
             when(assignmentDto.getTreatments()).thenReturn(Collections.singletonList(treatmentDto));
             when(assignmentExtended.getId()).thenReturn(1L);
             when(assignmentExtended.getSecureParams()).thenReturn(RESOURCE_LINK_ID);
-            when(canvasAPIScope.getScope()).thenReturn("scope1");
+            when(canvasAPIScope.getScope()).thenReturn(CANVAS_API_SCOPE);
             when(canvasAPITokenEntity.getTokenId()).thenReturn(1L);
+            when(canvasAPITokenEntity.getExpiresAt()).thenReturn(Timestamp.from(Instant.now()));
             when(condition.getConditionId()).thenReturn(1L);
             when(condition.getExperiment()).thenReturn(experiment);
             when(condition.getName()).thenReturn(CONDITION_TITLE);
