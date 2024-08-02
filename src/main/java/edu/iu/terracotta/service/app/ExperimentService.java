@@ -21,7 +21,7 @@ public interface ExperimentService {
     Experiment getExperiment(long experimentId);
     ExperimentDto postExperiment(ExperimentDto experimentDto, SecuredInfo securedInfo) throws DataServiceException, TitleValidationException;
     void updateExperiment(long experimentId, long contextId, ExperimentDto experimentDto, SecuredInfo securedInfo) throws TitleValidationException, WrongValueException, ParticipantNotUpdatedException, ExperimentNotMatchingException;
-    ExperimentDto toDto(Experiment experiment, boolean conditions, boolean exposures, boolean participants);
+    ExperimentDto toDto(Experiment experiment, boolean conditions, boolean exposures, boolean participants, SecuredInfo securedInfo);
     Experiment fromDto(ExperimentDto experimentDto) throws DataServiceException;
     void deleteById(Long id, SecuredInfo securedInfo) throws EmptyResultDataAccessException;
     ExperimentDto fillContextInfo(ExperimentDto experimentDto, SecuredInfo securedInfo);

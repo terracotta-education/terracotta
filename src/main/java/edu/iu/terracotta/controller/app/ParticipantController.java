@@ -74,7 +74,7 @@ public class ParticipantController {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }
 
-        return new ResponseEntity<>(participantService.getParticipants(currentParticipantList, experimentId, securedInfo.getUserId(), !apijwtService.isInstructorOrHigher(securedInfo)), HttpStatus.OK);
+        return new ResponseEntity<>(participantService.getParticipants(currentParticipantList, experimentId, securedInfo.getUserId(), !apijwtService.isInstructorOrHigher(securedInfo), securedInfo), HttpStatus.OK);
     }
 
     @GetMapping("/{participantId}")
@@ -92,7 +92,8 @@ public class ParticipantController {
 
         ParticipantDto participantDto = participantService.toDto(
             participantService.getParticipant(participantId, experimentId, securedInfo.getUserId(),
-            !apijwtService.isInstructorOrHigher(securedInfo))
+            !apijwtService.isInstructorOrHigher(securedInfo)),
+            securedInfo
         );
 
         return new ResponseEntity<>(participantDto, HttpStatus.OK);
@@ -112,7 +113,7 @@ public class ParticipantController {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
-        ParticipantDto returnedDto = participantService.postParticipant(participantDto, experimentId);
+        ParticipantDto returnedDto = participantService.postParticipant(participantDto, experimentId, securedInfo);
         HttpHeaders headers = participantService.buildHeaders(ucBuilder, experimentId, returnedDto.getParticipantId());
 
         return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
@@ -134,7 +135,9 @@ public class ParticipantController {
                 Collections.singletonMap(
                     participantService.getParticipant(participantId, experimentId, securedInfo.getUserId(), false),
                     participantDto),
-                experimentId);
+                experimentId,
+                securedInfo
+            );
 
             return new ResponseEntity<>(HttpStatus.OK);
         }
@@ -189,7 +192,7 @@ public class ParticipantController {
         }
 
         try {
-            participantService.changeParticipant(participantMap, experimentId);
+            participantService.changeParticipant(participantMap, experimentId, securedInfo);
 
             return new ResponseEntity<>(HttpStatus.OK);
         } catch (Exception ex) {

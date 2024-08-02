@@ -190,11 +190,11 @@ public class StepsController {
                 if (apijwtService.isLearner(securedInfo) && !apijwtService.isInstructorOrHigher(securedInfo)) {
                     // Return this student's participant record, refreshing the list of participants if necessary
                     List<Participant> currentParticipantList = participantService.findAllByExperimentId(experimentId);
-                    List<ParticipantDto> studentUserAsParticipant = participantService.getParticipants(currentParticipantList, experimentId, securedInfo.getUserId(), true);
+                    List<ParticipantDto> studentUserAsParticipant = participantService.getParticipants(currentParticipantList, experimentId, securedInfo.getUserId(), true, securedInfo);
 
                     if (studentUserAsParticipant.isEmpty()) {
                         participantService.refreshParticipants(experimentId, currentParticipantList);
-                        studentUserAsParticipant = participantService.getParticipants(currentParticipantList, experimentId, securedInfo.getUserId(), true);
+                        studentUserAsParticipant = participantService.getParticipants(currentParticipantList, experimentId, securedInfo.getUserId(), true, securedInfo);
                     }
 
                     return new ResponseEntity<>(studentUserAsParticipant.get(0), HttpStatus.OK);

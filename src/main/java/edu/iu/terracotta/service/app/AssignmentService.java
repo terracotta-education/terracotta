@@ -105,5 +105,7 @@ public interface AssignmentService {
                     TreatmentNotMatchingException, ExposureNotMatchingException, AssignmentMoveException, AssignmentNotEditedException, QuestionNotMatchingException;
     List<AssignmentExtended> getAllAssignmentsForCanvasCourse(SecuredInfo securedInfo) throws CanvasApiException;
     Optional<AssignmentExtended> getCanvasAssignmentById(int assignmentId, SecuredInfo securedInfo) throws CanvasApiException;
+    boolean isSingleVersion(long assignmentId);
+    boolean isSingleVersion(Assignment assignment);
 
 }

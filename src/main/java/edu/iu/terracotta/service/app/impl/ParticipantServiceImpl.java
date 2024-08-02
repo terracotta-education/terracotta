@@ -17,9 +17,12 @@ import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.model.ags.LineItem;
 import edu.iu.terracotta.model.ags.LineItems;
 import edu.iu.terracotta.model.ags.Score;
+import edu.iu.terracotta.model.app.Assignment;
 import edu.iu.terracotta.model.app.Condition;
 import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.Participant;
+import edu.iu.terracotta.model.app.Submission;
+import edu.iu.terracotta.model.app.Treatment;
 import edu.iu.terracotta.model.app.dto.ParticipantDto;
 import edu.iu.terracotta.model.app.dto.UserDto;
 import edu.iu.terracotta.model.app.enumerator.DistributionTypes;
@@ -30,12 +33,14 @@ import edu.iu.terracotta.model.membership.CourseUsers;
 import edu.iu.terracotta.model.oauth2.LTIToken;
 import edu.iu.terracotta.model.oauth2.Roles;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
+import edu.iu.terracotta.repository.AssignmentRepository;
 import edu.iu.terracotta.repository.ConsentDocumentRepository;
 import edu.iu.terracotta.repository.ExperimentRepository;
 import edu.iu.terracotta.repository.GroupRepository;
 import edu.iu.terracotta.repository.LtiUserRepository;
 import edu.iu.terracotta.repository.ParticipantRepository;
 import edu.iu.terracotta.repository.SubmissionRepository;
+import edu.iu.terracotta.repository.TreatmentRepository;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.GroupParticipantService;
 import edu.iu.terracotta.service.app.ParticipantService;
@@ -58,6 +63,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -73,12 +79,14 @@ import java.util.Optional;
 @SuppressWarnings({"PMD.UselessParentheses", "PMD.GuardLogStatement", "PMD.PreserveStackTrace", "squid:S112", "squid:S1066"})
 public class ParticipantServiceImpl implements ParticipantService {
 
+    @Autowired private AssignmentRepository assignmentRepository;
     @Autowired private ConsentDocumentRepository consentDocumentRepository;
     @Autowired private ExperimentRepository experimentRepository;
     @Autowired private GroupRepository groupRepository;
     @Autowired private LtiUserRepository ltiUserRepository;
     @Autowired private ParticipantRepository participantRepository;
     @Autowired private SubmissionRepository submissionRepository;
+    @Autowired private TreatmentRepository treatmentRepository;
     @Autowired private AdvantageAGSService advantageAGSService;
     @Autowired private AdvantageMembershipService advantageMembershipService;
     @Autowired private APIJWTService apijwtService;
@@ -92,17 +100,17 @@ public class ParticipantServiceImpl implements ParticipantService {
     }
 
     @Override
-    public List<ParticipantDto> getParticipants(List<Participant> participants, long experimentId, String userId, boolean student) {
+    public List<ParticipantDto> getParticipants(List<Participant> participants, long experimentId, String userId, boolean student, SecuredInfo securedInfo) {
         if (!student) {
             return participants.stream()
                 .filter(participant -> !participant.isTestStudent())
-                .map(participant -> toDto(participant))
+                .map(participant -> toDto(participant, securedInfo))
                 .toList();
         }
 
         try {
             return Collections.singletonList(
-                toDto(participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, userId))
+                toDto(participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, userId), securedInfo)
             );
         } catch (NullPointerException ex) {
             // NPE == no participant for this experiment with that userId; return an empty list
@@ -126,7 +134,7 @@ public class ParticipantServiceImpl implements ParticipantService {
     }
 
     @Override
-    public ParticipantDto postParticipant(ParticipantDto participantDto, long experimentId) throws IdInPostException, DataServiceException {
+    public ParticipantDto postParticipant(ParticipantDto participantDto, long experimentId, SecuredInfo securedInfo) throws IdInPostException, DataServiceException {
         if (participantDto.getParticipantId() != null) {
             throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
         }
@@ -140,11 +148,11 @@ public class ParticipantServiceImpl implements ParticipantService {
             throw new DataServiceException("Error 105: Unable to create the participant:" + e.getMessage(), e);
         }
 
-        return toDto(participantRepository.save(participant));
+        return toDto(participantRepository.save(participant), securedInfo);
     }
 
     @Override
-    public ParticipantDto toDto(Participant participant) {
+    public ParticipantDto toDto(Participant participant, SecuredInfo securedInfo) {
         ParticipantDto participantDto = new ParticipantDto();
         participantDto.setParticipantId(participant.getParticipantId());
         participantDto.setExperimentId(participant.getExperiment().getExperimentId());
@@ -159,7 +167,7 @@ public class ParticipantServiceImpl implements ParticipantService {
             participantDto.setGroupId(participant.getGroup().getGroupId());
         }
 
-        participantDto.setStarted(hasStarted(participant));
+        participantDto.setStarted(hasParticipantStarted(participant, securedInfo));
 
         return participantDto;
     }
@@ -426,7 +434,7 @@ public class ParticipantServiceImpl implements ParticipantService {
 
     @Override
     @Transactional
-    public void changeParticipant(Map<Participant, ParticipantDto> map, Long experimentId) {
+    public void changeParticipant(Map<Participant, ParticipantDto> map, Long experimentId, SecuredInfo securedInfo) {
         for (Map.Entry<Participant, ParticipantDto> entry : map.entrySet()) {
             Participant participantToChange = entry.getKey();
             ParticipantDto participantDto = entry.getValue();
@@ -456,7 +464,7 @@ public class ParticipantServiceImpl implements ParticipantService {
             }
 
             // We don't allow changing the group (manually) once the experiment has started.
-            if (!hasStarted(participantToChange)) {
+            if (!hasParticipantStarted(participantToChange, securedInfo)) {
                 if (participantDto.getGroupId() != null
                         && groupRepository.existsByExperiment_ExperimentIdAndGroupId(experiment.getExperimentId(), participantDto.getGroupId())) {
                     participantToChange.setGroup(groupRepository.findByGroupId(participantDto.getGroupId()));
@@ -490,8 +498,8 @@ public class ParticipantServiceImpl implements ParticipantService {
             participant.setSource(ParticipationTypes.REVOKED);
         }
 
-        // Don't allow changing consent to consent=true if started and not consenting
-        if (hasStarted(participant)
+        // Don't allow changing consent to true if participant has started and previously not consented
+        if (hasParticipantStarted(participant, securedInfo)
                 && BooleanUtils.isFalse(participant.getConsent())
                 && BooleanUtils.isTrue(participantDto.getConsent())) {
             throw new ParticipantAlreadyStartedException("Participant has already started experiment, consent cannot be changed to given");
@@ -506,7 +514,7 @@ public class ParticipantServiceImpl implements ParticipantService {
             participantDto.setGroupId(participant.getGroup().getGroupId());
         }
 
-        changeParticipant(Collections.singletonMap(participant, participantDto), experimentId);
+        changeParticipant(Collections.singletonMap(participant, participantDto), experimentId, securedInfo);
 
         // update experiment as started
         Experiment experiment = experimentRepository.findByExperimentId(experimentId);
@@ -530,9 +538,32 @@ public class ParticipantServiceImpl implements ParticipantService {
             .orElse(null);
     }
 
-    private boolean hasStarted(Participant participant) {
-        // to know if the participant has started we need to find at least one submission
-        return CollectionUtils.isNotEmpty(submissionRepository.findByParticipant_ParticipantId(participant.getParticipantId()));
+    /**
+     * Has the participant submitted a response to the experiment?
+     *
+     * False if:
+     *
+     * 1. The experiment is a single condition
+     * 2. Only single version assignments exist
+     * 3. A submission has not been created for a non-single version assignment
+     *
+     * @param participant
+     * @param securedInfo
+     * @return
+     */
+    private boolean hasParticipantStarted(Participant participant, SecuredInfo securedInfo) {
+        if (isSingleConditionOverride(participant.getExperiment(), securedInfo)) {
+            return false;
+        }
+
+        // to know if the participant has started we need to find at least one submission to a non-single version assignment
+        List<Submission> submissions = submissionRepository.findByParticipant_ParticipantId(participant.getParticipantId());
+
+        return CollectionUtils.isNotEmpty(
+            submissions.stream()
+                .filter(submission -> treatmentRepository.findByAssignment_AssignmentId(submission.getAssessment().getTreatment().getAssignment().getAssignmentId()).size() > 1)
+                .toList()
+        );
     }
 
     @Override
@@ -698,7 +729,7 @@ public class ParticipantServiceImpl implements ParticipantService {
         }
 
         // 1. Check if the student has the consent signed. If not, set it as no participant
-        handleConsent(experiment, participant);
+        handleInitialConsent(experiment, participant, securedInfo);
 
         // 2. Check if the student is in a group (and if not assign it to the right one if consent is true)
         if (BooleanUtils.isTrue(participant.getConsent()) && participant.getGroup() == null) {
@@ -717,16 +748,74 @@ public class ParticipantServiceImpl implements ParticipantService {
         return participantRepository.save(participant);
     }
 
-    private void handleConsent(Experiment experiment, Participant participant) {
+    /**
+     * Sets participant consent if any of the following are true:
+     *
+     * 1. Particpation type is "auto"
+     * 2. Experiment is not a single condition
+     * 3. All submitted assignments are not single versions
+     *
+     * @param experiment
+     * @param participant
+     */
+    private void handleInitialConsent(Experiment experiment, Participant participant, SecuredInfo securedInfo) {
         if (participant.getConsent() == null || (!participant.getConsent() && participant.getDateRevoked() == null)) {
             if (ParticipationTypes.AUTO.equals(experiment.getParticipationType())) {
                 participant.setConsent(true);
-                participant.setDateGiven(new Timestamp(System.currentTimeMillis()));
-            } else {
-                participant.setConsent(false);
-                participant.setDateRevoked(new Timestamp(System.currentTimeMillis()));
+                participant.setDateGiven(Timestamp.from(Instant.now()));
+
+                return;
             }
+
+            if (!hasParticipantStarted(participant, securedInfo)) {
+                // participant has no submissions
+                return;
+            }
+
+            participant.setConsent(false);
+            participant.setDateRevoked(Timestamp.from(Instant.now()));
         }
+    }
+
+    /**
+     * Should the participant consent be overidden?
+     *
+     * 1. Experiment is a single condition
+     * 2. All published assignments are single versions
+     *
+     * @param experiment
+     * @return
+     */
+    private boolean isSingleConditionOverride(Experiment experiment, SecuredInfo securedInfo) {
+        if (experiment.isSingleCondition()) {
+            // single condition experiment
+            return true;
+        }
+
+        List<Assignment> publishedExperimentAssignments = assignmentRepository.findByExposure_Experiment_ExperimentId(experiment.getExperimentId()).stream()
+            .filter(
+                assignment -> {
+                    try {
+                        return canvasAPIClient.listAssignment(experiment.getCreatedBy(), securedInfo.getCanvasCourseId(), Long.parseLong(assignment.getLmsAssignmentId())).get().isPublished();
+                    } catch (Exception e) {
+                        return false;
+                    }
+                }
+            )
+            .toList();
+
+        List<Treatment> experimentTreatments = treatmentRepository.findByCondition_Experiment_ExperimentId(experiment.getExperimentId()).stream()
+            .filter(
+                treatment ->
+                    publishedExperimentAssignments.stream()
+                        .anyMatch(
+                            publishedExperimentAssignment -> publishedExperimentAssignment.getAssignmentId().equals(treatment.getAssignment().getAssignmentId())
+                        )
+            )
+            .toList();
+
+        // only one treatment exists per assignment; only single-version assignments exists
+        return publishedExperimentAssignments.size() == experimentTreatments.size();
     }
 
 }

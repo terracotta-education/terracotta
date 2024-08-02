@@ -23,15 +23,15 @@ import java.util.Map;
 public interface ParticipantService {
 
     List<Participant> findAllByExperimentId(long experimentId);
-    List<ParticipantDto> getParticipants(List<Participant> participants, long experimentId, String userId, boolean student);
+    List<ParticipantDto> getParticipants(List<Participant> participants, long experimentId, String userId, boolean student, SecuredInfo securedInfo);
     Participant getParticipant(long id, long experimentId, String userId, boolean student) throws InvalidUserException;
-    ParticipantDto postParticipant(ParticipantDto participantDto, long experimentId) throws IdInPostException, DataServiceException;
-    ParticipantDto toDto(Participant participant);
+    ParticipantDto postParticipant(ParticipantDto participantDto, long experimentId, SecuredInfo securedInfo) throws IdInPostException, DataServiceException;
+    ParticipantDto toDto(Participant participant, SecuredInfo securedInfo);
     Participant fromDto(ParticipantDto participantDto) throws DataServiceException;
     void saveAndFlush(Participant participantToChange);
     List<Participant> refreshParticipants(long experimentId, List<Participant> currentParticipantList) throws ParticipantNotUpdatedException, ExperimentNotMatchingException;
     void prepareParticipation(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException, ExperimentNotMatchingException;
-    void changeParticipant(Map<Participant, ParticipantDto> map, Long experimentId);
+    void changeParticipant(Map<Participant, ParticipantDto> map, Long experimentId, SecuredInfo securedInfo);
     Participant findParticipant(List<Participant> participants, String userId);
     HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, long experimentId, long participantId);
     void setAllToNull(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException, ExperimentNotMatchingException;

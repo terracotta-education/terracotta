@@ -34,7 +34,7 @@
         <jsoup.version>1.17.2</jsoup.version>
         <liquibase.version>4.27.0</liquibase.version>
         <lombok.version>1.18.32</lombok.version>
-        <mysql-connector-j.version>8.4.0</mysql-connector-j.version>
+        <mysql-connector-j.version>9.0.0</mysql-connector-j.version>
         <nimbus-jose-jwt.version>9.39</nimbus-jose-jwt.version>
         <node.version>v16.19.0</node.version>
         <opencsv.version>5.9</opencsv.version>
@@ -84,7 +84,6 @@
         <dependency>
             <groupId>org.liquibase</groupId>
             <artifactId>liquibase-core</artifactId>
-            <version>${liquibase.version}</version>
         </dependency>
 
         <dependency>
@@ -215,7 +214,6 @@
         <dependency>
             <groupId>com.fasterxml.jackson.datatype</groupId>
             <artifactId>jackson-datatype-joda</artifactId>
-            <version>${jackson-datatype-joda.version}</version>
         </dependency>
         <dependency>
             <groupId>com.amazonaws</groupId>
@@ -226,7 +224,6 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>${lombok.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>

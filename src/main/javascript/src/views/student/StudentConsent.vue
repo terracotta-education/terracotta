@@ -1,6 +1,6 @@
 <template>
   <div
-    v-show="loadPdfFrame"
+    v-show="pageFullyLoaded"
     class="consent-steps my-5 mx-auto"
   >
     <v-alert
@@ -8,23 +8,35 @@
       prominent
       type="error"
     >
-      <v-row align="center">
-        <v-col class="grow">
+      <v-row
+        align="center"
+      >
+        <v-col
+          class="grow"
+        >
           You have already accessed an assignment that is part of this study. At this time, no matter your response to the following question, you cannot be included in this study.
         </v-col>
       </v-row>
     </v-alert>
     <vue-pdf-embed
-      v-if="loadPdfFrame"
+      v-if="pageFullyLoaded"
       :source="'data:application/pdf;base64,' + pdfFile"
     />
-    <form @submit.prevent="updateConsent(answer || false)">
-      <v-card class="mt-5">
+    <form
+      @submit.prevent="updateConsent(answer || false)"
+    >
+      <v-card
+        class="mt-5"
+      >
         <v-card-title>
           In the consideration of the above, will you participate in this research study?
         </v-card-title>
-        <v-list class="optionList">
-          <v-radio-group v-model="answer">
+        <v-list
+          class="optionList"
+        >
+          <v-radio-group
+            v-model="answer"
+          >
             <v-radio
               v-for="opt in options"
               :key="opt.label"
@@ -70,12 +82,24 @@ export default {
     ],
     participant: null,
     pdfFile: null,
-    loadPdfFrame: false
+    pdfReady: false,
+    participantReady: false,
+    pageFullyLoaded: false
   }),
-
   watch: {
     pdfFile() {
-      this.loadPdfFrame = true;
+      this.pdfReady = true;
+      if (this.participantReady) {
+        this.pageFullyLoaded = true;
+      }
+    },
+    participant() {
+      this.participantReady = true;
+      if (this.pdfReady) {
+        this.pageFullyLoaded = true;
+      }
+    },
+    pageFullyLoaded() {
       this.$emit('loaded');
     }
   },
