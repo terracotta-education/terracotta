@@ -38,6 +38,8 @@ import jakarta.servlet.http.HttpSession;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.net.URLEncoder;
+import java.nio.charset.Charset;
 import java.security.GeneralSecurityException;
 import java.security.Principal;
 import java.util.List;
@@ -163,16 +165,18 @@ public class LTI3Controller {
                 return TextConstants.LTI3ERROR;
             }
 
+            String redirectUrl = "redirect:/app/app.html?token=" + oneTimeToken;
+
             // Check if we need to get API token from instructor to use LMS API
             if (lti3Request.isRoleInstructor()) {
                 String oauth2APITokenRedirectURL = getOAuth2APITokenRedirectURL(req, lti3Request.getKey(), lti3Request.getUser(), lti3Request);
 
                 if (oauth2APITokenRedirectURL != null) {
-                    model.addAttribute("lms_api_oauth_url", oauth2APITokenRedirectURL);
+                    redirectUrl += "&lms_api_oauth_url=" + URLEncoder.encode(oauth2APITokenRedirectURL, Charset.defaultCharset());
                 }
             }
 
-            return "redirect:/app/app.html?token=" + oneTimeToken;
+            return redirectUrl;
         } catch (SignatureException | GeneralSecurityException | IOException e) {
             model.addAttribute(TextConstants.ERROR, e.getMessage());
             return TextConstants.LTI3ERROR;
