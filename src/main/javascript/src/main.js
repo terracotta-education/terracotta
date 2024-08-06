@@ -21,10 +21,10 @@ const lmsApiOAuthURL = params.get("lms_api_oauth_url");
 const operations = [];
 
 if (tokenParam) {
-  operations.push(store.dispatch('api/setLtiToken',tokenParam));
+  operations.push(store.dispatch('api/setLtiToken', tokenParam));
 }
 
-operations.push(store.dispatch('api/setLmsApiOAuthURL', lmsApiOAuthURL));
+operations.push(store.dispatch('api/setLmsApiOAuthURL', decodeURIComponent(lmsApiOAuthURL)));
 Promise.all(operations).then(startVue);
 
 function startVue() {
