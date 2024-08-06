@@ -10,7 +10,7 @@
     </parent>
     <groupId>edu.iu</groupId>
     <artifactId>terracotta</artifactId>
-    <version>24.07.x</version>
+    <version>24.08.07</version>
     <inceptionYear>2021</inceptionYear>
     <name>Terracotta</name>
     <description>LTI 1.3 tool for educational experimentation</description>
