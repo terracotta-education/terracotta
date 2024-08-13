@@ -22,7 +22,6 @@ import edu.iu.terracotta.model.app.Condition;
 import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.Submission;
-import edu.iu.terracotta.model.app.Treatment;
 import edu.iu.terracotta.model.app.dto.ParticipantDto;
 import edu.iu.terracotta.model.app.dto.UserDto;
 import edu.iu.terracotta.model.app.enumerator.DistributionTypes;
@@ -167,7 +166,7 @@ public class ParticipantServiceImpl implements ParticipantService {
             participantDto.setGroupId(participant.getGroup().getGroupId());
         }
 
-        participantDto.setStarted(hasParticipantStarted(participant, securedInfo));
+        participantDto.setStarted(hasParticipantSubmitted(participant, securedInfo));
 
         return participantDto;
     }
@@ -464,7 +463,7 @@ public class ParticipantServiceImpl implements ParticipantService {
             }
 
             // We don't allow changing the group (manually) once the experiment has started.
-            if (!hasParticipantStarted(participantToChange, securedInfo)) {
+            if (!hasParticipantSubmitted(participantToChange, securedInfo)) {
                 if (participantDto.getGroupId() != null
                         && groupRepository.existsByExperiment_ExperimentIdAndGroupId(experiment.getExperimentId(), participantDto.getGroupId())) {
                     participantToChange.setGroup(groupRepository.findByGroupId(participantDto.getGroupId()));
@@ -498,8 +497,8 @@ public class ParticipantServiceImpl implements ParticipantService {
             participant.setSource(ParticipationTypes.REVOKED);
         }
 
-        // Don't allow changing consent to true if participant has started and previously not consented
-        if (hasParticipantStarted(participant, securedInfo)
+        // Don't allow changing consent to true if participant has submitted a response and previously not consented
+        if (hasParticipantSubmitted(participant, securedInfo)
                 && BooleanUtils.isFalse(participant.getConsent())
                 && BooleanUtils.isTrue(participantDto.getConsent())) {
             throw new ParticipantAlreadyStartedException("Participant has already started experiment, consent cannot be changed to given");
@@ -539,31 +538,54 @@ public class ParticipantServiceImpl implements ParticipantService {
     }
 
     /**
-     * Has the participant submitted a response to the experiment?
+     * Has the participant submitted a response to an assignment?
      *
-     * False if:
+     * true if:
      *
-     * 1. The experiment is a single condition
-     * 2. Only single version assignments exist
-     * 3. A submission has not been created for a non-single version assignment
+     * 1. has created a submission (viewed) for a multi-version assignment
+     * 2. has submitted to any assignment in the experiment
+     *
+     * false if none of the above and:
+     * 1. has only accessed (not submitted) to a single-version assignment
      *
      * @param participant
      * @param securedInfo
      * @return
      */
-    private boolean hasParticipantStarted(Participant participant, SecuredInfo securedInfo) {
-        if (isSingleConditionOverride(participant.getExperiment(), securedInfo)) {
-            return false;
-        }
+    private boolean hasParticipantSubmitted(Participant participant, SecuredInfo securedInfo) {
+        // find only published assignments
+        List<Long> publishedExperimentAssignmentIds = assignmentRepository.findByExposure_Experiment_ExperimentId(participant.getExperiment().getExperimentId()).stream()
+            .filter(
+                assignment -> {
+                    try {
+                        return canvasAPIClient.listAssignment(participant.getExperiment().getCreatedBy(), securedInfo.getCanvasCourseId(), Long.parseLong(assignment.getLmsAssignmentId())).get().isPublished();
+                    } catch (Exception e) {
+                        return false;
+                    }
+                }
+            )
+            .map(Assignment::getAssignmentId)
+            .toList();
 
-        // to know if the participant has started we need to find at least one submission to a non-single version assignment
-        List<Submission> submissions = submissionRepository.findByParticipant_ParticipantId(participant.getParticipantId());
+        // find only published assignment submissions
+        List<Submission> publishedSubmissions = submissionRepository.findByParticipant_ParticipantId(participant.getParticipantId()).stream()
+            .filter(submission -> publishedExperimentAssignmentIds.contains(submission.getAssessment().getTreatment().getAssignment().getAssignmentId()))
+            .toList();
 
-        return CollectionUtils.isNotEmpty(
-            submissions.stream()
-                .filter(submission -> treatmentRepository.findByAssignment_AssignmentId(submission.getAssessment().getTreatment().getAssignment().getAssignmentId()).size() > 1)
-                .toList()
-        );
+        return
+            // participant has at least viewed a multi-version assignment; consider it submitted
+            CollectionUtils.isNotEmpty(
+                publishedSubmissions.stream()
+                    .filter(publishedSubmission -> treatmentRepository.findByAssignment_AssignmentId(publishedSubmission.getAssessment().getTreatment().getAssignment().getAssignmentId()).size() > 1)
+                    .toList()
+            ) ||
+            // particpant has not viewed a multi-condition experiment or multi-version assignment; check for a submission on single condition experiments and/or single-version assignments
+            CollectionUtils.isNotEmpty(
+                publishedSubmissions.stream()
+                    .filter(publishedSubmission -> treatmentRepository.findByAssignment_AssignmentId(publishedSubmission.getAssessment().getTreatment().getAssignment().getAssignmentId()).size() == 1)
+                    .filter(Submission::isSubmitted)
+                    .toList()
+            );
     }
 
     @Override
@@ -753,7 +775,7 @@ public class ParticipantServiceImpl implements ParticipantService {
      *
      * 1. Particpation type is "auto"
      * 2. Experiment is not a single condition
-     * 3. All submitted assignments are not single versions
+     * 3. Participant has not submitted to an assignment (per conditions in hasParticipantSubmitted method)
      *
      * @param experiment
      * @param participant
@@ -767,7 +789,7 @@ public class ParticipantServiceImpl implements ParticipantService {
                 return;
             }
 
-            if (!hasParticipantStarted(participant, securedInfo)) {
+            if (!hasParticipantSubmitted(participant, securedInfo)) {
                 // participant has no submissions
                 return;
             }
@@ -775,47 +797,6 @@ public class ParticipantServiceImpl implements ParticipantService {
             participant.setConsent(false);
             participant.setDateRevoked(Timestamp.from(Instant.now()));
         }
-    }
-
-    /**
-     * Should the participant consent be overidden?
-     *
-     * 1. Experiment is a single condition
-     * 2. All published assignments are single versions
-     *
-     * @param experiment
-     * @return
-     */
-    private boolean isSingleConditionOverride(Experiment experiment, SecuredInfo securedInfo) {
-        if (experiment.isSingleCondition()) {
-            // single condition experiment
-            return true;
-        }
-
-        List<Assignment> publishedExperimentAssignments = assignmentRepository.findByExposure_Experiment_ExperimentId(experiment.getExperimentId()).stream()
-            .filter(
-                assignment -> {
-                    try {
-                        return canvasAPIClient.listAssignment(experiment.getCreatedBy(), securedInfo.getCanvasCourseId(), Long.parseLong(assignment.getLmsAssignmentId())).get().isPublished();
-                    } catch (Exception e) {
-                        return false;
-                    }
-                }
-            )
-            .toList();
-
-        List<Treatment> experimentTreatments = treatmentRepository.findByCondition_Experiment_ExperimentId(experiment.getExperimentId()).stream()
-            .filter(
-                treatment ->
-                    publishedExperimentAssignments.stream()
-                        .anyMatch(
-                            publishedExperimentAssignment -> publishedExperimentAssignment.getAssignmentId().equals(treatment.getAssignment().getAssignmentId())
-                        )
-            )
-            .toList();
-
-        // only one treatment exists per assignment; only single-version assignments exists
-        return publishedExperimentAssignments.size() == experimentTreatments.size();
     }
 
 }

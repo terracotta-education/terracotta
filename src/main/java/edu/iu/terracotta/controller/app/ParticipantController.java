@@ -159,11 +159,12 @@ public class ParticipantController {
 
                 return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
             } catch (ParticipantAlreadyStartedException e) {
-                log.debug("Participant {} has already started: {} {}", e.getMessage(), participantId);
+                log.debug("Participant {} has already started: {}", participantId, e.getMessage());
                 return new ResponseEntity(
-                        "Error 149: Grade for consent assignment has been posted, but consent " +
-                                "to participate in the study cannot be updated since student has already accessed an assignment.",
-                        HttpStatus.UNAUTHORIZED);
+                    "Error 149: Grade for consent assignment has been posted, but consent " +
+                    "to participate in the study cannot be updated since student has already accessed an assignment.",
+                    HttpStatus.UNAUTHORIZED
+                );
             }
         }
 
