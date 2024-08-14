@@ -13,6 +13,8 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
+
 import java.sql.Timestamp;
 import java.util.List;
 
@@ -82,5 +84,10 @@ public class Submission extends BaseEntity {
         orphanRemoval = true
     )
     private List<SubmissionComment> submissionComments;
+
+    @Transient
+    public boolean isSubmitted() {
+        return dateSubmitted != null;
+    }
 
 }
