@@ -363,8 +363,11 @@ public class AssignmentServiceImpl implements AssignmentService {
 
     @Override
     public void sendAssignmentGradeToCanvas(Assignment assignment) throws ConnectionException, DataServiceException, CanvasApiException, IOException {
-        List<Submission> submissionList = submissionRepository.findByAssessment_Treatment_Assignment_AssignmentId(assignment.getAssignmentId());
-        for (Submission submission:submissionList) {
+        List<Submission> submissionList = submissionRepository.findByAssessment_Treatment_Assignment_AssignmentId(assignment.getAssignmentId()).stream()
+            .filter(Submission::isSubmitted)
+            .toList();
+
+        for (Submission submission : submissionList) {
             submissionService.sendSubmissionGradeToCanvasWithLTI(submission, false);
         }
     }
@@ -489,7 +492,7 @@ public class AssignmentServiceImpl implements AssignmentService {
             .map(AssignmentExtended::getId)
             .toList();
 
-        List<Long> assignmentsRecreated = assignmentsToCheck.stream()
+        List<String> assignmentsRecreated = assignmentsToCheck.stream()
             .filter(assignmentToCheck -> !canvasAssignmentIds.contains(Long.parseLong(assignmentToCheck.getLmsAssignmentId())))
             .map(
                 assignmentToCreate -> {
@@ -501,7 +504,7 @@ public class AssignmentServiceImpl implements AssignmentService {
                         log.error("Error restoring assignments in Canvas");
                     }
 
-                    return assignmentToCreate.getAssignmentId();
+                    return Long.toString(assignmentToCreate.getAssignmentId());
                 }
             )
             .toList();
@@ -510,7 +513,6 @@ public class AssignmentServiceImpl implements AssignmentService {
             securedInfo.getContextId(),
             CollectionUtils.isNotEmpty(assignmentsRecreated) ?
                 assignmentsRecreated.stream()
-                    .map(l -> { return Long.toString(l); })
                     .collect(Collectors.joining(", ")) :
                 "N/A"
         );
@@ -568,8 +570,12 @@ public class AssignmentServiceImpl implements AssignmentService {
         assignment.setResourceLinkId(resourceLinkId);
         save(assignment);
 
-        // Now we should send the grades back to canvas...
-        sendAssignmentGradeToCanvas(assignment);
+        try {
+            // Now we should send the grades back to canvas...
+            sendAssignmentGradeToCanvas(assignment);
+        } catch (CanvasApiException | ConnectionException | DataServiceException | IOException e) {
+            log.error(String.format("An exception occurred sending submission grades to Canvas from assignment ID: [%s] to LMS ID: [%s]",assignment.getAssignmentId(), assignment.getLmsAssignmentId()), e);
+        }
 
         return assignment;
     }

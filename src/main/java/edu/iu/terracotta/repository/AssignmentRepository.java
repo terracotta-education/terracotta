@@ -25,10 +25,10 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
     @Transactional
     void deleteByAssignmentId(Long submissionId);
 
-    @Query("select a from Assignment a where a.exposure.experiment.platformDeployment.keyId = ?1 and a.exposure.experiment.closed is null and a.assignmentId NOT IN (Select a2.assignmentId from Assignment a2 where a2.softDeleted = true)")
+    @Query("SELECT a FROM Assignment a WHERE a.exposure.experiment.platformDeployment.keyId = ?1 AND a.exposure.experiment.closed IS NULL AND a.assignmentId NOT IN (SELECT a2.assignmentId FROM Assignment a2 WHERE a2.softDeleted = true)")
     List<Assignment> findAssignmentsToCheckByPlatform(long keyId);
 
-    @Query("select a from Assignment a where a.exposure.experiment.ltiContextEntity.contextId = ?1 and a.exposure.experiment.closed is null and a.assignmentId NOT IN (Select a2.assignmentId from Assignment a2 where a2.softDeleted = true)")
+    @Query("SELECT a FROM Assignment a WHERE a.exposure.experiment.ltiContextEntity.contextId = ?1 AND a.exposure.experiment.closed IS NULL AND a.assignmentId NOT IN (SELECT a2.assignmentId FROM Assignment a2 WHERE a2.softDeleted = true)")
     List<Assignment> findAssignmentsToCheckByContext(long contextId);
 
 }
