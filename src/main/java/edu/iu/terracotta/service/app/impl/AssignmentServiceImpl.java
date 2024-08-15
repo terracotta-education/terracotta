@@ -546,18 +546,22 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     @Override
-    public Assignment restoreAssignmentInCanvas(Assignment assignment)
-            throws CanvasApiException, DataServiceException, ConnectionException, IOException {
-        //1 Create the new Assignment in Canvas
+    public Assignment restoreAssignmentInCanvas(Assignment assignment) throws CanvasApiException, DataServiceException, ConnectionException, IOException {
+        // create the new Assignment in Canvas
         AssignmentExtended canvasAssignment = new AssignmentExtended();
         edu.ksu.canvas.model.assignment.Assignment.ExternalToolTagAttribute canvasExternalToolTagAttributes = canvasAssignment.new ExternalToolTagAttribute();
-        canvasExternalToolTagAttributes.setUrl(assignment.getExposure().getExperiment().getPlatformDeployment().getLocalUrl() + "/lti3?experiment=" + assignment.getExposure().getExperiment().getExperimentId() + "&assignment=" + assignment.getAssignmentId());
+        canvasExternalToolTagAttributes.setUrl(
+            String.format(
+                "%s/lti3?experiment=%s&assignment=%s",
+                assignment.getExposure().getExperiment().getPlatformDeployment().getLocalUrl(),
+                assignment.getExposure().getExperiment().getExperimentId(),
+                assignment.getAssignmentId()
+            )
+        );
         canvasAssignment.setExternalToolTagAttributes(canvasExternalToolTagAttributes);
         canvasAssignment.setName(assignment.getTitle());
-        canvasAssignment.setDescription(null); //We don't want a description for this assignment.
-        //TODO... if we restore it... should we publish it? Only if it has submissions.
-        long submissions = submissionRepository.countByAssessment_Treatment_Assignment_AssignmentId(assignment.getAssignmentId());
-        canvasAssignment.setPublished(submissions > 0);
+        canvasAssignment.setDescription(null);
+        canvasAssignment.setPublished(false);
         canvasAssignment.setGradingType("percent");
         canvasAssignment.setPointsPossible(100.0);
         canvasAssignment.setSubmissionTypes(Collections.singletonList("external_tool"));
@@ -571,7 +575,7 @@ public class AssignmentServiceImpl implements AssignmentService {
         save(assignment);
 
         try {
-            // Now we should send the grades back to canvas...
+            // send the grades back to canvas
             sendAssignmentGradeToCanvas(assignment);
         } catch (CanvasApiException | ConnectionException | DataServiceException | IOException e) {
             log.error(String.format("An exception occurred sending submission grades to Canvas from assignment ID: [%s] to LMS ID: [%s]",assignment.getAssignmentId(), assignment.getLmsAssignmentId()), e);
