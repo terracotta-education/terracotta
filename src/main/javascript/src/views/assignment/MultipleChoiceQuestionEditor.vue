@@ -7,9 +7,15 @@
     @edited="handleQuestionEdited"
   >
     <h4><strong>Options</strong></h4>
-    <p class="ma-0 mb-3">Select correct option(s) below</p>
+    <p
+      class="ma-0 mb-3"
+    >
+      Select correct option(s) below
+    </p>
 
-    <ul class="options-list pa-0 mb-6">
+    <ul
+      class="options-list pa-0 mb-6"
+    >
       <li
         v-for="(answer, aIndex) in question.answers"
         :key="answer.answerId"
@@ -19,12 +25,16 @@
           align="center"
           class="flex-nowrap"
         >
-          <v-col class="py-0">
+          <v-col
+            class="py-0"
+          >
             <v-btn
               icon
               tile
               class="correct"
-              :class="{ 'green--text': answer.correct }"
+              :class="{
+                'green--text': answer.correct
+              }"
               @click="handleToggleCorrect(answer)"
             >
               <template
@@ -42,16 +52,18 @@
           <v-col class="flex-basis-auto">
             <v-text-field
               :value="answer.html"
-              @input="updateAnswerHtml(answer, $event)"
               :label="`Option ${aIndex + 1}`"
               :rules="longString"
+              @input="updateAnswerHtml(answer, $event)"
               hide-details
               outlined
               required
             >
             </v-text-field>
           </v-col>
-          <v-col class="py-0">
+          <v-col
+            class="py-0"
+          >
             <v-btn
               icon
               tile
@@ -64,24 +76,37 @@
         </v-row>
       </li>
     </ul>
-    <v-row align="center" class="flex-nowrap">
-      <v-col cols="auto">
-        <div class="icon-button-spacer"></div>
+    <v-row
+      align="center"
+      class="flex-nowrap"
+    >
+      <v-col
+        cols="auto"
+      >
+        <div
+          class="icon-button-spacer"
+        ></div>
       </v-col>
-      <v-col cols="auto">
+      <v-col
+        cols="auto"
+      >
         <v-btn
+          @click="handleAddAnswer(question)"
           elevation="0"
           color="primary"
           class="px-0"
-          @click="handleAddAnswer(question)"
           plain
         >
           Add Option
         </v-btn>
       </v-col>
     </v-row>
-    <template v-slot:actions>
-      <div class="d-flex align-center">
+    <template
+      v-slot:actions
+    >
+      <div
+        class="d-flex align-center"
+      >
         <v-switch
           v-model="randomizeAnswers"
           class="randomize-answers-switch"
@@ -97,8 +122,12 @@ import { mapActions, mapMutations } from "vuex";
 import QuestionEditor from "./QuestionEditor.vue";
 
 export default {
-  props: ["question"],
-  components: { QuestionEditor },
+  props: [
+    "question"
+  ],
+  components: {
+    QuestionEditor
+  },
   data() {
     return {
       longString: [(v) => (v && !!v.trim()) || "required"],

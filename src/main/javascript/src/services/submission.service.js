@@ -465,7 +465,6 @@ async function createQuestionSubmissions(
                         console.log("handleResponse | 404", {response});
                     }
                 } else if (response.status === 204) {
-                    console.log("handleResponse | 204", {text, data, response});
                     return {data: [], status: response.status};
                 }
 

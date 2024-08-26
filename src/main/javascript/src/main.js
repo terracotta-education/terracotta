@@ -1,16 +1,14 @@
-import { TiptapVuetifyPlugin } from 'tiptap-vuetify'
-import App from './App.vue'
-import router from './router'
-import store from './store/index'
-import Vue from 'vue'
-import VueRouterBackButton from 'vue-router-back-button'
+import App from './App.vue';
+import router from './router';
+import store from './store/index';
+import Vue from 'vue';
+import VueRouterBackButton from 'vue-router-back-button';
 import VueSweetalert2 from 'vue-sweetalert2';
-import vuetify from './plugins/vuetify'
+import vuetify from './plugins/vuetify';
 
 Vue.config.productionTip = false
 
 Vue.use(VueRouterBackButton, { router })
-Vue.use(TiptapVuetifyPlugin, {vuetify, iconsGroup: 'mdi'})
 Vue.use(VueSweetalert2);
 
 const url = new URL(window.location.href);
