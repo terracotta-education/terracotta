@@ -444,6 +444,7 @@ public class ParticipantServiceImpl implements ParticipantService {
             if (participantToChange.getConsent() != null
                     && (BooleanUtils.isTrue(participantToChange.getConsent()) || (BooleanUtils.isFalse(participantToChange.getConsent()) && participantToChange.getDateRevoked() == null))
                     && BooleanUtils.isNotTrue(participantDto.getConsent())) {
+                participantToChange.setDateGiven(null);
                 participantToChange.setDateRevoked(Timestamp.valueOf(LocalDateTime.now()));
                 participantToChange.setSource(ParticipationTypes.REVOKED);
             }
@@ -542,11 +543,11 @@ public class ParticipantServiceImpl implements ParticipantService {
      *
      * true if:
      *
-     * 1. has created a submission (viewed) for a multi-version assignment
-     * 2. has submitted to any assignment in the experiment
+     * 1. has at least created a submission (viewed) a multi-version assignment
      *
      * false if none of the above and:
-     * 1. has only accessed (not submitted) to a single-version assignment
+     *
+     * 1. has only accessed and/or submitted to a single-version assignment
      *
      * @param participant
      * @param securedInfo
@@ -577,13 +578,6 @@ public class ParticipantServiceImpl implements ParticipantService {
             CollectionUtils.isNotEmpty(
                 publishedSubmissions.stream()
                     .filter(publishedSubmission -> treatmentRepository.findByAssignment_AssignmentId(publishedSubmission.getAssessment().getTreatment().getAssignment().getAssignmentId()).size() > 1)
-                    .toList()
-            ) ||
-            // particpant has not viewed a multi-condition experiment or multi-version assignment; check for a submission on single condition experiments and/or single-version assignments
-            CollectionUtils.isNotEmpty(
-                publishedSubmissions.stream()
-                    .filter(publishedSubmission -> treatmentRepository.findByAssignment_AssignmentId(publishedSubmission.getAssessment().getTreatment().getAssignment().getAssignmentId()).size() == 1)
-                    .filter(Submission::isSubmitted)
                     .toList()
             );
     }
