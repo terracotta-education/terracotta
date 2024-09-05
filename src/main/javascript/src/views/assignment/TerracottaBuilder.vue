@@ -789,7 +789,6 @@ export default {
       }
 
       this.regradeDetails.editedMCQuestionIds.push(questionId);
-      console.log("added edited MC question id: " + questionId);
     }
   },
   async created() {

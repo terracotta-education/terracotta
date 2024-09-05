@@ -161,11 +161,9 @@ public class CanvasOAuthServiceImpl implements LMSOAuthService<CanvasAPITokenEnt
             return false; // need to get a new token with all required scopes
         }
 
-        // if exists and is expired, refresh and save the token, return true
+        // if exists, refresh and save the token, return true
         try {
-            if (LocalDateTime.now().isAfter(LocalDateTime.ofInstant(Instant.ofEpochMilli(canvasAPIToken.get().getExpiresAt().getTime()), ZoneId.systemDefault()))) {
-                refreshAccessToken(canvasAPIToken.get());
-            }
+            refreshAccessToken(canvasAPIToken.get());
 
             return true;
         } catch (LMSOAuthException e) {

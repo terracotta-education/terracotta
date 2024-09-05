@@ -1,13 +1,8 @@
 <template>
   <div>
-    <tiptap-vuetify
-      v-model="html"
-      placeholder="Question"
-      class="mb-6 outlined"
-      :extensions="extensions"
-      :native-extensions="nativeExtensions"
-      :card-props="{ flat: true }"
-      :rules="rules"
+    <tip-tap-editor
+      :html="html"
+      @edited="handleEditedHtml"
       required
     />
     <v-text-field
@@ -69,35 +64,20 @@
 </template>
 
 <script>
-import {
-  TiptapVuetify,
-  Heading,
-  Bold,
-  Italic,
-  Strike,
-  Underline,
-  Code,
-  Paragraph,
-  BulletList,
-  OrderedList,
-  ListItem,
-  Link,
-  Blockquote,
-  HardBreak,
-  HorizontalRule,
-  History,
-} from "tiptap-vuetify";
 import { mapActions, mapGetters, mapMutations } from "vuex";
-import YoutubeEmbed from "./tiptap/YoutubeEmbed";
-import YoutubeEmbedExtension from "./tiptap/YoutubeEmbedExtension";
+import TipTapEditor from "@/components/editor/TipTapEditor";
 
 export default {
+  components: {
+    TipTapEditor
+  },
   props: [
     "question",
     "isMC"
   ],
   data() {
     return {
+      editor: null,
       rules: [
         (v) => (v && !!v.trim()) || "required",
         (v) => (v || "").length <= 255 || "A maximum of 255 characters is allowed",
@@ -105,33 +85,7 @@ export default {
       numberRule: [
         (v) => (v && !isNaN(v)) || "required",
         (v) => (!isNaN(parseFloat(v)) && v >= 0) || "The point value cannot be negative",
-      ],
-      extensions: [
-        History,
-        Blockquote,
-        Link,
-        Underline,
-        Strike,
-        Italic,
-        ListItem,
-        BulletList,
-        OrderedList,
-        [
-          Heading,
-          {
-            options: {
-              levels: [1, 2, 3],
-            },
-          },
-        ],
-        Bold,
-        Code,
-        HorizontalRule,
-        Paragraph,
-        HardBreak,
-        YoutubeEmbedExtension,
-      ],
-      nativeExtensions: [new YoutubeEmbed()],
+      ]
     };
   },
   computed: {
@@ -188,9 +142,6 @@ export default {
         this.updateQuestions({ ...this.question, points: value });
       },
     }
-  },
-  components: {
-    TiptapVuetify,
   },
   methods: {
     ...mapMutations({
@@ -311,32 +262,9 @@ export default {
         })
       );
     },
-  },
-};
-</script>
-
-<style lang="scss" scoped>
-.tiptap-vuetify-editor::v-deep {
-  box-shadow: none;
-  border-radius: 4px;
-  border: 1px solid map-get($grey, "base");
-  overflow: hidden;
-
-  .ProseMirror {
-    margin: 20px 5px !important;
-
-    .is-editor-empty::before {
-      color: map-get($grey, "darken-1");
-      font-style: normal;
+    handleEditedHtml(html) {
+      this.question.html = html;
     }
   }
-  .tiptap-vuetify-editor__toolbar {
-    border-top: 1px solid map-get($grey, "base");
-    border-radius: 0 !important;
-  }
-  .v-card {
-    display: flex;
-    flex-direction: column-reverse;
-  }
-}
-</style>
+};
+</script>
