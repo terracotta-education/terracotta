@@ -3,6 +3,7 @@ package edu.iu.terracotta.service.common;
 import org.springframework.web.client.RestTemplate;
 
 import edu.iu.terracotta.exceptions.LMSOAuthException;
+import edu.iu.terracotta.exceptions.app.FeatureNotFoundException;
 import edu.iu.terracotta.model.LtiUserEntity;
 import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.model.oauth2.APIToken;
@@ -31,8 +32,9 @@ public interface LMSOAuthService<T extends APIToken> {
      * @return
      * @throws LMSOAuthException if not configured or is missing configuration for
      *                           OAuth2 API tokens
+     * @throws FeatureNotFoundException
      */
-    String getAuthorizationRequestURI(PlatformDeployment platformDeployment, String state) throws LMSOAuthException;
+    String getAuthorizationRequestURI(PlatformDeployment platformDeployment, String state) throws LMSOAuthException, FeatureNotFoundException;
 
     /**
      * Exchange the code for an access token and refresh token. Save and return the
@@ -42,8 +44,9 @@ public interface LMSOAuthService<T extends APIToken> {
      * @param code
      * @return
      * @throws LMSOAuthException if fails to fetch access token from LMS
+     * @throws FeatureNotFoundException
      */
-    T fetchAndSaveAccessToken(LtiUserEntity user, String code) throws LMSOAuthException;
+    T fetchAndSaveAccessToken(LtiUserEntity user, String code) throws LMSOAuthException, FeatureNotFoundException;
 
     /**
      * Get the access token that is saved for this user. Or, if the access token is

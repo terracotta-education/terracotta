@@ -1,0 +1,322 @@
+<?xml
+    version="1.1"
+    encoding="UTF-8"
+    standalone="no"
+?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+    xmlns:pro="http://www.liquibase.org/xml/ns/pro"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd http://www.liquibase.org/xml/ns/pro http://www.liquibase.org/xml/ns/pro/liquibase-pro-latest.xsd http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd"
+>
+    <changeSet author="rlong (generated)" id="1726082194217-87">
+        <createTable tableName="canvas_api_scope_features">
+            <column name="features_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="scopes_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="entity_version" type="INT" defaultValue="0" />
+            <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" type="datetime"/>
+        </createTable>
+    </changeSet>
+    <changeSet author="rlong (generated)" id="1726082194217-88">
+        <createTable tableName="terr_feature">
+            <column autoIncrement="true" name="id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true"/>
+            </column>
+            <column name="type" type="VARCHAR(255)"/>
+            <column name="enabled" type="BIT(1)"/>
+            <column name="entity_version" type="INT"/>
+            <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" type="datetime"/>
+        </createTable>
+    </changeSet>
+    <changeSet author="rlong (generated)" id="1726082194217-89">
+        <createTable tableName="terr_feature_platform_deployments">
+            <column name="features_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="platform_deployments_key_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="entity_version" type="INT" defaultValue="0" />
+            <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" type="datetime"/>
+        </createTable>
+    </changeSet>
+    <changeSet author="rlong (generated)" id="1726082194217-102">
+        <createIndex associatedWith="" indexName="FK50a6xhpjllavedsy5mboxw509" tableName="terr_feature_platform_deployments">
+            <column name="features_id"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="rlong (generated)" id="1726082194217-104">
+        <createIndex associatedWith="" indexName="FKhny4lyc297vhwjje5xkw1rfw1" tableName="canvas_api_scope_features">
+            <column name="scopes_id"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="rlong (generated)" id="1726082194217-106">
+        <createIndex associatedWith="" indexName="FKpymg97sqj1b0sxyrqdv9heoa6" tableName="canvas_api_scope_features">
+            <column name="features_id"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="rlong (generated)" id="1726082194217-108">
+        <createIndex associatedWith="" indexName="FKwvyfxulywsd2ag2dlp1o32le" tableName="terr_feature_platform_deployments">
+            <column name="platform_deployments_key_id"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="rlong (generated)" id="1726082194217-111">
+        <addForeignKeyConstraint baseColumnNames="features_id" baseTableName="terr_feature_platform_deployments" constraintName="FK50a6xhpjllavedsy5mboxw509" deferrable="false" initiallyDeferred="false" onDelete="RESTRICT" onUpdate="RESTRICT" referencedColumnNames="id" referencedTableName="terr_feature" validate="true"/>
+    </changeSet>
+    <changeSet author="rlong (generated)" id="1726082194217-114">
+        <addForeignKeyConstraint baseColumnNames="scopes_id" baseTableName="canvas_api_scope_features" constraintName="FKhny4lyc297vhwjje5xkw1rfw1" deferrable="false" initiallyDeferred="false" onDelete="RESTRICT" onUpdate="RESTRICT" referencedColumnNames="id" referencedTableName="canvas_api_scope" validate="true"/>
+    </changeSet>
+    <changeSet author="rlong (generated)" id="1726082194217-117">
+        <addForeignKeyConstraint baseColumnNames="features_id" baseTableName="canvas_api_scope_features" constraintName="FKpymg97sqj1b0sxyrqdv9heoa6" deferrable="false" initiallyDeferred="false" onDelete="RESTRICT" onUpdate="RESTRICT" referencedColumnNames="id" referencedTableName="terr_feature" validate="true"/>
+    </changeSet>
+    <changeSet author="rlong (generated)" id="1726082194217-119">
+        <addForeignKeyConstraint baseColumnNames="platform_deployments_key_id" baseTableName="terr_feature_platform_deployments" constraintName="FKwvyfxulywsd2ag2dlp1o32le" deferrable="false" initiallyDeferred="false" onDelete="RESTRICT" onUpdate="RESTRICT" referencedColumnNames="key_id" referencedTableName="iss_configuration" validate="true"/>
+    </changeSet>
+    <changeSet author="rlong (generated)" id="1726082194217-120">
+        <addColumn
+            tableName="canvas_api_scope"
+        >
+            <column
+                defaultValue="0"
+                name="entity_version"
+                type="INT"
+            />
+        </addColumn>
+    </changeSet>
+    <changeSet author="rlong (generated)" id="1726082194217-121">
+        <update
+            tableName="canvas_api_scope"
+        >
+            <column
+                name="entity_version"
+                value="0"
+            />
+        </update>
+    </changeSet>
+    <changeSet author="rlong (generated)" id="1726082194217-122">
+        <dropColumn
+            tableName="canvas_api_scope"
+        >
+	        <column name="required"/>
+        </dropColumn>
+    </changeSet>
+    <changeSet
+        author="rlong (generated)"
+        id="1725631529000-114"
+    >
+        <insert
+            tableName="canvas_api_scope"
+        >
+            <column
+                name="scope" value="url:GET|/api/v1/conversations"
+            />
+            <column
+                name="entity_version" value="0"
+            />
+        </insert>
+        <insert
+            tableName="canvas_api_scope"
+        >
+            <column
+                name="scope" value="url:POST|/api/v1/conversations"
+            />
+            <column
+                name="entity_version" value="0"
+            />
+        </insert>
+        <insert
+            tableName="canvas_api_scope"
+        >
+            <column
+                name="scope" value="url:GET|/api/v1/conversations/:id"
+            />
+            <column
+                name="entity_version" value="0"
+            />
+        </insert>
+        <insert
+            tableName="canvas_api_scope"
+        >
+            <column
+                name="scope" value="url:GET|/api/v1/courses/:course_id/users"
+            />
+            <column
+                name="entity_version" value="0"
+            />
+        </insert>
+    </changeSet>
+    <changeSet
+        author="rlong (generated)"
+        id="1725631529000-115"
+    >
+        <insert
+            tableName="terr_feature"
+        >
+            <column
+                name="type" value="DEFAULT"
+            />
+            <column
+                name="enabled" valueBoolean="true"
+            />
+            <column
+                name="entity_version" value="0"
+            />
+        </insert>
+        <insert
+            tableName="terr_feature"
+        >
+            <column
+                name="type" value="MESSAGING"
+            />
+            <column
+                name="enabled" valueBoolean="true"
+            />
+            <column
+                name="entity_version" value="0"
+            />
+        </insert>
+    </changeSet>
+    <changeSet
+        author="rlong (generated)"
+        id="1725631529000-116"
+    >
+        <insert
+            tableName="canvas_api_scope_features"
+        >
+            <column
+                name="features_id" valueComputed="(SELECT id FROM terr_feature WHERE type = 'DEFAULT')"
+            />
+            <column
+                name="scopes_id" valueComputed="(SELECT id FROM canvas_api_scope WHERE scope = 'url:POST|/api/v1/courses/:course_id/assignments')"
+            />
+            <column
+                name="entity_version" value="0"
+            />
+        </insert>
+        <insert
+            tableName="canvas_api_scope_features"
+        >
+            <column
+                name="features_id" valueComputed="(SELECT id FROM terr_feature WHERE type = 'DEFAULT')"
+            />
+            <column
+                name="scopes_id" valueComputed="(SELECT id FROM canvas_api_scope WHERE scope = 'url:GET|/api/v1/courses/:course_id/assignments')"
+            />
+            <column
+                name="entity_version" value="0"
+            />
+        </insert>
+        <insert
+            tableName="canvas_api_scope_features"
+        >
+            <column
+                name="features_id" valueComputed="(SELECT id FROM terr_feature WHERE type = 'DEFAULT')"
+            />
+            <column
+                name="scopes_id" valueComputed="(SELECT id FROM canvas_api_scope WHERE scope = 'url:GET|/api/v1/courses/:course_id/assignments/:id')"
+            />
+            <column
+                name="entity_version" value="0"
+            />
+        </insert>
+        <insert
+            tableName="canvas_api_scope_features"
+        >
+            <column
+                name="features_id" valueComputed="(SELECT id FROM terr_feature WHERE type = 'DEFAULT')"
+            />
+            <column
+                name="scopes_id" valueComputed="(SELECT id FROM canvas_api_scope WHERE scope = 'url:PUT|/api/v1/courses/:course_id/assignments/:id')"
+            />
+            <column
+                name="entity_version" value="0"
+            />
+        </insert>
+        <insert
+            tableName="canvas_api_scope_features"
+        >
+            <column
+                name="features_id" valueComputed="(SELECT id FROM terr_feature WHERE type = 'DEFAULT')"
+            />
+            <column
+                name="scopes_id" valueComputed="(SELECT id FROM canvas_api_scope WHERE scope = 'url:DELETE|/api/v1/courses/:course_id/assignments/:id')"
+            />
+            <column
+                name="entity_version" value="0"
+            />
+        </insert>
+        <insert
+            tableName="canvas_api_scope_features"
+        >
+            <column
+                name="features_id" valueComputed="(SELECT id FROM terr_feature WHERE type = 'DEFAULT')"
+            />
+            <column
+                name="scopes_id" valueComputed="(SELECT id FROM canvas_api_scope WHERE scope = 'url:GET|/api/v1/courses/:course_id/assignments/:assignment_id/submissions')"
+            />
+            <column
+                name="entity_version" value="0"
+            />
+        </insert>
+        <insert
+            tableName="canvas_api_scope_features"
+        >
+            <column
+                name="features_id" valueComputed="(SELECT id FROM terr_feature WHERE type = 'MESSAGING')"
+            />
+            <column
+                name="scopes_id" valueComputed="(SELECT id FROM canvas_api_scope WHERE scope = 'url:GET|/api/v1/conversations')"
+            />
+            <column
+                name="entity_version" value="0"
+            />
+        </insert>
+        <insert
+            tableName="canvas_api_scope_features"
+        >
+            <column
+                name="features_id" valueComputed="(SELECT id FROM terr_feature WHERE type = 'MESSAGING')"
+            />
+            <column
+                name="scopes_id" valueComputed="(SELECT id FROM canvas_api_scope WHERE scope = 'url:POST|/api/v1/conversations')"
+            />
+            <column
+                name="entity_version" value="0"
+            />
+        </insert>
+        <insert
+            tableName="canvas_api_scope_features"
+        >
+            <column
+                name="features_id" valueComputed="(SELECT id FROM terr_feature WHERE type = 'MESSAGING')"
+            />
+            <column
+                name="scopes_id" valueComputed="(SELECT id FROM canvas_api_scope WHERE scope = 'url:GET|/api/v1/conversations/:id')"
+            />
+            <column
+                name="entity_version" value="0"
+            />
+        </insert>
+        <insert
+            tableName="canvas_api_scope_features"
+        >
+            <column
+                name="features_id" valueComputed="(SELECT id FROM terr_feature WHERE type = 'MESSAGING')"
+            />
+            <column
+                name="scopes_id" valueComputed="(SELECT id FROM canvas_api_scope WHERE scope = 'url:GET|/api/v1/courses/:course_id/users')"
+            />
+            <column
+                name="entity_version" value="0"
+            />
+        </insert>
+    </changeSet>
+</databaseChangeLog>

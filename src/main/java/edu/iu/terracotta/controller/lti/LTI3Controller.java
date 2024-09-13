@@ -5,6 +5,7 @@ import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.LMSOAuthException;
+import edu.iu.terracotta.exceptions.app.FeatureNotFoundException;
 import edu.iu.terracotta.repository.LtiLinkRepository;
 import edu.iu.terracotta.service.caliper.CaliperService;
 import edu.iu.terracotta.service.common.LMSOAuthService;
@@ -202,7 +203,12 @@ public class LTI3Controller {
         HttpSession session = req.getSession();
         session.setAttribute(LMSOAuthController.SESSION_LMS_OAUTH2_STATE, state);
 
-        return lmsOAuthService.getAuthorizationRequestURI(platformDeployment, state);
+        try {
+            return lmsOAuthService.getAuthorizationRequestURI(platformDeployment, state);
+        } catch (FeatureNotFoundException e) {
+            log.error(e.getMessage(), e);
+            return null;
+        }
     }
 
 }

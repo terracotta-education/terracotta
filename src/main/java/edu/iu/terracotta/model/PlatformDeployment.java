@@ -6,14 +6,17 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 
 import org.apache.commons.lang3.StringUtils;
 
+import edu.iu.terracotta.model.app.Feature;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
@@ -86,6 +89,9 @@ public class PlatformDeployment extends BaseEntity {
 
     @OneToMany(mappedBy = "platformDeployment", fetch = FetchType.LAZY)
     private Set<ToolDeployment> toolDeployments;
+
+    @ManyToMany(mappedBy = "platformDeployments")
+    private List<Feature> features;
 
     public String getLocalUrl() {
         if (StringUtils.isBlank(localUrl)) {
