@@ -308,7 +308,6 @@ public class BaseTest {
             when(conditionRepository.findByExperiment_ExperimentId(anyLong())).thenReturn(Collections.singletonList(condition));
             when(canvasAPIScopeRepository.findAll()).thenReturn(Collections.singletonList(canvasAPIScope));
             when(canvasAPIScopeRepository.findById(anyLong())).thenReturn(Optional.of(canvasAPIScope));
-            when(canvasAPIScopeRepository.findByRequired(anyBoolean())).thenReturn(Collections.singletonList(canvasAPIScope));
             when(canvasAPIScopeRepository.findByUuid(any(UUID.class))).thenReturn(Optional.of(canvasAPIScope));
             when(canvasAPITokenRepository.findByUser(any(LtiUserEntity.class))).thenReturn(Optional.of(canvasAPITokenEntity));
             when(conditionRepository.findById(anyLong())).thenReturn(Optional.of(condition));
@@ -371,10 +370,6 @@ public class BaseTest {
             when(canvasAPIClient.listAssignment(any(LtiUserEntity.class), anyString(), anyLong())).thenReturn(Optional.of(assignmentExtended));
             when(canvasAPIClient.listAssignments(any(LtiUserEntity.class), anyString())).thenReturn(Collections.singletonList(assignmentExtended));
             when(canvasAPIClient.listSubmissions(any(LtiUserEntity.class), anyLong(), anyString())).thenReturn(Collections.singletonList(submissionCanvas));
-            when(canvasAPIScopeService.getAllScopes()).thenReturn(Collections.singletonList(canvasAPIScope));
-            when(canvasAPIScopeService.getAllScopeValues()).thenReturn(Collections.singletonList(CANVAS_API_SCOPE));
-            when(canvasAPIScopeService.getRequiredScopeValues(anyBoolean())).thenReturn(Collections.singletonList(CANVAS_API_SCOPE));
-            when(canvasAPIScopeService.getScopesByRequired(anyBoolean())).thenReturn(Collections.singletonList(canvasAPIScope));
             when(groupParticipantService.getUniqueGroupByConditionId(anyLong(), anyString(), anyLong())).thenReturn(group);
             when(groupParticipantService.nextGroup(any(Experiment.class))).thenReturn(group);
             when(participantService.refreshParticipants(anyLong(), anyList())).thenReturn(Collections.singletonList(participant));

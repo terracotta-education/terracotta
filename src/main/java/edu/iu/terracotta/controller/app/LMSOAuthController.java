@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import edu.iu.terracotta.exceptions.LMSOAuthException;
+import edu.iu.terracotta.exceptions.app.FeatureNotFoundException;
 import edu.iu.terracotta.model.LtiUserEntity;
 import edu.iu.terracotta.repository.LtiUserRepository;
 import edu.iu.terracotta.service.app.APIJWTService;
@@ -86,7 +87,7 @@ public class LMSOAuthController {
 
         try {
             lmsoAuthService.fetchAndSaveAccessToken(user, code);
-        } catch (LMSOAuthException e) {
+        } catch (LMSOAuthException | FeatureNotFoundException e) {
             model.addAttribute(TextConstants.ERROR, MessageFormat.format("Error getting LMS API access token: {0}", e.getMessage()));
             return TextConstants.OAUTH2_ERROR;
         }

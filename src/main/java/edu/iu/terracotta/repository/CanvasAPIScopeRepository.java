@@ -7,10 +7,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-
+@SuppressWarnings({"PMD.MethodNamingConventions"})
 public interface CanvasAPIScopeRepository extends JpaRepository<CanvasAPIScope, Long> {
 
-    List<CanvasAPIScope> findByRequired(boolean required);
     Optional<CanvasAPIScope> findByUuid(UUID uuid);
+    List<CanvasAPIScope> findAllByFeatures_Id(long featureId);
 
 }

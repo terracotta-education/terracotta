@@ -4,16 +4,12 @@ import java.net.URI;
 import java.sql.Timestamp;
 import java.text.MessageFormat;
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -29,6 +25,7 @@ import org.springframework.web.client.UnknownContentTypeException;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import edu.iu.terracotta.exceptions.LMSOAuthException;
+import edu.iu.terracotta.exceptions.app.FeatureNotFoundException;
 import edu.iu.terracotta.model.LtiUserEntity;
 import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.model.canvas.CanvasAPIOAuthSettings;
@@ -55,7 +52,7 @@ public class CanvasOAuthServiceImpl implements LMSOAuthService<CanvasAPITokenEnt
     }
 
     @Override
-    public String getAuthorizationRequestURI(PlatformDeployment platformDeployment, String state) throws LMSOAuthException {
+    public String getAuthorizationRequestURI(PlatformDeployment platformDeployment, String state) throws LMSOAuthException, FeatureNotFoundException {
         CanvasAPIOAuthSettings canvasAPIOAuthSettings = getCanvasAPIOAuthSettings(platformDeployment);
         String clientId = canvasAPIOAuthSettings.getClientId();
 
@@ -64,38 +61,14 @@ public class CanvasOAuthServiceImpl implements LMSOAuthService<CanvasAPITokenEnt
             .queryParam("response_type", "code")
             .queryParam("redirect_uri", getRedirectURI(platformDeployment.getLocalUrl()))
             .queryParam("state", state)
-            .queryParam("scope", getAllRequiredScopes())
+            .queryParam("scope", canvasAPIScopeService.getNecessaryScopes(platformDeployment.getKeyId(), " "))
             .encode()
             .build()
             .toUriString();
     }
 
-    String getAllScopes() {
-        return StringUtils.join(canvasAPIScopeService.getAllScopeValues(), " ");
-    }
-
-    Set<String> getAllScopesAsSet() {
-        return new HashSet<>(canvasAPIScopeService.getAllScopeValues());
-    }
-
-    String getAllRequiredScopes() {
-        return StringUtils.join(canvasAPIScopeService.getRequiredScopeValues(true), " ");
-    }
-
-    Set<String> getAllRequiredScopesAsSet() {
-        return new HashSet<>(canvasAPIScopeService.getRequiredScopeValues(true));
-    }
-
-    String getAllOptionalScopes() {
-        return StringUtils.join(canvasAPIScopeService.getRequiredScopeValues(false), " ");
-    }
-
-    Set<String> getAllOptionalScopesAsSet() {
-        return new HashSet<>(canvasAPIScopeService.getRequiredScopeValues(false));
-    }
-
     @Override
-    public CanvasAPITokenEntity fetchAndSaveAccessToken(LtiUserEntity user, String code) throws LMSOAuthException {
+    public CanvasAPITokenEntity fetchAndSaveAccessToken(LtiUserEntity user, String code) throws LMSOAuthException, FeatureNotFoundException {
         CanvasAPIOAuthSettings canvasAPIOAuthSettings = getCanvasAPIOAuthSettings(user.getPlatformDeployment());
 
         // Create x-www-form-urlencoded POST request
@@ -121,7 +94,7 @@ public class CanvasOAuthServiceImpl implements LMSOAuthService<CanvasAPITokenEnt
         newToken.setCanvasUserName(token.getUser().getName());
         newToken.setExpiresAt(new Timestamp(System.currentTimeMillis() + token.getExpiresIn() * 1000));
         newToken.setRefreshToken(token.getRefreshToken());
-        newToken.setScopes(getAllScopes());
+        newToken.setScopes(canvasAPIScopeService.getNecessaryScopes(user.getPlatformDeployment().getKeyId(), " "));
         newToken.setUser(user);
 
         return canvasAPITokenRepository.save(newToken);
@@ -150,15 +123,23 @@ public class CanvasOAuthServiceImpl implements LMSOAuthService<CanvasAPITokenEnt
             return false;
         }
 
-        // check that token's scopes include all required scopes
-        Set<String> allRequiredScopes = getAllRequiredScopesAsSet();
+        // check that token's scopes include all necessary scopes (default required and feature-required)
+        Set<String> allNecessaryScopes;
+
+        try {
+            allNecessaryScopes = canvasAPIScopeService.getNecessaryScopes(user.getPlatformDeployment().getKeyId());
+        } catch (FeatureNotFoundException e) {
+            log.error(e.getMessage(), e);
+            return false;
+        }
+
         Set<String> tokenScopes = canvasAPIToken.get().getScopesAsSet();
 
-        if (tokenScopes == null || !tokenScopes.containsAll(allRequiredScopes)) {
-            allRequiredScopes.removeAll(tokenScopes);
-            log.info("Token [{}] is missing required scopes. Has [{}] but needs [{}]", canvasAPIToken.get().getTokenId(), tokenScopes, allRequiredScopes);
+        if (tokenScopes == null || !tokenScopes.containsAll(allNecessaryScopes)) {
+            allNecessaryScopes.removeAll(tokenScopes);
+            log.info("Token [{}] is missing necessary scopes. Has [{}] but needs [{}]", canvasAPIToken.get().getTokenId(), tokenScopes, allNecessaryScopes);
 
-            return false; // need to get a new token with all required scopes
+            return false; // need to get a new token with all necessary scopes
         }
 
         // if exists, refresh and save the token, return true

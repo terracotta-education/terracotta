@@ -1,13 +1,16 @@
 
 package edu.iu.terracotta.model.canvas;
 
+import java.util.List;
 import java.util.UUID;
 
+import edu.iu.terracotta.model.app.Feature;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
@@ -29,7 +32,7 @@ public class CanvasAPIScope {
     @Column(nullable = false)
     private String scope;
 
-    @Column(nullable = false)
-    private boolean required;
+    @ManyToMany
+    private List<Feature> features;
 
 }
