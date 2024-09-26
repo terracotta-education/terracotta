@@ -1,8 +1,6 @@
 TERRACOTTA
 ========
 
-The Terracotta app description
-
 Build
 -----
 This will produce a terracotta-X.X.jar file in the *target* directory
@@ -31,7 +29,7 @@ with a valid certificate launching the jar file with the right configuration fil
 Customizing
 -----------
 Use the application.properties to control various aspects of the Spring Boot application (like setting up your own database
-connection). The example file has some sections with a self-explanatory title. It is recommended to 
+connection). The example file has some sections with self-explanatory titles. It is recommended to 
 use a properties file external to the jar to avoid storing sensitive values in your code: 
 
 ```--spring.config.location=/home/yourhomefolder/application-local.properties```
@@ -52,7 +50,7 @@ mysql> grant all on terracotta.* to 'terracotta'@'localhost'; Query OK, 0 rows a
 Creating database migration scripts
 ---------
 
-Use the following steps to mostly automate creation of a liquibase database migration script. You will need [Liquibase](https://www.liquibase.com/) installed. Following was tested with Liquibase version 4.6.2.
+Use the following steps to mostly automate creation of a liquibase database migration script. You will need [Liquibase](https://www.liquibase.com/) installed. The following was tested with Liquibase version 4.6.2.
 
 1. Create a fresh MySQL database using Docker.
 
