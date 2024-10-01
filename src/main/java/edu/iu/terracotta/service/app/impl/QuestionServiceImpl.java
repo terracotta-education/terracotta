@@ -6,6 +6,11 @@ import edu.iu.terracotta.exceptions.InvalidQuestionTypeException;
 import edu.iu.terracotta.exceptions.MultipleChoiceLimitReachedException;
 import edu.iu.terracotta.exceptions.NegativePointsException;
 import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
+import edu.iu.terracotta.exceptions.integrations.IntegrationClientNotFoundException;
+import edu.iu.terracotta.exceptions.integrations.IntegrationConfigurationNotFoundException;
+import edu.iu.terracotta.exceptions.integrations.IntegrationConfigurationNotMatchingException;
+import edu.iu.terracotta.exceptions.integrations.IntegrationNotFoundException;
+import edu.iu.terracotta.exceptions.integrations.IntegrationNotMatchingException;
 import edu.iu.terracotta.model.app.Assessment;
 import edu.iu.terracotta.model.app.Question;
 import edu.iu.terracotta.model.app.QuestionMc;
@@ -13,12 +18,14 @@ import edu.iu.terracotta.model.app.QuestionSubmission;
 import edu.iu.terracotta.model.app.dto.AnswerDto;
 import edu.iu.terracotta.model.app.dto.QuestionDto;
 import edu.iu.terracotta.model.app.enumerator.QuestionTypes;
+import edu.iu.terracotta.model.app.integrations.Integration;
 import edu.iu.terracotta.repository.AssessmentRepository;
 import edu.iu.terracotta.repository.QuestionRepository;
 import edu.iu.terracotta.repository.QuestionSubmissionRepository;
 import edu.iu.terracotta.service.app.AnswerService;
 import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.service.app.QuestionService;
+import edu.iu.terracotta.service.app.integrations.IntegrationService;
 import edu.iu.terracotta.utils.TextConstants;
 
 import org.apache.commons.collections4.CollectionUtils;
@@ -48,6 +55,7 @@ public class QuestionServiceImpl implements QuestionService {
     @Autowired private QuestionSubmissionRepository questionSubmissionRepository;
     @Autowired private AnswerService answerService;
     @Autowired private FileStorageService fileStorageService;
+    @Autowired private IntegrationService integrationService;
 
     @PersistenceContext private EntityManager entityManager;
 
@@ -68,7 +76,7 @@ public class QuestionServiceImpl implements QuestionService {
     }
 
     @Override
-    public QuestionDto postQuestion(QuestionDto questionDto, long assessmentId, boolean answers) throws IdInPostException, DataServiceException, MultipleChoiceLimitReachedException {
+    public QuestionDto postQuestion(QuestionDto questionDto, long assessmentId, boolean answers, boolean isNew) throws IdInPostException, DataServiceException, MultipleChoiceLimitReachedException, IntegrationNotFoundException, IntegrationClientNotFoundException {
         if (questionDto.getQuestionId() != null) {
             throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
         }
@@ -80,10 +88,29 @@ public class QuestionServiceImpl implements QuestionService {
             validateQuestionType(questionDto);
             question = save(fromDto(questionDto));
 
-            if (QuestionTypes.MC == question.getQuestionType() && CollectionUtils.isNotEmpty(questionDto.getAnswers())) {
-                for (AnswerDto answerDto : questionDto.getAnswers()) {
-                    answerService.postAnswerMC(answerDto, question.getQuestionId());
-                }
+            switch (question.getQuestionType()) {
+                case MC:
+                    if (CollectionUtils.isEmpty(questionDto.getAnswers())) {
+                        break;
+                    }
+
+                    for (AnswerDto answerDto : questionDto.getAnswers()) {
+                        answerService.postAnswerMC(answerDto, question.getQuestionId());
+                    }
+                    break;
+                case INTEGRATION:
+                    if (isNew) {
+                        question.setIntegration(integrationService.create(question, questionDto.getIntegrationClientId()));
+                        break;
+                    }
+
+                    integrationService.duplicate(integrationService.findByUuid(questionDto.getIntegration().getId()), question);
+                    break;
+                case ESSAY:
+                case FILE:
+                case PAGE_BREAK:
+                default:
+                    break;
             }
         } catch (DataServiceException | InvalidQuestionTypeException | NegativePointsException ex) {
             throw new DataServiceException("Error 105: Unable to create Question: " + ex.getMessage(), ex);
@@ -106,6 +133,7 @@ public class QuestionServiceImpl implements QuestionService {
         questionDto.setPoints(question.getPoints());
         questionDto.setAssessmentId(question.getAssessment().getAssessmentId());
         questionDto.setQuestionType(question.getQuestionType().name());
+        questionDto.setIntegration(integrationService.toDto(question.getIntegration()));
 
         if (QuestionTypes.MC == question.getQuestionType()) {
             if (answers) {
@@ -170,7 +198,9 @@ public class QuestionServiceImpl implements QuestionService {
 
     @Override
     @Transactional
-    public void updateQuestion(Map<Question, QuestionDto> map) throws NegativePointsException {
+    public void updateQuestion(Map<Question, QuestionDto> map)
+        throws NegativePointsException, IntegrationNotFoundException, IntegrationNotMatchingException, IntegrationConfigurationNotFoundException,
+            IntegrationConfigurationNotMatchingException, IntegrationClientNotFoundException {
         for (Map.Entry<Question, QuestionDto> entry : map.entrySet()) {
             Question question = entry.getKey();
             QuestionDto questionDto = entry.getValue();
@@ -183,8 +213,20 @@ public class QuestionServiceImpl implements QuestionService {
 
             question.setPoints(questionDto.getPoints());
 
-            if (question.getQuestionType() == QuestionTypes.MC) {
-                ((QuestionMc) question).setRandomizeAnswers(questionDto.isRandomizeAnswers());
+            switch (question.getQuestionType()) {
+                case MC:
+                    ((QuestionMc) question).setRandomizeAnswers(questionDto.isRandomizeAnswers());
+                    break;
+                case INTEGRATION:
+                    question.setIntegration(
+                        integrationService.update(questionDto.getIntegration(), question)
+                    );
+                    break;
+                case ESSAY:
+                case FILE:
+                case PAGE_BREAK:
+                default:
+                    break;
             }
 
             save(question);
@@ -193,6 +235,12 @@ public class QuestionServiceImpl implements QuestionService {
 
     @Override
     public void deleteById(Long id) throws EmptyResultDataAccessException {
+        Question question = questionRepository.findByQuestionId(id);
+
+        if (question.getIntegration() != null) {
+            integrationService.delete(question.getIntegration());
+        }
+
         questionRepository.deleteByQuestionId(id);
     }
 
@@ -238,11 +286,18 @@ public class QuestionServiceImpl implements QuestionService {
         for (Question originalQuestion : originalQuestions) {
             entityManager.detach(originalQuestion);
             Long originalQuestionId = originalQuestion.getQuestionId();
+            Integration integration = originalQuestion.getIntegration();
             originalQuestion.setQuestionId(null);
             originalQuestion.setAssessment(newAssessment);
-            Question newQuestion = save(originalQuestion);
+            originalQuestion.setIntegration(null);
+            Question newQuestion = questionRepository.save(originalQuestion);
 
             answerService.duplicateAnswersForQuestion(originalQuestionId, newQuestion);
+
+            if (newQuestion.isIntegration()) {
+                integrationService.duplicate(integration, newQuestion);
+                questionRepository.save(newQuestion);
+            }
 
             questions.add(newQuestion);
         }

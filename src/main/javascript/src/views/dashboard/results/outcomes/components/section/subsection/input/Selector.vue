@@ -2,35 +2,31 @@
   <v-col
     class="container-selector"
   >
-    <!-- v-col
-      class="d-flex flex-column flex-wrap align-baseline"
-    -->
-      <v-row
-        v-for="(_, i) in experimentExposures"
-        :key="i"
-        class="input-selector mb-5"
+    <v-row
+      v-for="(_, i) in experimentExposures"
+      :key="i"
+      class="input-selector mb-5"
+    >
+      <v-select
+        v-model="selected[i]"
+        :items="options[i]"
+        :label="selectorLabel(i)"
+        :menu-props="{bottom: true, offsetY: true}"
+        item-text="title"
+        item-value="outcomeId"
+        @change="onOutcomeSelect(i)"
+        clearable
+        dense
+        hide-details
+        hide-selected
+        outlined
       >
-        <v-select
-          v-model="selected[i]"
-          :items="options[i]"
-          :label="selectorLabel(i)"
-          :menu-props="{bottom: true, offsetY: true}"
-          item-text="title"
-          item-value="outcomeId"
-          @change="onOutcomeSelect(i)"
-          clearable
-          dense
-          hide-details
-          hide-selected
-          outlined
-        >
-          <template v-slot:selection="{ item }">
-            <span class="truncated">{{ item.title }}</span>
-          </template>
-        </v-select>
-      </v-row>
-    <!-- /v-col -->
-    </v-col>
+        <template v-slot:selection="{ item }">
+          <span class="truncated">{{ item.title }}</span>
+        </template>
+      </v-select>
+    </v-row>
+  </v-col>
 </template>
 
 <script>
@@ -40,7 +36,7 @@ export default {
   name: "Selector",
   data: () => ({
     staticOutcomes: [
-      {outcomeId: "AVERAGE_ASSIGNMENT_SCORE", title: "Average assignment score"},
+      {outcomeId: "AVERAGE_ASSIGNMENT_SCORE", title: "Average component score"},
       {outcomeId: "TIME_ON_TASK", title: "Time on task"}
     ],
     selected: [], // user-selected outcomes

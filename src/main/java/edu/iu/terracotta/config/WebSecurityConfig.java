@@ -152,6 +152,7 @@ public class WebSecurityConfig {
     SecurityFilterChain filterChain6(HttpSecurity http) throws Exception {
         // this ensures security context info (Principal, sec:authorize, etc.) is accessible on all paths
         return http
+            .securityMatcher("/**")
             .authorizeHttpRequests(
                 authz ->
                     authz
@@ -166,22 +167,6 @@ public class WebSecurityConfig {
                         )
                         .permitAll()
                         .anyRequest()
-                        .permitAll()
-            )
-            .csrf(csrf -> csrf.disable())
-            .headers(frameOptions -> frameOptions.disable())
-            .build();
-    }
-
-    @Bean
-    @Order(90) // LOWEST
-    SecurityFilterChain noAuthFilterChain(HttpSecurity http) throws Exception {
-        // this ensures security context info (Principal, sec:authorize, etc.) is accessible on all paths
-        return http
-            .authorizeHttpRequests(
-                authz ->
-                    authz
-                        .requestMatchers("/**")
                         .permitAll()
             )
             .csrf(csrf -> csrf.disable())

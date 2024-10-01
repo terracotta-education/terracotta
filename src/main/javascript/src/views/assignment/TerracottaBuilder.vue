@@ -49,8 +49,9 @@
             label="Instructions or description (optional)"
             placeholder="e.g. Lorem ipsum"
             outlined
-          ></v-textarea>
+          />
           <div
+            v-if="treatmentOptionSelected && !isIntegrationType && questionPages && questionPages.length > 0"
             class="d-flex align-center mb-3 justify-space-between"
           >
             <h4
@@ -70,7 +71,7 @@
             </v-btn>
           </div>
           <template
-            v-if="questionPages && questionPages.length > 0"
+            v-if="treatmentOptionSelected && !isIntegrationType && questionPages && questionPages.length > 0"
           >
             <template>
               <div
@@ -136,15 +137,24 @@
             </template>
           </template>
           <template
+            v-else-if="isIntegrationType"
+          >
+            <external-integration-editor
+              @integrationUpdated="handleIntegrationUpdate($event)"
+              :question="questions[0]"
+            />
+          </template>
+          <template
             v-else
           >
-            <p
-              class="grey--text"
-            >
-              Add questions to continue
+            <h4>Select a treatment mode</h4>
+            <p>
+              Use the Terracotta Builder to create assignments with multiple choice, short answer, or file upload questions.
+              Use the External Integration option to use a Qualtrics survey or a custom web activity for this treatment.
             </p>
           </template>
           <v-menu
+            v-if="treatmentOptionSelected && !isIntegrationType"
             offset-y
           >
             <template
@@ -158,7 +168,7 @@
                 class="mb-3 mt-3"
                 plain
               >
-                Add Question
+                ADD QUESTION
                 <v-icon>mdi-chevron-down</v-icon>
               </v-btn>
             </template>
@@ -187,7 +197,91 @@
             </v-list>
           </v-menu>
           <v-menu
-            v-if="assignmentsAvailableToCopy.length > 0"
+            v-if="!treatmentOptionSelected"
+            offset-y
+            close-on-click
+            close-on-content-click
+          >
+            <template
+              v-slot:activator="{ on, attrs }"
+            >
+              <v-btn
+                v-bind="attrs"
+                v-on="on"
+                color="primary"
+                elevation="0"
+                class="mb-3 mt-3"
+                plain
+              >
+                ADD TREATMENT <v-icon>mdi-chevron-down</v-icon>
+              </v-btn>
+            </template>
+            <v-list>
+              <template>
+                <v-list-item
+                  @click="handleAddTerracottaBuilder"
+                >
+                  <v-list-item-title>
+                    <v-icon
+                      class="mr-1"
+                    >
+                      mdi-wrench-outline
+                    </v-icon>
+                    Terracotta Builder
+                  </v-list-item-title>
+                </v-list-item>
+                <v-list-item>
+                  <v-list-item-title>
+                    <v-menu
+                      class="pl-10"
+                      offset-x
+                      open-on-hover
+                      close-on-click
+                      close-on-content-click
+                    >
+                      <template
+                        v-slot:activator="{ on, attrs }"
+                      >
+                        <v-list-item
+                          v-bind="attrs"
+                          v-on="on"
+                          class="pl-0"
+                        >
+                          <v-list-item-title>
+                            <v-icon
+                              class="mr-1"
+                            >
+                              mdi-application-brackets-outline
+                            </v-icon>
+                            External Integration
+                            <v-icon>mdi-menu-right</v-icon>
+                          </v-list-item-title>
+                        </v-list-item>
+                      </template>
+                      <v-list>
+                        <v-list-item
+                          @click="handleAddIntegration(externalIntegrationClients.qualtrics.name)"
+                        >
+                          <v-list-item-title>
+                            {{ externalIntegrationClients.qualtrics.name }}
+                          </v-list-item-title>
+                        </v-list-item>
+                        <v-list-item
+                          @click="handleAddIntegration(externalIntegrationClients.custom.name)"
+                        >
+                          <v-list-item-title>
+                            {{ externalIntegrationClients.custom.name }}
+                          </v-list-item-title>
+                        </v-list-item>
+                      </v-list>
+                    </v-menu>
+                  </v-list-item-title>
+                </v-list-item>
+              </template>
+            </v-list>
+          </v-menu>
+          <v-menu
+            v-if="treatmentOptionSelected && !isIntegrationType && assignmentsAvailableToCopy.length > 0"
             offset-y
             close-on-click
             close-on-content-click
@@ -261,6 +355,16 @@
                 </template>
             </v-list>
           </v-menu>
+          <v-btn
+            v-if="treatmentOptionSelected && displayBackToTreatmentModeSelection"
+            @click="handleBackToTreatmentModeSelection"
+            color="primary"
+            elevation="0"
+            class="mb-3 mt-3"
+            plain
+          >
+            BACK TO TREATMENT MODE SELECTION
+          </v-btn>
           <br />
         </form>
       </v-tab-item>
@@ -278,6 +382,7 @@ import { mapActions, mapGetters, mapMutations } from "vuex";
 import { assessmentService } from '@/services';
 import draggable from 'vuedraggable';
 import FileUploadQuestionEditor from "./FileUploadQuestionEditor.vue";
+import ExternalIntegrationEditor from "@/views/integrations/ExternalIntegrationEditor.vue";
 import MultipleChoiceQuestionEditor from "./MultipleChoiceQuestionEditor.vue";
 import omitDeep from '../../helpers/deep-omit';
 import PageBreak from "./PageBreak.vue";
@@ -292,6 +397,7 @@ export default {
   components: {
     draggable,
     FileUploadQuestionEditor,
+    ExternalIntegrationEditor,
     MultipleChoiceQuestionEditor,
     PageBreak,
     QuestionEditor,
@@ -312,7 +418,16 @@ export default {
       regradeDetails: {
         regradeOption: "NA",
         editedMCQuestionIds: []
-      }
+      },
+      externalIntegrationClients: {
+        qualtrics: {
+          name: "Qualtrics",
+        },
+        custom: {
+          name: "Custom Web Activity"
+        }
+      },
+      treatmentOptionSelected: false
     };
   },
   watch: {
@@ -326,6 +441,9 @@ export default {
     },
     expandedQuestionPanel: {
       handler(idx) {
+        if (!this.treatmentOptionSelected || this.isIntegrationType) {
+          return;
+        }
         // scroll to the newly-opened question panel
         if (idx && idx[this.expandedQuestionPagePanel] != null) {
           setTimeout(() => {
@@ -344,6 +462,17 @@ export default {
     }
   },
   computed: {
+    ...mapGetters({
+      assignment: "assignment/assignment",
+      exposures: "exposures/exposures",
+      assignments: "assignment/assignments",
+      assessment: "assessment/assessment",
+      questions: "assessment/questions",
+      answerableQuestions: "assessment/answerableQuestions",
+      questionPages: "assessment/questionPages",
+      conditionColorMapping: "condition/conditionColorMapping",
+      submissions: "submissions/submissions"
+    }),
     currentAssignment() {
       return JSON.parse(this.$route.params.current_assignment);
     },
@@ -402,17 +531,6 @@ export default {
     displayRegradeAssignmentDialog() {
       return this.hasSubmissions && this.hasEditedQuestions;
     },
-    ...mapGetters({
-      assignment: "assignment/assignment",
-      exposures: "exposures/exposures",
-      assignments: "assignment/assignments",
-      assessment: "assessment/assessment",
-      questions: "assessment/questions",
-      answerableQuestions: "assessment/answerableQuestions",
-      questionPages: "assessment/questionPages",
-      conditionColorMapping: "condition/conditionColorMapping",
-      submissions: "submissions/submissions"
-    }),
     contDisabled() {
       return (
         !this.questions ||
@@ -425,16 +543,25 @@ export default {
         MC: MultipleChoiceQuestionEditor,
         ESSAY: QuestionEditor,
         FILE: FileUploadQuestionEditor,
+        INTEGRATION: ExternalIntegrationEditor
       };
     },
     html: {
-      // two-way computed property
       get() {
         return this.assessment.html;
       },
       set(value) {
         this.setAssessment({ ...this.assessment, html: value });
       },
+    },
+    isIntegrationType() {
+      return this.questions.some((question) => question.questionType === "INTEGRATION");
+    },
+    integrationClients() {
+      return this.assessment.integrationClients || [];
+    },
+    displayBackToTreatmentModeSelection() {
+      return !this.currentAssignment.started;
     }
   },
   methods: {
@@ -471,8 +598,42 @@ export default {
       await this.fetchExposures(this.experiment.experimentId);
       return this.exposures;
     },
-    async handleAddQuestion(questionType) {
-      // POST QUESTION
+    handleAddTerracottaBuilder() {
+      this.treatmentOptionSelected = true;
+    },
+    async handleBackToTreatmentModeSelection() {
+      const result = await this.$swal({
+        title: "Are you sure you want to go back?",
+        html: "If you go back to treatment mode selection, you will <b>lose <u>all</u> progress</b> you've made here.",
+        showCancelButton: true,
+        confirmButtonText: "YES, GO BACK",
+        cancelButtonText: "CANCEL",
+        reverseButtons: true,
+        allowOutsideClick: () => !this.$swal.isLoading(),
+      });
+
+      if (!result.isConfirmed) {
+        return;
+      }
+
+      this.handleClearQuestions();
+      this.treatmentOptionSelected = false;
+    },
+    handleIntegrationUpdate(question) {
+      // updates the integration and points data for the associated question
+      if (question.points === null) {
+        question.points = 0;
+      }
+
+      this.questions[0] = question;
+    },
+    async handleAddIntegration(integrationName) {
+      let integrationClientId = this.integrationClients.find((integrationClient) => integrationClient.name === integrationName).id;
+      this.treatmentOptionSelected = true;
+      await this.handleAddQuestion('INTEGRATION', integrationClientId);
+      this.widenContainer();
+    },
+    async handleAddQuestion(questionType, integrationClientId = null) {
       try {
         await this.createQuestion([
           this.experiment.experimentId,
@@ -483,6 +644,7 @@ export default {
           questionType,
           1, // points
           "",
+          integrationClientId
         ]);
 
         // add two default options on MC question creation
@@ -502,7 +664,6 @@ export default {
       }
     },
     async handleAddMCOption(question) {
-      // POST ANSWER
       try {
         await this.createAnswer([
           this.experiment.experimentId,
@@ -551,7 +712,6 @@ export default {
       return true;
     },
     async handleSaveAssessment() {
-      // PUT ASSESSMENT TITLE & HTML (description) & SETTINGS
       const response = await this.updateAssessment([
         this.experiment.experimentId,
         this.condition.conditionId,
@@ -576,10 +736,8 @@ export default {
       return true;
     },
     async handleSaveQuestions(questions) {
-      // LOOP AND PUT QUESTIONS
       return Promise.all(
         questions.map(async (question, index) => {
-          // save question
           try {
             this.updateQuestions(question);
             const q = await this.updateQuestion([
@@ -593,7 +751,8 @@ export default {
               index,
               question.questionType,
               question.randomizeAnswers,
-              question.answers
+              question.answers,
+              question.integration
             ]);
             return Promise.resolve(q);
           } catch (error) {
@@ -603,7 +762,6 @@ export default {
       );
     },
     async handleSaveAnswers() {
-      // LOOP AND PUT ANSWERS
       return Promise.all(
         this.questions.map((question) => {
           question?.answers?.map(async (answer, answerIndex) => {
@@ -629,9 +787,30 @@ export default {
       );
     },
     async saveAll(routeName) {
-      if (this.answerableQuestions.some((q) => !q.html)) {
-        this.$swal("Please fill or delete empty questions.");
-        return false;
+      if (this.questions.length && this.questions[0].questionType !== "INTEGRATION") {
+        if (this.answerableQuestions.some((q) => !q.html)) {
+          this.$swal("Please fill or delete empty questions.");
+          return false;
+        }
+      }
+
+      if (this.questions.length && this.questions[0].questionType === "INTEGRATION") {
+        let isInvalid = false;
+
+        if (!this.questions[0].launchUrlValidated) {
+          // launchUrl invalid
+          isInvalid = true;
+        }
+
+        if (!this.questions[0].pointsValidated) {
+          // points invalid
+          isInvalid = true;
+        }
+
+        if (isInvalid) {
+          this.$swal("Please complete all fields.");
+          return false;
+        }
       }
 
       if (this.displayRegradeAssignmentDialog) {
@@ -707,6 +886,9 @@ export default {
             }
           },
         ]);
+
+        this.treatmentOptionSelected = true;
+
         return await this.fetchAssessment([
           this.experiment.experimentId,
           this.condition_id,
@@ -715,6 +897,7 @@ export default {
         ]);
       } catch (error) {
         console.error("handleCreateTreatment | catch", { error });
+        this.treatmentOptionSelected = false;
       }
     },
     async saveExit() {
@@ -735,7 +918,7 @@ export default {
       return "question-panel-" + expandedQuestionPagePanel + "_" + expandedQuestionPanel;
     },
     hasTreatmentsNotCurrent(treatments) {
-      return treatments.some((t) => t.treatmentId !== this.treatment_id);
+      return treatments.some((t) => t.treatmentId !== this.treatment_id && !t.assessmentDto.integration);
     },
     findAssignmentsAvailableToCopy() {
       this.assignments.forEach((a) => {
@@ -789,6 +972,16 @@ export default {
       }
 
       this.regradeDetails.editedMCQuestionIds.push(questionId);
+    },
+    widenContainer() {
+      const element = document.getElementsByClassName("steps-container-col")[0];
+      element.classList.remove("col-md-6");
+      element.classList.add("col-md-10");
+    },
+    shrinkContainer() {
+      const element = document.getElementsByClassName("steps-container-col")[0];
+      element.classList.remove("col-md-10");
+      element.classList.add("col-md-6");
     }
   },
   async created() {
@@ -806,17 +999,27 @@ export default {
     ]);
     this.getAssignmentDetails();
     this.findAssignmentsAvailableToCopy();
+    this.treatmentOptionSelected = this.questions.length;
+  },
+  mounted() {
+    this.widenContainer();
+  },
+  beforeUnmount() {
+    this.shrinkContainer();
   }
 };
 </script>
 
-<style lang="scss">
+<style scoped lang="scss">
 v-expansion-panels {
   &, & > div {
     width: 100%;
   }
 }
 .terracotta-builder {
+  & h4:not(.label-treatment):not(.label-condition-name) {
+    font-weight: bold !important;
+  }
   .v-expansion-panel-header {
     &--active {
       border-bottom: 2px solid map-get($grey, "lighten-2");

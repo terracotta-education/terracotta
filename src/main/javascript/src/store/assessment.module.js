@@ -123,14 +123,17 @@ const actions = {
         questionOrder,
         questionType,
         randomizeAnswers,
-        answers) => ({
+        answers,
+        integration
+      ) => ({
       questionId: question_id,
       html,
       points,
       questionOrder,
       questionType,
       randomizeAnswers,
-      answers
+      answers,
+      integration
     });
 
     try {

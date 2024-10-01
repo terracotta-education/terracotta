@@ -26,6 +26,8 @@ public class SubmissionDto {
     private boolean lateSubmission;
     private String assessmentLink;
     private boolean gradeOverridden;
+    private String integrationLaunchUrl;
+    private boolean integrationFeedbackEnabled;
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<QuestionSubmissionDto> questionSubmissionDtoList;

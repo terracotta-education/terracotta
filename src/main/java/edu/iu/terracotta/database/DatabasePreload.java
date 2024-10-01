@@ -42,8 +42,6 @@ public class DatabasePreload {
         if (platformDeploymentRepository.count() > 0) {
             // done, no preloading
             log.info("INIT - no preload");
-        } else {
-            buildDataFromFiles();
         }
     }
 

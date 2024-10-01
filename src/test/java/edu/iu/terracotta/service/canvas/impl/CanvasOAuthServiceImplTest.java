@@ -35,7 +35,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.UnknownContentTypeException;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import edu.iu.terracotta.BaseTest;
+import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.exceptions.LMSOAuthException;
 import edu.iu.terracotta.exceptions.app.FeatureNotFoundException;
 import edu.iu.terracotta.model.LtiUserEntity;

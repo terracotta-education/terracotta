@@ -20,7 +20,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import edu.iu.terracotta.BaseTest;
+import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.exceptions.AssignmentAttemptException;
 import edu.iu.terracotta.exceptions.AssignmentDatesException;
@@ -41,6 +41,11 @@ import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
 import edu.iu.terracotta.exceptions.RevealResponsesSettingValidationException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
+import edu.iu.terracotta.exceptions.integrations.IntegrationClientNotFoundException;
+import edu.iu.terracotta.exceptions.integrations.IntegrationConfigurationNotFoundException;
+import edu.iu.terracotta.exceptions.integrations.IntegrationConfigurationNotMatchingException;
+import edu.iu.terracotta.exceptions.integrations.IntegrationNotFoundException;
+import edu.iu.terracotta.exceptions.integrations.IntegrationNotMatchingException;
 import edu.iu.terracotta.model.app.Assessment;
 import edu.iu.terracotta.model.app.Experiment;
 import edu.iu.terracotta.model.app.Participant;
@@ -307,12 +312,12 @@ public class AssessmentServiceImplTest extends BaseTest {
     @Test
     public void testUpdateAssessmentWithNewQuestion()
         throws TitleValidationException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException,
-        AssessmentNotMatchingException, IdInPostException, DataServiceException, NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException {
+        AssessmentNotMatchingException, IdInPostException, DataServiceException, NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException, IntegrationNotFoundException, IntegrationNotMatchingException, IntegrationConfigurationNotFoundException, IntegrationConfigurationNotMatchingException, IntegrationClientNotFoundException {
         when(questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(anyLong())).thenReturn(Collections.emptyList());
         when(questionDto.getQuestionId()).thenReturn(null);
         assessmentService.updateAssessment(1L, assessmentDto, true);
 
-        verify(questionService).postQuestion(any(QuestionDto.class), anyLong(), anyBoolean());
+        verify(questionService).postQuestion(any(QuestionDto.class), anyLong(), anyBoolean(), anyBoolean());
         verify(questionRepository, never()).findByQuestionId(anyLong());
         verify(questionService, never()).updateQuestion(anyMap());
         verify(questionRepository, never()).deleteById(anyLong());
@@ -321,11 +326,11 @@ public class AssessmentServiceImplTest extends BaseTest {
     @Test
     public void testUpdateAssessmentWithExistingQuestion()
         throws TitleValidationException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException,
-        AssessmentNotMatchingException, IdInPostException, DataServiceException, NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException {
+        AssessmentNotMatchingException, IdInPostException, DataServiceException, NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException, IntegrationNotFoundException, IntegrationNotMatchingException, IntegrationConfigurationNotFoundException, IntegrationConfigurationNotMatchingException, IntegrationClientNotFoundException {
         when(questionDto.getQuestionId()).thenReturn(1L);
         assessmentService.updateAssessment(1L, assessmentDto, true);
 
-        verify(questionService, never()).postQuestion(any(QuestionDto.class), anyLong(), anyBoolean());
+        verify(questionService, never()).postQuestion(any(QuestionDto.class), anyLong(), anyBoolean(), anyBoolean());
         verify(questionRepository).findByQuestionId(anyLong());
         verify(questionService).updateQuestion(anyMap());
         verify(questionRepository, never()).deleteById(anyLong());
@@ -342,13 +347,13 @@ public class AssessmentServiceImplTest extends BaseTest {
     @Test
     public void testUpdateAssessmentWithDeletedQuestion()
         throws TitleValidationException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException,
-        AssessmentNotMatchingException, IdInPostException, DataServiceException, NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException {
+        AssessmentNotMatchingException, IdInPostException, DataServiceException, NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException, IntegrationNotFoundException, IntegrationNotMatchingException, IntegrationConfigurationNotFoundException, IntegrationConfigurationNotMatchingException, IntegrationClientNotFoundException {
         when(assessmentDto.getQuestions()).thenReturn(Collections.emptyList());
         when(questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(anyLong())).thenReturn(Arrays.asList(question)); // requires modifiable list
 
         assessmentService.updateAssessment(1L, assessmentDto, true);
 
-        verify(questionService, never()).postQuestion(any(QuestionDto.class), anyLong(), anyBoolean());
+        verify(questionService, never()).postQuestion(any(QuestionDto.class), anyLong(), anyBoolean(), anyBoolean());
         verify(questionRepository, never()).findByQuestionId(anyLong());
         verify(questionService, never()).updateQuestion(anyMap());
         verify(questionRepository).deleteByQuestionId(anyLong());
@@ -357,13 +362,13 @@ public class AssessmentServiceImplTest extends BaseTest {
     @Test
     public void testUpdateAssessmentWithDeletedQuestionNoExistingFound()
         throws TitleValidationException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException,
-        AssessmentNotMatchingException, IdInPostException, DataServiceException, NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException {
+        AssessmentNotMatchingException, IdInPostException, DataServiceException, NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException, IntegrationNotFoundException, IntegrationNotMatchingException, IntegrationConfigurationNotFoundException, IntegrationConfigurationNotMatchingException, IntegrationClientNotFoundException {
         when(assessmentDto.getQuestions()).thenReturn(Collections.emptyList());
         when(questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(anyLong())).thenReturn(Collections.emptyList());
 
         assessmentService.updateAssessment(1L, assessmentDto, true);
 
-        verify(questionService, never()).postQuestion(any(QuestionDto.class), anyLong(), anyBoolean());
+        verify(questionService, never()).postQuestion(any(QuestionDto.class), anyLong(), anyBoolean(), anyBoolean());
         verify(questionRepository, never()).findByQuestionId(anyLong());
         verify(questionService, never()).updateQuestion(anyMap());
         verify(questionRepository, never()).deleteById(anyLong());

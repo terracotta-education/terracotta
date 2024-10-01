@@ -20,6 +20,7 @@ import edu.iu.terracotta.exceptions.QuestionSubmissionNotMatchingException;
 import edu.iu.terracotta.exceptions.SubmissionCommentNotMatchingException;
 import edu.iu.terracotta.exceptions.SubmissionNotMatchingException;
 import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
+import edu.iu.terracotta.exceptions.integrations.IntegrationOwnerNotMatchingException;
 import edu.iu.terracotta.model.ApiOneUseToken;
 import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.model.app.Experiment;
@@ -46,6 +47,7 @@ import edu.iu.terracotta.repository.QuestionSubmissionRepository;
 import edu.iu.terracotta.repository.SubmissionCommentRepository;
 import edu.iu.terracotta.repository.SubmissionRepository;
 import edu.iu.terracotta.repository.TreatmentRepository;
+import edu.iu.terracotta.repository.integrations.IntegrationRepository;
 import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.AdminService;
 import edu.iu.terracotta.service.lti.LTIDataService;
@@ -92,6 +94,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * This manages all the data processing for the LTIRequest (and for LTI in general)
@@ -117,6 +120,7 @@ public class APIJWTServiceImpl implements APIJWTService {
     @Autowired private ExperimentRepository experimentRepository;
     @Autowired private ExposureRepository exposureRepository;
     @Autowired private GroupRepository groupRepository;
+    @Autowired private IntegrationRepository integrationRepository;
     @Autowired private OutcomeRepository outcomeRepository;
     @Autowired private OutcomeScoreRepository outcomeScoreRepository;
     @Autowired private ParticipantRepository participantRepository;
@@ -629,15 +633,14 @@ public class APIJWTServiceImpl implements APIJWTService {
     }
 
     @Override
-    public void experimentAllowed(SecuredInfo securedInfo, Long experimentId) throws BadTokenException, ExperimentNotMatchingException {
-        if (securedInfo ==null) {
+    public Experiment experimentAllowed(SecuredInfo securedInfo, Long experimentId) throws BadTokenException, ExperimentNotMatchingException {
+        if (securedInfo == null) {
             log.error(TextConstants.BAD_TOKEN);
             throw new BadTokenException(TextConstants.BAD_TOKEN);
         }
 
-        if (!experimentRepository.existsByExperimentIdAndPlatformDeployment_KeyIdAndLtiContextEntity_ContextId(experimentId, securedInfo.getPlatformDeploymentId(), securedInfo.getContextId())) {
-            throw new ExperimentNotMatchingException(TextConstants.EXPERIMENT_NOT_MATCHING);
-        }
+        return experimentRepository.findByExperimentIdAndPlatformDeployment_KeyIdAndLtiContextEntity_ContextId(experimentId, securedInfo.getPlatformDeploymentId(), securedInfo.getContextId())
+            .orElseThrow(() -> new ExperimentNotMatchingException(TextConstants.EXPERIMENT_NOT_MATCHING));
     }
 
     @Override
@@ -805,6 +808,13 @@ public class APIJWTServiceImpl implements APIJWTService {
     public void outcomeScoreAllowed(SecuredInfo securedInfo, Long outcomeId, Long outcomeScoreId) throws OutcomeScoreNotMatchingException {
         if (!outcomeScoreRepository.existsByOutcome_OutcomeIdAndOutcomeScoreId(outcomeId, outcomeScoreId)) {
             throw new OutcomeScoreNotMatchingException(TextConstants.OUTCOME_SCORE_NOT_MATCHING);
+        }
+    }
+
+    @Override
+    public void integrationAllowed(long questionId, UUID integrationUuid) throws IntegrationOwnerNotMatchingException {
+        if (!integrationRepository.existsByUuidAndQuestion_QuestionId(integrationUuid, questionId)) {
+            throw new IntegrationOwnerNotMatchingException(String.format("Question with ID: [%s] does not own integration with UUID: [%s]", questionId, integrationUuid));
         }
     }
 

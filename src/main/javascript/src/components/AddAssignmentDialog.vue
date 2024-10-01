@@ -8,7 +8,7 @@
       color="primary"
       elevation="0"
     >
-      Add Assignment
+      Add Component
     </v-btn>
     <v-btn
       v-else
@@ -18,7 +18,7 @@
       class="btn-create-first-assignment"
       elevation="0"
     >
-      Create your first assignment
+      Create your first component
     </v-btn>
   </div>
   <div
@@ -47,7 +47,7 @@
           elevation="0"
           :disabled="disableAddAssignmentButton"
         >
-          Add Assignment
+          Add Component
         </v-btn>
         <v-btn
           v-else
@@ -56,7 +56,7 @@
           class="btn-create-first-assignment"
           elevation="0"
         >
-          Create your first assignment
+          Create your first component
         </v-btn>
       </template>
       <span class="add-assignment-dialog">
@@ -69,7 +69,7 @@
             With Different Versions
           </v-btn>
           <p>
-            Create <u>multiple</u> treatments of your assignment so your students can experience different conditions.
+            Create <u>multiple</u> treatments of your component so your students can experience different conditions.
           </p>
         </div>
         <div class="add-assignment-version-option">

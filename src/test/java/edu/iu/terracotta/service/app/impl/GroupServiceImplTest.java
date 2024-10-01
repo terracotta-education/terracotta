@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Disabled;
 import org.mockito.InjectMocks;
 import org.mockito.MockitoAnnotations;
 
-import edu.iu.terracotta.BaseTest;
+import edu.iu.terracotta.base.BaseTest;
 
 @Disabled
 public class GroupServiceImplTest extends BaseTest {

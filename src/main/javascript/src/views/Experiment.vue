@@ -1,12 +1,13 @@
 <template>
-	<router-view :key="$route.fullPath"></router-view>
+	<router-view
+		:key="$route.fullPath"
+	/>
 </template>
 
 <script>
+export default {
+	name: 'Experiment',
 
-	export default {
-		name: 'Experiment',
-
-		data: () => ({}),
-	}
+	data: () => ({}),
+}
 </script>

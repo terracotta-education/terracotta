@@ -100,7 +100,6 @@ div.header-row {
   }
 }
 div.count-row {
-  /*justify-content: center;*/
   > span.summary-count {
     max-width: fit-content;
     font-size: 2em;

@@ -1,7 +1,11 @@
 <template>
   <div>
-    <template v-if="experiment">
-      <div class="experiment-steps">
+    <template
+      v-if="experiment"
+    >
+      <div
+        class="experiment-steps"
+      >
         <aside
           v-if="!this.noSidebar.includes(this.$router.currentRoute.name)"
           class="experiment-steps__sidebar"
@@ -54,6 +58,7 @@
             >
               <v-col
                 md="6"
+                class="steps-container-col"
               >
                 <router-view
                   :key="$route.fullPath"

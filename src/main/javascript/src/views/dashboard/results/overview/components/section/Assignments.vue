@@ -2,10 +2,10 @@
   <v-row
     class="container-table"
   >
-    <h3>Assignments</h3>
+    <h3>Components</h3>
     <DataTable
       :tableData="rows"
-      :titleHeader="`Assignment name`"
+      :titleHeader="`Component name`"
       :includeNote="true"
       :showExpand="true"
       :hasOverall="true"
@@ -31,7 +31,7 @@ export default {
       return [
         {
           id: "submissionRate",
-          message: "This value is calculated by dividing the total number of assignment submissions by the total number of consenting participants."
+          message: "This value is calculated by dividing the total number of component submissions by the total number of consenting participants."
         }
       ]
     },

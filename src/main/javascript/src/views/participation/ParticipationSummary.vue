@@ -28,7 +28,7 @@
       >
         <v-expansion-panel class="py-3 mb-3">
           <v-expansion-panel-header>
-            <strong>Assignment Title</strong>
+            <strong>Component Title</strong>
           </v-expansion-panel-header>
           <v-expansion-panel-content>
             <p>{{ this.experiment.consent.title }}</p>
@@ -76,7 +76,7 @@
       class="mt-3"
       @click="nextSection"
     >
-      Continue to assignments
+      Continue to components
     </v-btn>
   </div>
 </template>
