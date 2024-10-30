@@ -64,6 +64,7 @@ import edu.iu.terracotta.utils.oauth.OAuthUtils;
 import edu.iu.terracotta.utils.LtiStrings;
 import edu.iu.terracotta.utils.TextConstants;
 
+import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.DateUtils;
@@ -342,15 +343,15 @@ public class APIJWTServiceImpl implements APIJWTService {
             assignmentId,
             experimentId,
             consent,
-            lti3Request.getLtiCustom().get("canvas_user_id").toString(),
-            lti3Request.getLtiCustom().get("canvas_user_global_id").toString(),
-            lti3Request.getLtiCustom().get("canvas_login_id").toString(),
-            lti3Request.getLtiCustom().get("canvas_user_name").toString(),
-            lti3Request.getLtiCustom().get("canvas_course_id").toString(),
-            lti3Request.getLtiCustom().get("canvas_assignment_id").toString(),
-            lti3Request.getLtiCustom().get("due_at").toString(),
-            lti3Request.getLtiCustom().get("lock_at").toString(),
-            lti3Request.getLtiCustom().get("unlock_at").toString(),
+            MapUtils.getString(lti3Request.getLtiCustom(), "canvas_user_id", ""),
+            MapUtils.getString(lti3Request.getLtiCustom(), "canvas_user_global_id", ""),
+            MapUtils.getString(lti3Request.getLtiCustom(), "canvas_login_id", ""),
+            MapUtils.getString(lti3Request.getLtiCustom(), "canvas_user_name", ""),
+            MapUtils.getString(lti3Request.getLtiCustom(), "canvas_course_id", ""),
+            MapUtils.getString(lti3Request.getLtiCustom(), "canvas_assignment_id", ""),
+            MapUtils.getString(lti3Request.getLtiCustom(), "due_at", ""),
+            MapUtils.getString(lti3Request.getLtiCustom(), "lock_at", ""),
+            MapUtils.getString(lti3Request.getLtiCustom(), "unlock_at", ""),
             lti3Request.getNonce(),
             extractAllowedAttempts(lti3Request.getLtiCustom()),
             extractStudentAttempts(lti3Request.getLtiCustom()));
