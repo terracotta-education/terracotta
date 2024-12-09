@@ -1,6 +1,6 @@
 <template>
   <div
-    v-if="experiment && assignment && submissions"
+    v-if="experiment && assignment"
   >
     <h1
       class="mb-6"
@@ -88,7 +88,6 @@
 </template>
 
 <script>
-import { clone } from "@/helpers";
 import { mapActions, mapGetters } from "vuex";
 
 export default {
@@ -116,17 +115,10 @@ export default {
       return this.editMode?.callerPage?.name || "ExperimentSummaryStatus";
     },
   },
-  data() {
-    return {
-      submissions: null,
-    };
-  },
   methods: {
     ...mapActions({
       fetchParticipants: "participants/fetchParticipants",
-      fetchAssignment: "assignment/fetchAssignment",
-      updateSubmission: "submissions/updateSubmission",
-      reportStep: "api/reportStep",
+      fetchAssignment: "assignment/fetchAssignment"
     }),
     getParticipantWithSubmission(participants, treatment) {
       return participants.map(p => {
@@ -194,14 +186,6 @@ export default {
         true,
       ]);
       await this.fetchParticipants(this.experiment_id);
-      const submissions = {};
-      for (const treatment of this.assignment.treatments) {
-        for (const submission of treatment.assessmentDto.submissions) {
-          // Create a clone of each submission that can be mutated
-          submissions[submission.submissionId] = clone(submission);
-        }
-      }
-      this.submissions = submissions;
     }
   },
   beforeRouteUpdate() {
