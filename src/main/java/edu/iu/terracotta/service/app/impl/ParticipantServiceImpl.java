@@ -100,16 +100,24 @@ public class ParticipantServiceImpl implements ParticipantService {
 
     @Override
     public List<ParticipantDto> getParticipants(List<Participant> participants, long experimentId, String userId, boolean student, SecuredInfo securedInfo) {
+        Experiment experiment = experimentRepository.findByExperimentId(experimentId);
+        List<Long> publishedExperimentAssignmentIds = calculatedPublishedAssignmentIds(experimentId, securedInfo.getCanvasCourseId(), experiment.getCreatedBy());
+
         if (!student) {
+            if (CollectionUtils.isEmpty(participants)) {
+                log.info("No participants passed in for exeriment ID: [{}]. Retrieving from database.", experimentId);
+                participants = findAllByExperimentId(experimentId);
+            }
+
             return participants.stream()
                 .filter(participant -> !participant.isTestStudent())
-                .map(participant -> toDto(participant, securedInfo))
+                .map(participant -> toDto(participant, publishedExperimentAssignmentIds, securedInfo))
                 .toList();
         }
 
         try {
             return Collections.singletonList(
-                toDto(participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, userId), securedInfo)
+                toDto(participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, userId), publishedExperimentAssignmentIds, securedInfo)
             );
         } catch (NullPointerException ex) {
             // NPE == no participant for this experiment with that userId; return an empty list
@@ -134,6 +142,9 @@ public class ParticipantServiceImpl implements ParticipantService {
 
     @Override
     public ParticipantDto postParticipant(ParticipantDto participantDto, long experimentId, SecuredInfo securedInfo) throws IdInPostException, DataServiceException {
+        Experiment experiment = experimentRepository.findByExperimentId(experimentId);
+        List<Long> publishedExperimentAssignmentIds = calculatedPublishedAssignmentIds(experimentId, securedInfo.getCanvasCourseId(), experiment.getCreatedBy());
+
         if (participantDto.getParticipantId() != null) {
             throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
         }
@@ -147,15 +158,22 @@ public class ParticipantServiceImpl implements ParticipantService {
             throw new DataServiceException("Error 105: Unable to create the participant:" + e.getMessage(), e);
         }
 
-        return toDto(participantRepository.save(participant), securedInfo);
+        return toDto(participantRepository.save(participant), publishedExperimentAssignmentIds, securedInfo);
     }
 
     @Override
     public ParticipantDto toDto(Participant participant, SecuredInfo securedInfo) {
+        List<Long> publishedExperimentAssignmentIds = calculatedPublishedAssignmentIds(participant.getExperiment().getExperimentId(), securedInfo.getCanvasCourseId(), participant.getExperiment().getCreatedBy());
+
+        return toDto(participant, publishedExperimentAssignmentIds, securedInfo);
+    }
+
+    @Override
+    public ParticipantDto toDto(Participant participant, List<Long> publishedExperimentAssignmentIds, SecuredInfo securedInfo) {
         ParticipantDto participantDto = new ParticipantDto();
         participantDto.setParticipantId(participant.getParticipantId());
         participantDto.setExperimentId(participant.getExperiment().getExperimentId());
-        participantDto.setUser(userToDTO(participant.getLtiMembershipEntity().getUser()));
+        participantDto.setUser(userToDTO(participant.getLtiUserEntity()));
         participantDto.setConsent(participant.getConsent());
         participantDto.setDateGiven(participant.getDateGiven());
         participantDto.setDateRevoked(participant.getDateRevoked());
@@ -166,7 +184,7 @@ public class ParticipantServiceImpl implements ParticipantService {
             participantDto.setGroupId(participant.getGroup().getGroupId());
         }
 
-        participantDto.setStarted(hasParticipantSubmitted(participant, securedInfo));
+        participantDto.setStarted(hasParticipantSubmitted(participant, publishedExperimentAssignmentIds));
 
         return participantDto;
     }
@@ -434,10 +452,12 @@ public class ParticipantServiceImpl implements ParticipantService {
     @Override
     @Transactional
     public void changeParticipant(Map<Participant, ParticipantDto> map, Long experimentId, SecuredInfo securedInfo) {
+        Experiment experiment = experimentRepository.findByExperimentId(experimentId);
+        List<Long> publishedExperimentAssignmentIds = calculatedPublishedAssignmentIds(experimentId, securedInfo.getCanvasCourseId(), experiment.getCreatedBy());
+
         for (Map.Entry<Participant, ParticipantDto> entry : map.entrySet()) {
             Participant participantToChange = entry.getKey();
             ParticipantDto participantDto = entry.getValue();
-            Experiment experiment = experimentRepository.findByExperimentId(experimentId);
 
             // If they had consent, and now they don't have, we change the dateRevoked to now.
             // In any other case, we leave the date as it is. Ignoring any value in the PUT
@@ -464,7 +484,7 @@ public class ParticipantServiceImpl implements ParticipantService {
             }
 
             // We don't allow changing the group (manually) once the experiment has started.
-            if (!hasParticipantSubmitted(participantToChange, securedInfo)) {
+            if (!hasParticipantSubmitted(participantToChange, publishedExperimentAssignmentIds)) {
                 if (participantDto.getGroupId() != null
                         && groupRepository.existsByExperiment_ExperimentIdAndGroupId(experiment.getExperimentId(), participantDto.getGroupId())) {
                     participantToChange.setGroup(groupRepository.findByGroupId(participantDto.getGroupId()));
@@ -499,7 +519,7 @@ public class ParticipantServiceImpl implements ParticipantService {
         }
 
         // Don't allow changing consent to true if participant has submitted a response and previously not consented
-        if (hasParticipantSubmitted(participant, securedInfo)
+        if (hasParticipantSubmitted(participant, calculatedPublishedAssignmentIds(experimentId, securedInfo.getCanvasCourseId(), participant.getExperiment().getCreatedBy()))
                 && BooleanUtils.isFalse(participant.getConsent())
                 && BooleanUtils.isTrue(participantDto.getConsent())) {
             throw new ParticipantAlreadyStartedException("Participant has already started experiment, consent cannot be changed to given");
@@ -553,21 +573,7 @@ public class ParticipantServiceImpl implements ParticipantService {
      * @param securedInfo
      * @return
      */
-    private boolean hasParticipantSubmitted(Participant participant, SecuredInfo securedInfo) {
-        // find only published assignments
-        List<Long> publishedExperimentAssignmentIds = assignmentRepository.findByExposure_Experiment_ExperimentId(participant.getExperiment().getExperimentId()).stream()
-            .filter(
-                assignment -> {
-                    try {
-                        return canvasAPIClient.listAssignment(participant.getExperiment().getCreatedBy(), securedInfo.getCanvasCourseId(), Long.parseLong(assignment.getLmsAssignmentId())).get().isPublished();
-                    } catch (Exception e) {
-                        return false;
-                    }
-                }
-            )
-            .map(Assignment::getAssignmentId)
-            .toList();
-
+    private boolean hasParticipantSubmitted(Participant participant, List<Long> publishedExperimentAssignmentIds) {
         // find only published assignment submissions
         List<Submission> publishedSubmissions = submissionRepository.findByParticipant_ParticipantId(participant.getParticipantId()).stream()
             .filter(submission -> publishedExperimentAssignmentIds.contains(submission.getAssessment().getTreatment().getAssignment().getAssignmentId()))
@@ -580,6 +586,23 @@ public class ParticipantServiceImpl implements ParticipantService {
                     .filter(publishedSubmission -> treatmentRepository.findByAssignment_AssignmentId(publishedSubmission.getAssessment().getTreatment().getAssignment().getAssignmentId()).size() > 1)
                     .toList()
             );
+    }
+
+    @Override
+    public List<Long> calculatedPublishedAssignmentIds(long experimentId, String canvasCourseId, LtiUserEntity createdBy) {
+        // find only published assignments
+        return assignmentRepository.findByExposure_Experiment_ExperimentId(experimentId).stream()
+            .filter(
+                assignment -> {
+                    try {
+                        return canvasAPIClient.listAssignment(createdBy, canvasCourseId, Long.parseLong(assignment.getLmsAssignmentId())).get().isPublished();
+                    } catch (Exception e) {
+                        return false;
+                    }
+                }
+            )
+            .map(Assignment::getAssignmentId)
+            .toList();
     }
 
     @Override
@@ -775,6 +798,7 @@ public class ParticipantServiceImpl implements ParticipantService {
      * @param participant
      */
     private void handleInitialConsent(Experiment experiment, Participant participant, SecuredInfo securedInfo) {
+        List<Long> publishedExperimentAssignmentIds = calculatedPublishedAssignmentIds(experiment.getExperimentId(), securedInfo.getCanvasCourseId(), experiment.getCreatedBy());
         if (participant.getConsent() == null || (!participant.getConsent() && participant.getDateRevoked() == null)) {
             if (ParticipationTypes.AUTO.equals(experiment.getParticipationType())) {
                 participant.setConsent(true);
@@ -783,7 +807,7 @@ public class ParticipantServiceImpl implements ParticipantService {
                 return;
             }
 
-            if (!hasParticipantSubmitted(participant, securedInfo)) {
+            if (!hasParticipantSubmitted(participant, publishedExperimentAssignmentIds)) {
                 // participant has no submissions
                 return;
             }
