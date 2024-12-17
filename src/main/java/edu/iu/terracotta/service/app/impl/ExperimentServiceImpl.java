@@ -269,10 +269,12 @@ public class ExperimentServiceImpl implements ExperimentService {
         experimentDto.setExposures(exposureDtoList);
 
         if (participants) {
+            List<Long> publishedExperimentAssignmentIds = participantService.calculatedPublishedAssignmentIds(experiment.getExperimentId(), securedInfo.getCanvasCourseId(), experiment.getCreatedBy());
+
             experimentDto.setParticipants(
                 CollectionUtils.emptyIfNull(participantRepository.findByExperiment_ExperimentId(experiment.getExperimentId())).stream()
                     .filter(participant -> !participant.isTestStudent())
-                    .map(participant -> participantService.toDto(participant, securedInfo))
+                    .map(participant -> participantService.toDto(participant, publishedExperimentAssignmentIds, securedInfo))
                     .toList()
             );
         } else {
