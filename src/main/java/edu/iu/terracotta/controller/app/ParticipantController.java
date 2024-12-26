@@ -35,7 +35,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import jakarta.servlet.http.HttpServletRequest;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -65,9 +64,7 @@ public class ParticipantController {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
-        // TODO re-enable this after UF issue is fixed
-        log.info("Temporarily disabling refreshing of participants from Canvas... Experiment ID: [{}]", experimentId);
-        /*List<Participant> currentParticipantList = participantService.findAllByExperimentId(experimentId);
+        List<Participant> currentParticipantList = participantService.findAllByExperimentId(experimentId);
 
         if (apijwtService.isInstructorOrHigher(securedInfo) && refresh) {
             currentParticipantList = participantService.refreshParticipants(experimentId, currentParticipantList);
@@ -75,9 +72,9 @@ public class ParticipantController {
 
         if (currentParticipantList.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-        }*/
+        }
 
-        return new ResponseEntity<>(participantService.getParticipants(new ArrayList<>(), experimentId, securedInfo.getUserId(), !apijwtService.isInstructorOrHigher(securedInfo), securedInfo), HttpStatus.OK);
+        return new ResponseEntity<>(participantService.getParticipants(currentParticipantList, experimentId, securedInfo.getUserId(), !apijwtService.isInstructorOrHigher(securedInfo), securedInfo), HttpStatus.OK);
     }
 
     @GetMapping("/{participantId}")

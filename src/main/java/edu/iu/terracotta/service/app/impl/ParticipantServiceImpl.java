@@ -101,6 +101,7 @@ public class ParticipantServiceImpl implements ParticipantService {
     @Override
     public List<ParticipantDto> getParticipants(List<Participant> participants, long experimentId, String userId, boolean student, SecuredInfo securedInfo) {
         Experiment experiment = experimentRepository.findByExperimentId(experimentId);
+        // retrieve published assignment IDs from Canvas
         List<Long> publishedExperimentAssignmentIds = calculatedPublishedAssignmentIds(experimentId, securedInfo.getCanvasCourseId(), experiment.getCreatedBy());
 
         if (!student) {
@@ -117,7 +118,11 @@ public class ParticipantServiceImpl implements ParticipantService {
 
         try {
             return Collections.singletonList(
-                toDto(participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, userId), publishedExperimentAssignmentIds, securedInfo)
+                toDto(
+                    participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, userId),
+                    publishedExperimentAssignmentIds,
+                    securedInfo
+                )
             );
         } catch (NullPointerException ex) {
             // NPE == no participant for this experiment with that userId; return an empty list
