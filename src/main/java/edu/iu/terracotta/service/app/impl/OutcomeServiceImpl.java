@@ -235,7 +235,7 @@ public class OutcomeServiceImpl implements OutcomeService {
 
     @Override
     @Transactional
-    public void updateOutcomeGrades(long outcomeId, SecuredInfo securedInfo) throws CanvasApiException, IOException, ParticipantNotUpdatedException, ExperimentNotMatchingException, OutcomeNotMatchingException {
+    public void updateOutcomeGrades(long outcomeId, SecuredInfo securedInfo, boolean refreshParticipants) throws CanvasApiException, IOException, ParticipantNotUpdatedException, ExperimentNotMatchingException, OutcomeNotMatchingException {
         Optional<Outcome> outcomeSearchResult = this.findById(outcomeId);
 
         if (outcomeSearchResult.isEmpty()) {
@@ -249,7 +249,10 @@ public class OutcomeServiceImpl implements OutcomeService {
             return;
         }
 
-        participantService.refreshParticipants(outcome.getExposure().getExperiment().getExperimentId(), outcome.getExposure().getExperiment().getParticipants());
+        if (refreshParticipants) {
+            participantService.refreshParticipants(outcome.getExposure().getExperiment().getExperimentId(), outcome.getExposure().getExperiment().getParticipants());
+        }
+
         List<OutcomeScore> newScores = new ArrayList<>();
         String canvasCourseId = StringUtils.substringBetween(outcome.getExposure().getExperiment().getLtiContextEntity().getContext_memberships_url(), "courses/", "/names");
         LtiUserEntity instructorUser = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());

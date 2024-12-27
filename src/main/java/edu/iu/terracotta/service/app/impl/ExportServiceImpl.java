@@ -58,6 +58,7 @@ import edu.iu.terracotta.repository.TreatmentRepository;
 import edu.iu.terracotta.service.app.AssignmentTreatmentService;
 import edu.iu.terracotta.service.app.ExportService;
 import edu.iu.terracotta.service.app.OutcomeService;
+import edu.iu.terracotta.service.app.ParticipantService;
 import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.service.aws.AWSService;
 import lombok.extern.slf4j.Slf4j;
@@ -121,6 +122,7 @@ public class ExportServiceImpl implements ExportService {
     @Autowired private AWSService awsService;
     @Autowired private Environment env;
     @Autowired private OutcomeService outcomeService;
+    @Autowired private ParticipantService participantService;
     @Autowired private SubmissionService submissionService;
 
     @Value("${app.export.batch.size:50}")
@@ -237,9 +239,13 @@ public class ExportServiceImpl implements ExportService {
         int outcomesPage = 0;
         List<Outcome> outcomes = outcomeRepository.findByExposure_Experiment_ExperimentId(experimentId, PageRequest.of(outcomesPage, exportBatchSize)).getContent();
 
+        if (CollectionUtils.isNotEmpty(outcomes)) {
+            participantService.refreshParticipants(experimentId, outcomes.get(0).getExposure().getExperiment().getParticipants());
+        }
+
         while (CollectionUtils.isNotEmpty(outcomes)) {
             for (Outcome outcome : outcomes) {
-                outcomeService.updateOutcomeGrades(outcome.getOutcomeId(), securedInfo);
+                outcomeService.updateOutcomeGrades(outcome.getOutcomeId(), securedInfo, false);
             }
 
             outcomes = outcomeRepository.findByExposure_Experiment_ExperimentId(experimentId, PageRequest.of(++outcomesPage, exportBatchSize)).getContent();
@@ -289,7 +295,7 @@ public class ExportServiceImpl implements ExportService {
                             String.valueOf(outcomeScore.getOutcome().getExposure().getExposureId()),
                             outcomeScore.getOutcome().getLmsType().toString(),
                             StringUtils.isBlank(outcomeScore.getOutcome().getTitle()) ? NA : outcomeScore.getOutcome().getTitle(),
-                            outcomeScore.getOutcome().getMaxPoints().toString(),
+                            outcomeScore.getOutcome().getMaxPoints() != null ? outcomeScore.getOutcome().getMaxPoints().toString() : NA,
                             outcomeScore.getScoreNumeric() != null ? outcomeScore.getScoreNumeric().toString() : NA,
                             StringUtils.EMPTY,
                             StringUtils.EMPTY

@@ -90,7 +90,7 @@ public class OutcomeController {
         }
 
         if (updateScores) {
-            outcomeService.updateOutcomeGrades(outcomeId, securedInfo);
+            outcomeService.updateOutcomeGrades(outcomeId, securedInfo, true);
         }
 
         OutcomeDto outcomeDto = outcomeService.toDto(outcomeService.getOutcome(outcomeId), outcomeScores);

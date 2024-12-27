@@ -29,7 +29,7 @@ public interface OutcomeService {
     void updateOutcome(long outcomeId, OutcomeDto outcomeDto) throws TitleValidationException;
     void deleteById(long id) throws EmptyResultDataAccessException;
     List<OutcomePotentialDto> potentialOutcomes(long experimentId, SecuredInfo securedInfo) throws DataServiceException, CanvasApiException;
-    void updateOutcomeGrades(long outcomeId, SecuredInfo securedInfo) throws CanvasApiException, IOException, ParticipantNotUpdatedException, ExperimentNotMatchingException, OutcomeNotMatchingException;
+    void updateOutcomeGrades(long outcomeId, SecuredInfo securedInfo, boolean refreshParticipants) throws CanvasApiException, IOException, ParticipantNotUpdatedException, ExperimentNotMatchingException, OutcomeNotMatchingException;
     void defaultOutcome(OutcomeDto outcomeDto) throws TitleValidationException;
     HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, long experimentId, long exposureId, long outcomeId);
 
