@@ -60,7 +60,7 @@ public class OutcomeServiceImplTest extends BaseTest {
 
     @Test
     public void testUpdateOutcomeGrades() throws CanvasApiException, IOException, ParticipantNotUpdatedException, ExperimentNotMatchingException, OutcomeNotMatchingException {
-        outcomeService.updateOutcomeGrades(1l, securedInfo);
+        outcomeService.updateOutcomeGrades(1l, securedInfo, false);
 
         verify(outcomeScoreRepository, never()).save(any(OutcomeScore.class));
     }
@@ -69,7 +69,7 @@ public class OutcomeServiceImplTest extends BaseTest {
     public void testUpdateOutcomeGradesNoEmail() throws CanvasApiException, IOException, ParticipantNotUpdatedException, ExperimentNotMatchingException, OutcomeNotMatchingException {
         when(ltiUserEntity.getEmail()).thenReturn(null);
 
-        outcomeService.updateOutcomeGrades(1l, securedInfo);
+        outcomeService.updateOutcomeGrades(1l, securedInfo, false);
 
         verify(outcomeScoreRepository, never()).save(any(OutcomeScore.class));
     }
@@ -78,7 +78,7 @@ public class OutcomeServiceImplTest extends BaseTest {
     public void testUpdateOutcomeGradesNoScores() throws CanvasApiException, IOException, ParticipantNotUpdatedException, ExperimentNotMatchingException, OutcomeNotMatchingException {
         when(outcome.getOutcomeScores()).thenReturn(Collections.emptyList());
 
-        outcomeService.updateOutcomeGrades(1l, securedInfo);
+        outcomeService.updateOutcomeGrades(1l, securedInfo, false);
 
         verify(outcomeScoreRepository).save(any(OutcomeScore.class));
     }
@@ -88,7 +88,7 @@ public class OutcomeServiceImplTest extends BaseTest {
         when(outcome.getOutcomeScores()).thenReturn(Collections.emptyList());
         when(ltiUserEntity.getEmail()).thenReturn(null);
 
-        outcomeService.updateOutcomeGrades(1l, securedInfo);
+        outcomeService.updateOutcomeGrades(1l, securedInfo, false);
 
         verify(outcomeScoreRepository).save(any(OutcomeScore.class));
     }
