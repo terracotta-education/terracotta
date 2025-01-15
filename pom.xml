@@ -306,29 +306,41 @@
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <version>${jacoco.version}</version>
+                <configuration>
+                    <excludes>
+                        <exclude>**/edu/iu/terracotta/config/*</exclude>
+                        <exclude>**/edu/iu/terracotta/connectors/generic/dao/*</exclude>
+                        <exclude>**/edu/iu/terracotta/connectors/canvas/dao/*</exclude>
+                        <exclude>**/edu/iu/terracotta/connectors/oneedtech/*</exclude>
+                        <exclude>**/edu/iu/terracotta/dao/*</exclude>
+                        <exclude>**/edu/iu/terracotta/exceptions/*</exclude>
+                        <exclude>**/edu/iu/terracotta/security/*</exclude>
+                        <exclude>**/edu/iu/terracotta/Terracotta.class</exclude>
+                    </excludes>
+                </configuration>
                 <executions>
-                <execution>
-                    <id>prepare-agent</id>
-                            <goals>
+                    <execution>
+                        <id>prepare-agent</id>
+                        <goals>
                             <goal>prepare-agent</goal>
-                            </goals>
-                            <configuration>
-                                <destFile>${project.build.directory}/coverage-reports/jacoco-ut.exec</destFile>
-                                <propertyName>surefireArgLine</propertyName>
-                            </configuration>
+                        </goals>
+                        <configuration>
+                            <destFile>${project.build.directory}/coverage-reports/jacoco-ut.exec</destFile>
+                            <propertyName>surefireArgLine</propertyName>
+                        </configuration>
                     </execution>
                     <execution>
-                            <id>report</id>
-                            <phase>test</phase>
-                            <goals>
+                        <id>report</id>
+                        <phase>test</phase>
+                        <goals>
                             <goal>report</goal>
-                            </goals>
-                            <configuration>
-                                <dataFile>${project.build.directory}/coverage-reports/jacoco-ut.exec</dataFile>
-                                <outputDirectory>${project.reporting.outputDirectory}/jacoco-ut</outputDirectory>
-                            </configuration>
-                        </execution>
-                    </executions>
+                        </goals>
+                        <configuration>
+                            <dataFile>${project.build.directory}/coverage-reports/jacoco-ut.exec</dataFile>
+                            <outputDirectory>${project.reporting.outputDirectory}/jacoco-ut</outputDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

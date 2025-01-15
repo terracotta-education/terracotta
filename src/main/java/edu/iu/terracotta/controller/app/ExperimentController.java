@@ -1,19 +1,20 @@
 package edu.iu.terracotta.controller.app;
 
+import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
+import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
+import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
+import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
+import edu.iu.terracotta.dao.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.OutcomeNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.ParticipantNotUpdatedException;
+import edu.iu.terracotta.dao.model.dto.ExperimentDto;
 import edu.iu.terracotta.exceptions.BadTokenException;
-import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentLockedException;
-import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.ExperimentStartedException;
 import edu.iu.terracotta.exceptions.IdInPostException;
-import edu.iu.terracotta.exceptions.OutcomeNotMatchingException;
-import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.exceptions.WrongValueException;
-import edu.iu.terracotta.model.app.dto.ExperimentDto;
-import edu.iu.terracotta.model.oauth2.SecuredInfo;
-import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.ExportService;
 import edu.iu.terracotta.utils.TextConstants;
@@ -53,13 +54,15 @@ public class ExperimentController {
 
     @Autowired private ExperimentService experimentService;
     @Autowired private ExportService exportService;
-    @Autowired private APIJWTService apijwtService;
+    @Autowired private ApiJwtService apijwtService;
 
     /**
      * To show the experiment in a course (context) in a platform deployment.
+     * @throws TerracottaConnectorException
+     * @throws NumberFormatException
      */
     @GetMapping
-    public ResponseEntity<List<ExperimentDto>> allExperimentsByCourse(HttpServletRequest req) throws BadTokenException {
+    public ResponseEntity<List<ExperimentDto>> allExperimentsByCourse(HttpServletRequest req) throws BadTokenException, NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
 
         if (securedInfo == null) {
@@ -81,14 +84,16 @@ public class ExperimentController {
 
     /**
      * To show the an specific experiment.
-     */
-    @GetMapping("/{id}")
-    public ResponseEntity<ExperimentDto> getExperiment(@PathVariable long id,
-                                                       @RequestParam(name = "conditions", defaultValue = "false") boolean conditions,
-                                                       @RequestParam(name = "exposures", defaultValue = "false") boolean exposures,
-                                                       @RequestParam(name = "participants", defaultValue = "false") boolean participants,
-                                                       HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException {
+          * @throws TerracottaConnectorException
+          * @throws NumberFormatException
+          */
+         @GetMapping("/{id}")
+         public ResponseEntity<ExperimentDto> getExperiment(@PathVariable long id,
+                                                            @RequestParam(name = "conditions", defaultValue = "false") boolean conditions,
+                                                            @RequestParam(name = "exposures", defaultValue = "false") boolean exposures,
+                                                            @RequestParam(name = "participants", defaultValue = "false") boolean participants,
+                                                            HttpServletRequest req)
+                 throws ExperimentNotMatchingException, BadTokenException, NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, id);
 
@@ -105,7 +110,7 @@ public class ExperimentController {
     public ResponseEntity<ExperimentDto> postExperiment(@RequestBody ExperimentDto experimentDto,
                                                         UriComponentsBuilder ucBuilder,
                                                         HttpServletRequest req)
-            throws BadTokenException, TitleValidationException, IdInPostException, DataServiceException {
+            throws BadTokenException, TitleValidationException, IdInPostException, DataServiceException, NumberFormatException, TerracottaConnectorException {
         log.debug("Creating Experiment with title : {}", experimentDto.getTitle());
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
 
@@ -142,7 +147,7 @@ public class ExperimentController {
                                                  @RequestBody ExperimentDto experimentDto,
                                                  HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, WrongValueException, TitleValidationException, ParticipantNotUpdatedException,
-                    DataServiceException, ExperimentStartedException {
+                    DataServiceException, ExperimentStartedException, IOException, NumberFormatException, TerracottaConnectorException {
         log.debug("Updating Experiment with id {}", id);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, id);
@@ -159,7 +164,7 @@ public class ExperimentController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteExperiment(@PathVariable long id,
                                                  HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, ExperimentLockedException {
+            throws ExperimentNotMatchingException, BadTokenException, ExperimentLockedException, IOException, NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, id);
         apijwtService.experimentLocked(id,true);
@@ -179,7 +184,7 @@ public class ExperimentController {
 
     @GetMapping(value = "/{experimentId}/zip", produces = "application/zip")
     public ResponseEntity<ByteArrayResource> downloadZip(@PathVariable long experimentId, HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, IOException, CanvasApiException, ParticipantNotUpdatedException, OutcomeNotMatchingException {
+            throws ExperimentNotMatchingException, BadTokenException, IOException, ApiException, ParticipantNotUpdatedException, OutcomeNotMatchingException, NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
 

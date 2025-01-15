@@ -1,26 +1,15 @@
-/**
- * Copyright 2021 Unicon (R)
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- * http://www.apache.org/licenses/LICENSE-2.0
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package edu.iu.terracotta.controller.lti;
 
 
-import edu.iu.terracotta.exceptions.ConnectionException;
-import edu.iu.terracotta.repository.LtiContextRepository;
-import edu.iu.terracotta.repository.ToolDeploymentRepository;
-import edu.iu.terracotta.model.LtiContextEntity;
-import edu.iu.terracotta.model.ToolDeployment;
-import edu.iu.terracotta.model.membership.CourseUsers;
-import edu.iu.terracotta.model.oauth2.LTIToken;
-import edu.iu.terracotta.service.lti.AdvantageMembershipService;
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiContextEntity;
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.ToolDeployment;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.membership.CourseUsers;
+import edu.iu.terracotta.connectors.generic.dao.model.lti.LtiToken;
+import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiContextRepository;
+import edu.iu.terracotta.connectors.generic.dao.repository.lti.ToolDeploymentRepository;
+import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
+import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
+import edu.iu.terracotta.connectors.generic.service.lti.advantage.AdvantageMembershipService;
 import edu.iu.terracotta.utils.LtiStrings;
 import edu.iu.terracotta.utils.TextConstants;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,7 +37,7 @@ public class MembershipController {
     @Autowired private AdvantageMembershipService advantageMembershipService;
 
     @RequestMapping({"", "/"})
-    public String membershipGet(HttpServletRequest req, Principal principal, Model model) throws ConnectionException {
+    public String membershipGet(HttpServletRequest req, Principal principal, Model model) throws ConnectionException, TerracottaConnectorException {
 
         //To keep this endpoint secured, we will only allow access to the course/platform stored in the session.
         //LTI Advantage services doesn't need a session to access to the membership, but we implemented this control here
@@ -71,7 +60,7 @@ public class MembershipController {
 
             //Call the membership service to get the users on the context
             // 1. Get the token
-            LTIToken ltiToken = advantageMembershipService.getToken(toolDeployment.get().getPlatformDeployment());
+            LtiToken ltiToken = advantageMembershipService.getToken(toolDeployment.get().getPlatformDeployment());
 
             // 2. Call the service
             CourseUsers courseUsers = advantageMembershipService.callMembershipService(ltiToken, context);

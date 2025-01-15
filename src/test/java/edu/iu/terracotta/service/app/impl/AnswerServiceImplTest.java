@@ -21,9 +21,9 @@ import org.mockito.InjectMocks;
 import org.mockito.MockitoAnnotations;
 
 import edu.iu.terracotta.base.BaseTest;
-import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
-import edu.iu.terracotta.model.app.AnswerMc;
-import edu.iu.terracotta.model.app.dto.AnswerDto;
+import edu.iu.terracotta.dao.entity.AnswerMc;
+import edu.iu.terracotta.dao.exceptions.QuestionNotMatchingException;
+import edu.iu.terracotta.dao.model.dto.AnswerDto;
 import edu.iu.terracotta.utils.TextConstants;
 
 public class AnswerServiceImplTest extends BaseTest {

@@ -1,18 +1,19 @@
 package edu.iu.terracotta.controller.app;
 
+import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
+import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
+import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
+import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
+import edu.iu.terracotta.dao.entity.Participant;
+import edu.iu.terracotta.dao.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.ParticipantNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.ParticipantNotUpdatedException;
+import edu.iu.terracotta.dao.model.dto.ParticipantDto;
 import edu.iu.terracotta.exceptions.BadTokenException;
-import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
-import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.InvalidUserException;
 import edu.iu.terracotta.exceptions.ParticipantAlreadyStartedException;
-import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
-import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
-import edu.iu.terracotta.model.app.Participant;
-import edu.iu.terracotta.model.app.dto.ParticipantDto;
-import edu.iu.terracotta.model.oauth2.SecuredInfo;
-import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.ParticipantService;
 import edu.iu.terracotta.utils.TextConstants;
 import lombok.extern.slf4j.Slf4j;
@@ -49,13 +50,13 @@ public class ParticipantController {
     public static final String REQUEST_ROOT = "api/experiments/{experimentId}/participants";
 
     @Autowired private ParticipantService participantService;
-    @Autowired private APIJWTService apijwtService;
+    @Autowired private ApiJwtService apijwtService;
 
     @GetMapping
     public ResponseEntity<List<ParticipantDto>> allParticipantsByExperiment(@PathVariable long experimentId,
                                                                             @RequestParam(name = "refresh", defaultValue = "true") boolean refresh,
                                                                             HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, ParticipantNotUpdatedException {
+            throws ExperimentNotMatchingException, BadTokenException, ParticipantNotUpdatedException, NumberFormatException, TerracottaConnectorException {
 
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -81,7 +82,7 @@ public class ParticipantController {
     public ResponseEntity<ParticipantDto> getParticipant(@PathVariable long experimentId,
                                                         @PathVariable long participantId,
                                                         HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, ParticipantNotMatchingException, InvalidUserException {
+            throws ExperimentNotMatchingException, BadTokenException, ParticipantNotMatchingException, InvalidUserException, NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.participantAllowed(securedInfo, experimentId, participantId);
@@ -104,7 +105,7 @@ public class ParticipantController {
                                                          @RequestBody ParticipantDto participantDto,
                                                          UriComponentsBuilder ucBuilder,
                                                          HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, IdInPostException, DataServiceException {
+            throws ExperimentNotMatchingException, BadTokenException, IdInPostException, DataServiceException, NumberFormatException, TerracottaConnectorException {
         log.debug("Creating Participant for experiment ID: {}", experimentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -124,7 +125,7 @@ public class ParticipantController {
                                                   @PathVariable long participantId,
                                                   @RequestBody ParticipantDto participantDto,
                                                   HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, ParticipantNotMatchingException, DataServiceException, InvalidUserException {
+            throws ExperimentNotMatchingException, BadTokenException, ParticipantNotMatchingException, DataServiceException, InvalidUserException, NumberFormatException, TerracottaConnectorException {
         log.debug("Updating Participant with id {}", participantId);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -149,7 +150,7 @@ public class ParticipantController {
             try {
                 participantService.postConsentSubmission(participant, securedInfo);
             } catch (ConnectionException e) {
-                throw new RuntimeException("Failed to post grade to Canvas for consent submission", e);
+                throw new RuntimeException("Failed to post grade to the LMS for consent submission", e);
             }
 
             try {
@@ -175,7 +176,7 @@ public class ParticipantController {
     public ResponseEntity<Void> updateParticipants(@PathVariable long experimentId,
                                                    @RequestBody List<ParticipantDto> participantDtoList,
                                                    HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, ParticipantNotMatchingException, DataServiceException, InvalidUserException {
+            throws ExperimentNotMatchingException, BadTokenException, ParticipantNotMatchingException, DataServiceException, InvalidUserException, NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
 
@@ -205,7 +206,7 @@ public class ParticipantController {
     public ResponseEntity<Void> deleteParticipant(@PathVariable long experimentId,
                                                   @PathVariable Long participantId,
                                                   HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, ParticipantNotMatchingException, InvalidUserException {
+            throws ExperimentNotMatchingException, BadTokenException, ParticipantNotMatchingException, InvalidUserException, NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.participantAllowed(securedInfo, experimentId, participantId);

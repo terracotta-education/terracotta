@@ -1,18 +1,19 @@
 package edu.iu.terracotta.controller.app;
 
+import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
+import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
+import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
+import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
+import edu.iu.terracotta.dao.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.ExposureNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.OutcomeNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.ParticipantNotUpdatedException;
+import edu.iu.terracotta.dao.model.dto.OutcomeDto;
+import edu.iu.terracotta.dao.model.dto.OutcomePotentialDto;
 import edu.iu.terracotta.exceptions.BadTokenException;
-import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.DataServiceException;
-import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
-import edu.iu.terracotta.exceptions.ExposureNotMatchingException;
 import edu.iu.terracotta.exceptions.IdInPostException;
-import edu.iu.terracotta.exceptions.OutcomeNotMatchingException;
-import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
-import edu.iu.terracotta.model.app.dto.OutcomeDto;
-import edu.iu.terracotta.model.app.dto.OutcomePotentialDto;
-import edu.iu.terracotta.model.oauth2.SecuredInfo;
-import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.OutcomeService;
 import edu.iu.terracotta.utils.TextConstants;
 import lombok.extern.slf4j.Slf4j;
@@ -46,14 +47,14 @@ public class OutcomeController {
 
     public static final String REQUEST_ROOT = "api/experiments/{experimentId}";
 
-    @Autowired private APIJWTService apijwtService;
+    @Autowired private ApiJwtService apijwtService;
     @Autowired private OutcomeService outcomeService;
 
     @GetMapping("/exposures/{exposureId}/outcomes")
     public ResponseEntity<List<OutcomeDto>> allOutcomesByExposure(@PathVariable long experimentId,
                                                                   @PathVariable long exposureId,
                                                                   HttpServletRequest req)
-            throws ExperimentNotMatchingException, ExposureNotMatchingException, BadTokenException {
+            throws ExperimentNotMatchingException, ExposureNotMatchingException, BadTokenException, NumberFormatException, TerracottaConnectorException {
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -79,7 +80,7 @@ public class OutcomeController {
                                                  @RequestParam(name = "outcome_scores", defaultValue = "false") boolean outcomeScores,
                                                  @RequestParam(name = "update_scores", defaultValue = "true") boolean updateScores,
                                                  HttpServletRequest req)
-            throws ExperimentNotMatchingException, OutcomeNotMatchingException, BadTokenException, CanvasApiException, ParticipantNotUpdatedException, IOException {
+            throws ExperimentNotMatchingException, OutcomeNotMatchingException, BadTokenException, ApiException, ParticipantNotUpdatedException, IOException, NumberFormatException, TerracottaConnectorException {
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -104,7 +105,7 @@ public class OutcomeController {
                                                   @RequestBody OutcomeDto outcomeDto,
                                                   UriComponentsBuilder ucBuilder,
                                                   HttpServletRequest req)
-            throws ExperimentNotMatchingException, ExposureNotMatchingException, BadTokenException, TitleValidationException, IdInPostException, DataServiceException {
+            throws ExperimentNotMatchingException, ExposureNotMatchingException, BadTokenException, TitleValidationException, IdInPostException, DataServiceException, NumberFormatException, TerracottaConnectorException {
         log.debug("Creating Outcome for exposure ID: {}", exposureId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -126,7 +127,7 @@ public class OutcomeController {
                                               @PathVariable long outcomeId,
                                               @RequestBody OutcomeDto outcomeDto,
                                               HttpServletRequest req)
-            throws ExperimentNotMatchingException, OutcomeNotMatchingException, BadTokenException, TitleValidationException {
+            throws ExperimentNotMatchingException, OutcomeNotMatchingException, BadTokenException, TitleValidationException, NumberFormatException, TerracottaConnectorException {
         log.debug("Updating outcome with id {}", outcomeId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -146,7 +147,7 @@ public class OutcomeController {
                                               @PathVariable long exposureId,
                                               @PathVariable long outcomeId,
                                               HttpServletRequest req)
-            throws ExperimentNotMatchingException, OutcomeNotMatchingException, BadTokenException {
+            throws ExperimentNotMatchingException, OutcomeNotMatchingException, BadTokenException, NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.outcomeAllowed(securedInfo, experimentId, exposureId, outcomeId);
@@ -166,7 +167,7 @@ public class OutcomeController {
 
     @GetMapping("/outcome_potentials")
     public ResponseEntity<List<OutcomePotentialDto>> outcomePotentials(@PathVariable long experimentId, HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, DataServiceException, CanvasApiException {
+            throws ExperimentNotMatchingException, BadTokenException, DataServiceException, ApiException, NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
 
@@ -181,7 +182,7 @@ public class OutcomeController {
 
     @GetMapping("/outcomes")
     public ResponseEntity<List<OutcomeDto>> getOutcomesForExperiment(@PathVariable long experimentId, HttpServletRequest req)
-            throws ExperimentNotMatchingException, OutcomeNotMatchingException, BadTokenException, CanvasApiException, ParticipantNotUpdatedException, IOException {
+            throws ExperimentNotMatchingException, OutcomeNotMatchingException, BadTokenException, ApiException, ParticipantNotUpdatedException, IOException, NumberFormatException, TerracottaConnectorException {
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);

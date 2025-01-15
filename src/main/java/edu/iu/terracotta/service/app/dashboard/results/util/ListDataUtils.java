@@ -9,14 +9,14 @@ import java.util.Optional;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 
-import edu.iu.terracotta.model.app.Assessment;
-import edu.iu.terracotta.model.app.Assignment;
-import edu.iu.terracotta.model.app.Exposure;
-import edu.iu.terracotta.model.app.ExposureGroupCondition;
-import edu.iu.terracotta.model.app.Participant;
-import edu.iu.terracotta.model.app.Submission;
-import edu.iu.terracotta.model.app.Treatment;
-import edu.iu.terracotta.model.canvas.AssignmentExtended;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsAssignment;
+import edu.iu.terracotta.dao.entity.Assessment;
+import edu.iu.terracotta.dao.entity.Assignment;
+import edu.iu.terracotta.dao.entity.Exposure;
+import edu.iu.terracotta.dao.entity.ExposureGroupCondition;
+import edu.iu.terracotta.dao.entity.Participant;
+import edu.iu.terracotta.dao.entity.Submission;
+import edu.iu.terracotta.dao.entity.Treatment;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
@@ -93,9 +93,9 @@ public final class ListDataUtils {
             .toList();
     }
 
-    public static List<Integer> findAllLmsAssignmentIds(List<Assignment> experimentAssignments) {
+    public static List<String> findAllLmsAssignmentIds(List<Assignment> experimentAssignments) {
         return experimentAssignments.stream()
-            .map(experimentAssignment -> Integer.parseInt(experimentAssignment.getLmsAssignmentId()))
+            .map(experimentAssignment -> experimentAssignment.getLmsAssignmentId())
             .toList();
     }
 
@@ -116,9 +116,9 @@ public final class ListDataUtils {
         return findTreatmentsByAssignmentId(assignmentId, allTreatmentsByAssignment).size();
     }
 
-    public static Optional<AssignmentExtended> findCanvasAssignmentByLmsAssignmentId(String lmsAssignmentId, List<AssignmentExtended> experimentAssignmentsExtended) {
-        return experimentAssignmentsExtended.stream()
-            .filter(assignmentExtended -> assignmentExtended.getId().equals(Long.parseLong(lmsAssignmentId)))
+    public static Optional<LmsAssignment> findLmsAssignmentByLmsAssignmentId(String lmsAssignmentId, List<LmsAssignment> experimentLmsAssignments) {
+        return experimentLmsAssignments.stream()
+            .filter(lmsAssignment -> lmsAssignment.getId().equals(lmsAssignmentId))
             .findFirst();
     }
 

@@ -4,9 +4,9 @@
         xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext
-   http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd
-   http://www.liquibase.org/xml/ns/dbchangelog
-   http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd"
+          http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd
+          http://www.liquibase.org/xml/ns/dbchangelog
+          http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd"
 >
   <include file="db/changelog/2021/05/21-01-changelog.xml"/>
   <include file="db/changelog/2021/05/24-01-changelog.xml"/>
@@ -70,4 +70,5 @@
   <include file="db/changelog/2025/02/04-01-changelog.xml"/>
   <include file="db/changelog/2025/02/06-01-changelog.xml"/>
   <include file="db/changelog/2025/02/07-01-changelog.xml"/>
+  <include file="db/changelog/2025/TCOTA-821-changelog.xml"/>
 </databaseChangeLog>

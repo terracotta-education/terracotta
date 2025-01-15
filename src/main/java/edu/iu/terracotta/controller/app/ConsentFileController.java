@@ -1,19 +1,21 @@
 package edu.iu.terracotta.controller.app;
 
 import com.google.common.net.HttpHeaders;
-import edu.iu.terracotta.exceptions.AssignmentNotCreatedException;
-import edu.iu.terracotta.exceptions.AssignmentNotEditedException;
-import edu.iu.terracotta.exceptions.AssignmentNotMatchingException;
+
+import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
+import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
+import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
+import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
+import edu.iu.terracotta.dao.entity.ConsentDocument;
+import edu.iu.terracotta.dao.entity.Experiment;
+import edu.iu.terracotta.dao.exceptions.AssignmentNotCreatedException;
+import edu.iu.terracotta.dao.exceptions.AssignmentNotEditedException;
+import edu.iu.terracotta.dao.exceptions.AssignmentNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.dao.model.dto.FileInfoDto;
+import edu.iu.terracotta.dao.repository.ExperimentRepository;
 import edu.iu.terracotta.exceptions.BadConsentFileTypeException;
 import edu.iu.terracotta.exceptions.BadTokenException;
-import edu.iu.terracotta.exceptions.CanvasApiException;
-import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
-import edu.iu.terracotta.model.app.ConsentDocument;
-import edu.iu.terracotta.model.app.Experiment;
-import edu.iu.terracotta.model.app.dto.FileInfoDto;
-import edu.iu.terracotta.model.oauth2.SecuredInfo;
-import edu.iu.terracotta.repository.ExperimentRepository;
-import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.utils.TextConstants;
@@ -47,17 +49,17 @@ public class ConsentFileController {
     public static final String REQUEST_ROOT = "api/experiments/{experimentId}/consent";
 
     @Autowired private ExperimentRepository experimentRepository;
-    @Autowired private APIJWTService apijwtService;
+    @Autowired private ApiJwtService apijwtService;
     @Autowired private ExperimentService experimentService;
     @Autowired private FileStorageService fileStorageService;
 
     @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    @Transactional(rollbackFor = {AssignmentNotCreatedException.class, CanvasApiException.class})
+    @Transactional(rollbackFor = {AssignmentNotCreatedException.class, ApiException.class})
     public ResponseEntity<FileInfoDto> postConsent(@RequestParam("consent") MultipartFile file,
                                                           @PathVariable long experimentId,
                                                           @RequestParam(name = "title", defaultValue = "Invitation to Participate in a Research Study") String title,
                                                           HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, BadConsentFileTypeException, AssignmentNotCreatedException, CanvasApiException, AssignmentNotEditedException, AssignmentNotMatchingException {
+            throws ExperimentNotMatchingException, BadTokenException, BadConsentFileTypeException, AssignmentNotCreatedException, ApiException, AssignmentNotEditedException, AssignmentNotMatchingException, IOException, NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
 
@@ -73,7 +75,7 @@ public class ConsentFileController {
     }
 
     @GetMapping
-    public ResponseEntity<Resource> getConsent(@PathVariable long experimentId, HttpServletRequest req) throws ExperimentNotMatchingException, BadTokenException {
+    public ResponseEntity<Resource> getConsent(@PathVariable long experimentId, HttpServletRequest req) throws ExperimentNotMatchingException, BadTokenException, NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
 
@@ -101,7 +103,7 @@ public class ConsentFileController {
     }
 
     @DeleteMapping
-    public ResponseEntity<Void> deleteConsent(@PathVariable long experimentId, HttpServletRequest req) throws ExperimentNotMatchingException, BadTokenException {
+    public ResponseEntity<Void> deleteConsent(@PathVariable long experimentId, HttpServletRequest req) throws ExperimentNotMatchingException, BadTokenException, NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
 

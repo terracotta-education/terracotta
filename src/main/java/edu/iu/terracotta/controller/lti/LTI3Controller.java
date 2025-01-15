@@ -1,28 +1,29 @@
 package edu.iu.terracotta.controller.lti;
 
-import edu.iu.terracotta.controller.app.LMSOAuthController;
-import edu.iu.terracotta.exceptions.CanvasApiException;
-import edu.iu.terracotta.exceptions.ConnectionException;
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiLinkEntity;
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
+import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiLinkRepository;
+import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
+import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
+import edu.iu.terracotta.connectors.generic.exceptions.LmsOAuthException;
+import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
+import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
+import edu.iu.terracotta.connectors.generic.service.lms.LmsOAuthService;
+import edu.iu.terracotta.connectors.generic.service.lms.LmsOAuthServiceManager;
+import edu.iu.terracotta.connectors.generic.service.lti.LtiDataService;
+import edu.iu.terracotta.connectors.generic.service.lti.LtiJwtService;
+import edu.iu.terracotta.controller.app.LmsOAuthController;
+import edu.iu.terracotta.dao.exceptions.FeatureNotFoundException;
 import edu.iu.terracotta.exceptions.DataServiceException;
-import edu.iu.terracotta.exceptions.LMSOAuthException;
-import edu.iu.terracotta.exceptions.app.FeatureNotFoundException;
-import edu.iu.terracotta.repository.LtiLinkRepository;
 import edu.iu.terracotta.service.caliper.CaliperService;
-import edu.iu.terracotta.service.common.LMSOAuthService;
-import edu.iu.terracotta.service.common.LMSOAuthServiceManager;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.security.SignatureException;
 import lombok.extern.slf4j.Slf4j;
-import edu.iu.terracotta.model.LtiLinkEntity;
-import edu.iu.terracotta.model.LtiUserEntity;
-import edu.iu.terracotta.model.PlatformDeployment;
-import edu.iu.terracotta.service.app.APIJWTService;
-import edu.iu.terracotta.service.lti.LTIDataService;
-import edu.iu.terracotta.service.lti.LTIJWTService;
 import edu.iu.terracotta.utils.LtiStrings;
 import edu.iu.terracotta.utils.TextConstants;
-import edu.iu.terracotta.utils.lti.LTI3Request;
+import edu.iu.terracotta.utils.lti.Lti3Request;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -55,17 +56,17 @@ import java.util.Optional;
 @Scope("session")
 @RequestMapping("/lti3")
 @SuppressWarnings({"PMD.GuardLogStatement"})
-public class LTI3Controller {
+public class Lti3Controller {
 
-    @Autowired  private LTIJWTService ltijwtService;
-    @Autowired private APIJWTService apiJWTService;
+    @Autowired  private LtiJwtService ltijwtService;
+    @Autowired private ApiJwtService apiJwtService;
     @Autowired private LtiLinkRepository ltiLinkRepository;
-    @Autowired private LTIDataService ltiDataService;
+    @Autowired private LtiDataService ltiDataService;
     @Autowired private CaliperService caliperService;
-    @Autowired private LMSOAuthServiceManager lmsoAuthServiceManager;
+    @Autowired private LmsOAuthServiceManager lmsOAuthServiceManager;
 
     @RequestMapping({"", "/"})
-    public String home(HttpServletRequest req, Principal principal, Model model) throws DataServiceException, CanvasApiException, ConnectionException, LMSOAuthException {
+    public String home(HttpServletRequest req, Principal principal, Model model) throws DataServiceException, ApiException, ConnectionException, LmsOAuthException, TerracottaConnectorException {
         // First we will get the state, validate it
         String state = req.getParameter("state");
         // We will use this link to find the content to display.
@@ -73,7 +74,7 @@ public class LTI3Controller {
 
         try {
             Jws<Claims> claims = ltijwtService.validateState(state);
-            LTI3Request lti3Request = LTI3Request.getInstance(link);
+            Lti3Request lti3Request = Lti3Request.getInstance(link);
 
             // This is just an extra check that we have added, but it is not necessary.
             // Checking that the clientId in the status matches the one coming with the ltiRequest.
@@ -139,15 +140,15 @@ public class LTI3Controller {
                 return "lti3Result";
             }
 
-            String oneTimeToken = apiJWTService.buildJwt(true, lti3Request);
+            String oneTimeToken = apiJwtService.buildJwt(true, lti3Request);
             caliperService.sendToolUseEvent(
                 lti3Request.getMembership(),
-                lti3Request.getLtiCustom().getOrDefault("canvas_user_global_id", "Anonymous").toString(),
-                lti3Request.getLtiCustom().getOrDefault("canvas_course_id", "UnknownCourse").toString(),
-                lti3Request.getLtiCustom().getOrDefault("canvas_user_id", "Anonymous").toString(),
-                lti3Request.getLtiCustom().getOrDefault("canvas_login_id", "Anonymous").toString(),
+                lti3Request.getLtiCustom().getOrDefault("lms_user_global_id", "Anonymous").toString(),
+                lti3Request.getLtiCustom().getOrDefault("lms_course_id", "UnknownCourse").toString(),
+                lti3Request.getLtiCustom().getOrDefault("lms_user_id", "Anonymous").toString(),
+                lti3Request.getLtiCustom().getOrDefault("lms_login_id", "Anonymous").toString(),
                 lti3Request.getLtiRoles(),
-                lti3Request.getLtiCustom().getOrDefault("canvas_user_name", "Anonymous").toString()
+                lti3Request.getLtiCustom().getOrDefault("lms_user_name", "Anonymous").toString()
             );
 
             // Check for platform_redirect_url to determine if this is a first-party interaction request
@@ -184,12 +185,19 @@ public class LTI3Controller {
         }
     }
 
-    private String getOAuth2APITokenRedirectURL(HttpServletRequest req, PlatformDeployment platformDeployment, LtiUserEntity user, LTI3Request lti3Request)
-            throws GeneralSecurityException, IOException, LMSOAuthException {
-        // check if API Token settings exist for this PlatformDeployment
-        LMSOAuthService<?> lmsOAuthService = lmsoAuthServiceManager.getLMSOAuthService(platformDeployment);
+    private String getOAuth2APITokenRedirectURL(HttpServletRequest req, PlatformDeployment platformDeployment, LtiUserEntity user, Lti3Request lti3Request)
+            throws GeneralSecurityException, IOException, LmsOAuthException, TerracottaConnectorException {
+        LmsOAuthService<?> lmsOAuthService = null;
 
-        if (lmsOAuthService == null) {
+        try {
+            // check if API Token settings exist for this PlatformDeployment
+            lmsOAuthService = lmsOAuthServiceManager.getLmsOAuthService(platformDeployment);
+        } catch (TerracottaConnectorException e) {
+            log.error(e.getMessage(), e);
+            return null;
+        }
+
+        if (!lmsOAuthService.isConfigured(platformDeployment)) {
             return null;
         }
 
@@ -197,11 +205,10 @@ public class LTI3Controller {
             return null;
         }
 
-        // if LMS OAuth settings are configured but user doesn't have an access token,
-        // we'll need to get one. Create and return authorization url.
-        String state = apiJWTService.generateStateForAPITokenRequest(lti3Request);
+        // if LMS OAuth settings are configured but user doesn't have an access token, get one. Create and return authorization url.
+        String state = apiJwtService.generateStateForAPITokenRequest(lti3Request);
         HttpSession session = req.getSession();
-        session.setAttribute(LMSOAuthController.SESSION_LMS_OAUTH2_STATE, state);
+        session.setAttribute(LmsOAuthController.SESSION_LMS_OAUTH2_STATE, state);
 
         try {
             return lmsOAuthService.getAuthorizationRequestURI(platformDeployment, state);

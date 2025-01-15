@@ -11,28 +11,29 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
-import edu.iu.terracotta.exceptions.CanvasApiException;
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
+import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsAssignment;
+import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiUserRepository;
+import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
+import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
+import edu.iu.terracotta.connectors.generic.service.api.ApiClient;
+import edu.iu.terracotta.dao.entity.Assessment;
+import edu.iu.terracotta.dao.entity.Assignment;
+import edu.iu.terracotta.dao.entity.Treatment;
+import edu.iu.terracotta.dao.exceptions.AssessmentNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.QuestionNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.TreatmentNotMatchingException;
+import edu.iu.terracotta.dao.model.dto.AssignmentDto;
+import edu.iu.terracotta.dao.model.dto.TreatmentDto;
+import edu.iu.terracotta.dao.repository.AssessmentRepository;
+import edu.iu.terracotta.dao.repository.SubmissionRepository;
+import edu.iu.terracotta.dao.repository.TreatmentRepository;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExceedingLimitException;
 import edu.iu.terracotta.exceptions.IdInPostException;
-import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
-import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
-import edu.iu.terracotta.model.LtiUserEntity;
-import edu.iu.terracotta.model.app.Assessment;
-import edu.iu.terracotta.model.app.Assignment;
-import edu.iu.terracotta.model.app.Treatment;
-import edu.iu.terracotta.model.app.dto.AssignmentDto;
-import edu.iu.terracotta.model.app.dto.TreatmentDto;
-import edu.iu.terracotta.model.canvas.AssignmentExtended;
-import edu.iu.terracotta.model.oauth2.SecuredInfo;
-import edu.iu.terracotta.repository.AssessmentRepository;
-import edu.iu.terracotta.repository.LtiUserRepository;
-import edu.iu.terracotta.repository.SubmissionRepository;
-import edu.iu.terracotta.repository.TreatmentRepository;
 import edu.iu.terracotta.service.app.AssessmentService;
 import edu.iu.terracotta.service.app.AssignmentTreatmentService;
-import edu.iu.terracotta.service.canvas.CanvasAPIClient;
 
 @Service
 public class AssignmentTreatmentServiceImpl implements AssignmentTreatmentService {
@@ -42,21 +43,21 @@ public class AssignmentTreatmentServiceImpl implements AssignmentTreatmentServic
     @Autowired private SubmissionRepository submissionRepository;
     @Autowired private TreatmentRepository treatmentRepository;
     @Autowired private AssessmentService assessmentService;
-    @Autowired private CanvasAPIClient canvasAPIClient;
+    @Autowired private ApiClient apiClient;
 
     @PersistenceContext private EntityManager entityManager;
 
     @Override
     public TreatmentDto duplicateTreatment(long treatmentId, SecuredInfo securedInfo)
         throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, NumberFormatException,
-            CanvasApiException, TreatmentNotMatchingException, QuestionNotMatchingException {
+            ApiException, TreatmentNotMatchingException, QuestionNotMatchingException, TerracottaConnectorException {
         return duplicateTreatment(treatmentId, null, securedInfo);
     }
 
     @Override
     public TreatmentDto duplicateTreatment(long treatmentId, Assignment assignment, SecuredInfo securedInfo)
         throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, NumberFormatException,
-            CanvasApiException, TreatmentNotMatchingException, QuestionNotMatchingException {
+            ApiException, TreatmentNotMatchingException, QuestionNotMatchingException, TerracottaConnectorException {
         Treatment from = treatmentRepository.findByTreatmentId(treatmentId);
 
         if (from == null) {
@@ -78,7 +79,7 @@ public class AssignmentTreatmentServiceImpl implements AssignmentTreatmentServic
 
         Treatment newTreatment = treatmentRepository.save(from);
         LtiUserEntity instructorUser = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
-        setAssignmentDtoAttrs(newTreatment.getAssignment(), securedInfo.getCanvasCourseId(), instructorUser);
+        setAssignmentDtoAttrs(newTreatment.getAssignment(), securedInfo.getLmsCourseId(), instructorUser);
         TreatmentDto treatmentDto = toTreatmentDto(newTreatment, false, true);
 
         // duplicate assessment
@@ -161,15 +162,15 @@ public class AssignmentTreatmentServiceImpl implements AssignmentTreatmentServic
     }
 
     @Override
-    public void setAssignmentDtoAttrs(Assignment assignment, String canvasCourseId, LtiUserEntity instructorUser) throws NumberFormatException, CanvasApiException {
-        Optional<AssignmentExtended> canvasAssignment = canvasAPIClient.listAssignment(instructorUser, canvasCourseId, Integer.parseInt(assignment.getLmsAssignmentId()));
+    public void setAssignmentDtoAttrs(Assignment assignment, String lmsCourseId, LtiUserEntity instructorUser) throws NumberFormatException, ApiException, TerracottaConnectorException {
+        Optional<LmsAssignment> lmsAssignment = apiClient.listAssignment(instructorUser, lmsCourseId, assignment.getLmsAssignmentId());
 
-        if (canvasAssignment.isEmpty()) {
+        if (lmsAssignment.isEmpty()) {
             return;
         }
 
-        assignment.setPublished(canvasAssignment.get().isPublished());
-        assignment.setDueDate(canvasAssignment.get().getDueAt());
+        assignment.setPublished(lmsAssignment.get().isPublished());
+        assignment.setDueDate(lmsAssignment.get().getDueAt());
     }
 
 }

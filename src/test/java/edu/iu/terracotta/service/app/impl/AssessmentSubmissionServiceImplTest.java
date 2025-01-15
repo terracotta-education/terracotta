@@ -18,13 +18,13 @@ import org.mockito.InjectMocks;
 import org.mockito.MockitoAnnotations;
 
 import edu.iu.terracotta.base.BaseTest;
+import edu.iu.terracotta.dao.entity.AnswerMcSubmission;
+import edu.iu.terracotta.dao.entity.AnswerMcSubmissionOption;
+import edu.iu.terracotta.dao.entity.QuestionSubmission;
+import edu.iu.terracotta.dao.entity.Submission;
+import edu.iu.terracotta.dao.model.enums.QuestionTypes;
+import edu.iu.terracotta.dao.model.enums.RegradeOption;
 import edu.iu.terracotta.exceptions.DataServiceException;
-import edu.iu.terracotta.model.app.AnswerMcSubmission;
-import edu.iu.terracotta.model.app.AnswerMcSubmissionOption;
-import edu.iu.terracotta.model.app.QuestionSubmission;
-import edu.iu.terracotta.model.app.Submission;
-import edu.iu.terracotta.model.app.enumerator.QuestionTypes;
-import edu.iu.terracotta.model.app.enumerator.RegradeOption;
 
 public class AssessmentSubmissionServiceImplTest extends BaseTest {
 

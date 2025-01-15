@@ -1,14 +1,14 @@
 package edu.iu.terracotta.security.lti;
 
+import edu.iu.terracotta.connectors.generic.service.lti.LtiDataService;
+import edu.iu.terracotta.connectors.generic.service.lti.LtiJwtService;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.security.SecurityException;
 import lombok.extern.slf4j.Slf4j;
-import edu.iu.terracotta.service.lti.LTIDataService;
-import edu.iu.terracotta.service.lti.LTIJWTService;
-import edu.iu.terracotta.utils.lti.LTI3Request;
+import edu.iu.terracotta.utils.lti.Lti3Request;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -31,18 +31,18 @@ import java.util.List;
  */
 @Slf4j
 @SuppressWarnings({"unchecked", "PMD.GuardLogStatement"})
-public class LTI3OAuthProviderProcessingFilter extends GenericFilterBean {
+public class Lti3OAuthProviderProcessingFilter extends GenericFilterBean {
 
     @Value("${app.lti.data.verbose.logging.enabled:false}")
     private boolean ltiDataVerboseLoggingEnabled;
 
-    private LTIDataService ltiDataService;
-    private LTIJWTService ltijwtService;
+    private LtiDataService ltiDataService;
+    private LtiJwtService ltijwtService;
 
     /**
      * We need to load the data service to find the iss configurations and extract the keys.
      */
-    public LTI3OAuthProviderProcessingFilter(LTIDataService ltiDataService, LTIJWTService ltijwtService) {
+    public Lti3OAuthProviderProcessingFilter(LtiDataService ltiDataService, LtiJwtService ltijwtService) {
         super();
 
         if (ltiDataService == null) {
@@ -108,7 +108,7 @@ public class LTI3OAuthProviderProcessingFilter extends GenericFilterBean {
             Jws<Claims> stateClaims = ltijwtService.validateState(state);
 
             // Once we have the state validated we need the key to check the JWT signature from the id_token,
-            // and extract all the values in the LTI3Request object.
+            // and extract all the values in the Lti3Request object.
             // Most of the platforms will provide a JWK repo URL and we will have it stored in configuration,
             // where they store the public keys
             // With that URL and the "kid" in the header of the jwt id_token, we can get the public key too.
@@ -121,13 +121,13 @@ public class LTI3OAuthProviderProcessingFilter extends GenericFilterBean {
                 //Now we validate the JWT token
                 Jws<Claims> jws = ltijwtService.validateJWT(jwt, stateClaims.getPayload().getAudience().toArray(new String[stateClaims.getPayload().getAudience().size()])[0]);
                 if (jws != null) {
-                    //Here we create and populate the LTI3Request object and we will add it to the httpServletRequest, so the redirect endpoint will have all that information
+                    //Here we create and populate the Lti3Request object and we will add it to the httpServletRequest, so the redirect endpoint will have all that information
                     //ready and will be able to use it.
-                    LTI3Request lti3Request = new LTI3Request(httpServletRequest, ltiDataService, true, link); // IllegalStateException if invalid
+                    Lti3Request lti3Request = new Lti3Request(httpServletRequest, ltiDataService, true, link); // IllegalStateException if invalid
                     httpServletRequest.setAttribute("LTI3", true); // indicate this request is an LTI3 one
                     httpServletRequest.setAttribute("lti3_valid", lti3Request.isLoaded() && lti3Request.isComplete()); // is LTI3 request totally valid and complete
                     httpServletRequest.setAttribute("lti3_message_type", lti3Request.getLtiMessageType()); // is LTI3 request totally valid and complete
-                    httpServletRequest.setAttribute(LTI3Request.class.getName(), lti3Request); // make the LTI3 data accessible later in the request if needed
+                    httpServletRequest.setAttribute(Lti3Request.class.getName(), lti3Request); // make the LTI3 data accessible later in the request if needed
                 }
             }
 

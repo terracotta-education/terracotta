@@ -1,11 +1,12 @@
 package edu.iu.terracotta.config;
 
-import edu.iu.terracotta.security.app.APIOAuthProviderProcessingFilter;
-import edu.iu.terracotta.security.lti.LTI3OAuthProviderProcessingFilter;
-import edu.iu.terracotta.service.lti.LTIDataService;
-import edu.iu.terracotta.service.lti.LTIJWTService;
-import edu.iu.terracotta.service.app.APIDataService;
-import edu.iu.terracotta.service.app.APIJWTService;
+import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
+import edu.iu.terracotta.connectors.generic.service.api.ApiTokenService;
+import edu.iu.terracotta.connectors.generic.service.lti.LtiDataService;
+import edu.iu.terracotta.connectors.generic.service.lti.LtiJwtService;
+import edu.iu.terracotta.security.app.ApiOAuthProviderProcessingFilter;
+import edu.iu.terracotta.security.lti.Lti3OAuthProviderProcessingFilter;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -36,10 +37,10 @@ import java.util.UUID;
 @Import(SecurityAutoConfiguration.class)
 public class WebSecurityConfig {
 
-    @Autowired private APIJWTService apiJwtService;
-    @Autowired private APIDataService apiDataService;
-    @Autowired private LTIDataService ltiDataService;
-    @Autowired private LTIJWTService ltijwtService;
+    @Autowired private ApiJwtService apiJwtService;
+    @Autowired private ApiTokenService apiDataService;
+    @Autowired private LtiDataService ltiDataService;
+    @Autowired private LtiJwtService ltijwtService;
 
     @Value("${terracotta.admin.user:admin}")
     private String adminUser;
@@ -47,13 +48,13 @@ public class WebSecurityConfig {
     @Value("${terracotta.admin.password:admin}")
     private String adminPassword;
 
-    private LTI3OAuthProviderProcessingFilter lti3oAuthProviderProcessingFilter;
-    private APIOAuthProviderProcessingFilter apioAuthProviderProcessingFilter;
+    private Lti3OAuthProviderProcessingFilter lti3OAuthProviderProcessingFilter;
+    private ApiOAuthProviderProcessingFilter apiOAuthProviderProcessingFilter;
 
     @PostConstruct
     public void init() {
-        apioAuthProviderProcessingFilter = new APIOAuthProviderProcessingFilter(apiJwtService, apiDataService);
-        lti3oAuthProviderProcessingFilter = new LTI3OAuthProviderProcessingFilter(ltiDataService, ltijwtService);
+        apiOAuthProviderProcessingFilter = new ApiOAuthProviderProcessingFilter(apiJwtService, apiDataService);
+        lti3OAuthProviderProcessingFilter = new Lti3OAuthProviderProcessingFilter(ltiDataService, ltijwtService);
     }
 
     @Autowired
@@ -113,7 +114,7 @@ public class WebSecurityConfig {
                     .permitAll()
             )
             .addFilterBefore(
-                lti3oAuthProviderProcessingFilter,
+                lti3OAuthProviderProcessingFilter,
                 UsernamePasswordAuthenticationFilter.class
             )
             .csrf(csrf -> csrf.disable())
@@ -139,7 +140,7 @@ public class WebSecurityConfig {
                 BasicAuthenticationFilter.class
             )
             .addFilterBefore(
-                apioAuthProviderProcessingFilter,
+                apiOAuthProviderProcessingFilter,
                 UsernamePasswordAuthenticationFilter.class
             )
             .csrf(csrf -> csrf.disable())

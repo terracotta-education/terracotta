@@ -1,15 +1,15 @@
 package edu.iu.terracotta.service.app.impl;
 
+import edu.iu.terracotta.dao.entity.Outcome;
+import edu.iu.terracotta.dao.entity.OutcomeScore;
+import edu.iu.terracotta.dao.entity.Participant;
+import edu.iu.terracotta.dao.model.dto.OutcomeScoreDto;
+import edu.iu.terracotta.dao.repository.OutcomeRepository;
+import edu.iu.terracotta.dao.repository.OutcomeScoreRepository;
+import edu.iu.terracotta.dao.repository.ParticipantRepository;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.InvalidParticipantException;
-import edu.iu.terracotta.model.app.Outcome;
-import edu.iu.terracotta.model.app.OutcomeScore;
-import edu.iu.terracotta.model.app.Participant;
-import edu.iu.terracotta.model.app.dto.OutcomeScoreDto;
-import edu.iu.terracotta.repository.OutcomeRepository;
-import edu.iu.terracotta.repository.OutcomeScoreRepository;
-import edu.iu.terracotta.repository.ParticipantRepository;
 import edu.iu.terracotta.service.app.OutcomeScoreService;
 import edu.iu.terracotta.utils.TextConstants;
 

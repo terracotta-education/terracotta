@@ -1,17 +1,17 @@
 package edu.iu.terracotta.service.app;
 
-import edu.iu.terracotta.exceptions.AnswerNotMatchingException;
+import edu.iu.terracotta.dao.entity.AnswerEssaySubmission;
+import edu.iu.terracotta.dao.entity.AnswerFileSubmission;
+import edu.iu.terracotta.dao.entity.AnswerMcSubmission;
+import edu.iu.terracotta.dao.entity.integrations.AnswerIntegrationSubmission;
+import edu.iu.terracotta.dao.exceptions.AnswerNotMatchingException;
+import edu.iu.terracotta.dao.model.dto.AnswerSubmissionDto;
+import edu.iu.terracotta.dao.model.dto.FileResponseDto;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExceedingLimitException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.IdMissingException;
 import edu.iu.terracotta.exceptions.TypeNotSupportedException;
-import edu.iu.terracotta.model.app.AnswerEssaySubmission;
-import edu.iu.terracotta.model.app.AnswerFileSubmission;
-import edu.iu.terracotta.model.app.AnswerMcSubmission;
-import edu.iu.terracotta.model.app.dto.AnswerSubmissionDto;
-import edu.iu.terracotta.model.app.dto.FileResponseDto;
-import edu.iu.terracotta.model.app.integrations.AnswerIntegrationSubmission;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.web.multipart.MultipartFile;

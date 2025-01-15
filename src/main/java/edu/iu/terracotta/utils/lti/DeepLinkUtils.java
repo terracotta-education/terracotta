@@ -2,12 +2,13 @@ package edu.iu.terracotta.utils.lti;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import edu.iu.terracotta.service.lti.LTIDataService;
+
 import edu.iu.terracotta.utils.oauth.OAuthUtils;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.Jwts.SIG;
 import lombok.experimental.UtilityClass;
-import edu.iu.terracotta.model.PlatformDeployment;
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
+import edu.iu.terracotta.connectors.generic.service.lti.LtiDataService;
 import edu.iu.terracotta.utils.LtiStrings;
 import edu.iu.terracotta.utils.TextConstants;
 import org.apache.commons.lang3.time.DateUtils;
@@ -24,7 +25,7 @@ import java.util.Map;
 @UtilityClass
 public final class DeepLinkUtils {
 
-    public static Map<String, String> generateDeepLinkJWT(LTIDataService ltiDataService, PlatformDeployment platformDeployment, LTI3Request lti3Request, String localUrl) throws GeneralSecurityException, IOException {
+    public static Map<String, String> generateDeepLinkJWT(LtiDataService ltiDataService, PlatformDeployment platformDeployment, Lti3Request lti3Request, String localUrl) throws GeneralSecurityException, IOException {
         Date date = new Date();
         PrivateKey toolPrivateKey = OAuthUtils.loadPrivateKey(ltiDataService.getOwnPrivateKey());
 

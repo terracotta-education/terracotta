@@ -19,9 +19,9 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import edu.iu.terracotta.model.app.ConsentDocument;
-import edu.iu.terracotta.model.app.FileSubmissionLocal;
-import edu.iu.terracotta.repository.ConsentDocumentRepository;
+import edu.iu.terracotta.dao.entity.ConsentDocument;
+import edu.iu.terracotta.dao.entity.FileSubmissionLocal;
+import edu.iu.terracotta.dao.repository.ConsentDocumentRepository;
 import edu.iu.terracotta.service.app.FileStorageService;
 import lombok.extern.slf4j.Slf4j;
 import net.lingala.zip4j.model.enums.EncryptionMethod;

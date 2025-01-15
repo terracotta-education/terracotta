@@ -13,12 +13,12 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.http.HttpStatus;
 
 import edu.iu.terracotta.base.BaseTest;
+import edu.iu.terracotta.dao.exceptions.OutcomeNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.integrations.IntegrationTokenAlreadyRedeemedException;
+import edu.iu.terracotta.dao.exceptions.integrations.IntegrationTokenExpiredException;
+import edu.iu.terracotta.dao.exceptions.integrations.IntegrationTokenInvalidException;
+import edu.iu.terracotta.dao.exceptions.integrations.IntegrationTokenNotFoundException;
 import edu.iu.terracotta.exceptions.DataServiceException;
-import edu.iu.terracotta.exceptions.OutcomeNotMatchingException;
-import edu.iu.terracotta.exceptions.integrations.IntegrationTokenAlreadyRedeemedException;
-import edu.iu.terracotta.exceptions.integrations.IntegrationTokenExpiredException;
-import edu.iu.terracotta.exceptions.integrations.IntegrationTokenInvalidException;
-import edu.iu.terracotta.exceptions.integrations.IntegrationTokenNotFoundException;
 
 public class IntegrationsControllerTest extends BaseTest {
 

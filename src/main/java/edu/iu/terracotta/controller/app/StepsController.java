@@ -1,28 +1,29 @@
 package edu.iu.terracotta.controller.app;
 
-import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
+import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
+import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
+import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
+import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
+import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
+import edu.iu.terracotta.dao.entity.Assignment;
+import edu.iu.terracotta.dao.entity.Participant;
+import edu.iu.terracotta.dao.exceptions.AssessmentNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.AssignmentNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.GroupNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.ParticipantNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.ParticipantNotUpdatedException;
+import edu.iu.terracotta.dao.exceptions.SubmissionNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.integrations.IntegrationTokenNotFoundException;
+import edu.iu.terracotta.dao.model.dto.AssessmentDto;
+import edu.iu.terracotta.dao.model.dto.ParticipantDto;
+import edu.iu.terracotta.dao.model.dto.StepDto;
 import edu.iu.terracotta.exceptions.AssignmentAttemptException;
 import edu.iu.terracotta.exceptions.AssignmentDatesException;
-import edu.iu.terracotta.exceptions.AssignmentNotMatchingException;
 import edu.iu.terracotta.exceptions.BadTokenException;
-import edu.iu.terracotta.exceptions.CanvasApiException;
-import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
-import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.ExperimentStartedException;
-import edu.iu.terracotta.exceptions.GroupNotMatchingException;
 import edu.iu.terracotta.exceptions.NoSubmissionsException;
-import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
-import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
-import edu.iu.terracotta.exceptions.SubmissionNotMatchingException;
-import edu.iu.terracotta.exceptions.integrations.IntegrationTokenNotFoundException;
-import edu.iu.terracotta.model.app.Assignment;
-import edu.iu.terracotta.model.app.Participant;
-import edu.iu.terracotta.model.app.dto.AssessmentDto;
-import edu.iu.terracotta.model.app.dto.ParticipantDto;
-import edu.iu.terracotta.model.app.dto.StepDto;
-import edu.iu.terracotta.model.oauth2.SecuredInfo;
-import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.AssessmentService;
 import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.app.ExposureService;
@@ -70,16 +71,16 @@ public class StepsController {
     @Autowired private AssessmentService assessmentService;
     @Autowired private AssignmentService assignmentService;
     @Autowired private QuestionSubmissionService questionSubmissionService;
-    @Autowired private APIJWTService apijwtService;
+    @Autowired private ApiJwtService apijwtService;
 
     @PostMapping
     public ResponseEntity<Object> postStep(@PathVariable long experimentId,
                                            @RequestBody StepDto stepDto,
                                            HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, DataServiceException,
-            ParticipantNotUpdatedException, ExperimentStartedException, ConnectionException, CanvasApiException,
+            ParticipantNotUpdatedException, ExperimentStartedException, ConnectionException, ApiException,
             IOException, AssignmentDatesException, AssessmentNotMatchingException, GroupNotMatchingException,
-            ParticipantNotMatchingException, SubmissionNotMatchingException, NoSubmissionsException, IntegrationTokenNotFoundException {
+            ParticipantNotMatchingException, SubmissionNotMatchingException, NoSubmissionsException, NumberFormatException, TerracottaConnectorException, IntegrationTokenNotFoundException {
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
 
@@ -171,7 +172,7 @@ public class StepsController {
                         return new ResponseEntity<>(TextConstants.ASSIGNMENT_NOT_MATCHING + " : " + assignmentId, HttpStatus.NOT_FOUND);
                     }
 
-                    assignmentService.sendAssignmentGradeToCanvas(assignment.get());
+                    assignmentService.sendAssignmentGradeToLms(assignment.get());
                 }
 
                 return new ResponseEntity<>(HttpStatus.OK);

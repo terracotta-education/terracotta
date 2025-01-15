@@ -1,10 +1,11 @@
 package edu.iu.terracotta.service.app;
 
+import edu.iu.terracotta.dao.entity.OutcomeScore;
+import edu.iu.terracotta.dao.model.dto.OutcomeScoreDto;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.InvalidParticipantException;
-import edu.iu.terracotta.model.app.OutcomeScore;
-import edu.iu.terracotta.model.app.dto.OutcomeScoreDto;
+
 import org.springframework.http.HttpHeaders;
 import org.springframework.web.util.UriComponentsBuilder;
 

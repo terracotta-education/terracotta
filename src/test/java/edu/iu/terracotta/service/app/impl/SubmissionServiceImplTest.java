@@ -24,21 +24,21 @@ import java.util.List;
 import java.util.Optional;
 
 import edu.iu.terracotta.base.BaseTest;
+import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
+import edu.iu.terracotta.dao.entity.AnswerMcSubmission;
+import edu.iu.terracotta.dao.entity.AnswerMcSubmissionOption;
+import edu.iu.terracotta.dao.entity.ExposureGroupCondition;
+import edu.iu.terracotta.dao.entity.Group;
+import edu.iu.terracotta.dao.entity.QuestionSubmission;
+import edu.iu.terracotta.dao.exceptions.ParticipantNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.SubmissionNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.integrations.IntegrationTokenNotFoundException;
+import edu.iu.terracotta.dao.model.dto.SubmissionDto;
+import edu.iu.terracotta.dao.model.enums.QuestionTypes;
+import edu.iu.terracotta.dao.model.enums.RegradeOption;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.InvalidUserException;
-import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
-import edu.iu.terracotta.exceptions.SubmissionNotMatchingException;
-import edu.iu.terracotta.exceptions.integrations.IntegrationTokenNotFoundException;
-import edu.iu.terracotta.model.app.AnswerMcSubmission;
-import edu.iu.terracotta.model.app.AnswerMcSubmissionOption;
-import edu.iu.terracotta.model.app.ExposureGroupCondition;
-import edu.iu.terracotta.model.app.Group;
-import edu.iu.terracotta.model.app.QuestionSubmission;
-import edu.iu.terracotta.model.app.dto.SubmissionDto;
-import edu.iu.terracotta.model.app.enumerator.QuestionTypes;
-import edu.iu.terracotta.model.app.enumerator.RegradeOption;
-import edu.iu.terracotta.model.oauth2.SecuredInfo;
 
 public class SubmissionServiceImplTest extends BaseTest {
 
@@ -102,7 +102,7 @@ public class SubmissionServiceImplTest extends BaseTest {
     @Test
     public void testCreateNewSubmissionTestStudent() throws IdInPostException, ParticipantNotMatchingException, InvalidUserException, DataServiceException, IntegrationTokenNotFoundException {
         when(question.getQuestionType()).thenReturn(QuestionTypes.ESSAY);
-        when(apijwtService.isTestStudent(any(SecuredInfo.class))).thenReturn(true);
+        when(apiJwtService.isTestStudent(any(SecuredInfo.class))).thenReturn(true);
         submissionService.createNewSubmission(assessment, participant, securedInfo);
 
         verify(assignmentRepository, never()).save(assignment);

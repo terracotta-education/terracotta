@@ -1,12 +1,13 @@
 package edu.iu.terracotta.service.caliper;
 
-import edu.iu.terracotta.model.LtiMembershipEntity;
-import edu.iu.terracotta.model.PlatformDeployment;
-import edu.iu.terracotta.model.app.Assessment;
-import edu.iu.terracotta.model.app.Participant;
-import edu.iu.terracotta.model.app.Submission;
-import edu.iu.terracotta.model.app.dto.media.MediaEventDto;
-import edu.iu.terracotta.model.oauth2.SecuredInfo;
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiMembershipEntity;
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
+import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
+import edu.iu.terracotta.dao.entity.Assessment;
+import edu.iu.terracotta.dao.entity.Participant;
+import edu.iu.terracotta.dao.entity.Submission;
+import edu.iu.terracotta.dao.model.dto.media.MediaEventDto;
+
 import org.imsglobal.caliper.Envelope;
 
 import java.util.List;
@@ -21,6 +22,6 @@ public interface CaliperService {
     void sendNavigationEvent(Participant participant, String whereTo, SecuredInfo securedInfo);
     void sendFeedbackEvent(Participant participant, Assessment assessment, SecuredInfo securedInfo);
     void sendViewGradeEvent(Submission submission, SecuredInfo securedInfo);
-    void sendToolUseEvent(LtiMembershipEntity membershipEntity, String canvasUserGlobalId, String canvasCourseId, String canvasUserId, String canvasLoginId, List<String> canvasRoles, String canvasUserName);
+    void sendToolUseEvent(LtiMembershipEntity membershipEntity, String lmsUserGlobalId, String lmsCourseId, String lmsUserId, String lmsLoginId, List<String> lmsRoles, String lmsUserName);
 
 }

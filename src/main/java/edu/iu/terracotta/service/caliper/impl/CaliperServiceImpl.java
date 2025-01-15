@@ -1,23 +1,23 @@
 package edu.iu.terracotta.service.caliper.impl;
 
-import edu.iu.terracotta.model.LtiMembershipEntity;
-import edu.iu.terracotta.model.PlatformDeployment;
-import edu.iu.terracotta.model.app.Assessment;
-import edu.iu.terracotta.model.app.ExposureGroupCondition;
-import edu.iu.terracotta.model.app.Participant;
-import edu.iu.terracotta.model.app.Submission;
-import edu.iu.terracotta.model.app.SubmissionComment;
-import edu.iu.terracotta.model.app.dto.media.MediaEventDto;
-import edu.iu.terracotta.model.app.dto.media.MediaLocationDto;
-import edu.iu.terracotta.model.app.dto.media.MediaObjectDto;
-import edu.iu.terracotta.model.events.Event;
-import edu.iu.terracotta.model.oauth2.SecuredInfo;
-import edu.iu.terracotta.repository.EventRepository;
-import edu.iu.terracotta.repository.ExposureGroupConditionRepository;
-import edu.iu.terracotta.repository.SubmissionRepository;
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiMembershipEntity;
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
+import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
+import edu.iu.terracotta.dao.entity.Assessment;
+import edu.iu.terracotta.dao.entity.ExposureGroupCondition;
+import edu.iu.terracotta.dao.entity.Participant;
+import edu.iu.terracotta.dao.entity.Submission;
+import edu.iu.terracotta.dao.entity.SubmissionComment;
+import edu.iu.terracotta.dao.entity.events.Event;
+import edu.iu.terracotta.dao.model.dto.media.MediaEventDto;
+import edu.iu.terracotta.dao.model.dto.media.MediaLocationDto;
+import edu.iu.terracotta.dao.model.dto.media.MediaObjectDto;
+import edu.iu.terracotta.dao.repository.EventRepository;
+import edu.iu.terracotta.dao.repository.ExposureGroupConditionRepository;
+import edu.iu.terracotta.dao.repository.SubmissionRepository;
 import edu.iu.terracotta.service.app.AssessmentSubmissionService;
 import edu.iu.terracotta.service.caliper.CaliperService;
-import edu.iu.terracotta.service.common.Utils;
+import edu.iu.terracotta.utils.CaliperUtils;
 import edu.iu.terracotta.utils.LtiStrings;
 import lombok.extern.slf4j.Slf4j;
 
@@ -142,7 +142,7 @@ public class CaliperServiceImpl implements CaliperService {
     @Override
     public void sendAssignmentStarted(Submission submission, SecuredInfo securedInfo) {
         LtiSession ltiSession = prepareLtiSession(securedInfo, submission.getParticipant().getLtiMembershipEntity());
-        Person actor = prepareActor(submission.getParticipant(), securedInfo.getCanvasUserGlobalId());
+        Person actor = prepareActor(submission.getParticipant(), securedInfo.getLmsUserGlobalId());
         CaliperOrganization group = prepareGroup(submission.getParticipant().getLtiMembershipEntity(), securedInfo);
         org.imsglobal.caliper.entities.resource.Assessment assessment = prepareAssessment(submission, securedInfo);
         Attempt attempt = prepareAttempt(submission, actor, assessment);
@@ -203,7 +203,7 @@ public class CaliperServiceImpl implements CaliperService {
 
     @Override
     public void sendAssignmentSubmitted(Submission submission, SecuredInfo securedInfo) {
-        Person actor = prepareActor(submission.getParticipant(), securedInfo.getCanvasUserGlobalId());
+        Person actor = prepareActor(submission.getParticipant(), securedInfo.getLmsUserGlobalId());
         LtiSession ltiSession = prepareLtiSession(securedInfo, submission.getParticipant().getLtiMembershipEntity());
         CaliperOrganization group = prepareGroup(submission.getParticipant().getLtiMembershipEntity(), securedInfo);
         org.imsglobal.caliper.entities.resource.Assessment assessment = prepareAssessment(submission, securedInfo);
@@ -265,7 +265,7 @@ public class CaliperServiceImpl implements CaliperService {
 
     @Override
     public void sendAssignmentRestarted(Submission submission, SecuredInfo securedInfo) {
-        Person actor = prepareActor(submission.getParticipant(), securedInfo.getCanvasUserGlobalId());
+        Person actor = prepareActor(submission.getParticipant(), securedInfo.getLmsUserGlobalId());
         LtiSession ltiSession = prepareLtiSession(securedInfo, submission.getParticipant().getLtiMembershipEntity());
         CaliperOrganization group = prepareGroup(submission.getParticipant().getLtiMembershipEntity(), securedInfo);
         org.imsglobal.caliper.entities.resource.Assessment assessment = prepareAssessment(submission, securedInfo);
@@ -326,7 +326,7 @@ public class CaliperServiceImpl implements CaliperService {
 
     @Override
     public void sendMediaEvent(MediaEventDto mediaEventDto, Participant participant, SecuredInfo securedInfo, Submission submission, Long questionId) {
-        Person actor = prepareActor(participant, securedInfo.getCanvasUserGlobalId());
+        Person actor = prepareActor(participant, securedInfo.getLmsUserGlobalId());
         LtiSession ltiSession = prepareLtiSession(securedInfo, participant.getLtiMembershipEntity());
         CaliperOrganization group = prepareGroup(participant.getLtiMembershipEntity(), securedInfo);
         org.imsglobal.caliper.entities.resource.MediaObject mediaObject = prepareMediaObject(mediaEventDto.getObject(), submission, questionId);
@@ -383,7 +383,7 @@ public class CaliperServiceImpl implements CaliperService {
         event.setTargetId(mediaEventDto.getTarget().getId());
         event.setTargetType(mediaEventDto.getTarget().getType().value());
         event.setMembershipId(participant.getLtiMembershipEntity().getUser().getUserKey());
-        event.setMembershipRoles(Utils.roleToString(participant.getLtiMembershipEntity().getRole()));
+        event.setMembershipRoles(CaliperUtils.roleToString(participant.getLtiMembershipEntity().getRole()));
         event.setFederatedSession(ltiSession.getId());
         event.setLtiContextId(participant.getLtiMembershipEntity().getContext().getContextKey());
         event.setParticipant(submission.getParticipant());
@@ -405,7 +405,7 @@ public class CaliperServiceImpl implements CaliperService {
 
     @Override
     public void sendViewGradeEvent(Submission submission, SecuredInfo securedInfo) {
-        Person actor = prepareActor(submission.getParticipant(), securedInfo.getCanvasUserGlobalId());
+        Person actor = prepareActor(submission.getParticipant(), securedInfo.getLmsUserGlobalId());
         LtiSession ltiSession = prepareLtiSession(securedInfo, submission.getParticipant().getLtiMembershipEntity());
         CaliperOrganization group = prepareGroup(submission.getParticipant().getLtiMembershipEntity(), securedInfo);
         org.imsglobal.caliper.entities.resource.Assessment assessment = prepareAssessment(submission, securedInfo);
@@ -464,15 +464,15 @@ public class CaliperServiceImpl implements CaliperService {
     }
 
     @Override
-    public void sendToolUseEvent(LtiMembershipEntity membershipEntity, String canvasUserGlobalId, String canvasCourseId, String canvasUserId, String canvasLoginId, List<String> canvasRoles, String canvasUserName) {
-        Person actor = prepareActor(membershipEntity, canvasUserGlobalId);
+    public void sendToolUseEvent(LtiMembershipEntity membershipEntity, String lmsUserGlobalId, String lmsCourseId, String lmsUserId, String lmsLoginId, List<String> lmsRoles, String lmsUserName) {
+        Person actor = prepareActor(membershipEntity, lmsUserGlobalId);
         SecuredInfo securedInfo = new SecuredInfo();
-        securedInfo.setCanvasUserGlobalId(canvasUserGlobalId);
-        securedInfo.setCanvasCourseId(canvasCourseId);
-        securedInfo.setCanvasUserId(canvasUserId);
-        securedInfo.setCanvasLoginId(canvasLoginId);
-        securedInfo.setRoles(canvasRoles);
-        securedInfo.setCanvasUserName(canvasUserName);
+        securedInfo.setLmsUserGlobalId(lmsUserGlobalId);
+        securedInfo.setLmsCourseId(lmsCourseId);
+        securedInfo.setLmsUserId(lmsUserId);
+        securedInfo.setLmsLoginId(lmsLoginId);
+        securedInfo.setRoles(lmsRoles);
+        securedInfo.setLmsUserName(lmsUserName);
         LtiSession ltiSession = prepareLtiSession(securedInfo, membershipEntity);
         CaliperOrganization group = prepareGroup(membershipEntity, securedInfo);
         String uuid = "urn:uuid:" + UUID.randomUUID();
@@ -525,26 +525,26 @@ public class CaliperServiceImpl implements CaliperService {
         eventRepository.save(event);
     }
 
-    private Person prepareActor(LtiMembershipEntity ltiMembershipEntity, String canvasGlobalId) {
-        return buildActor(ltiMembershipEntity, getExtensions(ltiMembershipEntity, canvasGlobalId));
+    private Person prepareActor(LtiMembershipEntity ltiMembershipEntity, String lmsGlobalId) {
+        return buildActor(ltiMembershipEntity, getExtensions(ltiMembershipEntity, lmsGlobalId));
     }
 
-    private Person prepareActor(Participant participant, String canvasGlobalId) {
-        return buildActor(participant.getLtiMembershipEntity(), getExtensions(participant, canvasGlobalId));
+    private Person prepareActor(Participant participant, String lmsGlobalId) {
+        return buildActor(participant.getLtiMembershipEntity(), getExtensions(participant, lmsGlobalId));
     }
 
-    private Map<String, Object> getExtensions(LtiMembershipEntity ltiMembershipEntity, String canvasGlobalId) {
+    private Map<String, Object> getExtensions(LtiMembershipEntity ltiMembershipEntity, String lmsGlobalId) {
         Map<String, Object> extensions = new HashMap<>();
-        extensions.put("canvas_global_id", canvasGlobalId);
+        extensions.put("lms_global_id", lmsGlobalId);
         extensions.put("lti_id", ltiMembershipEntity.getUser().getUserKey());
         extensions.put("lti_tenant", ltiMembershipEntity.getUser().getPlatformDeployment().getBaseUrl());
 
         return extensions;
     }
 
-    private Map<String, Object> getExtensions(Participant participant, String canvasGlobalId) {
+    private Map<String, Object> getExtensions(Participant participant, String lmsGlobalId) {
         Map<String, Object> extensions = new HashMap<>();
-        extensions.putAll(getExtensions(participant.getLtiMembershipEntity(), canvasGlobalId));
+        extensions.putAll(getExtensions(participant.getLtiMembershipEntity(), lmsGlobalId));
         extensions.put("terracotta_participant_id", participant.getParticipantId());
 
         return extensions;
@@ -574,7 +574,7 @@ public class CaliperServiceImpl implements CaliperService {
 
     private org.imsglobal.caliper.entities.resource.Assessment prepareAssessment(Submission submission, SecuredInfo securedInfo) {
         Map<String, Object> extensions = new HashMap<>();
-        extensions.put("canvas_assessment", submission.getParticipant().getLtiUserEntity().getPlatformDeployment().getBaseUrl() + "/courses/" + securedInfo.getCanvasCourseId() + "/assignments/" + securedInfo.getCanvasAssignmentId());
+        extensions.put("lms_assessment", submission.getParticipant().getLtiUserEntity().getPlatformDeployment().getBaseUrl() + "/courses/" + securedInfo.getLmsCourseId() + "/assignments/" + securedInfo.getLmsAssignmentId());
         int maxAttempts = 0;
 
         try {
@@ -665,16 +665,16 @@ public class CaliperServiceImpl implements CaliperService {
     private CaliperOrganization prepareGroup(LtiMembershipEntity participant, SecuredInfo securedInfo) {
         return CourseSection.builder()
             .name(participant.getContext().getTitle())
-            .id(participant.getUser().getPlatformDeployment().getBaseUrl() + "/courses/" + securedInfo.getCanvasCourseId())
+            .id(participant.getUser().getPlatformDeployment().getBaseUrl() + "/courses/" + securedInfo.getLmsCourseId())
             .type(EntityType.COURSE_OFFERING)
             .build();
     }
 
     private Membership prepareMembership(Participant participant, SecuredInfo securedInfo) {
         return Membership.builder()
-            .id(participant.getLtiUserEntity().getPlatformDeployment().getBaseUrl() + "/courses/" + securedInfo.getCanvasCourseId())
+            .id(participant.getLtiUserEntity().getPlatformDeployment().getBaseUrl() + "/courses/" + securedInfo.getLmsCourseId())
             .type(EntityType.MEMBERSHIP)
-            .member(prepareActor(participant, securedInfo.getCanvasUserGlobalId()))
+            .member(prepareActor(participant, securedInfo.getLmsUserGlobalId()))
             .organization(prepareGroup(participant.getLtiMembershipEntity(), securedInfo))
             .status(getStatus(participant.getDropped(), participant.getExperiment().getClosed() != null))
             .roles(Collections.singletonList(roleToCaliperRole(participant.getLtiMembershipEntity().getRole())))
@@ -683,17 +683,17 @@ public class CaliperServiceImpl implements CaliperService {
 
     private LtiSession prepareLtiSession(SecuredInfo securedInfo, LtiMembershipEntity ltiMembershipEntity) {
         Map<String, Object> messageParameters = new HashMap<>();
-        messageParameters.put("canvas_course_id", securedInfo.getCanvasCourseId());
+        messageParameters.put("lms_course_id", securedInfo.getLmsCourseId());
 
-        if (!StringUtils.startsWith(securedInfo.getCanvasAssignmentId(), "$")) {
-            messageParameters.put("canvas_assignment_id", securedInfo.getCanvasAssignmentId());
+        if (!StringUtils.startsWith(securedInfo.getLmsAssignmentId(), "$")) {
+            messageParameters.put("lms_assignment_id", securedInfo.getLmsAssignmentId());
         }
 
-        messageParameters.put("canvas_user_id", securedInfo.getCanvasUserId());
-        messageParameters.put("canvas_login_id", securedInfo.getCanvasLoginId());
-        messageParameters.put("canvas_user_global_id", securedInfo.getCanvasUserGlobalId());
-        messageParameters.put("canvas_roles", securedInfo.getRoles());
-        messageParameters.put("canvas_user_name", securedInfo.getCanvasUserName());
+        messageParameters.put("lms_user_id", securedInfo.getLmsUserId());
+        messageParameters.put("lms_login_id", securedInfo.getLmsLoginId());
+        messageParameters.put("lms_user_global_id", securedInfo.getLmsUserGlobalId());
+        messageParameters.put("lms_roles", securedInfo.getRoles());
+        messageParameters.put("lms_user_name", securedInfo.getLmsUserName());
         messageParameters.put("lti_context_id", ltiMembershipEntity.getContext().getContextKey());
 
         return LtiSession.builder()
@@ -786,7 +786,7 @@ public class CaliperServiceImpl implements CaliperService {
             envelope = new Envelope("", DateTime.now(), DATA_VERSION, Collections.singletonList(caliperEvent));
         }
 
-        event.setJson(JSONSerializerClient.serialize(envelope));
+        event.setJson(JsonSerializerClient.serialize(envelope));
     }
 
     private Map<String, Object> getTerracottaInternalIDs(Submission submission, Participant participant) {

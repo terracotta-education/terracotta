@@ -3,14 +3,14 @@ package edu.iu.terracotta.service.app.dashboard.results;
 import java.util.List;
 import java.util.Map;
 
-import edu.iu.terracotta.model.app.Assessment;
-import edu.iu.terracotta.model.app.Assignment;
-import edu.iu.terracotta.model.app.Experiment;
-import edu.iu.terracotta.model.app.Exposure;
-import edu.iu.terracotta.model.app.Participant;
-import edu.iu.terracotta.model.app.Treatment;
-import edu.iu.terracotta.model.app.dto.dashboard.results.outcomes.condition.OutcomesConditions;
-import edu.iu.terracotta.model.app.dto.dashboard.results.outcomes.exposure.OutcomesExposures;
+import edu.iu.terracotta.dao.entity.Assessment;
+import edu.iu.terracotta.dao.entity.Assignment;
+import edu.iu.terracotta.dao.entity.Experiment;
+import edu.iu.terracotta.dao.entity.Exposure;
+import edu.iu.terracotta.dao.entity.Participant;
+import edu.iu.terracotta.dao.entity.Treatment;
+import edu.iu.terracotta.dao.model.dto.dashboard.results.outcomes.condition.OutcomesConditions;
+import edu.iu.terracotta.dao.model.dto.dashboard.results.outcomes.exposure.OutcomesExposures;
 
 public interface ResultsOutcomesTimeOnTaskService {
 

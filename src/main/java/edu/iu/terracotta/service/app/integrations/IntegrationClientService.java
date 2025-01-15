@@ -2,9 +2,9 @@ package edu.iu.terracotta.service.app.integrations;
 
 import java.util.List;
 
-import edu.iu.terracotta.exceptions.integrations.IntegrationClientNotFoundException;
-import edu.iu.terracotta.model.app.integrations.IntegrationClient;
-import edu.iu.terracotta.model.app.integrations.dto.IntegrationClientDto;
+import edu.iu.terracotta.dao.entity.integrations.IntegrationClient;
+import edu.iu.terracotta.dao.exceptions.integrations.IntegrationClientNotFoundException;
+import edu.iu.terracotta.dao.model.dto.integrations.IntegrationClientDto;
 
 public interface IntegrationClientService {
 

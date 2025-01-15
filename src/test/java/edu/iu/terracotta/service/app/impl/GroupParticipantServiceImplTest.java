@@ -15,10 +15,10 @@ import org.mockito.InjectMocks;
 import org.mockito.MockitoAnnotations;
 
 import edu.iu.terracotta.base.BaseTest;
-import edu.iu.terracotta.exceptions.AssignmentNotMatchingException;
-import edu.iu.terracotta.exceptions.GroupNotMatchingException;
-import edu.iu.terracotta.model.app.Group;
-import edu.iu.terracotta.model.app.enumerator.DistributionTypes;
+import edu.iu.terracotta.dao.entity.Group;
+import edu.iu.terracotta.dao.exceptions.AssignmentNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.GroupNotMatchingException;
+import edu.iu.terracotta.dao.model.enums.DistributionTypes;
 import edu.iu.terracotta.utils.TextConstants;
 
 public class GroupParticipantServiceImplTest extends BaseTest {

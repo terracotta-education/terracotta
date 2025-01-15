@@ -5,8 +5,8 @@ import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.security.SecurityException;
 import lombok.extern.slf4j.Slf4j;
-import edu.iu.terracotta.service.app.APIDataService;
-import edu.iu.terracotta.service.app.APIJWTService;
+import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
+import edu.iu.terracotta.connectors.generic.service.api.ApiTokenService;
 
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -27,7 +27,7 @@ import java.util.Locale;
  */
 @Slf4j
 @SuppressWarnings({"PMD.GuardLogStatement"})
-public class APIOAuthProviderProcessingFilter extends GenericFilterBean {
+public class ApiOAuthProviderProcessingFilter extends GenericFilterBean {
 
     private static final String JWT_REQUEST_HEADER_NAME = "Authorization";
     private static final String JWT_BEARER_TYPE = "Bearer";
@@ -35,17 +35,17 @@ public class APIOAuthProviderProcessingFilter extends GenericFilterBean {
 
     private final boolean allowQueryParam;
 
-    private APIJWTService apiJwtService;
-    private APIDataService apiDataService;
+    private ApiJwtService apiJwtService;
+    private ApiTokenService apiDataService;
 
-    public APIOAuthProviderProcessingFilter(APIJWTService apiJwtService, APIDataService apiDataService) {
+    public ApiOAuthProviderProcessingFilter(ApiJwtService apiJwtService, ApiTokenService apiDataService) {
         this(apiJwtService, apiDataService, false);
     }
 
     /**
      * We need to load the data service to find the iss configurations and extract the keys.
      */
-    public APIOAuthProviderProcessingFilter(APIJWTService apiJwtService, APIDataService apiDataService, boolean allowQueryParam) {
+    public ApiOAuthProviderProcessingFilter(ApiJwtService apiJwtService, ApiTokenService apiDataService, boolean allowQueryParam) {
         super();
         this.allowQueryParam = allowQueryParam;
 

@@ -1,10 +1,10 @@
 package edu.iu.terracotta.service.app.dashboard.results;
 
-import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
-import edu.iu.terracotta.exceptions.OutcomeNotMatchingException;
-import edu.iu.terracotta.model.app.dto.dashboard.ResultsDashboardDto;
-import edu.iu.terracotta.model.app.dto.dashboard.results.outcomes.request.ResultsOutcomesRequestDto;
-import edu.iu.terracotta.model.oauth2.SecuredInfo;
+import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
+import edu.iu.terracotta.dao.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.OutcomeNotMatchingException;
+import edu.iu.terracotta.dao.model.dto.dashboard.ResultsDashboardDto;
+import edu.iu.terracotta.dao.model.dto.dashboard.results.outcomes.request.ResultsOutcomesRequestDto;
 
 public interface ResultsDashboardService {
 

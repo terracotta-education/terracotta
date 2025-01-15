@@ -4,7 +4,7 @@ import software.amazon.awssdk.auth.credentials.InstanceProfileCredentialsProvide
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
-import edu.iu.terracotta.service.aws.AWSService;
+import edu.iu.terracotta.service.aws.AwsService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -12,7 +12,7 @@ import jakarta.annotation.PostConstruct;
 import java.io.InputStream;
 
 @Component
-public class AWSServiceImpl implements AWSService {
+public class AwsServiceImpl implements AwsService {
 
     @Value("${aws.region:US_EAST_1}")
     private String region;

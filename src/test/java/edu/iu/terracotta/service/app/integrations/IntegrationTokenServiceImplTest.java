@@ -21,13 +21,13 @@ import org.mockito.InjectMocks;
 import org.mockito.MockitoAnnotations;
 
 import edu.iu.terracotta.base.BaseTest;
+import edu.iu.terracotta.dao.entity.integrations.IntegrationToken;
+import edu.iu.terracotta.dao.exceptions.integrations.IntegrationTokenAlreadyRedeemedException;
+import edu.iu.terracotta.dao.exceptions.integrations.IntegrationTokenExpiredException;
+import edu.iu.terracotta.dao.exceptions.integrations.IntegrationTokenInvalidException;
+import edu.iu.terracotta.dao.exceptions.integrations.IntegrationTokenNotFoundException;
+import edu.iu.terracotta.dao.model.enums.QuestionTypes;
 import edu.iu.terracotta.exceptions.DataServiceException;
-import edu.iu.terracotta.exceptions.integrations.IntegrationTokenAlreadyRedeemedException;
-import edu.iu.terracotta.exceptions.integrations.IntegrationTokenExpiredException;
-import edu.iu.terracotta.exceptions.integrations.IntegrationTokenInvalidException;
-import edu.iu.terracotta.exceptions.integrations.IntegrationTokenNotFoundException;
-import edu.iu.terracotta.model.app.enumerator.QuestionTypes;
-import edu.iu.terracotta.model.app.integrations.IntegrationToken;
 import edu.iu.terracotta.service.app.integrations.impl.IntegrationTokenServiceImpl;
 
 public class IntegrationTokenServiceImplTest extends BaseTest {

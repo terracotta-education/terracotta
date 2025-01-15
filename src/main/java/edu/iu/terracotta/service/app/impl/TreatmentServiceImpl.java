@@ -1,8 +1,25 @@
 package edu.iu.terracotta.service.app.impl;
 
-import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
-import edu.iu.terracotta.exceptions.AssignmentNotEditedException;
-import edu.iu.terracotta.exceptions.CanvasApiException;
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
+import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
+import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiUserRepository;
+import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
+import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
+import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
+import edu.iu.terracotta.dao.entity.Assessment;
+import edu.iu.terracotta.dao.entity.Assignment;
+import edu.iu.terracotta.dao.entity.Condition;
+import edu.iu.terracotta.dao.entity.Treatment;
+import edu.iu.terracotta.dao.exceptions.AssessmentNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.AssignmentNotEditedException;
+import edu.iu.terracotta.dao.exceptions.QuestionNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.TreatmentNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.integrations.IntegrationClientNotFoundException;
+import edu.iu.terracotta.dao.exceptions.integrations.IntegrationNotFoundException;
+import edu.iu.terracotta.dao.model.dto.TreatmentDto;
+import edu.iu.terracotta.dao.repository.AssignmentRepository;
+import edu.iu.terracotta.dao.repository.ConditionRepository;
+import edu.iu.terracotta.dao.repository.TreatmentRepository;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExceedingLimitException;
 import edu.iu.terracotta.exceptions.IdInPostException;
@@ -11,23 +28,8 @@ import edu.iu.terracotta.exceptions.IdMissingException;
 import edu.iu.terracotta.exceptions.MultipleAttemptsSettingsValidationException;
 import edu.iu.terracotta.exceptions.MultipleChoiceLimitReachedException;
 import edu.iu.terracotta.exceptions.NegativePointsException;
-import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
 import edu.iu.terracotta.exceptions.RevealResponsesSettingValidationException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
-import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
-import edu.iu.terracotta.exceptions.integrations.IntegrationClientNotFoundException;
-import edu.iu.terracotta.exceptions.integrations.IntegrationNotFoundException;
-import edu.iu.terracotta.model.LtiUserEntity;
-import edu.iu.terracotta.model.app.Assessment;
-import edu.iu.terracotta.model.app.Assignment;
-import edu.iu.terracotta.model.app.Treatment;
-import edu.iu.terracotta.model.app.dto.TreatmentDto;
-import edu.iu.terracotta.model.oauth2.SecuredInfo;
-import edu.iu.terracotta.repository.AssignmentRepository;
-import edu.iu.terracotta.repository.ConditionRepository;
-import edu.iu.terracotta.repository.LtiUserRepository;
-import edu.iu.terracotta.repository.TreatmentRepository;
-import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.AssessmentService;
 import edu.iu.terracotta.service.app.AssignmentTreatmentService;
 import edu.iu.terracotta.service.app.TreatmentService;
@@ -37,7 +39,6 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
-import edu.iu.terracotta.model.app.Condition;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import jakarta.persistence.EntityManager;
@@ -55,15 +56,14 @@ public class TreatmentServiceImpl implements TreatmentService {
     @Autowired private ConditionRepository conditionRepository;
     @Autowired private LtiUserRepository ltiUserRepository;
     @Autowired private TreatmentRepository treatmentRepository;
-    @Autowired private APIJWTService apijwtService;
+    @Autowired private ApiJwtService apiJwtService;
     @Autowired private AssessmentService assessmentService;
     @Autowired private AssignmentTreatmentService assignmentTreatmentService;
 
     @PersistenceContext private EntityManager entityManager;
 
     @Override
-    public List<TreatmentDto> getTreatments(Long conditionId, boolean submissions, SecuredInfo securedInfo)
-            throws AssessmentNotMatchingException, NumberFormatException, CanvasApiException {
+    public List<TreatmentDto> getTreatments(Long conditionId, boolean submissions, SecuredInfo securedInfo) throws AssessmentNotMatchingException, NumberFormatException, ApiException, TerracottaConnectorException {
         List<Treatment> treatments = treatmentRepository.findByCondition_ConditionId(conditionId);
 
         if (CollectionUtils.isEmpty(treatments)) {
@@ -72,7 +72,7 @@ public class TreatmentServiceImpl implements TreatmentService {
 
         LtiUserEntity instructorUser = null;
 
-        if (apijwtService.isInstructorOrHigher(securedInfo)) {
+        if (apiJwtService.isInstructorOrHigher(securedInfo)) {
             instructorUser = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
         }
 
@@ -81,7 +81,7 @@ public class TreatmentServiceImpl implements TreatmentService {
         for (Treatment treatment : treatments) {
             // Only add assignment DTO attributes when an instructor user
             if (instructorUser != null) {
-                assignmentTreatmentService.setAssignmentDtoAttrs(treatment.getAssignment(), securedInfo.getCanvasCourseId(), instructorUser);
+                assignmentTreatmentService.setAssignmentDtoAttrs(treatment.getAssignment(), securedInfo.getLmsCourseId(), instructorUser);
             }
 
             treatmentDtoList.add(assignmentTreatmentService.toTreatmentDto(treatment, submissions, true));
@@ -124,7 +124,9 @@ public class TreatmentServiceImpl implements TreatmentService {
     @Override
     public TreatmentDto putTreatment(TreatmentDto treatmentDto, long treatmentId, SecuredInfo securedInfo, boolean questions)
             throws DataServiceException, IdMissingException, AssessmentNotMatchingException, IdMismatchException,
-            TreatmentNotMatchingException, TitleValidationException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, CanvasApiException, AssignmentNotEditedException, IdInPostException, NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException, IntegrationClientNotFoundException, IntegrationNotFoundException {
+            TreatmentNotMatchingException, TitleValidationException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException,
+            ApiException, AssignmentNotEditedException, IdInPostException, NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException,
+            IntegrationClientNotFoundException, IntegrationNotFoundException {
         if (treatmentDto.getTreatmentId() == null) {
             throw new IdMissingException(TextConstants.ID_MISSING);
         }

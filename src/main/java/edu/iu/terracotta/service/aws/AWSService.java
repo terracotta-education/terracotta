@@ -2,7 +2,7 @@ package edu.iu.terracotta.service.aws;
 
 import java.io.InputStream;
 
-public interface AWSService {
+public interface AwsService {
 
     InputStream readFileFromS3Bucket(String bucketName, String key);
 

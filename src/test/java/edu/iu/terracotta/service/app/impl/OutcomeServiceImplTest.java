@@ -21,18 +21,19 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import edu.iu.terracotta.base.BaseTest;
-import edu.iu.terracotta.exceptions.CanvasApiException;
+import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
+import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
+import edu.iu.terracotta.dao.entity.Outcome;
+import edu.iu.terracotta.dao.entity.OutcomeScore;
+import edu.iu.terracotta.dao.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.OutcomeNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.ParticipantNotUpdatedException;
+import edu.iu.terracotta.dao.model.dto.OutcomeDto;
+import edu.iu.terracotta.dao.model.dto.OutcomePotentialDto;
+import edu.iu.terracotta.dao.model.enums.LmsType;
 import edu.iu.terracotta.exceptions.DataServiceException;
-import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.IdInPostException;
-import edu.iu.terracotta.exceptions.OutcomeNotMatchingException;
-import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
-import edu.iu.terracotta.model.app.Outcome;
-import edu.iu.terracotta.model.app.OutcomeScore;
-import edu.iu.terracotta.model.app.dto.OutcomeDto;
-import edu.iu.terracotta.model.app.dto.OutcomePotentialDto;
-import edu.iu.terracotta.model.app.enumerator.LmsType;
 
 public class OutcomeServiceImplTest extends BaseTest {
 
@@ -59,14 +60,14 @@ public class OutcomeServiceImplTest extends BaseTest {
     }
 
     @Test
-    public void testUpdateOutcomeGrades() throws CanvasApiException, IOException, ParticipantNotUpdatedException, ExperimentNotMatchingException, OutcomeNotMatchingException {
+    public void testUpdateOutcomeGrades() throws IOException, ParticipantNotUpdatedException, ExperimentNotMatchingException, OutcomeNotMatchingException, ApiException, NumberFormatException, TerracottaConnectorException {
         outcomeService.updateOutcomeGrades(1l, securedInfo, false);
 
         verify(outcomeScoreRepository, never()).save(any(OutcomeScore.class));
     }
 
     @Test
-    public void testUpdateOutcomeGradesNoEmail() throws CanvasApiException, IOException, ParticipantNotUpdatedException, ExperimentNotMatchingException, OutcomeNotMatchingException {
+    public void testUpdateOutcomeGradesNoEmail() throws IOException, ParticipantNotUpdatedException, ExperimentNotMatchingException, OutcomeNotMatchingException, ApiException, NumberFormatException, TerracottaConnectorException {
         when(ltiUserEntity.getEmail()).thenReturn(null);
 
         outcomeService.updateOutcomeGrades(1l, securedInfo, false);
@@ -75,7 +76,7 @@ public class OutcomeServiceImplTest extends BaseTest {
     }
 
     @Test
-    public void testUpdateOutcomeGradesNoScores() throws CanvasApiException, IOException, ParticipantNotUpdatedException, ExperimentNotMatchingException, OutcomeNotMatchingException {
+    public void testUpdateOutcomeGradesNoScores() throws IOException, ParticipantNotUpdatedException, ExperimentNotMatchingException, OutcomeNotMatchingException, ApiException, NumberFormatException, TerracottaConnectorException {
         when(outcome.getOutcomeScores()).thenReturn(Collections.emptyList());
 
         outcomeService.updateOutcomeGrades(1l, securedInfo, false);
@@ -84,7 +85,7 @@ public class OutcomeServiceImplTest extends BaseTest {
     }
 
     @Test
-    public void testUpdateOutcomeGradesNoScoresEmailNull() throws CanvasApiException, IOException, ParticipantNotUpdatedException, ExperimentNotMatchingException, OutcomeNotMatchingException {
+    public void testUpdateOutcomeGradesNoScoresEmailNull() throws IOException, ParticipantNotUpdatedException, ExperimentNotMatchingException, OutcomeNotMatchingException, ApiException, NumberFormatException, TerracottaConnectorException {
         when(outcome.getOutcomeScores()).thenReturn(Collections.emptyList());
         when(ltiUserEntity.getEmail()).thenReturn(null);
 
@@ -139,7 +140,7 @@ public class OutcomeServiceImplTest extends BaseTest {
     }
 
     @Test
-    public void testPotentialOutcomes() throws DataServiceException, CanvasApiException {
+    public void testPotentialOutcomes() throws DataServiceException, ApiException, TerracottaConnectorException {
         List<OutcomePotentialDto> retVal = outcomeService.potentialOutcomes(0, securedInfo);
 
         assertNotNull(retVal);

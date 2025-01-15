@@ -1,48 +1,51 @@
 package edu.iu.terracotta.service.app.impl;
 
+import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
+import edu.iu.terracotta.connectors.generic.dao.model.lti.LtiToken;
+import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.LineItem;
+import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.LineItems;
+import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.Score;
+import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
+import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
+import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
+import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
+import edu.iu.terracotta.connectors.generic.service.lti.advantage.AdvantageAgsService;
+import edu.iu.terracotta.connectors.generic.service.api.ApiClient;
+import edu.iu.terracotta.dao.entity.AnswerMc;
+import edu.iu.terracotta.dao.entity.AnswerMcSubmissionOption;
+import edu.iu.terracotta.dao.entity.Assessment;
+import edu.iu.terracotta.dao.entity.Assignment;
+import edu.iu.terracotta.dao.entity.Condition;
+import edu.iu.terracotta.dao.entity.Experiment;
+import edu.iu.terracotta.dao.entity.ExposureGroupCondition;
+import edu.iu.terracotta.dao.entity.Group;
+import edu.iu.terracotta.dao.entity.Participant;
+import edu.iu.terracotta.dao.entity.QuestionMc;
+import edu.iu.terracotta.dao.entity.QuestionSubmission;
+import edu.iu.terracotta.dao.entity.RegradeDetails;
+import edu.iu.terracotta.dao.entity.Submission;
+import edu.iu.terracotta.dao.entity.Treatment;
+import edu.iu.terracotta.dao.exceptions.ParticipantNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.SubmissionNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.integrations.IntegrationTokenNotFoundException;
+import edu.iu.terracotta.dao.model.dto.SubmissionDto;
+import edu.iu.terracotta.dao.model.enums.QuestionTypes;
+import edu.iu.terracotta.dao.model.enums.RegradeOption;
+import edu.iu.terracotta.dao.repository.AnswerMcRepository;
+import edu.iu.terracotta.dao.repository.AnswerMcSubmissionOptionRepository;
+import edu.iu.terracotta.dao.repository.AssessmentRepository;
+import edu.iu.terracotta.dao.repository.AssignmentRepository;
+import edu.iu.terracotta.dao.repository.ExposureGroupConditionRepository;
+import edu.iu.terracotta.dao.repository.ParticipantRepository;
+import edu.iu.terracotta.dao.repository.QuestionSubmissionRepository;
+import edu.iu.terracotta.dao.repository.SubmissionCommentRepository;
+import edu.iu.terracotta.dao.repository.SubmissionRepository;
+import edu.iu.terracotta.dao.repository.TreatmentRepository;
 import edu.iu.terracotta.exceptions.AssignmentDatesException;
-import edu.iu.terracotta.exceptions.CanvasApiException;
-import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.InvalidUserException;
 import edu.iu.terracotta.exceptions.NoSubmissionsException;
-import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
-import edu.iu.terracotta.exceptions.SubmissionNotMatchingException;
-import edu.iu.terracotta.exceptions.integrations.IntegrationTokenNotFoundException;
-import edu.iu.terracotta.model.ags.LineItem;
-import edu.iu.terracotta.model.ags.LineItems;
-import edu.iu.terracotta.model.ags.Score;
-import edu.iu.terracotta.model.app.AnswerMc;
-import edu.iu.terracotta.model.app.AnswerMcSubmissionOption;
-import edu.iu.terracotta.model.app.Assessment;
-import edu.iu.terracotta.model.app.Assignment;
-import edu.iu.terracotta.model.app.Condition;
-import edu.iu.terracotta.model.app.Experiment;
-import edu.iu.terracotta.model.app.ExposureGroupCondition;
-import edu.iu.terracotta.model.app.Group;
-import edu.iu.terracotta.model.app.Participant;
-import edu.iu.terracotta.model.app.QuestionMc;
-import edu.iu.terracotta.model.app.QuestionSubmission;
-import edu.iu.terracotta.model.app.RegradeDetails;
-import edu.iu.terracotta.model.app.Submission;
-import edu.iu.terracotta.model.app.Treatment;
-import edu.iu.terracotta.model.app.dto.SubmissionDto;
-import edu.iu.terracotta.model.app.enumerator.QuestionTypes;
-import edu.iu.terracotta.model.app.enumerator.RegradeOption;
-import edu.iu.terracotta.model.oauth2.LTIToken;
-import edu.iu.terracotta.model.oauth2.SecuredInfo;
-import edu.iu.terracotta.repository.AnswerMcRepository;
-import edu.iu.terracotta.repository.AnswerMcSubmissionOptionRepository;
-import edu.iu.terracotta.repository.AssessmentRepository;
-import edu.iu.terracotta.repository.AssignmentRepository;
-import edu.iu.terracotta.repository.ExposureGroupConditionRepository;
-import edu.iu.terracotta.repository.ParticipantRepository;
-import edu.iu.terracotta.repository.QuestionSubmissionRepository;
-import edu.iu.terracotta.repository.SubmissionCommentRepository;
-import edu.iu.terracotta.repository.SubmissionRepository;
-import edu.iu.terracotta.repository.TreatmentRepository;
-import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.AssessmentSubmissionService;
 import edu.iu.terracotta.service.app.QuestionSubmissionService;
 import edu.iu.terracotta.service.app.SubmissionCommentService;
@@ -50,7 +53,6 @@ import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.service.app.integrations.IntegrationLaunchService;
 import edu.iu.terracotta.service.app.integrations.IntegrationTokenService;
 import edu.iu.terracotta.service.caliper.CaliperService;
-import edu.iu.terracotta.service.lti.AdvantageAGSService;
 import edu.iu.terracotta.utils.TextConstants;
 import lombok.extern.slf4j.Slf4j;
 
@@ -71,7 +73,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -96,10 +97,11 @@ public class SubmissionServiceImpl implements SubmissionService {
     @Autowired private QuestionSubmissionService questionSubmissionService;
     @Autowired private SubmissionCommentService submissionCommentService;
     @Autowired private AssessmentSubmissionService assessmentSubmissionService;
-    @Autowired private AdvantageAGSService advantageAGSService;
+    @Autowired private AdvantageAgsService advantageAgsService;
     @Autowired private CaliperService caliperService;
-    @Autowired private APIJWTService apijwtService;
+    @Autowired private ApiJwtService apiJwtService;
     @Autowired private IntegrationTokenService integrationTokenService;
+    @Autowired private ApiClient apiClient;
 
     @Override
     public List<SubmissionDto> getSubmissions(Long experimentId, String userId, Long assessmentId, boolean student) throws NoSubmissionsException {
@@ -178,7 +180,7 @@ public class SubmissionServiceImpl implements SubmissionService {
 
     @Override
     @Transactional
-    public void updateSubmissions(Map<Submission, SubmissionDto> map, boolean student) throws ConnectionException, DataServiceException {
+    public void updateSubmissions(Map<Submission, SubmissionDto> map, boolean student) throws ConnectionException, DataServiceException, ApiException, IOException, TerracottaConnectorException {
         if (student) {
             // students cannot update submission scores
             return;
@@ -198,10 +200,10 @@ public class SubmissionServiceImpl implements SubmissionService {
             submission = save(submission);
         }
 
-        // only submit to Canvas once after all submissions have been saved
+        // only submit to LMS once after all submissions have been saved
         Submission submissionToSend = map.keySet().iterator().next();
-        log.info("Sending updated grade to Canvas for assessment ID: [{}] and participant ID: [{}]", submissionToSend.getAssessment().getAssessmentId(), submissionToSend.getParticipant().getParticipantId());
-        sendSubmissionGradeToCanvasWithLTI(submissionToSend, student);
+        log.info("Sending updated grade to LMS for assessment ID: [{}] and participant ID: [{}]", submissionToSend.getAssessment().getAssessmentId(), submissionToSend.getParticipant().getParticipantId());
+        sendSubmissionGradeToLmsWithLti(submissionToSend, student);
     }
 
     @Override
@@ -326,13 +328,13 @@ public class SubmissionServiceImpl implements SubmissionService {
 
     @Override
     public void finalizeAndGrade(Long submissionId, SecuredInfo securedInfo, boolean student)
-            throws DataServiceException, AssignmentDatesException, CanvasApiException, IOException, ConnectionException {
+            throws DataServiceException, AssignmentDatesException, IOException, ConnectionException, ApiException, TerracottaConnectorException {
         finalizeAndGrade(submissionId, securedInfo, student, RegradeOption.NA);
     }
 
     @Transactional
     public void finalizeAndGrade(Long submissionId, SecuredInfo securedInfo, boolean student, RegradeOption regradeOption)
-            throws DataServiceException, AssignmentDatesException, CanvasApiException, IOException, ConnectionException {
+            throws DataServiceException, AssignmentDatesException, IOException, ConnectionException, ApiException, TerracottaConnectorException {
         Optional<Submission> submission = submissionRepository.findById(submissionId);
 
         if (submission.isEmpty()) {
@@ -352,9 +354,9 @@ public class SubmissionServiceImpl implements SubmissionService {
         if (securedInfo.getLockAt() == null || submission.get().getDateSubmitted().after(securedInfo.getLockAt())) {
             saveAndFlush(assessmentSubmissionService.gradeSubmission(submission.get(), new RegradeDetails()));
             caliperService.sendAssignmentSubmitted(submission.get(), securedInfo);
-            sendSubmissionGradeToCanvasWithLTI(submission.get(), student);
+            sendSubmissionGradeToLmsWithLti(submission.get(), student);
         } else {
-            throw new AssignmentDatesException("Error 128: Canvas Assignment is locked, we can not generate/grade a submission with a date later than the lock date");
+            throw new AssignmentDatesException("Error 128: LMS Assignment is locked, we can not generate/grade a submission with a date later than the lock date");
         }
     }
 
@@ -420,18 +422,18 @@ public class SubmissionServiceImpl implements SubmissionService {
     }
 
     @Override
-    public void sendSubmissionGradeToCanvasWithLTI(Submission submission, boolean studentSubmission) throws ConnectionException, DataServiceException {
+    public void sendSubmissionGradeToLmsWithLti(Submission submission, boolean studentSubmission) throws ConnectionException, DataServiceException, ApiException, IOException, TerracottaConnectorException {
         //We need, the assignment, and the iss configuration...
         Assessment assessment = submission.getAssessment();
         Assignment assignment = assessment.getTreatment().getAssignment();
         Experiment experiment = assignment.getExposure().getExperiment();
-        LTIToken ltiTokenScore = advantageAGSService.getToken("scores", experiment.getPlatformDeployment());
-        LTIToken ltiTokenResults = advantageAGSService.getToken("results", experiment.getPlatformDeployment());
+        LtiToken ltiTokenScore = advantageAgsService.getToken("scores", experiment.getPlatformDeployment());
+        LtiToken ltiTokenResults = advantageAgsService.getToken("results", experiment.getPlatformDeployment());
         //find the right id to pass based on the assignment
         String lineitemId = lineItemId(assignment);
 
         if (lineitemId == null) {
-            throw new DataServiceException("Error 136: The assignment is not linked to any Canvas assignment");
+            throw new DataServiceException("Error 136: The assignment is not linked to any LMS assignment");
         }
 
         Score score = new Score();
@@ -440,7 +442,7 @@ public class SubmissionServiceImpl implements SubmissionService {
         Float scoreGiven = getScoreFromMultipleSubmissions(participant, assessment);
 
         if (scoreGiven != null) {
-            score.setScoreGiven(scoreGiven.toString());
+            score.setScoreGiven(scoreGiven);
         }
 
         Float maxTerracottaScore = assessmentSubmissionService.calculateMaxScore(assessment);
@@ -448,9 +450,9 @@ public class SubmissionServiceImpl implements SubmissionService {
         if (maxTerracottaScore == 0) {
             // zero point assignments full credit (1 point) is given for completion so the
             // maximum is 1 point
-            score.setScoreMaximum("1.0");
+            score.setScoreMaximum(1F);
         } else {
-            score.setScoreMaximum(maxTerracottaScore.toString());
+            score.setScoreMaximum(maxTerracottaScore);
         }
 
         score.setActivityProgress("Completed");
@@ -466,27 +468,8 @@ public class SubmissionServiceImpl implements SubmissionService {
         String strDate = dt.format(date);
         score.setTimestamp(strDate);
 
-        addCanvasExtensions(score, submission, studentSubmission);
-        advantageAGSService.postScore(ltiTokenScore, ltiTokenResults, experiment.getLtiContextEntity(), lineitemId, score);
-    }
-
-    private void addCanvasExtensions(Score score, Submission submission, boolean studentSubmission) {
-        Map<String, Object> submissionData = new HashMap<>();
-        // See
-        // https://canvas.instructure.com/doc/api/score.html#method.lti/ims/scores.create
-        // for more information about these extension fields
-
-        // Only treat a score as a new submission when it comes from a student and NOT
-        // when graded by an instructor
-        submissionData.put("new_submission", studentSubmission);
-
-        // Include date originally submitted so that late grading doesn't result in late
-        // submissions
-        SimpleDateFormat dt = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"); // ISO8601 format
-        String dateSubmittedFormatted = dt.format(submission.getDateSubmitted());
-        submissionData.put("submitted_at", dateSubmittedFormatted);
-
-        score.setCanvasSubmissionExtension(submissionData);
+        apiClient.addLmsExtensions(score, submission, studentSubmission);
+        advantageAgsService.postScore(ltiTokenScore, ltiTokenResults, experiment.getLtiContextEntity(), lineitemId, score);
     }
 
     @Override
@@ -737,7 +720,7 @@ public class SubmissionServiceImpl implements SubmissionService {
             return;
         }
 
-        if (apijwtService.isTestStudent(securedInfo)) {
+        if (apiJwtService.isTestStudent(securedInfo)) {
             // is a test student
             return;
         }
@@ -746,11 +729,11 @@ public class SubmissionServiceImpl implements SubmissionService {
         assignmentRepository.save(assignment);
     }
 
-    private String lineItemId(Assignment assignment) throws ConnectionException {
+    private String lineItemId(Assignment assignment) throws ConnectionException, TerracottaConnectorException {
         Experiment experiment = assignment.getExposure().getExperiment();
-        LTIToken ltiToken = advantageAGSService.getToken("lineitems", experiment.getPlatformDeployment());
+        LtiToken ltiToken = advantageAgsService.getToken("lineitems", experiment.getPlatformDeployment());
         //find the right id to pass based on the assignment
-        LineItems lineItems = advantageAGSService.getLineItems(ltiToken, experiment.getLtiContextEntity());
+        LineItems lineItems = advantageAgsService.getLineItems(ltiToken, experiment.getLtiContextEntity());
 
         for (LineItem lineItem : lineItems.getLineItemList()) {
             if (lineItem.getResourceLinkId().equals(assignment.getResourceLinkId())) {
