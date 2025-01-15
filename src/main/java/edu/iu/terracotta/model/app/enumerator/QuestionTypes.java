@@ -5,6 +5,7 @@ public enum QuestionTypes {
     MC,
     ESSAY,
     PAGE_BREAK,
-    FILE
+    FILE,
+    INTEGRATION
 
 }

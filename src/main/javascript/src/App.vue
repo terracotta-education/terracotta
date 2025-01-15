@@ -1,12 +1,17 @@
 <template>
   <v-app
     :style="appStyle"
+    tabindex="0"
   >
-    <v-main>
+    <v-main
+      v-if="!isIntegration"
+    >
       <template
         v-if="hasTokens && userInfo === 'Instructor'"
       >
-        <router-view :key="$route.fullPath" />
+        <router-view
+          :key="$route.fullPath"
+        />
       </template>
       <template
         v-else-if="hasTokens && userInfo === 'Learner'"
@@ -15,35 +20,40 @@
           <PageLoading
             :display="!childLoaded"
             :message="'Loading your assignment. Please wait.'"
-          >
-          </PageLoading>
+          />
           <StudentConsent
             v-if="consent"
             :experimentId="experimentId"
             :userId="userId"
             @loaded="childLoaded = true"
-          >
-          </StudentConsent>
+          />
           <StudentQuiz
             v-if="!consent && assignmentId"
             :experimentId="experimentId"
             :assignmentId="assignmentId"
             @loaded="childLoaded = true"
-          >
-          </StudentQuiz>
+          />
         </div>
       </template>
       <template
         v-else
       >
-        <v-row justify="center">
-          <v-col md="6">
+        <v-row
+          justify="center"
+        >
+          <v-col
+            md="6"
+          >
             <v-alert
               prominent
               type="error"
             >
-              <v-row align="center">
-                <v-col class="grow">
+              <v-row
+                align="center"
+              >
+                <v-col
+                  class="grow"
+                >
                   Error
                 </v-col>
               </v-row>
@@ -52,11 +62,19 @@
         </v-row>
       </template>
     </v-main>
+    <v-main
+      v-else
+    >
+      <integrations
+        :integrationData="integrationData"
+      />
+    </v-main>
   </v-app>
 </template>
 
 <script>
 import { mapActions, mapGetters } from "vuex";
+import Integrations from "./views/integrations/Integrations.vue";
 import PageLoading from "@/components/PageLoading";
 import StudentConsent from './views/student/StudentConsent.vue';
 import StudentQuiz from './views/student/StudentQuiz.vue';
@@ -64,9 +82,15 @@ import StudentQuiz from './views/student/StudentQuiz.vue';
 export default {
   name: 'App',
   components: {
+    Integrations,
     PageLoading,
     StudentQuiz,
     StudentConsent
+  },
+  props: {
+    integrationData: {
+      type: Object
+    }
   },
   data: () => ({
     childLoaded: false
@@ -85,6 +109,9 @@ export default {
     appStyle() {
       return this.$route.meta.appStyle;
     },
+    isIntegration() {
+      return this.integrationData != null;
+    }
   },
   methods: {
     ...mapActions({

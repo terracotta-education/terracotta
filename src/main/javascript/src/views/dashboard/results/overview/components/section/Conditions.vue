@@ -6,7 +6,7 @@
     <DataTable
       :tableData="rows"
       :titleHeader="`Condition Name`"
-      :noSubmissionsMessage="`Data will appear here when participants assigned to this condition have completed the assignment.`"
+      :noSubmissionsMessage="`Data will appear here when participants assigned to this condition have completed the component.`"
       :tooltips="tooltips"
     />
   </v-row>
@@ -28,7 +28,7 @@ export default {
       return [
         {
           id: "submissionRate",
-          message: "This value is calculated by dividing the total number of assignment submissions for each condition by the total number of consenting participants assigned to those conditions.",
+          message: "This value is calculated by dividing the total number of component submissions for each condition by the total number of consenting participants assigned to those conditions.",
         }
       ]
     },

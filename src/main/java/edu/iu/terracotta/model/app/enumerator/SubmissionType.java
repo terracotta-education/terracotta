@@ -4,6 +4,7 @@ public enum SubmissionType {
 
     ESSAY,
     FILE,
+    INTEGRATION,
     MC
 
 }

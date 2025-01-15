@@ -28,7 +28,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import edu.iu.terracotta.BaseTest;
+import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.OutcomeNotMatchingException;
@@ -187,5 +187,5 @@ public class ExportServiceImplTest extends BaseTest {
         assertEquals('X', retVal);
     }
 
-    
+
 }

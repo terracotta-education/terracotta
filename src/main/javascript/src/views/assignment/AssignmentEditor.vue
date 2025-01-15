@@ -4,12 +4,12 @@
     <div class="col-6">
         <v-text-field
             v-model="assignment.title"
-            label="Assignment name"
+            label="Component name"
             outlined
         ></v-text-field>
     </div>
     </v-row>
-    <p>This will create an unpublished assignment shell in Canvas and will be the way Terracotta will deliver treatments to students.</p>
+    <p>This will create an unpublished component shell in Canvas and will be the way Terracotta will deliver treatments to students.</p>
     <v-divider class=""></v-divider>
     <v-tabs v-model="tab" class="tabs">
       <v-tab>Settings</v-tab>

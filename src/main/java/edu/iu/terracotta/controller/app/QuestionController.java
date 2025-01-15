@@ -8,6 +8,11 @@ import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.MultipleChoiceLimitReachedException;
 import edu.iu.terracotta.exceptions.NegativePointsException;
 import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
+import edu.iu.terracotta.exceptions.integrations.IntegrationClientNotFoundException;
+import edu.iu.terracotta.exceptions.integrations.IntegrationConfigurationNotFoundException;
+import edu.iu.terracotta.exceptions.integrations.IntegrationConfigurationNotMatchingException;
+import edu.iu.terracotta.exceptions.integrations.IntegrationNotFoundException;
+import edu.iu.terracotta.exceptions.integrations.IntegrationNotMatchingException;
 import edu.iu.terracotta.model.app.Question;
 import edu.iu.terracotta.model.app.dto.QuestionDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
@@ -105,7 +110,7 @@ public class QuestionController {
                                                     @RequestBody QuestionDto questionDto,
                                                     UriComponentsBuilder ucBuilder,
                                                     HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, BadTokenException, IdInPostException, DataServiceException, MultipleChoiceLimitReachedException {
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, BadTokenException, IdInPostException, DataServiceException, MultipleChoiceLimitReachedException, IntegrationNotFoundException, IntegrationClientNotFoundException {
         log.debug("Creating Question for assessment ID: {}", assessmentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -115,7 +120,7 @@ public class QuestionController {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
-        QuestionDto returnedDto = questionService.postQuestion(questionDto, assessmentId, answers);
+        QuestionDto returnedDto = questionService.postQuestion(questionDto, assessmentId, answers, true);
         HttpHeaders headers = questionService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, returnedDto.getQuestionId());
 
         return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
@@ -162,7 +167,8 @@ public class QuestionController {
                                                @PathVariable long questionId,
                                                @RequestBody QuestionDto questionDto,
                                                HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionNotMatchingException, BadTokenException, NegativePointsException {
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionNotMatchingException, BadTokenException, NegativePointsException, IntegrationNotFoundException,
+                IntegrationNotMatchingException, IntegrationConfigurationNotFoundException, IntegrationConfigurationNotMatchingException, IntegrationClientNotFoundException {
         log.debug("Updating question with id: {}", questionId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -200,11 +206,11 @@ public class QuestionController {
 
         try {
             questionService.deleteById(questionId);
-            return new ResponseEntity<>(HttpStatus.OK);
-        } catch (EmptyResultDataAccessException ex) {
-            log.warn(ex.getMessage());
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        } catch (EmptyResultDataAccessException e) {
+            log.warn(e.getMessage(), e);
         }
+
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
 }

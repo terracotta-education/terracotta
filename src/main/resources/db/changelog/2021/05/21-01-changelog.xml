@@ -13,7 +13,7 @@
             <column name="created_at" type="TIMESTAMP DEFAULT CURRENT_TIMESTAMP"/>
             <column name="updated_at" type="DATETIME"/>
             <column name="entity_version" type="INT"/>
-            <column name="token" type="VARCHAR(4096)">
+            <column name="token" type="TEXT">
                 <constraints nullable="false"/>
             </column>
         </createTable>
@@ -29,7 +29,7 @@
             <column name="config_name" type="VARCHAR(255)">
                 <constraints nullable="false"/>
             </column>
-            <column name="config_value" type="VARCHAR(4096)"/>
+            <column name="config_value" type="TEXT"/>
         </createTable>
     </changeSet>
     <changeSet id="1621606506450-3" author="ddelblanco (generated)">
@@ -65,12 +65,12 @@
             <column name="created_at" type="TIMESTAMP DEFAULT CURRENT_TIMESTAMP"/>
             <column name="updated_at" type="DATETIME"/>
             <column name="entity_version" type="INT"/>
-            <column name="context_key" type="VARCHAR(4096)">
+            <column name="context_key" type="TEXT">
                 <constraints nullable="false"/>
             </column>
-            <column name="title" type="VARCHAR(4096)"/>
-            <column name="context_memberships_url" type="VARCHAR(4096)"/>
-            <column name="lineitems" type="VARCHAR(4096)"/>
+            <column name="title" type="TEXT"/>
+            <column name="context_memberships_url" type="TEXT"/>
+            <column name="lineitems" type="TEXT"/>
             <column name="json" type="CLOB"/>
             <column name="settings" type="CLOB"/>
             <column name="key_id" type="BIGINT">
@@ -86,10 +86,10 @@
             <column name="created_at" type="TIMESTAMP DEFAULT CURRENT_TIMESTAMP"/>
             <column name="updated_at" type="DATETIME"/>
             <column name="entity_version" type="INT"/>
-            <column name="link_key" type="VARCHAR(4096)">
+            <column name="link_key" type="TEXT">
                 <constraints nullable="false"/>
             </column>
-            <column name="title" type="VARCHAR(4096)"/>
+            <column name="title" type="TEXT"/>
             <column name="context_id" type="BIGINT">
                 <constraints nullable="false"/>
             </column>
@@ -123,7 +123,7 @@
             <column name="entity_version" type="INT"/>
             <column name="score_given" type="FLOAT"/>
             <column name="score_maximum" type="FLOAT"/>
-            <column name="comment" type="VARCHAR(4096)"/>
+            <column name="comment" type="TEXT"/>
             <column name="activity_progress" type="VARCHAR(255)"/>
             <column name="grading_progress" type="VARCHAR(255)"/>
             <column name="timestamp" type="DATETIME">
@@ -145,10 +145,10 @@
             <column name="created_at" type="TIMESTAMP DEFAULT CURRENT_TIMESTAMP"/>
             <column name="updated_at" type="DATETIME"/>
             <column name="entity_version" type="INT"/>
-            <column name="user_key" type="VARCHAR(4096)">
+            <column name="user_key" type="TEXT">
                 <constraints nullable="false"/>
             </column>
-            <column name="displayname" type="VARCHAR(4096)"/>
+            <column name="displayname" type="TEXT"/>
             <column name="email" type="VARCHAR(255)"/>
             <column name="locale" type="VARCHAR(63)"/>
             <column name="subscribe" type="SMALLINT"/>

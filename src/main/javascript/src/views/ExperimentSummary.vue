@@ -1,6 +1,8 @@
 <template>
   <div>
-    <v-container v-if="experiment">
+    <v-container
+      v-if="experiment"
+    >
       <v-row
         class="sticky my-1"
         justify="space-between"
@@ -80,7 +82,7 @@
                   <p
                     class="pb-0"
                   >
-                    <strong>Note:</strong> You are currently collecting assignment submissions. Some setup functionality may not be available to avoid disrupting the experiment.
+                    <strong>Note:</strong> You are currently collecting component submissions. Some setup functionality may not be available to avoid disrupting the experiment.
                   </p>
                 </v-card>
                 <div
@@ -123,7 +125,7 @@
                   />
                 </template>
                 <template
-                  v-if="item.tab === 'assignment'"
+                  v-if="item.tab === 'component'"
                 >
                   <div
                     class="section-exposure-sets px-5"
@@ -166,7 +168,7 @@
                             </strong>
                             An "exposure set" exposes a student to a specific condition during a specific time period. Students will change conditions between exposure sets, and the order
                             of conditions across exposure sets will be randomly assigned to different students.
-                            An exposure set contains one or more assignments, and there must be an equal number of assignments in each exposure set in order to balance the experiment.
+                            An exposure set contains one or more components, and there must be an equal number of components in each exposure set in order to balance the experiment.
                           </span>
                         </v-tooltip>
                       </p>
@@ -214,7 +216,7 @@
                             >
                               Balanced Exposure Sets
                             </strong>
-                            Your exposure sets contain all the same number assignments, and assignments contain the same number of treatments. Great work!
+                            Your exposure sets contain all the same number components, and components contain the same number of treatments. Great work!
                           </span>
                           <span
                             v-if="!balanced"
@@ -224,7 +226,7 @@
                             >
                               Unbalanced Exposure Sets
                             </strong>
-                            A balanced experiment needs to have the same number of assignments within each exposure set, and a treatment for each condition within each assignment.
+                            A balanced experiment needs to have the same number of components within each exposure set, and a treatment for each condition within each component.
                             This will allow your students to be exposed to every condition, but in different orders, so you can compare how the different conditions affected each
                             individual student.
                           </span>
@@ -240,7 +242,7 @@
                   </div>
                 </template>
                 <template
-                  v-if="item.tab !== 'status' && item.tab !== 'assignment'"
+                  v-if="item.tab !== 'status' && item.tab !== 'component'"
                 >
                   <table>
                     <tr
@@ -458,8 +460,8 @@ export default {
     sectionValuesMap() {
       return {
         Design: this.designDetails,
-        Participants: this.participantDetails,
-        Assignments: this.assignmentDetails,
+        Participant: this.participantDetails,
+        Component: this.assignmentDetails,
       };
     },
     exposureType() {
@@ -531,7 +533,7 @@ export default {
     assignmentDetails() {
       return [
         {
-          title: "Your Assignments",
+          title: "Your Components",
           description: this.getAssignmentDetails(),
           editSection: "AssignmentExposureSets",
           type: "assignments",
@@ -542,11 +544,11 @@ export default {
       return this.assignments?.filter((a) => a.published).length;
     },
     activeTab() {
-      // if active tab was previously selected, return it, otherwise default to assignment tab
-      return this.editMode?.callerPage?.tab || 'assignment';
+      // if active tab was previously selected, return it, otherwise default to component tab
+      return this.editMode?.callerPage?.tab || "component";
     },
     activeExposureSet() {
-      // if active tab was previously selected, return it, otherwise default to assignment tab
+      // if active tab was previously selected, return it, otherwise default to component tab
       return this.editMode?.callerPage?.exposureSet || 0;
     },
     loaded() {
@@ -565,7 +567,7 @@ export default {
 
   data: () => ({
     tab: null,
-    items: ["design", "participant", "assignment", "status", "results"],
+    items: ["design", "participant", "component", "status", "results"],
     // Expansion Tab Header Values
     setupTabs: [
       {
@@ -575,24 +577,24 @@ export default {
         image: require("@/assets/design_summary.svg"),
       },
       {
-        title: "Participants",
+        title: "Participant",
         tab: "participant",
         description:
           "How students in your class become participants in your experiment",
         image: require("@/assets/participants_summary.svg"),
       },
       {
-        title: "Assignments",
-        tab: "assignment",
+        title: "Component",
+        tab: "component",
         description: `Terracotta populates Canvas assignments with learning activities and
                       materials that change depending on who's looking at them, automatically
                       managing experimental variation within the treatments. Just create different
-                      treatments within each assignment. To your students, it will look like
+                      treatments within each component. To your students, it will look like
                       they're completing assignments as usual within Canvas.`,
         image: require("@/assets/assignments_summary.svg"),
       },
       {
-        title: "Experiment Status",
+        title: "Status",
         tab: "status",
         description:
           "Once your experiment is running, you will see status updates below",
@@ -817,11 +819,6 @@ export default {
   padding: 0 !important;
   color: #069 !important;
   cursor: pointer;
-}
-.assignmentExpansionPanel {
-  &:not(:last-child) {
-    border-bottom: 2px solid #e0e0e0 !important;
-  }
 }
 .v-application .v-sheet--outlined.blue.lighten-5 {
   border-color: rgba(29, 157, 255, 0.6) !important;

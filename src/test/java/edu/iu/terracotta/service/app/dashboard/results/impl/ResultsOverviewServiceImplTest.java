@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.MockitoAnnotations;
 
-import edu.iu.terracotta.BaseTest;
+import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.model.app.Assessment;
 import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.dto.dashboard.results.overview.ResultsOverviewDto;
@@ -44,6 +44,7 @@ public class ResultsOverviewServiceImplTest extends BaseTest {
         when(assessmentSubmissionService.calculateMaxScore(any(Assessment.class))).thenReturn(1F);
         when(submissionService.getScoreFromMultipleSubmissions(any(Participant.class), any(Assessment.class))).thenReturn(1F);
 
+        when(assessment.getQuestions()).thenReturn(Collections.emptyList());
         when(experiment.getExposureType()).thenReturn(ExposureTypes.BETWEEN);
     }
 

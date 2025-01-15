@@ -1,10 +1,9 @@
 package edu.iu.terracotta.service.aws.impl;
 
-import com.amazonaws.auth.InstanceProfileCredentialsProvider;
-import com.amazonaws.regions.Regions;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3ClientBuilder;
-import com.amazonaws.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.auth.credentials.InstanceProfileCredentialsProvider;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import edu.iu.terracotta.service.aws.AWSService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -21,7 +20,7 @@ public class AWSServiceImpl implements AWSService {
     @Value("${aws.enabled:true}")
     private boolean enabled;
 
-    private AmazonS3 amazonS3;
+    private S3Client amazonS3;
 
     @PostConstruct
     protected void initializeAmazon() {
@@ -29,15 +28,15 @@ public class AWSServiceImpl implements AWSService {
             return;
         }
 
-        this.amazonS3 = AmazonS3ClientBuilder.standard()
-            .withCredentials(new InstanceProfileCredentialsProvider(false))
-            .withRegion(Regions.valueOf(region))
+        this.amazonS3 = S3Client.builder()
+            .credentialsProvider(InstanceProfileCredentialsProvider.builder().asyncCredentialUpdateEnabled(false).build())
+            .region(Region.of(region))
             .build();
     }
 
     @Override
     public InputStream readFileFromS3Bucket(String bucketName, String key) {
-        return amazonS3.getObject(new GetObjectRequest(bucketName, key)).getObjectContent();
+        return amazonS3.getObject(GetObjectRequest.builder().bucket(bucketName).key(key).build());
     }
 
 }

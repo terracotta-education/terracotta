@@ -1,6 +1,8 @@
 package edu.iu.terracotta.model.app;
 
 import edu.iu.terracotta.model.BaseEntity;
+import edu.iu.terracotta.model.app.integrations.Integration;
+import edu.iu.terracotta.model.app.integrations.IntegrationToken;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -16,7 +18,12 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
+
+import org.apache.commons.collections4.CollectionUtils;
 
 @Entity
 @Getter
@@ -84,6 +91,45 @@ public class Submission extends BaseEntity {
         orphanRemoval = true
     )
     private List<SubmissionComment> submissionComments;
+
+    @OneToMany(mappedBy = "submission")
+    private List<IntegrationToken> integrationTokens;
+
+    public void addIntegrationToken(IntegrationToken integrationToken) {
+        if (integrationTokens == null) {
+            integrationTokens = new ArrayList<>();
+        }
+
+        integrationTokens.add(integrationToken);
+    }
+
+    @Transient
+    public Optional<IntegrationToken> getLatestIntegrationToken() {
+        if (CollectionUtils.isEmpty(integrationTokens)) {
+            return Optional.empty();
+        }
+
+        return integrationTokens.stream()
+            .max(Comparator.comparing(IntegrationToken::getCreatedAt));
+    }
+
+    @Transient
+    public Integration getIntegration() {
+        return assessment.getIntegration();
+    }
+
+    @Transient
+    public boolean isIntegration() {
+        return assessment.isIntegration();
+    }
+
+    @Transient
+    private String integrationLaunchUrl;
+
+    @Transient
+    public boolean isIntegrationFeedbackEnabled() {
+        return getIntegration().isFeedbackEnabled();
+    }
 
     @Transient
     public boolean isSubmitted() {

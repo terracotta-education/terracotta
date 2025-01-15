@@ -18,8 +18,11 @@ import jakarta.persistence.Lob;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import edu.iu.terracotta.model.BaseEntity;
 import edu.iu.terracotta.model.app.enumerator.MultipleSubmissionScoringScheme;
+import edu.iu.terracotta.model.app.enumerator.QuestionTypes;
+import edu.iu.terracotta.model.app.integrations.Integration;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -138,6 +141,17 @@ public class Assessment extends BaseEntity {
 
         // return false if current time is after the allowed time; true otherwise
         return !(getStudentViewCorrectAnswersBefore() != null && now.after(getStudentViewCorrectAnswersBefore()));
+    }
+
+    @Transient
+    public Integration getIntegration() {
+        return questions.get(0).getIntegration();
+    }
+
+    @Transient
+    public boolean isIntegration() {
+        return questions.stream()
+            .anyMatch(question -> question.getQuestionType() == QuestionTypes.INTEGRATION);
     }
 
 }

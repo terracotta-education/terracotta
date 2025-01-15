@@ -3,6 +3,7 @@ package edu.iu.terracotta.model.app;
 import edu.iu.terracotta.model.BaseEntity;
 import edu.iu.terracotta.model.app.enumerator.QuestionTypes;
 import edu.iu.terracotta.model.app.enumerator.RegradeOption;
+import edu.iu.terracotta.model.app.integrations.Integration;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -18,7 +19,9 @@ import jakarta.persistence.InheritanceType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 
 @Entity
 @Getter
@@ -56,5 +59,13 @@ public class Question extends BaseEntity {
     @Column
     @Enumerated(EnumType.STRING)
     private RegradeOption regradeOption;
+
+    @OneToOne(mappedBy = "question")
+    private Integration integration;
+
+    @Transient
+    public boolean isIntegration() {
+        return QuestionTypes.INTEGRATION == questionType;
+    }
 
 }

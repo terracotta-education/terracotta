@@ -20,7 +20,7 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.http.HttpHeaders;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import edu.iu.terracotta.BaseTest;
+import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
@@ -39,7 +39,7 @@ public class OutcomeServiceImplTest extends BaseTest {
     @InjectMocks private OutcomeServiceImpl outcomeService;
 
     @BeforeEach
-    public void beforeEach() throws ParticipantNotUpdatedException, ExperimentNotMatchingException {
+    public void beforeEach() {
         MockitoAnnotations.openMocks(this);
 
         setup();

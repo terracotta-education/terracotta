@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.MockitoAnnotations;
 
-import edu.iu.terracotta.BaseTest;
+import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.OutcomeNotMatchingException;
 import edu.iu.terracotta.model.app.dto.dashboard.ResultsDashboardDto;
@@ -25,7 +25,7 @@ public class ResultsDashboardServiceImplTest extends BaseTest {
     @InjectMocks private ResultsDashboardServiceImpl resultsDashboardService;
 
     @BeforeEach
-    public void beforeEach() throws OutcomeNotMatchingException {
+    public void beforeEach() {
         MockitoAnnotations.openMocks(this);
 
         setup();

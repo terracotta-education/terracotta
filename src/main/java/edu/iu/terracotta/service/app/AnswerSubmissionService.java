@@ -11,6 +11,7 @@ import edu.iu.terracotta.model.app.AnswerFileSubmission;
 import edu.iu.terracotta.model.app.AnswerMcSubmission;
 import edu.iu.terracotta.model.app.dto.AnswerSubmissionDto;
 import edu.iu.terracotta.model.app.dto.FileResponseDto;
+import edu.iu.terracotta.model.app.integrations.AnswerIntegrationSubmission;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.web.multipart.MultipartFile;
@@ -44,5 +45,6 @@ public interface AnswerSubmissionService {
     AnswerSubmissionDto handleFileAnswerSubmission(AnswerSubmissionDto answerSubmissionDto, MultipartFile file) throws IdInPostException, DataServiceException, TypeNotSupportedException, IOException;
     AnswerSubmissionDto handleFileAnswerSubmissionUpdate(AnswerSubmissionDto answerSubmissionDto, MultipartFile file) throws IdInPostException, DataServiceException, TypeNotSupportedException, IOException;
     FileResponseDto getFileResponseDto(long answerSubmissionId) throws IOException;
+    AnswerIntegrationSubmission fromDtoIntegration(AnswerSubmissionDto answerSubmissionDto) throws DataServiceException;
 
 }

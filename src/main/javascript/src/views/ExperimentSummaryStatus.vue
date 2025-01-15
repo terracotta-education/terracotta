@@ -17,7 +17,7 @@
               <template v-slot:default>
                 <thead>
                   <tr>
-                    <th class="text-left">Assignment Name</th>
+                    <th class="text-left">Component Name</th>
                     <th class="text-left">Status</th>
                     <th class="text-left">Submissions</th>
                   </tr>
@@ -53,13 +53,13 @@
           </v-expansion-panel-header>
           <v-expansion-panel-content>
             <h4 class="mb-3">
-              <strong>Assignments</strong>
+              <strong>Components</strong>
             </h4>
             <v-simple-table class="mb-9 v-data-table--no-outline v-data-table--light-header">
               <template v-slot:default>
                 <thead>
                   <tr>
-                    <th class="text-left">Assignment Name</th>
+                    <th class="text-left">Component Name</th>
                     <th class="text-left">Status</th>
                     <th class="text-left">Submissions</th>
                   </tr>
@@ -98,7 +98,7 @@
             <h4 class="mb-3"><strong>Outcomes</strong></h4>
             <v-simple-table
               class="mb-9 v-data-table--no-outline v-data-table--light-header"
-              v-if="experimentOutcomes.length"
+              v-if="experimentOutcomes && experimentOutcomes.length"
             >
               <template v-slot:default>
                 <thead>

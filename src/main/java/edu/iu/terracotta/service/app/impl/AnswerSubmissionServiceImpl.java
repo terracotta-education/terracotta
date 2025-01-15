@@ -15,11 +15,13 @@ import edu.iu.terracotta.model.app.QuestionSubmission;
 import edu.iu.terracotta.model.app.dto.AnswerSubmissionDto;
 import edu.iu.terracotta.model.app.dto.FileResponseDto;
 import edu.iu.terracotta.model.app.enumerator.SubmissionType;
+import edu.iu.terracotta.model.app.integrations.AnswerIntegrationSubmission;
 import edu.iu.terracotta.repository.AnswerEssaySubmissionRepository;
 import edu.iu.terracotta.repository.AnswerFileSubmissionRepository;
 import edu.iu.terracotta.repository.AnswerMcRepository;
 import edu.iu.terracotta.repository.AnswerMcSubmissionRepository;
 import edu.iu.terracotta.repository.QuestionSubmissionRepository;
+import edu.iu.terracotta.repository.integrations.AnswerIntegrationSubmissionRepository;
 import edu.iu.terracotta.service.app.AnswerSubmissionService;
 import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.utils.TextConstants;
@@ -52,6 +54,7 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
 
     @Autowired private AnswerEssaySubmissionRepository answerEssaySubmissionRepository;
     @Autowired private AnswerFileSubmissionRepository answerFileSubmissionRepository;
+    @Autowired private AnswerIntegrationSubmissionRepository answerIntegrationSubmissionRepository;
     @Autowired private AnswerMcRepository answerMcRepository;
     @Autowired private AnswerMcSubmissionRepository answerMcSubmissionRepository;
     @Autowired private QuestionSubmissionRepository questionSubmissionRepository;
@@ -124,6 +127,16 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
                 }
 
                 return toDtoFile(answerFileSubmissionRepository.save(answerFileSubmission));
+            case INTEGRATION:
+                AnswerIntegrationSubmission answerIntegrationSubmission;
+
+                try {
+                    answerIntegrationSubmission = fromDtoIntegration(answerSubmissionDto);
+                } catch (DataServiceException ex) {
+                    throw new DataServiceException("Error 105: Unable to create file submission: ", ex);
+                }
+
+                return toDtoIntegration(answerIntegrationSubmission);
             default:
                 throw new TypeNotSupportedException("Error 103: Answer type not supported.");
         }
@@ -154,6 +167,10 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
                 return CollectionUtils.isNotEmpty(findByQuestionSubmissionIdMC(questionSubmissionId));
             case ESSAY:
                 return CollectionUtils.isNotEmpty(findAllByQuestionSubmissionIdEssay(questionSubmissionId));
+            case FILE:
+                return CollectionUtils.isNotEmpty(answerFileSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmissionId));
+            case INTEGRATION:
+                return CollectionUtils.isNotEmpty(answerIntegrationSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmissionId));
             default:
                 throw new TypeNotSupportedException("Error 103: Answer type not supported.");
         }
@@ -171,6 +188,7 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
             case FILE:
                 updateAnswerFileSubmission(answerSubmissionId, answerSubmissionDto);
                 break;
+            case INTEGRATION:
             default:
                 throw new DataServiceException("Error 103: Answer type not supported.");
         }
@@ -187,6 +205,9 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
                 break;
             case FILE:
                 answerFileSubmissionRepository.deleteByAnswerFileSubmissionId(answerSubmissionId);
+                break;
+            case INTEGRATION:
+                answerIntegrationSubmissionRepository.deleteById(answerSubmissionId);
                 break;
             default:
                 throw new DataServiceException("Error 103: Answer type not supported.");
@@ -476,4 +497,21 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
         return tempFile;
     }
 
+    private AnswerSubmissionDto toDtoIntegration(AnswerIntegrationSubmission answerIntegrationSubmission) throws IOException {
+        AnswerSubmissionDto answerSubmissionDto = new AnswerSubmissionDto();
+        answerSubmissionDto.setAnswerSubmissionId(answerIntegrationSubmission.getId());
+        answerSubmissionDto.setQuestionSubmissionId(answerIntegrationSubmission.getQuestionSubmission().getQuestionSubmissionId());
+
+        return answerSubmissionDto;
+    }
+
+    @Override
+    public AnswerIntegrationSubmission fromDtoIntegration(AnswerSubmissionDto answerSubmissionDto) throws DataServiceException {
+        QuestionSubmission questionSubmission = questionSubmissionRepository.findById(answerSubmissionDto.getQuestionSubmissionId())
+            .orElseThrow(() -> new DataServiceException("Question submission for answer submission does not exist."));
+
+        return AnswerIntegrationSubmission.builder()
+            .questionSubmission(questionSubmission)
+            .build();
+    }
 }

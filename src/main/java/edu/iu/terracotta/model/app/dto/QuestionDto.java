@@ -2,10 +2,12 @@ package edu.iu.terracotta.model.app.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
+import edu.iu.terracotta.model.app.integrations.dto.IntegrationDto;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.util.List;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -20,5 +22,7 @@ public class QuestionDto {
     private String questionType;
     private List<AnswerDto> answers;
     private boolean randomizeAnswers; // only applies to 'MC' questions
+    private IntegrationDto integration; // only for "external integration"; only for response data
+    private UUID integrationClientId; // only for creating a new question with "external integration" type
 
 }

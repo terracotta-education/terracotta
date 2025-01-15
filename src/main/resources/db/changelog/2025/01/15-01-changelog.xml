@@ -1,0 +1,175 @@
+<?xml
+    version="1.1"
+    encoding="UTF-8"
+    standalone="no"
+?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+    xmlns:pro="http://www.liquibase.org/xml/ns/pro"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd http://www.liquibase.org/xml/ns/pro http://www.liquibase.org/xml/ns/pro/liquibase-pro-latest.xsd http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd"
+>
+    <property
+        name="u_id"
+        value="(UUID_TO_BIN(UUID()))"
+        dbms="mysql"
+    />
+    <changeSet author="bob (generated)" id="1727797770122-90">
+        <createTable tableName="terr_integrations_integration">
+            <column autoIncrement="true" name="id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true"/>
+            </column>
+            <column name="uuid" type="BINARY(16)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="configuration_id" type="BIGINT">
+                <constraints unique="true"/>
+            </column>
+            <column name="question_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="entity_version" type="INT"/>
+            <column defaultValueComputed="CURRENT_TIMESTAMP" name="created_at" type="timestamp"/>
+            <column name="updated_at" type="datetime"/>
+        </createTable>
+        <createTable tableName="terr_integrations_configuration">
+            <column autoIncrement="true" name="id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true"/>
+            </column>
+            <column name="uuid" type="BINARY(16)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="launch_url" type="VARCHAR(255)"/>
+            <column name="client_id" type="BIGINT"/>
+            <column name="feedback_enabled" type="BIT(1)"/>
+            <column name="entity_version" type="INT"/>
+            <column defaultValueComputed="CURRENT_TIMESTAMP" name="created_at" type="timestamp"/>
+            <column name="updated_at" type="datetime"/>
+        </createTable>
+        <createTable tableName="terr_integrations_token">
+            <column autoIncrement="true" name="id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true"/>
+            </column>
+            <column name="uuid" type="BINARY(16)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="token" type="VARCHAR(255)"/>
+            <column name="type" type="VARCHAR(255)"/>
+            <column name="integration_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="expires_at" type="datetime"/>
+            <column name="redeemed_at" type="datetime"/>
+            <column name="submission_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="lti_user_user_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="secured_info" type="text"/>
+            <column name="entity_version" type="INT"/>
+            <column defaultValueComputed="CURRENT_TIMESTAMP" name="created_at" type="timestamp"/>
+            <column name="updated_at" type="datetime"/>
+        </createTable>
+        <createTable tableName="terr_integrations_client">
+            <column autoIncrement="true" name="id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true"/>
+            </column>
+            <column name="uuid" type="BINARY(16)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="name" type="VARCHAR(255)"/>
+            <column name="score_variable" type="VARCHAR(255)"/>
+            <column name="token_variable" type="VARCHAR(255)"/>
+            <column name="preview_token" type="VARCHAR(255)"/>
+            <column name="enabled" type="BIT(1)"/>
+            <column name="entity_version" type="INT"/>
+            <column defaultValueComputed="CURRENT_TIMESTAMP" name="created_at" type="timestamp"/>
+            <column name="updated_at" type="datetime"/>
+        </createTable>
+        <createTable tableName="terr_integrations_token_log">
+            <column autoIncrement="true" name="id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true"/>
+            </column>
+            <column name="uuid" type="BINARY(16)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="token_id" type="BIGINT"/>
+            <column name="score" type="VARCHAR(255)"/>
+            <column name="token" type="VARCHAR(255)"/>
+            <column name="status" type="VARCHAR(255)"/>
+            <column name="error" type="TEXT"/>
+            <column name="code" type="VARCHAR(255)"/>
+            <column name="entity_version" type="INT"/>
+            <column defaultValueComputed="CURRENT_TIMESTAMP" name="created_at" type="timestamp"/>
+            <column name="updated_at" type="datetime"/>
+        </createTable>
+        <createTable tableName="terr_answer_integration_submission">
+            <column autoIncrement="true" name="id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true"/>
+            </column>
+            <column name="uuid" type="BINARY(16)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="quest_sub_quest_sub_id" type="BIGINT"/>
+            <column name="entity_version" type="INT"/>
+            <column defaultValueComputed="CURRENT_TIMESTAMP" name="created_at" type="timestamp"/>
+            <column name="updated_at" type="datetime"/>
+        </createTable>
+    </changeSet>
+    <changeSet author="bob (generated)" id="1727797770122-98">
+        <createIndex associatedWith="" indexName="FK6mpgj1r4lheibe6evwvo63ggm" tableName="terr_integrations_integration">
+            <column name="question_id"/>
+        </createIndex>
+        <createIndex associatedWith="" indexName="FKq62vqw11d1bcftsymugommk3h" tableName="terr_integrations_token">
+            <column name="integration_id"/>
+        </createIndex>
+        <createIndex associatedWith="" indexName="FKqg911n2poky6v7ri3cshjrfyi" tableName="terr_integrations_token">
+            <column name="lti_user_user_id"/>
+        </createIndex>
+        <createIndex associatedWith="" indexName="FK1dsq61x1pv4kg8t9qbqgex8m8" tableName="terr_integrations_token">
+            <column name="submission_id"/>
+        </createIndex>
+        <createIndex associatedWith="" indexName="FK1dsq61x1pv4kg8t9qbqgex8m8" tableName="terr_integrations_configuration">
+            <column name="client_id"/>
+        </createIndex>
+        <createIndex associatedWith="" indexName="FK1dsq61x1pv4kg8t9qbqgex8m8" tableName="terr_integrations_token_log">
+            <column name="token_id"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="bob (generated)" id="1727797770122-106">
+        <addForeignKeyConstraint baseColumnNames="question_id" baseTableName="terr_integrations_integration" constraintName="FK6mpgj1r4lheibe6evwvo63ggm" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="RESTRICT" referencedColumnNames="question_id" referencedTableName="terr_question" validate="true"/>
+        <addForeignKeyConstraint baseColumnNames="configuration_id" baseTableName="terr_integrations_integration" constraintName="FKodupel1rqkrwkuo0xfmhc7rji" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="RESTRICT" referencedColumnNames="id" referencedTableName="terr_integrations_configuration" validate="true"/>
+        <addForeignKeyConstraint baseColumnNames="integration_id" baseTableName="terr_integrations_token" constraintName="FKq62vqw11d1bcftsymugommk3h" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="RESTRICT" referencedColumnNames="id" referencedTableName="terr_integrations_integration" validate="true"/>
+        <addForeignKeyConstraint baseColumnNames="lti_user_user_id" baseTableName="terr_integrations_token" constraintName="FKqg911n2poky6v7ri3cshjrfyi" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="RESTRICT" referencedColumnNames="user_id" referencedTableName="lti_user" validate="true"/>
+        <addForeignKeyConstraint baseColumnNames="submission_id" baseTableName="terr_integrations_token" constraintName="FK1dsq61x1pv4kg8t9qbqgex8m8" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="RESTRICT" referencedColumnNames="submission_id" referencedTableName="terr_submission" validate="true"/>
+        <addForeignKeyConstraint baseColumnNames="client_id" baseTableName="terr_integrations_configuration" constraintName="FK1dsq61x1pv4kg8t9qbqgex8m9" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="RESTRICT" referencedColumnNames="id" referencedTableName="terr_integrations_client" validate="true"/>
+        <addForeignKeyConstraint baseColumnNames="token_id" baseTableName="terr_integrations_token_log" constraintName="FKodupel1rqkrwkuo0xfmhc7rjj" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="RESTRICT" referencedColumnNames="id" referencedTableName="terr_integrations_token" validate="true"/>
+    </changeSet>
+    <changeSet author="rlong (generated)" id="1725631529000-115">
+        <insert tableName="terr_feature">
+            <column name="type" value="INTEGRATIONS"/>
+            <column name="enabled" valueBoolean="true"/>
+            <column name="entity_version" value="0"/>
+        </insert>
+        <insert tableName="terr_integrations_client">
+            <column name="uuid" valueComputed="${u_id}"/>
+            <column name="name" value="Qualtrics"/>
+            <column name="token_variable" value="${e://Field/launch_token}"/>
+            <column name="score_variable" value="${e://Field/score}"/>
+            <column name="preview_token" value="00000000-0000-4000-A000-000000000000"/>
+            <column name="enabled" valueBoolean="true"/>
+            <column name="entity_version" value="0"/>
+        </insert>
+        <insert tableName="terr_integrations_client">
+            <column name="uuid" valueComputed="${u_id}"/>
+            <column name="name" value="Custom Web Activity"/>
+            <column name="score_variable" value="{{SCORE_VARIABLE}}"/>
+            <column name="token_variable" value="{{TOKEN_VARIABLE}}"/>
+            <column name="preview_token" value="00000000-0000-4000-B000-000000000000"/>
+            <column name="enabled" valueBoolean="true"/>
+            <column name="entity_version" value="0"/>
+        </insert>
+    </changeSet>
+</databaseChangeLog>

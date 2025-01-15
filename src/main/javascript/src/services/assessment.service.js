@@ -130,7 +130,8 @@ async function createQuestion(
   question_order,
   question_type,
   points,
-  html
+  html,
+  integrationClientId
 ) {
   const requestOptions = {
     method: 'POST',
@@ -139,7 +140,8 @@ async function createQuestion(
       questionOrder: question_order,
       questionType: question_type,
       points,
-      html
+      html,
+      integrationClientId
     })
   }
 
@@ -160,6 +162,8 @@ async function updateQuestion(
   questionOrder,
   questionType,
   randomizeAnswers,
+  answers,
+  integration
 ) {
   const requestOptions = {
     method: 'PUT',
@@ -170,6 +174,8 @@ async function updateQuestion(
       questionOrder,
       questionType,
       randomizeAnswers,
+      answers,
+      integration
     })
   }
 

@@ -46,6 +46,8 @@ import edu.iu.terracotta.service.app.AssessmentSubmissionService;
 import edu.iu.terracotta.service.app.QuestionSubmissionService;
 import edu.iu.terracotta.service.app.SubmissionCommentService;
 import edu.iu.terracotta.service.app.SubmissionService;
+import edu.iu.terracotta.service.app.integrations.IntegrationLaunchService;
+import edu.iu.terracotta.service.app.integrations.IntegrationTokenService;
 import edu.iu.terracotta.service.caliper.CaliperService;
 import edu.iu.terracotta.service.lti.AdvantageAGSService;
 import edu.iu.terracotta.utils.TextConstants;
@@ -89,12 +91,14 @@ public class SubmissionServiceImpl implements SubmissionService {
     @Autowired private SubmissionCommentRepository submissionCommentRepository;
     @Autowired private SubmissionRepository submissionRepository;
     @Autowired private TreatmentRepository treatmentRepository;
+    @Autowired private IntegrationLaunchService integrationLaunchService;
     @Autowired private QuestionSubmissionService questionSubmissionService;
     @Autowired private SubmissionCommentService submissionCommentService;
     @Autowired private AssessmentSubmissionService assessmentSubmissionService;
     @Autowired private AdvantageAGSService advantageAGSService;
     @Autowired private CaliperService caliperService;
     @Autowired private APIJWTService apijwtService;
+    @Autowired private IntegrationTokenService integrationTokenService;
 
     @Override
     public List<SubmissionDto> getSubmissions(Long experimentId, String userId, Long assessmentId, boolean student) throws NoSubmissionsException {
@@ -162,9 +166,13 @@ public class SubmissionServiceImpl implements SubmissionService {
             throw new DataServiceException(String.format("Error 105: Unable to create Submission: %s", ex.getMessage()), ex);
         }
 
+        submission = save(submission);
+
+        integrationTokenService.create(submission, !student, securedInfo);
+        createIntegrationLaunchUrl(submission);
         setAssignmentStart(submission.getAssessment().getTreatment().getAssignment(), securedInfo);
 
-        return toDto(save(submission), false, false);
+        return toDto(submission, false, false);
     }
 
     @Override
@@ -213,6 +221,14 @@ public class SubmissionServiceImpl implements SubmissionService {
         submissionDto.setQuestionSubmissionDtoList(Collections.emptyList());
         submissionDto.setSubmissionCommentDtoList(Collections.emptyList());
         submissionDto.setGradeOverridden(submission.isGradeOverridden());
+        submissionDto.setIntegrationFeedbackEnabled(false);
+
+        // build launch URL for any integration-type submissions
+        if (submission.isIntegration()) {
+            integrationLaunchService.buildUrl(submission, 0, submission.getIntegration());
+            submissionDto.setIntegrationLaunchUrl(submission.getIntegrationLaunchUrl());
+            submissionDto.setIntegrationFeedbackEnabled(submission.isIntegrationFeedbackEnabled());
+        }
 
         if (questionSubmissions) {
             List<QuestionSubmission> questionSubmissionList = questionSubmissionRepository
@@ -384,6 +400,8 @@ public class SubmissionServiceImpl implements SubmissionService {
                 });
 
         setAssignmentStart(assessment.getTreatment().getAssignment(), securedInfo);
+        integrationTokenService.create(newSubmission, false, securedInfo);
+        createIntegrationLaunchUrl(newSubmission);
 
         return newSubmission;
     }
@@ -740,6 +758,37 @@ public class SubmissionServiceImpl implements SubmissionService {
         }
 
         return null;
+    }
+
+    private void createIntegrationLaunchUrl(Submission submission) {
+        if (!submission.isIntegration()) {
+            return;
+        }
+
+        // assessment is an integration; create URL for launch
+        int submissionsCount = 0;
+
+        try {
+            submissionsCount = getSubmissions(
+                submission.getParticipant().getExperiment().getExperimentId(),
+                submission.getParticipant().getLtiUserEntity().getUserKey(),
+                submission.getAssessment().getAssessmentId(),
+                true
+            )
+            .size();
+        } catch (NoSubmissionsException e) {
+            log.info(
+                "Error retrieving submissions count for assessment ID: [{}] and participant ID: [{}]",
+                submission.getAssessment().getAssessmentId(),
+                submission.getParticipant().getLtiUserEntity().getUserKey()
+            );
+        }
+
+        integrationLaunchService.buildUrl(
+            submission,
+            submissionsCount,
+            submission.getIntegration()
+        );
     }
 
 }

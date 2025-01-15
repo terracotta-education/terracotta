@@ -6,13 +6,16 @@ import org.mockito.InjectMocks;
 import org.mockito.MockitoAnnotations;
 import java.util.Collections;
 import java.util.List;
-import edu.iu.terracotta.BaseTest;
+
+import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExceedingLimitException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.MultipleChoiceLimitReachedException;
 import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
+import edu.iu.terracotta.exceptions.integrations.IntegrationClientNotFoundException;
+import edu.iu.terracotta.exceptions.integrations.IntegrationNotFoundException;
 import edu.iu.terracotta.model.app.Question;
 import edu.iu.terracotta.model.app.dto.AnswerDto;
 import edu.iu.terracotta.model.app.dto.QuestionDto;
@@ -58,14 +61,6 @@ public class QuestionServiceImplTest extends BaseTest {
     }
 
     @Test
-    public void testDuplicateQuestionById() throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, QuestionNotMatchingException {
-        List<Question> question = questionService.duplicateQuestionsForAssessment(1L, assessment);
-
-        assertNotNull(question);
-        assertEquals(1L, question.get(0).getQuestionId());
-    }
-
-    @Test
     public void testDuplicateQuestionNewAssessmentNotFound() throws IdInPostException, ExceedingLimitException, AssessmentNotMatchingException {
         Exception exception = assertThrows(DataServiceException.class, () -> { questionService.duplicateQuestionsForAssessment(1L, null); });
 
@@ -73,9 +68,9 @@ public class QuestionServiceImplTest extends BaseTest {
     }
 
     @Test
-    public void testPostQuestionMC() throws IdInPostException, DataServiceException, MultipleChoiceLimitReachedException {
+    public void testPostQuestionMC() throws IdInPostException, DataServiceException, MultipleChoiceLimitReachedException, IntegrationNotFoundException, IntegrationClientNotFoundException {
         when(question.getQuestionType()).thenReturn(QuestionTypes.MC);
-        QuestionDto retDto = questionService.postQuestion(questionDto, 1l, false);
+        QuestionDto retDto = questionService.postQuestion(questionDto, 1l, false, true);
 
         assertNotNull(retDto);
         verify(questionRepository).save(any(Question.class));
@@ -83,11 +78,11 @@ public class QuestionServiceImplTest extends BaseTest {
     }
 
     @Test
-    public void testPostQuestionEssay() throws IdInPostException, DataServiceException, MultipleChoiceLimitReachedException {
+    public void testPostQuestionEssay() throws IdInPostException, DataServiceException, MultipleChoiceLimitReachedException, IntegrationNotFoundException, IntegrationClientNotFoundException {
         when(question.getQuestionType()).thenReturn(QuestionTypes.ESSAY);
         when(questionDto.getQuestionType()).thenReturn(QuestionTypes.ESSAY.toString());
         when(questionRepository.save(any(Question.class))).thenReturn(question);
-        QuestionDto retDto = questionService.postQuestion(questionDto, 1l, false);
+        QuestionDto retDto = questionService.postQuestion(questionDto, 1l, false, true);
 
         assertNotNull(retDto);
         verify(questionRepository).save(any(Question.class));
@@ -95,10 +90,10 @@ public class QuestionServiceImplTest extends BaseTest {
     }
 
     @Test
-    public void testPostQuestionMCNoAnswers() throws IdInPostException, DataServiceException, MultipleChoiceLimitReachedException {
+    public void testPostQuestionMCNoAnswers() throws IdInPostException, DataServiceException, MultipleChoiceLimitReachedException, IntegrationNotFoundException, IntegrationClientNotFoundException {
         when(question.getQuestionType()).thenReturn(QuestionTypes.MC);
         when(questionDto.getAnswers()).thenReturn(null);
-        QuestionDto retDto = questionService.postQuestion(questionDto, 1l, false);
+        QuestionDto retDto = questionService.postQuestion(questionDto, 1l, false, true);
 
         assertNotNull(retDto);
         verify(questionRepository).save(any(Question.class));

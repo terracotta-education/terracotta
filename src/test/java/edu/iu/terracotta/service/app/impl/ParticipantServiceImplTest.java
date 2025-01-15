@@ -33,7 +33,7 @@ import org.mockito.InjectMocks;
 import org.mockito.MockitoAnnotations;
 import org.mockito.Spy;
 
-import edu.iu.terracotta.BaseTest;
+import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.exceptions.AssignmentNotMatchingException;
 import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
@@ -64,7 +64,7 @@ public class ParticipantServiceImplTest extends BaseTest {
     private ParticipantServiceImpl participantService;
 
     @BeforeEach
-    public void beforeEach() throws GroupNotMatchingException, AssignmentNotMatchingException {
+    public void beforeEach() {
         MockitoAnnotations.openMocks(this);
 
         setup();

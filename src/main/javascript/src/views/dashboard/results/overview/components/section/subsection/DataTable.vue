@@ -231,7 +231,7 @@ export default {
       return this.noSubmissionsMessage || "N/A";
     },
     avgGradeTooltip() {
-      return "This assignment includes items that must be graded manually. Data will appear when those items have been graded.";
+      return "This component includes items that must be graded manually. Data will appear when those items have been graded.";
     },
     avgGradeTooltipActivator() {
       return {"type": "icon", "text": "mdi-information-outline"};

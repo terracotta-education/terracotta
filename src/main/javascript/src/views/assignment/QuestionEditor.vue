@@ -11,6 +11,7 @@
       label="Points"
       type="number"
       step="any"
+      class="question-points"
       outlined
       required
     >
@@ -268,3 +269,9 @@ export default {
   }
 };
 </script>
+
+<style scoped>
+.question-points {
+  max-width: 15%
+}
+</style>

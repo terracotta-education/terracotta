@@ -31,6 +31,11 @@ import edu.iu.terracotta.model.app.RetakeDetails;
 import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.Treatment;
 import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
+import edu.iu.terracotta.exceptions.integrations.IntegrationClientNotFoundException;
+import edu.iu.terracotta.exceptions.integrations.IntegrationConfigurationNotFoundException;
+import edu.iu.terracotta.exceptions.integrations.IntegrationConfigurationNotMatchingException;
+import edu.iu.terracotta.exceptions.integrations.IntegrationNotFoundException;
+import edu.iu.terracotta.exceptions.integrations.IntegrationNotMatchingException;
 import edu.iu.terracotta.model.app.dto.AssessmentDto;
 import edu.iu.terracotta.model.app.dto.QuestionDto;
 import edu.iu.terracotta.model.app.dto.SubmissionDto;
@@ -57,6 +62,8 @@ import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.service.app.ParticipantService;
 import edu.iu.terracotta.service.app.QuestionService;
 import edu.iu.terracotta.service.app.SubmissionService;
+import edu.iu.terracotta.service.app.integrations.IntegrationClientService;
+import edu.iu.terracotta.service.app.integrations.IntegrationLaunchParameterService;
 import edu.iu.terracotta.utils.TextConstants;
 import lombok.extern.slf4j.Slf4j;
 
@@ -110,6 +117,8 @@ public class AssessmentServiceImpl implements AssessmentService {
     @Autowired private APIJWTService apijwtService;
     @Autowired private AssessmentSubmissionService assessmentSubmissionService;
     @Autowired private FileStorageService fileStorageService;
+    @Autowired private IntegrationClientService integrationClientService;
+    @Autowired private IntegrationLaunchParameterService integrationLaunchParameterService;
     @Autowired private ParticipantService participantService;
     @Autowired private QuestionService questionService;
     @Autowired private SubmissionService submissionService;
@@ -217,7 +226,7 @@ public class AssessmentServiceImpl implements AssessmentService {
         assessmentDto.setAssessmentId(assessment.getAssessmentId());
         assessmentDto.setHtml(fileStorageService.parseHTMLFiles(assessment.getHtml(), assessment.getTreatment().getAssignment().getExposure().getExperiment().getPlatformDeployment().getLocalUrl()));
         assessmentDto.setAutoSubmit(assessment.isAutoSubmit());
-        assessmentDto.setNumOfSubmissions(assessment.getNumOfSubmissions());
+        assessmentDto.setNumOfSubmissions(assessment.getNumOfSubmissions() == null ? 0 : assessment.getNumOfSubmissions());
         assessmentDto.setHoursBetweenSubmissions(assessment.getHoursBetweenSubmissions());
         assessmentDto.setMultipleSubmissionScoringScheme(assessment.getMultipleSubmissionScoringScheme().name());
         assessmentDto.setCumulativeScoringInitialPercentage(assessment.getCumulativeScoringInitialPercentage());
@@ -228,6 +237,24 @@ public class AssessmentServiceImpl implements AssessmentService {
         assessmentDto.setStudentViewCorrectAnswersAfter(assessment.getStudentViewCorrectAnswersAfter());
         assessmentDto.setStudentViewCorrectAnswersBefore(assessment.getStudentViewCorrectAnswersBefore());
         assessmentDto.setQuestions(handleQuestionDtos(assessment, submissionId, questions, answers, isStudent));
+        assessmentDto.setIntegration(assessment.isIntegration());
+        assessmentDto.setIntegrationClients(
+            integrationClientService.toDto(
+                integrationClientService.getAll(),
+                assessment.getTreatment().getCondition().getExperiment().getLtiContextEntity().getToolDeployment().getPlatformDeployment().getLocalUrl()
+            )
+        );
+
+        if (assessment.isIntegration()) {
+            // is integration-type assessment; set preview url
+            assessmentDto.setIntegrationPreviewUrl(
+                String.format(
+                    "%s%s",
+                    assessment.getIntegration().getLaunchUrl(),
+                    integrationLaunchParameterService.buildPreviewQueryString(assessment.getIntegration())
+                )
+            );
+        }
 
         List<SubmissionDto> submissionDtoList = new ArrayList<>();
         Long conditionId = assessment.getTreatment().getCondition().getConditionId();
@@ -300,7 +327,7 @@ public class AssessmentServiceImpl implements AssessmentService {
         assessment.setAssessmentId(assessmentDto.getAssessmentId());
         assessment.setHtml(assessmentDto.getHtml());
         assessment.setAutoSubmit(assessmentDto.isAutoSubmit());
-        assessment.setNumOfSubmissions(assessmentDto.getNumOfSubmissions());
+        assessment.setNumOfSubmissions(assessmentDto.getNumOfSubmissions() == null ? 0 : assessmentDto.getNumOfSubmissions());
         assessment.setHoursBetweenSubmissions(assessmentDto.getHoursBetweenSubmissions());
         assessment.setMultipleSubmissionScoringScheme(MultipleSubmissionScoringScheme.valueOf(assessmentDto.getMultipleSubmissionScoringScheme()));
         assessment.setCumulativeScoringInitialPercentage(assessmentDto.getCumulativeScoringInitialPercentage());
@@ -335,7 +362,7 @@ public class AssessmentServiceImpl implements AssessmentService {
     public AssessmentDto putAssessment(Long id, AssessmentDto assessmentDto, boolean processQuestions)
             throws TitleValidationException, RevealResponsesSettingValidationException,
                 MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException, IdInPostException, DataServiceException,
-                NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException {
+                NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException, IntegrationClientNotFoundException, IntegrationNotFoundException {
         return toDto(updateAssessment(id, assessmentDto, processQuestions), true, true, false, false);
     }
 
@@ -343,7 +370,7 @@ public class AssessmentServiceImpl implements AssessmentService {
     public Assessment updateAssessment(Long id, AssessmentDto assessmentDto, boolean processQuestions)
             throws TitleValidationException, RevealResponsesSettingValidationException,
                 MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException, IdInPostException, DataServiceException,
-                NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException {
+                NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException, IntegrationClientNotFoundException, IntegrationNotFoundException {
         Assessment assessment = assessmentRepository.findByAssessmentId(id);
 
         if (assessment == null) {
@@ -360,7 +387,7 @@ public class AssessmentServiceImpl implements AssessmentService {
         assessment.setStudentViewCorrectAnswersBefore(assessmentDto.getStudentViewCorrectAnswersBefore());
         assessment.setHtml(assessmentDto.getHtml());
         assessment.setAutoSubmit(assessmentDto.isAutoSubmit());
-        assessment.setNumOfSubmissions(assessmentDto.getNumOfSubmissions());
+        assessment.setNumOfSubmissions(assessmentDto.getNumOfSubmissions() == null ? 0 : assessmentDto.getNumOfSubmissions());
         assessment.setHoursBetweenSubmissions(assessmentDto.getHoursBetweenSubmissions());
         assessment.setMultipleSubmissionScoringScheme(MultipleSubmissionScoringScheme.valueOf(assessmentDto.getMultipleSubmissionScoringScheme()));
         assessment.setCumulativeScoringInitialPercentage(assessmentDto.getCumulativeScoringInitialPercentage());
@@ -372,7 +399,7 @@ public class AssessmentServiceImpl implements AssessmentService {
         return save(assessment);
     }
 
-    private void processAssessmentQuestions(AssessmentDto assessmentDto) throws IdInPostException, DataServiceException, QuestionNotMatchingException, NegativePointsException, MultipleChoiceLimitReachedException {
+    private void processAssessmentQuestions(AssessmentDto assessmentDto) throws IdInPostException, DataServiceException, QuestionNotMatchingException, NegativePointsException, MultipleChoiceLimitReachedException, IntegrationClientNotFoundException, IntegrationNotFoundException {
         if (CollectionUtils.isNotEmpty(assessmentDto.getQuestions())) {
             List<Long> existingQuestionIds = CollectionUtils.emptyIfNull(questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(assessmentDto.getAssessmentId())).stream()
                 .map(Question::getQuestionId)
@@ -383,7 +410,7 @@ public class AssessmentServiceImpl implements AssessmentService {
             for (QuestionDto questionDto : assessmentDto.getQuestions()) {
                 if (questionDto.getQuestionId() == null) {
                     // create new question
-                    questionService.postQuestion(questionDto, assessmentDto.getAssessmentId(), false);
+                    questionService.postQuestion(questionDto, assessmentDto.getAssessmentId(), false, false);
                     continue;
                 }
 
@@ -400,7 +427,11 @@ public class AssessmentServiceImpl implements AssessmentService {
             }
 
             if (MapUtils.isNotEmpty(questionMap)) {
-                questionService.updateQuestion(questionMap);
+                try {
+                    questionService.updateQuestion(questionMap);
+                } catch (NegativePointsException | IntegrationNotFoundException | IntegrationNotMatchingException | IntegrationConfigurationNotFoundException | IntegrationConfigurationNotMatchingException e) {
+                    throw new DataServiceException(e.getMessage(), e);
+                }
             }
 
             // remove questions not passed in
@@ -482,7 +513,7 @@ public class AssessmentServiceImpl implements AssessmentService {
         Assignment assignment = treatment.getAssignment();
 
         // Default multiple attempts settings to assignment level settings
-        assessmentDto.setNumOfSubmissions(assignment.getNumOfSubmissions());
+        assessmentDto.setNumOfSubmissions(assignment.getNumOfSubmissions() == null ? 0 : assignment.getNumOfSubmissions());
         assessmentDto.setHoursBetweenSubmissions(assignment.getHoursBetweenSubmissions());
         assessmentDto.setMultipleSubmissionScoringScheme(assignment.getMultipleSubmissionScoringScheme().name());
         assessmentDto.setCumulativeScoringInitialPercentage(assignment.getCumulativeScoringInitialPercentage());

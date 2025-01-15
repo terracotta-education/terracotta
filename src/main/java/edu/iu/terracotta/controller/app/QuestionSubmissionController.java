@@ -159,7 +159,7 @@ public class QuestionSubmissionController {
         try {
             questionSubmissionService.canSubmit(securedInfo, experimentId);
             questionSubmissionService.validateAndPrepareQuestionSubmissionList(questionSubmissionDtoList, assessmentId, submissionId, student);
-            List<QuestionSubmissionDto> returnedDtoList = questionSubmissionService. postQuestionSubmissions(questionSubmissionDtoList, assessmentId, submissionId, student);
+            List<QuestionSubmissionDto> returnedDtoList = questionSubmissionService.postQuestionSubmissions(questionSubmissionDtoList, assessmentId, submissionId, student);
             HttpHeaders headers = questionSubmissionService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, submissionId);
 
             return new ResponseEntity<>(returnedDtoList, headers, HttpStatus.CREATED);

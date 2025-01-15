@@ -110,6 +110,7 @@ public class AssessmentSubmissionServiceImpl implements AssessmentSubmissionServ
                     break;
                 case ESSAY:
                 case FILE:
+                case INTEGRATION:
                     questionGraded = questionSubmission;
 
                     if (RegradeOption.NA == regradeDetails.getRegradeOption()) {

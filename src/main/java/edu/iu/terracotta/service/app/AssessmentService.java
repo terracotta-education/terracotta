@@ -19,6 +19,8 @@ import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
 import edu.iu.terracotta.exceptions.RevealResponsesSettingValidationException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
+import edu.iu.terracotta.exceptions.integrations.IntegrationClientNotFoundException;
+import edu.iu.terracotta.exceptions.integrations.IntegrationNotFoundException;
 import edu.iu.terracotta.model.app.Assessment;
 import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.RegradeDetails;
@@ -47,10 +49,10 @@ public interface AssessmentService {
     Assessment getAssessment(Long id);
     AssessmentDto putAssessment(Long id, AssessmentDto assessmentDto, boolean processQuestions)
                     throws TitleValidationException, RevealResponsesSettingValidationException,
-                    MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException, IdInPostException, DataServiceException, NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException;
+                    MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException, IdInPostException, DataServiceException, NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException, IntegrationClientNotFoundException, IntegrationNotFoundException;
     Assessment updateAssessment(Long id, AssessmentDto assessmentDto, boolean processQuestions)
                     throws TitleValidationException, RevealResponsesSettingValidationException,
-                    MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException, IdInPostException, DataServiceException, NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException;
+                    MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException, IdInPostException, DataServiceException, NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException, IntegrationClientNotFoundException, IntegrationNotFoundException;
     void deleteById(Long id) throws EmptyResultDataAccessException;
     AssessmentDto defaultAssessment(AssessmentDto assessmentDto, Long treatmentId);
     void updateTreatment(Long treatmentId, Assessment assessment);

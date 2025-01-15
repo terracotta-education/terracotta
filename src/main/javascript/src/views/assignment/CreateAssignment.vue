@@ -1,12 +1,12 @@
 <template>
   <div>
-    <h1>Create your assignment</h1>
-    <p>This will create an unpublished assignment shell in Canvas and will be the way Terracotta will deliver treatments to students.</p>
+    <h1>Create your component</h1>
+    <p>This will create an unpublished component shell in Canvas and will be the way Terracotta will deliver treatments to students.</p>
     <v-row>
       <div class="col-6">
         <v-text-field
           v-model="assignment.title"
-          label="Assignment name"
+          label="Component name"
           :rules="rules"
           outlined
         >
@@ -42,7 +42,7 @@ export default {
     return {
       tab: null,
       rules: [
-        v => v && !!v.trim() || 'Assignment Name is required',
+        v => v && !!v.trim() || 'Component Name is required',
         v => (v || '').length <= 255 || 'A maximum of 255 characters is allowed'
       ],
     };

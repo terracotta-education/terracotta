@@ -1,7 +1,7 @@
 <template>
   <div>
     <template v-if="loaded && exposures && exposures.length>0 && assignments">
-      <h1 class="mb-3">Your Assignments</h1>
+      <h1 class="mb-3">Your Components</h1>
       <div class="mb-6">
         <v-expansion-panels class="v-expansion-panels--outlined mb-7"
                             flat
@@ -46,7 +46,7 @@
                 </v-list-item>
               </v-list>
               <template v-if="!assignmentIsBalanced(exposure.exposureId)">
-                <div class="red--text mb-3">Add an assignment to balance the experiment</div>
+                <div class="red--text mb-3">Add a component to balance the experiment</div>
               </template>
              <template v-if="!allComplete(exposure.exposureId)">
                 <div class="red--text mb-3">Create a treatment for all conditions</div>
@@ -57,7 +57,7 @@
                 color="primary"
                 class="px-0"
                 :to="{ name: 'AssignmentCreateAssignment', params:{'exposure_id': parseInt(exposure.exposureId)} }"
-              >add assignment</v-btn>
+              >add component</v-btn>
             </v-expansion-panel-content>
           </v-expansion-panel>
         </v-expansion-panels>

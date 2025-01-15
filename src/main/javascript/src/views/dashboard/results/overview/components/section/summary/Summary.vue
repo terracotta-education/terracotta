@@ -71,7 +71,7 @@ export default {
         return this.resultsOverviewNamedConditions.length || 0;
     },
     resultsOverviewNamedConditions() {
-      return this.resultsOverview.conditions.rows.filter(r => r.title !== "Assignments with only one version");
+      return this.resultsOverview.conditions.rows.filter(r => r.title !== "Components with only one version");
     },
   }
 }

@@ -44,8 +44,8 @@
       class="row-overview-assignments mb-0"
     >
       <Assignments
-          :assignmentsData="resultsOverviewAssignments"
-        />
+        :assignmentsData="resultsOverviewAssignments"
+      />
     </v-row>
   </div>
 </template>
@@ -99,18 +99,18 @@
       },
       alertText() {
         if (!this.hasOpenAssignments) {
-          return "These assignments are not yet open, and are not yet collecting submissions.";
+          return "These components are not yet open, and are not yet collecting submissions.";
         }
         if (this.hasAssignmentSubmissions) {
-          let message = "You are currently collecting assignment submissions.";
+          let message = "You are currently collecting component submissions.";
           if (!this.hasAllAssignmentSubmissions || !this.hasAllConditionSubmissions) {
             message += " Some ";
             if (!this.hasAllConditionSubmissions && !this.hasAllAssignmentSubmissions) {
-              message += "conditions and assignments";
+              message += "conditions and components";
             } else if (!this.hasAllConditionSubmissions && this.hasAllAssignmentSubmissions) {
               message += "conditions";
             } else if (this.hasAllConditionSubmissions && !this.hasAllAssignmentSubmissions) {
-              message += "assignments";
+              message += "components";
             }
             message += " do not yet have submissions.";
           }

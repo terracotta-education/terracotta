@@ -27,7 +27,7 @@ export default {
   data: () => ({
     tooltip: "Fun assignments summary tooltip here...",
     headerIcon: icon,
-    title: "Assignments"
+    title: "Components"
   }),
   computed: {
     count() {

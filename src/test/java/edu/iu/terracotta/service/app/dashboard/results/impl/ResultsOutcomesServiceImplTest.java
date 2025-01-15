@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.MockitoAnnotations;
 
-import edu.iu.terracotta.BaseTest;
+import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.exceptions.OutcomeNotMatchingException;
 import edu.iu.terracotta.model.app.dto.dashboard.results.outcomes.ResultsOutcomesDto;
 import edu.iu.terracotta.model.app.dto.dashboard.results.outcomes.enums.AlternateIdType;
@@ -308,4 +308,5 @@ public class ResultsOutcomesServiceImplTest extends BaseTest {
 
         assertEquals("Exception occurred processing outcomes for experiment ID: [1]. Request must contain at least one outcome.", exception.getMessage());
     }
+
 }

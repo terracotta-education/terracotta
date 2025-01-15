@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 
 import edu.iu.terracotta.model.app.RetakeDetails;
 import edu.iu.terracotta.model.app.enumerator.MultipleSubmissionScoringScheme;
+import edu.iu.terracotta.model.app.integrations.dto.IntegrationClientDto;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -36,11 +37,16 @@ public class AssessmentDto {
     private Timestamp studentViewCorrectAnswersAfter;
     private Timestamp studentViewCorrectAnswersBefore;
     private RetakeDetails retakeDetails;
+    private boolean isIntegration;
+    private String integrationPreviewUrl;
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<SubmissionDto> submissions;
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<QuestionDto> questions;
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private List<IntegrationClientDto> integrationClients;
 
 }

@@ -223,6 +223,9 @@ export default {
 @import "~vuetify/src/components/VBtn/_variables.scss";
 .options-list {
   list-style: none;
+  > li {
+    max-width: 45%;
+  }
 }
 .flex-basis-auto {
   flex-basis: auto;

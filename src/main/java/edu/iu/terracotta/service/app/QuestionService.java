@@ -6,6 +6,11 @@ import edu.iu.terracotta.exceptions.InvalidQuestionTypeException;
 import edu.iu.terracotta.exceptions.MultipleChoiceLimitReachedException;
 import edu.iu.terracotta.exceptions.NegativePointsException;
 import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
+import edu.iu.terracotta.exceptions.integrations.IntegrationClientNotFoundException;
+import edu.iu.terracotta.exceptions.integrations.IntegrationConfigurationNotFoundException;
+import edu.iu.terracotta.exceptions.integrations.IntegrationConfigurationNotMatchingException;
+import edu.iu.terracotta.exceptions.integrations.IntegrationNotFoundException;
+import edu.iu.terracotta.exceptions.integrations.IntegrationNotMatchingException;
 import edu.iu.terracotta.model.app.Assessment;
 import edu.iu.terracotta.model.app.Question;
 import edu.iu.terracotta.model.app.dto.QuestionDto;
@@ -20,9 +25,9 @@ public interface QuestionService {
 
     List<QuestionDto> getQuestions(Long assessmentId);
     Question getQuestion(Long id);
-    QuestionDto postQuestion(QuestionDto questionDto, long assessmentId, boolean answers) throws IdInPostException, DataServiceException, MultipleChoiceLimitReachedException;
+    QuestionDto postQuestion(QuestionDto questionDto, long assessmentId, boolean answers, boolean isNew) throws IdInPostException, DataServiceException, MultipleChoiceLimitReachedException, IntegrationNotFoundException, IntegrationClientNotFoundException;
     List<Question> duplicateQuestionsForAssessment(Long oldAssessmentId, Assessment newAssessment) throws DataServiceException, QuestionNotMatchingException;
-    void updateQuestion(Map<Question, QuestionDto> map) throws NegativePointsException;
+    void updateQuestion(Map<Question, QuestionDto> map) throws NegativePointsException, IntegrationNotFoundException, IntegrationNotMatchingException, IntegrationConfigurationNotFoundException, IntegrationConfigurationNotMatchingException, IntegrationClientNotFoundException;
     QuestionDto toDto(Question question, boolean answers, boolean showCorrectAnswer);
     QuestionDto toDto(Question question, Long submissionId, boolean answers, boolean showCorrectAnswer);
     Question fromDto(QuestionDto questionDto) throws DataServiceException, NegativePointsException;

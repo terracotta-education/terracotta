@@ -23,7 +23,7 @@
                   class="d-block mt-4"
                   :class="balanced ? 'section-tab-assignments-balanced' : 'section-tab-assignments-unbalanced'"
                 >
-                  {{ getAssignmentsForExposure(exposure).length }} Assignment{{ getAssignmentsForExposure(exposure).length === 1 ? '': 's' }}
+                  {{ getAssignmentsForExposure(exposure).length }} Component{{ getAssignmentsForExposure(exposure).length === 1 ? '': 's' }}
                 </div>
               </div>
             </v-tab>
@@ -36,7 +36,7 @@
               :key="eidx"
             >
               <div class="d-flex justify-space-between">
-                <h3>Assignments</h3>
+                <h3>Components</h3>
                 <div
                   v-if="loaded && getAssignmentsForExposure(exposure).length"
                 >
@@ -64,7 +64,7 @@
                   justify="center"
                 >
                   <div class="no-assignments-yet-container">
-                    <h4>You don't have any assignments yet</h4>
+                    <h4>You don't have any components yet</h4>
                     <AddAssignmentDialog
                       @multiple="handleAssignmentMultipleVersions(exposure)"
                       @single="handleAssignmentSingleVersion(exposure)"
@@ -159,15 +159,65 @@
                               ).conditionName
                             }}
                           </v-chip>
-                          <v-btn
+                          <div
+                            class="treatment-btn-group"
+                          >
+                            <v-btn
                               text
                               tile
-                              class="btn-treatment-edit"
                               @click="goToBuilder(item.conditionId, item.assignmentId)"
                             >
                               <v-icon>mdi-pencil</v-icon>
-                              <span class="btn-edit">Edit</span>
+                              <span class="treatment-btn">Edit</span>
                             </v-btn>
+                            <v-btn
+                              v-if="item.assessmentDto.integration && !displayTreatmentMenu"
+                              :href="item.assessmentDto.integrationPreviewUrl"
+                              target="_blank"
+                              text
+                              tile
+                            >
+                              <v-icon>mdi-eye-outline</v-icon>
+                              <span class="treatment-btn">Preview</span>
+                            </v-btn>
+                            <v-menu
+                              v-if="item.assessmentDto.integration && displayTreatmentMenu"
+                              offset-y
+                            >
+                              <template
+                                v-slot:activator="{ on, attrs }"
+                              >
+                                <v-btn
+                                  icon
+                                  text
+                                  tile
+                                  v-bind="attrs"
+                                  v-on="on"
+                                  aria-label="treatment actions"
+                                >
+                                  <v-icon>mdi-dots-horizontal</v-icon>
+                                </v-btn>
+                              </template>
+                              <v-list>
+                                <v-list-item
+                                  aria-label="preview integration"
+                                >
+                                  <v-list-item-title>
+                                    <v-icon>mdi-eye-outline</v-icon>
+                                    <span class="treatment-btn">
+                                      <a
+                                        :href="item.assessmentDto.integrationPreviewUrl"
+                                        target="_blank"
+                                        class="integration-preview-link"
+                                      >
+                                        Preview
+                                      </a>
+                                    </span>
+                                  </v-list-item-title>
+                                </v-list-item>
+                              </v-list>
+                            </v-menu>
+                          </div>
                         </template>
                       </v-data-table>
                     </td>
@@ -191,7 +241,7 @@
                             mdi-alert-circle-outline
                           </v-icon>
                         </template>
-                        <span>Set up your assignment by creating {{ item.treatments.length > 1 ? "treatments" : "a treatment" }}.</span>
+                        <span>Set up your component by creating {{ item.treatments.length > 1 ? "treatments" : "a treatment" }}.</span>
                       </v-tooltip>
                     </span>
                   </template>
@@ -414,6 +464,19 @@ export default {
     },
     defaultCondition() {
       return this.conditions.find(c => c.defaultCondition);
+    },
+    displayTreatmentMenu() {
+      switch (this.$vuetify.breakpoint.name) {
+        case 'xs':
+        case 'sm':
+        case 'md':
+          return true;
+        case 'lg':
+        case 'xl':
+          return false;
+        default:
+          return false;
+      }
     }
   },
   data: () => ({
@@ -433,7 +496,7 @@ export default {
         value: "drag",
       },
       {
-        text: "Assignment Name",
+        text: "Component Name",
         align: "start",
         sortable: false,
         value: "title",
@@ -544,7 +607,7 @@ export default {
         initialPage: 'AssignmentCreateAssignment',
         callerPage: {
           name: 'ExperimentSummary',
-          tab: 'assignment',
+          tab: 'component',
           exposureSet: this.tab
         }
       });
@@ -569,7 +632,7 @@ export default {
         initialPage: 'AssignmentEditor',
         callerPage: {
           name: 'ExperimentSummary',
-          tab: 'assignment',
+          tab: 'component',
           exposureSet: this.tab
         }
       });
@@ -668,10 +731,10 @@ export default {
         return;
       }
       await this.saveEditMode({
-        initialPage: 'TerracottaBuilder',
+        initialPage: "TerracottaBuilder",
         callerPage: {
-          name: 'ExperimentSummary',
-          tab: 'assignment',
+          name: "ExperimentSummary",
+          tab: "component",
           exposureSet: this.tab
         }
       });
@@ -829,7 +892,7 @@ export default {
 .label-treatment-incomplete {
   padding-right: 10px;
 }
-.btn-edit,
+.treatment-btn,
 .label-treatment-complete,
 .icon-treatment-incomplete,
 .label-treatment-incomplete,
@@ -838,7 +901,7 @@ export default {
   text-transform: none !important;
   opacity: 0.87 !important;
 }
-.btn-edit,
+.treatment-btn,
 .label-treatment-complete,
 .section-tab-assignments-balanced {
   color: black !important;
@@ -893,10 +956,6 @@ td.treatments-table-container td span {
 }
 td.treatments-table-container .v-data-table__wrapper table {
   padding: 0 35px !important;
-  
-  // @media screen and (min-width: 1264px) {
-  //   padding: 0 35px !important;
-  // }
 }
 .v-application--is-ltr .v-data-table > .v-data-table__wrapper > table > tbody > tr > th,
 .v-application--is-ltr .v-data-table > .v-data-table__wrapper > table > tfoot > tr > th,
@@ -908,14 +967,25 @@ div.data-table-assignments > .v-data-table__wrapper > table > tbody > tr > td:no
 div.data-table-design > div.groupNames > span.v-chip.v-chip--label > span.v-chip__content {
   white-space: normal !important;
 }
-button.btn-treatment-edit {
+.treatment-btn-group {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
   float: right;
   margin-top: 5px;
+  & .v-btn {
+    padding: 0 8px;
+  }
 }
 span.v-chip.v-chip--label,
 span.v-chip.v-chip--label > span.v-chip__content {
   min-height: fit-content !important;
   height: unset !important;
   max-width: 400px !important;
+}
+a.integration-preview-link {
+  color: rgba(0, 0, 0, .87) !important;
+  text-decoration: none;
+  font-size: 1rem;
 }
 </style>

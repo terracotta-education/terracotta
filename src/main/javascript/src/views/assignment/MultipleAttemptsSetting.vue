@@ -2,7 +2,7 @@
   <div>
     <h4>Multiple attempts</h4>
     <p class="grey--text text--darken-2 pb-0">
-      Decide if students should be able to submit the assignment more than once.
+      Decide if students should be able to submit the component more than once.
     </p>
     <v-card outlined class="multiple-attempts-card">
       <v-card-title :class="{ 'blue lighten-5': allowMultipleAttempts }">
