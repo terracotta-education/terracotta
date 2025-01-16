@@ -182,7 +182,7 @@
                             </v-btn>
                             <v-btn
                               v-if="item.assessmentDto.integration && !displayTreatmentMenu"
-                              :href="item.assessmentDto.integrationPreviewUrl"
+                              :href="previewLaunchUrl(item.assessmentDto.integrationPreviewUrl)"
                               target="_blank"
                               text
                               tile
@@ -216,7 +216,7 @@
                                     <v-icon>mdi-eye-outline</v-icon>
                                     <span class="treatment-btn">
                                       <a
-                                        :href="item.assessmentDto.integrationPreviewUrl"
+                                        :href="previewLaunchUrl(item.assessmentDto.integrationPreviewUrl)"
                                         target="_blank"
                                         class="integration-preview-link"
                                       >
@@ -487,7 +487,7 @@ export default {
         default:
           return false;
       }
-    }
+    },
   },
   data: () => ({
     tab: 0,
@@ -843,6 +843,9 @@ export default {
         exposure.exposureId,
         JSON.stringify([this.defaultCondition.conditionId])
       );
+    },
+    previewLaunchUrl(url) {
+      return `/integrations/preview?url=${btoa(url)}`;
     }
   },
   async mounted() {
