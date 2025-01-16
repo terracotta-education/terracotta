@@ -66,7 +66,12 @@
       v-else
     >
       <integrations
+        v-if="!isIntegrationPreview"
         :integrationData="integrationData"
+      />
+      <integrations-preview
+        v-if="isIntegrationPreview"
+        :url="integrationPreviewUrl"
       />
     </v-main>
   </v-app>
@@ -75,6 +80,7 @@
 <script>
 import { mapActions, mapGetters } from "vuex";
 import Integrations from "./views/integrations/Integrations.vue";
+import IntegrationsPreview from "./views/integrations/IntegrationsPreview.vue";
 import PageLoading from "@/components/PageLoading";
 import StudentConsent from './views/student/StudentConsent.vue';
 import StudentQuiz from './views/student/StudentQuiz.vue';
@@ -83,6 +89,7 @@ export default {
   name: 'App',
   components: {
     Integrations,
+    IntegrationsPreview,
     PageLoading,
     StudentQuiz,
     StudentConsent
@@ -111,6 +118,12 @@ export default {
     },
     isIntegration() {
       return this.integrationData != null;
+    },
+    integrationPreviewUrl() {
+      return this.integrationData?.previewUrl || null;
+    },
+    isIntegrationPreview() {
+      return this.isIntegration && this.integrationPreviewUrl;
     }
   },
   methods: {

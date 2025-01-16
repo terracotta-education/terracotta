@@ -23,7 +23,8 @@ const integration = {
   launchToken: params.get("launch_token"),
   score: params.get("score") === "" || params.get("score") === "null" ? null : params.get("score"),
   url: params.get("url"),
-  errorCode: params.get("errorCode") === "null" ? null : params.get("errorCode")
+  errorCode: params.get("errorCode") === "null" ? null : params.get("errorCode"),
+  previewUrl: params.get("previewUrl")
 };
 var appProps = {};
 

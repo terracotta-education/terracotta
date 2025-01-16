@@ -1,17 +1,23 @@
 <template>
   <div>
-    <div class="mb-5 pb-2">
-      <multiple-attempts-setting v-model="multipleAttemptsSettings" />
+    <div
+      class="mb-5 pb-2"
+    >
+      <multiple-attempts-setting
+        v-model="multipleAttemptsSettings"
+      />
     </div>
     <div>
-      <reveal-responses-setting v-model="revealResponseSettings" />
+      <reveal-responses-setting
+        v-model="revealResponseSettings"
+      />
     </div>
   </div>
 </template>
 
 <script>
 import { mapGetters, mapMutations } from "vuex";
-import MultipleAttemptsSetting from "./MultipleAttemptsSetting.vue"
+import MultipleAttemptsSetting from "./MultipleAttemptsSetting.vue";
 import RevealResponsesSetting from "./RevealResponsesSetting.vue";
 
 export default {
@@ -22,24 +28,25 @@ export default {
   computed: {
     ...mapGetters({
       assessment: "assessment/assessment",
+      questions: "assessment/questions",
     }),
+    integration() {
+      return this.questions.length ? this.questions[0].integration : null;
+    },
+    isIntegration() {
+      return this.integration !== null;
+    },
     revealResponseSettings: {
-      // two-way computed property
       get() {
         return this.assessment
           ? {
-              allowStudentViewResponses: this.assessment
-                .allowStudentViewResponses,
-              studentViewResponsesAfter: this.assessment
-                .studentViewResponsesAfter,
-              studentViewResponsesBefore: this.assessment
-                .studentViewResponsesBefore,
-              allowStudentViewCorrectAnswers: this.assessment
-                .allowStudentViewCorrectAnswers,
-              studentViewCorrectAnswersAfter: this.assessment
-                .studentViewCorrectAnswersAfter,
-              studentViewCorrectAnswersBefore: this.assessment
-                .studentViewCorrectAnswersBefore,
+              allowStudentViewResponses: this.assessment.allowStudentViewResponses,
+              studentViewResponsesAfter: this.assessment.studentViewResponsesAfter,
+              studentViewResponsesBefore: this.assessment.studentViewResponsesBefore,
+              allowStudentViewCorrectAnswers: this.assessment.allowStudentViewCorrectAnswers,
+              studentViewCorrectAnswersAfter: this.assessment.studentViewCorrectAnswersAfter,
+              studentViewCorrectAnswersBefore: this.assessment.studentViewCorrectAnswersBefore,
+              integration: this.integration
             }
           : null;
       },
@@ -48,20 +55,14 @@ export default {
       },
     },
     multipleAttemptsSettings: {
-      // two-way computed property
       get() {
         return this.assessment
           ? {
-              allowMultipleAttempts: this.assessment
-                .allowMultipleAttempts,
-              numOfSubmissions: this.assessment
-                .numOfSubmissions,
-              hoursBetweenSubmissions: this.assessment
-                .hoursBetweenSubmissions,
-              multipleSubmissionScoringScheme: this.assessment
-                .multipleSubmissionScoringScheme,
-              cumulativeScoringInitialPercentage: this.assessment
-                .cumulativeScoringInitialPercentage,
+              allowMultipleAttempts: this.assessment.allowMultipleAttempts,
+              numOfSubmissions: this.assessment.numOfSubmissions,
+              hoursBetweenSubmissions: this.assessment.hoursBetweenSubmissions,
+              multipleSubmissionScoringScheme: this.assessment.multipleSubmissionScoringScheme,
+              cumulativeScoringInitialPercentage: this.assessment.cumulativeScoringInitialPercentage,
             }
           : null;
       },

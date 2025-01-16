@@ -146,7 +146,7 @@
                         Because you have <strong>{{ conditionCount }}</strong> (<a @click="handleEdit('ExperimentDesignConditions', item.tab)" >edit</a>)
                         and would like your students to be <strong>{{ exposureText[experiment.exposureType] }}</strong>
                         ({{ exposureType[experiment.exposureType] }}) (<a @click="handleEdit('ExperimentDesignConditions', item.tab)">edit</a>),
-                        we set you up with {{ exposures.length }} exposure sets.
+                        we set you up with <strong>{{ exposures.length }} exposure sets</strong>.
                         <v-tooltip
                           top
                         >

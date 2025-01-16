@@ -152,6 +152,10 @@
 <script>
 export default {
   props: {
+    assessment: {
+      type: Object,
+      required: true
+    },
     question: {
       type: Object,
       required: true
@@ -159,9 +163,20 @@ export default {
   },
   data: () => ({
     showCopied: false,
-    integrationQuestion: null
+    integrationQuestion: null,
+    feedbackEnabled: false
   }),
   watch: {
+    assessment: {
+      handler(newAssessment) {
+        if (!this.showFeedbackEnabled) {
+          return;
+        }
+
+        this.feedbackEnabled = newAssessment ? newAssessment.allowStudentViewResponses : false;
+      },
+      deep: true
+    },
     question: {
       handler(newQuestion) {
         this.integrationQuestion = newQuestion;
@@ -175,6 +190,11 @@ export default {
       },
       deep: true,
       immediate: true
+    },
+    feedbackEnabled: {
+      handler() {
+        this.emit();
+      }
     }
   },
   computed: {
@@ -247,8 +267,8 @@ export default {
             },
             section: {
               titles: {
-                copy: `Copy from ${this.clientName}`,
-                insert: `Insert into ${this.clientName}`
+                copy: `Launch to ${this.clientName}`,
+                insert: "Return to Terracotta"
               }
             },
             launchUrl: {
@@ -308,14 +328,6 @@ export default {
     disableSection2() {
       return !this.section1Complete;
     },
-    feedbackEnabled: {
-      get() {
-        return this.configuration.feedbackEnabled;
-      },
-      set(newFeedbackEnabled) {
-        this.configuration.feedbackEnabled = newFeedbackEnabled;
-      }
-    },
     showFeedbackEnabled() {
       switch(this.clientName) {
         case "Custom Web Activity":
@@ -331,7 +343,7 @@ export default {
       return this.integration.previewUrl;
     },
     previewLaunchUrl() {
-      return `${this.launchUrl}${this.previewUrl}`;
+      return `/integrations/preview?url=${btoa(this.launchUrl + this.previewUrl)}`;
     },
     textRules() {
       return [
@@ -411,13 +423,19 @@ export default {
           {
             ...this.integrationQuestion,
             launchUrlValidated: this.validateLaunchUrl(),
-            pointsValidated: this.validatePoints()
+            pointsValidated: this.validatePoints(),
+            feedbackEnabled: this.showFeedbackEnabled ? this.feedbackEnabled : this.assessment.allowStudentViewResponses
           }
         );
     }
   },
   mounted() {
     this.integrationQuestion = this.question;
+
+    if (this.showFeedbackEnabled) {
+      this.feedbackEnabled = this.assessment ? this.assessment.allowStudentViewResponses : false;
+    }
+
     this.emit();
   }
 }
@@ -530,6 +548,15 @@ div.row-sections {
   .v-card > :first-child:not(.v-btn):not(.v-chip) {
     border-top-left-radius: 50%;
     border-top-right-radius: 50%;
+  }
+  .v-text-field--outlined.v-input--dense.v-text-field--outlined > .v-input__control > .v-input__slot {
+    min-height: 56px;
+  }
+  .v-text-field--outlined.v-input--dense .v-label {
+    top: auto;
+    &.v-label--active {
+      top: 10px;
+    }
   }
 }
 </style>

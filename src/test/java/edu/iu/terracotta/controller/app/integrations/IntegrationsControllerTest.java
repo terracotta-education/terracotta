@@ -76,4 +76,19 @@ public class IntegrationsControllerTest extends BaseTest {
         assertTrue(StringUtils.contains(ret, "status=" + HttpStatus.BAD_REQUEST.name()), ret);
     }
 
+    @Test
+    void previewTest() throws IntegrationTokenExpiredException, IntegrationTokenAlreadyRedeemedException {
+        String url = "aHR0cDovL2xvY2FsaG9zdA==";
+        String ret = integrationsController.preview(url);
+
+        assertTrue(StringUtils.contains(ret, "previewUrl=" + url), ret);
+    }
+
+    @Test
+    void testPreviewNoUrl() throws IntegrationTokenExpiredException, IntegrationTokenAlreadyRedeemedException {
+        String ret = integrationsController.preview(null);
+
+        assertTrue(StringUtils.contains(ret, "status=" + HttpStatus.BAD_REQUEST.name()), ret);
+    }
+
 }

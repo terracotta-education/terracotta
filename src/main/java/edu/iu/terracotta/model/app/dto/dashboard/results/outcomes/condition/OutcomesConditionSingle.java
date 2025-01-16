@@ -9,6 +9,6 @@ import lombok.experimental.SuperBuilder;
 @SuperBuilder
 public class OutcomesConditionSingle extends OutcomesCondition {
 
-    public static final String CONDITION_SINGLE_TITLE = "Assignments with only one version";
+    public static final String CONDITION_SINGLE_TITLE = "Components with only one version";
 
 }

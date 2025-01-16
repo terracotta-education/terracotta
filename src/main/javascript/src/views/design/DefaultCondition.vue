@@ -57,9 +57,9 @@
     >
       <p>
         <strong>Note:</strong> It's important to specify a default condition so
-        that we know which version of assignments students not participating in
+        that we know which version of components students not participating in
         the experiment should receive. This condition should be the one closest to
-        the sort of assignment students would complete during the normal conduct
+        the sort of component students would complete during the normal conduct
         of the course.
       </p>
     </v-card>

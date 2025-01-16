@@ -226,7 +226,7 @@ public class AssessmentServiceImpl implements AssessmentService {
         assessmentDto.setAssessmentId(assessment.getAssessmentId());
         assessmentDto.setHtml(fileStorageService.parseHTMLFiles(assessment.getHtml(), assessment.getTreatment().getAssignment().getExposure().getExperiment().getPlatformDeployment().getLocalUrl()));
         assessmentDto.setAutoSubmit(assessment.isAutoSubmit());
-        assessmentDto.setNumOfSubmissions(assessment.getNumOfSubmissions() == null ? 0 : assessment.getNumOfSubmissions());
+        assessmentDto.setNumOfSubmissions(assessment.getNumOfSubmissions());
         assessmentDto.setHoursBetweenSubmissions(assessment.getHoursBetweenSubmissions());
         assessmentDto.setMultipleSubmissionScoringScheme(assessment.getMultipleSubmissionScoringScheme().name());
         assessmentDto.setCumulativeScoringInitialPercentage(assessment.getCumulativeScoringInitialPercentage());
@@ -327,7 +327,7 @@ public class AssessmentServiceImpl implements AssessmentService {
         assessment.setAssessmentId(assessmentDto.getAssessmentId());
         assessment.setHtml(assessmentDto.getHtml());
         assessment.setAutoSubmit(assessmentDto.isAutoSubmit());
-        assessment.setNumOfSubmissions(assessmentDto.getNumOfSubmissions() == null ? 0 : assessmentDto.getNumOfSubmissions());
+        assessment.setNumOfSubmissions(assessmentDto.getNumOfSubmissions());
         assessment.setHoursBetweenSubmissions(assessmentDto.getHoursBetweenSubmissions());
         assessment.setMultipleSubmissionScoringScheme(MultipleSubmissionScoringScheme.valueOf(assessmentDto.getMultipleSubmissionScoringScheme()));
         assessment.setCumulativeScoringInitialPercentage(assessmentDto.getCumulativeScoringInitialPercentage());
@@ -387,7 +387,7 @@ public class AssessmentServiceImpl implements AssessmentService {
         assessment.setStudentViewCorrectAnswersBefore(assessmentDto.getStudentViewCorrectAnswersBefore());
         assessment.setHtml(assessmentDto.getHtml());
         assessment.setAutoSubmit(assessmentDto.isAutoSubmit());
-        assessment.setNumOfSubmissions(assessmentDto.getNumOfSubmissions() == null ? 0 : assessmentDto.getNumOfSubmissions());
+        assessment.setNumOfSubmissions(assessmentDto.getNumOfSubmissions());
         assessment.setHoursBetweenSubmissions(assessmentDto.getHoursBetweenSubmissions());
         assessment.setMultipleSubmissionScoringScheme(MultipleSubmissionScoringScheme.valueOf(assessmentDto.getMultipleSubmissionScoringScheme()));
         assessment.setCumulativeScoringInitialPercentage(assessmentDto.getCumulativeScoringInitialPercentage());
@@ -513,7 +513,7 @@ public class AssessmentServiceImpl implements AssessmentService {
         Assignment assignment = treatment.getAssignment();
 
         // Default multiple attempts settings to assignment level settings
-        assessmentDto.setNumOfSubmissions(assignment.getNumOfSubmissions() == null ? 0 : assignment.getNumOfSubmissions());
+        assessmentDto.setNumOfSubmissions(assignment.getNumOfSubmissions());
         assessmentDto.setHoursBetweenSubmissions(assignment.getHoursBetweenSubmissions());
         assessmentDto.setMultipleSubmissionScoringScheme(assignment.getMultipleSubmissionScoringScheme().name());
         assessmentDto.setCumulativeScoringInitialPercentage(assignment.getCumulativeScoringInitialPercentage());
