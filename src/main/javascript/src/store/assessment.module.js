@@ -237,7 +237,6 @@ const mutations = {
     }
   },
   setQuestions(state, questions) {
-    // check for same id and update if exists
     state.assessments.questions = questions
   },
   updateQuestions(state, question) {

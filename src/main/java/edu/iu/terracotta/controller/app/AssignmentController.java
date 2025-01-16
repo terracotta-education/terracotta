@@ -240,10 +240,7 @@ public class AssignmentController {
                                                         @RequestBody AssignmentDto assignmentDto,
                                                         UriComponentsBuilder ucBuilder,
                                                         HttpServletRequest req)
-            throws ExperimentNotMatchingException, ExposureNotMatchingException, BadTokenException,
-                    AssessmentNotMatchingException, TitleValidationException, AssignmentNotCreatedException, IdInPostException,
-                    DataServiceException, RevealResponsesSettingValidationException,
-                    MultipleAttemptsSettingsValidationException, NumberFormatException, CanvasApiException, ExceedingLimitException, TreatmentNotMatchingException, AssignmentMoveException, AssignmentNotEditedException, QuestionNotMatchingException {
+            throws AssessmentNotMatchingException, ExposureNotMatchingException, AssignmentNotMatchingException, AssignmentMoveException, BadTokenException, ExperimentNotMatchingException {
         log.debug("Duplicating Assignment: {}", assignmentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);

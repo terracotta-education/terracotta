@@ -19,6 +19,5 @@ public class IntegrationConfigurationDto {
     private UUID integrationId;
     private IntegrationClientDto client;
     private String launchUrl;
-    private boolean feedbackEnabled;
 
 }

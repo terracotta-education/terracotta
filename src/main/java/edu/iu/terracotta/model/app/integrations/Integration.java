@@ -39,11 +39,6 @@ public class Integration extends BaseIntegrationEntity {
     private List<IntegrationToken> tokens;
 
     @Transient
-    public boolean isFeedbackEnabled() {
-        return configuration.isFeedbackEnabled();
-    }
-
-    @Transient
     public String getLaunchUrl() {
         return configuration.getLaunchUrl();
     }

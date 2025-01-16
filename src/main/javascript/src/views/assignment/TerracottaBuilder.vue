@@ -137,15 +137,30 @@
             </template>
           </template>
           <template
-            v-else-if="isIntegrationType"
+            v-if="treatmentOptionSelected && !isIntegrationType && questionPages && questionPages.length === 0"
+          >
+          <h4
+              class="pa-0"
+            >
+              <strong>Questions</strong>
+            </h4>
+            <p
+              class="grey--text"
+            >
+              Add questions to continue
+            </p>
+          </template>
+          <template
+            v-if="treatmentOptionSelected && isIntegrationType"
           >
             <external-integration-editor
               @integrationUpdated="handleIntegrationUpdate($event)"
+              :assessment="assessment"
               :question="questions[0]"
             />
           </template>
           <template
-            v-else
+            v-if="!treatmentOptionSelected"
           >
             <h4>Select a treatment mode</h4>
             <p>
@@ -153,218 +168,222 @@
               Use the External Integration option to use a Qualtrics survey or a custom web activity for this treatment.
             </p>
           </template>
-          <v-menu
-            v-if="treatmentOptionSelected && !isIntegrationType"
-            offset-y
+          <div
+            class="bottom-menu"
           >
-            <template
-              v-slot:activator="{ on, attrs }"
+            <v-menu
+              v-if="treatmentOptionSelected && !isIntegrationType"
+              offset-y
             >
-              <v-btn
-                v-bind="attrs"
-                v-on="on"
-                color="primary"
-                elevation="0"
-                class="mb-3 mt-3"
-                plain
+              <template
+                v-slot:activator="{ on, attrs }"
               >
-                ADD QUESTION
-                <v-icon>mdi-chevron-down</v-icon>
-              </v-btn>
-            </template>
-            <v-list>
-              <v-list-item
-                @click="handleAddQuestion('ESSAY')"
-              >
-                <v-list-item-title>
-                  <v-icon class="mr-1">mdi-text</v-icon> Short answer
-                </v-list-item-title>
-              </v-list-item>
-              <v-list-item
-                @click="handleAddQuestion('MC')"
-              >
-                <v-list-item-title>
-                  <v-icon class="mr-1">mdi-radiobox-marked</v-icon> Multiple choice
-                </v-list-item-title>
-              </v-list-item>
-              <v-list-item
-                @click="handleAddQuestion('FILE')"
-              >
-                <v-list-item-title>
-                  <v-icon class="mr-1">mdi-file-upload-outline</v-icon> File submission
-                </v-list-item-title>
-              </v-list-item>
-            </v-list>
-          </v-menu>
-          <v-menu
-            v-if="!treatmentOptionSelected"
-            offset-y
-            close-on-click
-            close-on-content-click
-          >
-            <template
-              v-slot:activator="{ on, attrs }"
-            >
-              <v-btn
-                v-bind="attrs"
-                v-on="on"
-                color="primary"
-                elevation="0"
-                class="mb-3 mt-3"
-                plain
-              >
-                ADD TREATMENT <v-icon>mdi-chevron-down</v-icon>
-              </v-btn>
-            </template>
-            <v-list>
-              <template>
+                <v-btn
+                  v-bind="attrs"
+                  v-on="on"
+                  color="primary"
+                  elevation="0"
+                  class="mb-3 mt-3"
+                  plain
+                >
+                  ADD QUESTION
+                  <v-icon>mdi-chevron-down</v-icon>
+                </v-btn>
+              </template>
+              <v-list>
                 <v-list-item
-                  @click="handleAddTerracottaBuilder"
+                  @click="handleAddQuestion('ESSAY')"
                 >
                   <v-list-item-title>
-                    <v-icon
-                      class="mr-1"
-                    >
-                      mdi-wrench-outline
-                    </v-icon>
-                    Terracotta Builder
+                    <v-icon class="mr-1">mdi-text</v-icon> Short answer
                   </v-list-item-title>
                 </v-list-item>
-                <v-list-item>
+                <v-list-item
+                  @click="handleAddQuestion('MC')"
+                >
                   <v-list-item-title>
+                    <v-icon class="mr-1">mdi-radiobox-marked</v-icon> Multiple choice
+                  </v-list-item-title>
+                </v-list-item>
+                <v-list-item
+                  @click="handleAddQuestion('FILE')"
+                >
+                  <v-list-item-title>
+                    <v-icon class="mr-1">mdi-file-upload-outline</v-icon> File submission
+                  </v-list-item-title>
+                </v-list-item>
+              </v-list>
+            </v-menu>
+            <v-menu
+              v-if="!treatmentOptionSelected"
+              offset-y
+              close-on-click
+              close-on-content-click
+            >
+              <template
+                v-slot:activator="{ on, attrs }"
+              >
+                <v-btn
+                  v-bind="attrs"
+                  v-on="on"
+                  color="primary"
+                  elevation="0"
+                  class="mb-3 mt-3"
+                  plain
+                >
+                  ADD TREATMENT <v-icon>mdi-chevron-down</v-icon>
+                </v-btn>
+              </template>
+              <v-list>
+                <template>
+                  <v-list-item
+                    @click="handleAddTerracottaBuilder"
+                  >
+                    <v-list-item-title>
+                      <v-icon
+                        class="mr-1"
+                      >
+                        mdi-wrench-outline
+                      </v-icon>
+                      Terracotta Builder
+                    </v-list-item-title>
+                  </v-list-item>
+                  <v-list-item>
+                    <v-list-item-title>
+                      <v-menu
+                        class="pl-10"
+                        offset-x
+                        open-on-hover
+                        close-on-click
+                        close-on-content-click
+                      >
+                        <template
+                          v-slot:activator="{ on, attrs }"
+                        >
+                          <v-list-item
+                            v-bind="attrs"
+                            v-on="on"
+                            class="pl-0"
+                          >
+                            <v-list-item-title>
+                              <v-icon
+                                class="mr-1"
+                              >
+                                mdi-application-brackets-outline
+                              </v-icon>
+                              External Integration
+                              <v-icon>mdi-menu-right</v-icon>
+                            </v-list-item-title>
+                          </v-list-item>
+                        </template>
+                        <v-list>
+                          <v-list-item
+                            @click="handleAddIntegration(externalIntegrationClients.qualtrics.name)"
+                          >
+                            <v-list-item-title>
+                              {{ externalIntegrationClients.qualtrics.name }}
+                            </v-list-item-title>
+                          </v-list-item>
+                          <v-list-item
+                            @click="handleAddIntegration(externalIntegrationClients.custom.name)"
+                          >
+                            <v-list-item-title>
+                              {{ externalIntegrationClients.custom.name }}
+                            </v-list-item-title>
+                          </v-list-item>
+                        </v-list>
+                      </v-menu>
+                    </v-list-item-title>
+                  </v-list-item>
+                </template>
+              </v-list>
+            </v-menu>
+            <v-menu
+              v-if="treatmentOptionSelected && !isIntegrationType && assignmentsAvailableToCopy.length > 0"
+              offset-y
+              close-on-click
+              close-on-content-click
+            >
+              <template
+                v-slot:activator="{ on, attrs }"
+              >
+                <v-btn
+                  v-bind="attrs"
+                  v-on="on"
+                  color="primary"
+                  elevation="0"
+                  class="mb-3 mt-3"
+                  plain
+                >
+                  Copy Content From <v-icon>mdi-chevron-down</v-icon>
+                </v-btn>
+              </template>
+              <v-list>
+                  <template
+                    v-for="(assignment, index) in assignmentsAvailableToCopy"
+                  >
                     <v-menu
-                      class="pl-10"
+                      v-if="assignment.treatments.length > 0 && hasTreatmentsNotCurrent(assignment.treatments)"
+                      :key="assignment.assignmentId"
+                      transition="slide-x-transition"
                       offset-x
                       open-on-hover
-                      close-on-click
-                      close-on-content-click
                     >
                       <template
                         v-slot:activator="{ on, attrs }"
                       >
                         <v-list-item
+                          :key="index"
                           v-bind="attrs"
                           v-on="on"
-                          class="pl-0"
                         >
                           <v-list-item-title>
-                            <v-icon
-                              class="mr-1"
-                            >
-                              mdi-application-brackets-outline
-                            </v-icon>
-                            External Integration
-                            <v-icon>mdi-menu-right</v-icon>
+                            {{ assignment.title }}
                           </v-list-item-title>
+                          <v-list-item-action
+                            class="justify-end"
+                          >
+                            <v-icon>mdi-menu-right</v-icon>
+                          </v-list-item-action>
                         </v-list-item>
                       </template>
                       <v-list>
-                        <v-list-item
-                          @click="handleAddIntegration(externalIntegrationClients.qualtrics.name)"
+                        <template
+                          v-for="treatment in assignment.treatments"
                         >
-                          <v-list-item-title>
-                            {{ externalIntegrationClients.qualtrics.name }}
-                          </v-list-item-title>
-                        </v-list-item>
-                        <v-list-item
-                          @click="handleAddIntegration(externalIntegrationClients.custom.name)"
-                        >
-                          <v-list-item-title>
-                            {{ externalIntegrationClients.custom.name }}
-                          </v-list-item-title>
-                        </v-list-item>
+                          <v-list-item
+                            v-if="treatment.treatmentId != treatment_id"
+                            :key="treatment.treatmentId"
+                            @click="duplicate(treatment)"
+                          >
+                            <v-list-item-title>
+                              Treatment
+                              <v-chip
+                                v-if="assignment.treatments.length > 1"
+                                label
+                                :color="conditionColorMapping[conditionForTreatment(getGroupConditionListForAssignment(assignment), treatment.conditionId).conditionName]"
+                              >
+                                {{ conditionForTreatment(getGroupConditionListForAssignment(assignment), treatment.conditionId).conditionName }}
+                              </v-chip>
+                            </v-list-item-title>
+                          </v-list-item>
+                        </template>
                       </v-list>
                     </v-menu>
-                  </v-list-item-title>
-                </v-list-item>
-              </template>
-            </v-list>
-          </v-menu>
-          <v-menu
-            v-if="treatmentOptionSelected && !isIntegrationType && assignmentsAvailableToCopy.length > 0"
-            offset-y
-            close-on-click
-            close-on-content-click
-          >
-            <template
-              v-slot:activator="{ on, attrs }"
+                  </template>
+              </v-list>
+            </v-menu>
+            <v-btn
+              v-if="treatmentOptionSelected && displayBackToTreatmentModeSelection"
+              @click="handleBackToTreatmentModeSelection"
+              color="primary"
+              elevation="0"
+              class="mb-3 mt-3"
+              plain
             >
-              <v-btn
-                v-bind="attrs"
-                v-on="on"
-                color="primary"
-                elevation="0"
-                class="mb-3 mt-3"
-                plain
-              >
-                Copy Treatment From <v-icon>mdi-chevron-down</v-icon>
-              </v-btn>
-            </template>
-            <v-list>
-                <template
-                  v-for="(assignment, index) in assignmentsAvailableToCopy"
-                >
-                  <v-menu
-                    v-if="assignment.treatments.length > 0 && hasTreatmentsNotCurrent(assignment.treatments)"
-                    :key="assignment.assignmentId"
-                    transition="slide-x-transition"
-                    offset-x
-                    open-on-hover
-                  >
-                    <template
-                      v-slot:activator="{ on, attrs }"
-                    >
-                      <v-list-item
-                        :key="index"
-                        v-bind="attrs"
-                        v-on="on"
-                      >
-                        <v-list-item-title>
-                          {{ assignment.title }}
-                        </v-list-item-title>
-                        <v-list-item-action
-                          class="justify-end"
-                        >
-                          <v-icon>mdi-menu-right</v-icon>
-                        </v-list-item-action>
-                      </v-list-item>
-                    </template>
-                    <v-list>
-                      <template
-                        v-for="treatment in assignment.treatments"
-                      >
-                        <v-list-item
-                          v-if="treatment.treatmentId != treatment_id"
-                          :key="treatment.treatmentId"
-                          @click="duplicate(treatment)"
-                        >
-                          <v-list-item-title>
-                            Treatment
-                            <v-chip
-                              v-if="assignment.treatments.length > 1"
-                              label
-                              :color="conditionColorMapping[conditionForTreatment(getGroupConditionListForAssignment(assignment), treatment.conditionId).conditionName]"
-                            >
-                              {{ conditionForTreatment(getGroupConditionListForAssignment(assignment), treatment.conditionId).conditionName }}
-                            </v-chip>
-                          </v-list-item-title>
-                        </v-list-item>
-                      </template>
-                    </v-list>
-                  </v-menu>
-                </template>
-            </v-list>
-          </v-menu>
-          <v-btn
-            v-if="treatmentOptionSelected && displayBackToTreatmentModeSelection"
-            @click="handleBackToTreatmentModeSelection"
-            color="primary"
-            elevation="0"
-            class="mb-3 mt-3"
-            plain
-          >
-            BACK TO TREATMENT MODE SELECTION
-          </v-btn>
+              BACK TO TREATMENT MODE SELECTION
+            </v-btn>
+          </div>
           <br />
         </form>
       </v-tab-item>
@@ -427,7 +446,8 @@ export default {
           name: "Custom Web Activity"
         }
       },
-      treatmentOptionSelected: false
+      treatmentOptionSelected: false,
+      integrationQuestionValidation: null
     };
   },
   watch: {
@@ -625,7 +645,12 @@ export default {
         question.points = 0;
       }
 
-      this.questions[0] = question;
+      this.setAssessment({ ...this.assessment, allowStudentViewResponses: question.feedbackEnabled });
+
+      this.integrationQuestionValidation = {
+        launchUrl: question.launchUrlValidated,
+        points: question.pointsValidated
+      }
     },
     async handleAddIntegration(integrationName) {
       let integrationClientId = this.integrationClients.find((integrationClient) => integrationClient.name === integrationName).id;
@@ -797,12 +822,12 @@ export default {
       if (this.questions.length && this.questions[0].questionType === "INTEGRATION") {
         let isInvalid = false;
 
-        if (!this.questions[0].launchUrlValidated) {
+        if (!this.integrationQuestionValidation.launchUrl) {
           // launchUrl invalid
           isInvalid = true;
         }
 
-        if (!this.questions[0].pointsValidated) {
+        if (!this.integrationQuestionValidation.points) {
           // points invalid
           isInvalid = true;
         }

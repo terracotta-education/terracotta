@@ -279,7 +279,7 @@ public class ExportServiceImpl implements ExportService {
                                     String.valueOf(outcomeScore.getOutcome().getExposure().getExposureId()),
                                     outcomeScore.getOutcome().getLmsType().toString(),
                                     StringUtils.isBlank(outcomeScore.getOutcome().getTitle()) ? NA : outcomeScore.getOutcome().getTitle(),
-                                    outcomeScore.getOutcome().getMaxPoints().toString(),
+                                    outcomeScore.getOutcome().getMaxPoints() != null ? outcomeScore.getOutcome().getMaxPoints().toString() : NA,
                                     outcomeScore.getScoreNumeric() != null ? outcomeScore.getScoreNumeric().toString() : NA,
                                     exposureGroupCondition.get().getCondition().getName(),
                                     String.valueOf(exposureGroupCondition.get().getCondition().getConditionId())

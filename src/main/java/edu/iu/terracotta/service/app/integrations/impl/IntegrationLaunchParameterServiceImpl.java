@@ -56,6 +56,11 @@ public class IntegrationLaunchParameterServiceImpl implements IntegrationLaunchP
                                 value = submission.getLatestIntegrationToken().get().getToken();
                                 break;
                             case REMAINING_ATTEMPTS:
+                                if (submission.getIntegration().getQuestion().getAssessment().getNumOfSubmissions() == null) {
+                                    value = "0";
+                                    break;
+                                }
+
                                 value = submission.getIntegration().getQuestion().getAssessment().getNumOfSubmissions() == 0 ? Integration.UNLIMITED_ATTEMPTS_VALUE : Integer.toString(submission.getAssessment().getNumOfSubmissions() - submissionCount);
                                 break;
                             case SUBMISSION_ID:
@@ -109,6 +114,11 @@ public class IntegrationLaunchParameterServiceImpl implements IntegrationLaunchP
                                 value = integration.getConfiguration().getClient().getPreviewToken();
                                 break;
                             case REMAINING_ATTEMPTS:
+                                if (integration.getQuestion().getAssessment().getNumOfSubmissions() == null) {
+                                    value = "0";
+                                    break;
+                                }
+
                                 value = integration.getQuestion().getAssessment().getNumOfSubmissions() == 0 ? Integration.UNLIMITED_ATTEMPTS_VALUE : Integer.toString(integration.getQuestion().getAssessment().getNumOfSubmissions() - 0);
                                 break;
                             case SUBMISSION_ID:

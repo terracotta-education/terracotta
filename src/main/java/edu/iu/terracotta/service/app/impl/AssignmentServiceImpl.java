@@ -347,6 +347,7 @@ public class AssignmentServiceImpl implements AssignmentService {
                             integrationService.delete(question.getIntegration());
                         }
 
+                        question.setIntegration(null);
                         questionRepository.deleteByQuestionId(question.getQuestionId());
                     }
                 )
@@ -830,13 +831,16 @@ public class AssignmentServiceImpl implements AssignmentService {
 
     @Override
     public AssignmentDto moveAssignment(long originalAssignmentId, AssignmentDto targetAssignmentDto, long experimentId, long originalExposureId, SecuredInfo securedInfo)
-            throws DataServiceException, IdInPostException, TitleValidationException, AssessmentNotMatchingException,
-                AssignmentNotCreatedException, RevealResponsesSettingValidationException,
-                MultipleAttemptsSettingsValidationException, NumberFormatException, CanvasApiException,
-                ExceedingLimitException, TreatmentNotMatchingException, ExposureNotMatchingException, AssignmentMoveException, AssignmentNotEditedException, QuestionNotMatchingException {
+            throws AssessmentNotMatchingException, ExposureNotMatchingException, AssignmentNotMatchingException, AssignmentMoveException {
         if (originalExposureId == targetAssignmentDto.getExposureId().longValue()) {
             // cannot move assignment; original and target exposures are the same
             throw new AssignmentMoveException(TextConstants.UNABLE_TO_MOVE_ASSIGNMENT_EXPOSURE_SAME);
+        }
+
+        Assignment assignment = assignmentRepository.findByAssignmentId(originalAssignmentId);
+
+        if (assignment == null) {
+            throw new AssignmentNotMatchingException(TextConstants.ASSIGNMENT_NOT_MATCHING);
         }
 
         Exposure exposure = exposureRepository.findByExposureId(targetAssignmentDto.getExposureId());
@@ -845,23 +849,10 @@ public class AssignmentServiceImpl implements AssignmentService {
             throw new ExposureNotMatchingException(TextConstants.EXPOSURE_NOT_MATCHING);
         }
 
-        // reset ID
-        targetAssignmentDto.setAssignmentId(null);
+        assignment.setExposure(exposure);
+        assignmentRepository.save(assignment);
 
-        // create new assignment
-        LtiUserEntity instructorUser = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
-        Assignment newAssignment = createAssignment(targetAssignmentDto, experimentId, securedInfo.getCanvasCourseId(), targetAssignmentDto.getExposureId(), instructorUser);
-        assignmentTreatmentService.setAssignmentDtoAttrs(newAssignment, securedInfo.getCanvasCourseId(), instructorUser);
-
-        // duplicate treatments from original assignment
-       for (Treatment treatment : treatmentRepository.findByAssignment_AssignmentId(originalAssignmentId)) {
-            assignmentTreatmentService.duplicateTreatment(treatment.getTreatmentId(), newAssignment, securedInfo);
-        }
-
-        // delete original assignment
-        deleteById(originalAssignmentId, securedInfo);
-
-        return assignmentTreatmentService.toAssignmentDto(newAssignment, false, true);
+        return assignmentTreatmentService.toAssignmentDto(assignment, false, true);
     }
 
     @Override

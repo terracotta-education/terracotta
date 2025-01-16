@@ -34,7 +34,6 @@ public class IntegrationConfigurationServiceImpl implements IntegrationConfigura
         IntegrationConfiguration integrationConfiguration = integrationConfigurationRepository.save(
             IntegrationConfiguration.builder()
                 .client(integrationClient)
-                .feedbackEnabled(false)
                 .integration(integration)
                 .build()
         );
@@ -73,7 +72,6 @@ public class IntegrationConfigurationServiceImpl implements IntegrationConfigura
         IntegrationConfiguration newIntegrationConfiguration = integrationConfigurationRepository.saveAndFlush(
             IntegrationConfiguration.builder()
                 .client(integrationConfiguration.getClient())
-                .feedbackEnabled(integrationConfiguration.isFeedbackEnabled())
                 .integration(integration)
                 .launchUrl(integrationConfiguration.getLaunchUrl())
                 .build()
@@ -95,7 +93,6 @@ public class IntegrationConfigurationServiceImpl implements IntegrationConfigura
                     integrationConfiguration.getIntegration().getLocalUrl()
                 )
             )
-            .feedbackEnabled(integrationConfiguration.isFeedbackEnabled())
             .id(integrationConfiguration.getUuid())
             .launchUrl(integrationConfiguration.getLaunchUrl())
             .build();
@@ -112,7 +109,6 @@ public class IntegrationConfigurationServiceImpl implements IntegrationConfigura
         }
 
         integrationConfiguration.setClient(integrationClientService.fromDto(integrationConfigurationDto.getClient()));
-        integrationConfiguration.setFeedbackEnabled(integrationConfigurationDto.isFeedbackEnabled());
         integrationConfiguration.setLaunchUrl(integrationConfigurationDto.getLaunchUrl());
 
         return integrationConfiguration;

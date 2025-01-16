@@ -128,7 +128,7 @@ public class Submission extends BaseEntity {
 
     @Transient
     public boolean isIntegrationFeedbackEnabled() {
-        return getIntegration().isFeedbackEnabled();
+        return assessment.canViewResponses();
     }
 
     @Transient

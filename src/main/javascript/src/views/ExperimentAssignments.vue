@@ -96,6 +96,11 @@
                   "
                 >
                   <template v-slot:item.title="{ item }">
+                    <v-icon
+                      class="component-icon"
+                    >
+                      mdi-file-outline
+                    </v-icon>
                     {{ item.title }}
                     <v-chip
                       v-if="item.treatments.length == 1"
@@ -121,6 +126,11 @@
                       >
                         <!-- eslint-disable-next-line -->
                         <template v-slot:item.title="{ item }">
+                          <v-icon
+                            class="mr-1 component-icon"
+                          >
+                            {{ item.assessmentDto.integration ? treatmentIcon.integration : treatmentIcon.assignment }}
+                          </v-icon>
                           <v-tooltip
                             v-if="!(item.assessmentDto && item.assessmentDto.questions.length)"
                             top
@@ -172,7 +182,7 @@
                             </v-btn>
                             <v-btn
                               v-if="item.assessmentDto.integration && !displayTreatmentMenu"
-                              :href="item.assessmentDto.integrationPreviewUrl"
+                              :href="previewLaunchUrl(item.assessmentDto.integrationPreviewUrl)"
                               target="_blank"
                               text
                               tile
@@ -206,7 +216,7 @@
                                     <v-icon>mdi-eye-outline</v-icon>
                                     <span class="treatment-btn">
                                       <a
-                                        :href="item.assessmentDto.integrationPreviewUrl"
+                                        :href="previewLaunchUrl(item.assessmentDto.integrationPreviewUrl)"
                                         target="_blank"
                                         class="integration-preview-link"
                                       >
@@ -477,7 +487,7 @@ export default {
         default:
           return false;
       }
-    }
+    },
   },
   data: () => ({
     tab: 0,
@@ -535,7 +545,11 @@ export default {
         sortable: false,
         value: "title",
       }
-    ]
+    ],
+    treatmentIcon: {
+      integration: "mdi-application-brackets-outline",
+      assignment: "mdi-wrench-outline"
+    }
   }),
   watch: {
     assignmentsCount: {
@@ -829,6 +843,9 @@ export default {
         exposure.exposureId,
         JSON.stringify([this.defaultCondition.conditionId])
       );
+    },
+    previewLaunchUrl(url) {
+      return `/integrations/preview?url=${btoa(url)}`;
     }
   },
   async mounted() {
@@ -987,5 +1004,8 @@ a.integration-preview-link {
   color: rgba(0, 0, 0, .87) !important;
   text-decoration: none;
   font-size: 1rem;
+}
+.component-icon {
+  color: rgba(0, 0, 0, .54) !important;
 }
 </style>
