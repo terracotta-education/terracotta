@@ -29,6 +29,5 @@ public class IntegrationConfiguration extends BaseIntegrationEntity {
     private IntegrationClient client;
 
     @Column private String launchUrl;
-    @Column private boolean feedbackEnabled;
 
 }

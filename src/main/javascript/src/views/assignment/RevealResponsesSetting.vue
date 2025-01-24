@@ -1,24 +1,37 @@
 <template>
   <div>
-    <h4>Reveal treatment responses</h4>
-    <p class="grey--text text--darken-2 pb-0">
-      Decide if students should see their treatment responses and points once a
-      treatment question is answered
+    <h4>
+      {{  messages.headerText }}
+    </h4>
+    <p
+      class="grey--text text--darken-2 pb-0"
+    >
+      {{ messages.headerInstructionsText }}
     </p>
-    <v-card outlined class="reveal-responses-card">
-      <v-card-title :class="{ 'blue lighten-5': allowStudentViewResponses }">
+    <v-card
+      outlined
+      class="reveal-responses-card"
+    >
+      <v-card-title
+        :class="{ 'blue lighten-5': allowStudentViewResponses }"
+      >
         <v-checkbox
           v-model="allowStudentViewResponses"
-          class="mt-0"
-          label="Allow students to see their treatment responses and points earned for each response"
-          hide-details
+          :label="messages.allowStudentViewResponsesLabel"
           @change="changeAllowStudentViewResponses"
-        ></v-checkbox>
+          class="mt-0"
+          hide-details
+        />
       </v-card-title>
-      <v-card-text v-if="allowStudentViewResponses" class="text--primary">
-        <div class="d-flex flex-wrap align-baseline mt-5">
+      <v-card-text
+        v-if="allowStudentViewResponses"
+        class="text--primary"
+      >
+        <div
+          class="d-flex flex-wrap align-baseline mt-5"
+        >
           <div>
-            Show responses and points on
+            {{ messages.allowStudentViewResponsesDatesLabel }}
           </div>
           <custom-datetime-picker
             v-model="studentViewResponsesAfter"
@@ -33,18 +46,23 @@
           />
         </div>
         <v-checkbox
-          class="allow-students-view-correct-answers"
+          v-if="!isIntegration"
           v-model="allowStudentViewCorrectAnswers"
+          class="allow-students-view-correct-answers"
           hide-details
         >
-          <template v-slot:label>
-            <span class="text--primary">
-              Allow students to see correct answers and any comments</span
+          <template
+            v-slot:label
+          >
+            <span
+              class="text--primary"
             >
+              Allow students to see correct answers and any comments
+            </span>
           </template>
         </v-checkbox>
         <div
-          v-if="allowStudentViewCorrectAnswers"
+          v-if="!isIntegration && allowStudentViewCorrectAnswers"
           class="correct-answer-date-controls d-flex flex-wrap align-baseline mt-5"
         >
           <div>
@@ -98,7 +116,12 @@ function createDateGetterSetter(prop) {
 export default {
   components: { CustomDatetimePicker },
   // supports v-model
-  props: ["value"],
+  props: {
+    value: {
+      type: Object,
+      required: true
+    }
+  },
   data() {
     return {
       studentViewResponsesAfterMenu: null,
@@ -108,8 +131,49 @@ export default {
     };
   },
   computed: {
+    integration() {
+      return this.value.integration || null;
+    },
+    integrationConfiguration() {
+      return this.isIntegration ? this.integration.configuration : {};
+    },
+    integrationClient() {
+      return this.isIntegration ? this.integrationConfiguration.client : {};
+    },
+    integrationClientName() {
+      return this.integrationClient.name;
+    },
+    isIntegration() {
+      return this.integration !== null;
+    },
+    messages () {
+      if (!this.isIntegration) {
+        return {
+          headerText: "Reveal treatment responses",
+          headerInstructionsText: "Decide if students should see their treatment responses and points once a treatment question is answered",
+          allowStudentViewResponsesLabel: "Allow students to see their treatment responses and points earned for each response",
+          allowStudentViewResponsesDatesLabel: "Show responses and points on"
+        }
+      }
+
+      switch(this.integrationClientName) {
+        case "Custom Web Activity":
+          return {
+            headerText: "Reveal treatment responses",
+            headerInstructionsText: "Decide if students should see their treatment responses and points once a treatment question is answered",
+            allowStudentViewResponsesLabel: "Allow students to see their treatment responses and points earned for each response",
+            allowStudentViewResponsesDatesLabel: "Show responses and points on"
+          }
+        default:
+          return {
+            headerText: "Reveal treatment scores",
+            headerInstructionsText: "Decide if students should see their treatment points once a treatment question is answered",
+            allowStudentViewResponsesLabel: "Allow students to see their treatment points earned for each response",
+            allowStudentViewResponsesDatesLabel: "Show points on"
+          }
+      }
+    },
     allowStudentViewResponses: {
-      // two-way computed property
       get() {
         return this.value.allowStudentViewResponses;
       },
@@ -127,7 +191,6 @@ export default {
       "studentViewResponsesBefore"
     ),
     allowStudentViewCorrectAnswers: {
-      // two-way computed property
       get() {
         return this.value.allowStudentViewCorrectAnswers;
       },
@@ -171,12 +234,11 @@ export default {
       this.$emit("input", {
         ...this.value,
         allowStudentViewResponses: value,
-        allowStudentViewCorrectAnswers:
-          this.allowStudentViewCorrectAnswers && value,
+        allowStudentViewCorrectAnswers: this.allowStudentViewCorrectAnswers && value,
       });
     },
-  },
-};
+  }
+}
 </script>
 
 <style lang="scss" scoped>

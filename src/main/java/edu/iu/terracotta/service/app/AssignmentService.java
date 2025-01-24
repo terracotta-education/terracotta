@@ -99,10 +99,7 @@ public interface AssignmentService {
     void deleteAssignmentInCanvas(Assignment assignment, String canvasCourseId, LtiUserEntity instructorUser) throws AssignmentNotEditedException, CanvasApiException;
     void deleteAllFromExperiment(Long id, SecuredInfo securedInfo);
     AssignmentDto moveAssignment(long assignmentId, AssignmentDto assignmentDto, long experimentId, long exposureId, SecuredInfo securedInfo)
-            throws DataServiceException, IdInPostException, TitleValidationException, AssessmentNotMatchingException,
-                    AssignmentNotCreatedException, RevealResponsesSettingValidationException,
-                    MultipleAttemptsSettingsValidationException, NumberFormatException, CanvasApiException, ExceedingLimitException,
-                    TreatmentNotMatchingException, ExposureNotMatchingException, AssignmentMoveException, AssignmentNotEditedException, QuestionNotMatchingException;
+            throws AssessmentNotMatchingException, ExposureNotMatchingException, AssignmentNotMatchingException, AssignmentMoveException;
     List<AssignmentExtended> getAllAssignmentsForCanvasCourse(SecuredInfo securedInfo) throws CanvasApiException;
     Optional<AssignmentExtended> getCanvasAssignmentById(int assignmentId, SecuredInfo securedInfo) throws CanvasApiException;
     boolean isSingleVersion(long assignmentId);

@@ -3,6 +3,7 @@ package edu.iu.terracotta.controller.app.integrations;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -66,6 +67,25 @@ public class IntegrationsController {
             url,
             errorCode
         );
+    }
+
+    @GetMapping("/preview")
+    public String preview(@RequestParam(required = false) String url) {
+        HttpStatus status = HttpStatus.OK;
+        String errorCode = null;
+
+        try {
+            if (StringUtils.isBlank(url)) {
+                throw new IllegalArgumentException("Preview URL cannot be null");
+            }
+
+            log.info("Launching instructor preview with URL: [{}]", new String(Base64.getDecoder().decode(url)));
+        } catch (Exception e) {
+            status = HttpStatus.BAD_REQUEST;
+            log.error("url: [{}] errorCode: [{}], status: [{}]", url, errorCode, status, e);
+        }
+
+        return String.format("redirect:/app/app.html?integration=true&preview=true&previewUrl=%s&status=%s", url != null ? url : "", status.name());
     }
 
 }

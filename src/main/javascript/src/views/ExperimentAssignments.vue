@@ -96,6 +96,11 @@
                   "
                 >
                   <template v-slot:item.title="{ item }">
+                    <v-icon
+                      class="component-icon"
+                    >
+                      mdi-file-outline
+                    </v-icon>
                     {{ item.title }}
                     <v-chip
                       v-if="item.treatments.length == 1"
@@ -121,6 +126,11 @@
                       >
                         <!-- eslint-disable-next-line -->
                         <template v-slot:item.title="{ item }">
+                          <v-icon
+                            class="mr-1 component-icon"
+                          >
+                            {{ item.assessmentDto.integration ? treatmentIcon.integration : treatmentIcon.assignment }}
+                          </v-icon>
                           <v-tooltip
                             v-if="!(item.assessmentDto && item.assessmentDto.questions.length)"
                             top
@@ -535,7 +545,11 @@ export default {
         sortable: false,
         value: "title",
       }
-    ]
+    ],
+    treatmentIcon: {
+      integration: "mdi-application-brackets-outline",
+      assignment: "mdi-wrench-outline"
+    }
   }),
   watch: {
     assignmentsCount: {
@@ -987,5 +1001,8 @@ a.integration-preview-link {
   color: rgba(0, 0, 0, .87) !important;
   text-decoration: none;
   font-size: 1rem;
+}
+.component-icon {
+  color: rgba(0, 0, 0, .54) !important;
 }
 </style>

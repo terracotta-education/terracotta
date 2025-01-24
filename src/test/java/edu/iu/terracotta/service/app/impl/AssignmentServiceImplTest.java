@@ -16,6 +16,7 @@ import java.util.Optional;
 import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.exceptions.AssignmentNotEditedException;
+import edu.iu.terracotta.exceptions.AssignmentNotMatchingException;
 import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExceedingLimitException;
@@ -182,7 +183,7 @@ public class AssignmentServiceImplTest extends BaseTest {
     @Test
     public void testMoveAssignment() throws NumberFormatException, DataServiceException, IdInPostException, TitleValidationException, AssessmentNotMatchingException,
             AssignmentNotCreatedException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, CanvasApiException,
-            ExceedingLimitException, TreatmentNotMatchingException, ExposureNotMatchingException, AssignmentMoveException, AssignmentNotEditedException, QuestionNotMatchingException {
+            ExceedingLimitException, TreatmentNotMatchingException, ExposureNotMatchingException, AssignmentMoveException, AssignmentNotEditedException, QuestionNotMatchingException, AssignmentNotMatchingException {
         when(assignmentDto.getAssignmentId()).thenReturn(null);
         MockHttpServletRequest request = new MockHttpServletRequest();
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
@@ -191,7 +192,6 @@ public class AssignmentServiceImplTest extends BaseTest {
 
         assertNotNull(newAssignmentDto);
         verify(assignmentRepository).save(any(Assignment.class));
-        verify(assignmentRepository).saveAndFlush(any(Assignment.class));
     }
 
     @Test
