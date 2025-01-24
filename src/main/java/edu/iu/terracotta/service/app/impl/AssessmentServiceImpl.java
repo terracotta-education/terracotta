@@ -377,6 +377,11 @@ public class AssessmentServiceImpl implements AssessmentService {
             throw new AssessmentNotMatchingException(TextConstants.ASSESSMENT_NOT_MATCHING);
         }
 
+        // handle special cases for integration types
+        assessmentDto.setAllowStudentViewCorrectAnswers(!assessment.isIntegration() && assessmentDto.isAllowStudentViewCorrectAnswers());
+        assessmentDto.setStudentViewCorrectAnswersAfter(assessment.isIntegration() ? null : assessmentDto.getStudentViewCorrectAnswersAfter());
+        assessmentDto.setStudentViewCorrectAnswersBefore(assessment.isIntegration() ? null : assessmentDto.getStudentViewCorrectAnswersBefore());
+
         validateMultipleAttemptsSettings(assessmentDto);
         validateRevealAssignmentResponsesSettings(assessmentDto);
         assessment.setAllowStudentViewResponses(assessmentDto.isAllowStudentViewResponses());
@@ -384,7 +389,7 @@ public class AssessmentServiceImpl implements AssessmentService {
         assessment.setStudentViewResponsesBefore(assessmentDto.getStudentViewResponsesBefore());
         assessment.setAllowStudentViewCorrectAnswers(assessmentDto.isAllowStudentViewCorrectAnswers());
         assessment.setStudentViewCorrectAnswersAfter(assessmentDto.getStudentViewCorrectAnswersAfter());
-        assessment.setStudentViewCorrectAnswersBefore(assessmentDto.getStudentViewCorrectAnswersBefore());
+        assessment.setStudentViewCorrectAnswersBefore(assessment.isIntegration() ? null : assessmentDto.getStudentViewCorrectAnswersBefore());
         assessment.setHtml(assessmentDto.getHtml());
         assessment.setAutoSubmit(assessmentDto.isAutoSubmit());
         assessment.setNumOfSubmissions(assessmentDto.getNumOfSubmissions());

@@ -388,10 +388,10 @@ export default {
       questionSubmissions: "submissions/questionSubmissions"
     }),
     allCurrentPageQuestionsAnswered() {
-      return this.anyQuestionsNeedAnswering(this.currentQuestionPage.questions);
+      return this.areAllQuestionsAnswered(this.currentQuestionPage.questions);
     },
     allQuestionsAnswered() {
-      return this.anyQuestionsNeedAnswering(this.answerableQuestions);
+      return this.areAllQuestionsAnswered(this.answerableQuestions);
     },
     currentQuestionPage() {
       return this.questionPages[this.questionPageIndex];
@@ -740,32 +740,36 @@ export default {
                   <div>Experiment: ${this.experimentId}</div>
                 </div>`;
     },
-    anyQuestionsNeedAnswering(answerableQuestions) {
-      return answerableQuestions.some(
-        (question) => {
+    areAllQuestionsAnswered(answerableQuestions) {
+      for (const question of answerableQuestions) {
+        if (question.questionType === "MC") {
           const answer = this.questionValues.find(
             ({ questionId }) => questionId === question.questionId
-          );
-
-          switch (question.questionType) {
-            case this.questionTypes.mc:
-              return answer.answerId === null;
-            case this.questionTypes.essay:
-              return answer.response === null || answer.trim() === "";
-            case this.questionTypes.file:
-              return answer.response === null;
-            case this.questionTypes.integration:
-              return false;
-            default:
-              console.log(
-                "Unexpected question type",
-                question.questionType,
-                question
-              );
-              return true;
+          ).answerId;
+          if (answer === null) {
+            return false;
           }
+        } else if (question.questionType === "ESSAY") {
+          const answer = this.questionValues.find(
+            ({ questionId }) => questionId === question.questionId
+          ).response;
+          if (answer === null || answer.trim() === "") {
+            return false;
+          }
+        } else if (question.questionType === "FILE") {
+          const answer = this.questionValues.find(
+              ({ questionId }) => questionId === question.questionId
+          ).response;
+          return answer !== null;
+        } else {
+          console.log(
+            "Unexpected question type",
+            question.questionType,
+            question
+          );
         }
-      );
+      }
+      return true;
     },
     nextPage() {
       this.questionPageIndex++;
