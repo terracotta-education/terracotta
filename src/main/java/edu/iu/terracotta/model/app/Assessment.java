@@ -6,6 +6,8 @@ import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -114,6 +116,13 @@ public class Assessment extends BaseEntity {
     public boolean canViewResponses() {
         if (!isAllowStudentViewResponses()) {
             return false;
+        }
+
+        if (isIntegration()) {
+            if (StringUtils.equals(getIntegration().getConfiguration().getClient().getName(), "Qualtrics")) {
+                // Qualtrics integrations never see feedback
+                return false;
+            }
         }
 
         Timestamp now = Timestamp.valueOf(ZonedDateTime.ofInstant(Instant.ofEpochMilli(System.currentTimeMillis()), ZoneOffset.UTC).toLocalDateTime());

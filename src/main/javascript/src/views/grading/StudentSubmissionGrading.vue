@@ -784,26 +784,26 @@ export default {
       // display wait screen
       this.isSaving = true;
 
-      // update grades for attempts
-      this.attempts.forEach(attempt => {
-        attempt.typeChanged = false;
-        attempt.calculatedGrade.touched = false;
-        attempt.overrideGrade.touched = false;
-      });
-
       var submissionsToUpdate = [];
 
+      // update grades for attempts
       for (var submissionAttempt of this.attempts) {
         const submission = this.findSubmissionById(submissionAttempt.submissionId);
         submissionsToUpdate.push(
           {
             submissionId: submission.submissionId,
             alteredCalculatedGrade: submissionAttempt.calculatedGrade.grade,
-            totalAlteredGrade: submission.totalAlteredGrade,
+            totalAlteredGrade: submissionAttempt.overrideGrade.touched ? submission.totalAlteredGrade : submissionAttempt.calculatedGrade.grade,
             gradeOverridden: submissionAttempt.gradeOverridden
           }
         );
       }
+
+      this.attempts.forEach(attempt => {
+        attempt.typeChanged = false;
+        attempt.calculatedGrade.touched = false;
+        attempt.overrideGrade.touched = false;
+      });
 
       try {
         await this.updateSubmissions([
