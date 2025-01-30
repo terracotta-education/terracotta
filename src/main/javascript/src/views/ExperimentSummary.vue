@@ -125,7 +125,7 @@
                   />
                 </template>
                 <template
-                  v-if="item.tab === 'component'"
+                  v-if="item.tab === 'components'"
                 >
                   <div
                     class="section-exposure-sets px-5"
@@ -242,7 +242,7 @@
                   </div>
                 </template>
                 <template
-                  v-if="item.tab !== 'status' && item.tab !== 'component'"
+                  v-if="item.tab !== 'status' && item.tab !== 'components'"
                 >
                   <table>
                     <tr
@@ -544,11 +544,11 @@ export default {
       return this.assignments?.filter((a) => a.published).length;
     },
     activeTab() {
-      // if active tab was previously selected, return it, otherwise default to component tab
-      return this.editMode?.callerPage?.tab || "component";
+      // if active tab was previously selected, return it, otherwise default to components tab
+      return this.editMode?.callerPage?.tab || "components";
     },
     activeExposureSet() {
-      // if active tab was previously selected, return it, otherwise default to component tab
+      // if active tab was previously selected, return it, otherwise default to components tab
       return this.editMode?.callerPage?.exposureSet || 0;
     },
     loaded() {
@@ -567,7 +567,7 @@ export default {
 
   data: () => ({
     tab: null,
-    items: ["design", "participant", "component", "status", "results"],
+    items: ["design", "participant", "components", "status", "results"],
     // Expansion Tab Header Values
     setupTabs: [
       {
@@ -584,8 +584,8 @@ export default {
         image: require("@/assets/participants_summary.svg"),
       },
       {
-        title: "Component",
-        tab: "component",
+        title: "Components",
+        tab: "components",
         description: `Terracotta populates Canvas assignments with learning activities and
                       materials that change depending on who's looking at them, automatically
                       managing experimental variation within the treatments. Just create different

@@ -332,6 +332,7 @@ public class FileStorageServiceImpl implements FileStorageService {
         }
 
         deleteConsentFile(experimentId);
+        experiment.setConsentDocument(null);
         consentDocumentRepository.deleteById(consentDocument.getConsentDocumentId());
     }
 

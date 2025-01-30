@@ -621,7 +621,7 @@ export default {
         initialPage: 'AssignmentCreateAssignment',
         callerPage: {
           name: 'ExperimentSummary',
-          tab: 'component',
+          tab: 'components',
           exposureSet: this.tab
         }
       });
@@ -646,7 +646,7 @@ export default {
         initialPage: 'AssignmentEditor',
         callerPage: {
           name: 'ExperimentSummary',
-          tab: 'component',
+          tab: 'components',
           exposureSet: this.tab
         }
       });
@@ -748,7 +748,7 @@ export default {
         initialPage: "TerracottaBuilder",
         callerPage: {
           name: "ExperimentSummary",
-          tab: "component",
+          tab: "components",
           exposureSet: this.tab
         }
       });
