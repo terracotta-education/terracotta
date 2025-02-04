@@ -18,7 +18,6 @@ import edu.iu.terracotta.exceptions.integrations.IntegrationTokenNotFoundExcepti
 import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.enumerator.QuestionTypes;
 import edu.iu.terracotta.model.app.integrations.IntegrationToken;
-import edu.iu.terracotta.model.app.integrations.enums.IntegrationTokenType;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.integrations.IntegrationTokenRepository;
 import edu.iu.terracotta.service.app.integrations.IntegrationTokenService;
@@ -48,11 +47,9 @@ public class IntegrationTokenServiceImpl implements IntegrationTokenService {
             .forEach(integrationToken -> integrationTokenRepository.deleteById(integrationToken.getId()));
 
         IntegrationToken integrationToken = IntegrationToken.builder()
-            .expiresAt(Timestamp.from(Instant.now().plusSeconds(ttl)))
             .integration(submission.getIntegration())
             .submission(submission)
             .token(buildToken())
-            .type(isPreview ? IntegrationTokenType.PREVIEW : IntegrationTokenType.STANDARD)
             .user(submission.getParticipant().getLtiUserEntity())
             .build();
 
@@ -84,7 +81,7 @@ public class IntegrationTokenServiceImpl implements IntegrationTokenService {
         IntegrationToken integrationToken = integrationTokenRepository.findByToken(launchToken)
             .orElseThrow(() -> new IntegrationTokenNotFoundException(String.format("No integration token found with token: [%s]", launchToken)));
 
-        if (integrationToken.isExpired()) {
+        if (integrationToken.isExpired(ttl)) {
             invalidate(integrationToken);
             throw new IntegrationTokenExpiredException(String.format("Integration token: [%s] is expired.", launchToken));
         }
