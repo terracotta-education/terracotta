@@ -3,6 +3,7 @@ package edu.iu.terracotta.service.app.integrations;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.clearInvocations;
@@ -48,7 +49,7 @@ public class IntegrationTokenServiceImplTest extends BaseTest {
         when(submission.isIntegration()).thenReturn(true);
         when(submission.getIntegrationTokens()).thenReturn(Collections.singletonList(integrationToken));
         when(integrationToken.isAlreadyRedeemed()).thenReturn(false);
-        when(integrationToken.isExpired()).thenReturn(false);
+        when(integrationToken.isExpired(anyInt())).thenReturn(false);
     }
 
     @Test
@@ -134,7 +135,7 @@ public class IntegrationTokenServiceImplTest extends BaseTest {
 
     @Test
     public void testredeemTokenIntegrationTokenExpiredException() throws IntegrationTokenInvalidException, DataServiceException, IntegrationTokenNotFoundException {
-        when(integrationToken.isExpired()).thenReturn(true);
+        when(integrationToken.isExpired(anyInt())).thenReturn(true);
 
         assertThrows(IntegrationTokenExpiredException.class, () -> { integrationTokenService.redeemToken("token"); });
         verify(integrationToken).setRedeemedAt(any(Timestamp.class));

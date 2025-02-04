@@ -80,7 +80,6 @@ import edu.iu.terracotta.model.app.integrations.dto.IntegrationClientDto;
 import edu.iu.terracotta.model.app.integrations.dto.IntegrationConfigurationDto;
 import edu.iu.terracotta.model.app.integrations.dto.IntegrationDto;
 import edu.iu.terracotta.model.app.integrations.dto.IntegrationLaunchParameterDto;
-import edu.iu.terracotta.model.app.integrations.enums.IntegrationTokenType;
 import edu.iu.terracotta.model.canvas.AssignmentExtended;
 import edu.iu.terracotta.model.canvas.CanvasAPIScope;
 import edu.iu.terracotta.model.canvas.CanvasAPITokenEntity;
@@ -286,7 +285,6 @@ public class BaseModelTest {
             when(integrationToken.getLogs()).thenReturn(Collections.singletonList(integrationTokenLog));
             when(integrationToken.getSecuredInfo()).thenReturn(Optional.of(securedInfo));
             when(integrationToken.getSubmission()).thenReturn(submission);
-            when(integrationToken.getType()).thenReturn(IntegrationTokenType.STANDARD);
             when(integrationToken.getUser()).thenReturn(ltiUserEntity);
             when(integrationTokenLog.getCode()).thenReturn(INTEGRATION_TOKEN_LOG_CODE);
             when(jwt.get(anyString())).thenReturn(RESOURCE_LINK_ID);
