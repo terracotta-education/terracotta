@@ -81,14 +81,14 @@ public class IntegrationTokenServiceImpl implements IntegrationTokenService {
         IntegrationToken integrationToken = integrationTokenRepository.findByToken(launchToken)
             .orElseThrow(() -> new IntegrationTokenNotFoundException(String.format("No integration token found with token: [%s]", launchToken)));
 
-        if (integrationToken.isExpired(ttl)) {
-            invalidate(integrationToken);
-            throw new IntegrationTokenExpiredException(String.format("Integration token: [%s] is expired.", launchToken));
-        }
-
         if (integrationToken.isAlreadyRedeemed()) {
             invalidate(integrationToken);
             throw new IntegrationTokenAlreadyRedeemedException(String.format("Integration token: [%s] has already been redeemed.", launchToken));
+        }
+
+        if (integrationToken.isExpired(ttl)) {
+            invalidate(integrationToken);
+            throw new IntegrationTokenExpiredException(String.format("Integration token: [%s] is expired.", launchToken));
         }
 
         return invalidate(integrationToken);
