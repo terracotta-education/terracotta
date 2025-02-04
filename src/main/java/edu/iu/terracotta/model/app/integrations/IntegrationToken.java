@@ -12,12 +12,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import edu.iu.terracotta.model.LtiUserEntity;
 import edu.iu.terracotta.model.app.Submission;
-import edu.iu.terracotta.model.app.integrations.enums.IntegrationTokenType;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
@@ -54,10 +51,6 @@ public class IntegrationToken extends BaseIntegrationEntity {
     )
     private Integration integration;
 
-    @Column
-    @Enumerated(EnumType.STRING)
-    private IntegrationTokenType type;
-
     @ManyToOne
     @JoinColumn(
         name = "submission_id",
@@ -70,12 +63,11 @@ public class IntegrationToken extends BaseIntegrationEntity {
 
     @Column private String token;
     @Column private String securedInfo;
-    @Column private Timestamp expiresAt;
     @Column private Timestamp redeemedAt;
 
     @Transient
-    public boolean isExpired() {
-        return Timestamp.from(Instant.now()).after(expiresAt);
+    public boolean isExpired(int ttl) {
+        return Timestamp.from(Instant.now()).after(new Timestamp(this.getCreatedAt().getTime() + (ttl * 1000L)));
     }
 
     @Transient
