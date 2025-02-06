@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Optional;
 
 import org.apache.commons.lang3.StringUtils;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -18,6 +17,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 import lombok.AllArgsConstructor;
@@ -51,11 +51,8 @@ public class IntegrationToken extends BaseIntegrationEntity {
     )
     private Integration integration;
 
-    @ManyToOne
-    @JoinColumn(
-        name = "submission_id",
-        nullable = false
-    )
+    @OneToOne
+    @JoinColumn(name = "submission_id")
     private Submission submission;
 
     @OneToMany(mappedBy = "integrationToken")

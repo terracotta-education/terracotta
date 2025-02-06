@@ -14,16 +14,15 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 
 import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
 
-import org.apache.commons.collections4.CollectionUtils;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 @Entity
 @Getter
@@ -92,26 +91,9 @@ public class Submission extends BaseEntity {
     )
     private List<SubmissionComment> submissionComments;
 
-    @OneToMany(mappedBy = "submission")
-    private List<IntegrationToken> integrationTokens;
-
-    public void addIntegrationToken(IntegrationToken integrationToken) {
-        if (integrationTokens == null) {
-            integrationTokens = new ArrayList<>();
-        }
-
-        integrationTokens.add(integrationToken);
-    }
-
-    @Transient
-    public Optional<IntegrationToken> getLatestIntegrationToken() {
-        if (CollectionUtils.isEmpty(integrationTokens)) {
-            return Optional.empty();
-        }
-
-        return integrationTokens.stream()
-            .max(Comparator.comparing(IntegrationToken::getCreatedAt));
-    }
+    @OneToOne(mappedBy = "submission")
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    private IntegrationToken integrationToken;
 
     @Transient
     public Integration getIntegration() {

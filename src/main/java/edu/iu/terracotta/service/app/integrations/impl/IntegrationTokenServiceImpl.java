@@ -4,7 +4,6 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.UUID;
 
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -42,24 +41,20 @@ public class IntegrationTokenServiceImpl implements IntegrationTokenService {
             return;
         }
 
-        // delete existing unused tokens for this submission
-        CollectionUtils.emptyIfNull(submission.getIntegrationTokens())
-            .forEach(integrationToken -> integrationTokenRepository.deleteById(integrationToken.getId()));
+        IntegrationToken integrationToken = submission.getIntegrationToken();
 
-        IntegrationToken integrationToken = IntegrationToken.builder()
-            .integration(submission.getIntegration())
-            .submission(submission)
-            .token(buildToken())
-            .user(submission.getParticipant().getLtiUserEntity())
-            .build();
+        if (integrationToken == null) {
+            // no token exists; create one for this submission
+            integrationToken = IntegrationToken.builder()
+                .integration(submission.getIntegration())
+                .submission(submission)
+                .token(buildToken())
+                .user(submission.getParticipant().getLtiUserEntity())
+                .build();
+        }
 
         integrationToken.setSecuredInfo(securedInfo);
-
-        submission.addIntegrationToken(
-            integrationTokenRepository.save(
-                integrationToken
-            )
-        );
+        submission.setIntegrationToken(integrationTokenRepository.save(integrationToken));
     }
 
     @Override
@@ -73,7 +68,8 @@ public class IntegrationTokenServiceImpl implements IntegrationTokenService {
     }
 
     @Override
-    public IntegrationToken redeemToken(String launchToken) throws DataServiceException, IntegrationTokenNotFoundException, IntegrationTokenInvalidException, IntegrationTokenAlreadyRedeemedException, IntegrationTokenExpiredException {
+    public IntegrationToken redeemToken(String launchToken)
+        throws DataServiceException, IntegrationTokenNotFoundException, IntegrationTokenInvalidException, IntegrationTokenAlreadyRedeemedException, IntegrationTokenExpiredException {
         if (StringUtils.isBlank(launchToken)) {
             throw new DataServiceException("No token passed in.");
         }
