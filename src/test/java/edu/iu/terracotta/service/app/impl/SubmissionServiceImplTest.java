@@ -29,6 +29,7 @@ import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.InvalidUserException;
 import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
 import edu.iu.terracotta.exceptions.SubmissionNotMatchingException;
+import edu.iu.terracotta.exceptions.integrations.IntegrationTokenNotFoundException;
 import edu.iu.terracotta.model.app.AnswerMcSubmission;
 import edu.iu.terracotta.model.app.AnswerMcSubmissionOption;
 import edu.iu.terracotta.model.app.ExposureGroupCondition;
@@ -66,14 +67,14 @@ public class SubmissionServiceImplTest extends BaseTest {
     }
 
     @Test
-    public void testPostSubmissionNotStarted() throws IdInPostException, ParticipantNotMatchingException, InvalidUserException, DataServiceException {
+    public void testPostSubmissionNotStarted() throws IdInPostException, ParticipantNotMatchingException, InvalidUserException, DataServiceException, IntegrationTokenNotFoundException {
         submissionService.postSubmission(new SubmissionDto(), 0l, securedInfo, 0l, false);
 
         verify(assignmentRepository).save(assignment);
     }
 
     @Test
-    public void testPostSubmissionAlreadyStarted() throws IdInPostException, ParticipantNotMatchingException, InvalidUserException, DataServiceException {
+    public void testPostSubmissionAlreadyStarted() throws IdInPostException, ParticipantNotMatchingException, InvalidUserException, DataServiceException, IntegrationTokenNotFoundException {
         when(assignment.isStarted()).thenReturn(true);
         submissionService.postSubmission(new SubmissionDto(), 0l, securedInfo, 0l, false);
 
@@ -81,7 +82,7 @@ public class SubmissionServiceImplTest extends BaseTest {
     }
 
     @Test
-    public void testCreateNewSubmissionNotStarted() throws IdInPostException, ParticipantNotMatchingException, InvalidUserException, DataServiceException {
+    public void testCreateNewSubmissionNotStarted() throws IdInPostException, ParticipantNotMatchingException, InvalidUserException, DataServiceException, IntegrationTokenNotFoundException {
         when(question.getQuestionType()).thenReturn(QuestionTypes.ESSAY);
 
         submissionService.createNewSubmission(assessment, participant, securedInfo);
@@ -90,7 +91,7 @@ public class SubmissionServiceImplTest extends BaseTest {
     }
 
     @Test
-    public void testCreateNewSubmissionAlreadyStarted() throws IdInPostException, ParticipantNotMatchingException, InvalidUserException, DataServiceException {
+    public void testCreateNewSubmissionAlreadyStarted() throws IdInPostException, ParticipantNotMatchingException, InvalidUserException, DataServiceException, IntegrationTokenNotFoundException {
         when(question.getQuestionType()).thenReturn(QuestionTypes.ESSAY);
         when(assignment.isStarted()).thenReturn(true);
         submissionService.createNewSubmission(assessment, participant, securedInfo);
@@ -99,7 +100,7 @@ public class SubmissionServiceImplTest extends BaseTest {
     }
 
     @Test
-    public void testCreateNewSubmissionTestStudent() throws IdInPostException, ParticipantNotMatchingException, InvalidUserException, DataServiceException {
+    public void testCreateNewSubmissionTestStudent() throws IdInPostException, ParticipantNotMatchingException, InvalidUserException, DataServiceException, IntegrationTokenNotFoundException {
         when(question.getQuestionType()).thenReturn(QuestionTypes.ESSAY);
         when(apijwtService.isTestStudent(any(SecuredInfo.class))).thenReturn(true);
         submissionService.createNewSubmission(assessment, participant, securedInfo);

@@ -10,6 +10,7 @@ import edu.iu.terracotta.exceptions.InvalidUserException;
 import edu.iu.terracotta.exceptions.NoSubmissionsException;
 import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
 import edu.iu.terracotta.exceptions.SubmissionNotMatchingException;
+import edu.iu.terracotta.exceptions.integrations.IntegrationTokenNotFoundException;
 import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.model.app.dto.SubmissionDto;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
@@ -111,7 +112,7 @@ public class SubmissionController {
                                                         UriComponentsBuilder ucBuilder,
                                                         HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, BadTokenException, InvalidUserException,
-                    ParticipantNotMatchingException, IdInPostException, DataServiceException {
+                    ParticipantNotMatchingException, IdInPostException, DataServiceException, IntegrationTokenNotFoundException {
         log.debug("Creating Submission for assessment ID: '{}' and participant ID: '{}'", assessmentId, submissionDto.getParticipantId());
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);

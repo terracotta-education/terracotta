@@ -9,6 +9,7 @@ import edu.iu.terracotta.exceptions.InvalidUserException;
 import edu.iu.terracotta.exceptions.NoSubmissionsException;
 import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
 import edu.iu.terracotta.exceptions.SubmissionNotMatchingException;
+import edu.iu.terracotta.exceptions.integrations.IntegrationTokenNotFoundException;
 import edu.iu.terracotta.model.ags.LineItem;
 import edu.iu.terracotta.model.ags.LineItems;
 import edu.iu.terracotta.model.ags.Score;
@@ -151,7 +152,7 @@ public class SubmissionServiceImpl implements SubmissionService {
 
     @Override
     public SubmissionDto postSubmission(SubmissionDto submissionDto, long experimentId, SecuredInfo securedInfo, long assessmentId, boolean student)
-            throws IdInPostException, ParticipantNotMatchingException, InvalidUserException, DataServiceException {
+            throws IdInPostException, ParticipantNotMatchingException, InvalidUserException, DataServiceException, IntegrationTokenNotFoundException {
         if (submissionDto.getSubmissionId() != null) {
             throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
         }
@@ -367,7 +368,7 @@ public class SubmissionServiceImpl implements SubmissionService {
     }
 
     @Override
-    public Submission createNewSubmission(Assessment assessment, Participant participant, SecuredInfo securedInfo) {
+    public Submission createNewSubmission(Assessment assessment, Participant participant, SecuredInfo securedInfo) throws IntegrationTokenNotFoundException {
         Submission submission = new Submission();
         submission.setAssessment(assessment);
         submission.setParticipant(participant);

@@ -20,8 +20,11 @@ import edu.iu.terracotta.model.app.integrations.IntegrationToken;
 import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.repository.integrations.IntegrationTokenRepository;
 import edu.iu.terracotta.service.app.integrations.IntegrationTokenService;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
+@SuppressWarnings({"PMD.GuardLogStatement"})
 public class IntegrationTokenServiceImpl implements IntegrationTokenService {
 
     @Autowired private IntegrationTokenRepository integrationTokenRepository;
@@ -30,7 +33,7 @@ public class IntegrationTokenServiceImpl implements IntegrationTokenService {
     private int ttl;
 
     @Override
-    public void create(Submission submission, boolean isPreview, SecuredInfo securedInfo) {
+    public void create(Submission submission, boolean isPreview, SecuredInfo securedInfo) throws IntegrationTokenNotFoundException {
         if (!submission.isIntegration()) {
             // not an integration; no token needed
             return;
@@ -54,7 +57,21 @@ public class IntegrationTokenServiceImpl implements IntegrationTokenService {
         }
 
         integrationToken.setSecuredInfo(securedInfo);
-        submission.setIntegrationToken(integrationTokenRepository.save(integrationToken));
+        integrationToken.setUpdatedAt(Timestamp.from(Instant.now()));
+
+        try {
+            integrationTokenRepository.save(integrationToken);
+        } catch (Exception e) {
+            log.error("Error saving token for submission ID: [{}].", submission.getSubmissionId(), e);
+            // token exists; use that one
+            integrationToken = integrationTokenRepository.findBySubmission_SubmissionId(submission.getSubmissionId())
+                .orElseThrow(() -> new IntegrationTokenNotFoundException(String.format("No token found for submission ID: [%s]", submission.getSubmissionId())));
+            integrationToken.setSecuredInfo(securedInfo);
+            integrationToken.setUpdatedAt(Timestamp.from(Instant.now()));
+            integrationTokenRepository.save(integrationToken);
+        }
+
+        submission.setIntegrationToken(integrationToken);
     }
 
     @Override

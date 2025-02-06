@@ -15,6 +15,7 @@ import edu.iu.terracotta.exceptions.NoSubmissionsException;
 import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
 import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.exceptions.SubmissionNotMatchingException;
+import edu.iu.terracotta.exceptions.integrations.IntegrationTokenNotFoundException;
 import edu.iu.terracotta.model.app.Assignment;
 import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.dto.AssessmentDto;
@@ -78,7 +79,7 @@ public class StepsController {
             throws ExperimentNotMatchingException, BadTokenException, DataServiceException,
             ParticipantNotUpdatedException, ExperimentStartedException, ConnectionException, CanvasApiException,
             IOException, AssignmentDatesException, AssessmentNotMatchingException, GroupNotMatchingException,
-            ParticipantNotMatchingException, SubmissionNotMatchingException, NoSubmissionsException {
+            ParticipantNotMatchingException, SubmissionNotMatchingException, NoSubmissionsException, IntegrationTokenNotFoundException {
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
 

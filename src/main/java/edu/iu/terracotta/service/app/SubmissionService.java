@@ -9,6 +9,7 @@ import edu.iu.terracotta.exceptions.InvalidUserException;
 import edu.iu.terracotta.exceptions.NoSubmissionsException;
 import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
 import edu.iu.terracotta.exceptions.SubmissionNotMatchingException;
+import edu.iu.terracotta.exceptions.integrations.IntegrationTokenNotFoundException;
 import edu.iu.terracotta.model.app.Assessment;
 import edu.iu.terracotta.model.app.Participant;
 import edu.iu.terracotta.model.app.Submission;
@@ -27,7 +28,7 @@ public interface SubmissionService {
 
     List<SubmissionDto> getSubmissions(Long experimentId, String userId, Long assessmentId, boolean student) throws NoSubmissionsException;
     Submission getSubmission(Long experimentId, String userId, Long submissionId, boolean student) throws NoSubmissionsException;
-    SubmissionDto postSubmission(SubmissionDto submissionDto, long experimentId, SecuredInfo securedInfo, long assessmentId, boolean student) throws IdInPostException, ParticipantNotMatchingException, InvalidUserException, DataServiceException;
+    SubmissionDto postSubmission(SubmissionDto submissionDto, long experimentId, SecuredInfo securedInfo, long assessmentId, boolean student) throws IdInPostException, ParticipantNotMatchingException, InvalidUserException, DataServiceException, IntegrationTokenNotFoundException;
     void updateSubmissions(Map<Submission, SubmissionDto> map, boolean student) throws ConnectionException, DataServiceException;
     SubmissionDto toDto(Submission submission, boolean questionSubmissions, boolean submissionComments);
     Submission fromDto(SubmissionDto submissionDto, boolean student) throws DataServiceException;
@@ -36,7 +37,7 @@ public interface SubmissionService {
     void grade(Long submissionId, SecuredInfo securedInfo) throws DataServiceException;
     void sendSubmissionGradeToCanvasWithLTI(Submission submission, boolean studentSubmission) throws ConnectionException, DataServiceException, CanvasApiException, IOException;
     boolean datesAllowed(Long experimentId, Long treatmentId, SecuredInfo securedInfo);
-    Submission createNewSubmission(Assessment assessment, Participant participant, SecuredInfo securedInfo);
+    Submission createNewSubmission(Assessment assessment, Participant participant, SecuredInfo securedInfo) throws IntegrationTokenNotFoundException;
     void validateUser(Long experimentId, String userId, Long submissionId) throws InvalidUserException;
     void validateDto(Long experimentId, String userId, SubmissionDto submissionDto) throws InvalidUserException, ParticipantNotMatchingException;
     HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, long experimentId, long conditionId, long treatmentId, long assessmentId, long submissionId);
