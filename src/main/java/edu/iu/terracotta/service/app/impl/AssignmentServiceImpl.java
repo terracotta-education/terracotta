@@ -22,6 +22,7 @@ import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
 import edu.iu.terracotta.exceptions.RevealResponsesSettingValidationException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
+import edu.iu.terracotta.exceptions.integrations.IntegrationTokenNotFoundException;
 import edu.iu.terracotta.model.LtiUserEntity;
 import edu.iu.terracotta.model.PlatformDeployment;
 import edu.iu.terracotta.model.app.Assessment;
@@ -387,7 +388,7 @@ public class AssignmentServiceImpl implements AssignmentService {
     @Transactional
     public ResponseEntity<Object> launchAssignment(Long experimentId, SecuredInfo securedInfo)
             throws AssessmentNotMatchingException, ParticipantNotUpdatedException, AssignmentDatesException, DataServiceException, CanvasApiException, IOException, GroupNotMatchingException,
-                ParticipantNotMatchingException, ConnectionException, AssignmentAttemptException, AssignmentNotMatchingException, ExperimentNotMatchingException {
+                ParticipantNotMatchingException, ConnectionException, AssignmentAttemptException, AssignmentNotMatchingException, ExperimentNotMatchingException, IntegrationTokenNotFoundException {
         Optional<Experiment> experiment = experimentRepository.findById(experimentId);
 
         if (experiment.isEmpty()) {
@@ -609,7 +610,7 @@ public class AssignmentServiceImpl implements AssignmentService {
         return assignment;
     }
 
-    private ResponseEntity<Object> createSubmission(Long experimentId, Assessment assessment, Participant participant, SecuredInfo securedInfo) {
+    private ResponseEntity<Object> createSubmission(Long experimentId, Assessment assessment, Participant participant, SecuredInfo securedInfo) throws IntegrationTokenNotFoundException {
         if (!submissionService.datesAllowed(experimentId,assessment.getTreatment().getTreatmentId(),securedInfo)) {
             return new ResponseEntity<>(TextConstants.ASSIGNMENT_LOCKED, HttpStatus.UNAUTHORIZED);
         }

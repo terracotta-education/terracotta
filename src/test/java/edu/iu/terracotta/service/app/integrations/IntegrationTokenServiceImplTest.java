@@ -53,7 +53,7 @@ public class IntegrationTokenServiceImplTest extends BaseTest {
     }
 
     @Test
-    void testCreate() {
+    void testCreate() throws IntegrationTokenNotFoundException {
         when(questionRepository.findByAssessment_AssessmentIdAndQuestionId(anyLong(), anyLong())).thenReturn(Optional.of(question));
         when(assessment.getQuestions()).thenReturn(Collections.singletonList(question));
 
@@ -64,7 +64,7 @@ public class IntegrationTokenServiceImplTest extends BaseTest {
     }
 
     @Test
-    void testCreatePreview() {
+    void testCreatePreview() throws IntegrationTokenNotFoundException {
         when(questionRepository.findByAssessment_AssessmentIdAndQuestionId(anyLong(), anyLong())).thenReturn(Optional.of(question));
         when(assessment.getQuestions()).thenReturn(Collections.singletonList(question));
 
@@ -75,7 +75,7 @@ public class IntegrationTokenServiceImplTest extends BaseTest {
     }
 
     @Test
-    void testCreateNotIntegration() {
+    void testCreateNotIntegration() throws IntegrationTokenNotFoundException {
         when(submission.isIntegration()).thenReturn(false);
 
         integrationTokenService.create(submission, false, securedInfo);
@@ -86,7 +86,7 @@ public class IntegrationTokenServiceImplTest extends BaseTest {
     }
 
     @Test
-    void testCreateNoIntegrationQuestions() {
+    void testCreateNoIntegrationQuestions() throws IntegrationTokenNotFoundException {
         when(question.getQuestionType()).thenReturn(QuestionTypes.ESSAY);
 
         integrationTokenService.create(submission, false, securedInfo);
