@@ -47,7 +47,7 @@ public class IntegrationTokenServiceImplTest extends BaseTest {
 
         when(question.getQuestionType()).thenReturn(QuestionTypes.INTEGRATION);
         when(submission.isIntegration()).thenReturn(true);
-        when(submission.getIntegrationTokens()).thenReturn(Collections.singletonList(integrationToken));
+        when(submission.getIntegrationToken()).thenReturn(integrationToken);
         when(integrationToken.isAlreadyRedeemed()).thenReturn(false);
         when(integrationToken.isExpired(anyInt())).thenReturn(false);
     }
@@ -60,8 +60,7 @@ public class IntegrationTokenServiceImplTest extends BaseTest {
         integrationTokenService.create(submission, false, securedInfo);
 
         verify(integrationTokenRepository).save(any(IntegrationToken.class));
-        verify(submission).addIntegrationToken(any(IntegrationToken.class));
-        verify(integrationTokenRepository).deleteById(anyLong());
+        verify(submission).setIntegrationToken(any(IntegrationToken.class));
     }
 
     @Test
@@ -72,8 +71,7 @@ public class IntegrationTokenServiceImplTest extends BaseTest {
         integrationTokenService.create(submission, true, securedInfo);
 
         verify(integrationTokenRepository).save(any(IntegrationToken.class));
-        verify(submission).addIntegrationToken(any(IntegrationToken.class));
-        verify(integrationTokenRepository).deleteById(anyLong());
+        verify(submission).setIntegrationToken(any(IntegrationToken.class));
     }
 
     @Test
@@ -83,7 +81,7 @@ public class IntegrationTokenServiceImplTest extends BaseTest {
         integrationTokenService.create(submission, false, securedInfo);
 
         verify(integrationTokenRepository, never()).save(any(IntegrationToken.class));
-        verify(submission, never()).addIntegrationToken(any(IntegrationToken.class));
+        verify(submission, never()).setIntegrationToken(any(IntegrationToken.class));
         verify(integrationTokenRepository, never()).deleteById(anyLong());
     }
 
@@ -94,7 +92,7 @@ public class IntegrationTokenServiceImplTest extends BaseTest {
         integrationTokenService.create(submission, false, securedInfo);
 
         verify(integrationTokenRepository, never()).save(any(IntegrationToken.class));
-        verify(submission, never()).addIntegrationToken(any(IntegrationToken.class));
+        verify(submission, never()).setIntegrationToken(any(IntegrationToken.class));
         verify(integrationTokenRepository, never()).deleteById(anyLong());
     }
 

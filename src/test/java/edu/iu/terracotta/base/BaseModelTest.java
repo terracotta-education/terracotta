@@ -356,7 +356,7 @@ public class BaseModelTest {
             when(submission.getDateSubmitted()).thenReturn(Timestamp.from(Instant.now()));
             when(submission.getIntegration()).thenReturn(integration);
             when(submission.getIntegrationLaunchUrl()).thenReturn(INTEGRATION_LAUNCH_URL);
-            when(submission.getLatestIntegrationToken()).thenReturn(Optional.of(integrationToken));
+            when(submission.getIntegrationToken()).thenReturn(integrationToken);
             when(submission.getParticipant()).thenReturn(participant);
             when(submission.getQuestionSubmissions()).thenReturn(Collections.singletonList(questionSubmission));
             when(submission.getSubmissionId()).thenReturn(1L);

@@ -53,7 +53,7 @@ public class IntegrationLaunchParameterServiceImpl implements IntegrationLaunchP
                                 value = submission.getParticipant().getExperiment().getTitle();
                                 break;
                             case LAUNCH_TOKEN:
-                                value = submission.getLatestIntegrationToken().get().getToken();
+                                value = submission.getIntegrationToken().getToken();
                                 break;
                             case REMAINING_ATTEMPTS:
                                 if (submission.getIntegration().getQuestion().getAssessment().getNumOfSubmissions() == null) {
