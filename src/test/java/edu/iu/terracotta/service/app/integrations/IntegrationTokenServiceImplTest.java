@@ -57,7 +57,7 @@ public class IntegrationTokenServiceImplTest extends BaseTest {
         when(questionRepository.findByAssessment_AssessmentIdAndQuestionId(anyLong(), anyLong())).thenReturn(Optional.of(question));
         when(assessment.getQuestions()).thenReturn(Collections.singletonList(question));
 
-        integrationTokenService.create(submission, false, securedInfo);
+        integrationTokenService.create(submission, securedInfo);
 
         verify(integrationTokenRepository).save(any(IntegrationToken.class));
         verify(submission).setIntegrationToken(any(IntegrationToken.class));
@@ -68,7 +68,7 @@ public class IntegrationTokenServiceImplTest extends BaseTest {
         when(questionRepository.findByAssessment_AssessmentIdAndQuestionId(anyLong(), anyLong())).thenReturn(Optional.of(question));
         when(assessment.getQuestions()).thenReturn(Collections.singletonList(question));
 
-        integrationTokenService.create(submission, true, securedInfo);
+        integrationTokenService.create(submission, securedInfo);
 
         verify(integrationTokenRepository).save(any(IntegrationToken.class));
         verify(submission).setIntegrationToken(any(IntegrationToken.class));
@@ -78,7 +78,7 @@ public class IntegrationTokenServiceImplTest extends BaseTest {
     void testCreateNotIntegration() throws IntegrationTokenNotFoundException {
         when(submission.isIntegration()).thenReturn(false);
 
-        integrationTokenService.create(submission, false, securedInfo);
+        integrationTokenService.create(submission, securedInfo);
 
         verify(integrationTokenRepository, never()).save(any(IntegrationToken.class));
         verify(submission, never()).setIntegrationToken(any(IntegrationToken.class));
@@ -89,7 +89,7 @@ public class IntegrationTokenServiceImplTest extends BaseTest {
     void testCreateNoIntegrationQuestions() throws IntegrationTokenNotFoundException {
         when(question.getQuestionType()).thenReturn(QuestionTypes.ESSAY);
 
-        integrationTokenService.create(submission, false, securedInfo);
+        integrationTokenService.create(submission, securedInfo);
 
         verify(integrationTokenRepository, never()).save(any(IntegrationToken.class));
         verify(submission, never()).setIntegrationToken(any(IntegrationToken.class));

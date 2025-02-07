@@ -432,7 +432,6 @@ public class AssignmentServiceImpl implements AssignmentService {
                     // create integration launch token
                     integrationTokenService.create(
                         submission,
-                        false,
                         securedInfo
                     );
 

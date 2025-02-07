@@ -33,7 +33,7 @@ public class IntegrationTokenServiceImpl implements IntegrationTokenService {
     private int ttl;
 
     @Override
-    public void create(Submission submission, boolean isPreview, SecuredInfo securedInfo) throws IntegrationTokenNotFoundException {
+    public void create(Submission submission, SecuredInfo securedInfo) throws IntegrationTokenNotFoundException {
         if (!submission.isIntegration()) {
             // not an integration; no token needed
             return;
@@ -57,7 +57,7 @@ public class IntegrationTokenServiceImpl implements IntegrationTokenService {
         }
 
         integrationToken.setSecuredInfo(securedInfo);
-        integrationToken.setUpdatedAt(Timestamp.from(Instant.now()));
+        integrationToken.setLastLaunchedAt(Timestamp.from(Instant.now()));
 
         try {
             integrationTokenRepository.save(integrationToken);
@@ -67,7 +67,7 @@ public class IntegrationTokenServiceImpl implements IntegrationTokenService {
             integrationToken = integrationTokenRepository.findBySubmission_SubmissionId(submission.getSubmissionId())
                 .orElseThrow(() -> new IntegrationTokenNotFoundException(String.format("No token found for submission ID: [%s]", submission.getSubmissionId())));
             integrationToken.setSecuredInfo(securedInfo);
-            integrationToken.setUpdatedAt(Timestamp.from(Instant.now()));
+            integrationToken.setLastLaunchedAt(Timestamp.from(Instant.now()));
             integrationTokenRepository.save(integrationToken);
         }
 

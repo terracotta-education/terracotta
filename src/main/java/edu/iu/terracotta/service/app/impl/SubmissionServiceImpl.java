@@ -169,7 +169,7 @@ public class SubmissionServiceImpl implements SubmissionService {
 
         submission = save(submission);
 
-        integrationTokenService.create(submission, !student, securedInfo);
+        integrationTokenService.create(submission, securedInfo);
         createIntegrationLaunchUrl(submission);
         setAssignmentStart(submission.getAssessment().getTreatment().getAssignment(), securedInfo);
 
@@ -401,7 +401,7 @@ public class SubmissionServiceImpl implements SubmissionService {
                 });
 
         setAssignmentStart(assessment.getTreatment().getAssignment(), securedInfo);
-        integrationTokenService.create(newSubmission, false, securedInfo);
+        integrationTokenService.create(newSubmission, securedInfo);
         createIntegrationLaunchUrl(newSubmission);
 
         return newSubmission;

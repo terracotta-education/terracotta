@@ -11,7 +11,7 @@ import edu.iu.terracotta.model.oauth2.SecuredInfo;
 
 public interface IntegrationTokenService {
 
-    void create(Submission submission, boolean isPreview, SecuredInfo securedInfo) throws IntegrationTokenNotFoundException;
+    void create(Submission submission, SecuredInfo securedInfo) throws IntegrationTokenNotFoundException;
     IntegrationToken findByToken(String token) throws IntegrationTokenNotFoundException;
     IntegrationToken redeemToken(String token) throws DataServiceException, IntegrationTokenNotFoundException, IntegrationTokenInvalidException, IntegrationTokenAlreadyRedeemedException, IntegrationTokenExpiredException;
 
