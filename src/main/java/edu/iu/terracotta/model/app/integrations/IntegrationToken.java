@@ -60,11 +60,12 @@ public class IntegrationToken extends BaseIntegrationEntity {
 
     @Column private String token;
     @Column private String securedInfo;
+    @Column private Timestamp lastLaunchedAt;
     @Column private Timestamp redeemedAt;
 
     @Transient
     public boolean isExpired(int ttl) {
-        return Timestamp.from(Instant.now()).after(new Timestamp(this.getUpdatedAt().getTime() + (ttl * 1000L)));
+        return ttl >= 1 && Timestamp.from(Instant.now()).after(new Timestamp(this.getLastLaunchedAt().getTime() + (ttl * 1000L)));
     }
 
     @Transient
