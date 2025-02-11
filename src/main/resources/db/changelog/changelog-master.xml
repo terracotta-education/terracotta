@@ -70,5 +70,5 @@
   <include file="db/changelog/2025/02/04-01-changelog.xml"/>
   <include file="db/changelog/2025/02/06-01-changelog.xml"/>
   <include file="db/changelog/2025/02/07-01-changelog.xml"/>
-  <include file="db/changelog/2025/TCOTA-821-changelog.xml"/>
+  <include file="db/changelog/2025/02/11-01-changelog.xml"/>
 </databaseChangeLog>
