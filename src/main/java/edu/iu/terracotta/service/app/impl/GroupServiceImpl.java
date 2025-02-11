@@ -1,19 +1,19 @@
 package edu.iu.terracotta.service.app.impl;
 
+import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
+import edu.iu.terracotta.dao.entity.Condition;
+import edu.iu.terracotta.dao.entity.Experiment;
+import edu.iu.terracotta.dao.entity.Exposure;
+import edu.iu.terracotta.dao.entity.ExposureGroupCondition;
+import edu.iu.terracotta.dao.entity.Group;
+import edu.iu.terracotta.dao.model.dto.GroupDto;
+import edu.iu.terracotta.dao.repository.ExperimentRepository;
+import edu.iu.terracotta.dao.repository.ExposureGroupConditionRepository;
+import edu.iu.terracotta.dao.repository.GroupRepository;
+import edu.iu.terracotta.dao.repository.ParticipantRepository;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
-import edu.iu.terracotta.model.app.Condition;
-import edu.iu.terracotta.model.app.Experiment;
-import edu.iu.terracotta.model.app.Exposure;
-import edu.iu.terracotta.model.app.ExposureGroupCondition;
-import edu.iu.terracotta.model.app.Group;
-import edu.iu.terracotta.model.app.dto.GroupDto;
-import edu.iu.terracotta.model.oauth2.SecuredInfo;
-import edu.iu.terracotta.repository.ExperimentRepository;
-import edu.iu.terracotta.repository.ExposureGroupConditionRepository;
-import edu.iu.terracotta.repository.GroupRepository;
-import edu.iu.terracotta.repository.ParticipantRepository;
 import edu.iu.terracotta.service.app.GroupService;
 import edu.iu.terracotta.service.app.ParticipantService;
 import edu.iu.terracotta.utils.TextConstants;
@@ -80,7 +80,7 @@ public class GroupServiceImpl implements GroupService {
         groupDto.setExperimentId(group.getExperiment().getExperimentId());
         groupDto.setName(group.getName());
 
-        List<Long> publishedExperimentAssignmentIds = participantService.calculatedPublishedAssignmentIds(group.getExperiment().getExperimentId(), securedInfo.getCanvasCourseId(), group.getExperiment().getCreatedBy());
+        List<Long> publishedExperimentAssignmentIds = participantService.calculatedPublishedAssignmentIds(group.getExperiment().getExperimentId(), securedInfo.getLmsCourseId(), group.getExperiment().getCreatedBy());
 
         groupDto.setParticipants(
             CollectionUtils.emptyIfNull(participantRepository.findByExperiment_ExperimentIdAndGroup_GroupId(groupDto.getExperimentId(), group.getGroupId()))

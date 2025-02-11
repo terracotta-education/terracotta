@@ -1,11 +1,12 @@
 package edu.iu.terracotta.controller.lti;
 
 import com.google.common.hash.Hashing;
-import edu.iu.terracotta.repository.PlatformDeploymentRepository;
-import edu.iu.terracotta.model.PlatformDeployment;
-import edu.iu.terracotta.model.ToolDeployment;
-import edu.iu.terracotta.model.lti.dto.LoginInitiationDTO;
-import edu.iu.terracotta.service.lti.LTIDataService;
+
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.ToolDeployment;
+import edu.iu.terracotta.connectors.generic.dao.model.lti.dto.LoginInitiationDto;
+import edu.iu.terracotta.connectors.generic.dao.repository.lti.PlatformDeploymentRepository;
+import edu.iu.terracotta.connectors.generic.service.lti.LtiDataService;
 import edu.iu.terracotta.utils.TextConstants;
 import edu.iu.terracotta.utils.lti.LtiOidcUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -42,7 +43,7 @@ import java.util.UUID;
 @Scope("session")
 @RequestMapping("/oidc/login_initiations")
 @SuppressWarnings({"unchecked"})
-public class OIDCController {
+public class OidcController {
 
     //Constants defined in the LTI standard
     private static final String NONE = "none";
@@ -53,7 +54,7 @@ public class OIDCController {
     private static final String DEPLOYMENT_ID = "lti_deployment_id";
 
     @Autowired private PlatformDeploymentRepository platformDeploymentRepository;
-    @Autowired private LTIDataService ltiDataService;
+    @Autowired private LtiDataService ltiDataService;
 
     @Value("${app.lti.data.verbose.logging.enabled:false}")
     private boolean ltiDataVerboseLoggingEnabled;
@@ -65,7 +66,7 @@ public class OIDCController {
     @PostMapping
     public String loginInitiations(HttpServletRequest req, Model model) {
         // We need to receive the parameters and search for the deployment of the tool that matches with what we receive.
-        LoginInitiationDTO loginInitiationDTO = new LoginInitiationDTO(req);
+        LoginInitiationDto loginInitiationDTO = new LoginInitiationDto(req);
         List<PlatformDeployment> platformDeploymentListEntityList;
         // Getting the client_id (that is optional) and can come in the form or in the URL.
         String clientIdValue;
@@ -221,11 +222,11 @@ public class OIDCController {
      * This generates a map with all the information that we need to send to the OIDC Authorization endpoint in the Platform.
      * In this case, we will put this in the model to be used by the thymeleaf template.
      */
-    private Map<String, String> generateAuthRequestPayload(PlatformDeployment platformDeployment, LoginInitiationDTO loginInitiationDTO, String clientIdValue, String deploymentIdValue) throws GeneralSecurityException, IOException {
+    private Map<String, String> generateAuthRequestPayload(PlatformDeployment platformDeployment, LoginInitiationDto loginInitiationDto, String clientIdValue, String deploymentIdValue) throws GeneralSecurityException, IOException {
         Map<String, String> authRequestMap = new HashMap<>();
         authRequestMap.put(CLIENT_ID, platformDeployment.getClientId()); //As it came from the Platform (if it came... if not we should have it configured)
-        authRequestMap.put("login_hint", loginInitiationDTO.getLoginHint()); //As it came from the Platform
-        authRequestMap.put("lti_message_hint", loginInitiationDTO.getLtiMessageHint()); //As it came from the Platform
+        authRequestMap.put("login_hint", loginInitiationDto.getLoginHint()); //As it came from the Platform
+        authRequestMap.put("lti_message_hint", loginInitiationDto.getLtiMessageHint()); //As it came from the Platform
         String nonce = UUID.randomUUID().toString(); // We generate a nonce to allow this auth request to be used only one time.
         String nonceHash = Hashing.sha256().hashString(nonce, StandardCharsets.UTF_8).toString();
         authRequestMap.put("nonce", nonce);  //The nonce
@@ -237,7 +238,7 @@ public class OIDCController {
         authRequestMap.put("scope", OPEN_ID);  //Always this value, as specified in the standard.
         // The state is something that we can create and add anything we want on it.
         // On this case, we have decided to create a JWT token with some information that we will use as additional security. But it is not mandatory.
-        String state = LtiOidcUtils.generateState(ltiDataService, platformDeployment, authRequestMap, loginInitiationDTO, clientIdValue, deploymentIdValue, ltiDataVerboseLoggingEnabled);
+        String state = LtiOidcUtils.generateState(ltiDataService, platformDeployment, authRequestMap, loginInitiationDto, clientIdValue, deploymentIdValue, ltiDataVerboseLoggingEnabled);
         authRequestMap.put("state", state); //The state we use later to retrieve some useful information about the OICD request.
         authRequestMap.put("oicdEndpoint", platformDeployment.getOidcEndpoint());  //We need this in the Thymeleaf template in case we decide to use the POST method. It is the endpoint where the LMS receives the OICD requests
         authRequestMap.put("oicdEndpointComplete", generateCompleteUrl(authRequestMap));  //This generates the URL to use in case we decide to use the GET method

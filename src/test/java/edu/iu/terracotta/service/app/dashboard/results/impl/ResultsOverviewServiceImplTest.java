@@ -18,10 +18,10 @@ import org.mockito.InjectMocks;
 import org.mockito.MockitoAnnotations;
 
 import edu.iu.terracotta.base.BaseTest;
-import edu.iu.terracotta.model.app.Assessment;
-import edu.iu.terracotta.model.app.Participant;
-import edu.iu.terracotta.model.app.dto.dashboard.results.overview.ResultsOverviewDto;
-import edu.iu.terracotta.model.app.enumerator.ExposureTypes;
+import edu.iu.terracotta.dao.entity.Assessment;
+import edu.iu.terracotta.dao.entity.Participant;
+import edu.iu.terracotta.dao.model.dto.dashboard.results.overview.ResultsOverviewDto;
+import edu.iu.terracotta.dao.model.enums.ExposureTypes;
 
 public class ResultsOverviewServiceImplTest extends BaseTest {
 
@@ -347,8 +347,8 @@ public class ResultsOverviewServiceImplTest extends BaseTest {
 
     @Test
     void testCalculateOpenAssignmentLockNullUnlockNullTrue() {
-        when(assignmentExtended.getLockAt()).thenReturn(null);
-        when(assignmentExtended.getUnlockAt()).thenReturn(null);
+        when(lmsAssignment.getLockAt()).thenReturn(null);
+        when(lmsAssignment.getUnlockAt()).thenReturn(null);
 
         ResultsOverviewDto ret = resultsOverviewService.overview(experiment, securedInfo);
 
@@ -359,8 +359,8 @@ public class ResultsOverviewServiceImplTest extends BaseTest {
     void testCalculateOpenAssignmentUnlockNullTrue() {
         Date lock = new Date();
         lock.setTime(lock.getTime() + (60 * 1000)); // add 1 minute in future
-        when(assignmentExtended.getLockAt()).thenReturn(lock);
-        when(assignmentExtended.getUnlockAt()).thenReturn(null);
+        when(lmsAssignment.getLockAt()).thenReturn(lock);
+        when(lmsAssignment.getUnlockAt()).thenReturn(null);
 
         ResultsOverviewDto ret = resultsOverviewService.overview(experiment, securedInfo);
 
@@ -371,8 +371,8 @@ public class ResultsOverviewServiceImplTest extends BaseTest {
     void testCalculateOpenAssignmentUnlockNullFalse() {
         Date lock = new Date();
         lock.setTime(lock.getTime() - (60 * 1000)); // add 1 minute in past
-        when(assignmentExtended.getLockAt()).thenReturn(lock);
-        when(assignmentExtended.getUnlockAt()).thenReturn(null);
+        when(lmsAssignment.getLockAt()).thenReturn(lock);
+        when(lmsAssignment.getUnlockAt()).thenReturn(null);
 
         ResultsOverviewDto ret = resultsOverviewService.overview(experiment, securedInfo);
 
@@ -383,8 +383,8 @@ public class ResultsOverviewServiceImplTest extends BaseTest {
     void testCalculateOpenAssignmentLockNullTrue() {
         Date unlock = new Date();
         unlock.setTime(unlock.getTime() - (60 * 1000)); // add 1 minute in past
-        when(assignmentExtended.getLockAt()).thenReturn(null);
-        when(assignmentExtended.getUnlockAt()).thenReturn(unlock);
+        when(lmsAssignment.getLockAt()).thenReturn(null);
+        when(lmsAssignment.getUnlockAt()).thenReturn(unlock);
 
         ResultsOverviewDto ret = resultsOverviewService.overview(experiment, securedInfo);
 
@@ -395,8 +395,8 @@ public class ResultsOverviewServiceImplTest extends BaseTest {
     void testCalculateOpenAssignmentLockNullFalse() {
         Date unlock = new Date();
         unlock.setTime(unlock.getTime() + (60 * 1000)); // add 1 minute in future
-        when(assignmentExtended.getLockAt()).thenReturn(null);
-        when(assignmentExtended.getUnlockAt()).thenReturn(unlock);
+        when(lmsAssignment.getLockAt()).thenReturn(null);
+        when(lmsAssignment.getUnlockAt()).thenReturn(unlock);
 
         ResultsOverviewDto ret = resultsOverviewService.overview(experiment, securedInfo);
 
@@ -409,8 +409,8 @@ public class ResultsOverviewServiceImplTest extends BaseTest {
         unlock.setTime(unlock.getTime() - (60 * 1000)); // add 1 minute in past
         Date lock = new Date();
         lock.setTime(lock.getTime() + (60 * 1000)); // add 1 minute in future
-        when(assignmentExtended.getLockAt()).thenReturn(lock);
-        when(assignmentExtended.getUnlockAt()).thenReturn(unlock);
+        when(lmsAssignment.getLockAt()).thenReturn(lock);
+        when(lmsAssignment.getUnlockAt()).thenReturn(unlock);
 
         ResultsOverviewDto ret = resultsOverviewService.overview(experiment, securedInfo);
 
@@ -423,8 +423,8 @@ public class ResultsOverviewServiceImplTest extends BaseTest {
         unlock.setTime(unlock.getTime() + (60 * 1000)); // add 1 minute in future
         Date lock = new Date();
         lock.setTime(lock.getTime() - (60 * 1000)); // add 1 minute in past
-        when(assignmentExtended.getLockAt()).thenReturn(lock);
-        when(assignmentExtended.getUnlockAt()).thenReturn(unlock);
+        when(lmsAssignment.getLockAt()).thenReturn(lock);
+        when(lmsAssignment.getUnlockAt()).thenReturn(unlock);
 
         ResultsOverviewDto ret = resultsOverviewService.overview(experiment, securedInfo);
 

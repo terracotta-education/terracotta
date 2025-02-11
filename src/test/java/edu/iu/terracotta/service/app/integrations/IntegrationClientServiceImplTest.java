@@ -11,9 +11,9 @@ import org.mockito.InjectMocks;
 import org.mockito.MockitoAnnotations;
 
 import edu.iu.terracotta.base.BaseTest;
-import edu.iu.terracotta.exceptions.integrations.IntegrationClientNotFoundException;
-import edu.iu.terracotta.model.app.integrations.IntegrationClient;
-import edu.iu.terracotta.model.app.integrations.dto.IntegrationClientDto;
+import edu.iu.terracotta.dao.entity.integrations.IntegrationClient;
+import edu.iu.terracotta.dao.exceptions.integrations.IntegrationClientNotFoundException;
+import edu.iu.terracotta.dao.model.dto.integrations.IntegrationClientDto;
 import edu.iu.terracotta.service.app.integrations.impl.IntegrationClientServiceImpl;
 
 public class IntegrationClientServiceImplTest extends BaseTest {

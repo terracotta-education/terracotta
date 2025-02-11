@@ -12,10 +12,10 @@
  */
 package edu.iu.terracotta.controller.lti;
 
-import edu.iu.terracotta.repository.PlatformDeploymentRepository;
-import edu.iu.terracotta.repository.ToolDeploymentRepository;
-import edu.iu.terracotta.model.PlatformDeployment;
-import edu.iu.terracotta.model.ToolDeployment;
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.ToolDeployment;
+import edu.iu.terracotta.connectors.generic.dao.repository.lti.PlatformDeploymentRepository;
+import edu.iu.terracotta.connectors.generic.dao.repository.lti.ToolDeploymentRepository;
 import edu.iu.terracotta.utils.TextConstants;
 import lombok.extern.slf4j.Slf4j;
 

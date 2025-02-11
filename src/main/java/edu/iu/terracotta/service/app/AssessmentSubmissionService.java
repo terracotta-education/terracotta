@@ -1,9 +1,9 @@
 package edu.iu.terracotta.service.app;
 
+import edu.iu.terracotta.dao.entity.Assessment;
+import edu.iu.terracotta.dao.entity.RegradeDetails;
+import edu.iu.terracotta.dao.entity.Submission;
 import edu.iu.terracotta.exceptions.DataServiceException;
-import edu.iu.terracotta.model.app.Assessment;
-import edu.iu.terracotta.model.app.RegradeDetails;
-import edu.iu.terracotta.model.app.Submission;
 
 public interface AssessmentSubmissionService {
 

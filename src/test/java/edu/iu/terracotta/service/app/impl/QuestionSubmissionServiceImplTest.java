@@ -24,14 +24,14 @@ import org.mockito.InjectMocks;
 import org.mockito.MockitoAnnotations;
 
 import edu.iu.terracotta.base.BaseTest;
-import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
+import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
+import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
+import edu.iu.terracotta.dao.entity.AnswerEssaySubmission;
+import edu.iu.terracotta.dao.entity.AnswerMcSubmission;
+import edu.iu.terracotta.dao.entity.QuestionSubmissionComment;
+import edu.iu.terracotta.dao.exceptions.AssessmentNotMatchingException;
+import edu.iu.terracotta.dao.model.dto.QuestionSubmissionDto;
 import edu.iu.terracotta.exceptions.AssignmentAttemptException;
-import edu.iu.terracotta.exceptions.CanvasApiException;
-import edu.iu.terracotta.model.app.AnswerEssaySubmission;
-import edu.iu.terracotta.model.app.AnswerMcSubmission;
-import edu.iu.terracotta.model.app.QuestionSubmissionComment;
-import edu.iu.terracotta.model.app.dto.QuestionSubmissionDto;
-import edu.iu.terracotta.model.oauth2.SecuredInfo;
 
 public class QuestionSubmissionServiceImplTest extends BaseTest {
 
@@ -122,7 +122,7 @@ public class QuestionSubmissionServiceImplTest extends BaseTest {
     // test that when securedInfo has allowedAttempts = -1 and studentAttempts = 3
     // that it doesn't throw exception
     @Test
-    public void testCanSubmitWithUnlimitedAllowedAttempts() throws CanvasApiException, IOException {
+    public void testCanSubmitWithUnlimitedAllowedAttempts() throws ApiException, IOException {
         SecuredInfo securedInfo = new SecuredInfo();
         securedInfo.setAllowedAttempts(-1);
         securedInfo.setStudentAttempts(3);
@@ -135,7 +135,7 @@ public class QuestionSubmissionServiceImplTest extends BaseTest {
     // that it does throw exception
     @Test
     public void testCanSubmitWithLimitedAllowedAttemptsLessThanStudentAttempts()
-            throws CanvasApiException, IOException {
+            throws ApiException, IOException {
         SecuredInfo securedInfo = new SecuredInfo();
         securedInfo.setAllowedAttempts(2);
         securedInfo.setStudentAttempts(3);
@@ -148,7 +148,7 @@ public class QuestionSubmissionServiceImplTest extends BaseTest {
     // that it does throw exception
     @Test
     public void testCanSubmitWithLimitedAllowedAttemptsEqualToStudentAttempts()
-            throws CanvasApiException, IOException {
+            throws ApiException, IOException {
         SecuredInfo securedInfo = new SecuredInfo();
         securedInfo.setAllowedAttempts(3);
         securedInfo.setStudentAttempts(3);
@@ -161,7 +161,7 @@ public class QuestionSubmissionServiceImplTest extends BaseTest {
     // that it doesn't throw exception
     @Test
     public void testCanSubmitWithLimitedAllowedAttemptsMoreThanStudentAttempts()
-            throws CanvasApiException, IOException {
+            throws ApiException, IOException {
         SecuredInfo securedInfo = new SecuredInfo();
         securedInfo.setAllowedAttempts(4);
         securedInfo.setStudentAttempts(3);
@@ -174,7 +174,7 @@ public class QuestionSubmissionServiceImplTest extends BaseTest {
     // api calls
     @Test
     public void testCanSubmitWithNullStudentAttempts()
-            throws CanvasApiException, IOException, AssignmentAttemptException {
+            throws ApiException, IOException, AssignmentAttemptException {
         when(assignmentRepository.findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(anyLong(), anyString())).thenReturn(assignment);
         when(securedInfo.getAllowedAttempts()).thenReturn(2);
         when(securedInfo.getStudentAttempts()).thenReturn(1);

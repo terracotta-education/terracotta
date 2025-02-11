@@ -9,12 +9,13 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
+import edu.iu.terracotta.dao.entity.Assignment;
+import edu.iu.terracotta.dao.repository.AssignmentRepository;
+import edu.iu.terracotta.dao.repository.SubmissionRepository;
+
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 
-import edu.iu.terracotta.model.app.Assignment;
-import edu.iu.terracotta.repository.AssignmentRepository;
-import edu.iu.terracotta.repository.SubmissionRepository;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j

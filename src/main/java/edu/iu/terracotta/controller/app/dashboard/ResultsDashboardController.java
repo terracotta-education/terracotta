@@ -13,13 +13,14 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 
+import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
+import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
+import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
+import edu.iu.terracotta.dao.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.OutcomeNotMatchingException;
+import edu.iu.terracotta.dao.model.dto.dashboard.ResultsDashboardDto;
+import edu.iu.terracotta.dao.model.dto.dashboard.results.outcomes.request.ResultsOutcomesRequestDto;
 import edu.iu.terracotta.exceptions.BadTokenException;
-import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
-import edu.iu.terracotta.exceptions.OutcomeNotMatchingException;
-import edu.iu.terracotta.model.app.dto.dashboard.ResultsDashboardDto;
-import edu.iu.terracotta.model.app.dto.dashboard.results.outcomes.request.ResultsOutcomesRequestDto;
-import edu.iu.terracotta.model.oauth2.SecuredInfo;
-import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.dashboard.results.ResultsDashboardService;
 import lombok.extern.slf4j.Slf4j;
 
@@ -31,11 +32,11 @@ public class ResultsDashboardController {
 
     public static final String REQUEST_ROOT = "api/experiments/{experimentId}/dashboard/results";
 
-    @Autowired private APIJWTService apijwtService;
+    @Autowired private ApiJwtService apijwtService;
     @Autowired private ResultsDashboardService resultsDashboardService;
 
     @GetMapping("/overview")
-    public ResponseEntity<ResultsDashboardDto> getOverview(@PathVariable long experimentId, HttpServletRequest req) throws ExperimentNotMatchingException, BadTokenException {
+    public ResponseEntity<ResultsDashboardDto> getOverview(@PathVariable long experimentId, HttpServletRequest req) throws ExperimentNotMatchingException, BadTokenException, NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
 
@@ -53,7 +54,7 @@ public class ResultsDashboardController {
 
     @PostMapping("/outcomes")
     public ResponseEntity<ResultsDashboardDto> postComparison(@PathVariable long experimentId, @RequestBody ResultsOutcomesRequestDto resultsOutcomesRequestDto, HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, OutcomeNotMatchingException {
+            throws ExperimentNotMatchingException, BadTokenException, OutcomeNotMatchingException, NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
 

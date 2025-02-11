@@ -1,15 +1,15 @@
 package edu.iu.terracotta.service.app.impl;
 
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
+import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
+import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiUserRepository;
+import edu.iu.terracotta.dao.entity.Submission;
+import edu.iu.terracotta.dao.entity.SubmissionComment;
+import edu.iu.terracotta.dao.model.dto.SubmissionCommentDto;
+import edu.iu.terracotta.dao.repository.SubmissionCommentRepository;
+import edu.iu.terracotta.dao.repository.SubmissionRepository;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.IdInPostException;
-import edu.iu.terracotta.model.LtiUserEntity;
-import edu.iu.terracotta.model.app.Submission;
-import edu.iu.terracotta.model.app.SubmissionComment;
-import edu.iu.terracotta.model.app.dto.SubmissionCommentDto;
-import edu.iu.terracotta.model.oauth2.SecuredInfo;
-import edu.iu.terracotta.repository.LtiUserRepository;
-import edu.iu.terracotta.repository.SubmissionCommentRepository;
-import edu.iu.terracotta.repository.SubmissionRepository;
 import edu.iu.terracotta.service.app.SubmissionCommentService;
 import edu.iu.terracotta.utils.TextConstants;
 

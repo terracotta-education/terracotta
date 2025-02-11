@@ -21,42 +21,43 @@ import java.util.List;
 import java.util.Optional;
 
 import edu.iu.terracotta.base.BaseTest;
-import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
+import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
+import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
+import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
+import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
+import edu.iu.terracotta.dao.entity.Assessment;
+import edu.iu.terracotta.dao.entity.Experiment;
+import edu.iu.terracotta.dao.entity.Participant;
+import edu.iu.terracotta.dao.entity.RegradeDetails;
+import edu.iu.terracotta.dao.entity.RetakeDetails;
+import edu.iu.terracotta.dao.entity.Submission;
+import edu.iu.terracotta.dao.exceptions.AssessmentNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.AssignmentNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.GroupNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.ParticipantNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.ParticipantNotUpdatedException;
+import edu.iu.terracotta.dao.exceptions.QuestionNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.TreatmentNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.integrations.IntegrationClientNotFoundException;
+import edu.iu.terracotta.dao.exceptions.integrations.IntegrationConfigurationNotFoundException;
+import edu.iu.terracotta.dao.exceptions.integrations.IntegrationConfigurationNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.integrations.IntegrationNotFoundException;
+import edu.iu.terracotta.dao.exceptions.integrations.IntegrationNotMatchingException;
+import edu.iu.terracotta.dao.model.dto.AssessmentDto;
+import edu.iu.terracotta.dao.model.dto.QuestionDto;
+import edu.iu.terracotta.dao.model.enums.MultipleSubmissionScoringScheme;
+import edu.iu.terracotta.dao.model.enums.RegradeOption;
 import edu.iu.terracotta.exceptions.AssignmentAttemptException;
 import edu.iu.terracotta.exceptions.AssignmentDatesException;
-import edu.iu.terracotta.exceptions.AssignmentNotMatchingException;
-import edu.iu.terracotta.exceptions.CanvasApiException;
-import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExceedingLimitException;
-import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
-import edu.iu.terracotta.exceptions.GroupNotMatchingException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.MultipleAttemptsSettingsValidationException;
 import edu.iu.terracotta.exceptions.MultipleChoiceLimitReachedException;
 import edu.iu.terracotta.exceptions.NegativePointsException;
-import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
-import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
-import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
 import edu.iu.terracotta.exceptions.RevealResponsesSettingValidationException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
-import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
-import edu.iu.terracotta.exceptions.integrations.IntegrationClientNotFoundException;
-import edu.iu.terracotta.exceptions.integrations.IntegrationConfigurationNotFoundException;
-import edu.iu.terracotta.exceptions.integrations.IntegrationConfigurationNotMatchingException;
-import edu.iu.terracotta.exceptions.integrations.IntegrationNotFoundException;
-import edu.iu.terracotta.exceptions.integrations.IntegrationNotMatchingException;
-import edu.iu.terracotta.model.app.Assessment;
-import edu.iu.terracotta.model.app.Experiment;
-import edu.iu.terracotta.model.app.Participant;
-import edu.iu.terracotta.model.app.RegradeDetails;
-import edu.iu.terracotta.model.app.RetakeDetails;
-import edu.iu.terracotta.model.app.Submission;
-import edu.iu.terracotta.model.app.dto.AssessmentDto;
-import edu.iu.terracotta.model.app.dto.QuestionDto;
-import edu.iu.terracotta.model.app.enumerator.MultipleSubmissionScoringScheme;
-import edu.iu.terracotta.model.app.enumerator.RegradeOption;
-import edu.iu.terracotta.model.oauth2.SecuredInfo;
 import edu.iu.terracotta.utils.TextConstants;
 
 import org.apache.commons.lang3.StringUtils;
@@ -97,7 +98,7 @@ public class AssessmentServiceImplTest extends BaseTest {
 
     @BeforeEach
     public void beforeEach() throws NoSuchMethodException, SecurityException, GroupNotMatchingException, ParticipantNotMatchingException, ParticipantNotUpdatedException,
-            AssignmentNotMatchingException, ExperimentNotMatchingException, DataServiceException, QuestionNotMatchingException {
+            AssignmentNotMatchingException, ExperimentNotMatchingException, DataServiceException, QuestionNotMatchingException, TerracottaConnectorException {
         MockitoAnnotations.openMocks(this);
 
         setup();
@@ -158,7 +159,7 @@ public class AssessmentServiceImplTest extends BaseTest {
     }
 
     @Test
-    public void testViewAssessment() throws ExperimentNotMatchingException, ParticipantNotMatchingException, AssessmentNotMatchingException, GroupNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, DataServiceException, CanvasApiException, IOException, AssignmentDatesException, ConnectionException {
+    public void testViewAssessment() throws ExperimentNotMatchingException, ParticipantNotMatchingException, AssessmentNotMatchingException, GroupNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, DataServiceException, ApiException, IOException, AssignmentDatesException, ConnectionException, TerracottaConnectorException {
         AssessmentDto assessmentDto = assessmentService.viewAssessment(1l, securedInfo);
 
         assertNotNull(assessmentDto);
@@ -172,7 +173,7 @@ public class AssessmentServiceImplTest extends BaseTest {
     }
 
     @Test
-    public void testViewAssessmentNoSubmissions() throws ExperimentNotMatchingException, ParticipantNotMatchingException, AssessmentNotMatchingException, GroupNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, DataServiceException, CanvasApiException, IOException, AssignmentDatesException, ConnectionException {
+    public void testViewAssessmentNoSubmissions() throws ExperimentNotMatchingException, ParticipantNotMatchingException, AssessmentNotMatchingException, GroupNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, DataServiceException, ApiException, IOException, AssignmentDatesException, ConnectionException, TerracottaConnectorException {
         when(submission.getAssessment()).thenReturn(assessment1);
         when(assessment1.getAssessmentId()).thenReturn(2L);
         when(submissionRepository.findByParticipant_ParticipantIdAndAssessment_AssessmentId(anyLong(), anyLong())).thenReturn(Collections.emptyList());
@@ -188,7 +189,7 @@ public class AssessmentServiceImplTest extends BaseTest {
     }
 
     @Test
-    public void testViewAssessmentOverMaxSubmissionsAttempts() throws ExperimentNotMatchingException, ParticipantNotMatchingException, AssessmentNotMatchingException, GroupNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, AssignmentAttemptException, DataServiceException, CanvasApiException, IOException, AssignmentDatesException, ConnectionException {
+    public void testViewAssessmentOverMaxSubmissionsAttempts() throws ExperimentNotMatchingException, ParticipantNotMatchingException, AssessmentNotMatchingException, GroupNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, AssignmentAttemptException, DataServiceException, ApiException, IOException, AssignmentDatesException, ConnectionException, TerracottaConnectorException {
         doThrow(new AssignmentAttemptException(TextConstants.LIMIT_OF_SUBMISSIONS_REACHED)).when(assessmentService).verifySubmissionLimit(anyInt(), anyInt());
 
         AssessmentDto assessmentDto = assessmentService.viewAssessment(1l, securedInfo);
@@ -203,7 +204,7 @@ public class AssessmentServiceImplTest extends BaseTest {
     }
 
     @Test
-    public void testViewAssessmentWaitTimeNoSubmissions() throws ExperimentNotMatchingException, ParticipantNotMatchingException, AssessmentNotMatchingException, GroupNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, AssignmentAttemptException, DataServiceException, CanvasApiException, IOException, AssignmentDatesException, ConnectionException {
+    public void testViewAssessmentWaitTimeNoSubmissions() throws ExperimentNotMatchingException, ParticipantNotMatchingException, AssessmentNotMatchingException, GroupNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, AssignmentAttemptException, DataServiceException, ApiException, IOException, AssignmentDatesException, ConnectionException, TerracottaConnectorException {
         when(submissionRepository.findByParticipant_ParticipantIdAndAssessment_AssessmentId(anyLong(), anyLong())).thenReturn(Collections.emptyList());
         AssessmentDto assessmentDto = assessmentService.viewAssessment(1l, securedInfo);
 
@@ -218,7 +219,7 @@ public class AssessmentServiceImplTest extends BaseTest {
     }
 
     @Test
-    public void testViewAssessmentWaitTimeNotReached() throws ExperimentNotMatchingException, ParticipantNotMatchingException, AssessmentNotMatchingException, GroupNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, AssignmentAttemptException, DataServiceException, CanvasApiException, IOException, AssignmentDatesException, ConnectionException {
+    public void testViewAssessmentWaitTimeNotReached() throws ExperimentNotMatchingException, ParticipantNotMatchingException, AssessmentNotMatchingException, GroupNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, AssignmentAttemptException, DataServiceException, ApiException, IOException, AssignmentDatesException, ConnectionException, TerracottaConnectorException {
         doThrow(new AssignmentAttemptException(TextConstants.ASSIGNMENT_SUBMISSION_WAIT_TIME_NOT_REACHED)).when(assessmentService).verifySubmissionLimit(anyInt(), anyInt());
 
         AssessmentDto assessmentDto = assessmentService.viewAssessment(1l, securedInfo);
@@ -233,7 +234,7 @@ public class AssessmentServiceImplTest extends BaseTest {
     }
 
     @Test
-    public void testViewAssessmentNotAllowedOther() throws ExperimentNotMatchingException, ParticipantNotMatchingException, AssessmentNotMatchingException, GroupNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, AssignmentAttemptException, DataServiceException, CanvasApiException, IOException, AssignmentDatesException, ConnectionException {
+    public void testViewAssessmentNotAllowedOther() throws ExperimentNotMatchingException, ParticipantNotMatchingException, AssessmentNotMatchingException, GroupNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, AssignmentAttemptException, DataServiceException, ApiException, IOException, AssignmentDatesException, ConnectionException, TerracottaConnectorException {
         doThrow(new AssignmentAttemptException(TextConstants.ASSIGNMENT_LOCKED)).when(assessmentService).verifySubmissionLimit(anyInt(), anyInt());
 
         AssessmentDto assessmentDto = assessmentService.viewAssessment(1l, securedInfo);
@@ -248,7 +249,7 @@ public class AssessmentServiceImplTest extends BaseTest {
     }
 
     @Test
-    public void testViewAssessmentNoSubmittedScores() throws ExperimentNotMatchingException, ParticipantNotMatchingException, AssessmentNotMatchingException, GroupNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, DataServiceException, CanvasApiException, IOException, AssignmentDatesException, ConnectionException {
+    public void testViewAssessmentNoSubmittedScores() throws ExperimentNotMatchingException, ParticipantNotMatchingException, AssessmentNotMatchingException, GroupNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, DataServiceException, ApiException, IOException, AssignmentDatesException, ConnectionException, TerracottaConnectorException {
         when(submissionService.getScoreFromMultipleSubmissions(any(Participant.class), any(Assessment.class))).thenReturn(0F);
         when(submissionRepository.findByParticipant_ParticipantIdAndAssessment_AssessmentId(anyLong(), anyLong())).thenReturn(Collections.emptyList());
         AssessmentDto assessmentDto = assessmentService.viewAssessment(1l, securedInfo);
@@ -312,7 +313,8 @@ public class AssessmentServiceImplTest extends BaseTest {
     @Test
     public void testUpdateAssessmentWithNewQuestion()
         throws TitleValidationException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException,
-        AssessmentNotMatchingException, IdInPostException, DataServiceException, NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException, IntegrationNotFoundException, IntegrationNotMatchingException, IntegrationConfigurationNotFoundException, IntegrationConfigurationNotMatchingException, IntegrationClientNotFoundException {
+        AssessmentNotMatchingException, IdInPostException, DataServiceException, NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException,
+        IntegrationNotFoundException, IntegrationNotMatchingException, IntegrationConfigurationNotFoundException, IntegrationConfigurationNotMatchingException, IntegrationClientNotFoundException {
         when(questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(anyLong())).thenReturn(Collections.emptyList());
         when(questionDto.getQuestionId()).thenReturn(null);
         assessmentService.updateAssessment(1L, assessmentDto, true);
@@ -326,7 +328,8 @@ public class AssessmentServiceImplTest extends BaseTest {
     @Test
     public void testUpdateAssessmentWithExistingQuestion()
         throws TitleValidationException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException,
-        AssessmentNotMatchingException, IdInPostException, DataServiceException, NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException, IntegrationNotFoundException, IntegrationNotMatchingException, IntegrationConfigurationNotFoundException, IntegrationConfigurationNotMatchingException, IntegrationClientNotFoundException {
+        AssessmentNotMatchingException, IdInPostException, DataServiceException, NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException,
+        IntegrationNotFoundException, IntegrationNotMatchingException, IntegrationConfigurationNotFoundException, IntegrationConfigurationNotMatchingException, IntegrationClientNotFoundException {
         when(questionDto.getQuestionId()).thenReturn(1L);
         assessmentService.updateAssessment(1L, assessmentDto, true);
 
@@ -347,7 +350,8 @@ public class AssessmentServiceImplTest extends BaseTest {
     @Test
     public void testUpdateAssessmentWithDeletedQuestion()
         throws TitleValidationException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException,
-        AssessmentNotMatchingException, IdInPostException, DataServiceException, NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException, IntegrationNotFoundException, IntegrationNotMatchingException, IntegrationConfigurationNotFoundException, IntegrationConfigurationNotMatchingException, IntegrationClientNotFoundException {
+        AssessmentNotMatchingException, IdInPostException, DataServiceException, NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException,
+        IntegrationNotFoundException, IntegrationNotMatchingException, IntegrationConfigurationNotFoundException, IntegrationConfigurationNotMatchingException, IntegrationClientNotFoundException {
         when(assessmentDto.getQuestions()).thenReturn(Collections.emptyList());
         when(questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(anyLong())).thenReturn(Arrays.asList(question)); // requires modifiable list
 
@@ -362,7 +366,8 @@ public class AssessmentServiceImplTest extends BaseTest {
     @Test
     public void testUpdateAssessmentWithDeletedQuestionNoExistingFound()
         throws TitleValidationException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException,
-        AssessmentNotMatchingException, IdInPostException, DataServiceException, NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException, IntegrationNotFoundException, IntegrationNotMatchingException, IntegrationConfigurationNotFoundException, IntegrationConfigurationNotMatchingException, IntegrationClientNotFoundException {
+        AssessmentNotMatchingException, IdInPostException, DataServiceException, NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException,
+        IntegrationNotFoundException, IntegrationNotMatchingException, IntegrationConfigurationNotFoundException, IntegrationConfigurationNotMatchingException, IntegrationClientNotFoundException {
         when(assessmentDto.getQuestions()).thenReturn(Collections.emptyList());
         when(questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(anyLong())).thenReturn(Collections.emptyList());
 
@@ -432,15 +437,15 @@ public class AssessmentServiceImplTest extends BaseTest {
     }
 
     @Test
-    public void testRegradeQuestions() throws DataServiceException, ConnectionException, CanvasApiException, IOException {
+    public void testRegradeQuestions() throws DataServiceException, ConnectionException, ApiException, IOException, TerracottaConnectorException {
         assessmentService.regradeQuestions(regradeDetails, 1L);
 
         verify(assessmentSubmissionService).gradeSubmission(any(Submission.class), any(RegradeDetails.class));
-        verify(submissionService).sendSubmissionGradeToCanvasWithLTI(any(Submission.class), anyBoolean());
+        verify(submissionService).sendSubmissionGradeToLmsWithLti(any(Submission.class), anyBoolean());
     }
 
     @Test
-    public void testRegradeQuestionsNoSumbissions() throws DataServiceException, ConnectionException, CanvasApiException, IOException {
+    public void testRegradeQuestionsNoSumbissions() throws DataServiceException, ConnectionException, ApiException, IOException, TerracottaConnectorException {
         when(submissionRepository.findByAssessment_AssessmentId(anyLong())).thenReturn(Collections.emptyList());
 
         assessmentService.regradeQuestions(regradeDetails, 1L);
@@ -449,7 +454,7 @@ public class AssessmentServiceImplTest extends BaseTest {
     }
 
     @Test
-    public void testRegradeQuestionsRegradeOptionNA() throws DataServiceException, ConnectionException, CanvasApiException, IOException {
+    public void testRegradeQuestionsRegradeOptionNA() throws DataServiceException, ConnectionException, ApiException, IOException, TerracottaConnectorException {
         when(regradeDetails.getRegradeOption()).thenReturn(RegradeOption.NA);
 
         assessmentService.regradeQuestions(regradeDetails, 1L);
@@ -458,14 +463,14 @@ public class AssessmentServiceImplTest extends BaseTest {
     }
 
     @Test
-    public void testRegradeQuestionsNoRegradeDetails() throws DataServiceException, ConnectionException, CanvasApiException, IOException {
+    public void testRegradeQuestionsNoRegradeDetails() throws DataServiceException, ConnectionException, ApiException, IOException, TerracottaConnectorException {
         assessmentService.regradeQuestions(null, 1L);
 
         verify(assessmentSubmissionService, never()).gradeSubmission(any(Submission.class), any(RegradeDetails.class));
     }
 
     @Test
-    public void testRegradeQuestionsNoEditedMCQuestionIds() throws DataServiceException, ConnectionException, CanvasApiException, IOException {
+    public void testRegradeQuestionsNoEditedMCQuestionIds() throws DataServiceException, ConnectionException, ApiException, IOException, TerracottaConnectorException {
         when(regradeDetails.getEditedMCQuestionIds()).thenReturn(Collections.emptyList());
 
         assessmentService.regradeQuestions(regradeDetails, 1L);

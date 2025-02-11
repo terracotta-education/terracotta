@@ -1,52 +1,53 @@
 package edu.iu.terracotta.service.app.impl;
 
-import edu.iu.terracotta.exceptions.AssignmentNotMatchingException;
-import edu.iu.terracotta.exceptions.CanvasApiException;
-import edu.iu.terracotta.exceptions.ConnectionException;
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiMembershipEntity;
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
+import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsAssignment;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.membership.CourseUser;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.membership.CourseUsers;
+import edu.iu.terracotta.connectors.generic.dao.model.lti.LtiToken;
+import edu.iu.terracotta.connectors.generic.dao.model.lti.Roles;
+import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.LineItem;
+import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.LineItems;
+import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.Score;
+import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiUserRepository;
+import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
+import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
+import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
+import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
+import edu.iu.terracotta.connectors.generic.service.lti.LtiDataService;
+import edu.iu.terracotta.connectors.generic.service.lti.advantage.AdvantageAgsService;
+import edu.iu.terracotta.connectors.generic.service.lti.advantage.AdvantageMembershipService;
+import edu.iu.terracotta.connectors.generic.service.api.ApiClient;
+import edu.iu.terracotta.dao.entity.Assignment;
+import edu.iu.terracotta.dao.entity.Condition;
+import edu.iu.terracotta.dao.entity.Experiment;
+import edu.iu.terracotta.dao.entity.Participant;
+import edu.iu.terracotta.dao.entity.Submission;
+import edu.iu.terracotta.dao.exceptions.AssignmentNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.GroupNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.ParticipantNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.ParticipantNotUpdatedException;
+import edu.iu.terracotta.dao.model.dto.ParticipantDto;
+import edu.iu.terracotta.dao.model.dto.UserDto;
+import edu.iu.terracotta.dao.model.enums.DistributionTypes;
+import edu.iu.terracotta.dao.model.enums.ParticipationTypes;
+import edu.iu.terracotta.dao.repository.AssignmentRepository;
+import edu.iu.terracotta.dao.repository.ConsentDocumentRepository;
+import edu.iu.terracotta.dao.repository.ExperimentRepository;
+import edu.iu.terracotta.dao.repository.GroupRepository;
+import edu.iu.terracotta.dao.repository.ParticipantRepository;
+import edu.iu.terracotta.dao.repository.SubmissionRepository;
+import edu.iu.terracotta.dao.repository.TreatmentRepository;
 import edu.iu.terracotta.exceptions.DataServiceException;
-import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
-import edu.iu.terracotta.exceptions.GroupNotMatchingException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.InvalidUserException;
 import edu.iu.terracotta.exceptions.ParticipantAlreadyStartedException;
-import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
-import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
-import edu.iu.terracotta.model.LtiMembershipEntity;
-import edu.iu.terracotta.model.LtiUserEntity;
-import edu.iu.terracotta.model.PlatformDeployment;
-import edu.iu.terracotta.model.ags.LineItem;
-import edu.iu.terracotta.model.ags.LineItems;
-import edu.iu.terracotta.model.ags.Score;
-import edu.iu.terracotta.model.app.Assignment;
-import edu.iu.terracotta.model.app.Condition;
-import edu.iu.terracotta.model.app.Experiment;
-import edu.iu.terracotta.model.app.Participant;
-import edu.iu.terracotta.model.app.Submission;
-import edu.iu.terracotta.model.app.dto.ParticipantDto;
-import edu.iu.terracotta.model.app.dto.UserDto;
-import edu.iu.terracotta.model.app.enumerator.DistributionTypes;
-import edu.iu.terracotta.model.app.enumerator.ParticipationTypes;
-import edu.iu.terracotta.model.canvas.AssignmentExtended;
-import edu.iu.terracotta.model.membership.CourseUser;
-import edu.iu.terracotta.model.membership.CourseUsers;
-import edu.iu.terracotta.model.oauth2.LTIToken;
-import edu.iu.terracotta.model.oauth2.Roles;
-import edu.iu.terracotta.model.oauth2.SecuredInfo;
-import edu.iu.terracotta.repository.AssignmentRepository;
-import edu.iu.terracotta.repository.ConsentDocumentRepository;
-import edu.iu.terracotta.repository.ExperimentRepository;
-import edu.iu.terracotta.repository.GroupRepository;
-import edu.iu.terracotta.repository.LtiUserRepository;
-import edu.iu.terracotta.repository.ParticipantRepository;
-import edu.iu.terracotta.repository.SubmissionRepository;
-import edu.iu.terracotta.repository.TreatmentRepository;
-import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.GroupParticipantService;
 import edu.iu.terracotta.service.app.ParticipantService;
-import edu.iu.terracotta.service.canvas.CanvasAPIClient;
-import edu.iu.terracotta.service.lti.AdvantageAGSService;
-import edu.iu.terracotta.service.lti.AdvantageMembershipService;
-import edu.iu.terracotta.service.lti.LTIDataService;
 import edu.iu.terracotta.utils.LtiStrings;
 import edu.iu.terracotta.utils.TextConstants;
 import lombok.extern.slf4j.Slf4j;
@@ -86,12 +87,12 @@ public class ParticipantServiceImpl implements ParticipantService {
     @Autowired private ParticipantRepository participantRepository;
     @Autowired private SubmissionRepository submissionRepository;
     @Autowired private TreatmentRepository treatmentRepository;
-    @Autowired private AdvantageAGSService advantageAGSService;
+    @Autowired private AdvantageAgsService advantageAgsService;
     @Autowired private AdvantageMembershipService advantageMembershipService;
-    @Autowired private APIJWTService apijwtService;
-    @Autowired private CanvasAPIClient canvasAPIClient;
+    @Autowired private ApiJwtService apiJwtService;
+    @Autowired private ApiClient apiClient;
     @Autowired private GroupParticipantService groupParticipantService;
-    @Autowired private LTIDataService ltiDataService;
+    @Autowired private LtiDataService ltiDataService;
 
     @Override
     public List<Participant> findAllByExperimentId(long experimentId) {
@@ -101,8 +102,8 @@ public class ParticipantServiceImpl implements ParticipantService {
     @Override
     public List<ParticipantDto> getParticipants(List<Participant> participants, long experimentId, String userId, boolean student, SecuredInfo securedInfo) {
         Experiment experiment = experimentRepository.findByExperimentId(experimentId);
-        // retrieve published assignment IDs from Canvas
-        List<Long> publishedExperimentAssignmentIds = calculatedPublishedAssignmentIds(experimentId, securedInfo.getCanvasCourseId(), experiment.getCreatedBy());
+        // retrieve published assignment IDs from LMS
+        List<Long> publishedExperimentAssignmentIds = calculatedPublishedAssignmentIds(experimentId, securedInfo.getLmsCourseId(), experiment.getCreatedBy());
 
         if (!student) {
             if (CollectionUtils.isEmpty(participants)) {
@@ -148,7 +149,7 @@ public class ParticipantServiceImpl implements ParticipantService {
     @Override
     public ParticipantDto postParticipant(ParticipantDto participantDto, long experimentId, SecuredInfo securedInfo) throws IdInPostException, DataServiceException {
         Experiment experiment = experimentRepository.findByExperimentId(experimentId);
-        List<Long> publishedExperimentAssignmentIds = calculatedPublishedAssignmentIds(experimentId, securedInfo.getCanvasCourseId(), experiment.getCreatedBy());
+        List<Long> publishedExperimentAssignmentIds = calculatedPublishedAssignmentIds(experimentId, securedInfo.getLmsCourseId(), experiment.getCreatedBy());
 
         if (participantDto.getParticipantId() != null) {
             throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
@@ -168,7 +169,7 @@ public class ParticipantServiceImpl implements ParticipantService {
 
     @Override
     public ParticipantDto toDto(Participant participant, SecuredInfo securedInfo) {
-        List<Long> publishedExperimentAssignmentIds = calculatedPublishedAssignmentIds(participant.getExperiment().getExperimentId(), securedInfo.getCanvasCourseId(), participant.getExperiment().getCreatedBy());
+        List<Long> publishedExperimentAssignmentIds = calculatedPublishedAssignmentIds(participant.getExperiment().getExperimentId(), securedInfo.getLmsCourseId(), participant.getExperiment().getCreatedBy());
 
         return toDto(participant, publishedExperimentAssignmentIds, securedInfo);
     }
@@ -248,7 +249,7 @@ public class ParticipantServiceImpl implements ParticipantService {
     @Override
     @Transactional
     public List<Participant> refreshParticipants(long experimentId, List<Participant> currentParticipantList)
-            throws ParticipantNotUpdatedException, ExperimentNotMatchingException {
+            throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
         long startTime = System.currentTimeMillis();
 
         // We don't want to delete participants if they drop the course, so... we
@@ -271,7 +272,7 @@ public class ParticipantServiceImpl implements ParticipantService {
                 throw new ExperimentNotMatchingException(TextConstants.EXPERIMENT_NOT_MATCHING);
             }
 
-            LTIToken ltiToken = advantageMembershipService.getToken(experiment.get().getPlatformDeployment());
+            LtiToken ltiToken = advantageMembershipService.getToken(experiment.get().getPlatformDeployment());
             CourseUsers courseUsers = advantageMembershipService.callMembershipService(ltiToken, experiment.get().getLtiContextEntity());
 
             for (CourseUser courseUser : courseUsers.getCourseUserList()) {
@@ -401,13 +402,13 @@ public class ParticipantServiceImpl implements ParticipantService {
             LtiUserEntity newLtiUserEntity = new LtiUserEntity(courseUser.getUserId(), null,
                     experiment.getPlatformDeployment());
             newLtiUserEntity.setEmail(courseUser.getEmail());
-            // TODO: We don't have a way here to get the userCanvasId except calling the API
-            // or waiting for the user to access. BUT we just need this to send the grades
-            // with the API...
-            // so if the user never accessed... we can't send them until we use LTI.
+            /*
+                TODO: We don't have a way here to get the userLmsId except calling the API
+                or waiting for the user to access. BUT we just need this to send the grades with the API...
+                so if the user never accessed... we can't send them until we use LTI.
+            */
             newLtiUserEntity.setDisplayName(courseUser.getName());
-            // By default it adds a value in the constructor, but if we are generating it,
-            // it means that the user has never logged in
+            // By default it adds a value in the constructor, but if we are generating it, it means that the user has never logged in
             newLtiUserEntity.setLoginAt(null);
             ltiUserEntity = ltiDataService.saveLtiUserEntity(newLtiUserEntity);
 
@@ -449,7 +450,7 @@ public class ParticipantServiceImpl implements ParticipantService {
 
     @Override
     @Transactional
-    public void prepareParticipation(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException, ExperimentNotMatchingException {
+    public void prepareParticipation(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
         List<Participant> currentParticipantList = findAllByExperimentId(experimentId);
         refreshParticipants(experimentId, currentParticipantList);
     }
@@ -458,7 +459,7 @@ public class ParticipantServiceImpl implements ParticipantService {
     @Transactional
     public void changeParticipant(Map<Participant, ParticipantDto> map, Long experimentId, SecuredInfo securedInfo) {
         Experiment experiment = experimentRepository.findByExperimentId(experimentId);
-        List<Long> publishedExperimentAssignmentIds = calculatedPublishedAssignmentIds(experimentId, securedInfo.getCanvasCourseId(), experiment.getCreatedBy());
+        List<Long> publishedExperimentAssignmentIds = calculatedPublishedAssignmentIds(experimentId, securedInfo.getLmsCourseId(), experiment.getCreatedBy());
 
         for (Map.Entry<Participant, ParticipantDto> entry : map.entrySet()) {
             Participant participantToChange = entry.getKey();
@@ -524,7 +525,7 @@ public class ParticipantServiceImpl implements ParticipantService {
         }
 
         // Don't allow changing consent to true if participant has submitted a response and previously not consented
-        if (hasParticipantSubmitted(participant, calculatedPublishedAssignmentIds(experimentId, securedInfo.getCanvasCourseId(), participant.getExperiment().getCreatedBy()))
+        if (hasParticipantSubmitted(participant, calculatedPublishedAssignmentIds(experimentId, securedInfo.getLmsCourseId(), participant.getExperiment().getCreatedBy()))
                 && BooleanUtils.isFalse(participant.getConsent())
                 && BooleanUtils.isTrue(participantDto.getConsent())) {
             throw new ParticipantAlreadyStartedException("Participant has already started experiment, consent cannot be changed to given");
@@ -594,13 +595,13 @@ public class ParticipantServiceImpl implements ParticipantService {
     }
 
     @Override
-    public List<Long> calculatedPublishedAssignmentIds(long experimentId, String canvasCourseId, LtiUserEntity createdBy) {
+    public List<Long> calculatedPublishedAssignmentIds(long experimentId, String lmsCourseId, LtiUserEntity createdBy) {
         // find only published assignments
         return assignmentRepository.findByExposure_Experiment_ExperimentId(experimentId).stream()
             .filter(
                 assignment -> {
                     try {
-                        return canvasAPIClient.listAssignment(createdBy, canvasCourseId, Long.parseLong(assignment.getLmsAssignmentId())).get().isPublished();
+                        return apiClient.listAssignment(createdBy, lmsCourseId, assignment.getLmsAssignmentId()).get().isPublished();
                     } catch (Exception e) {
                         return false;
                     }
@@ -621,7 +622,7 @@ public class ParticipantServiceImpl implements ParticipantService {
 
     @Override
     @Transactional
-    public void setAllToNull(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException, ExperimentNotMatchingException {
+    public void setAllToNull(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
         List<Participant> participants = participantRepository.findByExperiment_ExperimentId(experimentId);
         refreshParticipants(experimentId, participants);
 
@@ -635,7 +636,7 @@ public class ParticipantServiceImpl implements ParticipantService {
 
     @Override
     @Transactional
-    public void setAllToTrue(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException, ExperimentNotMatchingException {
+    public void setAllToTrue(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
         List<Participant> participants = participantRepository.findByExperiment_ExperimentId(experimentId);
         refreshParticipants(experimentId, participants);
 
@@ -649,7 +650,7 @@ public class ParticipantServiceImpl implements ParticipantService {
 
     @Override
     @Transactional
-    public void setAllToFalse(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException, ExperimentNotMatchingException {
+    public void setAllToFalse(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
         List<Participant> participants = participantRepository.findByExperiment_ExperimentId(experimentId);
         refreshParticipants(experimentId, participants);
 
@@ -662,16 +663,16 @@ public class ParticipantServiceImpl implements ParticipantService {
     }
 
     @Override
-    public void postConsentSubmission(Participant participant, SecuredInfo securedInfo) throws ConnectionException, DataServiceException {
+    public void postConsentSubmission(Participant participant, SecuredInfo securedInfo) throws ConnectionException, DataServiceException, TerracottaConnectorException {
         // need the assignment and the iss configuration
         PlatformDeployment platformDeployment = participant.getExperiment().getPlatformDeployment();
         Experiment experiment = participant.getExperiment();
-        LTIToken ltiTokenScore = advantageAGSService.getToken("scores", platformDeployment);
-        LTIToken ltiTokenResults = advantageAGSService.getToken("results", platformDeployment);
+        LtiToken ltiTokenScore = advantageAgsService.getToken("scores", platformDeployment);
+        LtiToken ltiTokenResults = advantageAgsService.getToken("results", platformDeployment);
         // find the right id to pass based on the assignment
-        LTIToken ltiToken = advantageAGSService.getToken("lineitems", experiment.getPlatformDeployment());
+        LtiToken ltiToken = advantageAgsService.getToken("lineitems", experiment.getPlatformDeployment());
         // find the right id to pass based on the assignment
-        LineItems lineItems = advantageAGSService.getLineItems(ltiToken, experiment.getLtiContextEntity());
+        LineItems lineItems = advantageAgsService.getLineItems(ltiToken, experiment.getLtiContextEntity());
 
         Optional<LineItem> lineItem = lineItems.getLineItemList().stream()
             .filter(li -> StringUtils.equals(li.getResourceLinkId(), participant.getExperiment().getConsentDocument().getResourceLinkId()))
@@ -685,14 +686,14 @@ public class ParticipantServiceImpl implements ParticipantService {
         }
 
         if (lineItem.isEmpty()) {
-            throw new DataServiceException("Error 136: The assignment is not linked to any Canvas assignment");
+            throw new DataServiceException("Error 136: The assignment is not linked to any LMS assignment");
         }
 
         Score score = new Score();
         score.setUserId(participant.getLtiUserEntity().getUserKey());
         // Score the consent submission as 100% and let the platform scale the grade to the max number of points.
-        score.setScoreGiven("1.0");
-        score.setScoreMaximum("1.0");
+        score.setScoreGiven(1F);
+        score.setScoreMaximum(1F);
         score.setActivityProgress("Completed");
         score.setGradingProgress("FullyGraded");
 
@@ -700,7 +701,7 @@ public class ParticipantServiceImpl implements ParticipantService {
         SimpleDateFormat dt = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
         String strDate = dt.format(date);
         score.setTimestamp(strDate);
-        advantageAGSService.postScore(ltiTokenScore, ltiTokenResults, experiment.getLtiContextEntity(), lineItem.get().getId(), score);
+        advantageAgsService.postScore(ltiTokenScore, ltiTokenResults, experiment.getLtiContextEntity(), lineItem.get().getId(), score);
     }
 
     /**
@@ -715,24 +716,24 @@ public class ParticipantServiceImpl implements ParticipantService {
      * @param lineItem
      * @return
      * @throws DataServiceException
-     */
-    private Optional<LineItem> fixConsentAssignmentResourceLinkId(SecuredInfo securedInfo, Experiment experiment, LineItems lineItems, Optional<LineItem> lineItem)
-            throws DataServiceException {
-        long assignmentId = Long.parseLong(experiment.getConsentDocument().getLmsAssignmentId());
+          * @throws TerracottaConnectorException
+          */
+         private Optional<LineItem> fixConsentAssignmentResourceLinkId(SecuredInfo securedInfo, Experiment experiment, LineItems lineItems, Optional<LineItem> lineItem)
+                 throws DataServiceException, TerracottaConnectorException {
 
         try {
             log.warn(
                     "Could not find line item for experiment {} consent assignment. Going to use "
-                            + "Canvas API to try to figure out the right resourceLinkId. This is only "
+                            + "LMS API to try to figure out the right resourceLinkId. This is only "
                             + "for an older issue with setting the resourceLinkId correctly so this "
                             + "should NEVER happen with new experiments.",
                     experiment.getExperimentId());
             LtiUserEntity instructorUser = experiment.getCreatedBy();
-            Optional<AssignmentExtended> consentAssignment = canvasAPIClient.listAssignment(instructorUser, securedInfo.getCanvasCourseId(), assignmentId);
+            Optional<? extends LmsAssignment> consentAssignment = apiClient.listAssignment(instructorUser, securedInfo.getLmsCourseId(), experiment.getConsentDocument().getLmsAssignmentId());
 
             if (consentAssignment.isPresent()) {
                 String jwtTokenAssignment = consentAssignment.get().getSecureParams();
-                String resourceLinkId = apijwtService.unsecureToken(jwtTokenAssignment).get("lti_assignment_id").toString();
+                String resourceLinkId = apiJwtService.unsecureToken(jwtTokenAssignment, experiment.getPlatformDeployment()).get("lti_assignment_id").toString();
                 lineItem = lineItems.getLineItemList().stream()
                     .filter(li -> li.getResourceLinkId()
                     .equals(resourceLinkId))
@@ -745,8 +746,8 @@ public class ParticipantServiceImpl implements ParticipantService {
                     consentDocumentRepository.save(experiment.getConsentDocument());
                 }
             }
-        } catch (CanvasApiException e) {
-            throw new DataServiceException("Error 136: The assignment is not linked to any Canvas assignment");
+        } catch (ApiException e) {
+            throw new DataServiceException("Error 136: The assignment is not linked to any LMS assignment");
         }
 
         return lineItem;
@@ -756,7 +757,7 @@ public class ParticipantServiceImpl implements ParticipantService {
     @Transactional
     public Participant handleExperimentParticipant(Experiment experiment, SecuredInfo securedInfo)
             throws GroupNotMatchingException, ParticipantNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException,
-                    ExperimentNotMatchingException {
+                    ExperimentNotMatchingException, TerracottaConnectorException {
         Participant participant = participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experiment.getExperimentId(), securedInfo.getUserId());
 
         // if participant record doesn't exist or if consenting participant
@@ -780,7 +781,7 @@ public class ParticipantServiceImpl implements ParticipantService {
             if (DistributionTypes.CUSTOM.equals(experiment.getDistributionType())) {
                 for (Condition condition : experiment.getConditions()) {
                     if (BooleanUtils.isTrue(condition.getDefaultCondition())) {
-                        participant.setGroup(groupParticipantService.getUniqueGroupByConditionId(experiment.getExperimentId(), securedInfo.getCanvasAssignmentId(), condition.getConditionId()));
+                        participant.setGroup(groupParticipantService.getUniqueGroupByConditionId(experiment.getExperimentId(), securedInfo.getLmsAssignmentId(), condition.getConditionId()));
                         break;
                     }
                 }
@@ -803,7 +804,7 @@ public class ParticipantServiceImpl implements ParticipantService {
      * @param participant
      */
     private void handleInitialConsent(Experiment experiment, Participant participant, SecuredInfo securedInfo) {
-        List<Long> publishedExperimentAssignmentIds = calculatedPublishedAssignmentIds(experiment.getExperimentId(), securedInfo.getCanvasCourseId(), experiment.getCreatedBy());
+        List<Long> publishedExperimentAssignmentIds = calculatedPublishedAssignmentIds(experiment.getExperimentId(), securedInfo.getLmsCourseId(), experiment.getCreatedBy());
         if (participant.getConsent() == null || (!participant.getConsent() && participant.getDateRevoked() == null)) {
             if (ParticipationTypes.AUTO.equals(experiment.getParticipationType())) {
                 participant.setConsent(true);

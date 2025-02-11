@@ -15,9 +15,9 @@ import org.mockito.InjectMocks;
 import org.mockito.MockitoAnnotations;
 
 import edu.iu.terracotta.base.BaseTest;
-import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
-import edu.iu.terracotta.exceptions.OutcomeNotMatchingException;
-import edu.iu.terracotta.model.app.dto.dashboard.ResultsDashboardDto;
+import edu.iu.terracotta.dao.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.OutcomeNotMatchingException;
+import edu.iu.terracotta.dao.model.dto.dashboard.ResultsDashboardDto;
 import edu.iu.terracotta.utils.TextConstants;
 
 public class ResultsDashboardServiceImplTest extends BaseTest {

@@ -9,9 +9,16 @@ import com.nimbusds.jose.jwk.AsymmetricJWK;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.JWKSet;
 import edu.iu.terracotta.config.ApplicationConfig;
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiContextEntity;
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiLinkEntity;
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiMembershipEntity;
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiResultEntity;
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.ToolDeployment;
+import edu.iu.terracotta.connectors.generic.service.lti.LtiDataService;
+import edu.iu.terracotta.connectors.generic.service.lti.impl.LtiDataServiceImpl;
 import edu.iu.terracotta.exceptions.DataServiceException;
-import edu.iu.terracotta.service.lti.LTIDataService;
-import edu.iu.terracotta.service.lti.impl.LTIDataServiceImpl;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Header;
 import io.jsonwebtoken.Jws;
@@ -22,13 +29,6 @@ import io.jsonwebtoken.Locator;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import edu.iu.terracotta.model.LtiContextEntity;
-import edu.iu.terracotta.model.LtiLinkEntity;
-import edu.iu.terracotta.model.LtiMembershipEntity;
-import edu.iu.terracotta.model.LtiResultEntity;
-import edu.iu.terracotta.model.LtiUserEntity;
-import edu.iu.terracotta.model.PlatformDeployment;
-import edu.iu.terracotta.model.ToolDeployment;
 import edu.iu.terracotta.utils.LtiStrings;
 
 import org.apache.commons.collections4.CollectionUtils;
@@ -63,10 +63,10 @@ import java.util.Map;
  * LTI3 Request object holds all the details for a valid LTI3 request
  *
  * Obtain this class using the static instance methods like so (recommended):
- * LTI3Request lti3Request = LTI3Request.getInstanceOrDie();
+ * Lti3Request lti3Request = Lti3Request.getInstanceOrDie();
  *
  * Or by retrieving it from the HttpServletRequest attributes like so (best to not do this):
- * LTI3Request lti3Request = (LTI3Request) req.getAttribute(LTI3Request.class.getName());
+ * Lti3Request lti3Request = (Lti3Request) req.getAttribute(Lti3Request.class.getName());
  *
  * Devs may also need to use the LTIDataService service (injected) to access data when there is no
  * LTI request active.
@@ -79,13 +79,13 @@ import java.util.Map;
 @Getter
 @Setter
 @SuppressWarnings({ "PMD.GuardLogStatement", "ConstantConditions", "PMD.SingletonClassReturningNewInstance", "unchecked", "rawtypes" })
-public class LTI3Request {
+public class Lti3Request {
 
     @Value("${app.lti.data.verbose.logging.enabled:false}")
     private boolean ltiDataVerboseLoggingEnabled;
 
     private HttpServletRequest httpServletRequest;
-    private LTIDataService ltiDataService;
+    private LtiDataService ltiDataService;
 
     // these are populated by the loadLTIDataFromDB operation
 
@@ -196,10 +196,10 @@ public class LTI3Request {
     private Map<String, String> deepLinkJwts;
 
     /**
-     * @return the current LTI3Request object if there is one available, null if there isn't one and this is not a valid LTI3 based request
+     * @return the current Lti3Request object if there is one available, null if there isn't one and this is not a valid LTI3 based request
      */
-    public static synchronized LTI3Request getInstance(String linkId) {
-        LTI3Request ltiRequest = null;
+    public static synchronized Lti3Request getInstance(String linkId) {
+        Lti3Request ltiRequest = null;
 
         try {
             ltiRequest = getInstanceOrDie(linkId);
@@ -211,10 +211,10 @@ public class LTI3Request {
     }
 
     /**
-     * @return the current LTI3Request object if there is one available
-     * @throws IllegalStateException if the LTI3Request cannot be obtained
+     * @return the current Lti3Request object if there is one available
+     * @throws IllegalStateException if the Lti3Request cannot be obtained
      */
-    public static LTI3Request getInstanceOrDie(String linkId) {
+    public static Lti3Request getInstanceOrDie(String linkId) {
         ServletRequestAttributes sra = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
 
         if (sra == null) {
@@ -222,21 +222,21 @@ public class LTI3Request {
         }
 
         HttpServletRequest req = sra.getRequest();
-        LTI3Request ltiRequest = (LTI3Request) req.getAttribute(LTI3Request.class.getName());
+        Lti3Request ltiRequest = (Lti3Request) req.getAttribute(Lti3Request.class.getName());
 
         if (ltiRequest == null) {
             log.debug("No LTIRequest found, attempting to create one for the current request");
-            LTIDataService ltiDataService = null;
+            LtiDataService ltiDataService = null;
 
             try {
-                ltiDataService = ApplicationConfig.getContext().getBean(LTIDataServiceImpl.class);
+                ltiDataService = ApplicationConfig.getContext().getBean(LtiDataServiceImpl.class);
             } catch (Exception e) {
                 log.warn("Unable to get the LTIDataService, initializing the LTIRequest without it");
             }
 
             try {
                 if (ltiDataService != null) {
-                    ltiRequest = new LTI3Request(req, ltiDataService, true, linkId);
+                    ltiRequest = new Lti3Request(req, ltiDataService, true, linkId);
                 } else { //THIS SHOULD NOT HAPPEN
                     throw new IllegalStateException("Error internal, no Dataservice available: " + req);
                 }
@@ -258,7 +258,7 @@ public class LTI3Request {
      * @param update  if true then update (or insert) the DB records for this request (else skip DB updating)
      * @throws IllegalStateException if this is not an LTI request
      */
-    public LTI3Request(HttpServletRequest request, LTIDataService ltiDataService, boolean update, String linkId) throws DataServiceException {
+    public Lti3Request(HttpServletRequest request, LtiDataService ltiDataService, boolean update, String linkId) throws DataServiceException {
         if (request == null) {
             throw new AssertionError("cannot make an LtiRequest without a request");
         }
@@ -329,10 +329,10 @@ public class LTI3Request {
         }
 
         //We check that the LTI request is a valid LTI Request and has the right type.
-        String isLTI3Request = isLTI3Request(jws);
+        String isLti3Request = isLti3Request(jws);
 
-        if (!(LtiStrings.LTI_MESSAGE_TYPE_RESOURCE_LINK.equals(isLTI3Request) || LtiStrings.LTI_MESSAGE_TYPE_DEEP_LINKING.equals(isLTI3Request))) {
-            throw new IllegalStateException("Request is not a valid LTI3 request: " + isLTI3Request);
+        if (!(LtiStrings.LTI_MESSAGE_TYPE_RESOURCE_LINK.equals(isLti3Request) || LtiStrings.LTI_MESSAGE_TYPE_DEEP_LINKING.equals(isLti3Request))) {
+            throw new IllegalStateException("Request is not a valid LTI3 request: " + isLti3Request);
         }
 
         //Now we are going to check the if the nonce is valid.
@@ -342,7 +342,7 @@ public class LTI3Request {
             throw new IllegalStateException("Nonce error: " + checkNonce);
         }
 
-        //Here we will populate the LTI3Request object
+        //Here we will populate the Lti3Request object
         String processRequestParameters = processRequestParameters(request, jws);
 
         if (!BooleanUtils.toBoolean(processRequestParameters)) {
@@ -350,7 +350,7 @@ public class LTI3Request {
         }
 
         // We update the database in case we have new values. (New users, new resources...etc)
-        if (isLTI3Request.equals(LtiStrings.LTI_MESSAGE_TYPE_RESOURCE_LINK) || isLTI3Request.equals(LtiStrings.LTI_MESSAGE_TYPE_DEEP_LINKING)) {
+        if (isLti3Request.equals(LtiStrings.LTI_MESSAGE_TYPE_RESOURCE_LINK) || isLti3Request.equals(LtiStrings.LTI_MESSAGE_TYPE_DEEP_LINKING)) {
             //Load data from DB related with this request and update it if needed with the new values.
             ToolDeployment toolDeployment = ltiDataService.findOrCreateToolDeployment(this.iss, this.aud, this.ltiDeploymentId);
 
@@ -363,7 +363,7 @@ public class LTI3Request {
             ltiDataService.loadLTIDataFromDB(this, linkId);
 
             if (update) {
-                if (isLTI3Request.equals(LtiStrings.LTI_MESSAGE_TYPE_RESOURCE_LINK)) {
+                if (isLti3Request.equals(LtiStrings.LTI_MESSAGE_TYPE_RESOURCE_LINK)) {
                     ltiDataService.upsertLTIDataInDB(this, toolDeployment, linkId);
                 } else {
                     ltiDataService.upsertLTIDataInDB(this, toolDeployment, null);
@@ -781,7 +781,7 @@ public class LTI3Request {
      * @param jws the JWT token parsed.
      * @return true if this is a valid LTI request
      */
-    public static String isLTI3Request(Jws<Claims> jws) {
+    public static String isLti3Request(Jws<Claims> jws) {
         String errorDetail = "";
         boolean valid = false;
         String ltiVersion = jws.getPayload().get(LtiStrings.LTI_VERSION, String.class);

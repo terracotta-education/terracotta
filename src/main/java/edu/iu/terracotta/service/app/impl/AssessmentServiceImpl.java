@@ -1,61 +1,62 @@
 package edu.iu.terracotta.service.app.impl;
 
-import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
+import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
+import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
+import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
+import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
+import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
+import edu.iu.terracotta.dao.entity.Assessment;
+import edu.iu.terracotta.dao.entity.Assignment;
+import edu.iu.terracotta.dao.entity.Condition;
+import edu.iu.terracotta.dao.entity.Experiment;
+import edu.iu.terracotta.dao.entity.ExposureGroupCondition;
+import edu.iu.terracotta.dao.entity.Participant;
+import edu.iu.terracotta.dao.entity.Question;
+import edu.iu.terracotta.dao.entity.QuestionMc;
+import edu.iu.terracotta.dao.entity.RegradeDetails;
+import edu.iu.terracotta.dao.entity.RetakeDetails;
+import edu.iu.terracotta.dao.entity.Submission;
+import edu.iu.terracotta.dao.entity.Treatment;
+import edu.iu.terracotta.dao.exceptions.AssessmentNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.AssignmentNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.GroupNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.ParticipantNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.ParticipantNotUpdatedException;
+import edu.iu.terracotta.dao.exceptions.QuestionNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.TreatmentNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.integrations.IntegrationClientNotFoundException;
+import edu.iu.terracotta.dao.exceptions.integrations.IntegrationConfigurationNotFoundException;
+import edu.iu.terracotta.dao.exceptions.integrations.IntegrationConfigurationNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.integrations.IntegrationNotFoundException;
+import edu.iu.terracotta.dao.exceptions.integrations.IntegrationNotMatchingException;
+import edu.iu.terracotta.dao.model.dto.AssessmentDto;
+import edu.iu.terracotta.dao.model.dto.QuestionDto;
+import edu.iu.terracotta.dao.model.dto.SubmissionDto;
+import edu.iu.terracotta.dao.model.enums.MultipleSubmissionScoringScheme;
+import edu.iu.terracotta.dao.model.enums.RegradeOption;
+import edu.iu.terracotta.dao.repository.AnswerEssaySubmissionRepository;
+import edu.iu.terracotta.dao.repository.AnswerFileSubmissionRepository;
+import edu.iu.terracotta.dao.repository.AnswerMcSubmissionRepository;
+import edu.iu.terracotta.dao.repository.AssessmentRepository;
+import edu.iu.terracotta.dao.repository.AssignmentRepository;
+import edu.iu.terracotta.dao.repository.ConditionRepository;
+import edu.iu.terracotta.dao.repository.ExperimentRepository;
+import edu.iu.terracotta.dao.repository.ExposureGroupConditionRepository;
+import edu.iu.terracotta.dao.repository.ParticipantRepository;
+import edu.iu.terracotta.dao.repository.QuestionMcRepository;
+import edu.iu.terracotta.dao.repository.QuestionRepository;
+import edu.iu.terracotta.dao.repository.SubmissionRepository;
+import edu.iu.terracotta.dao.repository.TreatmentRepository;
 import edu.iu.terracotta.exceptions.AssignmentAttemptException;
 import edu.iu.terracotta.exceptions.AssignmentDatesException;
-import edu.iu.terracotta.exceptions.AssignmentNotMatchingException;
-import edu.iu.terracotta.exceptions.CanvasApiException;
-import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
-import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
-import edu.iu.terracotta.exceptions.GroupNotMatchingException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.MultipleAttemptsSettingsValidationException;
 import edu.iu.terracotta.exceptions.MultipleChoiceLimitReachedException;
 import edu.iu.terracotta.exceptions.NegativePointsException;
-import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
-import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
-import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
 import edu.iu.terracotta.exceptions.RevealResponsesSettingValidationException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
-import edu.iu.terracotta.model.app.Assessment;
-import edu.iu.terracotta.model.app.Assignment;
-import edu.iu.terracotta.model.app.Condition;
-import edu.iu.terracotta.model.app.Experiment;
-import edu.iu.terracotta.model.app.ExposureGroupCondition;
-import edu.iu.terracotta.model.app.Participant;
-import edu.iu.terracotta.model.app.Question;
-import edu.iu.terracotta.model.app.QuestionMc;
-import edu.iu.terracotta.model.app.RegradeDetails;
-import edu.iu.terracotta.model.app.RetakeDetails;
-import edu.iu.terracotta.model.app.Submission;
-import edu.iu.terracotta.model.app.Treatment;
-import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
-import edu.iu.terracotta.exceptions.integrations.IntegrationClientNotFoundException;
-import edu.iu.terracotta.exceptions.integrations.IntegrationConfigurationNotFoundException;
-import edu.iu.terracotta.exceptions.integrations.IntegrationConfigurationNotMatchingException;
-import edu.iu.terracotta.exceptions.integrations.IntegrationNotFoundException;
-import edu.iu.terracotta.exceptions.integrations.IntegrationNotMatchingException;
-import edu.iu.terracotta.model.app.dto.AssessmentDto;
-import edu.iu.terracotta.model.app.dto.QuestionDto;
-import edu.iu.terracotta.model.app.dto.SubmissionDto;
-import edu.iu.terracotta.model.app.enumerator.MultipleSubmissionScoringScheme;
-import edu.iu.terracotta.model.app.enumerator.RegradeOption;
-import edu.iu.terracotta.model.oauth2.SecuredInfo;
-import edu.iu.terracotta.repository.AnswerEssaySubmissionRepository;
-import edu.iu.terracotta.repository.AnswerFileSubmissionRepository;
-import edu.iu.terracotta.repository.AnswerMcSubmissionRepository;
-import edu.iu.terracotta.repository.AssessmentRepository;
-import edu.iu.terracotta.repository.AssignmentRepository;
-import edu.iu.terracotta.repository.ConditionRepository;
-import edu.iu.terracotta.repository.ExperimentRepository;
-import edu.iu.terracotta.repository.ExposureGroupConditionRepository;
-import edu.iu.terracotta.repository.ParticipantRepository;
-import edu.iu.terracotta.repository.QuestionMcRepository;
-import edu.iu.terracotta.repository.QuestionRepository;
-import edu.iu.terracotta.repository.SubmissionRepository;
-import edu.iu.terracotta.repository.TreatmentRepository;
-import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.AssessmentService;
 import edu.iu.terracotta.service.app.AssessmentSubmissionService;
 import edu.iu.terracotta.service.app.FileStorageService;
@@ -114,7 +115,7 @@ public class AssessmentServiceImpl implements AssessmentService {
     @Autowired private QuestionRepository questionRepository;
     @Autowired private SubmissionRepository submissionRepository;
     @Autowired private TreatmentRepository treatmentRepository;
-    @Autowired private APIJWTService apijwtService;
+    @Autowired private ApiJwtService apiJwtService;
     @Autowired private AssessmentSubmissionService assessmentSubmissionService;
     @Autowired private FileStorageService fileStorageService;
     @Autowired private IntegrationClientService integrationClientService;
@@ -599,13 +600,13 @@ public class AssessmentServiceImpl implements AssessmentService {
             //We need the default condition assessment
             for (Condition condition : participant.getExperiment().getConditions()) {
                 if (condition.getDefaultCondition()) {
-                    assessment = getAssessmentByConditionId(participant.getExperiment().getExperimentId(), securedInfo.getCanvasAssignmentId(), condition.getConditionId());
+                    assessment = getAssessmentByConditionId(participant.getExperiment().getExperimentId(), securedInfo.getLmsAssignmentId(), condition.getConditionId());
                     break;
                 }
             }
         } else {
             if (participant.getGroup() != null) {
-                assessment = getAssessmentByGroupId(participant.getExperiment().getExperimentId(), securedInfo.getCanvasAssignmentId(), participant.getGroup().getGroupId());
+                assessment = getAssessmentByGroupId(participant.getExperiment().getExperimentId(), securedInfo.getLmsAssignmentId(), participant.getGroup().getGroupId());
             }
         }
 
@@ -617,8 +618,8 @@ public class AssessmentServiceImpl implements AssessmentService {
     }
 
     @Override
-    public Assessment getAssessmentByGroupId(Long experimentId, String canvasAssignmentId, Long groupId) throws AssessmentNotMatchingException {
-        Assignment assignment = assignmentRepository.findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(experimentId, canvasAssignmentId);
+    public Assessment getAssessmentByGroupId(Long experimentId, String lmsAssignmentId, Long groupId) throws AssessmentNotMatchingException {
+        Assignment assignment = assignmentRepository.findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(experimentId, lmsAssignmentId);
 
         if (assignment == null) {
             throw new AssessmentNotMatchingException("Error 127: This assignment does not exist in Terracotta for this experiment");
@@ -634,8 +635,8 @@ public class AssessmentServiceImpl implements AssessmentService {
     }
 
     @Override
-    public Assessment getAssessmentByConditionId(Long experimentId, String canvasAssignmentId, Long conditionId) throws AssessmentNotMatchingException {
-        Assignment assignment = assignmentRepository.findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(experimentId, canvasAssignmentId);
+    public Assessment getAssessmentByConditionId(Long experimentId, String lmsAssignmentId, Long conditionId) throws AssessmentNotMatchingException {
+        Assignment assignment = assignmentRepository.findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(experimentId, lmsAssignmentId);
 
         if (assignment == null) {
             throw new AssessmentNotMatchingException("Error 127: This assignment does not exist in Terracotta for this experiment");
@@ -681,7 +682,7 @@ public class AssessmentServiceImpl implements AssessmentService {
     @Override
     public AssessmentDto viewAssessment(long experimentId, SecuredInfo securedInfo)
             throws ExperimentNotMatchingException, ParticipantNotMatchingException, AssessmentNotMatchingException,
-                GroupNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, DataServiceException, CanvasApiException, IOException, AssignmentDatesException, ConnectionException {
+                GroupNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, DataServiceException, IOException, AssignmentDatesException, ConnectionException, ApiException, TerracottaConnectorException {
         Optional<Experiment> experiment = experimentRepository.findById(experimentId);
 
         if (experiment.isEmpty()) {
@@ -699,11 +700,11 @@ public class AssessmentServiceImpl implements AssessmentService {
                 .findFirst();
 
             if (conditionId.isPresent()) {
-                assessment = getAssessmentByConditionId(experimentId, securedInfo.getCanvasAssignmentId(), conditionId.get());
+                assessment = getAssessmentByConditionId(experimentId, securedInfo.getLmsAssignmentId(), conditionId.get());
             }
         } else {
             if (participant.getGroup() != null) {
-                assessment = getAssessmentByGroupId(experimentId, securedInfo.getCanvasAssignmentId(), participant.getGroup().getGroupId());
+                assessment = getAssessmentByGroupId(experimentId, securedInfo.getLmsAssignmentId(), participant.getGroup().getGroupId());
             }
         }
 
@@ -732,7 +733,7 @@ public class AssessmentServiceImpl implements AssessmentService {
                         submissionService.finalizeAndGrade(
                             submission.getSubmissionId(),
                             securedInfo,
-                            apijwtService.isLearner(securedInfo) && !apijwtService.isInstructorOrHigher(securedInfo)
+                            apiJwtService.isLearner(securedInfo) && !apiJwtService.isInstructorOrHigher(securedInfo)
                         );
                         log.info("Previous assessment ID: [{}] has an incomplete submission ID: [{}]. Regrading and finalizing.", assessment.getAssessmentId(), submission.getSubmissionId());
                     }
@@ -792,7 +793,7 @@ public class AssessmentServiceImpl implements AssessmentService {
     }
 
     @Override
-    public void regradeQuestions(RegradeDetails regradeDetails, long assessmentId) throws DataServiceException, ConnectionException, CanvasApiException, IOException {
+    public void regradeQuestions(RegradeDetails regradeDetails, long assessmentId) throws DataServiceException, ConnectionException, IOException, ApiException, TerracottaConnectorException {
         if (regradeDetails == null) {
             return;
         }
@@ -816,7 +817,7 @@ public class AssessmentServiceImpl implements AssessmentService {
         // regrade option selected; perform regrade
         for (Submission submission : submissions) {
             Submission gradedSubmission = assessmentSubmissionService.gradeSubmission(submission, regradeDetails);
-            submissionService.sendSubmissionGradeToCanvasWithLTI(gradedSubmission, false);
+            submissionService.sendSubmissionGradeToLmsWithLti(gradedSubmission, false);
         }
 
         updateRegradedQuestionStatus(regradeDetails);

@@ -1,15 +1,16 @@
 package edu.iu.terracotta.controller.app;
 
+import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
+import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
+import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
+import edu.iu.terracotta.dao.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.GroupNotMatchingException;
+import edu.iu.terracotta.dao.model.dto.GroupDto;
 import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentLockedException;
-import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
-import edu.iu.terracotta.exceptions.GroupNotMatchingException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
-import edu.iu.terracotta.model.app.dto.GroupDto;
-import edu.iu.terracotta.model.oauth2.SecuredInfo;
-import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.GroupService;
 import edu.iu.terracotta.utils.TextConstants;
 import lombok.extern.slf4j.Slf4j;
@@ -42,11 +43,11 @@ public class GroupController {
     public static final String REQUEST_ROOT = "api/experiments/{experimentId}/groups";
 
     @Autowired private GroupService groupService;
-    @Autowired private APIJWTService apijwtService;
+    @Autowired private ApiJwtService apijwtService;
 
     @GetMapping
     public ResponseEntity<List<GroupDto>> allGroupsByExperiment(@PathVariable long experimentId, HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException {
+            throws ExperimentNotMatchingException, BadTokenException, NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
 
@@ -65,7 +66,7 @@ public class GroupController {
 
     @GetMapping("/{groupId}")
     public ResponseEntity<GroupDto> getGroup(@PathVariable long experimentId, @PathVariable long groupId, HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, GroupNotMatchingException {
+            throws ExperimentNotMatchingException, BadTokenException, GroupNotMatchingException, NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.groupAllowed(securedInfo, experimentId, groupId);
@@ -84,7 +85,7 @@ public class GroupController {
                                                     @RequestBody GroupDto groupDto,
                                                     UriComponentsBuilder ucBuilder,
                                                     HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, ExperimentLockedException, IdInPostException, DataServiceException {
+            throws ExperimentNotMatchingException, BadTokenException, ExperimentLockedException, IdInPostException, DataServiceException, NumberFormatException, TerracottaConnectorException {
         log.debug("Creating Group for experiment ID: {}", experimentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentLocked(experimentId,true);
@@ -102,7 +103,7 @@ public class GroupController {
 
     @PostMapping("/create")
     public ResponseEntity<Void> createGroups(@PathVariable long experimentId, HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, ExperimentLockedException, DataServiceException {
+            throws ExperimentNotMatchingException, BadTokenException, ExperimentLockedException, DataServiceException, NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentLocked(experimentId,true);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -121,7 +122,7 @@ public class GroupController {
                                                @PathVariable long groupId,
                                                @RequestBody GroupDto groupDto,
                                                HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, GroupNotMatchingException, TitleValidationException {
+            throws ExperimentNotMatchingException, BadTokenException, GroupNotMatchingException, TitleValidationException, NumberFormatException, TerracottaConnectorException {
         log.debug("Updating group with id {}", groupId);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -138,7 +139,7 @@ public class GroupController {
 
     @DeleteMapping("/{groupId}")
     public ResponseEntity<Void> deleteGroup(@PathVariable long experimentId, @PathVariable long groupId, HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, GroupNotMatchingException, ExperimentLockedException {
+            throws ExperimentNotMatchingException, BadTokenException, GroupNotMatchingException, ExperimentLockedException, NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentLocked(experimentId,true);
         apijwtService.experimentAllowed(securedInfo, experimentId);

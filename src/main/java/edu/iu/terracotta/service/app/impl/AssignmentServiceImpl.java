@@ -1,55 +1,59 @@
 package edu.iu.terracotta.service.app.impl;
 
-import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
+import edu.iu.terracotta.connectors.generic.dao.entity.api.ApiTokenEntity;
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
+import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsAssignment;
+import edu.iu.terracotta.connectors.generic.dao.repository.api.ApiTokenRepository;
+import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiUserRepository;
+import edu.iu.terracotta.connectors.generic.dao.repository.lti.PlatformDeploymentRepository;
+import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
+import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
+import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
+import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
+import edu.iu.terracotta.connectors.generic.service.api.ApiClient;
+import edu.iu.terracotta.dao.entity.Assessment;
+import edu.iu.terracotta.dao.entity.Assignment;
+import edu.iu.terracotta.dao.entity.Experiment;
+import edu.iu.terracotta.dao.entity.Exposure;
+import edu.iu.terracotta.dao.entity.Participant;
+import edu.iu.terracotta.dao.entity.Submission;
+import edu.iu.terracotta.dao.entity.Treatment;
+import edu.iu.terracotta.dao.exceptions.AssessmentNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.AssignmentNotCreatedException;
+import edu.iu.terracotta.dao.exceptions.AssignmentNotEditedException;
+import edu.iu.terracotta.dao.exceptions.AssignmentNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.ExposureNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.GroupNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.ParticipantNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.ParticipantNotUpdatedException;
+import edu.iu.terracotta.dao.exceptions.QuestionNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.TreatmentNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.integrations.IntegrationTokenNotFoundException;
+import edu.iu.terracotta.dao.model.dto.AssignmentDto;
+import edu.iu.terracotta.dao.model.dto.SubmissionDto;
+import edu.iu.terracotta.dao.model.enums.MultipleSubmissionScoringScheme;
+import edu.iu.terracotta.dao.repository.AnswerEssaySubmissionRepository;
+import edu.iu.terracotta.dao.repository.AnswerFileSubmissionRepository;
+import edu.iu.terracotta.dao.repository.AnswerMcSubmissionRepository;
+import edu.iu.terracotta.dao.repository.AssessmentRepository;
+import edu.iu.terracotta.dao.repository.AssignmentRepository;
+import edu.iu.terracotta.dao.repository.ExperimentRepository;
+import edu.iu.terracotta.dao.repository.ExposureRepository;
+import edu.iu.terracotta.dao.repository.QuestionRepository;
+import edu.iu.terracotta.dao.repository.SubmissionRepository;
+import edu.iu.terracotta.dao.repository.TreatmentRepository;
 import edu.iu.terracotta.exceptions.AssignmentAttemptException;
 import edu.iu.terracotta.exceptions.AssignmentDatesException;
 import edu.iu.terracotta.exceptions.AssignmentMoveException;
-import edu.iu.terracotta.exceptions.AssignmentNotCreatedException;
-import edu.iu.terracotta.exceptions.AssignmentNotEditedException;
-import edu.iu.terracotta.exceptions.AssignmentNotMatchingException;
-import edu.iu.terracotta.exceptions.CanvasApiException;
-import edu.iu.terracotta.exceptions.ConnectionException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExceedingLimitException;
-import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
-import edu.iu.terracotta.exceptions.ExposureNotMatchingException;
-import edu.iu.terracotta.exceptions.GroupNotMatchingException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.MultipleAttemptsSettingsValidationException;
-import edu.iu.terracotta.exceptions.ParticipantNotMatchingException;
-import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
-import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
 import edu.iu.terracotta.exceptions.RevealResponsesSettingValidationException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
-import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
-import edu.iu.terracotta.exceptions.integrations.IntegrationTokenNotFoundException;
-import edu.iu.terracotta.model.LtiUserEntity;
-import edu.iu.terracotta.model.PlatformDeployment;
-import edu.iu.terracotta.model.app.Assessment;
-import edu.iu.terracotta.model.app.Experiment;
-import edu.iu.terracotta.model.app.Participant;
-import edu.iu.terracotta.model.app.Submission;
-import edu.iu.terracotta.model.app.Treatment;
-import edu.iu.terracotta.model.app.dto.AssignmentDto;
-import edu.iu.terracotta.model.app.dto.SubmissionDto;
-import edu.iu.terracotta.model.app.enumerator.MultipleSubmissionScoringScheme;
-import edu.iu.terracotta.model.canvas.AssignmentExtended;
-import edu.iu.terracotta.model.canvas.CanvasAPITokenEntity;
-import edu.iu.terracotta.model.oauth2.SecuredInfo;
-import edu.iu.terracotta.repository.AnswerEssaySubmissionRepository;
-import edu.iu.terracotta.repository.AnswerFileSubmissionRepository;
-import edu.iu.terracotta.repository.AnswerMcSubmissionRepository;
-import edu.iu.terracotta.repository.AssessmentRepository;
-import edu.iu.terracotta.repository.AssignmentRepository;
-import edu.iu.terracotta.repository.CanvasAPITokenRepository;
-import edu.iu.terracotta.repository.ExperimentRepository;
-import edu.iu.terracotta.repository.ExposureRepository;
-import edu.iu.terracotta.repository.LtiUserRepository;
-import edu.iu.terracotta.repository.PlatformDeploymentRepository;
-import edu.iu.terracotta.repository.QuestionRepository;
-import edu.iu.terracotta.repository.SubmissionRepository;
-import edu.iu.terracotta.repository.TreatmentRepository;
-import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.AssessmentService;
 import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.app.AssignmentTreatmentService;
@@ -59,7 +63,6 @@ import edu.iu.terracotta.service.app.integrations.IntegrationLaunchService;
 import edu.iu.terracotta.service.app.integrations.IntegrationService;
 import edu.iu.terracotta.service.app.integrations.IntegrationTokenService;
 import edu.iu.terracotta.service.caliper.CaliperService;
-import edu.iu.terracotta.service.canvas.CanvasAPIClient;
 import edu.iu.terracotta.utils.TextConstants;
 import lombok.extern.slf4j.Slf4j;
 
@@ -71,10 +74,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
-import edu.iu.terracotta.model.app.Assignment;
-import edu.iu.terracotta.model.app.Exposure;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import org.springframework.web.util.UriComponentsBuilder;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -107,7 +107,7 @@ public class AssignmentServiceImpl implements AssignmentService {
     @Autowired private AnswerMcSubmissionRepository answerMcSubmissionRepository;
     @Autowired private AssessmentRepository assessmentRepository;
     @Autowired private AssignmentRepository assignmentRepository;
-    @Autowired private CanvasAPITokenRepository canvasAPITokenRepository;
+    @Autowired private ApiTokenRepository apiTokenRepository;
     @Autowired private ExperimentRepository experimentRepository;
     @Autowired private ExposureRepository exposureRepository;
     @Autowired private LtiUserRepository ltiUserRepository;
@@ -115,11 +115,11 @@ public class AssignmentServiceImpl implements AssignmentService {
     @Autowired private QuestionRepository questionRepository;
     @Autowired private SubmissionRepository submissionRepository;
     @Autowired private TreatmentRepository treatmentRepository;
-    @Autowired private APIJWTService apijwtService;
+    @Autowired private ApiJwtService apiJwtService;
     @Autowired private AssessmentService assessmentService;
     @Autowired private AssignmentTreatmentService assignmentTreatmentService;
     @Autowired private CaliperService caliperService;
-    @Autowired private CanvasAPIClient canvasAPIClient;
+    @Autowired private ApiClient apiClient;
     @Autowired private IntegrationLaunchService integrationLaunchService;
     @Autowired private IntegrationService integrationService;
     @Autowired private IntegrationTokenService integrationTokenService;
@@ -135,7 +135,7 @@ public class AssignmentServiceImpl implements AssignmentService {
 
     @Override
     public List<AssignmentDto> getAssignments(Long exposureId, boolean submissions, boolean includeDeleted, SecuredInfo securedInfo)
-            throws AssessmentNotMatchingException, CanvasApiException{
+            throws AssessmentNotMatchingException, ApiException, NumberFormatException, TerracottaConnectorException {
         List<Assignment> assignments = findAllByExposureId(exposureId, includeDeleted);
 
         if (CollectionUtils.isEmpty(assignments)) {
@@ -147,7 +147,7 @@ public class AssignmentServiceImpl implements AssignmentService {
 
         for (Assignment assignment : assignments) {
             if (instructorUser != null) {
-                assignmentTreatmentService.setAssignmentDtoAttrs(assignment, securedInfo.getCanvasCourseId(), instructorUser);
+                assignmentTreatmentService.setAssignmentDtoAttrs(assignment, securedInfo.getLmsCourseId(), instructorUser);
             }
 
             assignmentDtoList.add(assignmentTreatmentService.toAssignmentDto(assignment, submissions, true));
@@ -160,22 +160,22 @@ public class AssignmentServiceImpl implements AssignmentService {
     public AssignmentDto postAssignment(AssignmentDto assignmentDto, long experimentId, long exposureId, SecuredInfo securedInfo)
             throws IdInPostException, DataServiceException, TitleValidationException,
                 AssignmentNotCreatedException, AssessmentNotMatchingException, RevealResponsesSettingValidationException,
-                MultipleAttemptsSettingsValidationException, NumberFormatException, CanvasApiException {
+                MultipleAttemptsSettingsValidationException, NumberFormatException, ApiException, TerracottaConnectorException {
         if (assignmentDto.getAssignmentId() != null) {
             throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
         }
 
         LtiUserEntity instructorUser = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
-        Assignment assignment = createAssignment(assignmentDto, experimentId, securedInfo.getCanvasCourseId(), exposureId, instructorUser);
+        Assignment assignment = createAssignment(assignmentDto, experimentId, securedInfo.getLmsCourseId(), exposureId, instructorUser);
 
-        assignmentTreatmentService.setAssignmentDtoAttrs(assignment, securedInfo.getCanvasCourseId(), instructorUser);
+        assignmentTreatmentService.setAssignmentDtoAttrs(assignment, securedInfo.getLmsCourseId(), instructorUser);
 
         return assignmentTreatmentService.toAssignmentDto(assignment, false, true);
     }
 
-    private Assignment createAssignment(AssignmentDto assignmentDto, long experimentId, String canvasCourseId, long exposureId, LtiUserEntity instructorUser)
+    private Assignment createAssignment(AssignmentDto assignmentDto, long experimentId, String lmsCourseId, long exposureId, LtiUserEntity instructorUser)
             throws IdInPostException, DataServiceException, TitleValidationException, AssignmentNotCreatedException, RevealResponsesSettingValidationException,
-                MultipleAttemptsSettingsValidationException, NumberFormatException {
+                MultipleAttemptsSettingsValidationException, NumberFormatException, TerracottaConnectorException {
         if (assignmentDto.getAssignmentId() != null) {
             throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
         }
@@ -193,7 +193,7 @@ public class AssignmentServiceImpl implements AssignmentService {
         }
 
         Assignment assignmentSaved = save(assignment);
-        createAssignmentInCanvas(instructorUser, assignmentSaved, experimentId, canvasCourseId);
+        createAssignmentInLms(instructorUser, assignmentSaved, experimentId, lmsCourseId);
 
         return saveAndFlush(assignmentSaved);
     }
@@ -245,8 +245,8 @@ public class AssignmentServiceImpl implements AssignmentService {
 
     @Override
     public List<AssignmentDto> updateAssignments(List<AssignmentDto> assignmentDtos, SecuredInfo securedInfo)
-            throws TitleValidationException, CanvasApiException, AssignmentNotEditedException, RevealResponsesSettingValidationException,
-                    MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException, AssignmentNotMatchingException {
+            throws TitleValidationException, ApiException, AssignmentNotEditedException, RevealResponsesSettingValidationException,
+                    MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException, AssignmentNotMatchingException, TerracottaConnectorException {
         List<AssignmentDto> updatedAssignmentDtos = new ArrayList<>();
 
         for (AssignmentDto assignmentDto : assignmentDtos) {
@@ -258,15 +258,15 @@ public class AssignmentServiceImpl implements AssignmentService {
 
     @Override
     public AssignmentDto putAssignment(Long id, AssignmentDto assignmentDto, SecuredInfo securedInfo)
-            throws TitleValidationException, CanvasApiException, AssignmentNotEditedException,
-                RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException, AssignmentNotMatchingException {
+            throws TitleValidationException, ApiException, AssignmentNotEditedException,
+                RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException, AssignmentNotMatchingException, TerracottaConnectorException {
         return assignmentTreatmentService.toAssignmentDto(updateAssignment(id, assignmentDto, securedInfo), false, true);
     }
 
     @Override
     public Assignment updateAssignment(Long id, AssignmentDto assignmentDto, SecuredInfo securedInfo)
-            throws TitleValidationException, CanvasApiException, AssignmentNotEditedException,
-                RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException, AssignmentNotMatchingException {
+            throws TitleValidationException, ApiException, AssignmentNotEditedException,
+                RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException, AssignmentNotMatchingException, TerracottaConnectorException {
         Assignment assignment = assignmentRepository.findByAssignmentId(id);
 
         if (assignment == null) {
@@ -284,7 +284,7 @@ public class AssignmentServiceImpl implements AssignmentService {
         if (!assignment.getTitle().equals(assignmentDto.getTitle())) {
             assignment.setTitle(assignmentDto.getTitle());
             LtiUserEntity instructorUser = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
-            editAssignmentNameInCanvas(assignment, securedInfo.getCanvasCourseId(), assignmentDto.getTitle(), instructorUser);
+            editAssignmentNameInLms(assignment, securedInfo.getLmsCourseId(), assignmentDto.getTitle(), instructorUser);
         }
 
         validateMultipleAttemptsSettings(assignmentDto);
@@ -327,10 +327,10 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     @Override
-    public void deleteById(Long id, SecuredInfo securedInfo) throws EmptyResultDataAccessException, CanvasApiException, AssignmentNotEditedException {
+    public void deleteById(Long id, SecuredInfo securedInfo) throws EmptyResultDataAccessException, ApiException, AssignmentNotEditedException, TerracottaConnectorException {
         Assignment assignment = assignmentRepository.getReferenceById(id);
         LtiUserEntity instructorUser = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
-        deleteAssignmentInCanvas(assignment, securedInfo.getCanvasCourseId(), instructorUser);
+        deleteAssignmentInLms(assignment, securedInfo.getLmsCourseId(), instructorUser);
 
         long submissionsCount = submissionRepository.countByAssessment_Treatment_Assignment_AssignmentId(id);
 
@@ -374,21 +374,21 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     @Override
-    public void sendAssignmentGradeToCanvas(Assignment assignment) throws ConnectionException, DataServiceException, CanvasApiException, IOException {
+    public void sendAssignmentGradeToLms(Assignment assignment) throws ConnectionException, DataServiceException, ApiException, IOException, TerracottaConnectorException {
         List<Submission> submissionList = submissionRepository.findByAssessment_Treatment_Assignment_AssignmentId(assignment.getAssignmentId()).stream()
             .filter(Submission::isSubmitted)
             .toList();
 
         for (Submission submission : submissionList) {
-            submissionService.sendSubmissionGradeToCanvasWithLTI(submission, false);
+            submissionService.sendSubmissionGradeToLmsWithLti(submission, false);
         }
     }
 
     @Override
     @Transactional
     public ResponseEntity<Object> launchAssignment(Long experimentId, SecuredInfo securedInfo)
-            throws AssessmentNotMatchingException, ParticipantNotUpdatedException, AssignmentDatesException, DataServiceException, CanvasApiException, IOException, GroupNotMatchingException,
-                ParticipantNotMatchingException, ConnectionException, AssignmentAttemptException, AssignmentNotMatchingException, ExperimentNotMatchingException, IntegrationTokenNotFoundException {
+            throws AssessmentNotMatchingException, ParticipantNotUpdatedException, AssignmentDatesException, DataServiceException, ApiException, IOException, GroupNotMatchingException,
+                ParticipantNotMatchingException, ConnectionException, AssignmentAttemptException, AssignmentNotMatchingException, ExperimentNotMatchingException, TerracottaConnectorException, IntegrationTokenNotFoundException {
         Optional<Experiment> experiment = experimentRepository.findById(experimentId);
 
         if (experiment.isEmpty()) {
@@ -423,7 +423,7 @@ public class AssignmentServiceImpl implements AssignmentService {
                         submissionService.finalizeAndGrade(
                             submission.getSubmissionId(),
                             securedInfo,
-                            apijwtService.isLearner(securedInfo) && !apijwtService.isInstructorOrHigher(securedInfo)
+                            apiJwtService.isLearner(securedInfo) && !apiJwtService.isInstructorOrHigher(securedInfo)
                         );
                         log.info("Previous assessment ID: [{}] has an incomplete submission ID: [{}]. Regrading and finalizing.", assessment.getAssessmentId(), submission.getSubmissionId());
                         continue;
@@ -466,17 +466,17 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     @Override
-    public void checkAndRestoreAllAssignmentsInCanvas() throws CanvasApiException, DataServiceException, ConnectionException, IOException {
+    public void checkAndRestoreAllAssignmentsInLms() throws ApiException, DataServiceException, ConnectionException, IOException, NumberFormatException, TerracottaConnectorException {
         List<PlatformDeployment> allDeployments = platformDeploymentRepository.findAll();
 
         for (PlatformDeployment platformDeployment:allDeployments) {
-            checkAndRestoreAssignmentsInCanvas(platformDeployment.getKeyId());
+            checkAndRestoreAssignmentsInLms(platformDeployment.getKeyId());
         }
     }
 
     @Override
-    @Transactional(rollbackFor = { CanvasApiException.class })
-    public void checkAndRestoreAssignmentsInCanvas(Long platformDeploymentKeyId) throws CanvasApiException, DataServiceException, ConnectionException, IOException {
+    @Transactional(rollbackFor = { ApiException.class })
+    public void checkAndRestoreAssignmentsInLms(Long platformDeploymentKeyId) throws ApiException, DataServiceException, ConnectionException, IOException, NumberFormatException, TerracottaConnectorException {
         List<Assignment> assignmentsToCheck = assignmentRepository.findAssignmentsToCheckByPlatform(platformDeploymentKeyId);
 
         for (Assignment assignment:assignmentsToCheck) {
@@ -485,48 +485,48 @@ public class AssignmentServiceImpl implements AssignmentService {
                 platformDeploymentKeyId
             );
 
-            if (!checkCanvasAssignmentExists(assignment, instructorUser)) {
-                restoreAssignmentInCanvas(assignment);
+            if (!checkLmsAssignmentExists(assignment, instructorUser)) {
+                restoreAssignmentInLms(assignment);
             }
         }
     }
 
     @Override
-    @Transactional(rollbackFor = { CanvasApiException.class })
-    public List<AssignmentExtended> checkAndRestoreAssignmentsInCanvasByContext(SecuredInfo securedInfo) throws CanvasApiException, DataServiceException, ConnectionException, IOException {
+    @Transactional(rollbackFor = { ApiException.class })
+    public List<LmsAssignment> checkAndRestoreAssignmentsInLmsByContext(SecuredInfo securedInfo) throws ApiException, DataServiceException, ConnectionException, IOException, TerracottaConnectorException {
         List<Assignment> assignmentsToCheck = assignmentRepository.findAssignmentsToCheckByContext(securedInfo.getContextId());
 
         if (CollectionUtils.isEmpty(assignmentsToCheck)) {
-            log.info("No assignments exist in Terracotta for context ID: '{}' to check in Canvas. Aborting.", securedInfo.getContextId());
+            log.info("No assignments exist in Terracotta for context ID: [{}] to check in the LMS. Aborting.", securedInfo.getContextId());
             return Collections.emptyList();
         }
 
-        log.info("Checking Terracotta assignment IDs for context ID: '{}' in Canvas: {}",
+        log.info("Checking Terracotta assignment IDs for context ID: [{}] in the LMS: [{}]",
             securedInfo.getContextId(),
             Arrays.toString(assignmentsToCheck.stream().map(Assignment::getLmsAssignmentId).toArray())
         );
 
-        List<AssignmentExtended> canvasAssignments = getAllAssignmentsForCanvasCourse(securedInfo);
+        List<LmsAssignment> lmsAssignments = getAllAssignmentsForLmsCourse(securedInfo);
 
-        if (CollectionUtils.isEmpty(canvasAssignments)) {
-            log.info("No assignments exist in Canvas for context ID: '{}. Aborting.", securedInfo.getContextId());
+        if (CollectionUtils.isEmpty(lmsAssignments)) {
+            log.info("No assignments exist in LMS for context ID: [{}]. Aborting.", securedInfo.getContextId());
             return Collections.emptyList();
         }
 
-        List<Long> canvasAssignmentIds = canvasAssignments.stream()
-            .map(AssignmentExtended::getId)
+        List<String> lmsAssignmentIds = lmsAssignments.stream()
+            .map(LmsAssignment::getId)
             .toList();
 
         List<String> assignmentsRecreated = assignmentsToCheck.stream()
-            .filter(assignmentToCheck -> !canvasAssignmentIds.contains(Long.parseLong(assignmentToCheck.getLmsAssignmentId())))
+            .filter(assignmentToCheck -> !lmsAssignmentIds.contains(assignmentToCheck.getLmsAssignmentId()))
             .map(
                 assignmentToCreate -> {
-                    log.info("Creating assignment in Canvas: {}", assignmentToCreate.getAssignmentId());
+                    log.info("Creating assignment with ID: [{}] in the LMS ", assignmentToCreate.getAssignmentId());
 
                     try {
-                        restoreAssignmentInCanvas(assignmentToCreate);
-                    } catch (CanvasApiException | DataServiceException | ConnectionException | IOException e) {
-                        log.error("Error restoring assignments in Canvas");
+                        restoreAssignmentInLms(assignmentToCreate);
+                    } catch (ApiException | DataServiceException | ConnectionException | IOException | TerracottaConnectorException e) {
+                        log.error("Error restoring assignment with ID: [{}] in the LMS", assignmentToCreate.getAssignmentId(), e);
                     }
 
                     return Long.toString(assignmentToCreate.getAssignmentId());
@@ -534,7 +534,7 @@ public class AssignmentServiceImpl implements AssignmentService {
             )
             .toList();
 
-        log.info("Checking Terracotta assignments for context ID: '{}' in Canvas COMPLETE. Assignments recreated: {}.",
+        log.info("Checking Terracotta assignments for context ID: '{}' in LMS COMPLETE. Assignments recreated: {}.",
             securedInfo.getContextId(),
             CollectionUtils.isNotEmpty(assignmentsRecreated) ?
                 assignmentsRecreated.stream()
@@ -542,68 +542,50 @@ public class AssignmentServiceImpl implements AssignmentService {
                 "N/A"
         );
 
-        return canvasAssignments;
+        return lmsAssignments;
     }
 
     @Override
-    public List<AssignmentExtended> getAllAssignmentsForCanvasCourse(SecuredInfo securedInfo) throws CanvasApiException {
+    public List<LmsAssignment> getAllAssignmentsForLmsCourse(SecuredInfo securedInfo) throws ApiException, TerracottaConnectorException {
         LtiUserEntity instructorUser = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
 
-        return canvasAPIClient.listAssignments(instructorUser, securedInfo.getCanvasCourseId());
+        return apiClient.listAssignments(instructorUser, securedInfo.getLmsCourseId());
     }
 
     @Override
-    public Optional<AssignmentExtended> getCanvasAssignmentById(int assignmentId, SecuredInfo securedInfo) throws CanvasApiException {
+    public Optional<LmsAssignment> getLmsAssignmentById(String lmsAssignmentId, SecuredInfo securedInfo) throws ApiException, TerracottaConnectorException {
         LtiUserEntity instructorUser = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
 
-        return canvasAPIClient.listAssignment(instructorUser, securedInfo.getCanvasCourseId(), assignmentId);
+        return apiClient.listAssignment(instructorUser, securedInfo.getLmsCourseId(), lmsAssignmentId);
     }
 
     @Override
-    public boolean checkCanvasAssignmentExists(Assignment assignment, LtiUserEntity instructorUser) throws CanvasApiException {
-        String canvasCourseId = StringUtils.substringBetween(
+    public boolean checkLmsAssignmentExists(Assignment assignment, LtiUserEntity instructorUser) throws ApiException, NumberFormatException, TerracottaConnectorException {
+        String lmsCourseId = StringUtils.substringBetween(
                 assignment.getExposure().getExperiment().getLtiContextEntity().getContext_memberships_url(), "courses/",
                 "/names");
 
-        Optional<CanvasAPITokenEntity> apiToken = canvasAPITokenRepository.findByUser(instructorUser);
+        Optional<ApiTokenEntity> apiTokenEntity = apiTokenRepository.findByUser(instructorUser);
 
-        return apiToken.isEmpty() || canvasAPIClient.checkAssignmentExists(instructorUser, Long.parseLong(assignment.getLmsAssignmentId()), canvasCourseId).isPresent();
+        return apiTokenEntity.isEmpty() || apiClient.checkAssignmentExists(instructorUser, assignment.getLmsAssignmentId(), lmsCourseId).isPresent();
     }
 
     @Override
-    public Assignment restoreAssignmentInCanvas(Assignment assignment) throws CanvasApiException, DataServiceException, ConnectionException, IOException {
-        // create the new Assignment in Canvas
-        AssignmentExtended canvasAssignment = new AssignmentExtended();
-        edu.ksu.canvas.model.assignment.Assignment.ExternalToolTagAttribute canvasExternalToolTagAttributes = canvasAssignment.new ExternalToolTagAttribute();
-        canvasExternalToolTagAttributes.setUrl(
-            String.format(
-                "%s/lti3?experiment=%s&assignment=%s",
-                assignment.getExposure().getExperiment().getPlatformDeployment().getLocalUrl(),
-                assignment.getExposure().getExperiment().getExperimentId(),
-                assignment.getAssignmentId()
-            )
-        );
-        canvasAssignment.setExternalToolTagAttributes(canvasExternalToolTagAttributes);
-        canvasAssignment.setName(assignment.getTitle());
-        canvasAssignment.setDescription(null);
-        canvasAssignment.setPublished(false);
-        canvasAssignment.setGradingType("percent");
-        canvasAssignment.setPointsPossible(100.0);
-        canvasAssignment.setSubmissionTypes(Collections.singletonList("external_tool"));
-        String canvasCourseId = StringUtils.substringBetween(assignment.getExposure().getExperiment().getLtiContextEntity().getContext_memberships_url(), "courses/", "/names");
-
-        Optional<AssignmentExtended> canvasAssignmentReturned = canvasAPIClient.createCanvasAssignment(assignment.getExposure().getExperiment().getCreatedBy(), canvasAssignment, canvasCourseId);
-        assignment.setLmsAssignmentId(Long.toString(canvasAssignmentReturned.get().getId()));
-        String jwtTokenAssignment = canvasAssignmentReturned.get().getSecureParams();
-        String resourceLinkId = apijwtService.unsecureToken(jwtTokenAssignment).get("lti_assignment_id").toString();
+    public Assignment restoreAssignmentInLms(Assignment assignment) throws ApiException, DataServiceException, ConnectionException, IOException, TerracottaConnectorException {
+        LmsAssignment lmsAssignmentReturned = apiClient.restoreAssignment(assignment);
+        assignment.setLmsAssignmentId(lmsAssignmentReturned.getId());
+        String jwtTokenAssignment = lmsAssignmentReturned.getSecureParams();
+        String resourceLinkId = apiJwtService.unsecureToken(jwtTokenAssignment, assignment.getExposure().getExperiment().getPlatformDeployment()).get("lti_assignment_id").toString();
         assignment.setResourceLinkId(resourceLinkId);
         save(assignment);
 
         try {
-            // send the grades back to canvas
-            sendAssignmentGradeToCanvas(assignment);
-        } catch (CanvasApiException | ConnectionException | DataServiceException | IOException e) {
-            log.error(String.format("An exception occurred sending submission grades to Canvas from assignment ID: [%s] to LMS ID: [%s]",assignment.getAssignmentId(), assignment.getLmsAssignmentId()), e);
+            // send the grades back to LMS if assignment is published
+            if (assignment.isPublished()) {
+                sendAssignmentGradeToLms(assignment);
+            }
+        } catch (ApiException | ConnectionException | DataServiceException | IOException e) {
+            log.error(String.format("An exception occurred sending submission grades to LMS from assignment ID: [%s] to LMS ID: [%s]", assignment.getAssignmentId(), assignment.getLmsAssignmentId()), e);
         }
 
         return assignment;
@@ -705,70 +687,41 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     @Override
-    public void createAssignmentInCanvas(LtiUserEntity instructorUser, Assignment assignment, long experimentId, String canvasCourseId) throws AssignmentNotCreatedException {
-        AssignmentExtended canvasAssignment = new AssignmentExtended();
-        edu.ksu.canvas.model.assignment.Assignment.ExternalToolTagAttribute canvasExternalToolTagAttributes = canvasAssignment.new ExternalToolTagAttribute();
-        canvasExternalToolTagAttributes.setUrl(ServletUriComponentsBuilder.fromCurrentContextPath().path("/lti3?experiment=" + experimentId + "&assignment=" + assignment.getAssignmentId()).build().toUriString());
-        canvasAssignment.setExternalToolTagAttributes(canvasExternalToolTagAttributes);
-        canvasAssignment.setName(assignment.getTitle());
-        canvasAssignment.setDescription(null);
-        canvasAssignment.setPublished(false);
-        canvasAssignment.setGradingType("percent");
-        canvasAssignment.setPointsPossible(100.0);
-        canvasAssignment.setSubmissionTypes(Collections.singletonList("external_tool"));
-
+    public void createAssignmentInLms(LtiUserEntity instructorUser, Assignment assignment, long experimentId, String lmsCourseId) throws AssignmentNotCreatedException, TerracottaConnectorException {
         try {
-            Optional<AssignmentExtended> canvasAssignmentReturned = canvasAPIClient.createCanvasAssignment(instructorUser, canvasAssignment, canvasCourseId);
-            assignment.setLmsAssignmentId(Long.toString(canvasAssignmentReturned.get().getId()));
-            String jwtTokenAssignment = canvasAssignmentReturned.get().getSecureParams();
-            String resourceLinkId = apijwtService.unsecureToken(jwtTokenAssignment).get("lti_assignment_id").toString();
+            LmsAssignment lmsAssignmentReturned = apiClient.createLmsAssignment(instructorUser, assignment, lmsCourseId);
+            assignment.setLmsAssignmentId(lmsAssignmentReturned.getId());
+            String jwtTokenAssignment = lmsAssignmentReturned.getSecureParams();
+            String resourceLinkId = apiJwtService.unsecureToken(jwtTokenAssignment, instructorUser.getPlatformDeployment()).get("lti_assignment_id").toString();
             assignment.setResourceLinkId(resourceLinkId);
-        } catch (CanvasApiException e) {
-            log.error("Create the assignment failed", e);
-            throw new AssignmentNotCreatedException("Error 137: The assignment was not created.");
+        } catch (ApiException e) {
+            log.error("Creating the assignment in the LMS failed", e);
+            throw new AssignmentNotCreatedException("Error 137: The assignment was not created in the LMS.");
         }
     }
 
     @Override
-    public void editAssignmentNameInCanvas(Assignment assignment, String canvasCourseId, String newName, LtiUserEntity instructorUser) throws AssignmentNotEditedException, CanvasApiException {
-        int assignmentId = Integer.parseInt(assignment.getLmsAssignmentId());
-        Optional<AssignmentExtended> assignmentExtendedOptional = canvasAPIClient.listAssignment(instructorUser, canvasCourseId, assignmentId);
-
-        if (assignmentExtendedOptional.isEmpty()) {
-            throw new AssignmentNotEditedException("Error 136: The assignment is not linked to any Canvas assignment");
-        }
-
-        AssignmentExtended assignmentExtended = assignmentExtendedOptional.get();
-        assignmentExtended.setName(newName);
-
+    public void editAssignmentNameInLms(Assignment assignment, String lmsCourseId, String newName, LtiUserEntity instructorUser) throws AssignmentNotEditedException, ApiException, TerracottaConnectorException {
         try {
-            canvasAPIClient.editAssignment(instructorUser, assignmentExtended, canvasCourseId);
-        } catch (CanvasApiException e) {
-            log.error("Edit the assignment failed", e);
-            throw new AssignmentNotEditedException("Error 137: The assignment was not created.");
+            apiClient.editAssignmentNameInLms(assignment, lmsCourseId, newName, instructorUser);
+        } catch (ApiException | IOException e) {
+            log.error("Editing the LMS assignment ID: [{}] failed", assignment.getAssignmentId(), e);
+            throw new AssignmentNotEditedException("Error 137: The assignment was not created in the LMS.");
         }
     }
 
     @Override
-    public void deleteAssignmentInCanvas(Assignment assignment, String canvasCourseId, LtiUserEntity instructorUser) throws AssignmentNotEditedException, CanvasApiException {
-        int assignmentId = Integer.parseInt(assignment.getLmsAssignmentId());
-        Optional<AssignmentExtended> assignmentExtendedOptional = canvasAPIClient.listAssignment(instructorUser, canvasCourseId, assignmentId);
-
-        if (assignmentExtendedOptional.isEmpty()) {
-            log.warn("The assignment '{}' (canvas id: '{}') was already deleted", assignment.getTitle(), assignment.getLmsAssignmentId());
-            return;
-        }
-
+    public void deleteAssignmentInLms(Assignment assignment, String lmsCourseId, LtiUserEntity instructorUser) throws AssignmentNotEditedException, ApiException, TerracottaConnectorException {
         try {
-            canvasAPIClient.deleteAssignment(instructorUser, assignmentExtendedOptional.get(), canvasCourseId);
-        } catch (CanvasApiException e) {
+            apiClient.deleteAssignmentInLms(assignment, lmsCourseId, instructorUser);
+        } catch (ApiException | IOException e) {
             log.error("Deleting the assignment failed", e);
             throw new AssignmentNotEditedException("Error 137: The assignment was not created.");
         }
     }
 
     @Override
-    public void deleteAllFromExperiment(Long id, SecuredInfo securedInfo) {
+    public void deleteAllFromExperiment(Long id, SecuredInfo securedInfo) throws TerracottaConnectorException {
         List<Assignment> assignmentList = assignmentRepository.findByExposure_Experiment_ExperimentId(id);
 
         if (CollectionUtils.isEmpty(assignmentList)) {
@@ -777,13 +730,13 @@ public class AssignmentServiceImpl implements AssignmentService {
 
         for (Assignment assignment : assignmentList) {
             try {
-                deleteAssignmentInCanvas(
+                deleteAssignmentInLms(
                     assignment,
-                    securedInfo.getCanvasCourseId(),
+                    securedInfo.getLmsCourseId(),
                     ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId())
                 );
-            } catch (CanvasApiException | AssignmentNotEditedException e) {
-                log.warn("Assignment : {} was not deleted in canvas", assignment.getTitle());
+            } catch (ApiException | AssignmentNotEditedException e) {
+                log.warn("Assignment : {} was not deleted in the LMS", assignment.getTitle());
             }
         }
     }
@@ -792,7 +745,7 @@ public class AssignmentServiceImpl implements AssignmentService {
     public AssignmentDto duplicateAssignment(long assignmentId, SecuredInfo securedInfo)
             throws DataServiceException, IdInPostException, TitleValidationException, AssessmentNotMatchingException,
                     AssignmentNotCreatedException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException,
-                    NumberFormatException, CanvasApiException, ExceedingLimitException, TreatmentNotMatchingException, QuestionNotMatchingException {
+                    NumberFormatException, ApiException, ExceedingLimitException, TreatmentNotMatchingException, QuestionNotMatchingException, TerracottaConnectorException {
         Assignment from = getAssignment(assignmentId);
 
         if (from == null) {
@@ -814,7 +767,7 @@ public class AssignmentServiceImpl implements AssignmentService {
         Assignment newAssignment = createAssignment(
             fromDto,
             from.getExposure().getExperiment().getExperimentId(),
-            securedInfo.getCanvasCourseId(),
+            securedInfo.getLmsCourseId(),
             from.getExposure().getExposureId(),
             ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId())
         );
@@ -824,14 +777,17 @@ public class AssignmentServiceImpl implements AssignmentService {
             assignmentTreatmentService.duplicateTreatment(treatment.getTreatmentId(), newAssignment, securedInfo);
         }
 
-        assignmentTreatmentService.setAssignmentDtoAttrs(newAssignment, securedInfo.getCanvasCourseId(), ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId()));
+        assignmentTreatmentService.setAssignmentDtoAttrs(newAssignment, securedInfo.getLmsCourseId(), ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId()));
 
         return assignmentTreatmentService.toAssignmentDto(newAssignment, false, true);
     }
 
     @Override
     public AssignmentDto moveAssignment(long originalAssignmentId, AssignmentDto targetAssignmentDto, long experimentId, long originalExposureId, SecuredInfo securedInfo)
-            throws AssessmentNotMatchingException, ExposureNotMatchingException, AssignmentNotMatchingException, AssignmentMoveException {
+            throws DataServiceException, IdInPostException, TitleValidationException, AssessmentNotMatchingException,
+                AssignmentNotCreatedException, RevealResponsesSettingValidationException,
+                MultipleAttemptsSettingsValidationException, NumberFormatException, ApiException, AssignmentNotMatchingException,
+                ExceedingLimitException, TreatmentNotMatchingException, ExposureNotMatchingException, AssignmentMoveException, AssignmentNotEditedException, QuestionNotMatchingException {
         if (originalExposureId == targetAssignmentDto.getExposureId().longValue()) {
             // cannot move assignment; original and target exposures are the same
             throw new AssignmentMoveException(TextConstants.UNABLE_TO_MOVE_ASSIGNMENT_EXPOSURE_SAME);

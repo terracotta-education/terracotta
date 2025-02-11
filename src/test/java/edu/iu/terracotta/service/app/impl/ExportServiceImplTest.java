@@ -29,23 +29,24 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import edu.iu.terracotta.base.BaseTest;
-import edu.iu.terracotta.exceptions.CanvasApiException;
-import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
-import edu.iu.terracotta.exceptions.OutcomeNotMatchingException;
-import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
-import edu.iu.terracotta.model.app.Assessment;
-import edu.iu.terracotta.model.app.Participant;
-import edu.iu.terracotta.model.app.enumerator.LmsType;
-import edu.iu.terracotta.model.app.enumerator.QuestionTypes;
-import edu.iu.terracotta.model.app.enumerator.export.ExperimentCsv;
-import edu.iu.terracotta.model.app.enumerator.export.ItemResponsesCsv;
-import edu.iu.terracotta.model.app.enumerator.export.ItemsCsv;
-import edu.iu.terracotta.model.app.enumerator.export.OutcomesCsv;
-import edu.iu.terracotta.model.app.enumerator.export.ParticipantTreatmentCsv;
-import edu.iu.terracotta.model.app.enumerator.export.ParticipantsCsv;
-import edu.iu.terracotta.model.app.enumerator.export.ResponseOptionsCsv;
-import edu.iu.terracotta.model.app.enumerator.export.SubmissionsCsv;
-import edu.iu.terracotta.model.events.Event;
+import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
+import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
+import edu.iu.terracotta.dao.entity.Assessment;
+import edu.iu.terracotta.dao.entity.Participant;
+import edu.iu.terracotta.dao.entity.events.Event;
+import edu.iu.terracotta.dao.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.OutcomeNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.ParticipantNotUpdatedException;
+import edu.iu.terracotta.dao.model.enums.LmsType;
+import edu.iu.terracotta.dao.model.enums.QuestionTypes;
+import edu.iu.terracotta.dao.model.enums.export.ExperimentCsv;
+import edu.iu.terracotta.dao.model.enums.export.ItemResponsesCsv;
+import edu.iu.terracotta.dao.model.enums.export.ItemsCsv;
+import edu.iu.terracotta.dao.model.enums.export.OutcomesCsv;
+import edu.iu.terracotta.dao.model.enums.export.ParticipantTreatmentCsv;
+import edu.iu.terracotta.dao.model.enums.export.ParticipantsCsv;
+import edu.iu.terracotta.dao.model.enums.export.ResponseOptionsCsv;
+import edu.iu.terracotta.dao.model.enums.export.SubmissionsCsv;
 
 public class ExportServiceImplTest extends BaseTest {
 
@@ -100,7 +101,7 @@ public class ExportServiceImplTest extends BaseTest {
     }
 
     @Test
-    void testGetCsvFiles() throws CanvasApiException, ParticipantNotUpdatedException, IOException, ExperimentNotMatchingException, OutcomeNotMatchingException {
+    void testGetCsvFiles() throws ParticipantNotUpdatedException, IOException, ExperimentNotMatchingException, OutcomeNotMatchingException, ApiException, NumberFormatException, TerracottaConnectorException {
         Map<String, String> files = exportService.getFiles(1L, securedInfo);
 
         assertNotNull(files);
@@ -117,7 +118,7 @@ public class ExportServiceImplTest extends BaseTest {
     }
 
     @Test
-    void testGetCsvFilesMCQuestionType() throws CanvasApiException, ParticipantNotUpdatedException, IOException, ExperimentNotMatchingException, OutcomeNotMatchingException {
+    void testGetCsvFilesMCQuestionType() throws ParticipantNotUpdatedException, IOException, ExperimentNotMatchingException, OutcomeNotMatchingException, ApiException, NumberFormatException, TerracottaConnectorException {
         when(question.getQuestionType()).thenReturn(QuestionTypes.MC);
 
         Map<String, String> files = exportService.getFiles(1L, securedInfo);
@@ -136,7 +137,7 @@ public class ExportServiceImplTest extends BaseTest {
     }
 
     @Test
-    void testGetCsvFilesEventsNotEnabled() throws CanvasApiException, ParticipantNotUpdatedException, IOException, ExperimentNotMatchingException, OutcomeNotMatchingException {
+    void testGetCsvFilesEventsNotEnabled() throws ParticipantNotUpdatedException, IOException, ExperimentNotMatchingException, OutcomeNotMatchingException, ApiException, NumberFormatException, TerracottaConnectorException {
         ReflectionTestUtils.setField(exportService, "eventsOutputEnabled", false);
         Map<String, String> files = exportService.getFiles(1L, securedInfo);
 
@@ -154,7 +155,7 @@ public class ExportServiceImplTest extends BaseTest {
     }
 
     @Test
-    void testGetCsvFilesEventMaxThresholdExceeded() throws CanvasApiException, ParticipantNotUpdatedException, IOException, ExperimentNotMatchingException, OutcomeNotMatchingException {
+    void testGetCsvFilesEventMaxThresholdExceeded() throws ParticipantNotUpdatedException, IOException, ExperimentNotMatchingException, OutcomeNotMatchingException, ApiException, NumberFormatException, TerracottaConnectorException {
         ReflectionTestUtils.setField(exportService, "eventsOutputParticipantThreshold", 0);
         Map<String, String> files = exportService.getFiles(1L, securedInfo);
 

@@ -19,13 +19,13 @@ import org.mockito.InjectMocks;
 import org.mockito.MockitoAnnotations;
 
 import edu.iu.terracotta.base.BaseTest;
+import edu.iu.terracotta.dao.entity.QuestionSubmission;
+import edu.iu.terracotta.dao.entity.integrations.IntegrationTokenLog;
+import edu.iu.terracotta.dao.exceptions.integrations.IntegrationTokenAlreadyRedeemedException;
+import edu.iu.terracotta.dao.exceptions.integrations.IntegrationTokenExpiredException;
+import edu.iu.terracotta.dao.exceptions.integrations.IntegrationTokenInvalidException;
+import edu.iu.terracotta.dao.exceptions.integrations.IntegrationTokenNotFoundException;
 import edu.iu.terracotta.exceptions.DataServiceException;
-import edu.iu.terracotta.exceptions.integrations.IntegrationTokenAlreadyRedeemedException;
-import edu.iu.terracotta.exceptions.integrations.IntegrationTokenExpiredException;
-import edu.iu.terracotta.exceptions.integrations.IntegrationTokenInvalidException;
-import edu.iu.terracotta.exceptions.integrations.IntegrationTokenNotFoundException;
-import edu.iu.terracotta.model.app.QuestionSubmission;
-import edu.iu.terracotta.model.app.integrations.IntegrationTokenLog;
 import edu.iu.terracotta.service.app.integrations.impl.IntegrationScoreServiceImpl;
 
 public class IntegrationScoreServiceImplTest extends BaseTest {
@@ -57,7 +57,8 @@ public class IntegrationScoreServiceImplTest extends BaseTest {
     }
 
     @Test
-    void testScoreNoExistingQuestionSubmissions() throws IntegrationTokenNotFoundException, DataServiceException, IntegrationTokenInvalidException, IntegrationTokenExpiredException, IntegrationTokenAlreadyRedeemedException {
+    void testScoreNoExistingQuestionSubmissions()
+        throws IntegrationTokenNotFoundException, DataServiceException, IntegrationTokenInvalidException, IntegrationTokenExpiredException, IntegrationTokenAlreadyRedeemedException {
         when(submission.getQuestionSubmissions()).thenReturn(Collections.emptyList());
         when(questionRepository.findByAssessment_AssessmentIdAndQuestionId(anyLong(), anyLong())).thenReturn(Optional.of(question));
         when(assessment.getQuestions()).thenReturn(Collections.singletonList(question));
@@ -70,7 +71,8 @@ public class IntegrationScoreServiceImplTest extends BaseTest {
     }
 
     @Test
-    public void testScoreIntegrationTokenInvalidException() throws IntegrationTokenInvalidException, DataServiceException, IntegrationTokenNotFoundException, IntegrationTokenAlreadyRedeemedException, IntegrationTokenExpiredException {
+    public void testScoreIntegrationTokenInvalidException()
+        throws IntegrationTokenInvalidException, DataServiceException, IntegrationTokenNotFoundException, IntegrationTokenAlreadyRedeemedException, IntegrationTokenExpiredException {
         when(integrationTokenService.redeemToken(anyString())).thenThrow(new IntegrationTokenInvalidException("error"));
 
         assertThrows(IntegrationTokenInvalidException.class, () -> { integrationScoreService.score("token", "1", Optional.empty()); });
@@ -84,7 +86,8 @@ public class IntegrationScoreServiceImplTest extends BaseTest {
     }
 
     @Test
-    public void testScoreIntegrationTokenNotFoundException() throws IntegrationTokenInvalidException, DataServiceException, IntegrationTokenNotFoundException, IntegrationTokenAlreadyRedeemedException, IntegrationTokenExpiredException {
+    public void testScoreIntegrationTokenNotFoundException()
+        throws IntegrationTokenInvalidException, DataServiceException, IntegrationTokenNotFoundException, IntegrationTokenAlreadyRedeemedException, IntegrationTokenExpiredException {
         when(integrationTokenService.redeemToken(anyString())).thenThrow(new IntegrationTokenNotFoundException("error"));
 
         assertThrows(IntegrationTokenNotFoundException.class, () -> { integrationScoreService.score("token", "1", Optional.empty()); });
@@ -93,7 +96,8 @@ public class IntegrationScoreServiceImplTest extends BaseTest {
     }
 
     @Test
-    public void testScoreIntegrationTokenAlreadyRedeemedException() throws IntegrationTokenInvalidException, DataServiceException, IntegrationTokenNotFoundException, IntegrationTokenAlreadyRedeemedException, IntegrationTokenExpiredException {
+    public void testScoreIntegrationTokenAlreadyRedeemedException()
+        throws IntegrationTokenInvalidException, DataServiceException, IntegrationTokenNotFoundException, IntegrationTokenAlreadyRedeemedException, IntegrationTokenExpiredException {
         when(integrationTokenService.redeemToken(anyString())).thenThrow(new IntegrationTokenAlreadyRedeemedException("error"));
 
         assertThrows(IntegrationTokenAlreadyRedeemedException.class, () -> { integrationScoreService.score("token", "1", Optional.empty()); });
@@ -102,7 +106,8 @@ public class IntegrationScoreServiceImplTest extends BaseTest {
     }
 
     @Test
-    public void testScoreIntegrationTokenExpiredException() throws IntegrationTokenInvalidException, DataServiceException, IntegrationTokenNotFoundException, IntegrationTokenAlreadyRedeemedException, IntegrationTokenExpiredException {
+    public void testScoreIntegrationTokenExpiredException()
+        throws IntegrationTokenInvalidException, DataServiceException, IntegrationTokenNotFoundException, IntegrationTokenAlreadyRedeemedException, IntegrationTokenExpiredException {
         when(integrationTokenService.redeemToken(anyString())).thenThrow(new IntegrationTokenExpiredException("error"));
 
         assertThrows(IntegrationTokenExpiredException.class, () -> { integrationScoreService.score("token", "1", Optional.empty()); });
@@ -111,7 +116,8 @@ public class IntegrationScoreServiceImplTest extends BaseTest {
     }
 
     @Test
-    public void testScoreDataServiceException() throws IntegrationTokenInvalidException, DataServiceException, IntegrationTokenNotFoundException, IntegrationTokenAlreadyRedeemedException, IntegrationTokenExpiredException {
+    public void testScoreDataServiceException()
+        throws IntegrationTokenInvalidException, DataServiceException, IntegrationTokenNotFoundException, IntegrationTokenAlreadyRedeemedException, IntegrationTokenExpiredException {
         when(integrationTokenService.redeemToken(anyString())).thenThrow(new DataServiceException("error"));
 
         assertThrows(DataServiceException.class, () -> { integrationScoreService.score("token", "1", Optional.empty()); });
@@ -127,7 +133,8 @@ public class IntegrationScoreServiceImplTest extends BaseTest {
     }
 
     @Test
-    void testScoreBlankPreview() throws IntegrationTokenNotFoundException, DataServiceException, IntegrationTokenInvalidException, IntegrationTokenExpiredException, IntegrationTokenAlreadyRedeemedException {
+    void testScoreBlankPreview()
+        throws IntegrationTokenNotFoundException, DataServiceException, IntegrationTokenInvalidException, IntegrationTokenExpiredException, IntegrationTokenAlreadyRedeemedException {
         when(integrationClientRepository.findByPreviewToken(anyString())).thenReturn(Optional.of(integrationClient));
 
         integrationScoreService.score("token", null, Optional.of(INTEGRATION_CLIENT_NAME));

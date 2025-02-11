@@ -19,11 +19,11 @@ import org.mockito.InjectMocks;
 import org.mockito.MockitoAnnotations;
 
 import edu.iu.terracotta.base.BaseTest;
-import edu.iu.terracotta.exceptions.integrations.IntegrationClientNotFoundException;
-import edu.iu.terracotta.exceptions.integrations.IntegrationConfigurationNotFoundException;
-import edu.iu.terracotta.exceptions.integrations.IntegrationConfigurationNotMatchingException;
-import edu.iu.terracotta.model.app.integrations.IntegrationConfiguration;
-import edu.iu.terracotta.model.app.integrations.dto.IntegrationConfigurationDto;
+import edu.iu.terracotta.dao.entity.integrations.IntegrationConfiguration;
+import edu.iu.terracotta.dao.exceptions.integrations.IntegrationClientNotFoundException;
+import edu.iu.terracotta.dao.exceptions.integrations.IntegrationConfigurationNotFoundException;
+import edu.iu.terracotta.dao.exceptions.integrations.IntegrationConfigurationNotMatchingException;
+import edu.iu.terracotta.dao.model.dto.integrations.IntegrationConfigurationDto;
 import edu.iu.terracotta.service.app.integrations.impl.IntegrationConfigurationServiceImpl;
 
 public class IntegrationConfigurationServiceImplTest extends BaseTest {

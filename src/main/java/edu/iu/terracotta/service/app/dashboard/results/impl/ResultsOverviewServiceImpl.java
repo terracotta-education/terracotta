@@ -17,38 +17,39 @@ import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import edu.iu.terracotta.exceptions.CanvasApiException;
-import edu.iu.terracotta.model.app.Assessment;
-import edu.iu.terracotta.model.app.Assignment;
-import edu.iu.terracotta.model.app.Experiment;
-import edu.iu.terracotta.model.app.ExposureGroupCondition;
-import edu.iu.terracotta.model.app.Participant;
-import edu.iu.terracotta.model.app.Submission;
-import edu.iu.terracotta.model.app.Treatment;
-import edu.iu.terracotta.model.app.dto.dashboard.results.overview.ResultsOverviewDto;
-import edu.iu.terracotta.model.app.dto.dashboard.results.overview.assignment.OverviewAssignment;
-import edu.iu.terracotta.model.app.dto.dashboard.results.overview.assignment.OverviewAssignments;
-import edu.iu.terracotta.model.app.dto.dashboard.results.overview.assignment.OverviewAssignment.OverviewAssignmentBuilder;
-import edu.iu.terracotta.model.app.dto.dashboard.results.overview.assignment.treatment.OverviewTreatment;
-import edu.iu.terracotta.model.app.dto.dashboard.results.overview.assignment.treatment.OverviewTreatments;
-import edu.iu.terracotta.model.app.dto.dashboard.results.overview.assignment.treatment.OverviewTreatment.OverviewTreatmentBuilder;
-import edu.iu.terracotta.model.app.dto.dashboard.results.overview.condition.OverviewCondition;
-import edu.iu.terracotta.model.app.dto.dashboard.results.overview.condition.OverviewConditionSingle;
-import edu.iu.terracotta.model.app.dto.dashboard.results.overview.condition.OverviewConditions;
-import edu.iu.terracotta.model.app.dto.dashboard.results.overview.condition.OverviewCondition.OverviewConditionBuilder;
-import edu.iu.terracotta.model.app.dto.dashboard.results.overview.condition.OverviewConditions.OverviewConditionsBuilder;
-import edu.iu.terracotta.model.app.dto.dashboard.results.overview.grade.Grade;
-import edu.iu.terracotta.model.app.dto.dashboard.results.overview.participant.OverviewParticipant;
-import edu.iu.terracotta.model.app.dto.dashboard.results.overview.participant.OverviewParticipant.OverviewParticipantBuilder;
-import edu.iu.terracotta.model.app.enumerator.QuestionTypes;
-import edu.iu.terracotta.model.canvas.AssignmentExtended;
-import edu.iu.terracotta.model.oauth2.SecuredInfo;
-import edu.iu.terracotta.repository.AssessmentRepository;
-import edu.iu.terracotta.repository.AssignmentRepository;
-import edu.iu.terracotta.repository.ExposureGroupConditionRepository;
-import edu.iu.terracotta.repository.ParticipantRepository;
-import edu.iu.terracotta.repository.SubmissionRepository;
-import edu.iu.terracotta.repository.TreatmentRepository;
+import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsAssignment;
+import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
+import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
+import edu.iu.terracotta.dao.entity.Assessment;
+import edu.iu.terracotta.dao.entity.Assignment;
+import edu.iu.terracotta.dao.entity.Experiment;
+import edu.iu.terracotta.dao.entity.ExposureGroupCondition;
+import edu.iu.terracotta.dao.entity.Participant;
+import edu.iu.terracotta.dao.entity.Submission;
+import edu.iu.terracotta.dao.entity.Treatment;
+import edu.iu.terracotta.dao.model.dto.dashboard.results.overview.ResultsOverviewDto;
+import edu.iu.terracotta.dao.model.dto.dashboard.results.overview.assignment.OverviewAssignment;
+import edu.iu.terracotta.dao.model.dto.dashboard.results.overview.assignment.OverviewAssignment.OverviewAssignmentBuilder;
+import edu.iu.terracotta.dao.model.dto.dashboard.results.overview.assignment.OverviewAssignments;
+import edu.iu.terracotta.dao.model.dto.dashboard.results.overview.assignment.treatment.OverviewTreatment;
+import edu.iu.terracotta.dao.model.dto.dashboard.results.overview.assignment.treatment.OverviewTreatment.OverviewTreatmentBuilder;
+import edu.iu.terracotta.dao.model.dto.dashboard.results.overview.assignment.treatment.OverviewTreatments;
+import edu.iu.terracotta.dao.model.dto.dashboard.results.overview.condition.OverviewCondition;
+import edu.iu.terracotta.dao.model.dto.dashboard.results.overview.condition.OverviewCondition.OverviewConditionBuilder;
+import edu.iu.terracotta.dao.model.dto.dashboard.results.overview.condition.OverviewConditionSingle;
+import edu.iu.terracotta.dao.model.dto.dashboard.results.overview.condition.OverviewConditions;
+import edu.iu.terracotta.dao.model.dto.dashboard.results.overview.condition.OverviewConditions.OverviewConditionsBuilder;
+import edu.iu.terracotta.dao.model.dto.dashboard.results.overview.grade.Grade;
+import edu.iu.terracotta.dao.model.dto.dashboard.results.overview.participant.OverviewParticipant;
+import edu.iu.terracotta.dao.model.dto.dashboard.results.overview.participant.OverviewParticipant.OverviewParticipantBuilder;
+import edu.iu.terracotta.dao.model.enums.QuestionTypes;
+import edu.iu.terracotta.dao.repository.AssessmentRepository;
+import edu.iu.terracotta.dao.repository.AssignmentRepository;
+import edu.iu.terracotta.dao.repository.ExposureGroupConditionRepository;
+import edu.iu.terracotta.dao.repository.ParticipantRepository;
+import edu.iu.terracotta.dao.repository.SubmissionRepository;
+import edu.iu.terracotta.dao.repository.TreatmentRepository;
 import edu.iu.terracotta.service.app.AssessmentSubmissionService;
 import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.app.SubmissionService;
@@ -56,18 +57,18 @@ import edu.iu.terracotta.service.app.dashboard.results.ResultsOverviewService;
 import edu.iu.terracotta.service.app.dashboard.results.util.StatisticsUtils;
 import lombok.extern.slf4j.Slf4j;
 
-import static edu.iu.terracotta.model.app.dto.dashboard.results.overview.assignment.OverviewAssignmentOverall.ASSIGNMENT_OVERALL_TITLE;
 import static edu.iu.terracotta.service.app.dashboard.results.util.ListDataUtils.countTreatmentsByAssignmentId;
 import static edu.iu.terracotta.service.app.dashboard.results.util.ListDataUtils.findAllLmsAssignmentIds;
 import static edu.iu.terracotta.service.app.dashboard.results.util.ListDataUtils.findAssessmentsByConditionId;
 import static edu.iu.terracotta.service.app.dashboard.results.util.ListDataUtils.findAssessmentsByTreatmentId;
-import static edu.iu.terracotta.service.app.dashboard.results.util.ListDataUtils.findCanvasAssignmentByLmsAssignmentId;
+import static edu.iu.terracotta.service.app.dashboard.results.util.ListDataUtils.findLmsAssignmentByLmsAssignmentId;
 import static edu.iu.terracotta.service.app.dashboard.results.util.ListDataUtils.findExposureGroupsByConditionId;
 import static edu.iu.terracotta.service.app.dashboard.results.util.ListDataUtils.findParticipantsByGroupId;
 import static edu.iu.terracotta.service.app.dashboard.results.util.ListDataUtils.findSubmissionsByAssignmentId;
 import static edu.iu.terracotta.service.app.dashboard.results.util.ListDataUtils.findSubmissionsByTreatmentId;
 import static edu.iu.terracotta.service.app.dashboard.results.util.ListDataUtils.findTreatmentsByAssignmentId;
 import static edu.iu.terracotta.service.app.dashboard.results.util.StatisticsUtils.calculateStatistics;
+import static edu.iu.terracotta.dao.model.dto.dashboard.results.overview.assignment.OverviewAssignmentOverall.ASSIGNMENT_OVERALL_TITLE;
 
 @Slf4j
 @Service
@@ -87,7 +88,7 @@ public class ResultsOverviewServiceImpl implements ResultsOverviewService {
     private Map<Long, List<Assessment>> allAssessmentsByAssignment;
     private Map<Long, List<Treatment>> allTreatmentsByAssignment;
     private List<Assignment> experimentAssignments;
-    private List<AssignmentExtended> experimentAssignmentsExtended;
+    private List<LmsAssignment> experimentLmsAssignments;
     private List<Participant> experimentConsentedParticipants;
     private List<ExposureGroupCondition> experimentExposureGroupConditions;
     private List<Participant> experimentParticipants;
@@ -155,37 +156,31 @@ public class ResultsOverviewServiceImpl implements ResultsOverviewService {
     }
 
     private boolean calculateOpenAssignment(Assignment experimentAssignment) {
-        Optional<AssignmentExtended> assignmentExtended = findCanvasAssignmentByLmsAssignmentId(experimentAssignment.getLmsAssignmentId(), experimentAssignmentsExtended);
+        Optional<LmsAssignment> lmsAssignment = findLmsAssignmentByLmsAssignmentId(experimentAssignment.getLmsAssignmentId(), experimentLmsAssignments);
 
-        if (assignmentExtended.isEmpty()) {
+        if (lmsAssignment.isEmpty()) {
             return true;
         }
 
         Date now = new Date();
 
-        if (assignmentExtended.get().getUnlockAt() == null && assignmentExtended.get().getLockAt() == null) {
+        if (lmsAssignment.get().getUnlockAt() == null && lmsAssignment.get().getLockAt() == null) {
             // both unlock and lock are null; assignment open
             return true;
         }
 
-        if (assignmentExtended.get().getUnlockAt() != null && assignmentExtended.get().getLockAt() == null) {
+        if (lmsAssignment.get().getUnlockAt() != null && lmsAssignment.get().getLockAt() == null) {
             // unlock set and lock is null; check now is after unlock
-            return now.after(assignmentExtended.get().getUnlockAt());
+            return now.after(lmsAssignment.get().getUnlockAt());
         }
 
-        if (assignmentExtended.get().getUnlockAt() == null && assignmentExtended.get().getLockAt() != null) {
+        if (lmsAssignment.get().getUnlockAt() == null && lmsAssignment.get().getLockAt() != null) {
             // lock set and unlock is null; check now is before lock
-            return now.before(assignmentExtended.get().getLockAt());
+            return now.before(lmsAssignment.get().getLockAt());
         }
 
-        //if (assignmentExtended.get().getUnlockAt() != null && assignmentExtended.get().getLockAt() != null) {
-            // unlock and lock set; check now is after unlock and now is before lock
-            return assignmentExtended.get().getUnlockAt() != null && assignmentExtended.get().getLockAt() != null &&
-                now.after(assignmentExtended.get().getUnlockAt()) && now.before(assignmentExtended.get().getLockAt());
-        //}
-
-        // default to true
-        //return true;
+        return lmsAssignment.get().getUnlockAt() != null && lmsAssignment.get().getLockAt() != null &&
+            now.after(lmsAssignment.get().getUnlockAt()) && now.before(lmsAssignment.get().getLockAt());
     }
 
     /**
@@ -521,23 +516,23 @@ public class ResultsOverviewServiceImpl implements ResultsOverviewService {
             .filter(submission -> submission.getParticipant().getDateRevoked() == null)
             .toList();
 
-        experimentAssignmentsExtended = findAllLmsAssignmentIds(experimentAssignments).stream()
+        experimentLmsAssignments = findAllLmsAssignmentIds(experimentAssignments).stream()
             .map(
                 lmsAssignmentId -> {
-                    Optional<AssignmentExtended> assignmentExtended;
+                    Optional<LmsAssignment> lmsAssignment;
 
                     try {
-                        assignmentExtended = assignmentService.getCanvasAssignmentById(lmsAssignmentId, securedInfo);
-                    } catch (CanvasApiException e) {
-                        log.error("Error retrieving assignments from Canvas for course: [{}]", securedInfo.getCanvasCourseId(), e);
+                        lmsAssignment = assignmentService.getLmsAssignmentById(lmsAssignmentId, securedInfo);
+                    } catch (ApiException | TerracottaConnectorException e) {
+                        log.error("Error retrieving assignments from LMS for course ID: [{}]", securedInfo.getLmsCourseId(), e);
                         return null;
                     }
 
-                    if (assignmentExtended.isEmpty()) {
+                    if (lmsAssignment.isEmpty()) {
                         return null;
                     }
 
-                    return assignmentExtended.get();
+                    return lmsAssignment.get();
                 }
             )
             .filter(assignmentExtended -> !Objects.isNull(assignmentExtended))

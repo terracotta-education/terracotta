@@ -6,6 +6,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Optional;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -13,13 +14,12 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import edu.iu.terracotta.dao.exceptions.integrations.IntegrationTokenAlreadyRedeemedException;
+import edu.iu.terracotta.dao.exceptions.integrations.IntegrationTokenExpiredException;
+import edu.iu.terracotta.dao.exceptions.integrations.IntegrationTokenInvalidException;
+import edu.iu.terracotta.dao.exceptions.integrations.IntegrationTokenNotFoundException;
 import edu.iu.terracotta.exceptions.DataServiceException;
-import edu.iu.terracotta.exceptions.integrations.IntegrationTokenAlreadyRedeemedException;
-import edu.iu.terracotta.exceptions.integrations.IntegrationTokenExpiredException;
-import edu.iu.terracotta.exceptions.integrations.IntegrationTokenInvalidException;
-import edu.iu.terracotta.exceptions.integrations.IntegrationTokenNotFoundException;
 import edu.iu.terracotta.service.app.integrations.IntegrationScoreService;
-import io.micrometer.common.util.StringUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 
@@ -33,7 +33,6 @@ public class IntegrationsController {
 
     @GetMapping
     public String score(@RequestParam(name = "launch_token", required = false) String launchToken, @RequestParam(required = false) String score, HttpServletRequest req) throws IntegrationTokenExpiredException, IntegrationTokenAlreadyRedeemedException {
-        log.info("launch_token: [{}], score: [{}]", launchToken, score);
         HttpStatus status = HttpStatus.OK;
         String errorCode = null;
         Optional<String> previewTokenClient = integrationScoreService.getPreviewTokenClient(launchToken);
@@ -50,11 +49,13 @@ public class IntegrationsController {
         } catch (IntegrationTokenNotFoundException e) {
             errorCode = e.getMessage();
             status = HttpStatus.NOT_FOUND;
-            log.error("Token: {}, score: {}, error code: {}, status: {}", launchToken, score, errorCode, status, e);
         } catch (IntegrationTokenAlreadyRedeemedException | IntegrationTokenExpiredException | IntegrationTokenInvalidException | DataServiceException | RuntimeException | UnsupportedEncodingException e) {
             errorCode = e.getMessage();
             status = HttpStatus.BAD_REQUEST;
-            log.error("launch_token: {}, score: {}, errorCode: {}, status: {}", launchToken, score, errorCode, status, e);
+        }
+
+        if (StringUtils.isNotBlank(errorCode)) {
+            log.error("launch_token: [{}], score: [{}], error code: [{}], status: [{}]", launchToken, score, errorCode, status);
         }
 
         return String.format(

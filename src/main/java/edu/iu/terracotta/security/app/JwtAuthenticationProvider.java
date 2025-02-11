@@ -8,8 +8,9 @@ import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import edu.iu.terracotta.model.oauth2.JwtAuthenticationToken;
-import edu.iu.terracotta.service.app.APIJWTService;
+import edu.iu.terracotta.connectors.generic.dao.model.lti.JwtAuthenticationToken;
+import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -23,7 +24,7 @@ import org.springframework.util.CollectionUtils;
 @Component
 public class JwtAuthenticationProvider implements AuthenticationProvider {
 
-    @Autowired private APIJWTService jwtService;
+    @Autowired private ApiJwtService jwtService;
 
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {

@@ -9,21 +9,21 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import edu.iu.terracotta.dao.entity.QuestionSubmission;
+import edu.iu.terracotta.dao.entity.integrations.IntegrationClient;
+import edu.iu.terracotta.dao.entity.integrations.IntegrationToken;
+import edu.iu.terracotta.dao.entity.integrations.IntegrationTokenLog;
+import edu.iu.terracotta.dao.exceptions.integrations.IntegrationTokenAlreadyRedeemedException;
+import edu.iu.terracotta.dao.exceptions.integrations.IntegrationTokenExpiredException;
+import edu.iu.terracotta.dao.exceptions.integrations.IntegrationTokenInvalidException;
+import edu.iu.terracotta.dao.exceptions.integrations.IntegrationTokenNotFoundException;
+import edu.iu.terracotta.dao.model.enums.integrations.IntegrationTokenStatus;
+import edu.iu.terracotta.dao.repository.QuestionRepository;
+import edu.iu.terracotta.dao.repository.QuestionSubmissionRepository;
+import edu.iu.terracotta.dao.repository.SubmissionRepository;
+import edu.iu.terracotta.dao.repository.integrations.IntegrationClientRepository;
+import edu.iu.terracotta.dao.repository.integrations.IntegrationTokenLogRepository;
 import edu.iu.terracotta.exceptions.DataServiceException;
-import edu.iu.terracotta.exceptions.integrations.IntegrationTokenAlreadyRedeemedException;
-import edu.iu.terracotta.exceptions.integrations.IntegrationTokenExpiredException;
-import edu.iu.terracotta.exceptions.integrations.IntegrationTokenInvalidException;
-import edu.iu.terracotta.exceptions.integrations.IntegrationTokenNotFoundException;
-import edu.iu.terracotta.model.app.QuestionSubmission;
-import edu.iu.terracotta.model.app.integrations.IntegrationClient;
-import edu.iu.terracotta.model.app.integrations.IntegrationToken;
-import edu.iu.terracotta.model.app.integrations.IntegrationTokenLog;
-import edu.iu.terracotta.model.app.integrations.enums.IntegrationTokenStatus;
-import edu.iu.terracotta.repository.QuestionRepository;
-import edu.iu.terracotta.repository.QuestionSubmissionRepository;
-import edu.iu.terracotta.repository.SubmissionRepository;
-import edu.iu.terracotta.repository.integrations.IntegrationClientRepository;
-import edu.iu.terracotta.repository.integrations.IntegrationTokenLogRepository;
 import edu.iu.terracotta.service.app.integrations.IntegrationScoreAsyncService;
 import edu.iu.terracotta.service.app.integrations.IntegrationScoreService;
 import edu.iu.terracotta.service.app.integrations.IntegrationTokenService;
@@ -141,8 +141,8 @@ public class IntegrationScoreServiceImpl implements IntegrationScoreService {
                 caliperService.sendAssignmentSubmitted(integrationToken.getSubmission(), integrationToken.getSecuredInfo().get());
             }
 
-            // send the grade to Canvas asyncronously
-            integrationScoreAsyncService.sendGradeToCanvas(integrationToken.getSubmission().getSubmissionId(), true);
+            // send the grade to lms asyncronously
+            integrationScoreAsyncService.sendGradeToLms(integrationToken.getSubmission().getSubmissionId(), true);
 
             // create a log for the token
             integrationTokenLogRepository.save(
@@ -169,7 +169,7 @@ public class IntegrationScoreServiceImpl implements IntegrationScoreService {
             );
         } catch (IntegrationTokenNotFoundException e) {
             throw new IntegrationTokenNotFoundException(
-                createErrorLog(e.getMessage(), score, launchToken),
+                createErrorLog(e.getMessage(), score, launchToken, IntegrationTokenStatus.NOT_FOUND),
                 e
             );
         } catch (DataServiceException e) {

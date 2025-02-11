@@ -1,19 +1,19 @@
 package edu.iu.terracotta.service.app.impl;
 
+import edu.iu.terracotta.dao.entity.Condition;
+import edu.iu.terracotta.dao.entity.Experiment;
+import edu.iu.terracotta.dao.entity.Exposure;
+import edu.iu.terracotta.dao.entity.Group;
+import edu.iu.terracotta.dao.model.dto.ExposureDto;
+import edu.iu.terracotta.dao.model.dto.GroupConditionDto;
+import edu.iu.terracotta.dao.model.enums.ExposureTypes;
+import edu.iu.terracotta.dao.repository.ExperimentRepository;
+import edu.iu.terracotta.dao.repository.ExposureGroupConditionRepository;
+import edu.iu.terracotta.dao.repository.ExposureRepository;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentStartedException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
-import edu.iu.terracotta.model.app.Condition;
-import edu.iu.terracotta.model.app.Experiment;
-import edu.iu.terracotta.model.app.Exposure;
-import edu.iu.terracotta.model.app.Group;
-import edu.iu.terracotta.model.app.dto.ExposureDto;
-import edu.iu.terracotta.model.app.dto.GroupConditionDto;
-import edu.iu.terracotta.model.app.enumerator.ExposureTypes;
-import edu.iu.terracotta.repository.ExperimentRepository;
-import edu.iu.terracotta.repository.ExposureGroupConditionRepository;
-import edu.iu.terracotta.repository.ExposureRepository;
 import edu.iu.terracotta.service.app.ExposureService;
 import edu.iu.terracotta.utils.TextConstants;
 

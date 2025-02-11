@@ -1,11 +1,11 @@
 package edu.iu.terracotta.utils.lti;
 
-import edu.iu.terracotta.service.lti.LTIDataService;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.Jwts.SIG;
 import lombok.extern.slf4j.Slf4j;
-import edu.iu.terracotta.model.PlatformDeployment;
-import edu.iu.terracotta.model.lti.dto.LoginInitiationDTO;
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
+import edu.iu.terracotta.connectors.generic.dao.model.lti.dto.LoginInitiationDto;
+import edu.iu.terracotta.connectors.generic.service.lti.LtiDataService;
 import edu.iu.terracotta.utils.LtiStrings;
 import edu.iu.terracotta.utils.TextConstants;
 import edu.iu.terracotta.utils.oauth.OAuthUtils;
@@ -26,7 +26,7 @@ public final class LtiOidcUtils {
      * The state will be returned when the tool makes the final call to us, so it is useful to send information
      * to our own tool, to know about the request.
      */
-    public static String generateState(LTIDataService ltiDataService, PlatformDeployment platformDeployment, Map<String, String> authRequestMap, LoginInitiationDTO loginInitiationDTO, String clientIdValue, String deploymentIdValue, boolean verboseLogging) throws GeneralSecurityException, IOException {
+    public static String generateState(LtiDataService ltiDataService, PlatformDeployment platformDeployment, Map<String, String> authRequestMap, LoginInitiationDto loginInitiationDto, String clientIdValue, String deploymentIdValue, boolean verboseLogging) throws GeneralSecurityException, IOException {
         Date date = new Date();
         String state = Jwts.builder()
             .header()
@@ -42,10 +42,10 @@ public final class LtiOidcUtils {
             .notBefore(date) // a java.util.Date
             .issuedAt(date) // for example, now
             .id(authRequestMap.get("nonce")) // just a nonce... we don't use it by the moment, but it could be good if we store information about the requests in DB.
-            .claim("original_iss", loginInitiationDTO.getIss())  // All this claims are the information received in the OIDC initiation and some other useful things.
-            .claim("loginHint", loginInitiationDTO.getLoginHint())
-            .claim("ltiMessageHint", loginInitiationDTO.getLtiMessageHint())
-            .claim("targetLinkUri", loginInitiationDTO.getTargetLinkUri())
+            .claim("original_iss", loginInitiationDto.getIss())  // All this claims are the information received in the OIDC initiation and some other useful things.
+            .claim("loginHint", loginInitiationDto.getLoginHint())
+            .claim("ltiMessageHint", loginInitiationDto.getLtiMessageHint())
+            .claim("targetLinkUri", loginInitiationDto.getTargetLinkUri())
             .claim("clientId", clientIdValue)
             .claim("ltiDeploymentId", deploymentIdValue)
             .claim("controller", "/oidc/login_initiations")

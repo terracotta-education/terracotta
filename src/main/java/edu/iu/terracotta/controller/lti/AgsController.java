@@ -1,14 +1,15 @@
 package edu.iu.terracotta.controller.lti;
 
-import edu.iu.terracotta.repository.LtiContextRepository;
-import edu.iu.terracotta.repository.ToolDeploymentRepository;
-import edu.iu.terracotta.exceptions.ConnectionException;
-import edu.iu.terracotta.model.LtiContextEntity;
-import edu.iu.terracotta.model.ToolDeployment;
-import edu.iu.terracotta.model.ags.LineItem;
-import edu.iu.terracotta.model.ags.LineItems;
-import edu.iu.terracotta.model.oauth2.LTIToken;
-import edu.iu.terracotta.service.lti.AdvantageAGSService;
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiContextEntity;
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.ToolDeployment;
+import edu.iu.terracotta.connectors.generic.dao.model.lti.LtiToken;
+import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.LineItem;
+import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.LineItems;
+import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiContextRepository;
+import edu.iu.terracotta.connectors.generic.dao.repository.lti.ToolDeploymentRepository;
+import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
+import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
+import edu.iu.terracotta.connectors.generic.service.lti.advantage.AdvantageAgsService;
 import edu.iu.terracotta.utils.LtiStrings;
 import edu.iu.terracotta.utils.TextConstants;
 import lombok.extern.slf4j.Slf4j;
@@ -44,10 +45,10 @@ public class AgsController {
 
     @Autowired private LtiContextRepository ltiContextRepository;
     @Autowired private ToolDeploymentRepository toolDeploymentRepository;
-    @Autowired private AdvantageAGSService advantageAGSServiceService;
+    @Autowired private AdvantageAgsService advantageAGSServiceService;
 
     @GetMapping("/")
-    public String agsGetLineItems(HttpServletRequest req, Principal principal, Model model) throws ConnectionException {
+    public String agsGetLineItems(HttpServletRequest req, Principal principal, Model model) throws ConnectionException, TerracottaConnectorException {
         //To keep this endpoint secured, we will only allow access to the course/platform stored in the session.
         //LTI Advantage services doesn't need a session to access to the membership, but we implemented this control here
         // to avoid access to all the courses and platforms.
@@ -69,7 +70,7 @@ public class AgsController {
 
             //Call the ags service to get the users on the context
             // 1. Get the token
-            LTIToken ltiToken = advantageAGSServiceService.getToken("lineitems", toolDeployment.get().getPlatformDeployment());
+            LtiToken ltiToken = advantageAGSServiceService.getToken("lineitems", toolDeployment.get().getPlatformDeployment());
             log.info(TextConstants.TOKEN + ltiToken.getAccess_token());
             // 2. Call the service
             LineItems lineItemsResult = advantageAGSServiceService.getLineItems(ltiToken, context);
@@ -107,7 +108,7 @@ public class AgsController {
 
             //Call the ags service to post a lineitem
             // 1. Get the token
-            LTIToken ltiToken = advantageAGSServiceService.getToken("lineitems", toolDeployment.get().getPlatformDeployment());
+            LtiToken ltiToken = advantageAGSServiceService.getToken("lineitems", toolDeployment.get().getPlatformDeployment());
             log.info(TextConstants.TOKEN + ltiToken.getAccess_token());
 
             // 2. Call the service
@@ -145,7 +146,7 @@ public class AgsController {
 
             //Call the ags service to post a lineitem
             // 1. Get the token
-            LTIToken ltiToken = advantageAGSServiceService.getToken("lineitems", toolDeployment.get().getPlatformDeployment());
+            LtiToken ltiToken = advantageAGSServiceService.getToken("lineitems", toolDeployment.get().getPlatformDeployment());
             log.info(TextConstants.TOKEN + ltiToken.getAccess_token());
 
             // 2. Call the service
@@ -183,7 +184,7 @@ public class AgsController {
 
                 //Call the ags service to post a lineitem
                 // 1. Get the token
-                LTIToken ltiToken = advantageAGSServiceService.getToken("lineitems", toolDeployment.get().getPlatformDeployment());
+                LtiToken ltiToken = advantageAGSServiceService.getToken("lineitems", toolDeployment.get().getPlatformDeployment());
                 log.info(TextConstants.TOKEN + ltiToken.getAccess_token());
 
                 // 2. Call the service
@@ -202,7 +203,7 @@ public class AgsController {
     // Delete lineitem
 
     @GetMapping("/delete/{id}")
-    public String agsPDeleteLineitem(HttpServletRequest req, Principal principal, Model model, @PathVariable("id") String id) throws ConnectionException {
+    public String agsPDeleteLineitem(HttpServletRequest req, Principal principal, Model model, @PathVariable("id") String id) throws ConnectionException, TerracottaConnectorException {
         //To keep this endpoint secured, we will only allow access to the course/platform stored in the session.
         //LTI Advantage services doesn't need a session to access to the membership, but we implemented this control here
         // to avoid access to all the courses and platforms.
@@ -224,7 +225,7 @@ public class AgsController {
 
             //Call the ags service to post a lineitem
             // 1. Get the token
-            LTIToken ltiToken = advantageAGSServiceService.getToken("lineitems", toolDeployment.get().getPlatformDeployment());
+            LtiToken ltiToken = advantageAGSServiceService.getToken("lineitems", toolDeployment.get().getPlatformDeployment());
             log.info(TextConstants.TOKEN + ltiToken.getAccess_token());
 
             // 2. Call the service

@@ -6,17 +6,17 @@ import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import edu.iu.terracotta.dao.entity.AnswerMcSubmission;
+import edu.iu.terracotta.dao.entity.Assessment;
+import edu.iu.terracotta.dao.entity.Question;
+import edu.iu.terracotta.dao.entity.QuestionSubmission;
+import edu.iu.terracotta.dao.entity.RegradeDetails;
+import edu.iu.terracotta.dao.entity.Submission;
+import edu.iu.terracotta.dao.model.enums.RegradeOption;
+import edu.iu.terracotta.dao.repository.AnswerMcSubmissionRepository;
+import edu.iu.terracotta.dao.repository.QuestionSubmissionRepository;
+import edu.iu.terracotta.dao.repository.SubmissionRepository;
 import edu.iu.terracotta.exceptions.DataServiceException;
-import edu.iu.terracotta.model.app.AnswerMcSubmission;
-import edu.iu.terracotta.model.app.Assessment;
-import edu.iu.terracotta.model.app.Question;
-import edu.iu.terracotta.model.app.QuestionSubmission;
-import edu.iu.terracotta.model.app.RegradeDetails;
-import edu.iu.terracotta.model.app.Submission;
-import edu.iu.terracotta.model.app.enumerator.RegradeOption;
-import edu.iu.terracotta.repository.AnswerMcSubmissionRepository;
-import edu.iu.terracotta.repository.QuestionSubmissionRepository;
-import edu.iu.terracotta.repository.SubmissionRepository;
 import edu.iu.terracotta.service.app.AssessmentSubmissionService;
 import edu.iu.terracotta.service.app.QuestionSubmissionService;
 

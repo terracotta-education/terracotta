@@ -1,22 +1,23 @@
 package edu.iu.terracotta.controller.app;
 
-import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
+import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
+import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
+import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
+import edu.iu.terracotta.dao.entity.Question;
+import edu.iu.terracotta.dao.exceptions.AssessmentNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.QuestionNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.integrations.IntegrationClientNotFoundException;
+import edu.iu.terracotta.dao.exceptions.integrations.IntegrationConfigurationNotFoundException;
+import edu.iu.terracotta.dao.exceptions.integrations.IntegrationConfigurationNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.integrations.IntegrationNotFoundException;
+import edu.iu.terracotta.dao.exceptions.integrations.IntegrationNotMatchingException;
+import edu.iu.terracotta.dao.model.dto.QuestionDto;
 import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.DataServiceException;
-import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.MultipleChoiceLimitReachedException;
 import edu.iu.terracotta.exceptions.NegativePointsException;
-import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
-import edu.iu.terracotta.exceptions.integrations.IntegrationClientNotFoundException;
-import edu.iu.terracotta.exceptions.integrations.IntegrationConfigurationNotFoundException;
-import edu.iu.terracotta.exceptions.integrations.IntegrationConfigurationNotMatchingException;
-import edu.iu.terracotta.exceptions.integrations.IntegrationNotFoundException;
-import edu.iu.terracotta.exceptions.integrations.IntegrationNotMatchingException;
-import edu.iu.terracotta.model.app.Question;
-import edu.iu.terracotta.model.app.dto.QuestionDto;
-import edu.iu.terracotta.model.oauth2.SecuredInfo;
-import edu.iu.terracotta.service.app.APIJWTService;
 import edu.iu.terracotta.service.app.QuestionService;
 import edu.iu.terracotta.utils.TextConstants;
 import lombok.extern.slf4j.Slf4j;
@@ -52,7 +53,7 @@ public class QuestionController {
     public final static String REQUEST_ROOT = "api/experiments/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}/questions";
 
     @Autowired private QuestionService questionService;
-    @Autowired private APIJWTService apijwtService;
+    @Autowired private ApiJwtService apijwtService;
 
     @GetMapping
     public ResponseEntity<List<QuestionDto>> getQuestionsByAssessment(@PathVariable long experimentId,
@@ -60,7 +61,7 @@ public class QuestionController {
                                                                       @PathVariable long treatmentId,
                                                                       @PathVariable long assessmentId,
                                                                       HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, BadTokenException {
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, BadTokenException, NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
@@ -86,7 +87,7 @@ public class QuestionController {
                                                    @PathVariable long questionId,
                                                    @RequestParam(name = "answers", defaultValue = "false") boolean answers,
                                                    HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionNotMatchingException, BadTokenException {
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionNotMatchingException, BadTokenException, NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
@@ -110,7 +111,8 @@ public class QuestionController {
                                                     @RequestBody QuestionDto questionDto,
                                                     UriComponentsBuilder ucBuilder,
                                                     HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, BadTokenException, IdInPostException, DataServiceException, MultipleChoiceLimitReachedException, IntegrationNotFoundException, IntegrationClientNotFoundException {
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, BadTokenException, IdInPostException, DataServiceException, MultipleChoiceLimitReachedException,
+            IntegrationNotFoundException, IntegrationClientNotFoundException, NumberFormatException, TerracottaConnectorException {
         log.debug("Creating Question for assessment ID: {}", assessmentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -133,7 +135,7 @@ public class QuestionController {
                                                 @PathVariable long assessmentId,
                                                 @RequestBody List<QuestionDto> questionDtoList,
                                                 HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionNotMatchingException, BadTokenException, DataServiceException  {
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionNotMatchingException, BadTokenException, DataServiceException, NumberFormatException, TerracottaConnectorException  {
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
@@ -168,7 +170,7 @@ public class QuestionController {
                                                @RequestBody QuestionDto questionDto,
                                                HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionNotMatchingException, BadTokenException, NegativePointsException, IntegrationNotFoundException,
-                IntegrationNotMatchingException, IntegrationConfigurationNotFoundException, IntegrationConfigurationNotMatchingException, IntegrationClientNotFoundException {
+                IntegrationNotMatchingException, IntegrationConfigurationNotFoundException, IntegrationConfigurationNotMatchingException, IntegrationClientNotFoundException, NumberFormatException, TerracottaConnectorException {
         log.debug("Updating question with id: {}", questionId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -194,7 +196,7 @@ public class QuestionController {
                                                @PathVariable long assessmentId,
                                                @PathVariable long questionId,
                                                HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionNotMatchingException, BadTokenException {
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionNotMatchingException, BadTokenException, NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);

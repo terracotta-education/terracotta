@@ -1,52 +1,54 @@
 package edu.iu.terracotta.service.app.impl;
 
-import edu.iu.terracotta.exceptions.AnswerNotMatchingException;
-import edu.iu.terracotta.exceptions.AnswerSubmissionNotMatchingException;
-import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
+import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsAssignment;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsSubmission;
+import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
+import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
+import edu.iu.terracotta.connectors.generic.service.api.ApiClient;
+import edu.iu.terracotta.dao.entity.AnswerEssaySubmission;
+import edu.iu.terracotta.dao.entity.AnswerFileSubmission;
+import edu.iu.terracotta.dao.entity.AnswerMc;
+import edu.iu.terracotta.dao.entity.AnswerMcSubmission;
+import edu.iu.terracotta.dao.entity.Assessment;
+import edu.iu.terracotta.dao.entity.Assignment;
+import edu.iu.terracotta.dao.entity.FileSubmissionLocal;
+import edu.iu.terracotta.dao.entity.Question;
+import edu.iu.terracotta.dao.entity.QuestionSubmission;
+import edu.iu.terracotta.dao.entity.QuestionSubmissionComment;
+import edu.iu.terracotta.dao.entity.Submission;
+import edu.iu.terracotta.dao.exceptions.AnswerNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.AnswerSubmissionNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.AssessmentNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.QuestionSubmissionNotMatchingException;
+import edu.iu.terracotta.dao.model.dto.AnswerSubmissionDto;
+import edu.iu.terracotta.dao.model.dto.QuestionSubmissionCommentDto;
+import edu.iu.terracotta.dao.model.dto.QuestionSubmissionDto;
+import edu.iu.terracotta.dao.model.enums.QuestionTypes;
+import edu.iu.terracotta.dao.repository.AnswerEssaySubmissionRepository;
+import edu.iu.terracotta.dao.repository.AnswerFileSubmissionRepository;
+import edu.iu.terracotta.dao.repository.AnswerMcRepository;
+import edu.iu.terracotta.dao.repository.AnswerMcSubmissionRepository;
+import edu.iu.terracotta.dao.repository.AssessmentRepository;
+import edu.iu.terracotta.dao.repository.AssignmentRepository;
+import edu.iu.terracotta.dao.repository.QuestionRepository;
+import edu.iu.terracotta.dao.repository.QuestionSubmissionCommentRepository;
+import edu.iu.terracotta.dao.repository.QuestionSubmissionRepository;
+import edu.iu.terracotta.dao.repository.SubmissionRepository;
 import edu.iu.terracotta.exceptions.AssignmentAttemptException;
-import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.DuplicateQuestionException;
 import edu.iu.terracotta.exceptions.ExceedingLimitException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.IdMissingException;
 import edu.iu.terracotta.exceptions.InvalidUserException;
-import edu.iu.terracotta.exceptions.QuestionSubmissionNotMatchingException;
 import edu.iu.terracotta.exceptions.TypeNotSupportedException;
-import edu.iu.terracotta.model.LtiUserEntity;
-import edu.iu.terracotta.model.app.AnswerEssaySubmission;
-import edu.iu.terracotta.model.app.AnswerFileSubmission;
-import edu.iu.terracotta.model.app.AnswerMc;
-import edu.iu.terracotta.model.app.AnswerMcSubmission;
-import edu.iu.terracotta.model.app.Assessment;
-import edu.iu.terracotta.model.app.Assignment;
-import edu.iu.terracotta.model.app.FileSubmissionLocal;
-import edu.iu.terracotta.model.app.Question;
-import edu.iu.terracotta.model.app.QuestionSubmission;
-import edu.iu.terracotta.model.app.QuestionSubmissionComment;
-import edu.iu.terracotta.model.app.Submission;
-import edu.iu.terracotta.model.app.dto.AnswerSubmissionDto;
-import edu.iu.terracotta.model.app.dto.QuestionSubmissionCommentDto;
-import edu.iu.terracotta.model.app.dto.QuestionSubmissionDto;
-import edu.iu.terracotta.model.app.enumerator.QuestionTypes;
-import edu.iu.terracotta.model.canvas.AssignmentExtended;
-import edu.iu.terracotta.model.oauth2.SecuredInfo;
-import edu.iu.terracotta.repository.AnswerEssaySubmissionRepository;
-import edu.iu.terracotta.repository.AnswerFileSubmissionRepository;
-import edu.iu.terracotta.repository.AnswerMcRepository;
-import edu.iu.terracotta.repository.AnswerMcSubmissionRepository;
-import edu.iu.terracotta.repository.AssessmentRepository;
-import edu.iu.terracotta.repository.AssignmentRepository;
-import edu.iu.terracotta.repository.QuestionRepository;
-import edu.iu.terracotta.repository.QuestionSubmissionCommentRepository;
-import edu.iu.terracotta.repository.QuestionSubmissionRepository;
-import edu.iu.terracotta.repository.SubmissionRepository;
 import edu.iu.terracotta.service.app.AnswerService;
 import edu.iu.terracotta.service.app.AnswerSubmissionService;
 import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.service.app.QuestionSubmissionCommentService;
 import edu.iu.terracotta.service.app.QuestionSubmissionService;
-import edu.iu.terracotta.service.canvas.CanvasAPIClient;
 import edu.iu.terracotta.utils.TextConstants;
 import lombok.extern.slf4j.Slf4j;
 
@@ -90,7 +92,7 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
     @Autowired private AnswerSubmissionService answerSubmissionService;
     @Autowired private FileStorageService fileStorageService;
     @Autowired private QuestionSubmissionCommentService questionSubmissionCommentService;
-    @Autowired private CanvasAPIClient canvasAPIClient;
+    @Autowired private ApiClient apiClient;
 
     private ObjectMapper objectMapper = new ObjectMapper();
 
@@ -390,9 +392,9 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
     }
 
     @Override
-    public void canSubmit(SecuredInfo securedInfo, long experimentId) throws CanvasApiException, AssignmentAttemptException, IOException {
+    public void canSubmit(SecuredInfo securedInfo, long experimentId) throws ApiException, AssignmentAttemptException, IOException, TerracottaConnectorException {
         // There are two possible ways to do this check. First, and preferred, is using LTI custom variable substitution to get the allowed attempts
-        // and the number of student attempts. The second is by making Canvas API calls to get the same information.
+        // and the number of student attempts. The second is by making LMS API calls to get the same information.
 
         // (Approach #1) Using LTI custom variable substitution
         if (securedInfo.getAllowedAttempts() != null && securedInfo.getAllowedAttempts() == -1) {
@@ -410,24 +412,23 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
             throw new AssignmentAttemptException(TextConstants.MAX_SUBMISSION_ATTEMPTS_REACHED);
         }
 
-        // (Approach #2) Using Canvas API calls
-        long assignmentIdInt = Long.parseLong(securedInfo.getCanvasAssignmentId());
-        Assignment assignment = assignmentRepository.findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(experimentId, securedInfo.getCanvasAssignmentId());
+        // (Approach #2) Using LMS API calls
+        Assignment assignment = assignmentRepository.findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(experimentId, securedInfo.getLmsAssignmentId());
         LtiUserEntity instructorUser = assignment.getExposure().getExperiment().getCreatedBy();
-        Optional<AssignmentExtended> assignmentExtended = canvasAPIClient.listAssignment(instructorUser, securedInfo.getCanvasCourseId(), assignmentIdInt);
-        List<edu.ksu.canvas.model.assignment.Submission> submissionsList = canvasAPIClient.listSubmissions(instructorUser, assignmentIdInt, securedInfo.getCanvasCourseId());
+        Optional<LmsAssignment> lmsAssignment = apiClient.listAssignment(instructorUser, securedInfo.getLmsCourseId(), securedInfo.getLmsAssignmentId());
+        List<LmsSubmission> submissionsList = apiClient.listSubmissions(instructorUser, securedInfo.getLmsAssignmentId(), securedInfo.getLmsCourseId());
 
-        Optional<edu.ksu.canvas.model.assignment.Submission> submission = submissionsList.stream()
+        Optional<LmsSubmission> submission = submissionsList.stream()
             .filter(sub -> sub.getUser() != null)
-            .filter(sub -> sub.getUser().getId() == Integer.parseInt(securedInfo.getCanvasUserId()))
+            .filter(sub -> sub.getUserId() == Integer.parseInt(securedInfo.getLmsUserId()))
             .findFirst();
 
-        if (assignmentExtended.isEmpty() || submission.isEmpty()) {
+        if (lmsAssignment.isEmpty() || submission.isEmpty()) {
             // no extends assignment and no submissions exist
             return;
         }
 
-        int allowedAttempts = assignmentExtended.get().getAllowedAttempts();
+        int allowedAttempts = lmsAssignment.get().getAllowedAttempts();
 
         if (submission.get().getAttempt() == null || allowedAttempts <= 0) {
             // allowed attempts is infinite
@@ -445,8 +446,8 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
     }
 
     public List<QuestionSubmissionDto> handleFileQuestionSubmission(MultipartFile file, String questionSubmissionDtoStr, long experimentId, long assessmentId, long submissionId, boolean student, SecuredInfo securedInfo)
-            throws IOException, CanvasApiException, AssignmentAttemptException, IdInPostException, DataServiceException, DuplicateQuestionException, InvalidUserException, IdMissingException,
-                AnswerSubmissionNotMatchingException, AnswerNotMatchingException, ExceedingLimitException, TypeNotSupportedException {
+            throws IOException, ApiException, AssignmentAttemptException, IdInPostException, DataServiceException, DuplicateQuestionException, InvalidUserException, IdMissingException,
+                AnswerSubmissionNotMatchingException, AnswerNotMatchingException, ExceedingLimitException, TypeNotSupportedException, TerracottaConnectorException {
         String fileName = file.getResource().getFilename();
         File tempFile = getFile(file, file.getName());
 
@@ -477,8 +478,8 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
     }
 
     public List<QuestionSubmissionDto> handleFileQuestionSubmissionUpdate(MultipartFile file, String questionSubmissionDtoStr, long experimentId, long assessmentId, long submissionId, long questionSubmissionId, boolean student, SecuredInfo securedInfo)
-            throws IOException, CanvasApiException, AssignmentAttemptException, IdInPostException, DataServiceException, DuplicateQuestionException, InvalidUserException, IdMissingException,
-                AnswerSubmissionNotMatchingException, AnswerNotMatchingException, ExceedingLimitException, TypeNotSupportedException, QuestionSubmissionNotMatchingException {
+            throws IOException, ApiException, AssignmentAttemptException, IdInPostException, DataServiceException, DuplicateQuestionException, InvalidUserException, IdMissingException,
+                AnswerSubmissionNotMatchingException, AnswerNotMatchingException, ExceedingLimitException, TypeNotSupportedException, QuestionSubmissionNotMatchingException, TerracottaConnectorException {
         QuestionSubmissionDto questionSubmissionDto = objectMapper.readValue(questionSubmissionDtoStr, QuestionSubmissionDto.class);
         QuestionSubmission questionSubmission = questionSubmissionRepository.findByQuestionSubmissionId(questionSubmissionId);
 

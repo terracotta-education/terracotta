@@ -1,11 +1,12 @@
 package edu.iu.terracotta.service.app;
 
+import edu.iu.terracotta.dao.entity.Condition;
+import edu.iu.terracotta.dao.model.dto.ConditionDto;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentConditionLimitReachedException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
-import edu.iu.terracotta.model.app.Condition;
-import edu.iu.terracotta.model.app.dto.ConditionDto;
+
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.web.util.UriComponentsBuilder;

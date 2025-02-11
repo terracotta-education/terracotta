@@ -1,39 +1,38 @@
 package edu.iu.terracotta.service.app.impl;
 
-import edu.iu.terracotta.exceptions.CanvasApiException;
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
+import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsAssignment;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsSubmission;
+import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiUserRepository;
+import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
+import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
+import edu.iu.terracotta.connectors.generic.service.api.ApiClient;
+import edu.iu.terracotta.dao.entity.Assignment;
+import edu.iu.terracotta.dao.entity.Experiment;
+import edu.iu.terracotta.dao.entity.Exposure;
+import edu.iu.terracotta.dao.entity.Outcome;
+import edu.iu.terracotta.dao.entity.OutcomeScore;
+import edu.iu.terracotta.dao.entity.Participant;
+import edu.iu.terracotta.dao.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.OutcomeNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.ParticipantNotUpdatedException;
+import edu.iu.terracotta.dao.model.dto.OutcomeDto;
+import edu.iu.terracotta.dao.model.dto.OutcomePotentialDto;
+import edu.iu.terracotta.dao.model.dto.OutcomeScoreDto;
+import edu.iu.terracotta.dao.model.enums.LmsType;
+import edu.iu.terracotta.dao.repository.AssignmentRepository;
+import edu.iu.terracotta.dao.repository.ExperimentRepository;
+import edu.iu.terracotta.dao.repository.ExposureRepository;
+import edu.iu.terracotta.dao.repository.OutcomeRepository;
+import edu.iu.terracotta.dao.repository.OutcomeScoreRepository;
 import edu.iu.terracotta.exceptions.DataServiceException;
-import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.IdInPostException;
-import edu.iu.terracotta.exceptions.OutcomeNotMatchingException;
-import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
-import edu.iu.terracotta.model.LtiUserEntity;
-import edu.iu.terracotta.model.PlatformDeployment;
-import edu.iu.terracotta.model.app.Assignment;
-import edu.iu.terracotta.model.app.Experiment;
-import edu.iu.terracotta.model.app.Exposure;
-import edu.iu.terracotta.model.app.Outcome;
-import edu.iu.terracotta.model.app.OutcomeScore;
-import edu.iu.terracotta.model.app.Participant;
-import edu.iu.terracotta.model.app.dto.OutcomeDto;
-import edu.iu.terracotta.model.app.dto.OutcomePotentialDto;
-import edu.iu.terracotta.model.app.dto.OutcomeScoreDto;
-import edu.iu.terracotta.model.app.enumerator.LmsType;
-import edu.iu.terracotta.model.canvas.AssignmentExtended;
-import edu.iu.terracotta.model.oauth2.SecuredInfo;
-import edu.iu.terracotta.repository.AssignmentRepository;
-import edu.iu.terracotta.repository.ExperimentRepository;
-import edu.iu.terracotta.repository.ExposureRepository;
-import edu.iu.terracotta.repository.LtiUserRepository;
-import edu.iu.terracotta.repository.OutcomeRepository;
-import edu.iu.terracotta.repository.OutcomeScoreRepository;
-import edu.iu.terracotta.repository.PlatformDeploymentRepository;
 import edu.iu.terracotta.service.app.OutcomeScoreService;
 import edu.iu.terracotta.service.app.OutcomeService;
 import edu.iu.terracotta.service.app.ParticipantService;
-import edu.iu.terracotta.service.canvas.CanvasAPIClient;
 import edu.iu.terracotta.utils.TextConstants;
-import edu.ksu.canvas.model.assignment.Submission;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
@@ -59,10 +58,9 @@ public class OutcomeServiceImpl implements OutcomeService {
     @Autowired private LtiUserRepository ltiUserRepository;
     @Autowired private OutcomeRepository outcomeRepository;
     @Autowired private OutcomeScoreRepository outcomeScoreRepository;
-    @Autowired private PlatformDeploymentRepository platformDeploymentRepository;
     @Autowired private OutcomeScoreService outcomeScoreService;
     @Autowired private ParticipantService participantService;
-    @Autowired private CanvasAPIClient canvasAPIClient;
+    @Autowired private ApiClient apiClient;
 
     @Override
     public List<OutcomeDto> getOutcomesForExposure(long exposureId) {
@@ -190,7 +188,7 @@ public class OutcomeServiceImpl implements OutcomeService {
     }
 
     @Override
-    public List<OutcomePotentialDto> potentialOutcomes(long experimentId, SecuredInfo securedInfo) throws DataServiceException, CanvasApiException {
+    public List<OutcomePotentialDto> potentialOutcomes(long experimentId, SecuredInfo securedInfo) throws DataServiceException, ApiException, TerracottaConnectorException {
         Optional<Experiment> experiment = experimentRepository.findById(experimentId);
 
         if (experiment.isEmpty()) {
@@ -200,42 +198,40 @@ public class OutcomeServiceImpl implements OutcomeService {
         LtiUserEntity instructorUser = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
         List<Assignment> assignmentList = assignmentRepository.findByExposure_Experiment_ExperimentId(experimentId);
         List<OutcomePotentialDto> outcomePotentialDtos = new ArrayList<>();
-        String canvasCourseId = StringUtils.substringBetween(experiment.get().getLtiContextEntity().getContext_memberships_url(), "courses/", "/names");
-        List<AssignmentExtended> assignmentExtendedList = canvasAPIClient.listAssignments(instructorUser, canvasCourseId);
+        String lmsCourseId = StringUtils.substringBetween(experiment.get().getLtiContextEntity().getContext_memberships_url(), "courses/", "/names");
+        List<? extends LmsAssignment> lmsAssignments = apiClient.listAssignments(instructorUser, lmsCourseId);
 
-        for (AssignmentExtended assignmentExtended : assignmentExtendedList) {
+        for (LmsAssignment lmsAssignment : lmsAssignments) {
             List<Assignment> matched = assignmentList.stream()
                 .filter(x -> {
-                    return assignmentExtended.getId().intValue() == Integer.parseInt(x.getLmsAssignmentId());
+                    return StringUtils.equalsIgnoreCase(lmsAssignment.getId(), x.getLmsAssignmentId());
                 })
                 .toList();
 
             if (matched.isEmpty()
                     && !(experiment.get().getConsentDocument() != null
-                    && assignmentExtended.getId().intValue() == Integer.parseInt(experiment.get().getConsentDocument().getLmsAssignmentId()))) {
-                outcomePotentialDtos.add(assignmentExtendedToOutcomePotentialDto(assignmentExtended, securedInfo));
+                    && StringUtils.equalsIgnoreCase(lmsAssignment.getId(), experiment.get().getConsentDocument().getLmsAssignmentId()))) {
+                outcomePotentialDtos.add(lmsAssignmentToOutcomePotentialDto(lmsAssignment));
             }
         }
 
         return outcomePotentialDtos;
     }
 
-    private OutcomePotentialDto assignmentExtendedToOutcomePotentialDto(AssignmentExtended assignmentExtended, SecuredInfo securedInfo) {
+    private OutcomePotentialDto lmsAssignmentToOutcomePotentialDto(LmsAssignment lmsAssignment) {
         OutcomePotentialDto potentialDto = new OutcomePotentialDto();
-        potentialDto.setAssignmentId(assignmentExtended.getId());
-        potentialDto.setName(assignmentExtended.getName());
-        potentialDto.setType(assignmentExtended.getSubmissionTypes().get(0));
-        potentialDto.setPointsPossible(assignmentExtended.getPointsPossible());
-
-        Optional<PlatformDeployment> platformDeployment = platformDeploymentRepository.findById(securedInfo.getPlatformDeploymentId());
-        potentialDto.setTerracotta(assignmentExtended.getSubmissionTypes().contains("external_tool") && assignmentExtended.getExternalToolTagAttributes().getUrl().contains(platformDeployment.get().getLocalUrl()));
+        potentialDto.setAssignmentId(lmsAssignment.getId());
+        potentialDto.setName(lmsAssignment.getName());
+        potentialDto.setType(lmsAssignment.getSubmissionTypes().get(0));
+        potentialDto.setPointsPossible(lmsAssignment.getPointsPossible());
+        potentialDto.setTerracotta(lmsAssignment.getSubmissionTypes().contains("external_tool"));
 
         return potentialDto;
     }
 
     @Override
     @Transactional
-    public void updateOutcomeGrades(long outcomeId, SecuredInfo securedInfo, boolean refreshParticipants) throws CanvasApiException, IOException, ParticipantNotUpdatedException, ExperimentNotMatchingException, OutcomeNotMatchingException {
+    public void updateOutcomeGrades(long outcomeId, SecuredInfo securedInfo, boolean refreshParticipants) throws ApiException, IOException, ParticipantNotUpdatedException, ExperimentNotMatchingException, OutcomeNotMatchingException, NumberFormatException, TerracottaConnectorException {
         Optional<Outcome> outcomeSearchResult = this.findById(outcomeId);
 
         if (outcomeSearchResult.isEmpty()) {
@@ -254,11 +250,11 @@ public class OutcomeServiceImpl implements OutcomeService {
         }
 
         List<OutcomeScore> newScores = new ArrayList<>();
-        String canvasCourseId = StringUtils.substringBetween(outcome.getExposure().getExperiment().getLtiContextEntity().getContext_memberships_url(), "courses/", "/names");
+        String lmsCourseId = StringUtils.substringBetween(outcome.getExposure().getExperiment().getLtiContextEntity().getContext_memberships_url(), "courses/", "/names");
         LtiUserEntity instructorUser = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
-        List<Submission> submissions = canvasAPIClient.listSubmissions(instructorUser, Long.parseLong(outcome.getLmsOutcomeId()), canvasCourseId);
+        List<LmsSubmission> submissions = apiClient.listSubmissions(instructorUser, outcome.getLmsOutcomeId(), lmsCourseId);
 
-        for (Submission submission : submissions) {
+        for (LmsSubmission lmsSubmission : submissions) {
             boolean found = false;
 
             for (OutcomeScore outcomeScore : outcome.getOutcomeScores()) {
@@ -267,15 +263,15 @@ public class OutcomeServiceImpl implements OutcomeService {
                 }
 
                 if (outcomeScore.getParticipant().getLtiUserEntity().getEmail() != null &&
-                    StringUtils.equals(outcomeScore.getParticipant().getLtiUserEntity().getEmail(), submission.getUser().getLoginId()) &&
-                    StringUtils.equals(outcomeScore.getParticipant().getLtiUserEntity().getDisplayName(), submission.getUser().getName())
+                    StringUtils.equals(outcomeScore.getParticipant().getLtiUserEntity().getEmail(), lmsSubmission.getUserLoginId()) &&
+                    StringUtils.equals(outcomeScore.getParticipant().getLtiUserEntity().getDisplayName(), lmsSubmission.getUserName())
                 ) {
                     found = true;
 
-                    if (submission.getScore() == null) {
+                    if (lmsSubmission.getScore() == null) {
                         outcomeScore.setScoreNumeric(null);
                     } else {
-                        outcomeScore.setScoreNumeric(submission.getScore().floatValue());
+                        outcomeScore.setScoreNumeric(lmsSubmission.getScore().floatValue());
                     }
 
                     break;
@@ -288,13 +284,13 @@ public class OutcomeServiceImpl implements OutcomeService {
                         continue;
                     }
 
-                    if (StringUtils.equals(outcomeScore.getParticipant().getLtiUserEntity().getDisplayName(), submission.getUser().getName())) {
+                    if (StringUtils.equals(outcomeScore.getParticipant().getLtiUserEntity().getDisplayName(), lmsSubmission.getUserName())) {
                         found = true;
 
-                        if (submission.getScore() == null) {
+                        if (lmsSubmission.getScore() == null) {
                             outcomeScore.setScoreNumeric(null);
                         } else {
-                            outcomeScore.setScoreNumeric(submission.getScore().floatValue());
+                            outcomeScore.setScoreNumeric(lmsSubmission.getScore().floatValue());
                         }
 
                         break;
@@ -309,18 +305,18 @@ public class OutcomeServiceImpl implements OutcomeService {
                     }
 
                     if (participant.getLtiUserEntity().getEmail() != null &&
-                        StringUtils.equals(participant.getLtiUserEntity().getEmail(), submission.getUser().getLoginId()) &&
-                        StringUtils.equals(participant.getLtiUserEntity().getDisplayName(), submission.getUser().getName())
+                        StringUtils.equals(participant.getLtiUserEntity().getEmail(), lmsSubmission.getUserLoginId()) &&
+                        StringUtils.equals(participant.getLtiUserEntity().getDisplayName(), lmsSubmission.getUserName())
                     ) {
                         found = true;
                         OutcomeScore outcomeScore = new OutcomeScore();
                         outcomeScore.setOutcome(outcome);
                         outcomeScore.setParticipant(participant);
 
-                        if (submission.getScore() == null) {
+                        if (lmsSubmission.getScore() == null) {
                             outcomeScore.setScoreNumeric(null);
                         } else {
-                            outcomeScore.setScoreNumeric(submission.getScore().floatValue());
+                            outcomeScore.setScoreNumeric(lmsSubmission.getScore().floatValue());
                         }
 
                         newScores.add(outcomeScore);
@@ -335,15 +331,15 @@ public class OutcomeServiceImpl implements OutcomeService {
                         continue;
                     }
 
-                    if (participant.getLtiUserEntity().getDisplayName().equals(submission.getUser().getName())) {
+                    if (participant.getLtiUserEntity().getDisplayName().equals(lmsSubmission.getUserName())) {
                         OutcomeScore outcomeScore = new OutcomeScore();
                         outcomeScore.setOutcome(outcome);
                         outcomeScore.setParticipant(participant);
 
-                        if (submission.getScore() == null) {
+                        if (lmsSubmission.getScore() == null) {
                             outcomeScore.setScoreNumeric(null);
                         } else {
-                            outcomeScore.setScoreNumeric(submission.getScore().floatValue());
+                            outcomeScore.setScoreNumeric(lmsSubmission.getScore().floatValue());
                         }
 
                         newScores.add(outcomeScore);

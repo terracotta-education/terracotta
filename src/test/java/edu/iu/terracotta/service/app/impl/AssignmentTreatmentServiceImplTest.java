@@ -13,30 +13,31 @@ import org.mockito.InjectMocks;
 import org.mockito.MockitoAnnotations;
 
 import edu.iu.terracotta.base.BaseTest;
-import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
+import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
+import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
+import edu.iu.terracotta.dao.exceptions.AssessmentNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.QuestionNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.TreatmentNotMatchingException;
+import edu.iu.terracotta.dao.model.dto.AssignmentDto;
+import edu.iu.terracotta.dao.model.dto.TreatmentDto;
 import edu.iu.terracotta.exceptions.AssignmentAttemptException;
-import edu.iu.terracotta.exceptions.CanvasApiException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExceedingLimitException;
 import edu.iu.terracotta.exceptions.IdInPostException;
-import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
-import edu.iu.terracotta.exceptions.TreatmentNotMatchingException;
-import edu.iu.terracotta.model.app.dto.AssignmentDto;
-import edu.iu.terracotta.model.app.dto.TreatmentDto;
 
 public class AssignmentTreatmentServiceImplTest extends BaseTest {
 
     @InjectMocks private AssignmentTreatmentServiceImpl assignmentTreatmentService;
 
     @BeforeEach
-    public void beforeEach() throws AssessmentNotMatchingException, AssignmentAttemptException, CanvasApiException, NumberFormatException, IdInPostException, DataServiceException, ExceedingLimitException, TreatmentNotMatchingException, QuestionNotMatchingException {
+    public void beforeEach() throws AssessmentNotMatchingException, AssignmentAttemptException, NumberFormatException, IdInPostException, DataServiceException, ExceedingLimitException, TreatmentNotMatchingException, QuestionNotMatchingException {
         MockitoAnnotations.openMocks(this);
 
         setup();
     }
 
     @Test
-    public void testDuplicateTreatment() throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, NumberFormatException, CanvasApiException, TreatmentNotMatchingException, QuestionNotMatchingException {
+    public void testDuplicateTreatment() throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, NumberFormatException, TreatmentNotMatchingException, QuestionNotMatchingException, ApiException, TerracottaConnectorException {
         TreatmentDto treatmentDto = assignmentTreatmentService.duplicateTreatment(1L, assignment, securedInfo);
 
         assertNotNull(treatmentDto);
@@ -44,7 +45,7 @@ public class AssignmentTreatmentServiceImplTest extends BaseTest {
     }
 
     @Test
-    public void testDuplicateTreatmentNoAssessmentFound() throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, NumberFormatException, CanvasApiException, TreatmentNotMatchingException, QuestionNotMatchingException {
+    public void testDuplicateTreatmentNoAssessmentFound() throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, NumberFormatException, TreatmentNotMatchingException, QuestionNotMatchingException, ApiException, TerracottaConnectorException {
         when(treatment.getAssessment()).thenReturn(null);
         TreatmentDto treatmentDto = assignmentTreatmentService.duplicateTreatment(1L, assignment, securedInfo);
 

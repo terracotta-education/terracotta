@@ -8,18 +8,19 @@ import java.util.Collections;
 import java.util.List;
 
 import edu.iu.terracotta.base.BaseTest;
-import edu.iu.terracotta.exceptions.AssessmentNotMatchingException;
+import edu.iu.terracotta.dao.entity.Question;
+import edu.iu.terracotta.dao.exceptions.AssessmentNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.QuestionNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.integrations.IntegrationClientNotFoundException;
+import edu.iu.terracotta.dao.exceptions.integrations.IntegrationNotFoundException;
+import edu.iu.terracotta.dao.model.dto.AnswerDto;
+import edu.iu.terracotta.dao.model.dto.QuestionDto;
+import edu.iu.terracotta.dao.model.enums.QuestionTypes;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExceedingLimitException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.MultipleChoiceLimitReachedException;
-import edu.iu.terracotta.exceptions.QuestionNotMatchingException;
-import edu.iu.terracotta.exceptions.integrations.IntegrationClientNotFoundException;
-import edu.iu.terracotta.exceptions.integrations.IntegrationNotFoundException;
-import edu.iu.terracotta.model.app.Question;
-import edu.iu.terracotta.model.app.dto.AnswerDto;
-import edu.iu.terracotta.model.app.dto.QuestionDto;
-import edu.iu.terracotta.model.app.enumerator.QuestionTypes;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;

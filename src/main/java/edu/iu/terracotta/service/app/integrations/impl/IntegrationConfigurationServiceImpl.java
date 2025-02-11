@@ -5,16 +5,16 @@ import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import edu.iu.terracotta.exceptions.integrations.IntegrationClientNotFoundException;
-import edu.iu.terracotta.exceptions.integrations.IntegrationConfigurationNotFoundException;
-import edu.iu.terracotta.exceptions.integrations.IntegrationConfigurationNotMatchingException;
-import edu.iu.terracotta.model.app.integrations.Integration;
-import edu.iu.terracotta.model.app.integrations.IntegrationClient;
-import edu.iu.terracotta.model.app.integrations.IntegrationConfiguration;
-import edu.iu.terracotta.model.app.integrations.dto.IntegrationConfigurationDto;
-import edu.iu.terracotta.repository.integrations.IntegrationClientRepository;
-import edu.iu.terracotta.repository.integrations.IntegrationConfigurationRepository;
-import edu.iu.terracotta.repository.integrations.IntegrationRepository;
+import edu.iu.terracotta.dao.entity.integrations.Integration;
+import edu.iu.terracotta.dao.entity.integrations.IntegrationClient;
+import edu.iu.terracotta.dao.entity.integrations.IntegrationConfiguration;
+import edu.iu.terracotta.dao.exceptions.integrations.IntegrationClientNotFoundException;
+import edu.iu.terracotta.dao.exceptions.integrations.IntegrationConfigurationNotFoundException;
+import edu.iu.terracotta.dao.exceptions.integrations.IntegrationConfigurationNotMatchingException;
+import edu.iu.terracotta.dao.model.dto.integrations.IntegrationConfigurationDto;
+import edu.iu.terracotta.dao.repository.integrations.IntegrationClientRepository;
+import edu.iu.terracotta.dao.repository.integrations.IntegrationConfigurationRepository;
+import edu.iu.terracotta.dao.repository.integrations.IntegrationRepository;
 import edu.iu.terracotta.service.app.integrations.IntegrationClientService;
 import edu.iu.terracotta.service.app.integrations.IntegrationConfigurationService;
 

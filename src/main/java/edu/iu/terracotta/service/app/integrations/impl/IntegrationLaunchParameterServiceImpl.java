@@ -10,9 +10,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import edu.iu.terracotta.model.app.Submission;
-import edu.iu.terracotta.model.app.integrations.Integration;
-import edu.iu.terracotta.model.app.integrations.enums.IntegrationLaunchParameter;
+import edu.iu.terracotta.dao.entity.Submission;
+import edu.iu.terracotta.dao.entity.integrations.Integration;
+import edu.iu.terracotta.dao.model.enums.integrations.IntegrationLaunchParameter;
 import edu.iu.terracotta.service.app.integrations.IntegrationLaunchParameterService;
 import lombok.extern.slf4j.Slf4j;
 

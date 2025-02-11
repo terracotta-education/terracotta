@@ -7,14 +7,15 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.stereotype.Component;
 
+import edu.iu.terracotta.dao.entity.Assignment;
+import edu.iu.terracotta.dao.entity.Experiment;
+import edu.iu.terracotta.dao.repository.AssignmentRepository;
+import edu.iu.terracotta.dao.repository.ExperimentRepository;
+
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
-import edu.iu.terracotta.model.app.Assignment;
-import edu.iu.terracotta.model.app.Experiment;
-import edu.iu.terracotta.repository.AssignmentRepository;
-import edu.iu.terracotta.repository.ExperimentRepository;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j

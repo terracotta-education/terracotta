@@ -1,8 +1,8 @@
 package edu.iu.terracotta.service.app.dashboard.results;
 
-import edu.iu.terracotta.model.app.Experiment;
-import edu.iu.terracotta.model.app.dto.dashboard.results.overview.ResultsOverviewDto;
-import edu.iu.terracotta.model.oauth2.SecuredInfo;
+import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
+import edu.iu.terracotta.dao.entity.Experiment;
+import edu.iu.terracotta.dao.model.dto.dashboard.results.overview.ResultsOverviewDto;
 
 public interface ResultsOverviewService {
 

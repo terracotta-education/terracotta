@@ -1,37 +1,38 @@
 package edu.iu.terracotta.service.app.impl;
 
-import edu.iu.terracotta.exceptions.AssignmentNotEditedException;
-import edu.iu.terracotta.exceptions.CanvasApiException;
-import edu.iu.terracotta.exceptions.ConnectionException;
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiContextEntity;
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
+import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
+import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiContextRepository;
+import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiUserRepository;
+import edu.iu.terracotta.connectors.generic.dao.repository.lti.PlatformDeploymentRepository;
+import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
+import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
+import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
+import edu.iu.terracotta.dao.entity.Condition;
+import edu.iu.terracotta.dao.entity.ConsentDocument;
+import edu.iu.terracotta.dao.entity.Experiment;
+import edu.iu.terracotta.dao.entity.Exposure;
+import edu.iu.terracotta.dao.entity.Participant;
+import edu.iu.terracotta.dao.exceptions.AssignmentNotEditedException;
+import edu.iu.terracotta.dao.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.ParticipantNotUpdatedException;
+import edu.iu.terracotta.dao.model.dto.ConditionDto;
+import edu.iu.terracotta.dao.model.dto.ConsentDto;
+import edu.iu.terracotta.dao.model.dto.ExperimentDto;
+import edu.iu.terracotta.dao.model.dto.ExposureDto;
+import edu.iu.terracotta.dao.model.enums.DistributionTypes;
+import edu.iu.terracotta.dao.model.enums.ExposureTypes;
+import edu.iu.terracotta.dao.model.enums.ParticipationTypes;
+import edu.iu.terracotta.dao.repository.ConditionRepository;
+import edu.iu.terracotta.dao.repository.ConsentDocumentRepository;
+import edu.iu.terracotta.dao.repository.ExperimentRepository;
+import edu.iu.terracotta.dao.repository.ExposureRepository;
+import edu.iu.terracotta.dao.repository.ParticipantRepository;
 import edu.iu.terracotta.exceptions.DataServiceException;
-import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
-import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.exceptions.WrongValueException;
-import edu.iu.terracotta.model.LtiContextEntity;
-import edu.iu.terracotta.model.LtiUserEntity;
-import edu.iu.terracotta.model.PlatformDeployment;
-import edu.iu.terracotta.model.app.Condition;
-import edu.iu.terracotta.model.app.ConsentDocument;
-import edu.iu.terracotta.model.app.Experiment;
-import edu.iu.terracotta.model.app.Exposure;
-import edu.iu.terracotta.model.app.Participant;
-import edu.iu.terracotta.model.app.dto.ConditionDto;
-import edu.iu.terracotta.model.app.dto.ConsentDto;
-import edu.iu.terracotta.model.app.dto.ExperimentDto;
-import edu.iu.terracotta.model.app.dto.ExposureDto;
-import edu.iu.terracotta.model.app.enumerator.DistributionTypes;
-import edu.iu.terracotta.model.app.enumerator.ExposureTypes;
-import edu.iu.terracotta.model.app.enumerator.ParticipationTypes;
-import edu.iu.terracotta.model.oauth2.SecuredInfo;
-import edu.iu.terracotta.repository.ConditionRepository;
-import edu.iu.terracotta.repository.ConsentDocumentRepository;
-import edu.iu.terracotta.repository.ExperimentRepository;
-import edu.iu.terracotta.repository.ExposureRepository;
-import edu.iu.terracotta.repository.LtiContextRepository;
-import edu.iu.terracotta.repository.LtiUserRepository;
-import edu.iu.terracotta.repository.ParticipantRepository;
-import edu.iu.terracotta.repository.PlatformDeploymentRepository;
 import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.app.ConditionService;
 import edu.iu.terracotta.service.app.ExperimentService;
@@ -74,7 +75,7 @@ public class ExperimentServiceImpl implements ExperimentService {
     @Autowired private ParticipantService participantService;
 
     @Override
-    public List<ExperimentDto> getExperiments(SecuredInfo securedInfo, boolean syncWithCanvas) {
+    public List<ExperimentDto> getExperiments(SecuredInfo securedInfo, boolean syncWithLms) {
         List<Experiment> experiments = experimentRepository.findByPlatformDeployment_KeyIdAndLtiContextEntity_ContextId(securedInfo.getPlatformDeploymentId(), securedInfo.getContextId());
         List<ExperimentDto> experimentDtoList = new ArrayList<>();
 
@@ -82,16 +83,16 @@ public class ExperimentServiceImpl implements ExperimentService {
             experimentDtoList.add(toDto(experiment, false, false, false, securedInfo));
         }
 
-        // sync assignments with Canvas, if configured
-        if (syncWithCanvas) {
+        // sync assignments with LMS, if configured
+        if (syncWithLms) {
             Thread thread = new Thread(
                 () ->
                     {
                         try {
-                            log.info("Starting assignment recreation in Canvas.");
-                            assignmentService.checkAndRestoreAssignmentsInCanvasByContext(securedInfo);
-                        } catch (CanvasApiException | DataServiceException | ConnectionException | IOException e) {
-                            log.error("Error syncing assignments with Canvas. Context ID: '{}'", securedInfo.getContextId(), e);
+                            log.info("Starting assignment recreation in LMS.");
+                            assignmentService.checkAndRestoreAssignmentsInLmsByContext(securedInfo);
+                        } catch (ApiException | DataServiceException | ConnectionException | IOException | TerracottaConnectorException e) {
+                            log.error("Error syncing assignments with LMS. Context ID: '{}'", securedInfo.getContextId(), e);
                         }
                     }
             );
@@ -124,7 +125,7 @@ public class ExperimentServiceImpl implements ExperimentService {
     }
 
     @Override
-    public void updateExperiment(long experimentId, long contextId, ExperimentDto experimentDto, SecuredInfo securedInfo) throws TitleValidationException, WrongValueException, ParticipantNotUpdatedException, ExperimentNotMatchingException {
+    public void updateExperiment(long experimentId, long contextId, ExperimentDto experimentDto, SecuredInfo securedInfo) throws TitleValidationException, WrongValueException, ParticipantNotUpdatedException, ExperimentNotMatchingException, IOException, NumberFormatException, TerracottaConnectorException {
         Experiment experimentToChange = getExperiment(experimentId);
 
         if (StringUtils.isAllBlank(experimentDto.getTitle(), experimentToChange.getTitle())) {
@@ -195,7 +196,7 @@ public class ExperimentServiceImpl implements ExperimentService {
                             consentDocumentRepository.delete(experimentToChange.getConsentDocument());
                             experimentToChange.setConsentDocument(null);
                         }
-                    } catch (CanvasApiException | AssignmentNotEditedException e) {
+                    } catch (ApiException | AssignmentNotEditedException e) {
                         log.warn("Consent from experiment {} was not deleted", experimentId);
                     }
                 }
@@ -210,7 +211,7 @@ public class ExperimentServiceImpl implements ExperimentService {
         save(experimentToChange);
     }
 
-    private void changeParticipantionType(String toPT, Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException, ExperimentNotMatchingException {
+    private void changeParticipantionType(String toPT, Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
         switch (EnumUtils.getEnum(ParticipationTypes.class, toPT)) {
             case CONSENT:
             case NOSET:
@@ -269,7 +270,7 @@ public class ExperimentServiceImpl implements ExperimentService {
         experimentDto.setExposures(exposureDtoList);
 
         if (participants) {
-            List<Long> publishedExperimentAssignmentIds = participantService.calculatedPublishedAssignmentIds(experiment.getExperimentId(), securedInfo.getCanvasCourseId(), experiment.getCreatedBy());
+            List<Long> publishedExperimentAssignmentIds = participantService.calculatedPublishedAssignmentIds(experiment.getExperimentId(), securedInfo.getLmsCourseId(), experiment.getCreatedBy());
 
             experimentDto.setParticipants(
                 CollectionUtils.emptyIfNull(participantRepository.findByExperiment_ExperimentId(experiment.getExperimentId())).stream()
@@ -361,12 +362,12 @@ public class ExperimentServiceImpl implements ExperimentService {
     }
 
     @Override
-    public void deleteById(Long id, SecuredInfo securedInfo) throws EmptyResultDataAccessException {
+    public void deleteById(Long id, SecuredInfo securedInfo) throws EmptyResultDataAccessException, IOException, TerracottaConnectorException {
         assignmentService.deleteAllFromExperiment(id, securedInfo);
 
         try {
             fileStorageService.deleteConsentAssignment(id, securedInfo);
-        } catch (CanvasApiException | AssignmentNotEditedException e) {
+        } catch (ApiException | AssignmentNotEditedException e) {
             log.warn("Consent from experiment {} was not deleted", id);
         }
 

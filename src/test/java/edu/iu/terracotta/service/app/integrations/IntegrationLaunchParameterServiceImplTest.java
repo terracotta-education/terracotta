@@ -15,7 +15,7 @@ import org.mockito.InjectMocks;
 import org.mockito.MockitoAnnotations;
 
 import edu.iu.terracotta.base.BaseTest;
-import edu.iu.terracotta.model.app.integrations.enums.IntegrationLaunchParameter;
+import edu.iu.terracotta.dao.model.enums.integrations.IntegrationLaunchParameter;
 import edu.iu.terracotta.service.app.integrations.impl.IntegrationLaunchParameterServiceImpl;
 
 public class IntegrationLaunchParameterServiceImplTest extends BaseTest {

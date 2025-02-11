@@ -1,32 +1,27 @@
 package edu.iu.terracotta.service.app.impl;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
-
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.ArrayUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import edu.iu.terracotta.exceptions.CanvasApiException;
-import edu.iu.terracotta.exceptions.ConnectionException;
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsCourse;
+import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiMembershipRepository;
+import edu.iu.terracotta.connectors.generic.dao.repository.lti.PlatformDeploymentRepository;
+import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
+import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
+import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
+import edu.iu.terracotta.connectors.generic.service.api.impl.ApiClientImpl;
+import edu.iu.terracotta.dao.entity.Assignment;
+import edu.iu.terracotta.dao.entity.ConsentDocument;
+import edu.iu.terracotta.dao.repository.AdminUserRepository;
+import edu.iu.terracotta.dao.repository.AssignmentRepository;
+import edu.iu.terracotta.dao.repository.ConsentDocumentRepository;
 import edu.iu.terracotta.exceptions.DataServiceException;
-import edu.iu.terracotta.model.PlatformDeployment;
-import edu.iu.terracotta.model.app.Assignment;
-import edu.iu.terracotta.model.app.ConsentDocument;
-import edu.iu.terracotta.model.canvas.AssignmentExtended;
-import edu.iu.terracotta.model.canvas.CourseExtended;
-import edu.iu.terracotta.repository.AdminUserRepository;
-import edu.iu.terracotta.repository.AssignmentRepository;
-import edu.iu.terracotta.repository.ConsentDocumentRepository;
-import edu.iu.terracotta.repository.LtiMembershipRepository;
-import edu.iu.terracotta.repository.PlatformDeploymentRepository;
 import edu.iu.terracotta.service.app.AdminService;
-import edu.iu.terracotta.service.canvas.CanvasAPIClient;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -39,16 +34,17 @@ public class AdminServiceImpl implements AdminService {
     @Autowired private ConsentDocumentRepository consentDocumentRepository;
     @Autowired private LtiMembershipRepository ltiMembershipRepository;
     @Autowired private PlatformDeploymentRepository platformDeploymentRepository;
-    @Autowired private CanvasAPIClient canvasAPIClient;
+    @Autowired private ApiClientImpl apiClient;
 
     @Override
-    public void resyncTargetUris(long platformDeploymentId, String tokenOverride) throws CanvasApiException, DataServiceException, ConnectionException, IOException {
-        log.info("Starting assignment LTI Target Link URI update in Canvas for deployment ID: '{}'", platformDeploymentId);
+    @Deprecated
+    public void resyncTargetUris(long platformDeploymentId, String tokenOverride) throws ApiException, DataServiceException, ConnectionException, IOException {
+        log.info("Starting assignment LTI Target Link URI update in the LMS for deployment ID: [{}]", platformDeploymentId);
 
         Optional<PlatformDeployment> platformDeployment = platformDeploymentRepository.findById(platformDeploymentId);
 
         if (platformDeployment.isEmpty()) {
-            log.error("No platform deployment exists with ID: '{}'. Aborting.", platformDeploymentId);
+            log.error("No platform deployment exists with ID: [{}]. Aborting.", platformDeploymentId);
             return;
         }
 
@@ -61,7 +57,7 @@ public class AdminServiceImpl implements AdminService {
             .toList();
 
         if (CollectionUtils.isEmpty(instructorLmsIds)) {
-            log.info("No instructors exist in Terracotta for deployment ID: '{}'. Aborting.", platformDeploymentId);
+            log.info("No instructors exist in Terracotta for deployment ID: [{}]. Aborting.", platformDeploymentId);
             return;
         }
 
@@ -79,97 +75,38 @@ public class AdminServiceImpl implements AdminService {
         List<String> allAssignmentIds = (List<String>) CollectionUtils.union(assignmentIds, consentAssignmentIds);
 
         if (CollectionUtils.isEmpty(allAssignmentIds)) {
-            log.info("No assignments found in terracotta for deployment ID: '{}', Aborting.", platformDeploymentId);
+            log.info("No assignments found in terracotta for deployment ID: [{}], Aborting.", platformDeploymentId);
             return;
         }
-
-        List<Long> canvasCoursesCompleted = new ArrayList<>();
 
         instructorLmsIds.forEach(
             instructorLmsId -> {
                 try {
                     // retrieve courses for the instructor
-                    List<CourseExtended> canvasCourses = canvasAPIClient.listCoursesForUser(platformDeployment.get().getBaseUrl(), instructorLmsId, tokenOverride);
+                    List<LmsCourse> lmsCourses = apiClient.listCoursesForUser(platformDeployment.get(), instructorLmsId, tokenOverride);
 
-                    if (CollectionUtils.isEmpty(canvasCourses)) {
-                        log.info("No courses exist in Canvas for instructor ID: '{}'", instructorLmsId);
+                    if (CollectionUtils.isEmpty(lmsCourses)) {
+                        log.info("No courses exist in the LMS for instructor ID: [{}]", instructorLmsId);
                         return;
                     }
 
-                    canvasCourses.stream()
-                        .filter(canvasCourse -> !CollectionUtils.containsAny(canvasCoursesCompleted, canvasCourse.getId()))
+                    lmsCourses.stream()
                         .forEach(
-                            canvasCourse -> {
-                                List<AssignmentExtended> canvasAssignments;
-
+                            lmsCourse -> {
                                 try {
-                                    // retrieve assignments for this course in Canvas
-                                    canvasAssignments = canvasAPIClient.listAssignments(platformDeployment.get().getBaseUrl(), Long.toString(canvasCourse.getId()), tokenOverride);
-                                } catch (CanvasApiException e) {
-                                    log.info("An error occurred updating assignments for Canvas course ID: '{}' for deployment ID: '{}'. Error: '{}'", canvasCourse.getId(), platformDeploymentId, e.getMessage());
-                                    return;
+                                    apiClient.resyncAssignmentTargetUrisInLms(platformDeployment.get(), null, platformDeploymentId, tokenOverride, assignmentIds, consentAssignmentIds, allAssignmentIds);
+                                } catch (ApiException | TerracottaConnectorException e) {
+                                    log.info("An error occurred updating assignments for deployment ID: [{}] in the LMS. Error: [{}]", platformDeploymentId, e.getMessage(), e);
                                 }
-
-                                if (CollectionUtils.isEmpty(canvasAssignments)) {
-                                    log.info("No assignments exist in Canvas for course ID: '{}.", canvasCourse.getId());
-                                    return;
-                                }
-
-                                List<Long> assignmentsUpdatedTargetLink = canvasAssignments.stream()
-                                    .filter(canvasAssignment -> allAssignmentIds.contains(Long.toString(canvasAssignment.getId())))
-                                    .filter(
-                                        canvasAssignment -> {
-                                            String[] baseUrl = StringUtils.splitByWholeSeparator(canvasAssignment.getExternalToolTagAttributes().getUrl(), "/lti3");
-
-                                            return ArrayUtils.isNotEmpty(baseUrl) || !StringUtils.equalsIgnoreCase(baseUrl[0], platformDeployment.get().getLocalUrl());
-                                        }
-                                    )
-                                    .map(
-                                        assignmentToUpdate -> {
-                                            String updatedTargetLinkUri = StringUtils.replaceOnce(
-                                                assignmentToUpdate.getExternalToolTagAttributes().getUrl(),
-                                                StringUtils.splitByWholeSeparator(assignmentToUpdate.getExternalToolTagAttributes().getUrl(), "/lti3")[0],
-                                                platformDeployment.get().getLocalUrl()
-                                            );
-
-                                            log.info("Updating assignment ID: '{}' LTI Target Link URI in Canvas: from '{} to '{}'",
-                                                assignmentToUpdate.getId(),
-                                                assignmentToUpdate.getExternalToolTagAttributes().getUrl(),
-                                                updatedTargetLinkUri
-                                            );
-
-                                            try {
-                                                assignmentToUpdate.getExternalToolTagAttributes().setUrl(updatedTargetLinkUri);
-                                                canvasAPIClient.editAssignment(platformDeployment.get().getBaseUrl(), assignmentToUpdate, assignmentToUpdate.getCourseId(), tokenOverride);
-                                            } catch (CanvasApiException e) {
-                                                log.error("Error updating LTI Target Link URIs in Canvas. Assignment ID: '{}'. Error: '{}'", assignmentToUpdate.getId(), e.getMessage());
-                                            }
-
-                                            canvasCoursesCompleted.add(canvasCourse.getId());
-
-                                            return assignmentToUpdate.getId();
-                                        }
-                                    )
-                                    .toList();
-
-                                log.info("Updating Assignment Target Link URIs for Canvas course ID: '{}' for deployment ID: '{}' in Canvas COMPLETE. Updated: {}",
-                                    canvasCourse.getId(),
-                                    platformDeploymentId,
-                                    CollectionUtils.isNotEmpty(assignmentsUpdatedTargetLink) ?
-                                        assignmentsUpdatedTargetLink.stream()
-                                            .map(l -> Long.toString(l))
-                                            .collect(Collectors.joining(", ")) :
-                                        "N/A"
-                                );
                             }
                         );
                 } catch (Exception e) {
-                    log.info("An error occurred updating assignments for deployment ID: '{}' in Canvas. Error: '{}'", platformDeploymentId, e.getMessage(), e);
+                    log.info("An error occurred updating assignments for deployment ID: [{}] in the LMS. Error: [{}]", platformDeploymentId, e.getMessage(), e);
                 }
             }
         );
 
-        log.info("Assignment LTI Target Link URI update for deployment ID: '{}' COMPLETE!", platformDeploymentId);
+        log.info("Assignment LTI Target Link URI update for deployment ID: [{}] COMPLETE!", platformDeploymentId);
     }
 
     @Override

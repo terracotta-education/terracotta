@@ -6,11 +6,12 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import edu.iu.terracotta.exceptions.CanvasApiException;
-import edu.iu.terracotta.exceptions.ConnectionException;
+import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
+import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
+import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
+import edu.iu.terracotta.dao.entity.Submission;
+import edu.iu.terracotta.dao.repository.SubmissionRepository;
 import edu.iu.terracotta.exceptions.DataServiceException;
-import edu.iu.terracotta.model.app.Submission;
-import edu.iu.terracotta.repository.SubmissionRepository;
 import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.service.app.integrations.IntegrationScoreAsyncService;
 import lombok.extern.slf4j.Slf4j;
@@ -26,14 +27,13 @@ public class IntegrationScoreAsyncServiceImpl implements IntegrationScoreAsyncSe
     @Async
     @Override
     @Transactional
-    public void sendGradeToCanvas(long submissionId, boolean student) {
+    public void sendGradeToLms(long submissionId, boolean student) throws ApiException {
         Submission gradedSubmission = submissionRepository.findBySubmissionId(submissionId);
 
         try {
-            log.info("Syncing integration submission grade with Canvas. Submission ID: [{}]. Grade: [{}]", submissionId, gradedSubmission.getCalculatedGrade());
-            submissionService.sendSubmissionGradeToCanvasWithLTI(gradedSubmission, true);
-        } catch (CanvasApiException | DataServiceException | ConnectionException | IOException e) {
-            log.error("Error syncing integration submission grade with Canvas. Submission ID: [{}]. Grade: [{}]", submissionId, gradedSubmission.getCalculatedGrade(), e);
+            submissionService.sendSubmissionGradeToLmsWithLti(gradedSubmission, true);
+        } catch (DataServiceException | ConnectionException | IOException | ApiException | TerracottaConnectorException e) {
+            log.error("Error syncing integration submission grade with the LMS. Submission ID: [{}]. Grade: [{}]", submissionId, gradedSubmission.getCalculatedGrade(), e);
         }
     }
 

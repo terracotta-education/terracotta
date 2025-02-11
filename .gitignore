@@ -42,6 +42,7 @@ docker-compose.yml
 log4j2.xml
 terracotta_files
 file
+821.sh
 
 ### Mac ###
 .DS_Store

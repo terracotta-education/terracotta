@@ -1,10 +1,10 @@
 package edu.iu.terracotta.service.app;
 
+import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
+import edu.iu.terracotta.dao.entity.SubmissionComment;
+import edu.iu.terracotta.dao.model.dto.SubmissionCommentDto;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.IdInPostException;
-import edu.iu.terracotta.model.app.SubmissionComment;
-import edu.iu.terracotta.model.app.dto.SubmissionCommentDto;
-import edu.iu.terracotta.model.oauth2.SecuredInfo;
 
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;

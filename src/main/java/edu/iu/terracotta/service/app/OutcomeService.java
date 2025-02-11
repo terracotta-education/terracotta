@@ -1,16 +1,18 @@
 package edu.iu.terracotta.service.app;
 
-import edu.iu.terracotta.exceptions.CanvasApiException;
+import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
+import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
+import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
+import edu.iu.terracotta.dao.entity.Outcome;
+import edu.iu.terracotta.dao.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.OutcomeNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.ParticipantNotUpdatedException;
+import edu.iu.terracotta.dao.model.dto.OutcomeDto;
+import edu.iu.terracotta.dao.model.dto.OutcomePotentialDto;
 import edu.iu.terracotta.exceptions.DataServiceException;
-import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.exceptions.IdInPostException;
-import edu.iu.terracotta.exceptions.OutcomeNotMatchingException;
-import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
-import edu.iu.terracotta.model.app.Outcome;
-import edu.iu.terracotta.model.app.dto.OutcomeDto;
-import edu.iu.terracotta.model.app.dto.OutcomePotentialDto;
-import edu.iu.terracotta.model.oauth2.SecuredInfo;
+
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -28,8 +30,8 @@ public interface OutcomeService {
     Outcome fromDto(OutcomeDto outcomeDto) throws DataServiceException;
     void updateOutcome(long outcomeId, OutcomeDto outcomeDto) throws TitleValidationException;
     void deleteById(long id) throws EmptyResultDataAccessException;
-    List<OutcomePotentialDto> potentialOutcomes(long experimentId, SecuredInfo securedInfo) throws DataServiceException, CanvasApiException;
-    void updateOutcomeGrades(long outcomeId, SecuredInfo securedInfo, boolean refreshParticipants) throws CanvasApiException, IOException, ParticipantNotUpdatedException, ExperimentNotMatchingException, OutcomeNotMatchingException;
+    List<OutcomePotentialDto> potentialOutcomes(long experimentId, SecuredInfo securedInfo) throws DataServiceException, ApiException, TerracottaConnectorException;
+    void updateOutcomeGrades(long outcomeId, SecuredInfo securedInfo, boolean refreshParticipants) throws IOException, ParticipantNotUpdatedException, ExperimentNotMatchingException, OutcomeNotMatchingException, ApiException, NumberFormatException, TerracottaConnectorException;
     void defaultOutcome(OutcomeDto outcomeDto) throws TitleValidationException;
     HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, long experimentId, long exposureId, long outcomeId);
 

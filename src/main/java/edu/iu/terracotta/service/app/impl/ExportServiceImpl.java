@@ -6,61 +6,62 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.opencsv.CSVWriter;
 
-import edu.iu.terracotta.exceptions.CanvasApiException;
-import edu.iu.terracotta.exceptions.ExperimentNotMatchingException;
-import edu.iu.terracotta.exceptions.OutcomeNotMatchingException;
-import edu.iu.terracotta.exceptions.ParticipantNotUpdatedException;
-import edu.iu.terracotta.model.LtiUserEntity;
-import edu.iu.terracotta.model.app.AnswerEssaySubmission;
-import edu.iu.terracotta.model.app.AnswerMc;
-import edu.iu.terracotta.model.app.AnswerMcSubmission;
-import edu.iu.terracotta.model.app.AnswerMcSubmissionOption;
-import edu.iu.terracotta.model.app.Assessment;
-import edu.iu.terracotta.model.app.Assignment;
-import edu.iu.terracotta.model.app.Experiment;
-import edu.iu.terracotta.model.app.ExposureGroupCondition;
-import edu.iu.terracotta.model.app.Outcome;
-import edu.iu.terracotta.model.app.OutcomeScore;
-import edu.iu.terracotta.model.app.Participant;
-import edu.iu.terracotta.model.app.Question;
-import edu.iu.terracotta.model.app.QuestionMc;
-import edu.iu.terracotta.model.app.QuestionSubmission;
-import edu.iu.terracotta.model.app.Submission;
-import edu.iu.terracotta.model.app.Treatment;
-import edu.iu.terracotta.model.app.enumerator.ParticipationTypes;
-import edu.iu.terracotta.model.app.enumerator.export.EventPersonalIdentifiers;
-import edu.iu.terracotta.model.app.enumerator.export.ExperimentCsv;
-import edu.iu.terracotta.model.app.enumerator.export.ItemResponsesCsv;
-import edu.iu.terracotta.model.app.enumerator.export.ItemsCsv;
-import edu.iu.terracotta.model.app.enumerator.export.OutcomesCsv;
-import edu.iu.terracotta.model.app.enumerator.export.ParticipantTreatmentCsv;
-import edu.iu.terracotta.model.app.enumerator.export.ParticipantsCsv;
-import edu.iu.terracotta.model.app.enumerator.export.ResponseOptionsCsv;
-import edu.iu.terracotta.model.app.enumerator.export.SubmissionsCsv;
-import edu.iu.terracotta.model.events.Event;
-import edu.iu.terracotta.model.oauth2.SecuredInfo;
-import edu.iu.terracotta.repository.AnswerEssaySubmissionRepository;
-import edu.iu.terracotta.repository.AnswerMcRepository;
-import edu.iu.terracotta.repository.AnswerMcSubmissionRepository;
-import edu.iu.terracotta.repository.AssignmentRepository;
-import edu.iu.terracotta.repository.ConditionRepository;
-import edu.iu.terracotta.repository.EventRepository;
-import edu.iu.terracotta.repository.ExperimentRepository;
-import edu.iu.terracotta.repository.ExposureGroupConditionRepository;
-import edu.iu.terracotta.repository.LtiUserRepository;
-import edu.iu.terracotta.repository.OutcomeRepository;
-import edu.iu.terracotta.repository.OutcomeScoreRepository;
-import edu.iu.terracotta.repository.ParticipantRepository;
-import edu.iu.terracotta.repository.QuestionRepository;
-import edu.iu.terracotta.repository.QuestionSubmissionRepository;
-import edu.iu.terracotta.repository.SubmissionRepository;
-import edu.iu.terracotta.repository.TreatmentRepository;
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
+import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
+import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiUserRepository;
+import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
+import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
+import edu.iu.terracotta.dao.entity.AnswerEssaySubmission;
+import edu.iu.terracotta.dao.entity.AnswerMc;
+import edu.iu.terracotta.dao.entity.AnswerMcSubmission;
+import edu.iu.terracotta.dao.entity.AnswerMcSubmissionOption;
+import edu.iu.terracotta.dao.entity.Assessment;
+import edu.iu.terracotta.dao.entity.Assignment;
+import edu.iu.terracotta.dao.entity.Experiment;
+import edu.iu.terracotta.dao.entity.ExposureGroupCondition;
+import edu.iu.terracotta.dao.entity.Outcome;
+import edu.iu.terracotta.dao.entity.OutcomeScore;
+import edu.iu.terracotta.dao.entity.Participant;
+import edu.iu.terracotta.dao.entity.Question;
+import edu.iu.terracotta.dao.entity.QuestionMc;
+import edu.iu.terracotta.dao.entity.QuestionSubmission;
+import edu.iu.terracotta.dao.entity.Submission;
+import edu.iu.terracotta.dao.entity.Treatment;
+import edu.iu.terracotta.dao.entity.events.Event;
+import edu.iu.terracotta.dao.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.OutcomeNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.ParticipantNotUpdatedException;
+import edu.iu.terracotta.dao.model.enums.ParticipationTypes;
+import edu.iu.terracotta.dao.model.enums.export.EventPersonalIdentifiers;
+import edu.iu.terracotta.dao.model.enums.export.ExperimentCsv;
+import edu.iu.terracotta.dao.model.enums.export.ItemResponsesCsv;
+import edu.iu.terracotta.dao.model.enums.export.ItemsCsv;
+import edu.iu.terracotta.dao.model.enums.export.OutcomesCsv;
+import edu.iu.terracotta.dao.model.enums.export.ParticipantTreatmentCsv;
+import edu.iu.terracotta.dao.model.enums.export.ParticipantsCsv;
+import edu.iu.terracotta.dao.model.enums.export.ResponseOptionsCsv;
+import edu.iu.terracotta.dao.model.enums.export.SubmissionsCsv;
+import edu.iu.terracotta.dao.repository.AnswerEssaySubmissionRepository;
+import edu.iu.terracotta.dao.repository.AnswerMcRepository;
+import edu.iu.terracotta.dao.repository.AnswerMcSubmissionRepository;
+import edu.iu.terracotta.dao.repository.AssignmentRepository;
+import edu.iu.terracotta.dao.repository.ConditionRepository;
+import edu.iu.terracotta.dao.repository.EventRepository;
+import edu.iu.terracotta.dao.repository.ExperimentRepository;
+import edu.iu.terracotta.dao.repository.ExposureGroupConditionRepository;
+import edu.iu.terracotta.dao.repository.OutcomeRepository;
+import edu.iu.terracotta.dao.repository.OutcomeScoreRepository;
+import edu.iu.terracotta.dao.repository.ParticipantRepository;
+import edu.iu.terracotta.dao.repository.QuestionRepository;
+import edu.iu.terracotta.dao.repository.QuestionSubmissionRepository;
+import edu.iu.terracotta.dao.repository.SubmissionRepository;
+import edu.iu.terracotta.dao.repository.TreatmentRepository;
 import edu.iu.terracotta.service.app.AssignmentTreatmentService;
 import edu.iu.terracotta.service.app.ExportService;
 import edu.iu.terracotta.service.app.OutcomeService;
 import edu.iu.terracotta.service.app.ParticipantService;
 import edu.iu.terracotta.service.app.SubmissionService;
-import edu.iu.terracotta.service.aws.AWSService;
+import edu.iu.terracotta.service.aws.AwsService;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.collections4.CollectionUtils;
@@ -119,7 +120,7 @@ public class ExportServiceImpl implements ExportService {
     @Autowired private SubmissionRepository submissionRepository;
     @Autowired private TreatmentRepository treatmentRepository;
     @Autowired private AssignmentTreatmentService assignmentTreatmentService;
-    @Autowired private AWSService awsService;
+    @Autowired private AwsService awsService;
     @Autowired private Environment env;
     @Autowired private OutcomeService outcomeService;
     @Autowired private ParticipantService participantService;
@@ -143,7 +144,7 @@ public class ExportServiceImpl implements ExportService {
 
     @Override
     public Map<String, String> getFiles(long experimentId, SecuredInfo securedInfo)
-            throws CanvasApiException, ParticipantNotUpdatedException, IOException, ExperimentNotMatchingException, OutcomeNotMatchingException {
+            throws ApiException, ParticipantNotUpdatedException, IOException, ExperimentNotMatchingException, OutcomeNotMatchingException, NumberFormatException, TerracottaConnectorException {
         /*
          * Prepare the datasets that will be utilized multiple times
          */
@@ -235,7 +236,7 @@ public class ExportServiceImpl implements ExportService {
     }
 
     private void handleOutcomesCsv(long experimentId,  SecuredInfo securedInfo, Map<String, String> files)
-            throws CanvasApiException, IOException, ParticipantNotUpdatedException, ExperimentNotMatchingException, OutcomeNotMatchingException {
+            throws ApiException, IOException, ParticipantNotUpdatedException, ExperimentNotMatchingException, OutcomeNotMatchingException, NumberFormatException, TerracottaConnectorException {
         int outcomesPage = 0;
         List<Outcome> outcomes = outcomeRepository.findByExposure_Experiment_ExperimentId(experimentId, PageRequest.of(outcomesPage, exportBatchSize)).getContent();
 
@@ -744,9 +745,9 @@ public class ExportServiceImpl implements ExportService {
             .forEach(
                 assignment -> {
                     try {
-                        assignmentTreatmentService.setAssignmentDtoAttrs(assignment, securedInfo.getCanvasCourseId(), ltiUserEntity);
-                    } catch (NumberFormatException | CanvasApiException e) {
-                        log.warn("Exception finding assignment ID: '{}' for course ID: '{}' in Canvas.", assignment.getLmsAssignmentId(), securedInfo.getCanvasCourseId(), e);
+                        assignmentTreatmentService.setAssignmentDtoAttrs(assignment, securedInfo.getLmsCourseId(), ltiUserEntity);
+                    } catch (NumberFormatException | ApiException | TerracottaConnectorException e) {
+                        log.warn("Exception finding assignment ID: '{}' for course ID: '{}' in the LMS.", assignment.getLmsAssignmentId(), securedInfo.getLmsCourseId(), e);
                     }
                 }
             );

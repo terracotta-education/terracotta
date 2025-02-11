@@ -12,10 +12,11 @@ import org.mockito.InjectMocks;
 import org.mockito.MockitoAnnotations;
 
 import edu.iu.terracotta.base.BaseTest;
-import edu.iu.terracotta.exceptions.CanvasApiException;
-import edu.iu.terracotta.exceptions.ConnectionException;
+import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
+import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
+import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
+import edu.iu.terracotta.dao.entity.Submission;
 import edu.iu.terracotta.exceptions.DataServiceException;
-import edu.iu.terracotta.model.app.Submission;
 import edu.iu.terracotta.service.app.integrations.impl.IntegrationScoreAsyncServiceImpl;
 
 public class IntegrationScoreAsyncServiceImplTest extends BaseTest {
@@ -30,16 +31,16 @@ public class IntegrationScoreAsyncServiceImplTest extends BaseTest {
     }
 
     @Test
-    void testSendGradeToCanvas() throws ConnectionException, DataServiceException, CanvasApiException, IOException {
-        integrationScoreAsyncService.sendGradeToCanvas(1, false);
+    void testSendGradeToLms() throws ConnectionException, DataServiceException, ApiException, IOException, TerracottaConnectorException {
+        integrationScoreAsyncService.sendGradeToLms(1, false);
 
-        verify(submissionService).sendSubmissionGradeToCanvasWithLTI(any(Submission.class), anyBoolean());
+        verify(submissionService).sendSubmissionGradeToLmsWithLti(any(Submission.class), anyBoolean());
     }
 
     @Test
-    void testSendGradeToCanvasException() throws ConnectionException, DataServiceException, CanvasApiException, IOException {
-        doThrow(new CanvasApiException("")).when(submissionService).sendSubmissionGradeToCanvasWithLTI(any(Submission.class), anyBoolean());
-        integrationScoreAsyncService.sendGradeToCanvas(1, false);
+    void testSendGradeToLmsException() throws ConnectionException, DataServiceException, ApiException, IOException, TerracottaConnectorException {
+        doThrow(new ApiException("")).when(submissionService).sendSubmissionGradeToLmsWithLti(any(Submission.class), anyBoolean());
+        integrationScoreAsyncService.sendGradeToLms(1, false);
     }
 
 }

@@ -1,0 +1,59 @@
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+  xmlns:pro="http://www.liquibase.org/xml/ns/pro"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd
+    http://www.liquibase.org/xml/ns/dbchangelog-ext
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd
+    http://www.liquibase.org/xml/ns/pro
+    http://www.liquibase.org/xml/ns/pro/liquibase-pro-latest.xsd"
+>
+  <property
+    name="u_id"
+    value="(UUID_TO_BIN(UUID()))"
+    dbms="mysql"
+  />
+
+  <changeSet  author="rlong"  id="1737049919-01">
+    <dropTable tableName="config" cascadeConstraints="true"/>
+    <renameTable oldTableName="canvas_api_oauth_settings" newTableName="api_oauth_settings"/>
+    <renameTable oldTableName="canvas_api_scope" newTableName="api_scope" />
+    <renameTable oldTableName="canvas_api_scope_features" newTableName="api_scope_features" />
+    <renameTable oldTableName="canvas_api_token" newTableName="api_token"/>
+  </changeSet>
+
+  <changeSet  author="rlong"  id="1737049919-02">
+    <addColumn tableName="iss_configuration">
+      <column name="lms_connector" type="VARCHAR(255)" afterColumn="entity_version"/>
+    </addColumn>
+    <addColumn tableName="api_scope">
+      <column name="lms_connector" type="VARCHAR(255)" afterColumn="scope"/>
+    </addColumn>
+    <addColumn tableName="api_token">
+      <column name="lms_connector" type="VARCHAR(255)" afterColumn="token_id"/>
+    </addColumn>
+  </changeSet>
+
+  <changeSet  author="rlong"  id="1737049919-03">
+    <update tableName="iss_configuration">
+      <column name="lms_connector" value="CANVAS"/>
+    </update>
+    <update tableName="api_scope">
+      <column name="lms_connector" value="CANVAS"/>
+    </update>
+    <update tableName="api_token">
+      <column name="lms_connector" value="CANVAS"/>
+    </update>
+  </changeSet>
+
+  <changeSet  author="rlong"  id="1737049919-04">
+    <renameColumn tableName="api_token" oldColumnName="canvas_user_id" newColumnName="lms_user_id" columnDataType="BIGINT"/>
+    <renameColumn tableName="api_token" oldColumnName="canvas_user_name" newColumnName="lms_user_name" columnDataType="VARCHAR(255)"/>
+    <addNotNullConstraint tableName="api_scope" columnName="lms_connector" columnDataType="VARCHAR(255)"/>
+    <addNotNullConstraint tableName="api_token" columnName="lms_connector" columnDataType="VARCHAR(255)"/>
+    <addNotNullConstraint tableName="iss_configuration" columnName="lms_connector" columnDataType="VARCHAR(255)"/>
+  </changeSet>
+
+</databaseChangeLog>
