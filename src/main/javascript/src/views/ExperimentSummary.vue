@@ -416,7 +416,7 @@
         </v-col>
       </v-row>
       <vue-pdf-embed
-        v-if="loadPdfFrame"
+        v-if="displayConsentFile"
         :source="'data:application/pdf;base64,' + pdfFile"
       />
     </v-container>
@@ -445,6 +445,59 @@ export default {
     ResultsDashboard,
     Spinner,
     VuePdfEmbed
+  },
+  data: () => ({
+    tab: null,
+    items: ["design", "participant", "components", "status", "results"],
+    // Expansion Tab Header Values
+    setupTabs: [
+      {
+        title: "Design",
+        tab: "design",
+        description: "The basic design of your experiment",
+        image: require("@/assets/design_summary.svg"),
+      },
+      {
+        title: "Participant",
+        tab: "participant",
+        description:
+          "How students in your class become participants in your experiment",
+        image: require("@/assets/participants_summary.svg"),
+      },
+      {
+        title: "Components",
+        tab: "components",
+        description: `Terracotta populates Canvas assignments with learning activities and
+                      materials that change depending on who's looking at them, automatically
+                      managing experimental variation within the treatments. Just create different
+                      treatments within each component. To your students, it will look like
+                      they're completing assignments as usual within Canvas.`,
+        image: require("@/assets/assignments_summary.svg"),
+      },
+      {
+        title: "Status",
+        tab: "status",
+        description:
+          "Once your experiment is running, you will see status updates below",
+      },
+      {
+        title: "Results",
+        tab: "results"
+      }
+    ],
+    conditionTreatments: {},
+    conditionColors: [""],
+    isLoading: true,
+    exposureSet: 0,
+    loadPdfFrame: false,
+    pdfFile: null,
+    pdfLoading: false
+  }),
+  watch: {
+    pdfFile() {
+      this.loadPdfFrame = true;
+      this.pdfLoading = false;
+    }
   },
   computed: {
     ...mapGetters({
@@ -562,60 +615,9 @@ export default {
     },
     experimentId() {
       return this.experiment.experimentId;
-    }
-  },
-
-  data: () => ({
-    tab: null,
-    items: ["design", "participant", "components", "status", "results"],
-    // Expansion Tab Header Values
-    setupTabs: [
-      {
-        title: "Design",
-        tab: "design",
-        description: "The basic design of your experiment",
-        image: require("@/assets/design_summary.svg"),
-      },
-      {
-        title: "Participant",
-        tab: "participant",
-        description:
-          "How students in your class become participants in your experiment",
-        image: require("@/assets/participants_summary.svg"),
-      },
-      {
-        title: "Components",
-        tab: "components",
-        description: `Terracotta populates Canvas assignments with learning activities and
-                      materials that change depending on who's looking at them, automatically
-                      managing experimental variation within the treatments. Just create different
-                      treatments within each component. To your students, it will look like
-                      they're completing assignments as usual within Canvas.`,
-        image: require("@/assets/assignments_summary.svg"),
-      },
-      {
-        title: "Status",
-        tab: "status",
-        description:
-          "Once your experiment is running, you will see status updates below",
-      },
-      {
-        title: "Results",
-        tab: "results"
-      }
-    ],
-    conditionTreatments: {},
-    conditionColors: [""],
-    isLoading: true,
-    exposureSet: 0,
-    loadPdfFrame: false,
-    pdfFile: null,
-    pdfLoading: false
-  }),
-  watch: {
-    pdfFile() {
-      this.loadPdfFrame = true;
-      this.pdfLoading = false;
+    },
+    displayConsentFile() {
+      return this.tab === this.setupTabs.findIndex((setupTab) => setupTab.tab === "participant") && this.loadPdfFrame;
     }
   },
   methods: {
@@ -758,7 +760,6 @@ export default {
         });
     }
   },
-
   async mounted() {
     await this.resetAssignments();
     this.tab = this.setupTabs.findIndex((s) => s.tab === this.activeTab);
