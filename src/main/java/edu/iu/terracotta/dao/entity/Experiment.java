@@ -100,6 +100,17 @@ public class Experiment extends BaseEntity {
     @JoinColumn(name = "created_by")
     private LtiUserEntity createdBy;
 
+    /**
+     * Get particpants that are not test students
+     *
+     * @return
+     */
+    public List<Participant> getParticipants() {
+        return participants.stream()
+            .filter(participant -> !participant.getLtiUserEntity().isTestStudent())
+            .toList();
+    }
+
     @Transient
     public boolean isStarted() {
         return started != null;
