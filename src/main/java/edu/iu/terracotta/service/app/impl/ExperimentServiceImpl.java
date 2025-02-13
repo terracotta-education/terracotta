@@ -286,10 +286,14 @@ public class ExperimentServiceImpl implements ExperimentService {
         int countAccepted = 0;
         int countRejected = 0;
 
-        if (experiment.getParticipants() != null) {
-            experimentDto.setPotentialParticipants(experiment.getParticipants().size());
+        List<Participant> participantsList = experiment.getParticipants().stream()
+            .filter(participant -> participant.getLtiUserEntity().isTestStudent())
+            .toList();
 
-            for (Participant participant : experiment.getParticipants()) {
+        if (CollectionUtils.isNotEmpty(participantsList)) {
+            experimentDto.setPotentialParticipants(participantsList.size());
+
+            for (Participant participant : participantsList) {
                 if (participant.getDateGiven() != null || participant.getDateRevoked() != null) {
                     countAnswered++;
 
@@ -313,7 +317,7 @@ public class ExperimentServiceImpl implements ExperimentService {
             consentDto.setFilePointer(consentDocument.getFilePointer());
             consentDto.setTitle(consentDocument.getTitle());
             consentDto.setHtml(fileStorageService.parseHTMLFiles(consentDocument.getHtml(), experiment.getPlatformDeployment().getLocalUrl()));
-            consentDto.setExpectedConsent(experiment.getParticipants().size());
+            consentDto.setExpectedConsent(participantsList.size());
             consentDto.setAnsweredConsentCount(countAnswered);
             experimentDto.setConsent(consentDto);
         }
