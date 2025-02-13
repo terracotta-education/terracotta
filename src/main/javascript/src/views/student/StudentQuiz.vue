@@ -268,9 +268,20 @@
             </div>
 
             <v-btn
-              v-if="hasNextQuestionPage"
+              v-if="showBackButton"
+              :disabled="disableBackButton"
+              @click.prevent="backPage"
+              elevation="0"
+              color="primary"
+              class="mt-4 mr-2"
+              type="button"
+            >
+              Back
+            </v-btn>
+            <v-btn
+              v-if="showNextButton"
               @click.prevent="nextPage"
-              :disabled="!allCurrentPageQuestionsAnswered"
+              :disabled="disableNextButton"
               elevation="0"
               color="primary"
               class="mt-4"
@@ -279,8 +290,8 @@
               Next
             </v-btn>
             <v-btn
-              v-if="!readonly && !hasNextQuestionPage"
-              :disabled="!allQuestionsAnswered"
+              v-if="showSubmitButton"
+              :disabled="disableSubmitButton"
               elevation="0"
               color="primary"
               class="mt-4"
@@ -398,6 +409,41 @@ export default {
     },
     hasNextQuestionPage() {
       return this.questionPageIndex < this.questionPages.length - 1;
+    },
+    showNextButton() {
+      if (this.readonly) {
+        return this.questionPages.length > 1;
+      }
+
+      return this.hasNextQuestionPage;
+    },
+    disableNextButton() {
+      if (this.readonly) {
+        return !this.hasNextQuestionPage;
+      }
+
+      return !this.allCurrentPageQuestionsAnswered;
+    },
+    showBackButton() {
+      return this.readonly && this.questionPages.length > 1;
+    },
+    disableBackButton() {
+      return !this.hasBackQuestionPage;
+    },
+    hasBackQuestionPage() {
+      if (!this.readonly) {
+        // only readonly mode can go back
+        return false;
+      }
+
+      // all pages besides first has a back button
+      return this.questionPageIndex > 0;
+    },
+    showSubmitButton() {
+      return !this.readonly && !this.hasNextQuestionPage;
+    },
+    disableSubmitButton() {
+      return !this.allQuestionsAnswered
     },
     canTryAgain() {
       return this.readonly && (this.assignmentData ? this.assignmentData.retakeDetails.retakeAllowed : false);
@@ -741,6 +787,10 @@ export default {
                 </div>`;
     },
     areAllQuestionsAnswered(answerableQuestions) {
+      if (this.readonly) {
+        return true;
+      }
+
       for (const question of answerableQuestions) {
         if (question.questionType === "MC") {
           const answer = this.questionValues.find(
@@ -773,6 +823,12 @@ export default {
     },
     nextPage() {
       this.questionPageIndex++;
+      this.$nextTick(() => {
+        this.$refs.form.scrollIntoView({ behavior: "smooth" });
+      });
+    },
+    backPage() {
+      this.questionPageIndex--;
       this.$nextTick(() => {
         this.$refs.form.scrollIntoView({ behavior: "smooth" });
       });
