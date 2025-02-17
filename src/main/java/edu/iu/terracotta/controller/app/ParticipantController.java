@@ -36,6 +36,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import jakarta.servlet.http.HttpServletRequest;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -121,7 +122,7 @@ public class ParticipantController {
     }
 
     @PutMapping("/{participantId}")
-    public ResponseEntity<Void> updateParticipant(@PathVariable long experimentId,
+    public ResponseEntity<ParticipantDto> updateParticipant(@PathVariable long experimentId,
                                                   @PathVariable long participantId,
                                                   @RequestBody ParticipantDto participantDto,
                                                   HttpServletRequest req)
@@ -130,9 +131,10 @@ public class ParticipantController {
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.participantAllowed(securedInfo, experimentId, participantId);
+        List<Participant> participants = new ArrayList<>();
 
         if (apijwtService.isInstructorOrHigher(securedInfo)) {
-            participantService.changeParticipant(
+            participants = participantService.changeParticipant(
                 Collections.singletonMap(
                     participantService.getParticipant(participantId, experimentId, securedInfo.getUserId(), false),
                     participantDto),
@@ -140,7 +142,7 @@ public class ParticipantController {
                 securedInfo
             );
 
-            return new ResponseEntity<>(HttpStatus.OK);
+            return new ResponseEntity<>(participantService.toDto(participants.get(0), securedInfo), HttpStatus.OK);
         }
 
         if (apijwtService.isLearner(securedInfo)) {
@@ -154,11 +156,7 @@ public class ParticipantController {
             }
 
             try {
-                if (participantService.changeConsent(participantDto, securedInfo, experimentId)) {
-                    return new ResponseEntity<>(HttpStatus.OK);
-                }
-
-                return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
+                return new ResponseEntity<>(participantService.toDto(participantService.changeConsent(participantDto, securedInfo, experimentId), securedInfo), HttpStatus.OK);
             } catch (ParticipantAlreadyStartedException e) {
                 log.debug("Participant {} has already started: {}", participantId, e.getMessage());
                 return new ResponseEntity(

@@ -554,9 +554,9 @@ public class ParticipantServiceImplTest extends BaseTest {
     public void testChangeConsent() throws ParticipantAlreadyStartedException, ExperimentNotMatchingException {
         when(securedInfo.getConsent()).thenReturn(true);
 
-        boolean retVal = participantService.changeConsent(participantDto, securedInfo, 1L);
+        Participant retVal = participantService.changeConsent(participantDto, securedInfo, 1L);
 
-        assertTrue(retVal);
+        assertNotNull(retVal);
     }
 
     @Test
