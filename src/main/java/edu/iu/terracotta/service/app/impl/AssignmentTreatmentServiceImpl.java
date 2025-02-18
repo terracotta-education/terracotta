@@ -20,6 +20,7 @@ import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorExcept
 import edu.iu.terracotta.connectors.generic.service.api.ApiClient;
 import edu.iu.terracotta.dao.entity.Assessment;
 import edu.iu.terracotta.dao.entity.Assignment;
+import edu.iu.terracotta.dao.entity.Submission;
 import edu.iu.terracotta.dao.entity.Treatment;
 import edu.iu.terracotta.dao.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.QuestionNotMatchingException;
@@ -137,11 +138,12 @@ public class AssignmentTreatmentServiceImpl implements AssignmentTreatmentServic
         assignmentDto.setStudentViewCorrectAnswersAfter(assignment.getStudentViewCorrectAnswersAfter());
         assignmentDto.setStudentViewCorrectAnswersBefore(assignment.getStudentViewCorrectAnswersBefore());
 
-        long submissionsCount = submissionRepository.countByAssessment_Treatment_Assignment_AssignmentId(assignment.getAssignmentId());
+        List<Submission> assignmentSubmissions = submissionRepository.findByAssessment_Treatment_Assignment_AssignmentId(assignment.getAssignmentId())
+            .stream()
+            .filter(submission -> !submission.getParticipant().getLtiUserEntity().isTestStudent())
+            .toList();
 
-        if (submissionsCount > 0) {
-            assignmentDto.setStarted(true);
-        }
+        assignmentDto.setStarted(CollectionUtils.isNotEmpty(assignmentSubmissions));
 
         if (addTreatmentDto) {
             List<Treatment> treatments = treatmentRepository.findByAssignment_AssignmentId(assignment.getAssignmentId());

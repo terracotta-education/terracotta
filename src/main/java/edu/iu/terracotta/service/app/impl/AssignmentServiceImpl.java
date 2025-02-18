@@ -453,8 +453,8 @@ public class AssignmentServiceImpl implements AssignmentService {
             assessmentService.verifySubmissionLimit(assessment.getNumOfSubmissions(), submissionList.size());
             assessmentService.verifySubmissionWaitTime(assessment.getHoursBetweenSubmissions(), submissionList);
 
-            // If it is the first submission in the experiment mark it as started.
-            if (experiment.get().getStarted() == null) {
+            // if it is the first non-test student submission in the experiment mark it as started.
+            if (!participant.isTestStudent() && !experiment.get().isStarted()) {
                 experiment.get().setStarted(Timestamp.valueOf(LocalDateTime.now()));
                 experimentRepository.save(experiment.get());
             }
