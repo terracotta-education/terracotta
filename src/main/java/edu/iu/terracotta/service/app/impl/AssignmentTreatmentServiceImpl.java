@@ -138,8 +138,7 @@ public class AssignmentTreatmentServiceImpl implements AssignmentTreatmentServic
         assignmentDto.setStudentViewCorrectAnswersAfter(assignment.getStudentViewCorrectAnswersAfter());
         assignmentDto.setStudentViewCorrectAnswersBefore(assignment.getStudentViewCorrectAnswersBefore());
 
-        List<Submission> assignmentSubmissions = submissionRepository.findByAssessment_Treatment_Assignment_AssignmentId(assignment.getAssignmentId())
-            .stream()
+        List<Submission> assignmentSubmissions = CollectionUtils.emptyIfNull(submissionRepository.findByAssessment_Treatment_Assignment_AssignmentId(assignment.getAssignmentId())).stream()
             .filter(submission -> !submission.getParticipant().getLtiUserEntity().isTestStudent())
             .toList();
 
