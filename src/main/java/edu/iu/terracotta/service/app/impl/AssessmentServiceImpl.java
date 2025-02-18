@@ -269,7 +269,7 @@ public class AssessmentServiceImpl implements AssessmentService {
 
         groupId = exposureGroupCondition.get().getGroup().getGroupId();
         Map<Participant, Boolean> participantStatus = new HashMap<>();
-        List<Submission> assessmentSubmissions = assessment.getSubmissions().stream()
+        List<Submission> assessmentSubmissions = CollectionUtils.emptyIfNull(assessment.getSubmissions()).stream()
             .filter(submission -> !submission.getParticipant().isTestStudent())
             .toList();
 
