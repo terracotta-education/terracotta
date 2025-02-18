@@ -457,9 +457,10 @@ public class ParticipantServiceImpl implements ParticipantService {
 
     @Override
     @Transactional
-    public void changeParticipant(Map<Participant, ParticipantDto> map, Long experimentId, SecuredInfo securedInfo) {
+    public List<Participant> changeParticipant(Map<Participant, ParticipantDto> map, Long experimentId, SecuredInfo securedInfo) {
         Experiment experiment = experimentRepository.findByExperimentId(experimentId);
         List<Long> publishedExperimentAssignmentIds = calculatedPublishedAssignmentIds(experimentId, securedInfo.getLmsCourseId(), experiment.getCreatedBy());
+        List<Participant> participants = new ArrayList<>();
 
         for (Map.Entry<Participant, ParticipantDto> entry : map.entrySet()) {
             Participant participantToChange = entry.getKey();
@@ -503,20 +504,22 @@ public class ParticipantServiceImpl implements ParticipantService {
                 participantToChange.setSource(experiment.getParticipationType());
             }
 
-            participantRepository.save(participantToChange);
+            participants.add(participantRepository.save(participantToChange));
         }
+
+        return participants;
     }
 
     @Override
     @Transactional
-    public boolean changeConsent(ParticipantDto participantDto, SecuredInfo securedInfo, Long experimentId) throws ParticipantAlreadyStartedException, ExperimentNotMatchingException {
+    public Participant changeConsent(ParticipantDto participantDto, SecuredInfo securedInfo, Long experimentId) throws ParticipantAlreadyStartedException, ExperimentNotMatchingException {
         Participant participant = participantRepository.findByParticipantId(participantDto.getParticipantId());
 
         if (participant == null
                 || !StringUtils.equals(participant.getLtiUserEntity().getUserKey(), securedInfo.getUserId())
                 || securedInfo.getConsent() == null
                 || BooleanUtils.isFalse(securedInfo.getConsent())) {
-            return false;
+            return participant;
         }
 
         if (BooleanUtils.isTrue(participant.getConsent()) && BooleanUtils.isFalse(participantDto.getConsent())) {
@@ -540,7 +543,7 @@ public class ParticipantServiceImpl implements ParticipantService {
             participantDto.setGroupId(participant.getGroup().getGroupId());
         }
 
-        changeParticipant(Collections.singletonMap(participant, participantDto), experimentId, securedInfo);
+        List<Participant> changedParticipants = changeParticipant(Collections.singletonMap(participant, participantDto), experimentId, securedInfo);
 
         // update experiment as started
         Experiment experiment = experimentRepository.findByExperimentId(experimentId);
@@ -553,7 +556,7 @@ public class ParticipantServiceImpl implements ParticipantService {
             experiment.setStarted(Timestamp.valueOf(LocalDateTime.now()));
         }
 
-        return true;
+        return changedParticipants.get(0);
     }
 
     @Override

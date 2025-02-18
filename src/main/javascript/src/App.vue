@@ -16,7 +16,7 @@
       <template
         v-else-if="hasTokens && userInfo === 'Learner'"
       >
-        <div class="studentView mt-5">
+        <div class="student-view mt-5">
           <PageLoading
             :display="!childLoaded"
             :message="'Loading your assignment. Please wait.'"
@@ -151,7 +151,7 @@ export default {
   p {
     padding-bottom: 15px;
   }
-  .studentView {
+  .student-view {
     display: flex;
   }
 </style>

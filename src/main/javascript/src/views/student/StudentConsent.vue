@@ -4,7 +4,22 @@
     class="consent-steps my-5 mx-auto"
   >
     <v-alert
-      v-if="participant && participant.started && !participant.consent"
+      v-if="respondedAlert.show"
+      prominent
+      type="info"
+    >
+      <v-row
+        align="center"
+      >
+        <v-col
+          class="grow"
+        >
+          You responded "{{ respondedAlert.consent }}agree to participate" on {{ respondedAlert.date }}
+        </v-col>
+      </v-row>
+    </v-alert>
+    <v-alert
+      v-if="alreadyAccessedAlert.show"
       prominent
       type="error"
     >
@@ -47,6 +62,7 @@
         </v-list>
       </v-card>
       <v-btn
+        :disabled="disableSubmit"
         elevation="0"
         color="primary"
         class="mr-4 mt-5"
@@ -60,6 +76,7 @@
 
 <script>
 import { mapActions } from "vuex";
+import moment from "moment";
 import VuePdfEmbed from 'vue-pdf-embed/dist/vue2-pdf-embed';
 
 export default {
@@ -84,7 +101,8 @@ export default {
     pdfFile: null,
     pdfReady: false,
     participantReady: false,
-    pageFullyLoaded: false
+    pageFullyLoaded: false,
+    disableSubmit: true
   }),
   watch: {
     pdfFile() {
@@ -93,14 +111,47 @@ export default {
         this.pageFullyLoaded = true;
       }
     },
-    participant() {
-      this.participantReady = true;
-      if (this.pdfReady) {
-        this.pageFullyLoaded = true;
-      }
+    participant: {
+      handler() {
+        this.participantReady = true;
+        if (this.pdfReady) {
+          this.pageFullyLoaded = true;
+        }
+      },
+      deep: true
     },
     pageFullyLoaded() {
       this.$emit('loaded');
+    },
+    answer: {
+      handler(newAnswer) {
+        this.disableSubmit = newAnswer === "";
+      }
+    }
+  },
+  computed: {
+    hasConsentedAlready() {
+      return ["CONSENT", "REVOKED"].includes(this.participant.source) && (this.participant.dateGiven !== null || this.participant.dateRevoked !== null);
+    },
+    alreadyAccessedAlert() {
+      return {
+        show: this.participant && this.participant.started && !this.participant.consent
+      }
+    },
+    respondedAlert() {
+      if (!this.participant) {
+        return {
+          show: false,
+          consent: "",
+          date: ""
+        }
+      }
+
+      return {
+        show: this.hasConsentedAlready,
+        consent: this.participant.consent ? "" : "do not ",
+        date: moment(this.participant.consent ? this.participant.dateGiven : this.participant.dateRevoked).format("MMMM D, YYYY [ at ] h:mma")
+      }
     }
   },
   methods: {
@@ -110,15 +161,31 @@ export default {
       reportStep: "api/reportStep",
     }),
     updateConsent(answer) {
-      console.log(answer);
-      if (answer !== "") {
-        // Update a clone of this participant object
-        const updatedParticipant = {
-          ...this.participant,
-          consent: answer,
-        };
-        this.submitParticipant(updatedParticipant);
+      if (this.participant.started) {
+        // participant has submitted already and cannot be included in the study
+        this.$swal({
+          text: "You have already accessed an assignment that is part of this study. At this time, no matter your response, you cannot be included in this study.",
+          icon: "error",
+        });
+        return;
       }
+      if (answer === "") {
+        return;
+      }
+      if (this.hasConsentedAlready && this.participant.consent === answer) {
+        // participant has already submitted consent and is trying to resubmit with same; just show alert and return
+        this.$swal({
+          text: "Successfully submitted Consent",
+          icon: "success",
+        });
+        return;
+      }
+      this.disableSubmit = true;
+      const updatedParticipant = {
+        ...this.participant,
+        consent: answer,
+      };
+      this.submitParticipant(updatedParticipant);
     },
     submitParticipant(participantData) {
       this.updateParticipant({
@@ -126,12 +193,13 @@ export default {
         participantData,
       })
         .then((response) => {
-          if (response.status === 200) {
-            this.$swal({
-              text: `Successfully submitted Consent`,
-              icon: "success",
-            });
-          } else if (response.message) {
+          this.disableSubmit = false;
+          this.participant = {...this.participant, ...response};
+          this.$swal({
+            text: "Successfully submitted consent",
+            icon: "success",
+          });
+          if (response.message) {
             this.$swal({
               text: response.message,
               icon: "error",
@@ -140,6 +208,7 @@ export default {
         })
         .catch((response) => {
           console.log("submitParticipant | catch", { response });
+          this.disableSubmit = false;
         });
     },
     handleConsentFileDownload() {
@@ -169,7 +238,6 @@ export default {
   margin-left: 15px;
 }
 div.vue-pdf-embed {
-  width: 98%;
   margin: 0 auto;
   min-height: 300px;
   max-height: 600px;
