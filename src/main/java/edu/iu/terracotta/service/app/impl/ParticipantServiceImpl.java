@@ -552,7 +552,7 @@ public class ParticipantServiceImpl implements ParticipantService {
             throw new ExperimentNotMatchingException(String.format("No experiment with ID: '%s' found.", experimentId));
         }
 
-        if (!experiment.isStarted()) {
+        if (!participant.isTestStudent() && !experiment.isStarted()) {
             experiment.setStarted(Timestamp.valueOf(LocalDateTime.now()));
         }
 

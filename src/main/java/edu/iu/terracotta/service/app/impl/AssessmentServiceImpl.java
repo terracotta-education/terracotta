@@ -264,14 +264,17 @@ public class AssessmentServiceImpl implements AssessmentService {
         Long groupId = null;
 
         if (exposureGroupCondition.isEmpty()) {
-            throw new AssessmentNotMatchingException("Error 124: Assessment " + assessment.getAssessmentId() + " is without a Group");
+            throw new AssessmentNotMatchingException(String.format("Error 124: Assessment [%s] is without a group", assessment.getAssessmentId()));
         }
 
         groupId = exposureGroupCondition.get().getGroup().getGroupId();
         Map<Participant, Boolean> participantStatus = new HashMap<>();
+        List<Submission> assessmentSubmissions = assessment.getSubmissions().stream()
+            .filter(submission -> !submission.getParticipant().isTestStudent())
+            .toList();
 
         if (submissions) {
-            for (Submission submission : assessment.getSubmissions()) {
+            for (Submission submission : assessmentSubmissions) {
                 // We add the status. False if in progress, true if submitted.
                 if (submission.getDateSubmitted() != null) {
                     participantStatus.put(submission.getParticipant(), true);
@@ -301,10 +304,7 @@ public class AssessmentServiceImpl implements AssessmentService {
             assessmentDto.setSubmissionsInProgressCount(submissionsInProgressCount);
         }
 
-        if (assessment.getSubmissions() != null && !assessment.getSubmissions().isEmpty()) {
-            assessmentDto.setStarted(true);
-        }
-
+        assessmentDto.setStarted(CollectionUtils.isNotEmpty(assessmentSubmissions));
         assessmentDto.setSubmissions(submissionDtoList);
         assessmentDto.setTreatmentId(assessment.getTreatment().getTreatmentId());
         assessmentDto.setMaxPoints(assessmentSubmissionService.calculateMaxScore(assessment));
