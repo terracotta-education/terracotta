@@ -287,7 +287,7 @@ public class ExperimentServiceImpl implements ExperimentService {
         int countRejected = 0;
 
         List<Participant> participantsList = CollectionUtils.emptyIfNull(experiment.getParticipants()).stream()
-            .filter(participant -> participant.getLtiUserEntity().isTestStudent())
+            .filter(participant -> !participant.getLtiUserEntity().isTestStudent())
             .toList();
 
         if (CollectionUtils.isNotEmpty(participantsList)) {
