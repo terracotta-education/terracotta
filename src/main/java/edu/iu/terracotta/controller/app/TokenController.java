@@ -2,7 +2,7 @@ package edu.iu.terracotta.controller.app;
 
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
-import edu.iu.terracotta.exceptions.BadTokenException;
+import io.micrometer.common.util.StringUtils;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,14 +35,19 @@ public class TokenController {
         String token = apiJwtService.extractJwtStringValue(req, true);
 
         try {
-            return new ResponseEntity<>(apiJwtService.refreshToken(token), HttpStatus.OK);
+            String refreshToken = apiJwtService.refreshToken(token);
+
+            if (StringUtils.isBlank(refreshToken)) {
+                return new ResponseEntity<>("Error generating token", HttpStatus.BAD_REQUEST);
+            }
+
+            return new ResponseEntity<>(refreshToken, HttpStatus.OK);
         } catch (GeneralSecurityException | IOException e) {
             log.error(e.getMessage(), e);
-        } catch (BadTokenException e) {
+            return new ResponseEntity<>("Error generating token", HttpStatus.INTERNAL_SERVER_ERROR);
+        } catch (Exception e) {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
-
-        return new ResponseEntity<>("Error generating token", HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
 }
