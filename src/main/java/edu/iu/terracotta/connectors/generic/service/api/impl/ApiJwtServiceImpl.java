@@ -279,9 +279,9 @@ public class ApiJwtServiceImpl implements ApiJwtService {
             }
 
             return Optional.of(claims);
-        } else {
-            return Optional.empty();
         }
+
+        return Optional.empty();
     }
 
     @Override
@@ -314,20 +314,31 @@ public class ApiJwtServiceImpl implements ApiJwtService {
 
     @Override
     public String refreshToken(String token) throws GeneralSecurityException, IOException, BadTokenException, NumberFormatException, TerracottaConnectorException {
-        return instance(validateToken(token)).refreshToken(token);
+        Jws<Claims> claims = validateToken(token);
+
+        if (claims == null) {
+            log.warn("JWS claims is null. Token: [%s]", token);
+            return null;
+        }
+
+        return instance(claims).refreshToken(token);
     }
 
     @Override
     public ResponseEntity<String> getTimedToken(HttpServletRequest req) throws NumberFormatException, TerracottaConnectorException {
-        return instance(
-            validateToken(
-                extractJwtStringValue(
-                    req,
-                    true
-                )
+        Jws<Claims> claims = validateToken(
+            extractJwtStringValue(
+                req,
+                true
             )
-        )
-        .getTimedToken(req);
+        );
+
+        if (claims == null) {
+            log.warn("JWS claims is null. Request URL: [%s]", req.getRequestURL());
+            return null;
+        }
+
+        return instance(claims).getTimedToken(req);
     }
 
     @Override
@@ -358,6 +369,7 @@ public class ApiJwtServiceImpl implements ApiJwtService {
         Jws<Claims> claims = validateToken(token);
 
         if (claims == null) {
+            log.warn("JWS claims is null. Request URL: [%s]", request.getRequestURL());
             return null;
         }
 
