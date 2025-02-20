@@ -73,14 +73,7 @@ function handleResponse(response) {
   .then(text => {
     const data = (text && isJson(text)) ? JSON.parse(text) : text;
 
-    if (
-      !response ||
-      response.status === 401 ||
-      response.status === 402 ||
-      response.status === 500 ||
-      response.status === 404
-    ) {
-    } else if (response.status === 409) {
+    if (response.status === 409) {
       return {
         message: data
       }
