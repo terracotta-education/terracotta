@@ -317,7 +317,7 @@ public class ApiJwtServiceImpl implements ApiJwtService {
         Jws<Claims> claims = validateToken(token);
 
         if (claims == null) {
-            log.warn("JWS claims is null. Token: [%s]", token);
+            log.warn("JWS claims is null. Token: [{}]", token);
             return null;
         }
 
@@ -334,7 +334,7 @@ public class ApiJwtServiceImpl implements ApiJwtService {
         );
 
         if (claims == null) {
-            log.warn("JWS claims is null. Request URL: [%s]", req.getRequestURL());
+            log.warn("JWS claims is null. Request URL: [{}]", req.getRequestURL());
             return null;
         }
 
@@ -369,7 +369,7 @@ public class ApiJwtServiceImpl implements ApiJwtService {
         Jws<Claims> claims = validateToken(token);
 
         if (claims == null) {
-            log.warn("JWS claims is null. Request URL: [%s]", request.getRequestURL());
+            log.warn("JWS claims is null. Request URL: [{}]", request.getRequestURL());
             return null;
         }
 
