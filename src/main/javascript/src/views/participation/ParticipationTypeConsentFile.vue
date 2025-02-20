@@ -86,6 +86,9 @@ export default {
     },
     singleConditionExperiment() {
       return this.conditions.length === 1;
+    },
+    isNewExperiment() {
+      return this.editMode === null;
     }
   },
   methods: {
@@ -154,6 +157,10 @@ export default {
     },
   },
   created() {
+    if (this.isNewExperiment) {
+      return;
+    }
+
     this.handleConsentFileDownload();
   }
 };

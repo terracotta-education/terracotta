@@ -1,28 +1,28 @@
-import {conditionService} from '@/services'
+import {conditionService} from "@/services";
 
-const state = {}
+const state = {};
 
 const actions = {
   resetCondition: ({commit}) => {
-    commit('setCondition', {})
+    commit("setCondition", {})
   },
   createDefaultConditions: ({dispatch}, experimentId) => {
     const defaultConditions = [
       {
-        name: '',
+        name: "",
         experiment_experiment_id: experimentId
       },
       {
-        name: '',
+        name: "",
         experiment_experiment_id: experimentId
       }
     ]
-    dispatch('createConditions', defaultConditions)
+    dispatch("createConditions", defaultConditions)
   },
   createConditions: ({dispatch}, conditions) => {
     if (conditions.length > 0) {
       conditions.forEach(condition => {
-        dispatch('createCondition', condition)
+        dispatch("createCondition", condition)
       })
     }
   },
@@ -33,44 +33,39 @@ const actions = {
               if (condition.message) {
                 alert(condition.message)
               } else {
-                commit('experiment/setCondition', condition, {root: true})
+                commit("experiment/setCondition", condition, {root: true})
               }
             })
             .catch(response => {
-              console.log('createCondition | catch', {response})
+              console.log("createCondition | catch", {response})
             })
   },
-
   updateCondition: ({commit}, condition) => {
     return conditionService.update(condition)
             .then((response) => {
               if (response.status === 200) {
                 // commit mutation from experiment module
-                commit('experiment/setCondition', condition, {root: true})
+                commit("experiment/setCondition", condition, {root: true})
               }
               return response
             })
             .catch(response => {
-              console.log('setCondition | catch', {response})
+              console.log("setCondition | catch", {response})
             })
   },
-
   updateConditions: ({commit}, conditions) => {
     return conditionService.updateAll(conditions)
         .then((response) => {
           if (response.status === 200) {
             // commit mutation from experiment module
-            commit('experiment/setConditions', conditions, {root: true})
+            commit("experiment/setConditions", conditions, {root: true});
           }
-          return response
+          return response;
         })
         .catch(response => {
-          console.log('setConditions | catch', {response})
+          console.log("setConditions | catch", {response})
         })
   },
-
-
-
   setDefaultCondition({dispatch}, payload) {
     if (!payload || !payload.conditions || !payload.defaultConditionId) {
       return false
@@ -80,7 +75,7 @@ const actions = {
       payload.conditions.map(async (condition) => {
         return new Promise((resolve) => {
           condition.defaultCondition = (condition.conditionId === payload.defaultConditionId) ? 1 : 0
-          dispatch('updateCondition', condition)
+          dispatch("updateCondition", condition)
           resolve(condition)
         });
       })
@@ -90,10 +85,10 @@ const actions = {
     return conditionService.delete(condition)
             .then(() => {
               // commit mutation from experiment module
-              commit('experiment/deleteCondition', condition, {root: true})
+              commit("experiment/deleteCondition", condition, {root: true})
             })
             .catch(response => {
-              console.log('setCondition | catch', {response})
+              console.log("setCondition | catch", {response})
             })
   },
   resetCondtions({state}) {
@@ -102,38 +97,40 @@ const actions = {
   },
 }
 
-const mutations = {}
+const mutations = {};
 
 const CONDITION_COLORS = [
-  '#FFCCBC',
-  '#FFECB3',
-  '#F0F4C3',
-  '#C8E6C9',
-  '#B2EBF2',
-  '#BBDEFB',
-  '#D1C4E9',
-  '#F8BBD0',
-  '#D7CCC8',
-  '#FFE0B2',
-  '#FFF9C4',
-  '#DCEDC8',
-  '#B2DFDB',
-  '#B3E5FC',
-  '#C5CAE9',
-  '#E1BEE7',
-  '#E1BEE7',
-  '#CFD8DC',
+  "#FFCCBC",
+  "#FFECB3",
+  "#F0F4C3",
+  "#C8E6C9",
+  "#B2EBF2",
+  "#BBDEFB",
+  "#D1C4E9",
+  "#F8BBD0",
+  "#D7CCC8",
+  "#FFE0B2",
+  "#FFF9C4",
+  "#DCEDC8",
+  "#B2DFDB",
+  "#B3E5FC",
+  "#C5CAE9",
+  "#E1BEE7",
+  "#E1BEE7",
+  "#CFD8DC",
 ];
 const getters = {
   conditionColorMapping(_state, _getters, _rootState, rootGetters) {
-    const exposures = rootGetters['exposures/exposures'];
+    const exposures = rootGetters["exposures/exposures"];
     // Base the color mapping on the order of conditions in the first exposure
     const groupConditionList = exposures?.length > 0 ? exposures[0].groupConditionList : [];
     const conditionColorMap = {};
+
     for (let index = 0; index < groupConditionList.length; index++) {
       const groupCondition = groupConditionList[index];
-      conditionColorMap[groupCondition.conditionName] = CONDITION_COLORS[index % CONDITION_COLORS.length]
+      conditionColorMap[groupCondition.conditionName] = CONDITION_COLORS[index % CONDITION_COLORS.length];
     }
+
     return conditionColorMap;
   }
 }

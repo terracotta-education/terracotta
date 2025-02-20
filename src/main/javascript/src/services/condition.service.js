@@ -1,5 +1,5 @@
-import {authHeader, isJson} from '@/helpers'
-import store from '@/store/index'
+import {authHeader, isJson} from "@/helpers";
+import store from "@/store/index";
 
 /**
  * Register methods
@@ -16,12 +16,12 @@ export const conditionService = {
  */
 function create(condition) {
   const requestOptions = {
-    method: 'POST',
-    headers: {...authHeader(), 'Content-Type': 'application/json'},
+    method: "POST",
+    headers: {...authHeader(), "Content-Type": "application/json"},
     body: JSON.stringify(condition)
   }
 
-  return fetch(`${store.getters['api/aud']}/api/experiments/${condition.experiment_experiment_id}/conditions`, requestOptions).then(handleResponse)
+  return fetch(`${store.getters["api/aud"]}/api/experiments/${condition.experiment_experiment_id}/conditions`, requestOptions).then(handleResponse);
 }
 
 /**
@@ -29,12 +29,12 @@ function create(condition) {
  */
 function update(condition) {
   const requestOptions = {
-    method: 'PUT',
-    headers: {...authHeader(), 'Content-Type': 'application/json'},
+    method: "PUT",
+    headers: {...authHeader(), "Content-Type": "application/json"},
     body: JSON.stringify(condition)
   }
 
-  return fetch(`${store.getters['api/aud']}/api/experiments/${condition.experimentId}/conditions/${condition.conditionId}`, requestOptions).then(handleResponse)
+  return fetch(`${store.getters["api/aud"]}/api/experiments/${condition.experimentId}/conditions/${condition.conditionId}`, requestOptions).then(handleResponse);
 }
 
 /**
@@ -43,15 +43,13 @@ function update(condition) {
  */
 function updateAll(conditions) {
   const requestOptions = {
-    method: 'PUT',
-    headers: {...authHeader(), 'Content-Type': 'application/json'},
+    method: "PUT",
+    headers: {...authHeader(), "Content-Type": "application/json"},
     body: JSON.stringify(conditions)
   }
 
-  return fetch(`${store.getters['api/aud']}/api/experiments/${conditions.experimentId}/conditions`, requestOptions).then(handleResponse)
+  return fetch(`${store.getters["api/aud"]}/api/experiments/${conditions[0].experimentId}/conditions`, requestOptions).then(handleResponse);
 }
-
-
 
 /**
  * Delete Condition
@@ -60,11 +58,11 @@ function updateAll(conditions) {
  */
 function _delete(condition) {
   const requestOptions = {
-    method: 'DELETE',
-    headers: {...authHeader(), 'Content-Type': 'application/json'},
+    method: "DELETE",
+    headers: {...authHeader(), "Content-Type": "application/json"},
   }
 
-  return fetch(`${store.getters['api/aud']}/api/experiments/${condition.experimentId}/conditions/${condition.conditionId}`, requestOptions).then(handleResponse)
+  return fetch(`${store.getters["api/aud"]}/api/experiments/${condition.experimentId}/conditions/${condition.conditionId}`, requestOptions).then(handleResponse);
 }
 
 /**
@@ -73,7 +71,7 @@ function _delete(condition) {
 function handleResponse(response) {
   return response.text()
   .then(text => {
-    const data = (text && isJson(text)) ? JSON.parse(text) : text
+    const data = (text && isJson(text)) ? JSON.parse(text) : text;
 
     if (
       !response ||
@@ -82,18 +80,16 @@ function handleResponse(response) {
       response.status === 500 ||
       response.status === 404
     ) {
-      console.log('handleResponse | 401/402/500', {response})
     } else if (response.status === 409) {
       return {
         message: data
       }
     } else if (response.status === 204) {
-      console.log('handleResponse | 204', {text, data, response})
-      return []
+      return [];
     }
 
     return data || response
   }).catch(text => {
-    console.log('handleResponse | catch', {text})
+    console.log("handleResponse | catch", {text});
   })
 }
