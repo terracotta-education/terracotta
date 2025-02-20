@@ -51,6 +51,7 @@
         >
           <v-radio-group
             v-model="answer"
+            :disabled="disableOptions"
           >
             <v-radio
               v-for="opt in options"
@@ -61,15 +62,25 @@
           </v-radio-group>
         </v-list>
       </v-card>
-      <v-btn
-        :disabled="disableSubmit"
-        elevation="0"
-        color="primary"
-        class="mr-4 mt-5"
-        type="submit"
+      <v-row
+        class="mt-5 submit-row"
       >
-        Submit
-      </v-btn>
+        <v-btn
+          :disabled="disableSubmit"
+          elevation="0"
+          color="primary"
+          class="mr-4"
+          type="submit"
+        >
+          Submit
+        </v-btn>
+        <div
+          v-if="disableOptions"
+          class="please-wait"
+        >
+          Submitting your consent. Please wait...
+        </div>
+      </v-row>
     </form>
   </div>
 </template>
@@ -102,7 +113,8 @@ export default {
     pdfReady: false,
     participantReady: false,
     pageFullyLoaded: false,
-    disableSubmit: true
+    disableSubmit: true,
+    disableOptions: false
   }),
   watch: {
     pdfFile() {
@@ -181,6 +193,7 @@ export default {
         return;
       }
       this.disableSubmit = true;
+      this.disableOptions = true;
       const updatedParticipant = {
         ...this.participant,
         consent: answer,
@@ -194,6 +207,7 @@ export default {
       })
         .then((response) => {
           this.disableSubmit = false;
+          this.disableOptions = false;
           this.participant = {...this.participant, ...response};
           this.$swal({
             text: "Successfully submitted consent",
@@ -209,6 +223,7 @@ export default {
         .catch((response) => {
           console.log("submitParticipant | catch", { response });
           this.disableSubmit = false;
+          this.disableOptions = false;
         });
     },
     handleConsentFileDownload() {
@@ -243,5 +258,13 @@ div.vue-pdf-embed {
   max-height: 600px;
   overflow-y: scroll;
   box-shadow: 0 3px 1px -2px rgba(0,0,0,.2),0 2px 2px 0 rgba(0,0,0,.14),0 1px 5px 0 rgba(0,0,0,.12);
+}
+.submit-row {
+  margin: 0;
+  > .please-wait {
+    max-height: fit-content;
+    margin: auto 0;
+    color: #9e9e9e;
+  }
 }
 </style>
