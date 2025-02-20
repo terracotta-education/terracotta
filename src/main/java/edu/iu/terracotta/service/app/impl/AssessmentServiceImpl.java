@@ -647,11 +647,11 @@ public class AssessmentServiceImpl implements AssessmentService {
     }
 
     private Assessment retrieveTreatmentAssessment(long conditionId, long assignmentId, long experimentId) throws AssessmentNotMatchingException {
-        List<Treatment> treatments = treatmentRepository.findByCondition_ConditionIdAndAssignment_AssignmentId(conditionId, assignmentId);
+        List<Treatment> treatments = treatmentRepository.findByCondition_ConditionIdAndAssignment_AssignmentIdOrderByCondition_ConditionIdAsc(conditionId, assignmentId);
 
         if (treatments.isEmpty()) {
             // no treatment, check default condition for treatment as this may be a single treatment assignment
-            List<Condition> conditions = conditionRepository.findByExperiment_ExperimentId(experimentId);
+            List<Condition> conditions = conditionRepository.findByExperiment_ExperimentIdOrderByConditionIdAsc(experimentId);
 
             Optional<Condition> defaultCondition = conditions.stream()
                 .filter(c -> BooleanUtils.isTrue(c.getDefaultCondition()))
@@ -661,7 +661,7 @@ public class AssessmentServiceImpl implements AssessmentService {
                 throw new AssessmentNotMatchingException("Error 131: This assignment does not have a treatment assigned.");
             }
 
-            treatments = treatmentRepository.findByCondition_ConditionIdAndAssignment_AssignmentId(defaultCondition.get().getConditionId(), assignmentId);
+            treatments = treatmentRepository.findByCondition_ConditionIdAndAssignment_AssignmentIdOrderByCondition_ConditionIdAsc(defaultCondition.get().getConditionId(), assignmentId);
 
             if (treatments.isEmpty()) {
                 throw new AssessmentNotMatchingException("Error 131: This assignment does not have a treatment assigned.");

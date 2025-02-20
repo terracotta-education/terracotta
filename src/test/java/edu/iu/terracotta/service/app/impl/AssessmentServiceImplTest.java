@@ -116,14 +116,14 @@ public class AssessmentServiceImplTest extends BaseTest {
         when(assessmentRepository.existsByTreatment_Condition_Experiment_ExperimentIdAndTreatment_Condition_ConditionIdAndTreatment_TreatmentIdAndAssessmentId(anyLong(), anyLong(), anyLong(), anyLong())).thenReturn(true);
         when(assessmentRepository.findByTreatment_TreatmentId(anyLong())).thenReturn(Collections.singletonList(assessment));
         when(assignmentRepository.findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(anyLong(), anyString())).thenReturn(assignment);
-        when(conditionRepository.findByExperiment_ExperimentId(anyLong())).thenReturn(Collections.singletonList(condition));
+        when(conditionRepository.findByExperiment_ExperimentIdOrderByConditionIdAsc(anyLong())).thenReturn(Collections.singletonList(condition));
         when(exposureGroupConditionRepository.getByCondition_ConditionIdAndExposure_ExposureId(anyLong(), anyLong())).thenReturn(Optional.of(exposureGroupCondition));
         when(exposureGroupConditionRepository.getByGroup_GroupIdAndExposure_ExposureId(anyLong(), anyLong())).thenReturn(Optional.of(exposureGroupCondition));
         when(participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(anyLong(), anyString())).thenReturn(participant);
         when(questionMcRepository.findAllById(anyList())).thenReturn(Collections.singletonList(questionMc));
         when(questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(anyLong())).thenReturn(Collections.emptyList());
         when(submissionRepository.findByAssessment_AssessmentId(anyLong())).thenReturn(Collections.singletonList(submission));
-        when(treatmentRepository.findByCondition_ConditionIdAndAssignment_AssignmentId(anyLong(), anyLong())).thenReturn(Collections.singletonList(treatment));
+        when(treatmentRepository.findByCondition_ConditionIdAndAssignment_AssignmentIdOrderByCondition_ConditionIdAsc(anyLong(), anyLong())).thenReturn(Collections.singletonList(treatment));
 
         when(fileStorageService.parseHTMLFiles(anyString(), anyString())).thenReturn(StringUtils.EMPTY);
         when(participantService.handleExperimentParticipant(any(Experiment.class), any(SecuredInfo.class))).thenReturn(participant);
@@ -583,8 +583,8 @@ public class AssessmentServiceImplTest extends BaseTest {
 
     @Test
     public void testRetrieveTreatmentAssessmentNoTreatment() {
-        when(treatmentRepository.findByCondition_ConditionIdAndAssignment_AssignmentId(anyLong(), anyLong())).thenReturn(Collections.emptyList());
-        when(treatmentRepository.findByCondition_ConditionIdAndAssignment_AssignmentId(anyLong(), anyLong())).thenReturn(Collections.emptyList());
+        when(treatmentRepository.findByCondition_ConditionIdAndAssignment_AssignmentIdOrderByCondition_ConditionIdAsc(anyLong(), anyLong())).thenReturn(Collections.emptyList());
+        when(treatmentRepository.findByCondition_ConditionIdAndAssignment_AssignmentIdOrderByCondition_ConditionIdAsc(anyLong(), anyLong())).thenReturn(Collections.emptyList());
         when(condition.getDefaultCondition()).thenReturn(true);
 
         InvocationTargetException e = assertThrows(InvocationTargetException.class, () -> retrieveTreatmentAssessment.invoke(assessmentService, 1l, 1l, 1l));

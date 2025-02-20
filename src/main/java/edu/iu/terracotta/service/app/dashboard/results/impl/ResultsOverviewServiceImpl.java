@@ -498,14 +498,14 @@ public class ResultsOverviewServiceImpl implements ResultsOverviewService {
             );
         }
 
-        experimentTreatments = treatmentRepository.findByCondition_Experiment_ExperimentId(experiment.getExperimentId());
+        experimentTreatments = treatmentRepository.findByCondition_Experiment_ExperimentIdOrderByCondition_ConditionIdAsc(experiment.getExperimentId());
 
         allTreatmentsByAssignment = new HashMap<>();
 
         for (Assignment assignment : experimentAssignments) {
             allTreatmentsByAssignment.put(
                 assignment.getAssignmentId(),
-                treatmentRepository.findByAssignment_AssignmentId(assignment.getAssignmentId())
+                treatmentRepository.findByAssignment_AssignmentIdOrderByCondition_ConditionIdAsc(assignment.getAssignmentId())
             );
         }
 

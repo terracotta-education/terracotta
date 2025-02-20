@@ -142,7 +142,7 @@ public class BaseRepositoryTest extends BaseModelTest {
             when(assignmentRepository.getReferenceById(anyLong())).thenReturn(assignment);
             when(assignmentRepository.save(any(Assignment.class))).thenReturn(assignment);
             when(assignmentRepository.saveAndFlush(any(Assignment.class))).thenReturn(assignment);
-            when(conditionRepository.findByExperiment_ExperimentId(anyLong())).thenReturn(Collections.singletonList(condition));
+            when(conditionRepository.findByExperiment_ExperimentIdOrderByConditionIdAsc(anyLong())).thenReturn(Collections.singletonList(condition));
             when(conditionRepository.findById(anyLong())).thenReturn(Optional.of(condition));
             when(entityManager.createQuery(anyString())).thenReturn(query);
             when(experimentRepository.findByExperimentId(anyLong())).thenReturn(experiment);
@@ -200,9 +200,9 @@ public class BaseRepositoryTest extends BaseModelTest {
             when(submissionRepository.findBySubmissionId(anyLong())).thenReturn(submission);
             when(submissionRepository.save(any(Submission.class))).thenReturn(submission);
             when(toolDeploymentRepository.findByPlatformDeployment_IssAndPlatformDeployment_ClientIdAndLtiDeploymentId(anyString(), anyString(), anyString())).thenReturn(Collections.singletonList(toolDeployment));
-            when(treatmentRepository.findByAssignment_AssignmentId(anyLong())).thenReturn(Collections.singletonList(treatment));
-            when(treatmentRepository.findByCondition_ConditionIdAndAssignment_AssignmentId(anyLong(), anyLong())).thenReturn(Collections.singletonList(treatment));
-            when(treatmentRepository.findByCondition_Experiment_ExperimentId(anyLong())).thenReturn(Collections.singletonList(treatment));
+            when(treatmentRepository.findByAssignment_AssignmentIdOrderByCondition_ConditionIdAsc(anyLong())).thenReturn(Collections.singletonList(treatment));
+            when(treatmentRepository.findByCondition_ConditionIdAndAssignment_AssignmentIdOrderByCondition_ConditionIdAsc(anyLong(), anyLong())).thenReturn(Collections.singletonList(treatment));
+            when(treatmentRepository.findByCondition_Experiment_ExperimentIdOrderByCondition_ConditionIdAsc(anyLong())).thenReturn(Collections.singletonList(treatment));
             when(treatmentRepository.findById(anyLong())).thenReturn(Optional.of(treatment));
             when(treatmentRepository.findByTreatmentId(anyLong())).thenReturn(treatment);
             when(treatmentRepository.save(any(Treatment.class))).thenReturn(treatment);

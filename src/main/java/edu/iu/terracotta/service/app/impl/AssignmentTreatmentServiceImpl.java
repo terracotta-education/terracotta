@@ -145,7 +145,7 @@ public class AssignmentTreatmentServiceImpl implements AssignmentTreatmentServic
         assignmentDto.setStarted(CollectionUtils.isNotEmpty(assignmentSubmissions));
 
         if (addTreatmentDto) {
-            List<Treatment> treatments = treatmentRepository.findByAssignment_AssignmentId(assignment.getAssignmentId());
+            List<Treatment> treatments = treatmentRepository.findByAssignment_AssignmentIdOrderByCondition_ConditionIdAsc(assignment.getAssignmentId());
             List<TreatmentDto> treatmentDtoList = new ArrayList<>();
 
             for (Treatment treatment : treatments) {
