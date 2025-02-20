@@ -839,6 +839,7 @@ export default {
       return this.reportStep({ experimentId, step });
     },
     async attempt() {
+      this.questionPageIndex = 0;
       const experimentId = this.experimentId;
       const step = "launch_assignment";
       this.readonly = false;
