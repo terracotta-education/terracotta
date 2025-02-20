@@ -64,7 +64,7 @@ public class TreatmentServiceImpl implements TreatmentService {
 
     @Override
     public List<TreatmentDto> getTreatments(Long conditionId, boolean submissions, SecuredInfo securedInfo) throws AssessmentNotMatchingException, NumberFormatException, ApiException, TerracottaConnectorException {
-        List<Treatment> treatments = treatmentRepository.findByCondition_ConditionId(conditionId);
+        List<Treatment> treatments = treatmentRepository.findByCondition_ConditionIdOrderByCondition_ConditionIdAsc(conditionId);
 
         if (CollectionUtils.isEmpty(treatments)) {
             return Collections.emptyList();

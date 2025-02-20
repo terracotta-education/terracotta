@@ -691,7 +691,7 @@ public class SubmissionServiceImpl implements SubmissionService {
                         return;
                     }
 
-                    List<Treatment> treatments = treatmentRepository.findByAssignment_AssignmentId(submission.get().getAssessment().getTreatment().getAssignment().getAssignmentId());
+                    List<Treatment> treatments = treatmentRepository.findByAssignment_AssignmentIdOrderByCondition_ConditionIdAsc(submission.get().getAssessment().getTreatment().getAssignment().getAssignmentId());
 
                     if (treatments.size() == 1) {
                         // this is a single treatment assignment; allow submission from other exposure groups

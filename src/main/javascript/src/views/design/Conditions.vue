@@ -7,7 +7,9 @@
       class="my-5 mb-15"
       ref="conditionsForm"
     >
-      <v-container class="pa-0">
+      <v-container
+        class="pa-0"
+      >
         <v-row
             v-for="(condition, i) in conditions"
             :key="condition.conditionId"
@@ -34,11 +36,11 @@
               sm="2"
             >
               <v-btn
+                @click="handleDeleteCondition(condition)"
+                class="delete_condition"
                 icon
                 outlined
                 tile
-                class="delete_condition"
-                @click="handleDeleteCondition(condition)"
               >
                 <v-icon>mdi-delete</v-icon>
               </v-btn>
@@ -46,7 +48,6 @@
           </template>
         </v-row>
       </v-container>
-
       <div
         v-if="addAllowed"
       >
@@ -103,13 +104,13 @@
 </template>
 
 <script>
-import {mapActions, mapGetters} from 'vuex';
-import ConditionDeleteAlert from '@/components/ConditionDeleteAlert';
-import store from '@/store';
-import Vue from 'vue';
+import {mapActions, mapGetters} from "vuex";
+import ConditionDeleteAlert from "@/components/ConditionDeleteAlert";
+import store from "@/store";
+import Vue from "vue";
 
 export default {
-  name: 'DesignConditions',
+  name: "DesignConditions",
   props: {
     experiment: {}
   },
@@ -153,10 +154,10 @@ export default {
   },
   computed: {
     ...mapGetters({
-      editMode: 'navigation/editMode'
+      editMode: "navigation/editMode"
     }),
     saveExitPage() {
-      return this.editMode?.callerPage?.name || 'Home';
+      return this.editMode?.callerPage?.name || "Home";
     },
     nextPage() {
       return this.singleConditionExperiment ? "ExperimentDesignSummary" : "ExperimentDesignType";
@@ -165,10 +166,10 @@ export default {
       return !this.editMode;
     },
     deleteAllowed() {
-      return this.experiment.exposureType === 'NOSET';
+      return this.experiment.exposureType === "NOSET";
     },
     conditions() {
-      return this.experiment.conditions;
+      return this.experiment.conditions.toSorted((a, b) => a.conditionId - b.conditionId);
     },
     singleConditionRemainsAfterDelete() {
       return this.conditions.length === 2;
@@ -219,11 +220,11 @@ export default {
 
       if (!this.deleteAllowed) {
         const reallyAdd = await this.$swal({
-          icon: 'question',
+          icon: "question",
           text: `Do you really want to add a new condition? You will not be able to delete it.`,
           showCancelButton: true,
-          confirmButtonText: 'Yes, add it',
-          cancelButtonText: 'No, cancel',
+          confirmButtonText: "Yes, add it",
+          cancelButtonText: "No, cancel",
         });
         doAdd = reallyAdd.isConfirmed;
       }
@@ -235,7 +236,7 @@ export default {
     },
     async saveConditions(path, updateExperiment) {
       if (this.hasFieldErrors) {
-        this.$swal('There was an error saving your conditions. ' + this.errorMessage);
+        this.$swal("There was an error saving your conditions. " + this.errorMessage);
         return;
       }
 
@@ -262,11 +263,11 @@ export default {
               }
             });
           } else {
-            this.$swal('There was an error saving your conditions.');
+            this.$swal("There was an error saving your conditions.");
           }
         }).catch(response => {
           console.log("updateConditions | catch", {response});
-          this.$swal('There was an error saving your conditions.');
+          this.$swal("There was an error saving your conditions.");
         });
     },
     async updateConditionExperiment(exposureType, distributionType, calculatedStep) {
@@ -305,7 +306,7 @@ export default {
       const {defaultCondition} = condition;
 
       if (defaultCondition) {
-        this.$swal('You are attempting to delete the default condition. You must set one of the other existing conditions as the default before deleting this condition.');
+        this.$swal("You are attempting to delete the default condition. You must set one of the other existing conditions as the default before deleting this condition.");
         return;
       } else {
         if (condition?.conditionId) {
@@ -318,8 +319,8 @@ export default {
               await this.deleteCondition(condition);
             } catch (error) {
               this.$swal({
-                text: 'Could not delete condition.',
-                icon: 'error'
+                text: "Could not delete condition.",
+                icon: "error"
               });
             }
           }
@@ -328,11 +329,11 @@ export default {
     },
     async displayDeleteConditionDialog(conditionName) {
       return this.$swal({
-        icon: 'question',
-        html: '<div id="alert-delete-condition"></div>',
+        icon: "question",
+        html: "<div id='alert-delete-condition'></div>",
         showCancelButton: true,
-        confirmButtonText: 'Yes, delete it',
-        cancelButtonText: 'No, cancel',
+        confirmButtonText: "Yes, delete it",
+        cancelButtonText: "No, cancel",
         willOpen: () => {
           var ConditionDeleteAlertClass = Vue.extend(ConditionDeleteAlert);
           var conditionDeleteAlert = new ConditionDeleteAlertClass({
@@ -374,17 +375,17 @@ export default {
           (c) =>
             c.conditionId !== condition.conditionId &&
             condition.name && c.name &&
-            c.name.replace(/\s\s+/g, ' ').toLowerCase().trim() === condition.name.replace(/\s\s+/g, ' ').toLowerCase().trim()
+            c.name.replace(/\s\s+/g, " ").toLowerCase().trim() === condition.name.replace(/\s\s+/g, " ").toLowerCase().trim()
         )
       );
       return !this.fieldErrors.duplicateName.conditionIds.includes(condition.conditionId) || "Duplicate condition name.";
     },
     requiredRule(condition) {
-      this.handleRule(this.fieldErrors.requiredName, condition.conditionId, !(condition.name && condition.name.replace(/\s\s+/g, ' ').trim()));
+      this.handleRule(this.fieldErrors.requiredName, condition.conditionId, !(condition.name && condition.name.replace(/\s\s+/g, " ").trim()));
       return !this.fieldErrors.requiredName.conditionIds.includes(condition.conditionId) || "Condition name is required";
     },
     maxLengthRule(condition) {
-      this.handleRule(this.fieldErrors.maxLengthName, condition.conditionId, (condition.name || '').length > 255);
+      this.handleRule(this.fieldErrors.maxLengthName, condition.conditionId, (condition.name || "").length > 255);
       return !this.fieldErrors.maxLengthName.conditionIds.includes(condition.conditionId) || "A maximum of 255 characters is allowed";
     },
     handleRule(fieldError, conditionId, hasError) {
@@ -409,14 +410,14 @@ export default {
   },
   beforeRouteEnter(to, from, next) {
     if (store.state.experiment.experiment.conditions.length == 0) {
-      store.dispatch('condition/createDefaultConditions', to.params.experiment_id).then(() => next());
+      store.dispatch("condition/createDefaultConditions", to.params.experiment_id).then(() => next());
     } else {
       next();
     }
   },
   beforeRouteUpdate(to, from, next) {
     if (store.state.experiment.experiment.conditions.length == 0) {
-      store.dispatch('condition/createDefaultConditions', to.params.experiment_id).then(() => next());
+      store.dispatch("condition/createDefaultConditions", to.params.experiment_id).then(() => next());
     } else {
       next();
     }

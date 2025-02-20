@@ -592,7 +592,7 @@ public class ParticipantServiceImpl implements ParticipantService {
             // participant has at least viewed a multi-version assignment; consider it submitted
             CollectionUtils.isNotEmpty(
                 publishedSubmissions.stream()
-                    .filter(publishedSubmission -> treatmentRepository.findByAssignment_AssignmentId(publishedSubmission.getAssessment().getTreatment().getAssignment().getAssignmentId()).size() > 1)
+                    .filter(publishedSubmission -> treatmentRepository.findByAssignment_AssignmentIdOrderByCondition_ConditionIdAsc(publishedSubmission.getAssessment().getTreatment().getAssignment().getAssignmentId()).size() > 1)
                     .toList()
             );
     }

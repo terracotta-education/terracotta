@@ -733,7 +733,7 @@ public class ExportServiceImpl implements ExportService {
         consentedParticipantsCount = 0l;
         exposureGroupConditions = exposureGroupConditionRepository.findByCondition_Experiment_ExperimentId(experimentId);
         assignments = assignmentRepository.findByExposure_Experiment_ExperimentId(experimentId);
-        treatments = treatmentRepository.findByCondition_Experiment_ExperimentId(experimentId);
+        treatments = treatmentRepository.findByCondition_Experiment_ExperimentIdOrderByCondition_ConditionIdAsc(experimentId);
 
         if (CollectionUtils.isEmpty(assignments)) {
             return;

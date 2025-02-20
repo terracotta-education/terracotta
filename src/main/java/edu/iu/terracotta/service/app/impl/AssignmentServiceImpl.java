@@ -773,7 +773,7 @@ public class AssignmentServiceImpl implements AssignmentService {
         );
 
         // duplicate treatments
-        for (Treatment treatment : treatmentRepository.findByAssignment_AssignmentId(assignmentId)) {
+        for (Treatment treatment : treatmentRepository.findByAssignment_AssignmentIdOrderByCondition_ConditionIdAsc(assignmentId)) {
             assignmentTreatmentService.duplicateTreatment(treatment.getTreatmentId(), newAssignment, securedInfo);
         }
 
@@ -822,7 +822,7 @@ public class AssignmentServiceImpl implements AssignmentService {
             throw new IllegalArgumentException("Assignment cannot be null");
         }
 
-        List<Treatment> assignmentTreatments = treatmentRepository.findByAssignment_AssignmentId(assignment.getAssignmentId());
+        List<Treatment> assignmentTreatments = treatmentRepository.findByAssignment_AssignmentIdOrderByCondition_ConditionIdAsc(assignment.getAssignmentId());
 
         return assignmentTreatments.size() <= 1;
     }

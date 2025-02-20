@@ -39,7 +39,7 @@ public class ResultsOverviewServiceImplTest extends BaseTest {
         when(participantRepository.findByExperiment_ExperimentId(anyLong())).thenReturn(Collections.singletonList(participant));
         when(submissionRepository.countByAssessment_AssessmentId(anyLong())).thenReturn(1L);
         when(submissionRepository.countByAssessment_Treatment_Assignment_AssignmentId(anyLong())).thenReturn(1L);
-        when(treatmentRepository.findByCondition_Experiment_ExperimentId(anyLong())).thenReturn(Arrays.asList(treatment, treatment));
+        when(treatmentRepository.findByCondition_Experiment_ExperimentIdOrderByCondition_ConditionIdAsc(anyLong())).thenReturn(Arrays.asList(treatment, treatment));
 
         when(assessmentSubmissionService.calculateMaxScore(any(Assessment.class))).thenReturn(1F);
         when(submissionService.getScoreFromMultipleSubmissions(any(Participant.class), any(Assessment.class))).thenReturn(1F);
@@ -113,7 +113,7 @@ public class ResultsOverviewServiceImplTest extends BaseTest {
 
     @Test
     void testOverviewSingleCondition() {
-        when(treatmentRepository.findByAssignment_AssignmentId(anyLong())).thenReturn(Arrays.asList(treatment, treatment));
+        when(treatmentRepository.findByAssignment_AssignmentIdOrderByCondition_ConditionIdAsc(anyLong())).thenReturn(Arrays.asList(treatment, treatment));
         ResultsOverviewDto ret = resultsOverviewService.overview(experiment, securedInfo);
 
         assertNotNull(ret);

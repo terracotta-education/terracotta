@@ -36,8 +36,8 @@ public class ConditionServiceImpl implements ConditionService {
 
     @Override
     public List<ConditionDto> findAllByExperimentId(long experimentId) {
-        return CollectionUtils.emptyIfNull(conditionRepository.findByExperiment_ExperimentId(experimentId)).stream()
-            .map(condition -> toDto(condition))
+        return CollectionUtils.emptyIfNull(conditionRepository.findByExperiment_ExperimentIdOrderByConditionIdAsc(experimentId)).stream()
+            .map(this::toDto)
             .toList();
     }
 
@@ -189,7 +189,7 @@ public class ConditionServiceImpl implements ConditionService {
         }
 
         for (ConditionDto condto : conditionDtoList) {
-            List<Condition> conditions = conditionRepository.findByNameAndExperiment_ExperimentIdAndConditionIdIsNot(condto.getName(), experimentId, condto.getConditionId());
+            List<Condition> conditions = conditionRepository.findByNameAndExperiment_ExperimentIdAndConditionIdIsNotOrderByConditionIdAsc(condto.getName(), experimentId, condto.getConditionId());
 
             if (CollectionUtils.isEmpty(conditions)) {
                 continue;
@@ -212,7 +212,7 @@ public class ConditionServiceImpl implements ConditionService {
     }
 
     private void validateMaximumConditionsNotReached(long experimentId) throws ExperimentConditionLimitReachedException {
-        if (conditionRepository.findByExperiment_ExperimentId(experimentId).size() < CONDITION_COUNT_ALLOWED) {
+        if (conditionRepository.findByExperiment_ExperimentIdOrderByConditionIdAsc(experimentId).size() < CONDITION_COUNT_ALLOWED) {
             return;
         }
 

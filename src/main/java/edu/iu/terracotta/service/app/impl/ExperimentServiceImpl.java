@@ -247,12 +247,11 @@ public class ExperimentServiceImpl implements ExperimentService {
         List<ConditionDto> conditionDtoList = new ArrayList<>();
 
         if (conditions) {
-            List<Condition> conditionList = conditionRepository.findByExperiment_ExperimentId(experiment.getExperimentId());
+            List<Condition> conditionList = conditionRepository.findByExperiment_ExperimentIdOrderByConditionIdAsc(experiment.getExperimentId());
 
-            for (Condition condition:conditionList) {
-                ConditionDto conditionDto = conditionService.toDto(condition);
-                conditionDtoList.add(conditionDto);
-            }
+            conditionDtoList = conditionList.stream()
+                .map(condition -> conditionService.toDto(condition))
+                .toList();
         }
 
         experimentDto.setConditions(conditionDtoList);
@@ -262,11 +261,11 @@ public class ExperimentServiceImpl implements ExperimentService {
         if (exposures) {
             List<Exposure> exposureList = exposureRepository.findByExperiment_ExperimentId(experiment.getExperimentId());
 
-            for (Exposure exposure : exposureList) {
-                ExposureDto exposureDto = exposureService.toDto(exposure);
-                exposureDtoList.add(exposureDto);
-            }
+            exposureDtoList = exposureList.stream()
+                .map(exposure -> exposureService.toDto(exposure))
+                .toList();
         }
+
         experimentDto.setExposures(exposureDtoList);
 
         if (participants) {

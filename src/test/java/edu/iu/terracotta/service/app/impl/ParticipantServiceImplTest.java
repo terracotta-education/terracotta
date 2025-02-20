@@ -565,8 +565,8 @@ public class ParticipantServiceImplTest extends BaseTest {
         when(participant.getConsent()).thenReturn(false);
         when(participantDto.getConsent()).thenReturn(true);
         when(experiment.isSingleCondition()).thenReturn(false);
-        when(treatmentRepository.findByAssignment_AssignmentId(anyLong())).thenReturn(Arrays.asList(treatment, treatment));
-        when(treatmentRepository.findByCondition_Experiment_ExperimentId(anyLong())).thenReturn(Collections.emptyList());
+        when(treatmentRepository.findByAssignment_AssignmentIdOrderByCondition_ConditionIdAsc(anyLong())).thenReturn(Arrays.asList(treatment, treatment));
+        when(treatmentRepository.findByCondition_Experiment_ExperimentIdOrderByCondition_ConditionIdAsc(anyLong())).thenReturn(Collections.emptyList());
 
         Exception exception = assertThrows(ParticipantAlreadyStartedException.class, () -> { participantService.changeConsent(participantDto, securedInfo, 1L); });
 
