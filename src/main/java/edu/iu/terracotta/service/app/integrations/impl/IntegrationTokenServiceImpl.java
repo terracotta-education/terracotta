@@ -2,6 +2,8 @@ package edu.iu.terracotta.service.app.integrations.impl;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
@@ -29,7 +31,7 @@ public class IntegrationTokenServiceImpl implements IntegrationTokenService {
 
     @Autowired private IntegrationTokenRepository integrationTokenRepository;
 
-    @Value("${app.integrations.token.ttl:3600}")
+    @Value("${app.integrations.token.ttl:43200}")
     private int ttl;
 
     @Override
@@ -55,6 +57,13 @@ public class IntegrationTokenServiceImpl implements IntegrationTokenService {
                 .user(submission.getParticipant().getLtiUserEntity())
                 .build();
         }
+
+        log.info(
+            "External integration token: [{}] launched at: [{}]. Previously launched at: [{}]",
+            integrationToken.getToken(),
+            LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC).toString(),
+            integrationToken.getLastLaunchedAt() != null ? LocalDateTime.ofInstant(Instant.ofEpochMilli(integrationToken.getLastLaunchedAt().getTime()), ZoneOffset.UTC).toString() : "N/A"
+        );
 
         integrationToken.setSecuredInfo(securedInfo);
         integrationToken.setLastLaunchedAt(Timestamp.from(Instant.now()));
@@ -92,16 +101,28 @@ public class IntegrationTokenServiceImpl implements IntegrationTokenService {
         }
 
         IntegrationToken integrationToken = integrationTokenRepository.findByToken(launchToken)
-            .orElseThrow(() -> new IntegrationTokenNotFoundException(String.format("No integration token found with token: [%s]", launchToken)));
+            .orElseThrow(() -> new IntegrationTokenNotFoundException(String.format("No integration token found with launch token: [%s]", launchToken)));
 
         if (integrationToken.isAlreadyRedeemed()) {
             invalidate(integrationToken);
-            throw new IntegrationTokenAlreadyRedeemedException(String.format("Integration token: [%s] has already been redeemed.", launchToken));
+            throw new IntegrationTokenAlreadyRedeemedException(
+                String.format(
+                    "Integration token: [%s] was already redeemed at [%s].",
+                    launchToken,
+                    LocalDateTime.ofInstant(Instant.ofEpochMilli(integrationToken.getRedeemedAt().getTime()), ZoneOffset.UTC).toString()
+                )
+            );
         }
 
         if (integrationToken.isExpired(ttl)) {
             invalidate(integrationToken);
-            throw new IntegrationTokenExpiredException(String.format("Integration token: [%s] is expired.", launchToken));
+            throw new IntegrationTokenExpiredException(
+                String.format(
+                    "Integration token: [%s] expired at [%s].",
+                    launchToken,
+                    LocalDateTime.ofInstant(Instant.ofEpochMilli(integrationToken.getLastLaunchedAt().getTime() + (ttl * 1000L)), ZoneOffset.UTC).toString()
+                )
+            );
         }
 
         return invalidate(integrationToken);
