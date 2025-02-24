@@ -1,5 +1,5 @@
-import {authHeader, isJson} from '@/helpers'
-import store from '@/store/index.js'
+import {authHeader, isJson} from "@/helpers";
+import store from "@/store/index.js";
 
 /**
  * Register methods
@@ -13,6 +13,7 @@ export const assessmentService = {
   createQuestion,
   updateQuestion,
   deleteQuestion,
+  deleteQuestions,
   createAnswer,
   updateAnswer,
   deleteAnswer,
@@ -24,18 +25,18 @@ export const assessmentService = {
  */
 async function fetchAssessment(experiment_id, condition_id, treatment_id, assessment_id) {
   const requestOptions = {
-    method: 'GET',
+    method: "GET",
     headers: {...authHeader()}
   }
-  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}?questions=true&answers=true&submissions=true`, requestOptions).then(handleResponse)
+  return fetch(`${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}?questions=true&answers=true&submissions=true`, requestOptions).then(handleResponse);
 }
 
 async function fetchAssessmentForSubmission(experiment_id, condition_id, treatment_id, assessment_id, submission_id) {
   const requestOptions = {
-    method: 'GET',
+    method: "GET",
     headers: {...authHeader()}
   }
-  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}?questions=true&answers=true&submission_id=${submission_id}`, requestOptions).then(handleResponse)
+  return fetch(`${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}?questions=true&answers=true&submission_id=${submission_id}`, requestOptions).then(handleResponse);
 }
 
 /**
@@ -43,11 +44,11 @@ async function fetchAssessmentForSubmission(experiment_id, condition_id, treatme
  */
 async function fetchAssessments(experiment_id, condition_id, treatment_id) {
   const requestOptions = {
-    method: 'GET',
+    method: "GET",
     headers: {...authHeader()}
   }
 
-  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments`, requestOptions).then(handleResponse)
+  return fetch(`${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments`, requestOptions).then(handleResponse);
 }
 
 /**
@@ -55,14 +56,14 @@ async function fetchAssessments(experiment_id, condition_id, treatment_id) {
  */
 async function createAssessment(experiment_id, condition_id, treatment_id, title, body) {
   const requestOptions = {
-    method: 'POST',
-    headers: {...authHeader(), 'Content-Type': 'application/json'},
+    method: "POST",
+    headers: {...authHeader(), "Content-Type": "application/json"},
     body: JSON.stringify({
       "html": body
     })
   }
 
-  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments`, requestOptions).then(handleResponse)
+  return fetch(`${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments`, requestOptions).then(handleResponse);
 }
 
 /**
@@ -86,8 +87,8 @@ async function updateAssessment(
   cumulativeScoringInitialPercentage
 ) {
   const requestOptions = {
-    method: 'PUT',
-    headers: {...authHeader(), 'Content-Type': 'application/json'},
+    method: "PUT",
+    headers: {...authHeader(), "Content-Type": "application/json"},
     body: JSON.stringify({
       "html": body,
       allowStudentViewResponses,
@@ -103,7 +104,7 @@ async function updateAssessment(
     })
   }
 
-  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}`, requestOptions).then(handleResponse)
+  return fetch(`${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}`, requestOptions).then(handleResponse);
 }
 
 /**
@@ -111,12 +112,12 @@ async function updateAssessment(
  */
 async function regradeQuestions(experiment_id, condition_id, treatment_id, assessment_id, body) {
   const requestOptions = {
-    method: 'POST',
-    headers: {...authHeader(), 'Content-Type': 'application/json'},
+    method: "POST",
+    headers: {...authHeader(), "Content-Type": "application/json"},
     body: JSON.stringify(body)
   }
 
-  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/regrade`, requestOptions).then(handleResponse)
+  return fetch(`${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/regrade`, requestOptions).then(handleResponse);
 }
 
 /**
@@ -134,8 +135,8 @@ async function createQuestion(
   integrationClientId
 ) {
   const requestOptions = {
-    method: 'POST',
-    headers: {...authHeader(), 'Content-Type': 'application/json'},
+    method: "POST",
+    headers: {...authHeader(), "Content-Type": "application/json"},
     body: JSON.stringify({
       questionOrder: question_order,
       questionType: question_type,
@@ -145,7 +146,7 @@ async function createQuestion(
     })
   }
 
-  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/questions`, requestOptions).then(handleResponse)
+  return fetch(`${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/questions`, requestOptions).then(handleResponse);
 }
 
 /**
@@ -166,8 +167,8 @@ async function updateQuestion(
   integration
 ) {
   const requestOptions = {
-    method: 'PUT',
-    headers: {...authHeader(), 'Content-Type': 'application/json'},
+    method: "PUT",
+    headers: {...authHeader(), "Content-Type": "application/json"},
     body: JSON.stringify({
       html,
       points,
@@ -179,7 +180,7 @@ async function updateQuestion(
     })
   }
 
-  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/questions/${question_id}`, requestOptions).then(handleResponse)
+  return fetch(`${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/questions/${question_id}`, requestOptions).then(handleResponse);
 }
 
 /**
@@ -193,11 +194,32 @@ async function deleteQuestion(
   question_id
 ) {
   const requestOptions = {
-    method: 'DELETE',
+    method: "DELETE",
     headers: {...authHeader()}
   }
 
-  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/questions/${question_id}`, requestOptions).then(handleResponse)
+  return fetch(`${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/questions/${question_id}`, requestOptions).then(handleResponse);
+}
+
+/**
+ * Delete Questions
+ */
+async function deleteQuestions(
+  experiment_id,
+  condition_id,
+  treatment_id,
+  assessment_id,
+  questions
+) {
+  const requestOptions = {
+    method: "DELETE",
+    headers: {...authHeader()},
+    body: JSON.stringify(
+      questions
+    )
+  }
+
+  return fetch(`${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/questions`, requestOptions).then(handleResponse);
 }
 
 /**
@@ -214,8 +236,8 @@ async function createAnswer(
   answerOrder
 ) {
   const requestOptions = {
-    method: 'POST',
-    headers: {...authHeader(), 'Content-Type': 'application/json'},
+    method: "POST",
+    headers: {...authHeader(), "Content-Type": "application/json"},
     body: JSON.stringify({
       html,
       correct,
@@ -223,7 +245,7 @@ async function createAnswer(
     })
   }
 
-  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/questions/${question_id}/answers`, requestOptions).then(handleResponse)
+  return fetch(`${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/questions/${question_id}/answers`, requestOptions).then(handleResponse);
 }
 
 /**
@@ -242,8 +264,8 @@ async function updateAnswer(
   answer_order
 ) {
   const requestOptions = {
-    method: 'PUT',
-    headers: {...authHeader(), 'Content-Type': 'application/json'},
+    method: "PUT",
+    headers: {...authHeader(), "Content-Type": "application/json"},
     body: JSON.stringify({
       "answerType": answer_type,
       html,
@@ -252,7 +274,7 @@ async function updateAnswer(
     })
   }
 
-  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/questions/${question_id}/answers/${answer_id}`, requestOptions).then(handleResponse)
+  return fetch(`${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/questions/${question_id}/answers/${answer_id}`, requestOptions).then(handleResponse);
 }
 
 /**
@@ -260,11 +282,11 @@ async function updateAnswer(
  */
 async function deleteAnswer(experiment_id, condition_id, treatment_id, assessment_id, question_id, answer_id) {
   const requestOptions = {
-    method: 'DELETE',
+    method: "DELETE",
     headers: {...authHeader()}
   }
 
-  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/questions/${question_id}/answers/${answer_id}`, requestOptions).then(handleResponse)
+  return fetch(`${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/questions/${question_id}/answers/${answer_id}`, requestOptions).then(handleResponse);
 }
 
 
@@ -283,23 +305,23 @@ function handleResponse(response) {
       response.status === 500 ||
       response.status === 404
     ) {
-      console.log('handleResponse | 401/402/500', {response})
+      console.log("handleResponse | 401/402/500", {response});
     } else if (response.status === 409) {
       return {
         message: data
       }
     } else if (response.status === 204) {
-      console.log('handleResponse | 204', {text, data, response})
-      return []
+      console.log("handleResponse | 204", {text, data, response});
+      return [];
     }
 
     const dataResponse = (data) ? {
       data,
       status: response.status
-    } : null
+    } : null;
 
-    return dataResponse || response
+    return dataResponse || response;
   }).catch(text => {
-    console.error('handleResponse | catch', {text})
+    console.error("handleResponse | catch", {text});
   })
 }

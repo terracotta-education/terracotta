@@ -1,4 +1,4 @@
-import {assessmentService} from '@/services'
+import {assessmentService} from "@/services";
 
 const state = {
   assessment: [],
@@ -8,22 +8,22 @@ const state = {
 const actions = {
   async fetchAssessment({commit}, payload) {
     try {
-      const response = await assessmentService.fetchAssessment(...payload)
-      const assessment = response?.data
+      const response = await assessmentService.fetchAssessment(...payload);
+      const assessment = response?.data;
 
-      commit('setAssessment', assessment)
+      commit("setAssessment", assessment);
     } catch (error) {
-      console.error('setAssessment catch', error)
+      console.error("setAssessment catch", error);
     }
   },
   async fetchAssessmentForSubmission({commit}, payload) {
     try {
-      const response = await assessmentService.fetchAssessmentForSubmission(...payload)
-      const assessment = response?.data
+      const response = await assessmentService.fetchAssessmentForSubmission(...payload);
+      const assessment = response?.data;
 
-      commit('setAssessment', assessment)
+      commit("setAssessment", assessment);
     } catch (error) {
-      console.error('setAssessment catch', error)
+      console.error("setAssessment catch", error);
     }
   },
   async createAssessment ({commit}, payload) {
@@ -31,29 +31,29 @@ const actions = {
     // create the assessment, commit an update mutation, and return the status/data response
     try {
       // check if assessment exist before creating a new one
-      let response = await assessmentService.fetchAssessments(...payload)
-      let assessment
+      let response = await assessmentService.fetchAssessments(...payload);
+      let assessment;
 
       // return first assessment that matches, only one assessment per treatment
       if (response?.data?.length>0) {
-        assessment = response?.data[0]
+        assessment = response?.data[0];
       } else {
         response = await assessmentService.createAssessment(...payload);
         if (response.status !== 201) {
           return response;
         }
-        assessment = response?.data
+        assessment = response?.data;
       }
 
       // commit changes to state
-      commit('setAssessment', assessment)
+      commit("setAssessment", assessment);
 
       return {
         status: response?.status,
         data: assessment
       }
     } catch (error) {
-      console.log('createAssessment catch', error)
+      console.log("createAssessment catch", error);
     }
   },
   regradeQuestions({state}, payload) {
@@ -62,7 +62,7 @@ const actions = {
     try {
         assessmentService.regradeQuestions(...payload);
     } catch (error) {
-      console.log('regradeQuestions catch', error, state);
+      console.log("regradeQuestions catch", error, state);
     }
   },
   async updateAssessment(context, payload) {
@@ -80,7 +80,7 @@ const actions = {
         }
       }
     } catch (error) {
-      console.log('updateAssessment catch', error)
+      console.log("updateAssessment catch", error);
     }
   },
   async createQuestion({dispatch}, payload) {
@@ -106,7 +106,7 @@ const actions = {
         }
       }
     } catch (error) {
-      console.log('createQuestion catch', error)
+      console.log("createQuestion catch", error);
     }
   },
   async updateQuestion({commit}, payload) {
@@ -137,7 +137,7 @@ const actions = {
     });
 
     try {
-      const response = await assessmentService.updateQuestion(...payload)
+      const response = await assessmentService.updateQuestion(...payload);
       if (response) {
         commit("updateQuestions", getQuestion(...payload));
         return {
@@ -146,49 +146,70 @@ const actions = {
         }
       }
     } catch (error) {
-      console.log('updateQuestion catch', {error, state})
+      console.log("updateQuestion catch", {error, state});
     }
   },
   async deleteQuestion({commit}, payload) {
-    const questionId = payload[4]
+    const questionId = payload[4];
     // payload = experiment_id, condition_id, treatment_id, assessment_id, question_id
     // delete question, commit mutation, and return the status/data response
     try {
-      const response = await assessmentService.deleteQuestion(...payload)
+      const response = await assessmentService.deleteQuestion(...payload);
+
       if (response?.status === 200) {
         // send question id to the deleteQuestion mutation
-        commit('deleteQuestion', questionId)
+        commit("deleteQuestion", questionId);
         return {
           status: response?.status,
           data: null
         }
       }
     } catch (error) {
-      console.log('deleteQuestion catch', {error})
+      console.log("deleteQuestion catch", {error});
+    }
+  },
+  async deleteQuestions({commit}, payload) {
+    // payload = experiment_id, condition_id, treatment_id, assessment_id, questions
+    // delete questions, commit mutation, and return the status/data response
+    try {
+      const response = await assessmentService.deleteQuestions(...payload);
+
+      if (response?.status === 200) {
+        // send to deleteQuestions mutation
+        commit("deleteQuestions");
+        return {
+          status: response?.status,
+          data: null
+        }
+      }
+    } catch (error) {
+      console.log("deleteQuestions catch", {error});
     }
   },
   async createAnswer({commit}, payload) {
     // payload = experiment_id, condition_id, treatment_id, assessment_id, question_id, html, correct, answerOrder
     // create the assessment answer, commit an update mutation, and return the status/data response
     try {
-      const response = await assessmentService.createAnswer(...payload)
-      const answer = response?.data
+      const response = await assessmentService.createAnswer(...payload);
+      const answer = response?.data;
+
       if (answer?.answerId) {
-        commit('updateAnswers', answer)
+        commit("updateAnswers", answer);
         return {
           status: response?.status,
           data: answer
         }
       }
     } catch (error) {
-      console.log('createAnswer catch', error)
+      console.log("createAnswer catch", error);
     }
   },
   async updateAnswer({state}, payload) {
     // payload = experiment_id, condition_id, treatment_id, assessment_id, question_id, answer_id, answer_type, html, correct, answer_order
     // update answer and return the status/data response
     try {
-      const response = await assessmentService.updateAnswer(...payload)
+      const response = await assessmentService.updateAnswer(...payload);
+
       if (response) {
         return {
           status: response?.status,
@@ -196,26 +217,26 @@ const actions = {
         }
       }
     } catch (error) {
-      console.log('updateAnswer catch', {error, state})
+      console.log("updateAnswer catch", {error, state});
     }
   },
   async deleteAnswer({commit}, payload) {
-    const answerId = payload[5]
+    const answerId = payload[5];
     // payload = experiment_id, condition_id, treatment_id, assessment_id, question_id, answer_id
     // delete answer, commit mutation, and return the status/data response
     try {
-      const response = await assessmentService.deleteAnswer(...payload)
-      console.log({response})
+      const response = await assessmentService.deleteAnswer(...payload);
+
       if (response?.status === 200) {
         // send answer id to the deleteAnswer mutation
-        commit('deleteAnswer', answerId)
+        commit("deleteAnswer", answerId);
         return {
           status: response?.status,
           data: null
         }
       }
     } catch (error) {
-      console.log('deleteAnswer catch', {error})
+      console.log("deleteAnswer catch", {error});
     }
   },
   resetAssessments({state}) {
@@ -225,64 +246,69 @@ const actions = {
 }
 const mutations = {
   setAssessment(state, assessment) {
-    state.assessment = assessment
+    state.assessment = assessment;
   },
   updateAssessments(state, assessment) {
     // check for same id and update if exists
-    const foundIndex = state.assessments?.findIndex(a => parseInt(a.assessmentId) === parseInt(assessment.assessmentId))
+    const foundIndex = state.assessments?.findIndex(a => parseInt(a.assessmentId) === parseInt(assessment.assessmentId));
     if (foundIndex >= 0) {
-      state.assessments[foundIndex] = assessment
+      state.assessments[foundIndex] = assessment;
     } else {
-      state.assessments.push(assessment)
+      state.assessments.push(assessment);
     }
   },
   setQuestions(state, questions) {
-    state.assessments.questions = questions
+    state.assessments.questions = questions;
   },
   updateQuestions(state, question) {
     // check for same id and update if exists
-    const foundIndex = state.assessment.questions?.findIndex(q => parseInt(q.questionId) === parseInt(question.questionId))
+    const foundIndex = state.assessment.questions?.findIndex(q => parseInt(q.questionId) === parseInt(question.questionId));
     if (foundIndex >= 0) {
       state.assessment.questions.splice(foundIndex, 1, question);
     } else {
-      state.assessment.questions.push(question)
+      state.assessment.questions.push(question);
     }
   },
   updateQuestionsAtIndex(state, {question, questionIndex}) {
     state.assessment.questions.splice(questionIndex, 0, question);
   },
   deleteQuestion(state, qid) {
-    state.assessment.questions = [...state.assessment.questions?.filter(q => parseInt(q.questionId) !== parseInt(qid))]
+    state.assessment.questions = [...state.assessment.questions?.filter(q => parseInt(q.questionId) !== parseInt(qid))];
+  },
+  deleteQuestions(state) {
+    state.assessment.questions = [];
   },
   updateAnswers(state, answer) {
-    const aqid = parseInt(answer.questionId)
+    const aqid = parseInt(answer.questionId);
 
     // check if answer exists and update, or add answer to question
     state.assessment.questions = state.assessment.questions.map(q => {
-      const qqid = parseInt(q.questionId)
+      const qqid = parseInt(q.questionId);
 
       // step over question if not relevant
-      if (qqid !== aqid) { return q }
+      if (qqid !== aqid) {
+        return q;
+      }
 
       if (q.answers?.length > 0) {
         // if there are answers, check for matching answerId
-        const foundIndex = q.answers.findIndex(a => parseInt(a.answerId) === parseInt(answer.answerId))
+        const foundIndex = q.answers.findIndex(a => parseInt(a.answerId) === parseInt(answer.answerId));
 
         if (foundIndex >= 0) {
           q.answers.splice(foundIndex, 1, answer);
         } else {
-          q.answers = [...q.answers, answer]
+          q.answers = [...q.answers, answer];
         }
       } else if ((!q.answers || q.answers.length < 1)) {
         // create array with single answer if empty or missing answers
-        q.answers = [answer]
+        q.answers = [answer];
       }
 
       return q
     });
   },
   deleteAnswer(state, answer_id) {
-    const aid = parseInt(answer_id)
+    const aid = parseInt(answer_id);
     state.assessment.questions = state.assessment.questions.map((q) => {
       return {...q, answers: q.answers?.filter(a => parseInt(a.answerId) !== aid)}
     })
@@ -290,14 +316,14 @@ const mutations = {
 }
 const getters = {
   assessment: (state) => {
-    return state.assessment
+    return state.assessment;
   },
   questions: (state) => {
     const list = [...state?.assessment?.questions || []].sort((a, b) => (a ? a.questionOrder : 0) - (b ? b.questionOrder : 0));
     return list;
   },
   assessments: (state) => {
-    return state.assessments
+    return state.assessments;
   },
   answerableQuestions: (state, getters) => {
     return getters.questions.filter(q => q.questionType !== "PAGE_BREAK");
@@ -322,7 +348,7 @@ const getters = {
         const currentPage = pages[pages.length - 1];
         if (question.questionType === "PAGE_BREAK") {
           currentPage.pageBreakAfter = true;
-          // Add another page if this isn't the last question
+          // Add another page if this isn"t the last question
           if (question !== sorted[sorted.length - 1]) {
             pages.push({
               key: pages.length,

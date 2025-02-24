@@ -596,6 +596,7 @@ export default {
       createQuestion: "assessment/createQuestion",
       updateQuestion: "assessment/updateQuestion",
       deleteQuestion: "assessment/deleteQuestion",
+      deleteQuestions: "assessment/deleteQuestions",
       updateAnswer: "assessment/updateAnswer",
       updateTreatment: "treatment/updateTreatment",
       fetchSubmissions: "submissions/fetchSubmissions",
@@ -720,20 +721,23 @@ export default {
       }
     },
     async handleClearQuestions() {
-      this.assessment.questions.forEach((q) => {
-        this.deleteQuestion([
-          this.experiment.experimentId,
-          this.condition.conditionId,
-          this.treatment_id,
-          this.assessment_id,
-          q.questionId
-        ]).then(response => {
-          if (response.status === 400) {
-            this.$swal(response.data);
-            return false;
-          }
-        });
+      if (this.questions.length === 0) {
+        return;
+      }
+
+      this.deleteQuestions([
+        this.experiment.experimentId,
+        this.condition.conditionId,
+        this.treatment_id,
+        this.assessment_id,
+        this.assessment.questions
+      ]).then(response => {
+        if (response.status === 400) {
+          this.$swal(response.data);
+          return false;
+        }
       });
+
       return true;
     },
     async handleSaveAssessment() {
