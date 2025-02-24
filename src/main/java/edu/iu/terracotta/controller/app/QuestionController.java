@@ -215,4 +215,28 @@ public class QuestionController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
+    @DeleteMapping
+    public ResponseEntity<Void> deleteQuestions(@PathVariable long experimentId,
+                                               @PathVariable long conditionId,
+                                               @PathVariable long treatmentId,
+                                               @PathVariable long assessmentId,
+                                               @RequestBody List<QuestionDto> questionDtoList,
+                                               HttpServletRequest req)
+            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionNotMatchingException, BadTokenException, NumberFormatException, TerracottaConnectorException {
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
+
+        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
+            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
+        }
+
+        for (QuestionDto questionDto : questionDtoList) {
+            apijwtService.questionAllowed(securedInfo, assessmentId, questionDto.getQuestionId());
+            questionService.deleteById(questionDto.getQuestionId());
+        }
+
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
 }
