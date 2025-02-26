@@ -23,6 +23,8 @@ public interface BaseLmsAssignment extends LmsEntity<LmsAssignment> {
     Float getPointsPossible();
     Date getLockAt();
     Date getUnlockAt();
-    LmsAssignment convert();
+    LmsAssignment from();
+    LmsExternalToolFields getLmsExternalToolFields();
+    void setLmsExternalToolFields(LmsExternalToolFields lmsExternalToolFields);
 
 }

@@ -41,6 +41,7 @@ import edu.iu.terracotta.connectors.generic.dao.model.enums.LmsConnector;
 import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsAssignment;
 import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsCourse;
 import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsSubmission;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.base.LmsExternalToolFields;
 import edu.iu.terracotta.connectors.generic.dao.model.lms.membership.CourseUser;
 import edu.iu.terracotta.connectors.generic.dao.model.lms.membership.CourseUsers;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.LtiToken;
@@ -62,6 +63,7 @@ import edu.iu.terracotta.dao.entity.Exposure;
 import edu.iu.terracotta.dao.entity.ExposureGroupCondition;
 import edu.iu.terracotta.dao.entity.Feature;
 import edu.iu.terracotta.dao.entity.Group;
+import edu.iu.terracotta.dao.entity.ObsoleteAssignment;
 import edu.iu.terracotta.dao.entity.Outcome;
 import edu.iu.terracotta.dao.entity.OutcomeScore;
 import edu.iu.terracotta.dao.entity.Participant;
@@ -190,6 +192,7 @@ public class BaseModelTest {
     @Mock protected LineItems lineItems;
     @Mock protected LmsAssignment lmsAssignment;
     @Mock protected LmsCourse lmsCourse;
+    @Mock protected LmsExternalToolFields lmsExternalToolFields;
     @Mock protected LmsSubmission lmsSubmission;
     @Mock protected Lti3Request lti3Request;
     @Mock protected LtiContextEntity ltiContextEntity;
@@ -197,6 +200,7 @@ public class BaseModelTest {
     @Mock protected LtiMembershipEntity ltiMembershipEntity;
     @Mock protected LtiToken ltiToken;
     @Mock protected LtiUserEntity ltiUserEntity;
+    @Mock protected ObsoleteAssignment obsoleteAssignment;
     @Mock protected Outcome outcome;
     @Mock protected OutcomeDto outcomeDto;
     @Mock protected OutcomesCondition outcomesCondition;
@@ -303,6 +307,7 @@ public class BaseModelTest {
             when(exposureGroupCondition.getCondition()).thenReturn(condition);
             when(exposureGroupCondition.getExposure()).thenReturn(exposure);
             when(exposureGroupCondition.getGroup()).thenReturn(group);
+            when(lmsExternalToolFields.getUrl()).thenReturn(LTI_URL);
             when(feature.getPlatformDeployments()).thenReturn(Collections.singletonList(platformDeployment));
             when(feature.getType()).thenReturn(FeatureType.DEFAULT);
             when(group.getGroupId()).thenReturn(1L);
@@ -332,7 +337,9 @@ public class BaseModelTest {
             when(integrationDto.getConfiguration()).thenReturn(integrationConfigurationDto);
             when(integrationToken.getId()).thenReturn(1l);
             when(integrationToken.getIntegration()).thenReturn(integration);
+            when(integrationToken.getLastLaunchedAt()).thenReturn(Timestamp.from(Instant.now()));
             when(integrationToken.getLogs()).thenReturn(Collections.singletonList(integrationTokenLog));
+            when(integrationToken.getRedeemedAt()).thenReturn(Timestamp.from(Instant.now()));
             when(integrationToken.getSecuredInfo()).thenReturn(Optional.of(securedInfo));
             when(integrationToken.getSubmission()).thenReturn(submission);
             when(integrationToken.getUser()).thenReturn(ltiUserEntity);
@@ -350,7 +357,9 @@ public class BaseModelTest {
             when(lineItemArrayResponseEntity.getHeaders()).thenReturn(new HttpHeaders());
             when(lineItemArrayResponseEntity.getStatusCode()).thenReturn(HttpStatusCode.valueOf(200));
             when(lineItems.getLineItemList()).thenReturn(Collections.singletonList(lineItem));
+            when(lmsAssignment.getLmsExternalToolFields()).thenReturn(lmsExternalToolFields);
             when(lmsAssignment.getId()).thenReturn("1");
+            when(lmsAssignment.getName()).thenReturn(ASSIGNMENT_TITLE);
             when(lmsAssignment.getSecureParams()).thenReturn(RESOURCE_LINK_ID);
             when(lmsAssignment.isPublished()).thenReturn(true);
             when(lmsCourse.getId()).thenReturn(1L);
@@ -366,6 +375,7 @@ public class BaseModelTest {
             when(ltiUserEntity.getEmail()).thenReturn(EMAIL);
             when(ltiUserEntity.getPlatformDeployment()).thenReturn(platformDeployment);
             when(ltiUserEntity.getUserKey()).thenReturn(USER_ID);
+            when(obsoleteAssignment.getLmsAssignmentId()).thenReturn("1");
             when(outcome.getExposure()).thenReturn(exposure);
             when(outcome.getLmsOutcomeId()).thenReturn("1");
             when(outcome.getMaxPoints()).thenReturn(1F);
@@ -393,7 +403,7 @@ public class BaseModelTest {
             when(participantDto.getUser()).thenReturn(userDto);
             when(platformDeployment.getKeyId()).thenReturn(1L);
             when(platformDeployment.getLmsConnector()).thenReturn(LmsConnector.CANVAS);
-            when(platformDeployment.getLocalUrl()).thenReturn("https://localhost");
+            when(platformDeployment.getLocalUrl()).thenReturn(LTI_URL);
             when(platformDeployment.getOAuth2TokenUrl()).thenReturn("https://localhost/token");
             when(question.getAssessment()).thenReturn(assessment);
             when(question.getIntegration()).thenReturn(integration);
@@ -427,6 +437,7 @@ public class BaseModelTest {
             when(resultArrayResponseEntity.getBody()).thenReturn(new Result[] {result});
             when(resultArrayResponseEntity.getHeaders()).thenReturn(new HttpHeaders());
             when(resultArrayResponseEntity.getStatusCode()).thenReturn(HttpStatusCode.valueOf(200));
+            when(securedInfo.getContextId()).thenReturn(1L);
             when(securedInfo.getLmsAssignmentId()).thenReturn("1");
             when(securedInfo.getLmsCourseId()).thenReturn("1");
             when(securedInfo.getLmsUserId()).thenReturn("1");

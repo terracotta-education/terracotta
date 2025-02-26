@@ -26,6 +26,10 @@ const integration = {
   errorCode: params.get("errorCode") === "null" ? null : params.get("errorCode"),
   previewUrl: params.get("previewUrl")
 };
+const obsolete = {
+  obsolete: params.get("obsolete") === "true",
+  type: params.get("type")
+};
 var appProps = {};
 
 const operations = [];
@@ -53,17 +57,21 @@ function startVue() {
     appProps["integrationData"] = integration;
   }
 
+  if (obsolete.obsolete) {
+    appProps["obsoleteData"] = obsolete;
+  }
+
   new Vue({
     store,
     router,
     vuetify,
-    props: ["integrationData"],
+    props: ["integrationData", "obsoleteData"],
     render: h => h(App, {props: appProps}),
   }).$mount("#app")
 }
 
 function cleanURL() {
-  // delete the token from the url
+  // delete the parameters from the url
   for (const key of [...params.keys()]) {
     params.delete(key);
   }

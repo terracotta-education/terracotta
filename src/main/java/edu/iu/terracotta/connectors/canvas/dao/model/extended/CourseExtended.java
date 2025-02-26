@@ -22,9 +22,29 @@ public class CourseExtended extends LmsCourse {
     }
 
     @Override
-    public LmsCourse convert() {
-        return (LmsCourse) this;
+    public void setId(Long id) {
+        course.setId(id);
     }
 
+    @Override
+    public LmsCourse from() {
+        LmsCourse lmsCourse = LmsCourse.builder().build();
+        lmsCourse.setId(course.getId());
+        lmsCourse.setType(CourseExtended.class);
+
+        return lmsCourse;
+    }
+
+    public static CourseExtended of(LmsCourse lmsCourse) {
+        CourseExtended courseExtended = CourseExtended.builder().build();
+
+        if (lmsCourse == null) {
+            return courseExtended;
+        }
+
+        courseExtended.setId(lmsCourse.getId());
+
+        return courseExtended;
+    }
 
 }

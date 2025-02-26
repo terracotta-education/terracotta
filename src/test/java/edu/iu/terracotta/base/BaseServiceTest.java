@@ -188,6 +188,7 @@ public class BaseServiceTest extends BaseRepositoryTest {
             when(apiOAuthSettings.getPlatformDeployment()).thenReturn(platformDeployment);
             when(assessmentSubmissionService.calculateMaxScore(any(Assessment.class))).thenReturn(1F);
             when(assessmentSubmissionService.gradeSubmission(any(Submission.class), any(RegradeDetails.class))).thenReturn(submission);
+            when(assignmentService.getAllAssignmentsForLmsCourse(any(SecuredInfo.class))).thenReturn(Collections.singletonList(lmsAssignment));
             when(assignmentService.getLmsAssignmentById(anyString(), any(SecuredInfo.class))).thenReturn(Optional.of(lmsAssignment));
             when(assignmentService.save(any(Assignment.class))).thenReturn(assignment);
             when(assignmentTreatmentService.toAssignmentDto(any(Assignment.class), anyBoolean(), anyBoolean())).thenReturn(assignmentDto);

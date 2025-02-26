@@ -168,7 +168,7 @@ public class CanvasApiClientImpl implements ApiClient {
         try {
             return castOptional(
                 getWriter(apiUser, AssignmentWriterExtended.class)
-                    .editAssignment(canvasCourseId, ((AssignmentExtended) lmsAssignment).getAssignment())
+                    .editAssignment(canvasCourseId, AssignmentExtended.of(lmsAssignment).getAssignment())
             );
         } catch (IOException | CanvasException ex) {
             throw new ApiException("Failed to edit the assignments with id [" + lmsAssignment.getId() + "] from canvas course [" + canvasCourseId + "]", ex);
@@ -180,7 +180,7 @@ public class CanvasApiClientImpl implements ApiClient {
         try {
             return castOptional(
                 getWriter(platformDeployment.getBaseUrl(), AssignmentWriterExtended.class, tokenOverride)
-                    .editAssignment(canvasCourseId, ((AssignmentExtended) lmsAssignment).getAssignment())
+                    .editAssignment(canvasCourseId, AssignmentExtended.of(lmsAssignment).getAssignment())
             );
         } catch (IOException | CanvasException e) {
             throw new ApiException(String.format("Failed to edit the assignments with id [%s] from canvas course [%]", lmsAssignment.getId(), canvasCourseId), e);
@@ -332,7 +332,7 @@ public class CanvasApiClientImpl implements ApiClient {
         try {
             return castOptional(
                 getWriter(platformDeployment.getBaseUrl(), CourseWriterExtended.class, tokenOverride)
-                    .editCourse(canvasCourseId, (CourseExtended) lmsCourse)
+                    .editCourse(canvasCourseId, CourseExtended.of(lmsCourse))
             );
         } catch (IOException | CanvasException e) {
             throw new ApiException(String.format("Failed to edit the course with ID [%s] in Canvas", canvasCourseId), e);
@@ -475,12 +475,12 @@ public class CanvasApiClientImpl implements ApiClient {
     }
 
     private <T> Optional<T> castOptional(Optional<? extends LmsEntity<T>> extended) {
-        return Optional.of(extended.get().convert());
+        return Optional.of(extended.get().from());
     }
 
     private <T> List<T> castList(List<? extends LmsEntity<T>> extendeds) {
         return extendeds.stream()
-            .map(extended -> extended.convert())
+            .map(extended -> extended.from())
             .toList();
     }
 

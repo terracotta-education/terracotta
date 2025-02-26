@@ -10,16 +10,16 @@ import lombok.experimental.SuperBuilder;
 @SuperBuilder
 public class LmsSubmission implements BaseLmsSubmission {
 
-    protected Class<?> type;
-    protected Double score;
-    protected Object user;
-    protected Long userId;
-    protected String userLoginId;
-    protected String userName;
-    protected Long attempt;
+    private Class<?> type;
+    private Double score;
+    private Object user;
+    private Long userId;
+    private String userLoginId;
+    private String userName;
+    private Long attempt;
 
     @Override
-    public LmsSubmission convert() {
+    public LmsSubmission from() {
         return this;
     }
 
