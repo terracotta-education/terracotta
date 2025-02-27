@@ -14,6 +14,7 @@ import edu.iu.terracotta.connectors.generic.service.lms.LmsOAuthServiceManager;
 import edu.iu.terracotta.connectors.generic.service.lti.LtiDataService;
 import edu.iu.terracotta.connectors.generic.service.lti.LtiJwtService;
 import edu.iu.terracotta.controller.app.LmsOAuthController;
+import edu.iu.terracotta.dao.entity.ObsoleteAssignment;
 import edu.iu.terracotta.dao.exceptions.FeatureNotFoundException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.service.caliper.CaliperService;
@@ -75,6 +76,11 @@ public class Lti3Controller {
         try {
             Jws<Claims> claims = ltijwtService.validateState(state);
             Lti3Request lti3Request = Lti3Request.getInstance(link);
+
+            // check if the request is for an obsolete assignment; redirect immediately if true
+            if (StringUtils.endsWithIgnoreCase(lti3Request.getLtiTargetLinkUrl(), ObsoleteAssignment.URL)) {
+                return String.format("redirect:/%s", ObsoleteAssignment.URL);
+            }
 
             // This is just an extra check that we have added, but it is not necessary.
             // Checking that the clientId in the status matches the one coming with the ltiRequest.

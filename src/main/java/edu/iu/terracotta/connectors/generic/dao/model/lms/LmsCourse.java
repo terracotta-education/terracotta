@@ -10,11 +10,11 @@ import lombok.experimental.SuperBuilder;
 @SuperBuilder
 public class LmsCourse implements BaseLmsCourse {
 
-    protected Class<?> type;
-    protected Long id;
+    private Class<?> type;
+    private Long id;
 
     @Override
-    public LmsCourse convert() {
+    public LmsCourse from() {
         return this;
     }
 

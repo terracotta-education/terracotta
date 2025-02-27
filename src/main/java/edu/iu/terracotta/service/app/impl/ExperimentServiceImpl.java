@@ -38,6 +38,7 @@ import edu.iu.terracotta.service.app.ConditionService;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.ExposureService;
 import edu.iu.terracotta.service.app.ParticipantService;
+import edu.iu.terracotta.service.app.async.AsyncService;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.collections4.CollectionUtils;
@@ -69,6 +70,7 @@ public class ExperimentServiceImpl implements ExperimentService {
     @Autowired private ParticipantRepository participantRepository;
     @Autowired private PlatformDeploymentRepository platformDeploymentRepository;
     @Autowired private AssignmentService assignmentService;
+    @Autowired private AsyncService asyncService;
     @Autowired private ConditionService conditionService;
     @Autowired private ExposureService exposureService;
     @Autowired private FileStorageServiceImpl fileStorageService;
@@ -85,19 +87,14 @@ public class ExperimentServiceImpl implements ExperimentService {
 
         // sync assignments with LMS, if configured
         if (syncWithLms) {
-            Thread thread = new Thread(
-                () ->
-                    {
-                        try {
-                            log.info("Starting assignment recreation in LMS.");
-                            assignmentService.checkAndRestoreAssignmentsInLmsByContext(securedInfo);
-                        } catch (ApiException | DataServiceException | ConnectionException | IOException | TerracottaConnectorException e) {
-                            log.error("Error syncing assignments with LMS. Context ID: '{}'", securedInfo.getContextId(), e);
-                        }
-                    }
-            );
-
-            thread.start();
+            try {
+                log.info("Starting assignment sync in LMS.");
+                asyncService.checkAndRestoreAssignmentsInLmsByContext(securedInfo);
+                asyncService.handleObsoleteAssignmentsInLmsByContext(securedInfo);
+                log.info("Assignment sync in LMS finished.");
+            } catch (ApiException | DataServiceException | ConnectionException | IOException | TerracottaConnectorException e) {
+                log.error("Error syncing assignments with LMS. Context ID: '{}'", securedInfo.getContextId(), e);
+            }
         }
 
         return experimentDtoList;

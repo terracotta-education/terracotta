@@ -4,6 +4,7 @@ import java.util.Date;
 import java.util.List;
 
 import edu.iu.terracotta.connectors.generic.dao.model.lms.base.BaseLmsAssignment;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.base.LmsExternalToolFields;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
@@ -14,22 +15,23 @@ import lombok.experimental.SuperBuilder;
 @SuperBuilder
 public class LmsAssignment implements BaseLmsAssignment {
 
-    @Builder.Default protected int allowedAttempts = -1;
-    @Builder.Default protected boolean canSubmit = true;
+    @Builder.Default private int allowedAttempts = -1;
+    @Builder.Default private boolean canSubmit = true;
 
-    protected Class<?> type;
-    protected String id;
-    protected String name;
-    protected boolean published;
-    protected String secureParams;
-    protected Date dueAt;
-    protected List<String> submissionTypes;
-    protected Float pointsPossible;
-    protected Date lockAt;
-    protected Date unlockAt;
+    private Class<?> type;
+    private String id;
+    private String name;
+    private boolean published;
+    private String secureParams;
+    private Date dueAt;
+    private List<String> submissionTypes;
+    private Float pointsPossible;
+    private Date lockAt;
+    private Date unlockAt;
+    private LmsExternalToolFields lmsExternalToolFields;
 
     @Override
-    public LmsAssignment convert() {
+    public LmsAssignment from() {
         return this;
     }
 

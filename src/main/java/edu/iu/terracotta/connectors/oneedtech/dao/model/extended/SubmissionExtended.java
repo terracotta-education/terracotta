@@ -16,7 +16,7 @@ public class SubmissionExtended extends LmsSubmission {
     @Builder.Default private Submission submission = Submission.builder().build();
 
     @Override
-    public LmsSubmission convert() {
+    public LmsSubmission from() {
         LmsSubmission convertedEntity = (LmsSubmission) this;
         convertedEntity.setType(Assignment.class);
 

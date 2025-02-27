@@ -83,12 +83,10 @@ import java.io.IOException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -479,7 +477,7 @@ public class AssignmentServiceImpl implements AssignmentService {
     public void checkAndRestoreAssignmentsInLms(Long platformDeploymentKeyId) throws ApiException, DataServiceException, ConnectionException, IOException, NumberFormatException, TerracottaConnectorException {
         List<Assignment> assignmentsToCheck = assignmentRepository.findAssignmentsToCheckByPlatform(platformDeploymentKeyId);
 
-        for (Assignment assignment:assignmentsToCheck) {
+        for (Assignment assignment : assignmentsToCheck) {
             LtiUserEntity instructorUser = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(
                 assignment.getExposure().getExperiment().getCreatedBy().getUserKey(),
                 platformDeploymentKeyId
@@ -489,60 +487,6 @@ public class AssignmentServiceImpl implements AssignmentService {
                 restoreAssignmentInLms(assignment);
             }
         }
-    }
-
-    @Override
-    @Transactional(rollbackFor = { ApiException.class })
-    public List<LmsAssignment> checkAndRestoreAssignmentsInLmsByContext(SecuredInfo securedInfo) throws ApiException, DataServiceException, ConnectionException, IOException, TerracottaConnectorException {
-        List<Assignment> assignmentsToCheck = assignmentRepository.findAssignmentsToCheckByContext(securedInfo.getContextId());
-
-        if (CollectionUtils.isEmpty(assignmentsToCheck)) {
-            log.info("No assignments exist in Terracotta for context ID: [{}] to check in the LMS. Aborting.", securedInfo.getContextId());
-            return Collections.emptyList();
-        }
-
-        log.info("Checking Terracotta assignment IDs for context ID: [{}] in the LMS: [{}]",
-            securedInfo.getContextId(),
-            Arrays.toString(assignmentsToCheck.stream().map(Assignment::getLmsAssignmentId).toArray())
-        );
-
-        List<LmsAssignment> lmsAssignments = getAllAssignmentsForLmsCourse(securedInfo);
-
-        if (CollectionUtils.isEmpty(lmsAssignments)) {
-            log.info("No assignments exist in LMS for context ID: [{}]. Aborting.", securedInfo.getContextId());
-            return Collections.emptyList();
-        }
-
-        List<String> lmsAssignmentIds = lmsAssignments.stream()
-            .map(LmsAssignment::getId)
-            .toList();
-
-        List<String> assignmentsRecreated = assignmentsToCheck.stream()
-            .filter(assignmentToCheck -> !lmsAssignmentIds.contains(assignmentToCheck.getLmsAssignmentId()))
-            .map(
-                assignmentToCreate -> {
-                    log.info("Creating assignment with ID: [{}] in the LMS ", assignmentToCreate.getAssignmentId());
-
-                    try {
-                        restoreAssignmentInLms(assignmentToCreate);
-                    } catch (ApiException | DataServiceException | ConnectionException | IOException | TerracottaConnectorException e) {
-                        log.error("Error restoring assignment with ID: [{}] in the LMS", assignmentToCreate.getAssignmentId(), e);
-                    }
-
-                    return Long.toString(assignmentToCreate.getAssignmentId());
-                }
-            )
-            .toList();
-
-        log.info("Checking Terracotta assignments for context ID: '{}' in LMS COMPLETE. Assignments recreated: {}.",
-            securedInfo.getContextId(),
-            CollectionUtils.isNotEmpty(assignmentsRecreated) ?
-                assignmentsRecreated.stream()
-                    .collect(Collectors.joining(", ")) :
-                "N/A"
-        );
-
-        return lmsAssignments;
     }
 
     @Override
@@ -826,6 +770,5 @@ public class AssignmentServiceImpl implements AssignmentService {
 
         return assignmentTreatments.size() <= 1;
     }
-
 
 }

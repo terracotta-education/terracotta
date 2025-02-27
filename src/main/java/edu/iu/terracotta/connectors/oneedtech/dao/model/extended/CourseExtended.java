@@ -20,7 +20,7 @@ public class CourseExtended extends LmsCourse {
     }
 
     @Override
-    public LmsCourse convert() {
+    public LmsCourse from() {
         LmsCourse convertedEntity = (LmsCourse) this;
         convertedEntity.setType(Course.class);
 

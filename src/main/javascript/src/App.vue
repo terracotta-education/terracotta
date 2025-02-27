@@ -4,7 +4,7 @@
     tabindex="0"
   >
     <v-main
-      v-if="!isIntegration"
+      v-if="!isIntegration && !isObsolete"
     >
       <template
         v-if="hasTokens && userInfo === 'Instructor'"
@@ -19,7 +19,7 @@
         <div class="student-view mt-5">
           <PageLoading
             :display="!childLoaded"
-            :message="'Loading your assignment. Please wait.'"
+            message="Loading your assignment. Please wait."
           />
           <StudentConsent
             v-if="consent"
@@ -63,7 +63,7 @@
       </template>
     </v-main>
     <v-main
-      v-else
+      v-else-if="isIntegration"
     >
       <integrations
         v-if="!isIntegrationPreview"
@@ -74,20 +74,29 @@
         :url="integrationPreviewUrl"
       />
     </v-main>
+    <v-main
+      v-else
+    >
+      <assignment
+        v-if="isObsoleteAssignment"
+      />
+    </v-main>
   </v-app>
 </template>
 
 <script>
 import { mapActions, mapGetters } from "vuex";
-import Integrations from "./views/integrations/Integrations.vue";
-import IntegrationsPreview from "./views/integrations/IntegrationsPreview.vue";
+import Assignment from "@/views/obsolete/Assignment.vue";
+import Integrations from "@/views/integrations/Integrations.vue";
+import IntegrationsPreview from "@/views/integrations/IntegrationsPreview.vue";
 import PageLoading from "@/components/PageLoading";
-import StudentConsent from './views/student/StudentConsent.vue';
-import StudentQuiz from './views/student/StudentQuiz.vue';
+import StudentConsent from "@/views/student/StudentConsent.vue";
+import StudentQuiz from "@/views/student/StudentQuiz.vue";
 
 export default {
-  name: 'App',
+  name: "App",
   components: {
+    Assignment,
     Integrations,
     IntegrationsPreview,
     PageLoading,
@@ -97,6 +106,9 @@ export default {
   props: {
     integrationData: {
       type: Object
+    },
+    obsoleteData: {
+      type: Object
     }
   },
   data: () => ({
@@ -104,13 +116,13 @@ export default {
   }),
   computed: {
     ...mapGetters({
-      hasTokens: 'api/hasTokens',
-      userInfo: 'api/userInfo',
-      experimentId: 'api/experimentId',
-      assignmentId: 'api/assignmentId',
-      consent: 'api/consent',
-      userId: 'api/userId',
-      api_token: 'api/api_token',
+      hasTokens: "api/hasTokens",
+      userInfo: "api/userInfo",
+      experimentId: "api/experimentId",
+      assignmentId: "api/assignmentId",
+      consent: "api/consent",
+      userId: "api/userId",
+      api_token: "api/api_token",
     }),
     // Apply per route global styling to the v-app component
     appStyle() {
@@ -124,11 +136,17 @@ export default {
     },
     isIntegrationPreview() {
       return this.isIntegration && this.integrationPreviewUrl;
+    },
+    isObsolete() {
+      return this.obsoleteData != null;
+    },
+    isObsoleteAssignment() {
+      return this.isObsolete && this.obsoleteData.type === "assignment";
     }
   },
   methods: {
     ...mapActions({
-      refreshToken: 'api/refreshToken',
+      refreshToken: "api/refreshToken",
     }),
   },
   async created() {

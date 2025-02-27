@@ -30,6 +30,7 @@ import edu.iu.terracotta.connectors.generic.dao.repository.lti.ToolDeploymentRep
 import edu.iu.terracotta.dao.entity.AnswerMc;
 import edu.iu.terracotta.dao.entity.Assessment;
 import edu.iu.terracotta.dao.entity.Assignment;
+import edu.iu.terracotta.dao.entity.Experiment;
 import edu.iu.terracotta.dao.entity.Outcome;
 import edu.iu.terracotta.dao.entity.Participant;
 import edu.iu.terracotta.dao.entity.Question;
@@ -54,6 +55,7 @@ import edu.iu.terracotta.dao.repository.ExperimentRepository;
 import edu.iu.terracotta.dao.repository.ExposureGroupConditionRepository;
 import edu.iu.terracotta.dao.repository.ExposureRepository;
 import edu.iu.terracotta.dao.repository.GroupRepository;
+import edu.iu.terracotta.dao.repository.ObsoleteAssignmentRepository;
 import edu.iu.terracotta.dao.repository.OutcomeRepository;
 import edu.iu.terracotta.dao.repository.OutcomeScoreRepository;
 import edu.iu.terracotta.dao.repository.ParticipantRepository;
@@ -102,6 +104,7 @@ public class BaseRepositoryTest extends BaseModelTest {
     @Mock protected LtiLinkRepository ltiLinkRepository;
     @Mock protected LtiMembershipRepository ltiMembershipRepository;
     @Mock protected LtiUserRepository ltiUserRepository;
+    @Mock protected ObsoleteAssignmentRepository obsoleteAssignmentRepository;
     @Mock protected OutcomeRepository outcomeRepository;
     @Mock protected OutcomeScoreRepository outcomeScoreRepository;
     @Mock protected ParticipantRepository participantRepository;
@@ -134,6 +137,7 @@ public class BaseRepositoryTest extends BaseModelTest {
             when(assessmentRepository.findByAssessmentId(anyLong())).thenReturn(assessment);
             when(assessmentRepository.findById(anyLong())).thenReturn(Optional.of(assessment));
             when(assessmentRepository.save(any(Assessment.class))).thenReturn(assessment);
+            when(assignmentRepository.findAssignmentsToCheckByContext(anyLong())).thenReturn(Collections.singletonList(assignment));
             when(assignmentRepository.findByAssignmentId(anyLong())).thenReturn(assignment);
             when(assignmentRepository.findByExposure_Experiment_ExperimentId(anyLong())).thenReturn(Collections.singletonList(assignment));
             when(assignmentRepository.findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(anyLong(), anyString())).thenReturn(assignment);
@@ -145,6 +149,7 @@ public class BaseRepositoryTest extends BaseModelTest {
             when(conditionRepository.findByExperiment_ExperimentIdOrderByConditionIdAsc(anyLong())).thenReturn(Collections.singletonList(condition));
             when(conditionRepository.findById(anyLong())).thenReturn(Optional.of(condition));
             when(entityManager.createQuery(anyString())).thenReturn(query);
+            when(experimentRepository.findAllByLtiContextEntity_ContextId(anyLong())).thenReturn(Collections.singletonList(experiment));
             when(experimentRepository.findByExperimentId(anyLong())).thenReturn(experiment);
             when(experimentRepository.findById(anyLong())).thenReturn(Optional.of(experiment));
             when(exposureGroupConditionRepository.findByCondition_Experiment_ExperimentId(anyLong())).thenReturn(Collections.singletonList(exposureGroupCondition));
@@ -172,8 +177,10 @@ public class BaseRepositoryTest extends BaseModelTest {
             when(integrationTokenRepository.findByToken(anyString())).thenReturn(Optional.of(integrationToken));
             when(integrationTokenRepository.save(any(IntegrationToken.class))).thenReturn(integrationToken);
             when(integrationTokenRepository.saveAndFlush(any(IntegrationToken.class))).thenReturn(integrationToken);
+            when(ltiContextRepository.findById(anyLong())).thenReturn(Optional.of(ltiContextEntity));
             when(ltiUserRepository.findById(anyLong())).thenReturn(Optional.of(ltiUserEntity));
             when(ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(anyString(), anyLong())).thenReturn(ltiUserEntity);
+            when(obsoleteAssignmentRepository.findAllByContext_ContextId(anyLong())).thenReturn(Collections.singletonList(obsoleteAssignment));
             when(outcomeRepository.findByExposure_Experiment_ExperimentId(anyLong(), any(Pageable.class))).thenReturn(new PageImpl<>(Collections.singletonList(outcome)));
             when(outcomeRepository.findByExposure_Experiment_ExperimentId(anyLong())).thenReturn(Collections.singletonList(outcome));
             when(outcomeRepository.findByExposure_ExposureId(anyLong())).thenReturn(Collections.singletonList(outcome));

@@ -38,7 +38,7 @@ public class AssignmentExtended extends LmsAssignment {
 
     @Override
     public void setSecureParams(String secureParams) {
-        this.secureParams = secureParams;
+        super.setSecureParams(secureParams);
     }
 
     @Override
@@ -48,7 +48,7 @@ public class AssignmentExtended extends LmsAssignment {
 
     @Override
     public void setAllowedAttempts(int allowedAttempts) {
-        this.allowedAttempts = allowedAttempts;
+        super.setAllowedAttempts(allowedAttempts);
     }
 
     @Override
@@ -58,7 +58,7 @@ public class AssignmentExtended extends LmsAssignment {
 
     @Override
     public void setCanSubmit(boolean canSubmit) {
-        this.canSubmit = canSubmit;
+        super.setCanSubmit(canSubmit);
     }
 
     @Override
@@ -102,7 +102,7 @@ public class AssignmentExtended extends LmsAssignment {
     }
 
     @Override
-    public LmsAssignment convert() {
+    public LmsAssignment from() {
         LmsAssignment convertedEntity = (LmsAssignment) this;
         convertedEntity.setType(Assignment.class);
         convertedEntity.setId(getId());

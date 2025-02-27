@@ -93,7 +93,6 @@ public interface AssignmentService {
                     IOException, GroupNotMatchingException, ParticipantNotMatchingException, ConnectionException, AssignmentAttemptException, AssignmentNotMatchingException, ExperimentNotMatchingException, ApiException, TerracottaConnectorException, IntegrationTokenNotFoundException;
     void checkAndRestoreAllAssignmentsInLms() throws DataServiceException, ConnectionException, IOException, ApiException, NumberFormatException, TerracottaConnectorException;
     void checkAndRestoreAssignmentsInLms(Long platformDeploymentKeyId) throws DataServiceException, ConnectionException, IOException, ApiException, NumberFormatException, TerracottaConnectorException;
-    List<LmsAssignment> checkAndRestoreAssignmentsInLmsByContext(SecuredInfo securedInfo) throws DataServiceException, ConnectionException, IOException, ApiException, TerracottaConnectorException;
     boolean checkLmsAssignmentExists(Assignment assignment, LtiUserEntity instructorUser) throws ApiException, NumberFormatException, TerracottaConnectorException;
     Assignment restoreAssignmentInLms(Assignment assignment) throws DataServiceException, ConnectionException, IOException, ApiException, TerracottaConnectorException;
     void validateTitle(String title) throws TitleValidationException;
