@@ -208,7 +208,7 @@ public class SubmissionServiceImpl implements SubmissionService {
 
     @Override
     public SubmissionDto toDto(Submission submission, boolean questionSubmissions, boolean submissionComments) {
-        SubmissionDto submissionDto = new SubmissionDto();
+        SubmissionDto submissionDto = SubmissionDto.builder().build();
         submissionDto.setSubmissionId(submission.getSubmissionId());
         submissionDto.setParticipantId(submission.getParticipant().getParticipantId());
         submissionDto.setAssessmentId(submission.getAssessment().getAssessmentId());

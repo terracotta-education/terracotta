@@ -1,0 +1,53 @@
+<?xml
+    version="1.1"
+    encoding="UTF-8"
+    standalone="no"
+?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+    xmlns:pro="http://www.liquibase.org/xml/ns/pro"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd http://www.liquibase.org/xml/ns/pro http://www.liquibase.org/xml/ns/pro/liquibase-pro-latest.xsd http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd"
+>
+    <changeSet author="bob" id="1740781714-00">
+        <createTable tableName="terr_preview_treatment">
+            <column autoIncrement="true" name="id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true"/>
+            </column>
+            <column name="uuid" type="BINARY(16)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="treatment_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="experiment_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="condition_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="owner_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="entity_version" type="INT"/>
+            <column defaultValueComputed="CURRENT_TIMESTAMP" name="created_at" type="timestamp"/>
+            <column name="updated_at" type="datetime"/>
+        </createTable>
+    </changeSet>
+    <changeSet author="bob" id="1740781714-01">
+        <createIndex associatedWith="" indexName="FK1740781714" tableName="terr_preview_treatment">
+            <column name="uuid"/>
+            <column name="treatment_id"/>
+            <column name="experiment_id"/>
+            <column name="condition_id"/>
+            <column name="owner_id"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="bob" id="1740781714-02">
+        <addForeignKeyConstraint baseColumnNames="treatment_id" baseTableName="terr_preview_treatment" constraintName="FK1740781714-1" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="RESTRICT" referencedColumnNames="treatment_id" referencedTableName="terr_treatment" validate="true"/>
+        <addForeignKeyConstraint baseColumnNames="experiment_id" baseTableName="terr_preview_treatment" constraintName="FK1740781714-2" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="RESTRICT" referencedColumnNames="experiment_id" referencedTableName="terr_experiment" validate="true"/>
+        <addForeignKeyConstraint baseColumnNames="condition_id" baseTableName="terr_preview_treatment" constraintName="FK1740781714-3" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="RESTRICT" referencedColumnNames="condition_id" referencedTableName="terr_condition" validate="true"/>
+        <addForeignKeyConstraint baseColumnNames="owner_id" baseTableName="terr_preview_treatment" constraintName="FK1740781714-4" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="RESTRICT" referencedColumnNames="user_id" referencedTableName="lti_user" validate="true"/>
+    </changeSet>
+</databaseChangeLog>

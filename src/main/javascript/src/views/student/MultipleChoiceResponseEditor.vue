@@ -1,24 +1,67 @@
 <template>
   <div>
     <template>
-      <response-row v-for="answer in answers" :key="answer.answerId" :correct="getColor(answer)">
-        <div class="d-flex justify-space-between align-center w-100">
-          <div class="question-input">
-            <template v-if="!readonly">
-              <v-radio-group v-model="response" @change="emitValueChanged">
-                  <v-radio class="radioButton" :value="answer.answerId"> </v-radio>
+      <response-row
+        v-for="answer in answers"
+        :key="answer.answerId"
+        :correct="getColor(answer)"
+      >
+        <div
+          class="d-flex justify-space-between align-center w-100"
+        >
+          <div
+            class="question-input"
+          >
+            <template
+              v-if="!readonly"
+            >
+              <v-radio-group
+                v-model="response"
+                @change="emitValueChanged"
+              >
+                <v-radio
+                  class="radioButton"
+                  :value="answer.answerId"
+                >
+                </v-radio>
               </v-radio-group>
             </template>
-            <template v-if="readonly">
-              <v-radio-group v-model="answer.studentResponse" :disabled="readonly">
-                  <v-radio class="radioButton" :value="answer.answerId"> </v-radio>
+            <template
+              v-if="readonly"
+            >
+              <v-radio-group
+                v-model="answer.studentResponse"
+                :disabled="readonly"
+              >
+                <v-radio
+                  class="radioButton"
+                  :value="answer.answerId"
+                >
+                </v-radio>
               </v-radio-group>
             </template>
-            <span v-html="answer.html"></span>
+            <span
+              v-html="answer.html"
+            >
+            </span>
           </div>
-          <template v-if="readonly">
-            <span class="decorator" :class="getColor(answer) ? 'green--text' : 'red--text'" v-if="answer.studentResponse">Student Response</span>
-            <span class="decorator" :class="getColor(answer) ? 'green--text' : 'red--text'" v-if="showAnswers && answer.correct && !answer.studentResponse">Correct Response</span>
+          <template
+            v-if="readonly"
+          >
+            <span
+              v-if="answer.studentResponse"
+              :class="getColor(answer) ? 'green--text' : 'red--text'"
+              class="decorator"
+            >
+              Student Response
+            </span>
+            <span
+              v-if="showAnswers && answer.correct && !answer.studentResponse"
+              :class="getColor(answer) ? 'green--text' : 'red--text'"
+              class="decorator"
+            >
+              Correct Response
+            </span>
           </template>
         </div>
       </response-row>
@@ -30,14 +73,25 @@
 import ResponseRow from "./ResponseRow.vue";
 
 export default {
-  props: ["answers", "value", "responses", "readonly", "showAnswers"],
-  components: { ResponseRow },
+  props: [
+    "answers",
+    "value",
+    "responses",
+    "readonly",
+    "showAnswers"
+  ],
+  components: {
+    ResponseRow
+  },
   data() {
     return {
       response: this.value,
     };
   },
-  computed: {
+  watch: {
+    value() {
+      this.response = this.value;
+    },
   },
   methods: {
     emitValueChanged() {
@@ -57,11 +111,6 @@ export default {
       }
       return null;
     }
-  },
-  watch: {
-    value() {
-      this.response = this.value;
-    },
   }
 };
 </script>

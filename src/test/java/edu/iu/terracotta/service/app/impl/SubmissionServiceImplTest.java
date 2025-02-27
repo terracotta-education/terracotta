@@ -68,7 +68,7 @@ public class SubmissionServiceImplTest extends BaseTest {
 
     @Test
     public void testPostSubmissionNotStarted() throws IdInPostException, ParticipantNotMatchingException, InvalidUserException, DataServiceException, IntegrationTokenNotFoundException {
-        submissionService.postSubmission(new SubmissionDto(), 0l, securedInfo, 0l, false);
+        submissionService.postSubmission(SubmissionDto.builder().build(), 0l, securedInfo, 0l, false);
 
         verify(assignmentRepository).save(assignment);
     }
@@ -76,7 +76,7 @@ public class SubmissionServiceImplTest extends BaseTest {
     @Test
     public void testPostSubmissionAlreadyStarted() throws IdInPostException, ParticipantNotMatchingException, InvalidUserException, DataServiceException, IntegrationTokenNotFoundException {
         when(assignment.isStarted()).thenReturn(true);
-        submissionService.postSubmission(new SubmissionDto(), 0l, securedInfo, 0l, false);
+        submissionService.postSubmission(SubmissionDto.builder().build(), 0l, securedInfo, 0l, false);
 
         verify(assignmentRepository, never()).save(assignment);
     }

@@ -93,7 +93,7 @@ public class ApiOAuthProviderProcessingFilter extends GenericFilterBean {
                         boolean exists = apiDataService.findAndDeleteOneUseToken(token);
 
                         if (!exists) {
-                            throw new IllegalStateException("OneUse token does not exists or has been already used");
+                            throw new IllegalStateException("OneUse token does not exist or has been already used");
                         }
                     }
                 }

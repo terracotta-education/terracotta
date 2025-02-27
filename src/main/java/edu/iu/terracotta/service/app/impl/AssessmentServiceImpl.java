@@ -812,6 +812,10 @@ public class AssessmentServiceImpl implements AssessmentService {
             assessmentId
         );
 
+        if (RegradeOption.NONE == regradeDetails.getRegradeOption()) {
+            return;
+        }
+
         List<Submission> submissions = submissionRepository.findByAssessment_AssessmentId(assessmentId);
 
         // regrade option selected; perform regrade

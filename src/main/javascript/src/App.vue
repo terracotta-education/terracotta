@@ -7,30 +7,53 @@
       v-if="!isIntegration && !isObsolete"
     >
       <template
-        v-if="hasTokens && userInfo === 'Instructor'"
+        v-if="!isTreatmentPreview && hasTokens && userInfo === 'Instructor'"
       >
         <router-view
           :key="$route.fullPath"
         />
       </template>
       <template
+        v-else-if="isTreatmentPreview"
+      >
+        <page-loading
+          v-if="!isTreatmentPreviewComplete"
+          :display="!childLoaded"
+          message="Loading your preview. Please wait."
+        />
+        <student-quiz
+          v-if="!isTreatmentPreviewComplete"
+          :experimentId="treatmentPreview.experimentId"
+          :condition_id="treatmentPreview.conditionId"
+          :treatment_id="treatmentPreview.treatmentId"
+          :previewId="treatmentPreview.previewId"
+          :ownerId="treatmentPreview.ownerId"
+          :preview="true"
+          @loaded="childLoaded = true"
+        />
+        <treatment-preview-complete
+          v-if="isTreatmentPreviewComplete"
+        />
+      </template>
+      <template
         v-else-if="hasTokens && userInfo === 'Learner'"
       >
         <div class="student-view mt-5">
-          <PageLoading
+          <page-loading
             :display="!childLoaded"
             message="Loading your assignment. Please wait."
           />
-          <StudentConsent
+          <student-consent
             v-if="consent"
             :experimentId="experimentId"
             :userId="userId"
             @loaded="childLoaded = true"
           />
-          <StudentQuiz
+          <student-quiz
             v-if="!consent && assignmentId"
             :experimentId="experimentId"
-            :assignmentId="assignmentId"
+            :assignment_id="assignmentId"
+            :preview="false"
             @loaded="childLoaded = true"
           />
         </div>
@@ -92,6 +115,7 @@ import IntegrationsPreview from "@/views/integrations/IntegrationsPreview.vue";
 import PageLoading from "@/components/PageLoading";
 import StudentConsent from "@/views/student/StudentConsent.vue";
 import StudentQuiz from "@/views/student/StudentQuiz.vue";
+import TreatmentPreviewComplete from "@/views/preview/TreatmentPreviewComplete.vue";
 
 export default {
   name: "App",
@@ -101,13 +125,17 @@ export default {
     IntegrationsPreview,
     PageLoading,
     StudentQuiz,
-    StudentConsent
+    StudentConsent,
+    TreatmentPreviewComplete
   },
   props: {
     integrationData: {
       type: Object
     },
     obsoleteData: {
+      type: Object
+    },
+    treatmentPreviewData: {
       type: Object
     }
   },
@@ -122,7 +150,7 @@ export default {
       assignmentId: "api/assignmentId",
       consent: "api/consent",
       userId: "api/userId",
-      api_token: "api/api_token",
+      apiToken: "api/api_token",
     }),
     // Apply per route global styling to the v-app component
     appStyle() {
@@ -142,6 +170,22 @@ export default {
     },
     isObsoleteAssignment() {
       return this.isObsolete && this.obsoleteData.type === "assignment";
+    },
+    isTreatmentPreview() {
+      return this.treatmentPreviewData?.preview || false;
+    },
+    isTreatmentPreviewComplete() {
+      return this.treatmentPreviewData?.complete || false;
+    },
+    treatmentPreview() {
+      return {
+        experimentId: this.treatmentPreviewData?.experimentId || null,
+        conditionId: this.treatmentPreviewData?.conditionId || null,
+        treatmentId: this.treatmentPreviewData?.treatmentId || null,
+        previewId: this.treatmentPreviewData?.previewId || null,
+        ownerId: this.treatmentPreviewData?.ownerId || null,
+        complete: this.treatmentPreviewData?.complete || false
+      }
     }
   },
   methods: {
@@ -151,8 +195,9 @@ export default {
   },
   async created() {
     localStorage.clear();
+
     setInterval(function () {
-      this.refreshToken(this.api_token);
+      this.refreshToken(this.apiToken);
     }.bind(this), 1000 * 60 * 59);
   },
 };

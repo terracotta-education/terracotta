@@ -7,6 +7,7 @@ import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.dao.model.enums.LmsConnector;
 import edu.iu.terracotta.connectors.generic.dao.repository.api.ApiOneUseTokenRepository;
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.PlatformDeploymentRepository;
+import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
 import edu.iu.terracotta.connectors.generic.service.lti.LtiDataService;
 import edu.iu.terracotta.dao.entity.Experiment;
@@ -484,6 +485,12 @@ public class CanvasApiJwtServiceImpl implements ApiJwtService {
     @Override
     public SecuredInfo extractValues(HttpServletRequest request, boolean allowQueryParam) {
         String token = extractJwtStringValue(request, allowQueryParam);
+
+        return extractValues(token);
+    }
+
+    @Override
+    public SecuredInfo extractValues(String token) {
         Jws<Claims> claims = validateToken(token);
 
         if (claims == null) {
@@ -525,8 +532,17 @@ public class CanvasApiJwtServiceImpl implements ApiJwtService {
     }
 
     @Override
-    public ResponseEntity<String> getTimedToken(HttpServletRequest req) {
-        String token = extractJwtStringValue(req, true);
+    public ResponseEntity<String> getTimedToken(HttpServletRequest req) throws NumberFormatException, TerracottaConnectorException {
+        return getTimedToken(
+            extractJwtStringValue(
+                req,
+                true
+            )
+        );
+    }
+
+    @Override
+    public ResponseEntity<String> getTimedToken(String token) throws NumberFormatException, TerracottaConnectorException {
         Jws<Claims> claims = validateToken(token);
 
         if ((Boolean) claims.getPayload().get("oneUse")) {

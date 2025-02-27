@@ -33,6 +33,7 @@ public interface QuestionService {
     void updateQuestion(Map<Question, QuestionDto> map)
         throws NegativePointsException, IntegrationNotFoundException, IntegrationNotMatchingException, IntegrationConfigurationNotFoundException,
         IntegrationConfigurationNotMatchingException, IntegrationClientNotFoundException;
+    List<QuestionDto> toDto(List<Question> questions, boolean answers, boolean showCorrectAnswer);
     QuestionDto toDto(Question question, boolean answers, boolean showCorrectAnswer);
     QuestionDto toDto(Question question, Long submissionId, boolean answers, boolean showCorrectAnswer);
     Question fromDto(QuestionDto questionDto) throws DataServiceException, NegativePointsException;

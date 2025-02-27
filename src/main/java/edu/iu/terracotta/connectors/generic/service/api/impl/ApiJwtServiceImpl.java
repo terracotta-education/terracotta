@@ -326,19 +326,24 @@ public class ApiJwtServiceImpl implements ApiJwtService {
 
     @Override
     public ResponseEntity<String> getTimedToken(HttpServletRequest req) throws NumberFormatException, TerracottaConnectorException {
-        Jws<Claims> claims = validateToken(
+        return getTimedToken(
             extractJwtStringValue(
                 req,
                 true
             )
         );
+    }
+
+    @Override
+    public ResponseEntity<String> getTimedToken(String token) throws NumberFormatException, TerracottaConnectorException {
+        Jws<Claims> claims = validateToken(token);
 
         if (claims == null) {
-            log.warn("JWS claims is null. Request URL: [{}]", req.getRequestURL());
+            log.warn("JWS claims is null. Token: [{}]", token);
             return null;
         }
 
-        return instance(claims).getTimedToken(req);
+        return instance(claims).getTimedToken(token);
     }
 
     @Override
@@ -366,14 +371,26 @@ public class ApiJwtServiceImpl implements ApiJwtService {
     @Override
     public SecuredInfo extractValues(HttpServletRequest request, boolean allowQueryParam) throws NumberFormatException, TerracottaConnectorException {
         String token = extractJwtStringValue(request, allowQueryParam);
-        Jws<Claims> claims = validateToken(token);
 
-        if (claims == null) {
-            log.warn("JWS claims is null. Request URL: [{}]", request.getRequestURL());
+        return extractValues(token);
+    }
+
+    @Override
+    public SecuredInfo extractValues(String token) throws NumberFormatException, TerracottaConnectorException {
+        if (StringUtils.isBlank(token)) {
+            log.warn("Token is null.");
+
             return null;
         }
 
-        return instance(claims).extractValues(request, allowQueryParam);
+        Jws<Claims> claims = validateToken(token);
+
+        if (claims == null) {
+            log.warn("JWS claims is null. Token: [{}]", token);
+            return null;
+        }
+
+        return instance(claims).extractValues(token);
     }
 
     @Override

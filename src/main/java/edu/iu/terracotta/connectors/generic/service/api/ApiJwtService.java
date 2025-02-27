@@ -89,12 +89,13 @@ public interface ApiJwtService {
     String generateStateForAPITokenRequest(Lti3Request lti3Request) throws GeneralSecurityException, IOException, TerracottaConnectorException;
 
     ResponseEntity<String> getTimedToken(HttpServletRequest httpServletRequest) throws NumberFormatException, TerracottaConnectorException;
-
+    ResponseEntity<String> getTimedToken(String token) throws NumberFormatException, TerracottaConnectorException;
     Map<String, Object> unsecureToken(String token, PlatformDeployment platformDeployment) throws TerracottaConnectorException;
     Optional<Jws<Claims>> validateStateForAPITokenRequest(String state);
     String refreshToken(String token) throws GeneralSecurityException, IOException, BadTokenException, NumberFormatException, TerracottaConnectorException;
     String extractJwtStringValue(HttpServletRequest request, boolean allowQueryParam);
     SecuredInfo extractValues(HttpServletRequest request, boolean allowQueryParam) throws NumberFormatException, TerracottaConnectorException;
+    SecuredInfo extractValues(String token) throws NumberFormatException, TerracottaConnectorException;
     boolean isAdmin(SecuredInfo securedInfo);
     boolean isTerracottaAdmin(SecuredInfo securedInfo);
     boolean isInstructor(SecuredInfo securedInfo);
