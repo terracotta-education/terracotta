@@ -1,25 +1,41 @@
 <template>
-  <div class="experiment-summary-status" >
+  <div class="experiment-summary-status">
     <template
       v-if="experiment"
     >
-
       <v-expansion-panels
-        v-if="experiment.consent" class="v-expansion-panels--outlined mb-7"
+        v-if="experiment.consent"
+        class="v-expansion-panels--outlined mb-7"
         flat
       >
-        <v-expansion-panel class="py-3">
+        <v-expansion-panel
+          class="py-3"
+        >
           <v-expansion-panel-header>
             <strong>Consent</strong>
           </v-expansion-panel-header>
           <v-expansion-panel-content>
-            <v-simple-table class="mb-9 v-data-table--no-outline v-data-table--light-header">
+            <v-simple-table
+              class="mb-9 v-data-table--no-outline v-data-table--light-header"
+            >
               <template v-slot:default>
                 <thead>
                   <tr>
-                    <th class="text-left">Component Name</th>
-                    <th class="text-left">Status</th>
-                    <th class="text-left">Submissions</th>
+                    <th
+                      class="text-left"
+                    >
+                      Component Name
+                    </th>
+                    <th
+                      class="text-left"
+                    >
+                      Status
+                    </th>
+                    <th
+                      class="text-left"
+                    >
+                      Submissions
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -28,11 +44,16 @@
                   <td>
                     <span
                       class="completion-status"
-                      :class="{'complete': experiment.consent.answeredConsentCount >= experiment.consent.expectedConsent && experiment.consent.answeredConsentCount > 0}"
+                      :class="{
+                        'complete': experiment.consent.answeredConsentCount >= experiment.consent.expectedConsent && experiment.consent.answeredConsentCount > 0
+                      }"
                     >
-                      {{ experiment.consent.answeredConsentCount >= experiment.consent.expectedConsent && experiment.consent.answeredConsentCount > 0 ? 'Complete' : 'In Progress' }}
-                    </span></td>
-                  <td>{{ experiment.consent.answeredConsentCount }}/{{ experiment.consent.expectedConsent }}</td>
+                      {{ experiment.consent.answeredConsentCount >= experiment.consent.expectedConsent && experiment.consent.answeredConsentCount > 0 ? "Complete" : "In Progress" }}
+                    </span>
+                  </td>
+                  <td>
+                    {{ experiment.consent.answeredConsentCount }}/{{ experiment.consent.expectedConsent }}
+                  </td>
                 </tr>
                 </tbody>
               </template>
@@ -42,26 +63,46 @@
       </v-expansion-panels>
 
       <v-expansion-panels
-        class="v-expansion-panels--outlined mb-7"
         v-for="(exposure, eIndex) in exposures"
         :key="eIndex"
+        class="v-expansion-panels--outlined mb-7"
         flat
       >
-        <v-expansion-panel class="py-3">
+        <v-expansion-panel
+          class="py-3"
+        >
           <v-expansion-panel-header>
             <strong>{{ exposure.title }}</strong>
           </v-expansion-panel-header>
           <v-expansion-panel-content>
-            <h4 class="mb-3">
+            <h4
+              class="mb-3"
+            >
               <strong>Components</strong>
             </h4>
-            <v-simple-table class="mb-9 v-data-table--no-outline v-data-table--light-header">
-              <template v-slot:default>
+            <v-simple-table
+              class="mb-9 v-data-table--no-outline v-data-table--light-header"
+            >
+              <template
+                v-slot:default
+              >
                 <thead>
                   <tr>
-                    <th class="text-left">Component Name</th>
-                    <th class="text-left">Status</th>
-                    <th class="text-left">Submissions</th>
+                    <th
+                      class="text-left"
+                    >
+                      Component Name
+                    </th>
+                    <th
+                      class="text-left"
+                    >
+                      Status
+                    </th>
+                    <th
+                      class="text-left"
+                    >
+                      Submissions
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -80,9 +121,11 @@
                     <td>
                       <span
                         class="completion-status"
-                        :class="{'complete': assignmentCompletion.find(a => a.assignmentId === assignment.assignmentId).complete}"
+                        :class="{
+                          'complete': assignmentCompletion.find(a => a.assignmentId === assignment.assignmentId).complete
+                        }"
                       >
-                        {{ assignmentCompletion.find(a => a.assignmentId === assignment.assignmentId).complete ? 'Complete' : 'In Progress' }}
+                        {{ assignmentCompletion.find(a => a.assignmentId === assignment.assignmentId).complete ? "Complete" : "In Progress" }}
                       </span>
                     </td>
                     <td>
@@ -94,18 +137,35 @@
                 </tbody>
               </template>
             </v-simple-table>
-
-            <h4 class="mb-3"><strong>Outcomes</strong></h4>
-            <v-simple-table
-              class="mb-9 v-data-table--no-outline v-data-table--light-header"
-              v-if="experimentOutcomes && experimentOutcomes.length"
+            <h4
+              class="mb-3"
             >
-              <template v-slot:default>
+              <strong>Outcomes</strong>
+            </h4>
+            <v-simple-table
+              v-if="experimentOutcomes && experimentOutcomes.length"
+              class="mb-9 v-data-table--no-outline v-data-table--light-header"
+            >
+              <template
+                v-slot:default
+              >
                 <thead>
                   <tr>
-                    <th class="text-left">Outcome Name</th>
-                    <th class="text-left">Source</th>
-                    <th class="text-left">Actions</th>
+                    <th
+                      class="text-left"
+                    >
+                      Outcome Name
+                    </th>
+                    <th
+                      class="text-left"
+                    >
+                      Source
+                    </th>
+                    <th
+                      class="text-left"
+                    >
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -119,21 +179,25 @@
                       <template>
                         <td>{{ outcome.title }}</td>
                       </template>
-
-                      <template v-if="!outcome.external">
+                      <template
+                        v-if="!outcome.external"
+                      >
                         <td>Manual Entry</td>
                       </template>
-                      <template v-else>
+                      <template
+                        v-else
+                      >
                         <td>Gradebook</td>
                       </template>
-
                       <td>
                         <v-menu>
-                          <template v-slot:activator="{ on, attrs }">
+                          <template
+                            v-slot:activator="{ on, attrs }"
+                          >
                             <v-icon
-                              color="black"
                               v-bind="attrs"
                               v-on="on"
+                              color="black"
                             >
                               mdi-dots-horizontal
                             </v-icon>
@@ -158,20 +222,25 @@
                 </tbody>
               </template>
             </v-simple-table>
-
-            <v-menu offset-y>
-              <template v-slot:activator="{ on, attrs }">
+            <v-menu
+              offset-y
+            >
+              <template
+                v-slot:activator="{ on, attrs }"
+              >
                 <v-btn
-                  outlined
-                  color="primary"
                   v-bind="attrs"
                   v-on="on"
+                  color="primary"
+                  outlined
                 >
                   Add Outcome
                 </v-btn>
               </template>
               <v-list>
-                <v-list-item :to="{name:'OutcomeGradebook', params: {exposure_id: exposure.exposureId}}">
+                <v-list-item
+                  :to="{name:'OutcomeGradebook', params: {exposure_id: exposure.exposureId}}"
+                >
                   <v-list-item-title>Select item from gradebook</v-list-item-title>
                 </v-list-item>
                 <v-list-item
@@ -185,7 +254,9 @@
         </v-expansion-panel>
       </v-expansion-panels>
     </template>
-    <template v-else>
+    <template
+      v-else
+    >
       no experiment
     </template>
   </div>
@@ -195,21 +266,26 @@
 import {mapActions, mapGetters, mapMutations} from "vuex";
 
 export default {
-  name: 'ExperimentSummaryStatus',
-  props: ['experiment'],
+  name: "ExperimentSummaryStatus",
+  props: {
+    experiment: {
+      type: Object,
+      required: true
+    }
+  },
   computed: {
-    experiment_id() {
+    experimentId() {
       return parseInt(this.experiment.experimentId)
     },
     ...mapGetters({
-      assignments: 'assignment/assignments',
-      conditions: 'experiment/conditions',
-      exposures: 'exposures/exposures',
-      experimentOutcomes: 'outcome/experimentOutcomes',
-      editMode: 'navigation/editMode'
+      assignments: "assignment/assignments",
+      conditions: "experiment/conditions",
+      exposures: "exposures/exposures",
+      experimentOutcomes: "outcome/experimentOutcomes",
+      editMode: "navigation/editMode"
     }),
     getSaveExitPage() {
-      return this.editMode?.callerPage?.name || 'Home';
+      return this.editMode?.callerPage?.name || "Home";
     },
     assignmentCompletion() {
       let arr = []
@@ -259,21 +335,21 @@ export default {
   },
   methods: {
     ...mapMutations({
-      resetAssignments: 'assignment/resetAssignments',
+      resetAssignments: "assignment/resetAssignments",
     }),
     ...mapActions({
-      fetchAssignmentsByExposure: 'assignment/fetchAssignmentsByExposure',
-      fetchExposures: 'exposures/fetchExposures',
-      fetchOutcomesByExposures: 'outcome/fetchOutcomesByExposures',
-      fetchOutcomeScores: 'outcome/fetchOutcomeScores',
-      createOutcome: 'outcome/createOutcome',
-      deleteOutcome: 'outcome/deleteOutcome',
+      fetchAssignmentsByExposure: "assignment/fetchAssignmentsByExposure",
+      fetchExposures: "exposures/fetchExposures",
+      fetchOutcomesByExposures: "outcome/fetchOutcomesByExposures",
+      fetchOutcomeScores: "outcome/fetchOutcomeScores",
+      createOutcome: "outcome/createOutcome",
+      deleteOutcome: "outcome/deleteOutcome",
       saveEditMode: "navigation/saveEditMode"
     }),
     async handleCreateOutcome(exposure_id, external) {
       try {
-        const outcome = await this.createOutcome([this.experiment_id, exposure_id, '', 0, external])
-        const routeName = (external) ? 'OutcomeGradebook' : 'OutcomeScoring'
+        const outcome = await this.createOutcome([this.experimentId, exposure_id, "", 0, external])
+        const routeName = (external) ? "OutcomeGradebook" : "OutcomeScoring"
         this.$router.push({name:routeName, params: {exposure_id, outcome_id: outcome.outcomeId}})
       } catch(error) {
         console.error({error})
@@ -281,39 +357,40 @@ export default {
     },
     async handleDeleteOutcome(exposure_id, outcome_id) {
       const reallyDelete = await this.$swal({
-        icon: 'question',
+        icon: "question",
         text: `Do you really want to delete?`,
         showCancelButton: true,
-        confirmButtonText: 'Yes, delete it',
-        cancelButtonText: 'No, cancel',
+        confirmButtonText: "Yes, delete it",
+        cancelButtonText: "No, cancel",
       })
       // if confirmed, delete experiment
       if (reallyDelete.isConfirmed) {
         try {
-          await this.deleteOutcome([this.experiment_id, exposure_id, outcome_id])
-          this.fetchOutcomesByExposures([this.experiment_id, [...new Set(this.exposures.map(item => item.exposureId))]])
+          await this.deleteOutcome([this.experimentId, exposure_id, outcome_id])
+          this.fetchOutcomesByExposures([this.experimentId, [...new Set(this.exposures.map(item => item.exposureId))]])
         } catch (error) {
           console.error("handleDeleteOutcome | catch", {error})
           this.$swal({
-            text: 'Could not delete outcome.',
-            icon: 'error'
+            text: "Could not delete outcome.",
+            icon: "error"
           })
         }
       }
     },
     async handleViewAssignment(exposureId, assignmentId) {
       await this.saveEditMode({
-        initialPage: 'ExperimentSummaryStatus',
+        initialPage: "ExperimentSummaryStatus",
         callerPage: {
-          name: 'ExperimentSummary',
-          tab: 'status'
+          name: "ExperimentSummary",
+          tab: "status"
         }
       });
       this.$router.push({
-        name: 'AssignmentScores',
+        name: "AssignmentScores",
         params: {
-          exposure_id: exposureId,
-          assignment_id: assignmentId
+          experimentId: this.experimentId,
+          exposureId: exposureId,
+          assignmentId: assignmentId
         }
       });
     }
@@ -322,13 +399,13 @@ export default {
     // reset assignments to get a clean list
     await this.resetAssignments()
     // update assignments on load
-    await this.fetchExposures(this.experiment_id)
+    await this.fetchExposures(this.experimentId)
     for (const e of this.exposures) {
       // add submissions to assignments request
       const submissions = true
-      await this.fetchAssignmentsByExposure([this.experiment_id, e.exposureId, submissions])
+      await this.fetchAssignmentsByExposure([this.experimentId, e.exposureId, submissions])
     }
-    this.fetchOutcomesByExposures([this.experiment_id, [...new Set(this.exposures.map(item => item.exposureId))]])
+    this.fetchOutcomesByExposures([this.experimentId, [...new Set(this.exposures.map(item => item.exposureId))]])
   }
 }
 </script>
@@ -344,16 +421,13 @@ export default {
       margin-right: 8px;
       border-radius: 999px;
     }
-
     &.complete {
       &::before {
         background: #38ADB6;
       }
     }
   }
-
 a.link-view-assignment {
   text-decoration: underline;
 }
-
 </style>

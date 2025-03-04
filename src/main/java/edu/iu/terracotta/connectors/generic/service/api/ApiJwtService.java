@@ -5,6 +5,7 @@ import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.dao.model.enums.LmsConnector;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
+import edu.iu.terracotta.dao.entity.Assignment;
 import edu.iu.terracotta.dao.entity.Experiment;
 import edu.iu.terracotta.dao.exceptions.AnswerNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.AnswerSubmissionNotMatchingException;
@@ -111,8 +112,8 @@ public interface ApiJwtService {
     void participantAllowed(SecuredInfo securedInfo, Long experimentId, Long participantId) throws ParticipantNotMatchingException;
     void exposureAllowed(SecuredInfo securedInfo, Long experimentId, Long exposureId) throws ExposureNotMatchingException;
     void groupAllowed(SecuredInfo securedInfo, Long experimentId, Long groupId) throws GroupNotMatchingException;
-    void assignmentAllowed(SecuredInfo securedInfo, Long experimentId, Long assignmentId) throws AssignmentNotMatchingException;
-    void assignmentAllowed(SecuredInfo securedInfo, Long experimentId, Long exposureId, Long assignmentId) throws AssignmentNotMatchingException;
+    Assignment assignmentAllowed(SecuredInfo securedInfo, long experimentId, long assignmentId) throws AssignmentNotMatchingException;
+    Assignment assignmentAllowed(SecuredInfo securedInfo, long experimentId, long exposureId, long assignmentId) throws AssignmentNotMatchingException;
     void treatmentAllowed(SecuredInfo securedInfo, Long experimentId, Long conditionId, Long treatmentId) throws TreatmentNotMatchingException;
     void assessmentAllowed(SecuredInfo securedInfo, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId) throws AssessmentNotMatchingException;
     void questionAllowed(SecuredInfo securedInfo, Long assessmentId, Long questionId) throws QuestionNotMatchingException;

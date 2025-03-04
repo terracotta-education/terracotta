@@ -491,7 +491,11 @@ export default {
     exposureSet: 0,
     loadPdfFrame: false,
     pdfFile: null,
-    pdfLoading: false
+    pdfLoading: false,
+    fileRequestAlert: {
+      show: false,
+      text: null
+    }
   }),
   watch: {
     pdfFile() {

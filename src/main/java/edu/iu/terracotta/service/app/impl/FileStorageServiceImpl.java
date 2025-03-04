@@ -9,6 +9,7 @@ import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorExcept
 import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
 import edu.iu.terracotta.connectors.generic.service.api.ApiClient;
 import edu.iu.terracotta.dao.entity.AnswerFileSubmission;
+import edu.iu.terracotta.dao.entity.AssignmentFileArchive;
 import edu.iu.terracotta.dao.entity.ConsentDocument;
 import edu.iu.terracotta.dao.entity.Experiment;
 import edu.iu.terracotta.dao.entity.FileSubmissionLocal;
@@ -17,6 +18,7 @@ import edu.iu.terracotta.dao.exceptions.AssignmentNotEditedException;
 import edu.iu.terracotta.dao.exceptions.AssignmentNotMatchingException;
 import edu.iu.terracotta.dao.model.dto.FileInfoDto;
 import edu.iu.terracotta.dao.repository.AnswerFileSubmissionRepository;
+import edu.iu.terracotta.dao.repository.AssignmentFileArchiveRepository;
 import edu.iu.terracotta.dao.repository.ConsentDocumentRepository;
 import edu.iu.terracotta.dao.repository.ExperimentRepository;
 import edu.iu.terracotta.exceptions.app.FileStorageException;
@@ -28,6 +30,7 @@ import net.lingala.zip4j.model.ZipParameters;
 import net.lingala.zip4j.model.enums.CompressionLevel;
 import net.lingala.zip4j.model.enums.EncryptionMethod;
 
+import org.apache.commons.io.FileUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -65,6 +68,7 @@ import java.util.UUID;
 public class FileStorageServiceImpl implements FileStorageService {
 
     @Autowired private AnswerFileSubmissionRepository answerFileSubmissionRepository;
+    @Autowired private AssignmentFileArchiveRepository assignmentFileArchiveRepository;
     @Autowired private ConsentDocumentRepository consentDocumentRepository;
     @Autowired private ExperimentRepository experimentRepository;
     @Autowired private LtiUserRepository ltiUserRepository;
@@ -86,8 +90,15 @@ public class FileStorageServiceImpl implements FileStorageService {
     @Value("${consent.file.local.path.root}")
     private String consentFileLocalPathRoot;
 
+    @Value("${assignment.file.archive.local.path}")
+    private String assignmentFileArchiveLocalPath;
+
+    @Value("${assignment.file.archive.local.path.root}")
+    private String assignmentFileArchiveLocalPathRoot;
+
     private Path decompressedSubmissionFileTempDirectory;
     private Path decompressedConsentFileTempDirectory;
+    private Path decompressedAssignmentFileArchiveTempDirectory;
 
     @PostConstruct
     public void init() {
@@ -95,8 +106,10 @@ public class FileStorageServiceImpl implements FileStorageService {
             Files.createDirectories(Paths.get(uploadDir));
             Files.createDirectories(Paths.get(uploadSubmissionsLocalPathRoot));
             Files.createDirectories(Paths.get(consentFileLocalPathRoot));
+            Files.createDirectories(Paths.get(assignmentFileArchiveLocalPathRoot));
             this.decompressedSubmissionFileTempDirectory = Files.createTempDirectory(Paths.get(uploadSubmissionsLocalPath).toString() + ".");
             this.decompressedConsentFileTempDirectory = Files.createTempDirectory(Paths.get(consentFileLocalPath).toString() + ".");
+            this.decompressedAssignmentFileArchiveTempDirectory = Files.createTempDirectory(Paths.get(assignmentFileArchiveLocalPath).toString() + ".");
         } catch (IOException e) {
             throw new RuntimeException("Error 138: Could not create upload folder!");
         }
@@ -438,14 +451,129 @@ public class FileStorageServiceImpl implements FileStorageService {
     }
 
     @Override
+    public void saveAssignmentFileArchive(AssignmentFileArchive assignmentFileArchive, File file) {
+        if (file == null) {
+            throw new FileStorageException("Error 140: File cannot be null.");
+        }
+
+        String path = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy/MM/dd/HH"));
+
+        try {
+            // create the upload directory
+            Files.createDirectories(Paths.get(String.format("%s/%s", assignmentFileArchiveLocalPathRoot, path)));
+            // assign random UUID as file name
+            String filePath = String.format("%s/%s", path, UUID.randomUUID().toString());
+
+            while (Files.exists(Paths.get(filePath))) {
+                // ensure no file name clashes
+                filePath = String.format("%s/%s", path, UUID.randomUUID().toString());
+            }
+
+            // copy the file to the directory
+            Files.copy(
+                FileUtils.openInputStream(file),
+                Paths.get(String.format("%s/%s", assignmentFileArchiveLocalPathRoot, filePath)),
+                StandardCopyOption.REPLACE_EXISTING
+            );
+
+            String encryptionPhrase = UUID.randomUUID().toString();
+
+            assignmentFileArchive.setEncryptionMethod(EncryptionMethod.AES.toString());
+            assignmentFileArchive.setEncryptionPhrase(encryptionPhrase);
+            assignmentFileArchive.setMimeType(AssignmentFileArchive.MIME_TYPE);
+            assignmentFileArchive.setFileUri(filePath);
+
+            compressFile(
+                Paths.get(String.format("%s/%s", assignmentFileArchiveLocalPathRoot, filePath)).toString(),
+                encryptionPhrase,
+                AssignmentFileArchive.COMPRESSED_FILE_EXTENSION
+            );
+        } catch (IOException ex) {
+            throw new FileStorageException(String.format("Error 140: Could not store file '%s'. Please try again.", assignmentFileArchive.getFileName()), ex);
+        }
+    }
+
+    @Override
+    public File getAssignmentFileArchive(long id) {
+        Optional<AssignmentFileArchive> assignmentFileArchive = assignmentFileArchiveRepository.findById(id);
+
+        if (assignmentFileArchive.isEmpty()) {
+            return null;
+        }
+
+        // decompress file and then return it
+        try {
+            decompressFile(
+                Paths.get(
+                    String.format(
+                        "%s/%s%s",
+                        assignmentFileArchiveLocalPathRoot,
+                        assignmentFileArchive.get().getFileUri(),
+                        AssignmentFileArchive.COMPRESSED_FILE_EXTENSION
+                    )
+                )
+                .toString(),
+                assignmentFileArchive.get().getEncryptionPhrase(),
+                Path.of(
+                    String.format(
+                        "%s/%s",
+                        decompressedAssignmentFileArchiveTempDirectory,
+                        org.apache.commons.lang3.StringUtils.substringBeforeLast(
+                            assignmentFileArchive.get().getFileUri(),
+                            "/"
+                        )
+                    )
+                )
+            );
+
+            return new File(
+                String.format(
+                    "%s/%s",
+                    decompressedAssignmentFileArchiveTempDirectory,
+                    assignmentFileArchive.get().getFileUri()
+                )
+            );
+        } catch (FileStorageException e) {
+            throw e;
+        }
+    }
+
+    @Override
     public boolean compressFile(String filePathToCompress, String encryptionPhrase, String compressedFileExtension) {
+        return compressFile(filePathToCompress, encryptionPhrase, compressedFileExtension, true);
+    }
+
+    @Override
+    public boolean compressFile(String filePathToCompress, String encryptionPhrase, String compressedFileExtension, boolean encrypt) {
         ZipParameters zipParameters = new ZipParameters();
-        zipParameters.setEncryptFiles(true);
+        zipParameters.setEncryptFiles(encrypt);
         zipParameters.setCompressionLevel(CompressionLevel.ULTRA);
         zipParameters.setEncryptionMethod(EncryptionMethod.AES);
 
         try (ZipFile zipFile = new ZipFile(filePathToCompress + compressedFileExtension, encryptionPhrase.toCharArray())) {
             zipFile.addFile(new File(filePathToCompress), zipParameters);
+        } catch (IOException e) {
+            log.error("Error zipping file: {}", filePathToCompress, e);
+            return false;
+        }
+
+        return true;
+    }
+
+    @Override
+    public boolean compressDirectory(String filePathToCompress, String encryptionPhrase, String compressedFileExtension) {
+        return compressDirectory(filePathToCompress, encryptionPhrase, compressedFileExtension, true);
+    }
+
+    @Override
+    public boolean compressDirectory(String filePathToCompress, String encryptionPhrase, String compressedFileExtension, boolean encrypt) {
+        ZipParameters zipParameters = new ZipParameters();
+        zipParameters.setEncryptFiles(encrypt);
+        zipParameters.setCompressionLevel(CompressionLevel.ULTRA);
+        zipParameters.setEncryptionMethod(EncryptionMethod.AES);
+
+        try (ZipFile zipFile = new ZipFile(filePathToCompress + compressedFileExtension, encryptionPhrase.toCharArray())) {
+            zipFile.addFolder(new File(filePathToCompress), zipParameters);
         } catch (IOException e) {
             log.error("Error zipping file: {}", filePathToCompress, e);
             return false;

@@ -1,5 +1,5 @@
-import { authHeader } from '@/helpers'
-import store from '@/store/index.js'
+import { authHeader } from "@/helpers"
+import store from "@/store/index.js"
 
 /**
  * Register methods
@@ -12,33 +12,33 @@ export const assignmentService = {
   updateAssignments,
   updateAssignment,
   moveAssignment,
-  duplicateAssignment,
+  duplicateAssignment
 }
 
 /**
  * Fetch Assignment
  */
 async function fetchAssignment(experiment_id, exposure_id, assignment_id, submissions=false) {
-  const includeSubmissions = (submissions) ? '?submissions=true' : ''
+  const includeSubmissions = (submissions) ? "?submissions=true" : ""
   const requestOptions = {
-    method: 'GET',
+    method: "GET",
     headers: {...authHeader()}
   }
 
-  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/exposures/${exposure_id}/assignments/${assignment_id}${includeSubmissions}`, requestOptions).then(handleResponse)
+  return fetch(`${store.getters["api/aud"]}/api/experiments/${experiment_id}/exposures/${exposure_id}/assignments/${assignment_id}${includeSubmissions}`, requestOptions).then(handleResponse)
 }
 
 /**
  * Fetch Assignments by Exposure
  */
 async function fetchAssignmentsByExposure(experiment_id, exposure_id, submissions=false) {
-  const includeSubmissions = (submissions) ? '?submissions=true' : ''
+  const includeSubmissions = (submissions) ? "?submissions=true" : ""
   const requestOptions = {
-    method: 'GET',
+    method: "GET",
     headers: {...authHeader()}
   }
 
-  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/exposures/${exposure_id}/assignments${includeSubmissions}`, requestOptions).then(handleResponse)
+  return fetch(`${store.getters["api/aud"]}/api/experiments/${experiment_id}/exposures/${exposure_id}/assignments${includeSubmissions}`, requestOptions).then(handleResponse)
 }
 
 /**
@@ -46,15 +46,15 @@ async function fetchAssignmentsByExposure(experiment_id, exposure_id, submission
  */
 function create(experiment_id, exposure_id, body, order) {
   const requestOptions = {
-    method: 'POST',
-    headers: { ...authHeader(), 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { ...authHeader(), "Content-Type": "application/json" },
     body: JSON.stringify({
       ...body,
       assignmentOrder: order
     })
   }
 
-  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/exposures/${exposure_id}/assignments`, requestOptions).then(handleResponse)
+  return fetch(`${store.getters["api/aud"]}/api/experiments/${experiment_id}/exposures/${exposure_id}/assignments`, requestOptions).then(handleResponse)
 }
 
 /**
@@ -62,12 +62,12 @@ function create(experiment_id, exposure_id, body, order) {
  */
 function duplicateAssignment(experiment_id, exposure_id, assignment_id) {
   const requestOptions = {
-    method: 'POST',
-    headers: { ...authHeader(), 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { ...authHeader(), "Content-Type": "application/json" },
     body: JSON.stringify({})
   };
 
-  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/exposures/${exposure_id}/assignments/${assignment_id}/duplicate`, requestOptions).then(handleResponse)
+  return fetch(`${store.getters["api/aud"]}/api/experiments/${experiment_id}/exposures/${exposure_id}/assignments/${assignment_id}/duplicate`, requestOptions).then(handleResponse)
 }
 
 /**
@@ -75,11 +75,11 @@ function duplicateAssignment(experiment_id, exposure_id, assignment_id) {
  */
 async function deleteAssignment(experiment_id, exposure_id, assignment_id) {
   const requestOptions = {
-    method: 'DELETE',
+    method: "DELETE",
     headers: {...authHeader()}
   }
 
-  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/exposures/${exposure_id}/assignments/${assignment_id}`, requestOptions).then(handleResponse)
+  return fetch(`${store.getters["api/aud"]}/api/experiments/${experiment_id}/exposures/${exposure_id}/assignments/${assignment_id}`, requestOptions).then(handleResponse)
 }
 
 /**
@@ -87,42 +87,40 @@ async function deleteAssignment(experiment_id, exposure_id, assignment_id) {
  */
 async function updateAssignments(experiment_id, exposure_id, payload) {
   const requestOptions = {
-    method: 'PUT',
+    method: "PUT",
     headers: {...authHeader()},
     body: JSON.stringify([
       ...payload
     ])
   }
 
-  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/exposures/${exposure_id}/assignments`, requestOptions).then(handleResponse)
+  return fetch(`${store.getters["api/aud"]}/api/experiments/${experiment_id}/exposures/${exposure_id}/assignments`, requestOptions).then(handleResponse)
 }
 
 async function updateAssignment(experiment_id, exposure_id, assignment_id, body) {
   const requestOptions = {
-    method: 'PUT',
+    method: "PUT",
     headers: {...authHeader()},
     body: JSON.stringify({
       ...body
     })
   }
 
-  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/exposures/${exposure_id}/assignments/${assignment_id}`, requestOptions).then(handleResponse);
+  return fetch(`${store.getters["api/aud"]}/api/experiments/${experiment_id}/exposures/${exposure_id}/assignments/${assignment_id}`, requestOptions).then(handleResponse);
 }
 /**
  * Update Assignments
  */
 async function moveAssignment(experiment_id, exposure_id, assignment_id, update) {
   const requestOptions = {
-    method: 'POST',
+    method: "POST",
     headers: {...authHeader()},
     body: JSON.stringify({
       ...update
     })
   }
-  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/exposures/${exposure_id}/assignments/${assignment_id}/move`, requestOptions).then(handleResponse);
+  return fetch(`${store.getters["api/aud"]}/api/experiments/${experiment_id}/exposures/${exposure_id}/assignments/${assignment_id}/move`, requestOptions).then(handleResponse);
 }
-
-
 
 /**
  * Handle API response
@@ -134,19 +132,19 @@ function handleResponse(response) {
 
     if (!response || !response.ok) {
       if (response.status === 401 || response.status === 402 || response.status === 500) {
-        console.log('handleResponse | 401/402/500',{response})
+        console.log("handleResponse | 401/402/500",{response})
       } else if (response.status===404) {
-        console.log('handleResponse | 404',{response})
+        console.log("handleResponse | 404",{response})
       }
 
       return response
     } else if (response.status===204) {
-      console.log('handleResponse | 204',{text,data,response})
+      console.log("handleResponse | 204",{text,data,response})
       return []
     }
 
     return data || response
   }).catch(text => {
-    console.error('handleResponse | catch',{text})
+    console.error("handleResponse | catch",{text})
   })
 }

@@ -2,7 +2,8 @@ import {assignmentService} from "@/services"
 
 const state = {
   assignments: [],
-  assignment: {}
+  assignment: {},
+  fileRequest: null
 }
 
 const actions = {
@@ -146,7 +147,7 @@ const mutations = {
   },
   setAssignment(state, assignment) {
     state.assignment = assignment
-  },
+  }
 }
 const getters = {
   assignments: (state) => {
@@ -154,6 +155,9 @@ const getters = {
   },
   assignment: (state) => {
     return state.assignment
+  },
+  fileRequests: (state) => {
+    return state.fileRequests;
   }
 }
 

@@ -7,6 +7,7 @@ import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorExcept
 import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
 import edu.iu.terracotta.connectors.generic.service.connector.ConnectorService;
 import edu.iu.terracotta.connectors.generic.service.lti.LtiDataService;
+import edu.iu.terracotta.dao.entity.Assignment;
 import edu.iu.terracotta.dao.entity.Experiment;
 import edu.iu.terracotta.dao.exceptions.AnswerNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.AnswerSubmissionNotMatchingException;
@@ -515,17 +516,15 @@ public class ApiJwtServiceImpl implements ApiJwtService {
     }
 
     @Override
-    public void assignmentAllowed(SecuredInfo securedInfo, Long experimentId, Long assignmentId) throws AssignmentNotMatchingException {
-        if (!assignmentRepository.existsByExposure_Experiment_ExperimentIdAndAssignmentId(experimentId, assignmentId)) {
-            throw new AssignmentNotMatchingException(TextConstants.ASSIGNMENT_NOT_MATCHING);
-        }
+    public Assignment assignmentAllowed(SecuredInfo securedInfo, long experimentId, long assignmentId) throws AssignmentNotMatchingException {
+        return assignmentRepository.findByExposure_Experiment_ExperimentIdAndAssignmentId(experimentId, assignmentId)
+            .orElseThrow(() -> new AssignmentNotMatchingException(TextConstants.ASSIGNMENT_NOT_MATCHING));
     }
 
     @Override
-    public void assignmentAllowed(SecuredInfo securedInfo, Long experimentId, Long exposureId, Long assignmentId) throws AssignmentNotMatchingException {
-        if (!assignmentRepository.existsByExposure_Experiment_ExperimentIdAndExposure_ExposureIdAndAssignmentId(experimentId, exposureId, assignmentId)) {
-            throw new AssignmentNotMatchingException(TextConstants.ASSIGNMENT_NOT_MATCHING);
-        }
+    public Assignment assignmentAllowed(SecuredInfo securedInfo, long experimentId, long exposureId, long assignmentId) throws AssignmentNotMatchingException {
+        return assignmentRepository.findByExposure_Experiment_ExperimentIdAndExposure_ExposureIdAndAssignmentId(experimentId, exposureId, assignmentId)
+            .orElseThrow(() -> new AssignmentNotMatchingException(TextConstants.ASSIGNMENT_NOT_MATCHING));
     }
 
     @Override

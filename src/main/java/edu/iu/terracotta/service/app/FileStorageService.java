@@ -3,6 +3,7 @@ package edu.iu.terracotta.service.app;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
+import edu.iu.terracotta.dao.entity.AssignmentFileArchive;
 import edu.iu.terracotta.dao.entity.FileSubmissionLocal;
 import edu.iu.terracotta.dao.exceptions.AssignmentNotCreatedException;
 import edu.iu.terracotta.dao.exceptions.AssignmentNotEditedException;
@@ -26,5 +27,10 @@ public interface FileStorageService {
     FileSubmissionLocal saveFileSubmissionLocal(MultipartFile file);
     File getFileSubmissionLocal(long id);
     boolean compressFile(String filePathToCompress, String encryptionPhrase, String compressedFileExtension);
+    boolean compressFile(String filePathToCompress, String encryptionPhrase, String compressedFileExtension, boolean encrypt);
+    boolean compressDirectory(String filePathToCompress, String encryptionPhrase, String compressedFileExtension);
+    boolean compressDirectory(String filePathToCompress, String encryptionPhrase, String compressedFileExtension, boolean encrypt);
+    void saveAssignmentFileArchive(AssignmentFileArchive assignmentFileArchive, File file);
+    File getAssignmentFileArchive(long id);
 
 }

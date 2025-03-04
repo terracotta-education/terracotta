@@ -2,12 +2,64 @@
   <div
     v-if="experiment && assignment"
   >
-    <h1
-      class="mb-6"
+    <div
+      class="pb-2"
     >
-      {{ assignment.title }}
-    </h1>
+      <v-alert
+        v-model="showFileRequestAlert"
+        @input="handleFileRequestAlertDismiss"
+        :type="fileRequestAlert.type"
+        class="alert-file-request"
+        elevation="0"
+        dismissible
+      >
+        {{ fileRequestAlert.text }}
+        <a
+          v-if="fileRequestAlert.showDownloadLink"
+          @click="handleAlertFileRequest()"
+        >
+          <b><i>Click here to download</i></b>.
+        </a>
+      </v-alert>
+    </div>
     <template>
+      <div
+        class="header-row w-100 mb-2"
+      >
+        <h1
+          class="header pb-2"
+        >
+          {{ assignment.title }}
+        </h1>
+        <div
+          class="btn-row"
+        >
+          <div
+            class="download-files"
+          >
+            <v-btn
+              v-if="hasFileSubmissionQuestions"
+              @click="handleFileRequest()"
+              color="primary"
+              class="btn-download-file"
+              outlined
+            >
+              Retrieve File Submissions
+            </v-btn>
+            <div
+              v-if="fileArchive.showStatus"
+              class="file-archive-status"
+            >
+              <v-icon
+                :color="fileArchive.color"
+              >
+                {{ fileArchive.icon }}
+              </v-icon>
+              {{ fileArchive.status }}
+            </div>
+          </div>
+        </div>
+      </div>
       <div
         v-for="(selectedTreatment, index) in selectedAssignmentTreatments"
         :key="selectedTreatment.treatmentId"
@@ -55,8 +107,8 @@
                           :to="{
                             name: 'StudentSubmissionGrading',
                             params: {
-                              exposure_id: exposure_id,
-                              assignment_id: assignment_id,
+                              exposure_id: exposureId,
+                              assignment_id: assignmentId,
                               assessment_id: participant.submission.assessmentId,
                               condition_id: participant.submission.conditionId,
                               treatment_id: participant.submission.treatmentId,
@@ -92,21 +144,44 @@ import { mapActions, mapGetters } from "vuex";
 
 export default {
   name: "AssignmentScores",
+  data: () => ({
+    fileRequestPollingId: null,
+    fileRequestPolling: false,
+    fileDownloadLinkClicked: false,
+    showFileRequestAlert: false
+  }),
+  watch: {
+    fileRequestPolling: {
+      handler: function (enabled) {
+        if (enabled) {
+          // create file request polling scheduler
+          this.fileRequestPollingId = window.setInterval(() => {
+            this.handleFileRequestPolling()
+          }, 5000);
+        } else {
+          // clear file request polling scheduler
+          this.fileRequestPollingId = window.clearInterval(this.fileRequestPollingId);
+        }
+      },
+      immediate: false
+    },
+  },
   computed: {
     ...mapGetters({
       experiment: "experiment/experiment",
       assignment: "assignment/assignment",
       participants: "participants/participants",
-      editMode: "navigation/editMode"
+      editMode: "navigation/editMode",
+      fileRequest: "assignmentfilearchive/fileRequest"
     }),
-    assignment_id() {
-      return parseInt(this.$route.params.assignment_id);
+    assignmentId() {
+      return parseInt(this.$route.params.assignmentId);
     },
-    exposure_id() {
-      return parseInt(this.$route.params.exposure_id);
+    exposureId() {
+      return parseInt(this.$route.params.exposureId);
     },
-    experiment_id() {
-      return parseInt(this.$route.params.experiment_id);
+    experimentId() {
+      return parseInt(this.$route.params.experimentId);
     },
     selectedAssignmentTreatments() {
       return this.assignment.treatments;
@@ -114,11 +189,96 @@ export default {
     getSaveExitPage() {
       return this.editMode?.callerPage?.name || "ExperimentSummaryStatus";
     },
+    hasFileSubmissionQuestions() {
+      return this.assignment?.treatments?.some(
+        treatment => {
+          if (treatment.assessmentDto.questions.some(question => question.questionType === "FILE")) {
+            return true;
+          }
+        }
+      );
+    },
+    fileArchiveAvailable() {
+      return this.fileRequest?.ready;
+    },
+    fileArchive() {
+      if (this.fileRequest?.ready || this.fileRequest?.downloaded) {
+        return {
+          status: "Files ready to download",
+          color: "success",
+          icon: "mdi-check",
+          showStatus: this.showFileRequestStatus
+        }
+      }
+
+      if (this.fileRequest?.processing || this.fileRequest?.reprocessing) {
+        return {
+          status: "Files are being processed",
+          color: "info",
+          icon: "mdi-clock",
+          showStatus: this.showFileRequestStatus
+        }
+      }
+
+      if (this.fileRequest?.error) {
+        return {
+          status: "File processing error",
+          color: "error",
+          icon: "mdi-exclamation",
+          showStatus: this.showFileRequestStatus
+        }
+      }
+
+      return {
+        show: false
+      }
+    },
+    showFileRequestStatus() {
+      return !this.showFileRequestAlert &&
+        [
+          this.fileRequest?.processing,
+          this.fileRequest?.reprocessing,
+          this.fileRequest?.ready,
+          this.fileRequest?.downloaded
+        ].some(e => e === true);
+    },
+    fileRequestAlert() {
+      if (this.fileRequest?.ready) {
+        return {
+          showDownloadLink: true,
+          text: "Your files are ready.",
+          type: "success"
+        }
+      }
+
+      if (this.fileRequest?.processing || this.fileRequest?.reprocessing) {
+        return {
+          showDownloadLink: false,
+          text: "Your files are being processed. Please do not navigate away from this page.",
+          type: "info"
+        }
+      }
+
+      if (this.fileRequest?.error) {
+        return {
+          showDownloadLink: false,
+          text: "There was an error processing the requested assignment submission files. Please try again or contact support.",
+          type: "error"
+        }
+      }
+
+      return {};
+    }
   },
   methods: {
     ...mapActions({
       fetchParticipants: "participants/fetchParticipants",
-      fetchAssignment: "assignment/fetchAssignment"
+      fetchAssignment: "assignment/fetchAssignment",
+      retrieveFileRequest: "assignmentfilearchive/retrieve",
+      prepareFileRequest: "assignmentfilearchive/prepare",
+      resetFileRequest: "assignmentfilearchive/reset",
+      pollFileRequest: "assignmentfilearchive/poll",
+      fileRequestErrorAcknowledge: "assignmentfilearchive/acknowledgeError"
     }),
     getParticipantWithSubmission(participants, treatment) {
       return participants.map(p => {
@@ -179,13 +339,112 @@ export default {
       return n % 1 ? n.toFixed(2) : n;
     },
     async loadData() {
+      this.resetFileRequest();
       await this.fetchAssignment([
-        this.experiment_id,
-        this.exposure_id,
-        this.assignment_id,
+        this.experimentId,
+        this.exposureId,
+        this.assignmentId,
         true,
       ]);
-      await this.fetchParticipants(this.experiment_id);
+      await this.fetchParticipants(this.experimentId);
+      await this.pollFileRequest([
+        this.experimentId,
+        this.exposureId,
+        this.assignmentId,
+        false
+      ]);
+      this.showFileRequestAlert = this.fileRequest ? (this.fileRequest.ready || this.fileRequest.processing || this.fileRequest.reprocessing || this.fileRequest.error) : false;
+    },
+    async handleAlertFileRequest() {
+      this.fileDownloadLinkClicked = true;
+      await this.handleFileRequest();
+    },
+    async handleFileRequest() {
+      await this.pollFileRequest([
+        this.experimentId,
+        this.exposureId,
+        this.assignmentId,
+        this.fileRequest ? (this.fileRequest.ready || this.fileRequest.downloaded) : false
+      ]);
+
+      if (this.fileRequest?.ready || this.fileRequest?.downloaded) {
+        // retrieve file
+        await this.retrieveFileRequest([
+          this.experimentId,
+          this.exposureId,
+          this.assignmentId,
+          this.fileRequest
+        ]);
+
+        if (this.fileRequest?.ready || this.fileRequest?.downloaded) {
+          // file has been delivered
+          return;
+        }
+      }
+
+      if (this.fileRequest?.processing) {
+        this.$swal({
+          icon: "info",
+          text: `Assignment files are still being processed. You will be notified when the files are ready for download.
+            Please do not navigate away from this page.`,
+          confirmButtonText: "OK"
+        });
+        return;
+      }
+
+      if (this.fileRequest?.reprocessing) {
+        this.$swal({
+          icon: "info",
+          text: `New submissons have occurred since the requested set of assignment files were processed. A new set is being created.
+            You will be notified when the files are ready for download. Please do not navigate away from this page.`,
+          confirmButtonText: "OK"
+        });
+        return;
+      }
+
+      const fileRequestConfirm = await this.$swal({
+        icon: "info",
+        text: `Depending on the number of submissions, it could take several minutes to retrieve your files.
+          You will see an alert when the files are ready to download. After you click “ok”, please stay on this page until your download is ready.`,
+        showCancelButton: true,
+        confirmButtonText: "OK"
+      });
+
+      if (fileRequestConfirm.isConfirmed) {
+        await this.prepareFileRequest([
+          this.experimentId,
+          this.exposureId,
+          this.assignmentId
+        ]);
+      }
+
+      this.fileRequestPolling = this.fileRequest?.processing || this.fileRequest?.reprocessing;
+      this.showFileRequestAlert = this.fileRequestPolling;
+    },
+    async handleFileRequestPolling() {
+      await this.pollFileRequest([
+        this.experimentId,
+        this.exposureId,
+        this.assignmentId,
+        false
+      ]);
+
+      this.fileRequestPolling = this.fileRequest.processing || this.fileRequest.reprocessing;
+      this.showFileRequestAlert = this.fileRequest.ready || this.fileRequest.error || this.fileRequestPolling;
+    },
+    async handleFileRequestAlertDismiss() {
+      this.showFileRequestAlert = false;
+      this.fileDownloadLinkClicked = false;
+      this.fileRequestPolling = false;
+
+      if (this.fileRequest?.error) {
+        this.fileRequestErrorAcknowledge([
+          this.experimentId,
+          this.exposureId,
+          this.assignmentId,
+          this.fileRequest.id
+        ]);
+      }
     }
   },
   beforeRouteUpdate() {
@@ -194,5 +453,48 @@ export default {
   async mounted() {
     this.loadData();
   },
+  beforeDestroy() {
+    // clear file request polling scheduler
+    if (this.fileRequestPollingId !== null) {
+      window.clearInterval(this.fileRequestPollingId);
+    }
+  }
 };
 </script>
+
+<style lang="scss" scoped>
+.header-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  > h1.header {
+    max-width: fit-content;
+    max-height: fit-content;
+    line-height: 1.5;
+  }
+  & .btn-row {
+  display: flex;
+  flex-direction: row;
+  justify-content:right;
+  > .download-files {
+    max-width: fit-content;
+    display: flex;
+    flex-direction: column;
+    & .btn-download-file {
+      max-width: fit-content;
+    }
+    & .file-archive-status {
+      max-width: fit-content;
+      margin: 0 auto;
+    }
+  }
+}
+}
+
+.alert-file-request {
+  margin: 0 auto;
+  & a {
+    color: white;
+  }
+}
+</style>
