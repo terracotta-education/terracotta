@@ -182,8 +182,17 @@
                             </v-btn>
                             <v-btn
                               v-if="item.assessmentDto.integration && !displayTreatmentMenu"
-                              :href="previewLaunchUrl(item.assessmentDto.integrationPreviewUrl)"
+                              :href="integrationsPreviewLaunchUrl(item.assessmentDto.integrationPreviewUrl)"
                               target="_blank"
+                              text
+                              tile
+                            >
+                              <v-icon>mdi-eye-outline</v-icon>
+                              <span class="treatment-btn">Preview</span>
+                            </v-btn>
+                            <v-btn
+                              v-if="!item.assessmentDto.integration"
+                              @click="handleTreatmentPreview(item)"
                               text
                               tile
                             >
@@ -216,7 +225,7 @@
                                     <v-icon>mdi-eye-outline</v-icon>
                                     <span class="treatment-btn">
                                       <a
-                                        :href="previewLaunchUrl(item.assessmentDto.integrationPreviewUrl)"
+                                        :href="integrationsPreviewLaunchUrl(item.assessmentDto.integrationPreviewUrl)"
                                         target="_blank"
                                         class="integration-preview-link"
                                       >
@@ -450,45 +459,6 @@ export default {
       },
     },
   },
-  computed: {
-    ...mapGetters({
-      conditions: "experiment/conditions",
-      exposures: "exposures/exposures",
-      assignments: "assignment/assignments",
-      assignment: "assignment/assignment",
-      consent: "consent/consent",
-      exportdata: "exportdata/exportData",
-      conditionColorMapping: "condition/conditionColorMapping",
-    }),
-    experiment_id() {
-      return parseInt(this.experiment.experimentId);
-    },
-    canDeleteAssignment() {
-      return !this.experiment.started;
-    },
-    assignmentsCount() {
-      return this.assignments.length;
-    },
-    singleConditionExperiment() {
-      return this.conditions.length === 1;
-    },
-    defaultCondition() {
-      return this.conditions.find(c => c.defaultCondition);
-    },
-    displayTreatmentMenu() {
-      switch (this.$vuetify.breakpoint.name) {
-        case 'xs':
-        case 'sm':
-        case 'md':
-          return true;
-        case 'lg':
-        case 'xl':
-          return false;
-        default:
-          return false;
-      }
-    },
-  },
   data: () => ({
     tab: 0,
     minTreatments: 2,
@@ -559,6 +529,46 @@ export default {
       immediate: true
     }
   },
+  computed: {
+    ...mapGetters({
+      conditions: "experiment/conditions",
+      exposures: "exposures/exposures",
+      assignments: "assignment/assignments",
+      assignment: "assignment/assignment",
+      consent: "consent/consent",
+      exportdata: "exportdata/exportData",
+      conditionColorMapping: "condition/conditionColorMapping",
+      userId: "api/userId",
+    }),
+    experiment_id() {
+      return parseInt(this.experiment.experimentId);
+    },
+    canDeleteAssignment() {
+      return !this.experiment.started;
+    },
+    assignmentsCount() {
+      return this.assignments.length;
+    },
+    singleConditionExperiment() {
+      return this.conditions.length === 1;
+    },
+    defaultCondition() {
+      return this.conditions.find(c => c.defaultCondition);
+    },
+    displayTreatmentMenu() {
+      switch (this.$vuetify.breakpoint.name) {
+        case 'xs':
+        case 'sm':
+        case 'md':
+          return true;
+        case 'lg':
+        case 'xl':
+          return false;
+        default:
+          return false;
+      }
+    },
+  },
   methods: {
     ...mapActions({
       fetchExposures: "exposures/fetchExposures",
@@ -572,7 +582,7 @@ export default {
       getConsentFile: "consent/getConsentFile",
       moveAssignment: "assignment/moveAssignment",
       setCurrentAssignment: 'assignments/setCurrentAssignment',
-      saveEditMode: "navigation/saveEditMode",
+      saveEditMode: "navigation/saveEditMode"
     }),
     saveOrder(event, assignments, exposure) {
       const movedItem = assignments.splice(event.oldIndex, 1)[0];
@@ -844,8 +854,11 @@ export default {
         JSON.stringify([this.defaultCondition.conditionId])
       );
     },
-    previewLaunchUrl(url) {
+    integrationsPreviewLaunchUrl(url) {
       return `/integrations/preview?url=${btoa(url)}`;
+    },
+    handleTreatmentPreview(treatment) {
+      window.open(`/preview/experiments/${this.experiment_id}/conditions/${treatment.conditionId}/treatments/${treatment.treatmentId}?ownerId=${this.userId}`, "_blank");
     }
   },
   async mounted() {

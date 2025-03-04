@@ -1,11 +1,20 @@
 <template>
   <v-row>
-    <v-col cols="1">
+    <v-col
+      cols="1"
+    >
       &nbsp;
     </v-col>
-    <v-col cols="10">
-      <v-card outlined :class="border">
-        <v-card-title class="py-0">
+    <v-col
+      cols="10"
+    >
+      <v-card
+        :class="border"
+        outlined
+      >
+        <v-card-title
+          class="py-0"
+        >
           <slot />
         </v-card-title>
       </v-card>
@@ -35,7 +44,6 @@ export default {
   border-color: #38ADB6 !important;
   border-width: 2px !important;
 }
-
 .red--border {
   border-color: #E5153E !important;
   border-width: 2px !important;

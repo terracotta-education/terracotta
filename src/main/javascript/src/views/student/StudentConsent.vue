@@ -92,7 +92,10 @@ import VuePdfEmbed from 'vue-pdf-embed/dist/vue2-pdf-embed';
 
 export default {
   name: "StudentConsent",
-  props: ["experimentId", "userId"],
+  props: [
+    "experimentId",
+    "userId"
+  ],
   components: {
     VuePdfEmbed
   },

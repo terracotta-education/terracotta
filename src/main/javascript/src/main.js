@@ -30,6 +30,15 @@ const obsolete = {
   obsolete: params.get("obsolete") === "true",
   type: params.get("type")
 };
+const treatmentPreview = {
+  preview: params.get("treatmentPreview") === "true",
+  experimentId: params.get("experiment"),
+  conditionId: params.get("condition"),
+  treatmentId: params.get("treatment"),
+  previewId: params.get("previewId"),
+  ownerId: params.get("ownerId"),
+  complete: params.get("complete") === "true"
+};
 var appProps = {};
 
 const operations = [];
@@ -61,11 +70,15 @@ function startVue() {
     appProps["obsoleteData"] = obsolete;
   }
 
+  if (treatmentPreview.preview) {
+    appProps["treatmentPreviewData"] = treatmentPreview;
+  }
+
   new Vue({
     store,
     router,
     vuetify,
-    props: ["integrationData", "obsoleteData"],
+    props: ["integrationData", "obsoleteData", "treatmentPreviewData"],
     render: h => h(App, {props: appProps}),
   }).$mount("#app")
 }

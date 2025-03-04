@@ -120,6 +120,13 @@ public class QuestionServiceImpl implements QuestionService {
     }
 
     @Override
+    public List<QuestionDto> toDto(List<Question> questions, boolean answers, boolean showCorrectAnswer) {
+        return questions.stream()
+            .map(question -> toDto(question, answers, showCorrectAnswer))
+            .toList();
+    }
+
+    @Override
     public QuestionDto toDto(Question question, boolean answers, boolean showCorrectAnswer) {
         return toDto(question, null, answers, showCorrectAnswer);
     }

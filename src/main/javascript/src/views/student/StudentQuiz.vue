@@ -1,9 +1,12 @@
 <template>
   <v-container
     v-show="pageLoaded && !loading"
+    :class="{'preview': preview}"
     fluid
   >
-    <v-row>
+    <v-row
+      v-if="!preview"
+    >
       <v-col
         v-if="canTryAgain"
       >
@@ -25,7 +28,9 @@
         </p>
       </v-col>
       <v-spacer />
-      <v-col v-if="showSubmissionDetails">
+      <v-col
+        v-if="showSubmissionDetails"
+      >
         <h2>Submission Details</h2>
         <v-divider />
           <v-list dense flat>
@@ -74,7 +79,7 @@
       </v-col>
     </v-row>
     <v-row
-      v-if="cantTryAgainMessage"
+      v-if="!preview && cantTryAgainMessage"
     >
       <v-col>
         <v-card
@@ -96,7 +101,7 @@
         </v-card>
       </v-col>
     </v-row>
-    <v-row v-if="readonly">
+    <v-row v-if="!preview && readonly">
       <v-col>
         <v-card
           v-if="muted"
@@ -152,6 +157,7 @@
     </v-row>
     <v-row
       v-if="!isIntegration && assessment && questionValues.length > 0"
+      :class="{'preview-treatment': preview}"
     >
       <v-col>
         <template
@@ -290,12 +296,22 @@
               Next
             </v-btn>
             <v-btn
-              v-if="showSubmitButton"
+              v-if="!preview && showSubmitButton"
               :disabled="disableSubmitButton"
               elevation="0"
               color="primary"
               class="mt-4"
               type="submit"
+            >
+              Submit
+            </v-btn>
+            <v-btn
+              v-if="preview && showSubmitButton"
+              :disabled="disableSubmitButton"
+              :href="`/preview/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/complete?ownerId=${ownerId}`"
+              elevation="0"
+              color="primary"
+              class="mt-4"
             >
               Submit
             </v-btn>
@@ -316,7 +332,7 @@
 </template>
 
 <script>
-import { mapActions, mapGetters } from "vuex";
+import { mapActions, mapGetters, mapMutations } from "vuex";
 import EssayResponseEditor from "./EssayResponseEditor.vue";
 import FileUploadResponseEditor from "@/views/student/FileUploadResponseEditor";
 import ExternalIntegrationResponseEditor from "@/views/integrations/ExternalIntegrationResponseEditor";
@@ -336,7 +352,12 @@ export default {
   name: "StudentQuiz",
   props: [
     "experimentId",
-    "assignmentId"
+    "condition_id",
+    "assignment_id",
+    "treatment_id",
+    "ownerId",
+    "previewId",
+    "preview"
   ],
   components: {
     EssayResponseEditor,
@@ -354,6 +375,7 @@ export default {
       treatmentId: null,
       submissionId: null,
       assessmentId: null,
+      assignmentId: null,
       submitted: false,
       questionPageIndex: 0,
       assignmentData: null,
@@ -365,7 +387,8 @@ export default {
       submissions: [],
       answerSubmissionId: null,
       downloadId: null,
-      integrationLaunchUrl: null
+      integrationLaunchUrl: null,
+      treatment: null
     };
   },
   watch: {
@@ -425,13 +448,13 @@ export default {
       return !this.allCurrentPageQuestionsAnswered;
     },
     showBackButton() {
-      return this.readonly && this.questionPages.length > 1;
+      return (this.preview || this.readonly) && this.questionPages.length > 1;
     },
     disableBackButton() {
       return !this.hasBackQuestionPage;
     },
     hasBackQuestionPage() {
-      if (!this.readonly) {
+      if (!this.preview && !this.readonly) {
         // only readonly mode can go back
         return false;
       }
@@ -538,6 +561,11 @@ export default {
       createAnswerSubmissions: "submissions/createAnswerSubmissions",
       updateAnswerSubmission: "submissions/updateAnswerSubmission",
       downloadAnswerFileSubmission: "submissions/downloadAnswerFileSubmission",
+      previewTreatment: "preview/treatment"
+    }),
+    ...mapMutations({
+      setAssessment: "assessment/setAssessment",
+      clearFiles: "submissions/clearFiles"
     }),
     async handleTryAgain() {
       this.attempt();
@@ -892,7 +920,33 @@ export default {
     }
   },
   async created() {
+  this.clearFiles();
+    if (this.preview) {
+      const treatmentPreview = await this.previewTreatment([
+        this.experimentId,
+        this.condition_id,
+        this.treatment_id,
+        this.previewId,
+        this.ownerId
+      ]);
+
+      this.treatment = treatmentPreview.treatment;
+      this.setAssessment(this.treatment.assessmentDto);
+      this.assessmentId = this.treatment.assessmentDto.assessmentId;
+      this.assignmentId = this.treatment.assignmentId;
+      this.treatmentId = this.treatment.treatmentId;
+      this.conditionId = this.treatment.conditionId;
+      this.submissions = [treatmentPreview.submission];
+      this.submissionId = treatmentPreview.submission.submissionId;
+      this.integrationLaunchUrl = null;
+      this.readonly = false;
+      this.pageLoaded = true;
+      this.$emit("loaded");
+      return;
+    }
+
     this.loading = true;
+
     try {
       const stepResponse = await this.viewAssignment();
 
@@ -961,6 +1015,13 @@ export default {
       min-width: 100%;
       border: none;
     }
+  }
+}
+.preview {
+  background-color: rgba(253, 245, 242, 1) !important;
+  & .preview-treatment {
+    margin: 0 auto;
+    max-width: 75%;
   }
 }
 </style>

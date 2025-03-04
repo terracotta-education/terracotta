@@ -194,7 +194,7 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
 
     @Override
     public QuestionSubmissionDto toDto(QuestionSubmission questionSubmission, boolean answerSubmissions, boolean questionSubmissionComments) throws IOException {
-        QuestionSubmissionDto questionSubmissionDto = new QuestionSubmissionDto();
+        QuestionSubmissionDto questionSubmissionDto = QuestionSubmissionDto.builder().build();
         questionSubmissionDto.setQuestionSubmissionId(questionSubmission.getQuestionSubmissionId());
         questionSubmissionDto.setSubmissionId(questionSubmission.getSubmission().getSubmissionId());
         questionSubmissionDto.setQuestionId(questionSubmission.getQuestion().getQuestionId());
@@ -323,11 +323,11 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
                         if (questionSubmissionDto.getAnswerSubmissionDtoList().size() > 1) {
                             throw new ExceedingLimitException("Error 145: Multiple choice and essay questions can only have one answer submission.");
                         } else if (CollectionUtils.isEmpty(questionSubmissionDto.getAnswerSubmissionDtoList())) {
-                            questionSubmissionDto.getAnswerSubmissionDtoList().add(new AnswerSubmissionDto());
+                            questionSubmissionDto.getAnswerSubmissionDtoList().add(AnswerSubmissionDto.builder().build());
                         }
                     } else {
                         questionSubmissionDto.setAnswerSubmissionDtoList(new ArrayList<>());
-                        questionSubmissionDto.getAnswerSubmissionDtoList().add(new AnswerSubmissionDto());
+                        questionSubmissionDto.getAnswerSubmissionDtoList().add(AnswerSubmissionDto.builder().build());
                     }
 
                 }
@@ -453,7 +453,7 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
 
         FileSubmissionLocal fileSubmissionLocal = fileStorageService.saveFileSubmissionLocal(file);
         QuestionSubmissionDto questionSubmissionDto = objectMapper.readValue(questionSubmissionDtoStr, QuestionSubmissionDto.class);
-        AnswerSubmissionDto answerSubmissionDto = new AnswerSubmissionDto();
+        AnswerSubmissionDto answerSubmissionDto = AnswerSubmissionDto.builder().build();
         answerSubmissionDto.setFileName(fileName);
         answerSubmissionDto.setMimeType(file.getContentType());
         answerSubmissionDto.setFile(tempFile);
@@ -514,7 +514,7 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
         File tempFile = getFile(file, file.getName());
 
         FileSubmissionLocal fileSubmissionLocal = fileStorageService.saveFileSubmissionLocal(file);
-        AnswerSubmissionDto answerSubmissionDto = new AnswerSubmissionDto();
+        AnswerSubmissionDto answerSubmissionDto = AnswerSubmissionDto.builder().build();
         answerSubmissionDto.setFileName(fileName);
         answerSubmissionDto.setMimeType(file.getContentType());
         answerSubmissionDto.setFile(tempFile);

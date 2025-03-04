@@ -225,13 +225,13 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
     @Override
     public List<AnswerSubmissionDto> getAnswerMcSubmissions(Long questionSubmissionId) {
         return CollectionUtils.emptyIfNull(findByQuestionSubmissionIdMC(questionSubmissionId)).stream()
-            .map(answerMcSubmission -> toDtoMC(answerMcSubmission))
+            .map(this::toDtoMC)
             .toList();
     }
 
     @Override
     public AnswerSubmissionDto toDtoMC(AnswerMcSubmission answer) {
-        AnswerSubmissionDto answerSubmissionDto = new AnswerSubmissionDto();
+        AnswerSubmissionDto answerSubmissionDto = AnswerSubmissionDto.builder().build();
         answerSubmissionDto.setAnswerSubmissionId(answer.getAnswerMcSubId());
         answerSubmissionDto.setQuestionSubmissionId(answer.getQuestionSubmission().getQuestionSubmissionId());
 
@@ -297,13 +297,13 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
     @Override
     public List<AnswerSubmissionDto> getAnswerEssaySubmissions(Long questionSubmissionId) {
         return CollectionUtils.emptyIfNull(findAllByQuestionSubmissionIdEssay(questionSubmissionId)).stream()
-            .map(answerEssaySubmission -> toDtoEssay(answerEssaySubmission))
+            .map(this::toDtoEssay)
             .toList();
     }
 
     @Override
     public AnswerSubmissionDto toDtoEssay(AnswerEssaySubmission answer) {
-        AnswerSubmissionDto answerSubmissionDto = new AnswerSubmissionDto();
+        AnswerSubmissionDto answerSubmissionDto = AnswerSubmissionDto.builder().build();
         answerSubmissionDto.setAnswerSubmissionId(answer.getAnswerEssaySubmissionId());
         answerSubmissionDto.setQuestionSubmissionId(answer.getQuestionSubmission().getQuestionSubmissionId());
         answerSubmissionDto.setResponse(answer.getResponse());
@@ -361,7 +361,7 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
     }
 
     private AnswerSubmissionDto toDtoFile(AnswerFileSubmission answerFileSubmission, boolean includeFileContent) throws IOException {
-        AnswerSubmissionDto answerSubmissionDto = new AnswerSubmissionDto();
+        AnswerSubmissionDto answerSubmissionDto = AnswerSubmissionDto.builder().build();
         answerSubmissionDto.setAnswerSubmissionId(answerFileSubmission.getAnswerFileSubmissionId());
         answerSubmissionDto.setQuestionSubmissionId(answerFileSubmission.getQuestionSubmission().getQuestionSubmissionId());
         answerSubmissionDto.setMimeType(answerFileSubmission.getMimeType());
@@ -498,7 +498,7 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
     }
 
     private AnswerSubmissionDto toDtoIntegration(AnswerIntegrationSubmission answerIntegrationSubmission) throws IOException {
-        AnswerSubmissionDto answerSubmissionDto = new AnswerSubmissionDto();
+        AnswerSubmissionDto answerSubmissionDto = AnswerSubmissionDto.builder().build();
         answerSubmissionDto.setAnswerSubmissionId(answerIntegrationSubmission.getId());
         answerSubmissionDto.setQuestionSubmissionId(answerIntegrationSubmission.getQuestionSubmission().getQuestionSubmissionId());
 

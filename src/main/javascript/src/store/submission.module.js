@@ -5,6 +5,7 @@ const state = {
   submission: null,
   studentResponse: null,
   questionSubmissions: null,
+  files: []
 };
 
 const actions = {
@@ -132,6 +133,7 @@ const actions = {
     state.submissions = [];
     state.studentResponse = null;
     state.questionSubmissions = [];
+    state.files = [];
   },
 };
 
@@ -148,6 +150,15 @@ const mutations = {
   setQuestionSubmissions(state, data) {
     state.questionSubmissions = data;
   },
+  addFile(state, file) {
+    if (state.files === null) {
+      state.files = [];
+    }
+    state.files.push(file);
+  },
+  clearFiles(state) {
+    state.files = [];
+  }
 };
 
 const getters = {
@@ -163,6 +174,12 @@ const getters = {
   questionSubmissions(state) {
     return state.questionSubmissions;
   },
+  files(state) {
+    if (state.files === null) {
+      state.files = [];
+    }
+    return state.files;
+  }
 };
 
 export const submissions = {

@@ -164,7 +164,8 @@ public class WebSecurityConfig {
                             "/deeplink/**",
                             "/ags/**",
                             "/files/**",
-                            "/lms/oauth2/**"
+                            "/lms/oauth2/**",
+                            "/preview/**"
                         )
                         .permitAll()
                         .anyRequest()

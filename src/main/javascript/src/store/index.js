@@ -19,13 +19,16 @@ import { mediaevents } from "./mediaevents.module";
 import { navigation } from "./navigation.module";
 import { groups } from "./groups.module";
 import { resultsDashboard } from "./dashboard/results.module";
+import { preview } from "./preview/preview.module";
 
 Vue.use(Vuex)
 
 const store = new Vuex.Store({
-    plugins: [createPersistedState({
+    plugins: [
+      createPersistedState({
         key: "terracotta"
-    })],
+      }),
+    ],
     modules: {
         api,
         alert,
@@ -43,7 +46,8 @@ const store = new Vuex.Store({
         mediaevents,
         navigation,
         groups,
-        resultsDashboard
+        resultsDashboard,
+        preview
     },
     strict: process.env.NODE_ENV !== "production",
 })
