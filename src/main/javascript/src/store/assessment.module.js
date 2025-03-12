@@ -149,7 +149,7 @@ const actions = {
       console.log("updateQuestion catch", {error, state});
     }
   },
-  async deleteQuestion({commit}, payload) {
+  async deleteQuestion({commit, state}, payload) {
     const questionId = payload[4];
     // payload = experiment_id, condition_id, treatment_id, assessment_id, question_id
     // delete question, commit mutation, and return the status/data response
@@ -161,7 +161,7 @@ const actions = {
         commit("deleteQuestion", questionId);
         return {
           status: response?.status,
-          data: null
+          data: state.assessment.questions
         }
       }
     } catch (error) {
@@ -175,8 +175,8 @@ const actions = {
       const response = await assessmentService.deleteQuestions(...payload);
 
       if (response?.status === 200) {
-        // send to deleteQuestions mutation
-        commit("deleteQuestions");
+        // send empty array to setQuestions mutation
+        commit("setQuestions", []);
         return {
           status: response?.status,
           data: null
@@ -252,13 +252,13 @@ const mutations = {
     // check for same id and update if exists
     const foundIndex = state.assessments?.findIndex(a => parseInt(a.assessmentId) === parseInt(assessment.assessmentId));
     if (foundIndex >= 0) {
-      state.assessments[foundIndex] = assessment;
+      state.assessments.splice(foundIndex, 1, assessment);
     } else {
       state.assessments.push(assessment);
     }
   },
   setQuestions(state, questions) {
-    state.assessments.questions = questions;
+    state.assessment = {...state.assessment, questions: questions};
   },
   updateQuestions(state, question) {
     // check for same id and update if exists
@@ -273,39 +273,39 @@ const mutations = {
     state.assessment.questions.splice(questionIndex, 0, question);
   },
   deleteQuestion(state, qid) {
-    state.assessment.questions = [...state.assessment.questions?.filter(q => parseInt(q.questionId) !== parseInt(qid))];
-  },
-  deleteQuestions(state) {
-    state.assessment.questions = [];
+    state.assessment = {...state.assessment, questions: [...state.assessment.questions?.filter(q => parseInt(q.questionId) !== parseInt(qid))]};
   },
   updateAnswers(state, answer) {
     const aqid = parseInt(answer.questionId);
 
     // check if answer exists and update, or add answer to question
-    state.assessment.questions = state.assessment.questions.map(q => {
-      const qqid = parseInt(q.questionId);
+    state.assessment = {
+      ...state.assessment,
+      questions: state.assessment.questions.map(q => {
+        const qqid = parseInt(q.questionId);
 
-      // step over question if not relevant
-      if (qqid !== aqid) {
-        return q;
-      }
-
-      if (q.answers?.length > 0) {
-        // if there are answers, check for matching answerId
-        const foundIndex = q.answers.findIndex(a => parseInt(a.answerId) === parseInt(answer.answerId));
-
-        if (foundIndex >= 0) {
-          q.answers.splice(foundIndex, 1, answer);
-        } else {
-          q.answers = [...q.answers, answer];
+        // step over question if not relevant
+        if (qqid !== aqid) {
+          return q;
         }
-      } else if ((!q.answers || q.answers.length < 1)) {
-        // create array with single answer if empty or missing answers
-        q.answers = [answer];
-      }
 
-      return q
-    });
+        if (q.answers?.length > 0) {
+          // if there are answers, check for matching answerId
+          const foundIndex = q.answers.findIndex(a => parseInt(a.answerId) === parseInt(answer.answerId));
+
+          if (foundIndex >= 0) {
+            q.answers.splice(foundIndex, 1, answer);
+          } else {
+            q.answers = [...q.answers, answer];
+          }
+        } else if ((!q.answers || q.answers.length < 1)) {
+          // create array with single answer if empty or missing answers
+          q.answers = [answer];
+        }
+
+        return q
+      })
+  };
   },
   deleteAnswer(state, answer_id) {
     const aid = parseInt(answer_id);
@@ -319,8 +319,7 @@ const getters = {
     return state.assessment;
   },
   questions: (state) => {
-    const list = [...state?.assessment?.questions || []].sort((a, b) => (a ? a.questionOrder : 0) - (b ? b.questionOrder : 0));
-    return list;
+    return [...state?.assessment?.questions || []].toSorted((a, b) => (a ? a.questionOrder : 0) - (b ? b.questionOrder : 0));
   },
   assessments: (state) => {
     return state.assessments;
@@ -331,37 +330,42 @@ const getters = {
   /**
    * Use PAGE_BREAK questions to break the questions into pages.
    */
-  questionPages: (state, getters) => {
+  questionPages: (state) => {
       const pages = [];
-      if (!getters.questions || getters.questions.length === 0) {
+      const questions = state.assessment.questions || [];
+
+      if (!questions || questions.length === 0) {
         return pages;
       }
+
       pages.push({
         key: pages.length,
         pageBreakAfter: false,
         questions: [],
         questionStartIndex: 0,
       });
-      const sorted = [...getters.questions].sort((a, b) => a.questionOrder - b.questionOrder);
+      const sorted = questions.toSorted((a, b) => a.questionOrder - b.questionOrder);
 
       for (const question of sorted) {
         const currentPage = pages[pages.length - 1];
+
         if (question.questionType === "PAGE_BREAK") {
           currentPage.pageBreakAfter = true;
+
           // Add another page if this isn"t the last question
           if (question !== sorted[sorted.length - 1]) {
             pages.push({
               key: pages.length,
               pageBreakAfter: false,
               questions: [],
-              questionStartIndex:
-                currentPage.questionStartIndex + currentPage.questions.length,
+              questionStartIndex: currentPage.questionStartIndex + currentPage.questions.length,
             });
           }
         } else {
           currentPage.questions.push(question);
         }
       }
+
       return pages;
   }
 }
