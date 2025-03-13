@@ -260,8 +260,10 @@
                       :selectedSubmission="selectedSubmission"
                       :fileResponses="getFileResponses(question)"
                       :selectedDownloadId="selectedDownloadId"
-                      @download-file-response="downloadFileResponse"
                       :readonly="readonly"
+                      :submissionId="submissionId"
+                      :questionId="question.questionId"
+                      @download-file-response="downloadFileResponse"
                       v-model="
                         questionValues.find(
                           ({ questionId }) => questionId === question.questionId
@@ -782,12 +784,19 @@ export default {
       return score != null ? score : 0;
     },
     getQuestionAnswers(question) {
-      if (!this.readonly) { return question.answers; }
+      if (!this.readonly) {
+        return question.answers;
+      }
+
       const questionSubmissionDto = this.questionSubmissions?.find(s => s.questionId === question.questionId);
-      if (!questionSubmissionDto) { return []; }
+
+      if (!questionSubmissionDto) {
+        return [];
+      }
 
       const answers = questionSubmissionDto.answerDtoList;
       const responses = questionSubmissionDto.answerSubmissionDtoList;
+
       return answers.map(a => {
         const resp = responses.find(r => r.answerId === a.answerId);
         return {
@@ -797,22 +806,36 @@ export default {
       });
     },
     getEssayResponse(question) {
-      if (!this.readonly) { return null; }
+      if (!this.readonly) {
+        return null;
+      }
+
       const questionSubmissionDto = this.questionSubmissions?.find(s => s.questionId === question.questionId);
-      if (!questionSubmissionDto) { return null; }
+
+      if (!questionSubmissionDto) {
+        return null;
+      }
+
       return questionSubmissionDto.answerSubmissionDtoList.find(a => a.questionSubmissionId === questionSubmissionDto.questionSubmissionId);
     },
     getFileResponses(question) {
-      if (!this.readonly) { return null; }
+      if (!this.readonly) {
+        return null;
+      }
+
       const questionSubmissionDto = this.questionSubmissions?.find(s => s.questionId === question.questionId);
-      if (!questionSubmissionDto) { return null; }
+
+      if (!questionSubmissionDto) {
+        return null;
+      }
+
       return questionSubmissionDto.answerSubmissionDtoList;
     },
     errorFooter() {
       return `<div class="text--secondary body-2">
-                  <div>Timestamp: ${new Date().toString()}</div>
-                  <div>Experiment: ${this.experimentId}</div>
-                </div>`;
+                <div>Timestamp: ${new Date().toString()}</div>
+                <div>Experiment: ${this.experimentId}</div>
+              </div>`;
     },
     areAllQuestionsAnswered(answerableQuestions) {
       if (this.readonly) {
@@ -920,7 +943,7 @@ export default {
     }
   },
   async created() {
-  this.clearFiles();
+    this.clearFiles();
     if (this.preview) {
       const treatmentPreview = await this.previewTreatment([
         this.experimentId,
