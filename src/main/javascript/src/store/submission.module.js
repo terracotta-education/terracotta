@@ -58,7 +58,6 @@ const actions = {
         console.error("setStudentResponse | catch", { response });
       });
   },
-
   async fetchQuestionSubmissions({ commit }, payload) {
     // payload = experiment_id, condition_id, treatment_id, assessment_id, submission_id
     try {
@@ -70,65 +69,72 @@ const actions = {
       console.error("fetchQuestionSubmissions catch", { error, state });
     }
   },
-
   async createQuestionSubmissions({ state }, payload) {
     // payload = experiment_id, condition_id, treatment_id, assessment_id, submission_id, questions
-
     try {
       return await submissionService.createQuestionSubmissions(...payload);
     } catch (error) {
       console.error("createQuestionSubmissions catch", { error, state });
     }
   },
-
   async updateQuestionSubmissions({ state }, payload) {
     // payload = experiment_id, condition_id, treatment_id, assessment_id, submission_id, updatedResponseBody
-
     try {
       return await submissionService.updateQuestionSubmissions(...payload);
     } catch (error) {
       console.error("updateQuestionSubmissions catch", { error, state });
     }
   },
-
   async createAnswerSubmissions({ state }, payload) {
     // payload = experiment_id, condition_id, treatment_id, assessment_id, submission_id, answerSubmissions
-
     try {
       return await submissionService.createAnswerSubmissions(...payload);
     } catch (error) {
       console.error("createAnswerSubmissions catch", { error, state });
     }
   },
-
   async updateAnswerSubmission({ state }, payload) {
     // payload = experiment_id, condition_id, treatment_id, assessment_id, submission_id, question_submission_id, answer_submission_id, answerSubmission
-
     try {
       return await submissionService.updateAnswerSubmission(...payload);
     } catch (error) {
       console.error("updateAnswerSubmission catch", { error, state });
     }
   },
-
   async clearQuestionSubmissions({ commit }) {
     // payload = experiment_id, condition_id, treatment_id, assessment_id, submission_id, answerSubmissions
-
     commit("setQuestionSubmissions", []);
 
     return Promise.resolve([]);
   },
-
   downloadAnswerFileSubmission({ state }, payload) {
     // payload = experimentId, conditionId, treatmentId, assessmentId, submissionId, questionSubmissionId, answerSubmissionId, mimeType, fileName
-
     try {
       return submissionService.downloadAnswerFileSubmission(...payload);
     } catch (error) {
       console.error("downloadAnswerFileSubmission catch", { error, state });
     }
   },
-
+  addFile({ commit }, { file, name, questionId, submissionId }) {
+    commit(
+      "addFile",
+      {
+        file: file,
+        name: name,
+        questionId: questionId,
+        submissionId: submissionId,
+      }
+    );
+  },
+  clearFile({ commit }, { questionId, submissionId }) {
+    commit(
+      "clearFile",
+      {
+        questionId: questionId,
+        submissionId: submissionId,
+      }
+    );
+  },
   resetSubmissions({state}) {
     state.submissions = [];
     state.studentResponse = null;
@@ -154,7 +160,21 @@ const mutations = {
     if (state.files === null) {
       state.files = [];
     }
-    state.files.push(file);
+
+    const index = state.files.findIndex((f) => f.questionId === file.questionId && f.submissionId === file.submissionId);
+
+    if (index >= 0) {
+      state.files.splice(index, 1, file);
+    } else {
+      state.files.push(file);
+    }
+  },
+  clearFile(state, file) {
+    const index = state.files.findIndex((f) => f.questionId === file.questionId && f.submissionId === file.submissionId);
+
+    if (index >= 0) {
+      state.files.splice(index, 1);
+    }
   },
   clearFiles(state) {
     state.files = [];
@@ -178,6 +198,7 @@ const getters = {
     if (state.files === null) {
       state.files = [];
     }
+
     return state.files;
   }
 };

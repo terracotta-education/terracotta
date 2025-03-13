@@ -5,7 +5,7 @@
     >
       <response-row>
         <v-card
-          v-if="isIdle && files.length === 0"
+          v-if="isIdle && !file"
           @drop.prevent="onDrop($event)"
           @dragover.prevent="dragover = true"
           @dragenter.prevent="dragover = true"
@@ -28,7 +28,8 @@
               dense
             >
               <v-btn
-                :loading="isSelecting" @click="handleFileImport"
+                :loading="isSelecting"
+                @click="handleFileImport"
                 color="primary"
                 class="upload-button"
                 align="center"
@@ -42,7 +43,7 @@
               ref="uploader"
               class="d-none"
               type="file"
-            >
+            />
             <v-spacer></v-spacer>
           </v-card-actions>
           <v-card-text
@@ -63,7 +64,7 @@
           </v-card-text>
         </v-card>
         <v-card
-          v-if="!isIdle || files.length > 0"
+          v-if="!isIdle || file"
           width="100%"
           height="100%"
         >
@@ -119,7 +120,7 @@
                 class="v-btn uploaded-file-row"
                 outlined
               >
-                {{this.files[0].name}}
+                {{ file.name }}
                 <v-tooltip
                   top
                 >
@@ -147,7 +148,7 @@
         </v-card>
       </response-row>
       <v-row
-        v-if="isIdle && files.length === 0"
+        v-if="isIdle && !file"
         class="d-flex flex-column"
         align="center"
         justify="center"
@@ -216,18 +217,35 @@
 </template>
 
 <script>
-import { mapGetters, mapMutations } from "vuex";
+import { mapGetters, mapActions } from "vuex";
 import ResponseRow from "./ResponseRow.vue";
 import Spinner from "@/components/Spinner";
 
 export default {
-  props: [
-    "value",
-    "readonly",
-    "fileResponses",
-    "selectedSubmission",
-    "selectedDownloadId"
-  ],
+  props: {
+    value: {
+      type: Object
+    },
+    readonly: {
+      type: Boolean,
+      default: false
+    },
+    fileResponses: {
+      type: Array
+    },
+    selectedSubmission: {
+      type: Object
+    },
+    selectedDownloadId: {
+      type: Number
+    },
+    submissionId: {
+      type: Number
+    },
+    questionId: {
+      type: Number
+    }
+  },
   components: {
     ResponseRow,
     Spinner
@@ -263,12 +281,15 @@ export default {
     },
     isDownloading() {
       return this.selectedDownloadId == this.fileResponses[0].answerSubmissionId;
+    },
+    file() {
+      return this.files.find(file => file.questionId === this.questionId && file.submissionId === this.submissionId);
     }
   },
   methods: {
-    ...mapMutations({
+    ...mapActions({
       addFile: "submissions/addFile",
-      clearFiles: "submissions/clearFiles"
+      clearFile: "submissions/clearFile"
     }),
     onInput() {
       this.emitValueChanged();
@@ -279,7 +300,7 @@ export default {
     handleFileImport() {
       this.isSelecting = true;
       // After obtaining the focus when closing the FilePicker, return the button state to normal
-      window.addEventListener('focus', () => {
+      window.addEventListener("focus", () => {
         this.isSelecting = false
       }, {once: true});
       // Trigger click on the FileInput
@@ -288,7 +309,12 @@ export default {
     onDrop(e) {
       this.dragover = false;
       this.uploading = true;
-      this.clearFiles();
+      this.clearFile(
+        {
+          questionId: this.questionId,
+          submissionId: this.submissionId
+        }
+      );
       if (e.dataTransfer.files.length > 1) {
         this.$store.dispatch("addNotification", {
           message: "Only one file may be uploaded at a time.",
@@ -296,37 +322,62 @@ export default {
         });
       } else
         e.dataTransfer.files.forEach(element => {
-            this.addFile(element)
-            this.loadFile(element)
+            this.addFile({
+              file: element,
+              name: element.name,
+              questionId: this.questionId,
+              submissionId: this.submissionId
+            });
+            this.loadFile(element);
           }
         );
     },
     onFileChanged(e) {
       if (e.target.files.length) {
-        this.clearFiles();
+        this.clearFile(
+          {
+            questionId: this.questionId,
+            submissionId: this.submissionId
+          }
+        );
         this.uploading = true;
-        this.addFile(e.target.files[0])
-        this.loadFile(e.target.files[0])
+        this.addFile({
+          file: e.target.files[0],
+          name: e.target.files[0].name,
+          questionId: this.questionId,
+          submissionId: this.submissionId
+        });
+        this.loadFile(e.target.files[0]);
       }
     },
     loadFile(file) {
       this.uploadBarProgress = 50;
       if (file.size > 10 * 1024 * 1024) {
-        this.clearFiles();
-        this.uploading = false
-        this.uploaded = false
+        this.clearFile(
+          {
+            questionId: this.questionId,
+            submissionId: this.submissionId
+          }
+        );
+        this.uploading = false;
+        this.uploaded = false;
         this.response = null;
-        alert('File cannot exceed 10MB');
+        alert("File cannot exceed 10MB");
       } else {
         this.uploadBarProgress = 50;
-        this.uploading = false
-        this.uploaded = true
+        this.uploading = false;
+        this.uploaded = true;
         this.response = file;
         this.emitValueChanged();
       }
     },
     deleteFile() {
-      this.clearFiles();
+      this.clearFile(
+        {
+          questionId: this.questionId,
+          submissionId: this.submissionId
+        }
+      );
       this.uploadBarProgress = 0;
       this.uploading = false
       this.uploaded = false
