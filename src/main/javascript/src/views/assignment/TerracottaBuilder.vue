@@ -88,23 +88,33 @@
                 >
                   <draggable
                     :list="questionPage.questions"
-                    @change="(ev) => handleQuestionOrderChange(ev)"
                     group="questions"
+                    @change="(ev) => handleQuestionOrderChange(ev)"
                     handle=".dragger"
                     style="width:100%"
                   >
                     <v-expansion-panel
                       v-for="(question, qIndex) in questionPage.questions"
                       @click="expandedQuestionPagePanel = qpIndex"
-                      :key="qIndex"
+                      :key="question.questionId"
                       :ref="buildExpandedQuestionPanelId(qpIndex, qIndex)"
-                      :class="[qIndex === 0 ? 'rounded-lg' : qIndex === questionPage.questions.length - 1 ? 'rounded-lg rounded-t-0' : '',
-                        qIndex === questionPage.questions.length - 1 ? '' : 'rounded-b-0']"
+                      :class="[
+                        qIndex === 0 ? 'rounded-lg' : qIndex === questionPage.questions.length - 1 ? 'rounded-lg rounded-t-0' : '',
+                        qIndex === questionPage.questions.length - 1 ? '' : 'rounded-b-0'
+                      ]"
                     >
-                      <template v-if="question">
-                        <v-expansion-panel-header class="text-left">
-                          <div class="d-flex align-start">
-                            <span class="dragger me-2">
+                      <template
+                        v-if="question"
+                      >
+                        <v-expansion-panel-header
+                          class="text-left"
+                        >
+                          <div
+                            class="d-flex align-start"
+                          >
+                            <span
+                              class="dragger me-2"
+                            >
                               <v-icon>mdi-drag</v-icon>
                             </span>
                             <h2
@@ -595,7 +605,6 @@ export default {
       fetchExposures: "exposures/fetchExposures",
       createQuestion: "assessment/createQuestion",
       updateQuestion: "assessment/updateQuestion",
-      deleteQuestion: "assessment/deleteQuestion",
       deleteQuestions: "assessment/deleteQuestions",
       updateAnswer: "assessment/updateAnswer",
       updateTreatment: "treatment/updateTreatment",
