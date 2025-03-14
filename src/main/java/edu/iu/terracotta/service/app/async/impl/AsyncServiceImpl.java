@@ -9,6 +9,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
@@ -152,6 +153,11 @@ public class AsyncServiceImpl implements AsyncService {
             .map(lmsAssignment -> {
                 try {
                     String[] queryParameters = StringUtils.split(URI.create(lmsAssignment.getLmsExternalToolFields().getUrl()).getQuery(), '&');
+
+                    if (ArrayUtils.isEmpty(queryParameters)) {
+                        // no query parameters; skip
+                        return null;
+                    }
 
                     // find the experiment ID from the query parameters
                     Optional<String> experimentId = Arrays.stream(queryParameters)
