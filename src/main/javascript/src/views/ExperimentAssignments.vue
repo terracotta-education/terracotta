@@ -192,6 +192,7 @@
                             </v-btn>
                             <v-btn
                               v-if="!item.assessmentDto.integration"
+                              :disabled="!item.assessmentDto.questions.length"
                               @click="handleTreatmentPreview(item)"
                               text
                               tile
@@ -935,6 +936,11 @@ export default {
 .label-treatment-complete,
 .section-tab-assignments-balanced {
   color: black !important;
+}
+.v-btn--disabled {
+  .treatment-btn {
+    color: rgba(0, 0, 0, 0.26) !important;
+  }
 }
 .icon-treatment-incomplete,
 .label-treatment-incomplete,
