@@ -861,7 +861,9 @@ export default {
           const answer = this.questionValues.find(
               ({ questionId }) => questionId === question.questionId
           ).response;
-          return answer !== null;
+          if (answer === null) {
+            return false;
+          }
         } else {
           console.log(
             "Unexpected question type",
