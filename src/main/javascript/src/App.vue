@@ -191,15 +191,17 @@ export default {
   methods: {
     ...mapActions({
       refreshToken: "api/refreshToken",
+      retrieveConfiguration: "configuration/retrieve"
     }),
   },
   async created() {
     localStorage.clear();
+    await this.retrieveConfiguration();
 
     setInterval(function () {
       this.refreshToken(this.apiToken);
     }.bind(this), 1000 * 60 * 59);
-  },
+  }
 };
 </script>
 

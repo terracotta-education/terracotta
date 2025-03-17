@@ -43,11 +43,13 @@ import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
 import edu.iu.terracotta.connectors.generic.service.lti.LtiDataService;
 import edu.iu.terracotta.dao.entity.Assignment;
 import edu.iu.terracotta.dao.entity.Experiment;
+import edu.iu.terracotta.dao.entity.distribute.ExperimentImport;
 import edu.iu.terracotta.dao.exceptions.AnswerNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.AnswerSubmissionNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.AssignmentNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.ConditionNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.ExperimentImportNotFoundException;
 import edu.iu.terracotta.dao.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.ExposureNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.GroupNotMatchingException;
@@ -786,6 +788,11 @@ public class OneEdTechApiJwtServiceImpl implements ApiJwtService {
     @Override
     public SecuredInfo extractValues(String token) throws NumberFormatException, TerracottaConnectorException {
         throw new UnsupportedOperationException("Unimplemented method 'extractValues'");
+    }
+
+    @Override
+    public ExperimentImport experimentImportAllowed(SecuredInfo securedInfo, UUID uuid) throws ExperimentImportNotFoundException {
+        throw new UnsupportedOperationException("Unimplemented method 'experimentImportAllowed'");
     }
 
 }

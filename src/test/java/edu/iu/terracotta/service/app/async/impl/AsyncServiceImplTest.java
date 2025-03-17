@@ -22,7 +22,7 @@ import static org.mockito.Mockito.*;
 
 public class AsyncServiceImplTest extends BaseTest {
 
-    @InjectMocks private AsyncServiceImpl asyncService;
+    @InjectMocks private AssignmentAsyncServiceImpl asyncService;
 
     @BeforeEach
     public void beforeEach() {

@@ -71,7 +71,7 @@ public class AssignmentFileArchiveSchedulerRunner {
                     }
 
                     try {
-                        log.info("Task [{}] ran. Processed assignment file archives: [{}]", ASSIGNMENT_FILE_DELETE_TASK, new ObjectMapper().writeValueAsString(results.get()));
+                        log.info("Task [{}] ran. Processed assignment file archives: [{}]", TASK_NAME, new ObjectMapper().writeValueAsString(results.get()));
                     } catch (JsonProcessingException e) {
                         log.error("Error occurred writing value to JSON", e);
                     }

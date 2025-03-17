@@ -7,7 +7,10 @@ import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
 import edu.iu.terracotta.dao.model.enums.DistributionTypes;
 import edu.iu.terracotta.dao.model.enums.ExposureTypes;
 import edu.iu.terracotta.dao.model.enums.ParticipationTypes;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import org.hibernate.annotations.OnDelete;
@@ -33,6 +36,9 @@ import java.util.List;
 @Entity
 @Getter
 @Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Table(name = "terr_experiment")
 public class Experiment extends BaseEntity {
 

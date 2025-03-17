@@ -8,7 +8,7 @@ import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorExcept
 import edu.iu.terracotta.dao.entity.AssignmentFileArchive;
 import edu.iu.terracotta.exceptions.DataServiceException;
 
-public interface AsyncService {
+public interface AssignmentAsyncService {
 
     void checkAndRestoreAssignmentsInLmsByContext(SecuredInfo securedInfo) throws DataServiceException, ConnectionException, IOException, ApiException, TerracottaConnectorException;
     void handleObsoleteAssignmentsInLmsByContext(SecuredInfo securedInfo) throws DataServiceException, ConnectionException, IOException, ApiException, TerracottaConnectorException;

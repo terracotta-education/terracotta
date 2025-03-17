@@ -1,6 +1,9 @@
 package edu.iu.terracotta.dao.entity;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import edu.iu.terracotta.connectors.generic.dao.entity.BaseEntity;
 import jakarta.persistence.Column;
@@ -16,6 +19,9 @@ import jakarta.persistence.Table;
 @Entity
 @Getter
 @Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Table(name = "terr_answer_mc")
 public class AnswerMc extends BaseEntity {
 

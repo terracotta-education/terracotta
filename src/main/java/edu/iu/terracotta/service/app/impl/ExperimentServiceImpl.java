@@ -38,7 +38,7 @@ import edu.iu.terracotta.service.app.ConditionService;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.ExposureService;
 import edu.iu.terracotta.service.app.ParticipantService;
-import edu.iu.terracotta.service.app.async.AsyncService;
+import edu.iu.terracotta.service.app.async.AssignmentAsyncService;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.collections4.CollectionUtils;
@@ -70,7 +70,7 @@ public class ExperimentServiceImpl implements ExperimentService {
     @Autowired private ParticipantRepository participantRepository;
     @Autowired private PlatformDeploymentRepository platformDeploymentRepository;
     @Autowired private AssignmentService assignmentService;
-    @Autowired private AsyncService asyncService;
+    @Autowired private AssignmentAsyncService asyncService;
     @Autowired private ConditionService conditionService;
     @Autowired private ExposureService exposureService;
     @Autowired private FileStorageServiceImpl fileStorageService;

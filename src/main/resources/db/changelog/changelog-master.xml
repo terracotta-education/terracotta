@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <databaseChangeLog
-        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
-        xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
-        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext
-          http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd
-          http://www.liquibase.org/xml/ns/dbchangelog
-          http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd"
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd
+    http://www.liquibase.org/xml/ns/dbchangelog
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd"
 >
   <include file="db/changelog/2021/05/21-01-changelog.xml"/>
   <include file="db/changelog/2021/05/24-01-changelog.xml"/>
@@ -75,6 +75,7 @@
   <include file="db/changelog/2025/03/03-01-changelog.xml"/>
   <include file="db/changelog/2025/03/04-01-changelog.xml"/>
   <include file="db/changelog/2025/03/17-01-changelog.xml"/>
+  <include file="db/changelog/2025/03/19-01-changelog.xml"/>
   <include file="db/changelog/2025/04/02-01-changelog.xml"/>
   <include file="db/changelog/2025/04/02-02-changelog.xml"/>
 </databaseChangeLog>

@@ -60,15 +60,13 @@ import edu.iu.terracotta.dao.repository.TreatmentRepository;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.app.FileStorageService;
-import edu.iu.terracotta.service.app.async.AsyncService;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
+import edu.iu.terracotta.service.app.async.AssignmentAsyncService;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
 @SuppressWarnings({"PMD.GuardLogStatement"})
-public class AsyncServiceImpl implements AsyncService {
+public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
 
     @Autowired private AnswerFileSubmissionRepository answerFileSubmissionRepository;
     @Autowired private AssignmentFileArchiveRepository assignmentFileArchiveRepository;
@@ -82,8 +80,6 @@ public class AsyncServiceImpl implements AsyncService {
     @Autowired private AssignmentService assignmentService;
     @Autowired private FileStorageService fileStorageService;
     @Autowired private ApiClient apiClient;
-
-    @PersistenceContext private EntityManager entityManager;
 
     @Value("${assignment.file.archive.local.path.root}")
     private String assignmentFileArchiveLocalPathRoot;
@@ -116,7 +112,7 @@ public class AsyncServiceImpl implements AsyncService {
             .toList();
 
         List<String> assignmentsRecreated = assignmentsToCheck.stream()
-            .filter(assignmentToCheck -> !lmsAssignmentIds.contains(assignmentToCheck.getLmsAssignmentId()))
+            .filter(assignmentToCheck -> assignmentToCheck.getLmsAssignmentId() == null || !lmsAssignmentIds.contains(assignmentToCheck.getLmsAssignmentId()))
             .map(
                 assignmentToCreate -> {
                     log.info("Creating assignment with ID: [{}] in the LMS ", assignmentToCreate.getAssignmentId());

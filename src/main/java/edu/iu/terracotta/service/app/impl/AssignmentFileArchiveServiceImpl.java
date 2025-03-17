@@ -22,7 +22,7 @@ import edu.iu.terracotta.dao.repository.SubmissionRepository;
 import edu.iu.terracotta.exceptions.AssignmentFileArchiveNotFoundException;
 import edu.iu.terracotta.service.app.AssignmentFileArchiveService;
 import edu.iu.terracotta.service.app.FileStorageService;
-import edu.iu.terracotta.service.app.async.AsyncService;
+import edu.iu.terracotta.service.app.async.AssignmentAsyncService;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -33,8 +33,8 @@ public class AssignmentFileArchiveServiceImpl implements AssignmentFileArchiveSe
     @Autowired private AssignmentFileArchiveRepository assignmentFileArchiveRepository;
     @Autowired private LtiUserRepository ltiUserRepository;
     @Autowired private SubmissionRepository submissionRepository;
-    @Autowired private AsyncService asyncService;
     @Autowired private FileStorageService fileStorageService;
+    @Autowired private AssignmentAsyncService asyncService;
 
     @Override
     public AssignmentFileArchiveDto process(Assignment assignment, SecuredInfo securedInfo) throws IOException {

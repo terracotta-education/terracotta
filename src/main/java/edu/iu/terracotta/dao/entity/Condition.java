@@ -1,6 +1,9 @@
 package edu.iu.terracotta.dao.entity;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import jakarta.persistence.Column;
@@ -20,6 +23,9 @@ import edu.iu.terracotta.connectors.generic.dao.entity.BaseEntity;
 @Entity
 @Getter
 @Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Table(name = "terr_condition")
 public class Condition extends BaseEntity {
 

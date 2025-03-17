@@ -82,6 +82,7 @@ import edu.iu.terracotta.service.app.QuestionSubmissionCommentService;
 import edu.iu.terracotta.service.app.QuestionSubmissionService;
 import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.service.app.TreatmentService;
+import edu.iu.terracotta.service.app.async.ExperimentImportAsyncService;
 import edu.iu.terracotta.service.app.dashboard.results.ResultsOutcomesAverageGradeService;
 import edu.iu.terracotta.service.app.dashboard.results.ResultsOutcomesService;
 import edu.iu.terracotta.service.app.dashboard.results.ResultsOutcomesTimeOnTaskService;
@@ -111,6 +112,7 @@ public class BaseServiceTest extends BaseRepositoryTest {
     @Mock protected ApiClient apiClient;
     @Mock protected ApiJwtService apiJwtService;
     @Mock protected ApiOAuthSettings apiOAuthSettings;
+    @Mock protected ApiScopeService canvasAPIScopeService;
     @Mock protected AssessmentService assessmentService;
     @Mock protected AssessmentSubmissionService assessmentSubmissionService;
     @Mock protected AssignmentReaderExtended assignmentReaderExtended;
@@ -129,8 +131,8 @@ public class BaseServiceTest extends BaseRepositoryTest {
     @Mock protected ConnectorService<ApiClient> apiClientConnectorService;
     @Mock protected ConnectorService<ApiJwtService> apiJwtConnectorService;
     @Mock protected ConnectorService<LmsOAuthService<ApiToken>> lmsOAuthConnectorService;
-    @Mock protected ApiScopeService canvasAPIScopeService;
     @Mock protected ExceptionMessageGenerator exceptionMessageGenerator;
+    @Mock protected ExperimentImportAsyncService experimentImportAsyncService;
     @Mock protected ExperimentService experimentService;
     @Mock protected ExposureService exposureService;
     @Mock protected FileStorageService fileStorageService;
@@ -206,6 +208,7 @@ public class BaseServiceTest extends BaseRepositoryTest {
             when(canvasApiJwtService.buildJwt(anyBoolean(), any(Lti3Request.class))).thenReturn(JWT);
             when(canvasLmsOAuthService.isConfigured(any(PlatformDeployment.class))).thenReturn(true);
             when(canvasLmsOAuthService.getAccessToken(any(LtiUserEntity.class))).thenReturn(apiTokenEntity);
+            when(fileStorageService.getExperimentImportFile(anyLong())).thenReturn(file);
             when(groupParticipantService.getUniqueGroupByConditionId(anyLong(), anyString(), anyLong())).thenReturn(group);
             when(groupParticipantService.nextGroup(any(Experiment.class))).thenReturn(group);
             when(integrationClientService.fromDto(any(IntegrationClientDto.class))).thenReturn(integrationClient);

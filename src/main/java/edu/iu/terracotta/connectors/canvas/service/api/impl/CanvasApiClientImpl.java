@@ -225,11 +225,21 @@ public class CanvasApiClientImpl implements ApiClient {
     public AssignmentExtended uploadConsentFile(Experiment experiment, ConsentDocument consentDocument, LtiUserEntity instructorUser) throws ApiException, IOException {
         AssignmentExtended assignmentExtended = AssignmentExtended.builder().build();
         ExternalToolTagAttribute canvasExternalToolTagAttributes = assignmentExtended.getAssignment().new ExternalToolTagAttribute();
-        canvasExternalToolTagAttributes.setUrl(
-            ServletUriComponentsBuilder.fromCurrentContextPath()
-                .path(String.format("/lti3?consent=true&experiment=%s", experiment.getExperimentId()))
+        String consentPath = String.format("/lti3?consent=true&experiment=%s", experiment.getExperimentId());
+        String url = null;
+
+        try {
+            // build URL from context
+            url = ServletUriComponentsBuilder.fromCurrentContextPath()
+                .path(consentPath)
                 .build()
-                .toUriString());
+                .toUriString();
+        } catch (Exception e) {
+            // build URL from platform deployment
+            url = String.format("%s%s", instructorUser.getPlatformDeployment().getLocalUrl(), consentPath);
+        }
+
+        canvasExternalToolTagAttributes.setUrl(url);
         assignmentExtended.getAssignment().setExternalToolTagAttributes(canvasExternalToolTagAttributes);
         assignmentExtended.getAssignment().setName(consentDocument.getTitle());
         assignmentExtended.getAssignment().setDescription(StringUtils.EMPTY);

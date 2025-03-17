@@ -9,11 +9,13 @@ import edu.iu.terracotta.connectors.generic.service.connector.ConnectorService;
 import edu.iu.terracotta.connectors.generic.service.lti.LtiDataService;
 import edu.iu.terracotta.dao.entity.Assignment;
 import edu.iu.terracotta.dao.entity.Experiment;
+import edu.iu.terracotta.dao.entity.distribute.ExperimentImport;
 import edu.iu.terracotta.dao.exceptions.AnswerNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.AnswerSubmissionNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.AssignmentNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.ConditionNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.ExperimentImportNotFoundException;
 import edu.iu.terracotta.dao.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.ExposureNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.GroupNotMatchingException;
@@ -46,6 +48,7 @@ import edu.iu.terracotta.dao.repository.QuestionSubmissionRepository;
 import edu.iu.terracotta.dao.repository.SubmissionCommentRepository;
 import edu.iu.terracotta.dao.repository.SubmissionRepository;
 import edu.iu.terracotta.dao.repository.TreatmentRepository;
+import edu.iu.terracotta.dao.repository.distribute.ExperimentImportRepository;
 import edu.iu.terracotta.dao.repository.integrations.IntegrationRepository;
 import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.ConditionsLockedException;
@@ -107,6 +110,7 @@ public class ApiJwtServiceImpl implements ApiJwtService {
     @Autowired private AssessmentRepository assessmentRepository;
     @Autowired private AssignmentRepository assignmentRepository;
     @Autowired private ConditionRepository conditionRepository;
+    @Autowired private ExperimentImportRepository experimentImportRepository;
     @Autowired private ExperimentRepository experimentRepository;
     @Autowired private ExposureRepository exposureRepository;
     @Autowired private GroupRepository groupRepository;
@@ -620,6 +624,12 @@ public class ApiJwtServiceImpl implements ApiJwtService {
         if (!integrationRepository.existsByUuidAndQuestion_QuestionId(integrationUuid, questionId)) {
             throw new IntegrationOwnerNotMatchingException(String.format("Question with ID: [%s] does not own integration with UUID: [%s]", questionId, integrationUuid));
         }
+    }
+
+    @Override
+    public ExperimentImport experimentImportAllowed(SecuredInfo securedInfo, UUID uuid) throws ExperimentImportNotFoundException {
+        return experimentImportRepository.findByUuidAndOwner_UserKeyAndContext_ContextId(uuid, securedInfo.getUserId(), securedInfo.getContextId())
+            .orElseThrow(() -> new ExperimentImportNotFoundException(String.format("Experiment Import with UUID: [%s] not found", uuid)));
     }
 
 }

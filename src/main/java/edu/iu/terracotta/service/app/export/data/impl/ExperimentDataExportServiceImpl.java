@@ -66,7 +66,7 @@ public class ExperimentDataExportServiceImpl implements ExperimentDataExportServ
 
         experimentDataExportAsyncService.process(exportData, securedInfo);
 
-        log.info("Experiment data export with ID: [{}] is being processed.", exportData.getUuid());
+        log.info("Experiment data export with ID: [{}] is being processed.", exportData.getId());
         return toDto(exportData, false);
     }
 

@@ -1,6 +1,9 @@
 package edu.iu.terracotta.dao.entity;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import org.hibernate.annotations.OnDelete;
@@ -20,6 +23,9 @@ import jakarta.persistence.Table;
 @Entity
 @Getter
 @Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Table(name = "terr_treatment")
 public class Treatment extends BaseEntity {
 

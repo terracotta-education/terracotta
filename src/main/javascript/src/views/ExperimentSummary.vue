@@ -29,8 +29,18 @@
             @click="handleDataExportRequest()"
             color="primary"
             elevation="0"
+            class="mx-1"
           >
             Export Data
+          </v-btn>
+          <v-btn
+            v-if="experimentExportEnabled"
+            @click="handleExperimentExport()"
+            color="primary"
+            elevation="0"
+            class="mx-1"
+          >
+            Export Experiment
           </v-btn>
           <v-btn
             @click="saveExit()"
@@ -560,7 +570,8 @@ export default {
       assignments: "assignment/assignments",
       conditionColorMapping: "condition/conditionColorMapping",
       editMode: "navigation/editMode",
-      dataExportRequests: "dataexportrequest/dataExportRequests"
+      dataExportRequests: "dataexportrequest/dataExportRequests",
+      configurations: "configuration/get"
     }),
     // Higher Level Section Values
     sectionValuesMap() {
@@ -761,6 +772,9 @@ export default {
     },
     dataExportRequest() {
       return this.dataExportRequests?.find(dataExportRequest => dataExportRequest.experimentId === parseInt(this.experimentId));
+    },
+    experimentExportEnabled() {
+      return this.configurations?.experimentExportEnabled;
     }
   },
   methods: {
@@ -780,9 +794,14 @@ export default {
       pollDataExportRequest: "dataexportrequest/poll",
       pollDataExportRequests: "dataexportrequest/pollList",
       dataExportRequestAcknowledge: "dataexportrequest/acknowledge",
+      exportExperiment: "experiment/exportExperiment",
+      importExperiment: "experiment/importExperiment"
     }),
     saveExit() {
       this.$router.push({ name: "Home" });
+    },
+    async handleExperimentExport() {
+      await this.exportExperiment(this.experimentId);
     },
     // Navigate to EDIT section
     async handleEdit(componentName, currentTab) {
