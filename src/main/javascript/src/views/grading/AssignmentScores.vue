@@ -39,6 +39,7 @@
           >
             <v-btn
               v-if="hasFileSubmissionQuestions"
+              :disabled="!hasFileSubmissions"
               @click="handleFileRequest()"
               color="primary"
               class="btn-download-file"
@@ -197,6 +198,16 @@ export default {
           }
         }
       );
+    },
+    hasFileSubmissions() {
+      return this.assignment?.treatments?.filter(
+        treatment => {
+          if (treatment.assessmentDto.questions.some(question => question.questionType === "FILE")) {
+            return true;
+          }
+        }
+      )
+      .some(treatment => treatment.assessmentDto.submissions.length > 0);
     },
     fileArchiveAvailable() {
       return this.fileRequest?.ready;

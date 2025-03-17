@@ -329,7 +329,7 @@ public class AsyncServiceImpl implements AsyncService {
                                     )
                                 );
                                 // add the question and file mapping
-                                userQuestionFileMap.put(StringUtils.substring(Jsoup.parse(fileQuestion.getHtml()).text(), 0, 20), renamedFilePath.toFile());
+                                userQuestionFileMap.put(StringUtils.substring(Jsoup.parse(fileQuestion.getHtml()).text(), 0, 50), renamedFilePath.toFile());
                             } catch (IOException e) {
                                 log.error("Error renaming file: [{}] to: [{}]", file.toPath(), updatedPath, e);
                             }
