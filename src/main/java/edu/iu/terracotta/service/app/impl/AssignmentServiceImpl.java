@@ -196,8 +196,6 @@ public class AssignmentServiceImpl implements AssignmentService {
         return saveAndFlush(assignmentSaved);
     }
 
-
-
     @Override
     public Assignment fromDto(AssignmentDto assignmentDto) throws DataServiceException {
         //Note: we don't want to allow the dto to change the LmsAssignmentId or the ResourceLinkId

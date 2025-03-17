@@ -6,6 +6,7 @@ import java.util.Optional;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,7 +37,9 @@ import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.service.app.AssessmentService;
 import edu.iu.terracotta.service.app.AssignmentTreatmentService;
 
+@Slf4j
 @Service
+@SuppressWarnings({"PMD.GuardLogStatement"})
 public class AssignmentTreatmentServiceImpl implements AssignmentTreatmentService {
 
     @Autowired private AssessmentRepository assessmentRepository;
@@ -119,7 +122,7 @@ public class AssignmentTreatmentServiceImpl implements AssignmentTreatmentServic
 
     @Override
     public AssignmentDto toAssignmentDto(Assignment assignment, boolean submissions, boolean addTreatmentDto) throws AssessmentNotMatchingException {
-        AssignmentDto assignmentDto = new AssignmentDto();
+        AssignmentDto assignmentDto = AssignmentDto.builder().build();
         assignmentDto.setAssignmentId(assignment.getAssignmentId());
         assignmentDto.setLmsAssignmentId(assignment.getLmsAssignmentId());
         assignmentDto.setTitle(assignment.getTitle());

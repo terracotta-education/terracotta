@@ -1,0 +1,34 @@
+<?xml
+  version="1.1"
+  encoding="UTF-8"
+  standalone="no"
+?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+  xmlns:pro="http://www.liquibase.org/xml/ns/pro"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd http://www.liquibase.org/xml/ns/pro http://www.liquibase.org/xml/ns/pro/liquibase-pro-latest.xsd http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd"
+>
+  <changeSet author="rlong" id="1742216512-01">
+    <createTable tableName="scheduled_tasks">
+      <column name="task_name" type="VARCHAR(100)"/>
+      <column name="task_instance" type="VARCHAR(100)"/>
+      <column name="task_data" type="TEXT"/>
+      <column name="execution_time" type="timestamp"/>
+      <column name="picked" type="BIT(1)"/>
+      <column name="picked_by" type="VARCHAR(50)"/>
+      <column name="last_success" type="timestamp"/>
+      <column name="last_failure" type="timestamp"/>
+      <column name="consecutive_failures" type="INT"/>
+      <column name="last_heartbeat" type="timestamp"/>
+      <column name="version" type="BIGINT"/>
+      <column name="entity_version" type="BIGINT"/>
+      <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP"/>
+      <column name="updated_at" type="datetime"/>
+    </createTable>
+  </changeSet>
+  <changeSet author="rlong (generated)" id="1742216512-02">
+    <addPrimaryKey tableName="scheduled_tasks" columnNames="task_name,task_instance" constraintName="scheduled_tasks_pk"/>
+  </changeSet>
+</databaseChangeLog>

@@ -10,6 +10,7 @@ import edu.iu.terracotta.connectors.generic.dao.repository.lti.PlatformDeploymen
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
 import edu.iu.terracotta.connectors.generic.service.lti.LtiDataService;
+import edu.iu.terracotta.dao.entity.Assignment;
 import edu.iu.terracotta.dao.entity.Experiment;
 import edu.iu.terracotta.dao.exceptions.AnswerNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.AnswerSubmissionNotMatchingException;
@@ -724,12 +725,12 @@ public class CanvasApiJwtServiceImpl implements ApiJwtService {
     }
 
     @Override
-    public void assignmentAllowed(SecuredInfo securedInfo, Long experimentId, Long assignmentId) throws AssignmentNotMatchingException {
+    public Assignment assignmentAllowed(SecuredInfo securedInfo, long experimentId, long assignmentId) throws AssignmentNotMatchingException {
         throw new UnsupportedOperationException("Unimplemented method 'assignmentAllowed'");
     }
 
     @Override
-    public void assignmentAllowed(SecuredInfo securedInfo, Long experimentId, Long exposureId, Long assignmentId) throws AssignmentNotMatchingException {
+    public Assignment assignmentAllowed(SecuredInfo securedInfo, long experimentId, long exposureId, long assignmentId) throws AssignmentNotMatchingException {
         throw new UnsupportedOperationException("Unimplemented method 'assignmentAllowed'");
     }
 

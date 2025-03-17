@@ -20,6 +20,7 @@ import { navigation } from "./navigation.module";
 import { groups } from "./groups.module";
 import { resultsDashboard } from "./dashboard/results.module";
 import { preview } from "./preview/preview.module";
+import { assignmentfilearchive } from "./assignmentfilearchive.module";
 
 Vue.use(Vuex)
 
@@ -47,7 +48,8 @@ const store = new Vuex.Store({
         navigation,
         groups,
         resultsDashboard,
-        preview
+        preview,
+        assignmentfilearchive
     },
     strict: process.env.NODE_ENV !== "production",
 })

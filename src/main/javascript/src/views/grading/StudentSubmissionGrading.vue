@@ -431,6 +431,15 @@ export default {
     Spinner,
     SubmissionSelector
   },
+  data() {
+    return {
+      maxPoints: 0,
+      selectedSubmissionId: null,
+      downloadId: null,
+      attempts: [], // [{submissionId, initialScoreType, typeChanged, calculatedGrade: {grade, touched}, overrideGrade: {grade, touched}, gradeOverridden, studentResponse, questionScoreMap, loaded}]
+      isSaving: false
+    };
+  },
   computed: {
     ...mapGetters({
       experiment: "experiment/experiment",
@@ -689,15 +698,6 @@ export default {
 
       this.loadSubmissionResponses(newValue);
     }
-  },
-  data() {
-    return {
-      maxPoints: 0,
-      selectedSubmissionId: null,
-      downloadId: null,
-      attempts: [], // [{submissionId, initialScoreType, typeChanged, calculatedGrade: {grade, touched}, overrideGrade: {grade, touched}, gradeOverridden, studentResponse, questionScoreMap, loaded}]
-      isSaving: false
-    };
   },
   methods: {
     ...mapActions({
