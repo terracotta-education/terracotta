@@ -93,17 +93,17 @@ export default {
     ...mapGetters({
       questions: "assessment/questions",
     }),
-    experiment_id() {
-      return parseInt(this.$route.params.experiment_id);
+    experimentId() {
+      return parseInt(this.$route.params.experimentId);
     },
-    treatment_id() {
-      return parseInt(this.$route.params.treatment_id);
+    treatmentId() {
+      return parseInt(this.$route.params.treatmentId);
     },
-    assessment_id() {
-      return parseInt(this.$route.params.assessment_id);
+    assessmentId() {
+      return parseInt(this.$route.params.assessmentId);
     },
-    condition_id() {
-      return parseInt(this.$route.params.condition_id);
+    conditionId() {
+      return parseInt(this.$route.params.conditionId);
     },
     isPageBreakAfter() {
       const questionIndex = this.question.questionOrder;
@@ -165,10 +165,10 @@ export default {
       if (reallyDelete?.isConfirmed) {
         try {
           return await this.deleteQuestion([
-            this.experiment_id,
-            this.condition_id,
-            this.treatment_id,
-            this.assessment_id,
+            this.experimentId,
+            this.conditionId,
+            this.treatmentId,
+            this.assessmentId,
             question.questionId,
           ]);
         } catch (error) {
@@ -184,10 +184,10 @@ export default {
         );
         await this.createQuestionAtIndex({
           payload: [
-            this.experiment_id,
-            this.condition_id,
-            this.treatment_id,
-            this.assessment_id,
+            this.experimentId,
+            this.conditionId,
+            this.treatmentId,
+            this.assessmentId,
             questionIndex + 1,
             "PAGE_BREAK",
             0,
@@ -217,10 +217,10 @@ export default {
         // find the PAGE_BREAK question after this question
         const pageBreakQuestion = this.questions[questionIndex + 1];
         await this.deleteQuestion([
-          this.experiment_id,
-          this.condition_id,
-          this.treatment_id,
-          this.assessment_id,
+          this.experimentId,
+          this.conditionId,
+          this.treatmentId,
+          this.assessmentId,
           pageBreakQuestion.questionId,
         ]);
 
@@ -244,10 +244,10 @@ export default {
           try {
             this.updateQuestions(question);
             const q = await this.updateQuestion([
-              this.experiment_id,
-              this.condition_id,
-              this.treatment_id,
-              this.assessment_id,
+              this.experimentId,
+              this.conditionId,
+              this.treatmentId,
+              this.assessmentId,
               question.questionId,
               question.html,
               question.points,

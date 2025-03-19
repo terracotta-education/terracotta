@@ -22,10 +22,10 @@ export const submissionService = {
  * Get all Submissions
  */
 async function getAll(
-    experiment_id,
-    condition_id,
-    treatment_id,
-    assessment_id
+    experimentId,
+    conditionId,
+    treatmentId,
+    assessmentId
 ) {
     const requestOptions = {
         method: "GET",
@@ -33,7 +33,7 @@ async function getAll(
     };
 
     return fetch(
-        `${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/submissions`,
+        `${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/submissions`,
         requestOptions
     ).then(handleResponse);
 }
@@ -42,11 +42,11 @@ async function getAll(
  * Get a Submission
  */
 async function getSubmission(
-    experiment_id,
-    condition_id,
-    treatment_id,
-    assessment_id,
-    submission_id
+    experimentId,
+    conditionId,
+    treatmentId,
+    assessmentId,
+    submissionId
 ) {
     const requestOptions = {
         method: "GET",
@@ -54,7 +54,7 @@ async function getSubmission(
     };
 
     return fetch(
-        `${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/submissions/${submission_id}`,
+        `${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/submissions/${submissionId}`,
         requestOptions
     ).then(handleResponse);
 }
@@ -63,11 +63,11 @@ async function getSubmission(
  * Update Individual Submission
  */
 async function updateSubmission(
-  experiment_id,
-  condition_id,
-  treatment_id,
-  assessment_id,
-  submission_id,
+  experimentId,
+  conditionId,
+  treatmentId,
+  assessmentId,
+  submissionId,
   alteredCalculatedGrade,
   totalAlteredGrade,
   gradeOverridden
@@ -83,7 +83,7 @@ async function updateSubmission(
   };
 
   return fetch(
-    `${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/submissions/${submission_id}`,
+    `${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/submissions/${submissionId}`,
     requestOptions
   ).then(handleResponse);
 }
@@ -92,10 +92,10 @@ async function updateSubmission(
  * Update Individual Submission
  */
 async function updateSubmissions(
-    experiment_id,
-    condition_id,
-    treatment_id,
-    assessment_id,
+    experimentId,
+    conditionId,
+    treatmentId,
+    assessmentId,
     submissions
 ) {
 const requestOptions = {
@@ -105,7 +105,7 @@ const requestOptions = {
 };
 
 return fetch(
-    `${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/submissions`,
+    `${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/submissions`,
     requestOptions
 ).then(handleResponse);
 }
@@ -114,11 +114,11 @@ return fetch(
  * Send Question Submissions
  */
 async function createQuestionSubmissions(
-  experiment_id,
-  condition_id,
-  treatment_id,
-  assessment_id,
-  submission_id,
+  experimentId,
+  conditionId,
+  treatmentId,
+  assessmentId,
+  submissionId,
   questions
 ) {
 
@@ -146,7 +146,7 @@ async function createQuestionSubmissions(
 
                 requests.push(
                     fetch(
-                        `${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/submissions/${submission_id}/question_submissions/file`,
+                        `${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/submissions/${submissionId}/question_submissions/file`,
                         requestOptions
                     )
                 )
@@ -163,7 +163,7 @@ async function createQuestionSubmissions(
 
         requests.push(
             fetch(
-                `${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/submissions/${submission_id}/question_submissions`,
+                `${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/submissions/${submissionId}/question_submissions`,
                 requestOptions
             )
         )
@@ -188,11 +188,11 @@ async function createQuestionSubmissions(
      * Update Question Submissions
      */
     async function updateQuestionSubmissions(
-        experiment_id,
-        condition_id,
-        treatment_id,
-        assessment_id,
-        submission_id,
+        experimentId,
+        conditionId,
+        treatmentId,
+        assessmentId,
+        submissionId,
         updatedResponseBody
     ) {
 
@@ -213,7 +213,7 @@ async function createQuestionSubmissions(
             };
 
             return fetch(
-                `${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/submissions/${submission_id}/question_submissions/${updatedResponseBody.questionSubmissionId}/file`,
+                `${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/submissions/${submissionId}/question_submissions/${updatedResponseBody.questionSubmissionId}/file`,
                 requestOptions
             ).then(handleResponse);
         } else {
@@ -225,18 +225,18 @@ async function createQuestionSubmissions(
             };
 
             return fetch(
-                `${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/submissions/${submission_id}/question_submissions`,
+                `${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/submissions/${submissionId}/question_submissions`,
                 requestOptions
             ).then(handleResponse);
         }
     }
 
     async function getQuestionSubmissions(
-        experiment_id,
-        condition_id,
-        treatment_id,
-        assessment_id,
-        submission_id
+        experimentId,
+        conditionId,
+        treatmentId,
+        assessmentId,
+        submissionId
     ) {
         const requestOptions = {
             method: "GET",
@@ -244,7 +244,7 @@ async function createQuestionSubmissions(
         };
 
         return fetch(
-            `${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/submissions/${submission_id}/question_submissions?answer_submissions=true&question_submission_comments=true`,
+            `${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/submissions/${submissionId}/question_submissions?answer_submissions=true&question_submission_comments=true`,
             requestOptions
         ).then(handleResponse);
     }
@@ -253,11 +253,11 @@ async function createQuestionSubmissions(
      * Get Student Response
      */
     async function studentResponse(
-        experiment_id,
-        condition_id,
-        treatment_id,
-        assessment_id,
-        submission_id
+        experimentId,
+        conditionId,
+        treatmentId,
+        assessmentId,
+        submissionId
     ) {
         const requestOptions = {
             method: "GET",
@@ -265,7 +265,7 @@ async function createQuestionSubmissions(
         };
 
         return fetch(
-            `${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/submissions/${submission_id}/question_submissions/?answer_submissions=true`,
+            `${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/submissions/${submissionId}/question_submissions/?answer_submissions=true`,
             requestOptions
         ).then(handleResponse);
     }
@@ -274,11 +274,11 @@ async function createQuestionSubmissions(
      * POST Answer Submissions
      */
     async function createAnswerSubmissions(
-        experiment_id,
-        condition_id,
-        treatment_id,
-        assessment_id,
-        submission_id,
+        experimentId,
+        conditionId,
+        treatmentId,
+        assessmentId,
+        submissionId,
         answerSubmissions
     ) {
         const file_submissions = [];
@@ -315,7 +315,7 @@ async function createQuestionSubmissions(
 
                 requests.push(
                     fetch(
-                        `${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/submissions/${submission_id}/answer_submissions/file`,
+                        `${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/submissions/${submissionId}/answer_submissions/file`,
                         requestOptions
                     )
                 )
@@ -331,7 +331,7 @@ async function createQuestionSubmissions(
 
             requests.push(
                 fetch(
-                    `${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/submissions/${submission_id}/answer_submissions`,
+                    `${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/submissions/${submissionId}/answer_submissions`,
                     requestOptions
                 )
             )
@@ -357,13 +357,13 @@ async function createQuestionSubmissions(
      * PUT Answer Submission
      */
     async function updateAnswerSubmission(
-        experiment_id,
-        condition_id,
-        treatment_id,
-        assessment_id,
-        submission_id,
-        question_submission_id,
-        answer_submission_id,
+        experimentId,
+        conditionId,
+        treatmentId,
+        assessmentId,
+        submissionId,
+        question_submissionId,
+        answer_submissionId,
         answerSubmission
     ) {
         if (answerSubmission.response instanceof File) {
@@ -383,7 +383,7 @@ async function createQuestionSubmissions(
             };
 
             return fetch(
-                `${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/submissions/${submission_id}/answer_submissions/${answer_submission_id}/file`,
+                `${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/submissions/${submissionId}/answer_submissions/${answer_submissionId}/file`,
                 requestOptions
             ).then(handleResponse);
         } else {
@@ -395,7 +395,7 @@ async function createQuestionSubmissions(
             };
 
             return fetch(
-                `${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/submissions/${submission_id}/question_submissions/${question_submission_id}/answer_submissions/${answer_submission_id}`,
+                `${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/submissions/${submissionId}/question_submissions/${question_submissionId}/answer_submissions/${answer_submissionId}`,
                 requestOptions
             ).then(handleResponse);
             }

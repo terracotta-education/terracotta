@@ -125,12 +125,12 @@ export default {
       { player, originalVideoUrl, extensions = null }
     ) {
       this[storeAction]({
-        experiment_id: this.experimentId,
-        condition_id: this.conditionId,
-        treatment_id: this.treatmentId,
-        assessment_id: this.assessmentId,
-        submission_id: this.submissionId,
-        question_id: this.questionId,
+        experimentId: this.experimentId,
+        conditionId: this.conditionId,
+        treatmentId: this.treatmentId,
+        assessmentId: this.assessmentId,
+        submissionId: this.submissionId,
+        questionId: this.questionId,
         originalVideoUrl: originalVideoUrl,
         videoURL: player.getVideoUrl(),
         duration: player.getDuration(),

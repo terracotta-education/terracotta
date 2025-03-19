@@ -10,7 +10,7 @@ const actions = {
     commit('setConsentTitle', '')
   },
   createConsent: ({state}, payload) => {
-    // payload = experiment_id, pdfFile, state.title
+    // payload = experimentId, pdfFile, state.title
     return consentService.create(...payload).then((response) => {
       if (response.status !== 200) {
         throw new Error("Consent file upload failed", {state});
@@ -20,8 +20,8 @@ const actions = {
   setConsentTitle: ({commit}, title) => {
     commit('setConsentTitle', title);
   },
-  async getConsentFile({state}, experiment_id) {
-    return await consentService.getConsentFile(experiment_id).then(response => {
+  async getConsentFile({state}, experimentId) {
+    return await consentService.getConsentFile(experimentId).then(response => {
       if (response.status === 200) {
         return response.base;
       } else if (response.status === 404) {

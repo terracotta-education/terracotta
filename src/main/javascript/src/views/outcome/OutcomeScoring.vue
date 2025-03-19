@@ -1,5 +1,5 @@
 <template>
-  <div v-if="experiment && exposure_id && outcome">
+  <div v-if="experiment && exposureId && outcome">
     <h1 class="mb-6">{{ exposure_title }}</h1>
     <form @submit.prevent="saveExit">
       <v-row>
@@ -49,7 +49,7 @@
                     <v-text-field
                       type="number"
                       :name="participant.participantId"
-                      v-model="participantScoreList.filter(psl=>psl.participantId===participant.participantId && psl.experimentId===experiment_id)[0].scoreNumeric"
+                      v-model="participantScoreList.filter(psl=>psl.participantId===participant.participantId && psl.experimentId===experimentId)[0].scoreNumeric"
                       placeholder="---"
                       style="max-width: 50px;"
                       required
@@ -79,34 +79,34 @@ import {mapActions, mapGetters} from 'vuex'
         participants: 'participants/participants'
       }),
       exitDisabled() {
-        return this.outcome.title.length<1 || this.outcome.title.length > 255 || this.outcome.maxPoints<0 || this.outcomeScores.filter((os) => os.outcomeId === this.outcome_id).some((score) => score.scoreNumeric > this.outcome.maxPoints)
+        return this.outcome.title.length<1 || this.outcome.title.length > 255 || this.outcome.maxPoints<0 || this.outcomeScores.filter((os) => os.outcomeId === this.outcomeId).some((score) => score.scoreNumeric > this.outcome.maxPoints)
       },
-      exposure_id() {
-        return parseInt(this.$route.params.exposure_id)
+      exposureId() {
+        return parseInt(this.$route.params.exposureId)
       },
       exposure_title() {
-        return this.exposures.filter(o=>o.exposureId===this.exposure_id)[0].title
+        return this.exposures.filter(o=>o.exposureId===this.exposureId)[0].title
       },
-      experiment_id() {
-        return parseInt(this.$route.params.experiment_id)
+      experimentId() {
+        return parseInt(this.$route.params.experimentId)
       },
-      outcome_id() {
-        return parseInt(this.$route.params.outcome_id)
+      outcomeId() {
+        return parseInt(this.$route.params.outcomeId)
       },
       participantScoreList() {
         let arr = []
-        const scoresAssociatedwithOutcome = this.outcomeScores.filter((score) => score.outcomeId === this.outcome_id)
+        const scoresAssociatedwithOutcome = this.outcomeScores.filter((score) => score.outcomeId === this.outcomeId)
         this.participantFilteredList.map(p=>{
           const score = scoresAssociatedwithOutcome.filter(o=>o.participantId===p.participantId)[0]
           let item = {
-            experimentId: this.experiment_id,
+            experimentId: this.experimentId,
             participantId: p.participantId,
             scoreNumeric: 0
           }
           if (typeof score !== "undefined") {
             item.outcomeScoreId = score?.outcomeScoreId
-            item.outcomeId = this.outcome_id
-            item.scoreNumeric = parseInt(score?.scoreNumeric) 
+            item.outcomeId = this.outcomeId
+            item.scoreNumeric = parseInt(score?.scoreNumeric)
           }
           arr.push(item);
         })
@@ -152,8 +152,8 @@ import {mapActions, mapGetters} from 'vuex'
       }),
       async saveExit() {
         if(!this.exitDisabled){
-            await this.updateOutcome([this.experiment_id, this.exposure_id, this.outcome])
-            await this.updateOutcomeScores([this.experiment_id, this.exposure_id, this.outcome_id, this.participantScoreList])
+            await this.updateOutcome([this.experimentId, this.exposureId, this.outcome])
+            await this.updateOutcomeScores([this.experimentId, this.exposureId, this.outcomeId, this.participantScoreList])
             this.$router.push({ name: this.$router.currentRoute.meta.previousStep })
         } else {
           this.$swal({
@@ -164,9 +164,9 @@ import {mapActions, mapGetters} from 'vuex'
       }
     },
     async created() {
-      await this.fetchOutcomeById([this.experiment_id, this.exposure_id, this.outcome_id])
-      await this.fetchParticipants(this.experiment_id)
-      await this.fetchOutcomeScores([this.experiment_id, this.exposure_id, this.outcome_id])
+      await this.fetchOutcomeById([this.experimentId, this.exposureId, this.outcomeId])
+      await this.fetchParticipants(this.experimentId)
+      await this.fetchOutcomeScores([this.experimentId, this.exposureId, this.outcomeId])
     }
   }
 </script>

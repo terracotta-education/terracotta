@@ -1,5 +1,5 @@
 <template>
-  <div v-if="experiment && exposure_id">
+  <div v-if="experiment && exposureId">
     <h1 class="mb-6">Select gradebook item(s)</h1>
     <form @submit.prevent="saveExit">
       <v-simple-table class="mb-9 v-data-table--light-header">
@@ -25,7 +25,7 @@
               :key="opIndex"
             >
               <td>
-                <template v-if="!outcomes.some(o=>parseInt(o.lmsOutcomeId)===parseInt(op.assignmentId) && o.exposureId === exposure_id)">
+                <template v-if="!outcomes.some(o=>parseInt(o.lmsOutcomeId)===parseInt(op.assignmentId) && o.exposureId === exposureId)">
                   <v-checkbox
                     v-model="selectedAssignmentIds"
                     :value="op.assignmentId"
@@ -56,11 +56,11 @@ export default {
       outcomePotentials: 'outcome/outcomePotentials',
       outcomes: 'outcome/outcomes'
     }),
-    exposure_id() {
-      return parseInt(this.$route.params.exposure_id)
+    exposureId() {
+      return parseInt(this.$route.params.exposureId)
     },
-    experiment_id() {
-      return parseInt(this.$route.params.experiment_id)
+    experimentId() {
+      return parseInt(this.$route.params.experimentId)
     }
   },
   data() {
@@ -82,10 +82,10 @@ export default {
 
     async saveExit() {
       try {
-        await Promise.all(this.selectedAssignmentIds.map(async assignment_id => {
-          const op = this.outcomePotentials.find(o=>parseInt(o.assignmentId)===parseInt(assignment_id))
-          // payload = experiment_id, exposure_id, title, max_points, external, lmsType, lmsOutcomeId
-          return await this.createOutcome([this.experiment_id, this.exposure_id, op.name, op.pointsPossible, true, op.type, parseInt(assignment_id)])
+        await Promise.all(this.selectedAssignmentIds.map(async assignmentId => {
+          const op = this.outcomePotentials.find(o=>parseInt(o.assignmentId)===parseInt(assignmentId))
+          // payload = experimentId, exposureId, title, max_points, external, lmsType, lmsOutcomeId
+          return await this.createOutcome([this.experimentId, this.exposureId, op.name, op.pointsPossible, true, op.type, parseInt(assignmentId)])
         })).then(() => {
           this.$router.push({name:'ExperimentSummary'})
         })
@@ -95,8 +95,8 @@ export default {
     }
   },
   async created() {
-    await this.fetchOutcomes([this.experiment_id, this.exposure_id])
-    await this.fetchOutcomePotentials(this.experiment_id)
+    await this.fetchOutcomes([this.experimentId, this.exposureId])
+    await this.fetchOutcomePotentials(this.experimentId)
   }
 }
 </script>

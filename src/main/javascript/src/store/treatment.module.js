@@ -7,8 +7,8 @@ const state = {
 
 const actions = {
   async createTreatment ({commit}, payload) {
-    const assignment_id = parseInt(payload[2])
-    // payload = experiment_id, condition_id, assignment_id
+    const assignmentId = parseInt(payload[2])
+    // payload = experimentId, conditionId, assignmentId
     // create the treatment, commit an update mutation, and return the status/data response
     try {
       // check if treatments exist before creating a new one
@@ -16,8 +16,8 @@ const actions = {
       let treatment
 
       // return first treatment that matches, only one treatment per condition
-      if (response?.data?.length>0 && response.data.find(t=>t.assignmentId===assignment_id)) {
-        treatment = response.data.find(t=>t.assignmentId===assignment_id)
+      if (response?.data?.length>0 && response.data.find(t=>t.assignmentId===assignmentId)) {
+        treatment = response.data.find(t=>t.assignmentId===assignmentId)
       } else {
         response = await treatmentService.create(...payload);
         if (response.status !== 201) {
@@ -39,7 +39,7 @@ const actions = {
     }
   },
   async updateTreatment ({commit}, payload) {
-    // payload = experiment_id, condition_id, treatment_id
+    // payload = experimentId, conditionId, treatmentId
     // create the treatment, commit an update mutation, and return the status/data response
     try {
 
@@ -63,7 +63,7 @@ const actions = {
     }
   },
   async checkTreatment({state}, payload) {
-    // payload = experiment_id, condition_id
+    // payload = experimentId, conditionId
     try {
       const response = await treatmentService.fetchTreatment(...payload)
       if (response) {

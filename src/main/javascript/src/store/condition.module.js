@@ -10,11 +10,11 @@ const actions = {
     const defaultConditions = [
       {
         name: "",
-        experiment_experiment_id: experimentId
+        experiment_experimentId: experimentId
       },
       {
         name: "",
-        experiment_experiment_id: experimentId
+        experiment_experimentId: experimentId
       }
     ]
     dispatch("createConditions", defaultConditions)

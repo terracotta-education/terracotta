@@ -541,7 +541,7 @@ export default {
       conditionColorMapping: "condition/conditionColorMapping",
       userId: "api/userId",
     }),
-    experiment_id() {
+    experimentId() {
       return parseInt(this.experiment.experimentId);
     },
     canDeleteAssignment() {
@@ -613,7 +613,7 @@ export default {
 
         if (response.status === 201) {
           return await this.fetchAssignmentsByExposure([
-            this.experiment_id,
+            this.experimentId,
             targetExposureId,
             true,
           ]);
@@ -640,14 +640,14 @@ export default {
         {
           name: 'AssignmentCreateAssignment',
           params: {
-            exposure_id: exposureId,
+            exposureId: exposureId,
             conditionIds: conditionIds
           }
         }
       )
     },
     // Navigate to EDIT section
-    async handleEdit(assignment, exposure_id) {
+    async handleEdit(assignment, exposureId) {
       const reallyEdit = await this.handleAssignmentStartedAlert(assignment.assignmentId);
       if (!reallyEdit) {
         return;
@@ -664,8 +664,8 @@ export default {
       this.$router.push({
         name: 'AssignmentEditor',
         params: {
-          assignment_id: assignment.assignmentId,
-          exposure_id: exposure_id
+          assignmentId: assignment.assignmentId,
+          exposureId: exposureId
         }
       });
     },
@@ -720,7 +720,7 @@ export default {
       if (reallyDelete?.isConfirmed) {
         try {
           return await this.deleteAssignment([
-            this.experiment_id,
+            this.experimentId,
             eid,
             a.assignmentId,
           ]);
@@ -730,18 +730,18 @@ export default {
       }
     },
     async handleDuplicateAssignment(eid, a) {
-      // DUPLICATE ASSIGNMENT experiment_id, exposure_id, assignment_id
+      // DUPLICATE ASSIGNMENT experimentId, exposureId, assignmentId
 
       try {
         const response = await this.duplicateAssignment([
-          this.experiment_id,
+          this.experimentId,
           eid,
           a.assignmentId,
         ]);
 
         if (response.status === 201) {
           return await this.fetchAssignmentsByExposure([
-            this.experiment_id,
+            this.experimentId,
             eid,
             true,
           ]);
@@ -793,10 +793,10 @@ export default {
       this.$router.push({
         name: "TerracottaBuilder",
         params: {
-          experiment_id: this.experiment.experimentId,
-          condition_id: conditionId,
-          treatment_id: treatment?.data?.treatmentId,
-          assessment_id: assessment?.data?.assessmentId,
+          experimentId: this.experiment.experimentId,
+          conditionId: conditionId,
+          treatmentId: treatment?.data?.treatmentId,
+          assessmentId: assessment?.data?.assessmentId,
           current_assignment: JSON.stringify(this.assignments.find((a) => a.assignmentId === assignmentId))
         },
       });
@@ -859,7 +859,7 @@ export default {
       return `/integrations/preview?url=${btoa(url)}`;
     },
     handleTreatmentPreview(treatment) {
-      window.open(`/preview/experiments/${this.experiment_id}/conditions/${treatment.conditionId}/treatments/${treatment.treatmentId}?ownerId=${this.userId}`, "_blank");
+      window.open(`/preview/experiments/${this.experimentId}/conditions/${treatment.conditionId}/treatments/${treatment.treatmentId}?ownerId=${this.userId}`, "_blank");
     }
   },
   async mounted() {

@@ -93,7 +93,7 @@ export default {
                 this.$router.push({
                     name: path,
                     params: {
-                        experiment: this.experiment.experiment_id
+                        experiment: this.experiment.experimentId
                     }
                 })
             } else if (response?.message) {
@@ -121,9 +121,9 @@ export default {
     .v-window.v-carousel {
         overflow: unset !important;
 
-        .v-window__container {
+        /*.v-window__container {
             //overflow: visible;
-        }
+        }*/
 
         .v-window__prev,
         .v-window__next {

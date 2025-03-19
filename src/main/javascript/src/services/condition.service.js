@@ -21,7 +21,7 @@ function create(condition) {
     body: JSON.stringify(condition)
   }
 
-  return fetch(`${store.getters["api/aud"]}/api/experiments/${condition.experiment_experiment_id}/conditions`, requestOptions).then(handleResponse);
+  return fetch(`${store.getters["api/aud"]}/api/experiments/${condition.experiment_experimentId}/conditions`, requestOptions).then(handleResponse);
 }
 
 /**

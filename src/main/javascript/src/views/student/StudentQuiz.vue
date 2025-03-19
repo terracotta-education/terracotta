@@ -354,9 +354,8 @@ export default {
   name: "StudentQuiz",
   props: [
     "experimentId",
-    "condition_id",
-    "assignment_id",
-    "treatment_id",
+    "previewConditionId",
+    "previewTreatmentId",
     "ownerId",
     "previewId",
     "preview"
@@ -377,7 +376,6 @@ export default {
       treatmentId: null,
       submissionId: null,
       assessmentId: null,
-      assignmentId: null,
       submitted: false,
       questionPageIndex: 0,
       assignmentData: null,
@@ -949,8 +947,8 @@ export default {
     if (this.preview) {
       const treatmentPreview = await this.previewTreatment([
         this.experimentId,
-        this.condition_id,
-        this.treatment_id,
+        this.previewConditionId,
+        this.previewTreatmentId,
         this.previewId,
         this.ownerId
       ]);
@@ -958,7 +956,6 @@ export default {
       this.treatment = treatmentPreview.treatment;
       this.setAssessment(this.treatment.assessmentDto);
       this.assessmentId = this.treatment.assessmentDto.assessmentId;
-      this.assignmentId = this.treatment.assignmentId;
       this.treatmentId = this.treatment.treatmentId;
       this.conditionId = this.treatment.conditionId;
       this.submissions = [treatmentPreview.submission];

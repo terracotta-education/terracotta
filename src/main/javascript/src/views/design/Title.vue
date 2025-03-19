@@ -62,7 +62,7 @@ export default {
             this.$router.push({
               name: path,
               params: {
-                experiment: this.experiment.experiment_id
+                experiment: this.experiment.experimentId
               }
             })
           } else if (response?.message) {

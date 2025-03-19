@@ -13,7 +13,7 @@ const routes = [
   },
   {
     // Experiment paths
-    path: '/experiment/:experiment_id',
+    path: '/experiment/:experimentId',
     component: () => import('../views/Experiment.vue'),
     children: [
       {
@@ -27,11 +27,11 @@ const routes = [
         component: () => import('../views/ExperimentSummary.vue')
       },
       {
-        path: 'exposure/:exposure_id',
+        path: 'exposure/:exposureId',
         component: () => import('../views/ExperimentOutcome.vue'),
         children: [
           {
-            path: 'outcome/:outcome_id/outcome-scoring',
+            path: 'outcome/:outcomeId/outcome-scoring',
             alias: 'outcome-scoring',
             name: 'OutcomeScoring',
             meta: {
@@ -48,7 +48,7 @@ const routes = [
             component: () => import('../views/outcome/OutcomeGradebook.vue')
           },
           {
-            path: 'assignment/:assignment_id/assignment-scores',
+            path: 'assignment/:assignmentId/assignment-scores',
             name: 'AssignmentScores',
             meta: {
               previousStep: 'ExperimentSummaryStatus'
@@ -56,7 +56,7 @@ const routes = [
             component: () => import('../views/grading/AssignmentScores.vue')
           },
           {
-            path: 'assignment/:assignment_id/assessment/:assessment_id/condition/:condition_id/treatment/:treatment_id/participants/:participant_id/student-assignment-scores',
+            path: 'assignment/:assignmentId/assessment/:assessmentId/condition/:conditionId/treatment/:treatmentId/participants/:participantId/student-assignment-scores',
             name: 'StudentSubmissionGrading',
             meta: {
               previousStep: 'AssignmentScores',
@@ -322,7 +322,7 @@ const routes = [
             }
           },
           {
-            path: 'exposure-sets/:exposure_id/intro',
+            path: 'exposure-sets/:exposureId/intro',
             name: 'AssignmentExposureSetsIntro',
             component: () => import('../views/assignment/ExposureSetsIntro.vue'),
             meta: {
@@ -332,7 +332,7 @@ const routes = [
             }
           },
           {
-            path: 'exposure-sets/:exposure_id/assignments',
+            path: 'exposure-sets/:exposureId/assignments',
             name: 'AssignmentYourAssignments',
             component: () => import('../views/assignment/YourAssignments.vue'),
             meta: {
@@ -342,7 +342,7 @@ const routes = [
             }
           },
           {
-            path: 'exposure-sets/:exposure_id/create-assignment',
+            path: 'exposure-sets/:exposureId/create-assignment',
             name: 'AssignmentCreateAssignment',
             component: () => import('../views/assignment/CreateAssignment.vue'),
             meta: {
@@ -352,7 +352,7 @@ const routes = [
             }
           },
           {
-            path: 'exposure-sets/:exposure_id/assignment/:assignment_id/select-assignment-treatment',
+            path: 'exposure-sets/:exposureId/assignment/:assignmentId/select-assignment-treatment',
             name: 'AssignmentTreatmentSelect',
             component: () => import('../views/assignment/AssignmentTreatmentSelect.vue'),
             meta: {
@@ -362,7 +362,7 @@ const routes = [
             }
           },
           {
-            path: 'exposure-sets/:exposure_id/assignment/:assignment_id/condition/:condition_id/treatment/:treatment_id/assessment/:assessment_id/builder',
+            path: 'exposure-sets/:exposureId/assignment/:assignmentId/condition/:conditionId/treatment/:treatmentId/assessment/:assessmentId/builder',
             name: 'TerracottaBuilder',
             component: () => import('../views/assignment/TerracottaBuilder.vue'),
             meta: {
@@ -372,7 +372,7 @@ const routes = [
             }
           },
           {
-            path: 'exposure-sets/:exposure_id/assignment/:assignment_id/edit',
+            path: 'exposure-sets/:exposureId/assignment/:assignmentId/edit',
             alias: 'editor',
             name: 'AssignmentEditor',
             component: () => import('../views/assignment/AssignmentEditor.vue'),

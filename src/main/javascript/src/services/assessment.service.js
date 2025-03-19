@@ -23,38 +23,38 @@ export const assessmentService = {
 /**
  * Fetch Assessment
  */
-async function fetchAssessment(experiment_id, condition_id, treatment_id, assessment_id) {
+async function fetchAssessment(experimentId, conditionId, treatmentId, assessmentId) {
   const requestOptions = {
     method: "GET",
     headers: {...authHeader()}
   }
-  return fetch(`${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}?questions=true&answers=true&submissions=true`, requestOptions).then(handleResponse);
+  return fetch(`${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}?questions=true&answers=true&submissions=true`, requestOptions).then(handleResponse);
 }
 
-async function fetchAssessmentForSubmission(experiment_id, condition_id, treatment_id, assessment_id, submission_id) {
+async function fetchAssessmentForSubmission(experimentId, conditionId, treatmentId, assessmentId, submissionId) {
   const requestOptions = {
     method: "GET",
     headers: {...authHeader()}
   }
-  return fetch(`${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}?questions=true&answers=true&submission_id=${submission_id}`, requestOptions).then(handleResponse);
+  return fetch(`${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}?questions=true&answers=true&submission_id=${submissionId}`, requestOptions).then(handleResponse);
 }
 
 /**
  * Fetch Assessments
  */
-async function fetchAssessments(experiment_id, condition_id, treatment_id) {
+async function fetchAssessments(experimentId, conditionId, treatmentId) {
   const requestOptions = {
     method: "GET",
     headers: {...authHeader()}
   }
 
-  return fetch(`${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments`, requestOptions).then(handleResponse);
+  return fetch(`${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments`, requestOptions).then(handleResponse);
 }
 
 /**
  * Create Assessment
  */
-async function createAssessment(experiment_id, condition_id, treatment_id, title, body) {
+async function createAssessment(experimentId, conditionId, treatmentId, title, body) {
   const requestOptions = {
     method: "POST",
     headers: {...authHeader(), "Content-Type": "application/json"},
@@ -63,17 +63,17 @@ async function createAssessment(experiment_id, condition_id, treatment_id, title
     })
   }
 
-  return fetch(`${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments`, requestOptions).then(handleResponse);
+  return fetch(`${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments`, requestOptions).then(handleResponse);
 }
 
 /**
  * Update Assessment
  */
 async function updateAssessment(
-  experiment_id,
-  condition_id,
-  treatment_id,
-  assessment_id,
+  experimentId,
+  conditionId,
+  treatmentId,
+  assessmentId,
   body,
   allowStudentViewResponses,
   studentViewResponsesAfter,
@@ -104,30 +104,30 @@ async function updateAssessment(
     })
   }
 
-  return fetch(`${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}`, requestOptions).then(handleResponse);
+  return fetch(`${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}`, requestOptions).then(handleResponse);
 }
 
 /**
  * Regrade Assessment Questions
  */
-async function regradeQuestions(experiment_id, condition_id, treatment_id, assessment_id, body) {
+async function regradeQuestions(experimentId, conditionId, treatmentId, assessmentId, body) {
   const requestOptions = {
     method: "POST",
     headers: {...authHeader(), "Content-Type": "application/json"},
     body: JSON.stringify(body)
   }
 
-  return fetch(`${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/regrade`, requestOptions).then(handleResponse);
+  return fetch(`${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/regrade`, requestOptions).then(handleResponse);
 }
 
 /**
  * Create Question
  */
 async function createQuestion(
-  experiment_id,
-  condition_id,
-  treatment_id,
-  assessment_id,
+  experimentId,
+  conditionId,
+  treatmentId,
+  assessmentId,
   question_order,
   question_type,
   points,
@@ -146,18 +146,18 @@ async function createQuestion(
     })
   }
 
-  return fetch(`${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/questions`, requestOptions).then(handleResponse);
+  return fetch(`${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/questions`, requestOptions).then(handleResponse);
 }
 
 /**
  * Update Question
  */
 async function updateQuestion(
-  experiment_id,
-  condition_id,
-  treatment_id,
-  assessment_id,
-  question_id,
+  experimentId,
+  conditionId,
+  treatmentId,
+  assessmentId,
+  questionId,
   html,
   points,
   questionOrder,
@@ -180,35 +180,35 @@ async function updateQuestion(
     })
   }
 
-  return fetch(`${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/questions/${question_id}`, requestOptions).then(handleResponse);
+  return fetch(`${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/questions/${questionId}`, requestOptions).then(handleResponse);
 }
 
 /**
  * Delete Question
  */
 async function deleteQuestion(
-  experiment_id,
-  condition_id,
-  treatment_id,
-  assessment_id,
-  question_id
+  experimentId,
+  conditionId,
+  treatmentId,
+  assessmentId,
+  questionId
 ) {
   const requestOptions = {
     method: "DELETE",
     headers: {...authHeader()}
   }
 
-  return fetch(`${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/questions/${question_id}`, requestOptions).then(handleResponse);
+  return fetch(`${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/questions/${questionId}`, requestOptions).then(handleResponse);
 }
 
 /**
  * Delete Questions
  */
 async function deleteQuestions(
-  experiment_id,
-  condition_id,
-  treatment_id,
-  assessment_id,
+  experimentId,
+  conditionId,
+  treatmentId,
+  assessmentId,
   questions
 ) {
   const requestOptions = {
@@ -219,18 +219,18 @@ async function deleteQuestions(
     )
   }
 
-  return fetch(`${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/questions`, requestOptions).then(handleResponse);
+  return fetch(`${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/questions`, requestOptions).then(handleResponse);
 }
 
 /**
  * Create Answer
  */
 async function createAnswer(
-  experiment_id,
-  condition_id,
-  treatment_id,
-  assessment_id,
-  question_id,
+  experimentId,
+  conditionId,
+  treatmentId,
+  assessmentId,
+  questionId,
   html,
   correct,
   answerOrder
@@ -245,19 +245,19 @@ async function createAnswer(
     })
   }
 
-  return fetch(`${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/questions/${question_id}/answers`, requestOptions).then(handleResponse);
+  return fetch(`${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/questions/${questionId}/answers`, requestOptions).then(handleResponse);
 }
 
 /**
  * Update Answer
  */
 async function updateAnswer(
-  experiment_id,
-  condition_id,
-  treatment_id,
-  assessment_id,
-  question_id,
-  answer_id,
+  experimentId,
+  conditionId,
+  treatmentId,
+  assessmentId,
+  questionId,
+  answerId,
   answer_type,
   html,
   correct,
@@ -274,19 +274,19 @@ async function updateAnswer(
     })
   }
 
-  return fetch(`${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/questions/${question_id}/answers/${answer_id}`, requestOptions).then(handleResponse);
+  return fetch(`${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/questions/${questionId}/answers/${answerId}`, requestOptions).then(handleResponse);
 }
 
 /**
  * Delete Answer
  */
-async function deleteAnswer(experiment_id, condition_id, treatment_id, assessment_id, question_id, answer_id) {
+async function deleteAnswer(experimentId, conditionId, treatmentId, assessmentId, questionId, answerId) {
   const requestOptions = {
     method: "DELETE",
     headers: {...authHeader()}
   }
 
-  return fetch(`${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/questions/${question_id}/answers/${answer_id}`, requestOptions).then(handleResponse);
+  return fetch(`${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/questions/${questionId}/answers/${answerId}`, requestOptions).then(handleResponse);
 }
 
 

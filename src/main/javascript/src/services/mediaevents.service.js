@@ -12,12 +12,12 @@ export const mediaEventsService = {
  * Send Video Started Event
  */
 async function createVideoEvent({
-  experiment_id,
-  condition_id,
-  treatment_id,
-  assessment_id,
-  submission_id,
-  question_id,
+  experimentId,
+  conditionId,
+  treatmentId,
+  assessmentId,
+  submissionId,
+  questionId,
   event,
 }) {
   const requestOptions = {
@@ -26,7 +26,7 @@ async function createVideoEvent({
     body: JSON.stringify(event),
   };
 
-  const url = `${store.getters["api/aud"]}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}/assessments/${assessment_id}/submissions/${submission_id}/questions/${question_id}/media_event`;
+  const url = `${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/submissions/${submissionId}/questions/${questionId}/media_event`;
   // console.log(requestOptions.method, url, event);
   return fetch(url, requestOptions).then(handleResponse);
 }

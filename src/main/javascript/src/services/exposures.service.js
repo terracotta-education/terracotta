@@ -13,14 +13,14 @@ export const exposuresService = {
 /**
  * Get all Exposures
  */
-async function getAll(experiment_id) {
+async function getAll(experimentId) {
   const requestOptions = {
     method: 'GET',
     headers: authHeader(),
   }
 
   return fetch(
-    `${store.getters['api/aud']}/api/experiments/${experiment_id}/exposures`,
+    `${store.getters['api/aud']}/api/experiments/${experimentId}/exposures`,
     requestOptions
   ).then(handleResponse)
 }
@@ -28,14 +28,14 @@ async function getAll(experiment_id) {
 /**
  * Get individual Exposure
  */
-function getById(experiment_id, exposure_id) {
+function getById(experimentId, exposureId) {
   const requestOptions = {
     method: 'GET',
     headers: authHeader(),
   }
 
   return fetch(
-    `${store.getters['api/aud']}/api/experiments/${experiment_id}/exposures/${exposure_id}`,
+    `${store.getters['api/aud']}/api/experiments/${experimentId}/exposures/${exposureId}`,
     requestOptions
   ).then(handleResponse)
 }

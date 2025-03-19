@@ -281,20 +281,20 @@ export default {
     handleNavigate(experimentId) {
       const selectedExperiment =  this.experiments.filter((experiment) => experiment.experimentId === experimentId);
       const {exposureType, participationType, distributionType} = selectedExperiment[0];
-      const isExperimentInComplete = [exposureType, participationType, distributionType].some((value) => value === 'NOSET');
+      const isExperimentIncomplete = [exposureType, participationType, distributionType].some((value) => value === 'NOSET');
 
-      if(isExperimentInComplete) {
+      if (isExperimentIncomplete) {
         this.$router.push({
           name: 'ExperimentDesignIntro',
           params: {
-            experiment_id: experimentId
+            experimentId: experimentId
           }
         });
       } else {
         this.$router.push({
           name: 'ExperimentSummary',
           params: {
-            experiment_id: experimentId
+            experimentId: experimentId
           }
         });
       }
@@ -307,7 +307,7 @@ export default {
             _this.$router.push({
               name: 'ExperimentDesignIntro',
               params: {
-                experiment_id: response.data.experimentId
+                experimentId: response.data.experimentId
               }
             });
           } else {

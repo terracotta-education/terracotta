@@ -18,33 +18,33 @@ export const assignmentService = {
 /**
  * Fetch Assignment
  */
-async function fetchAssignment(experiment_id, exposure_id, assignment_id, submissions=false) {
+async function fetchAssignment(experimentId, exposureId, assignmentId, submissions=false) {
   const includeSubmissions = (submissions) ? "?submissions=true" : ""
   const requestOptions = {
     method: "GET",
     headers: {...authHeader()}
   }
 
-  return fetch(`${store.getters["api/aud"]}/api/experiments/${experiment_id}/exposures/${exposure_id}/assignments/${assignment_id}${includeSubmissions}`, requestOptions).then(handleResponse)
+  return fetch(`${store.getters["api/aud"]}/api/experiments/${experimentId}/exposures/${exposureId}/assignments/${assignmentId}${includeSubmissions}`, requestOptions).then(handleResponse)
 }
 
 /**
  * Fetch Assignments by Exposure
  */
-async function fetchAssignmentsByExposure(experiment_id, exposure_id, submissions=false) {
+async function fetchAssignmentsByExposure(experimentId, exposureId, submissions=false) {
   const includeSubmissions = (submissions) ? "?submissions=true" : ""
   const requestOptions = {
     method: "GET",
     headers: {...authHeader()}
   }
 
-  return fetch(`${store.getters["api/aud"]}/api/experiments/${experiment_id}/exposures/${exposure_id}/assignments${includeSubmissions}`, requestOptions).then(handleResponse)
+  return fetch(`${store.getters["api/aud"]}/api/experiments/${experimentId}/exposures/${exposureId}/assignments${includeSubmissions}`, requestOptions).then(handleResponse)
 }
 
 /**
  * Create Assignment
  */
-function create(experiment_id, exposure_id, body, order) {
+function create(experimentId, exposureId, body, order) {
   const requestOptions = {
     method: "POST",
     headers: { ...authHeader(), "Content-Type": "application/json" },
@@ -54,38 +54,38 @@ function create(experiment_id, exposure_id, body, order) {
     })
   }
 
-  return fetch(`${store.getters["api/aud"]}/api/experiments/${experiment_id}/exposures/${exposure_id}/assignments`, requestOptions).then(handleResponse)
+  return fetch(`${store.getters["api/aud"]}/api/experiments/${experimentId}/exposures/${exposureId}/assignments`, requestOptions).then(handleResponse)
 }
 
 /**
  * Duplicate Assignment
  */
-function duplicateAssignment(experiment_id, exposure_id, assignment_id) {
+function duplicateAssignment(experimentId, exposureId, assignmentId) {
   const requestOptions = {
     method: "POST",
     headers: { ...authHeader(), "Content-Type": "application/json" },
     body: JSON.stringify({})
   };
 
-  return fetch(`${store.getters["api/aud"]}/api/experiments/${experiment_id}/exposures/${exposure_id}/assignments/${assignment_id}/duplicate`, requestOptions).then(handleResponse)
+  return fetch(`${store.getters["api/aud"]}/api/experiments/${experimentId}/exposures/${exposureId}/assignments/${assignmentId}/duplicate`, requestOptions).then(handleResponse)
 }
 
 /**
  * Delete Assignment
  */
-async function deleteAssignment(experiment_id, exposure_id, assignment_id) {
+async function deleteAssignment(experimentId, exposureId, assignmentId) {
   const requestOptions = {
     method: "DELETE",
     headers: {...authHeader()}
   }
 
-  return fetch(`${store.getters["api/aud"]}/api/experiments/${experiment_id}/exposures/${exposure_id}/assignments/${assignment_id}`, requestOptions).then(handleResponse)
+  return fetch(`${store.getters["api/aud"]}/api/experiments/${experimentId}/exposures/${exposureId}/assignments/${assignmentId}`, requestOptions).then(handleResponse)
 }
 
 /**
  * Update Assignments
  */
-async function updateAssignments(experiment_id, exposure_id, payload) {
+async function updateAssignments(experimentId, exposureId, payload) {
   const requestOptions = {
     method: "PUT",
     headers: {...authHeader()},
@@ -94,10 +94,10 @@ async function updateAssignments(experiment_id, exposure_id, payload) {
     ])
   }
 
-  return fetch(`${store.getters["api/aud"]}/api/experiments/${experiment_id}/exposures/${exposure_id}/assignments`, requestOptions).then(handleResponse)
+  return fetch(`${store.getters["api/aud"]}/api/experiments/${experimentId}/exposures/${exposureId}/assignments`, requestOptions).then(handleResponse)
 }
 
-async function updateAssignment(experiment_id, exposure_id, assignment_id, body) {
+async function updateAssignment(experimentId, exposureId, assignmentId, body) {
   const requestOptions = {
     method: "PUT",
     headers: {...authHeader()},
@@ -106,12 +106,12 @@ async function updateAssignment(experiment_id, exposure_id, assignment_id, body)
     })
   }
 
-  return fetch(`${store.getters["api/aud"]}/api/experiments/${experiment_id}/exposures/${exposure_id}/assignments/${assignment_id}`, requestOptions).then(handleResponse);
+  return fetch(`${store.getters["api/aud"]}/api/experiments/${experimentId}/exposures/${exposureId}/assignments/${assignmentId}`, requestOptions).then(handleResponse);
 }
 /**
  * Update Assignments
  */
-async function moveAssignment(experiment_id, exposure_id, assignment_id, update) {
+async function moveAssignment(experimentId, exposureId, assignmentId, update) {
   const requestOptions = {
     method: "POST",
     headers: {...authHeader()},
@@ -119,7 +119,7 @@ async function moveAssignment(experiment_id, exposure_id, assignment_id, update)
       ...update
     })
   }
-  return fetch(`${store.getters["api/aud"]}/api/experiments/${experiment_id}/exposures/${exposure_id}/assignments/${assignment_id}/move`, requestOptions).then(handleResponse);
+  return fetch(`${store.getters["api/aud"]}/api/experiments/${experimentId}/exposures/${exposureId}/assignments/${assignmentId}/move`, requestOptions).then(handleResponse);
 }
 
 /**

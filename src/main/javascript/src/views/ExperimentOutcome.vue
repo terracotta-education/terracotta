@@ -61,7 +61,7 @@ export default {
       experiment: "experiment/experiment",
     }),
     routeExperimentId() {
-      return this.$route.params.experiment_id
+      return this.$route.params.experimentId
     },
     isSaving() {
       return this.saveButtonClicked || false;
@@ -84,10 +84,10 @@ export default {
     }
   },
   beforeRouteEnter (to, from, next) {
-    return store.dispatch('experiment/fetchExperimentById', to.params.experiment_id).then(next, next)
+    return store.dispatch('experiment/fetchExperimentById', to.params.experimentId).then(next, next)
   },
   beforeRouteUpdate (to, from, next) {
-    return store.dispatch('experiment/fetchExperimentById', to.params.experiment_id).then(next, next)
+    return store.dispatch('experiment/fetchExperimentById', to.params.experimentId).then(next, next)
   },
 }
 </script>

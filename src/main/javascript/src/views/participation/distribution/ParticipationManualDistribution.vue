@@ -208,7 +208,7 @@ export default {
     //  load participant data before selection screen
     return (
       store
-        .dispatch("participants/fetchParticipants", to.params.experiment_id)
+        .dispatch("participants/fetchParticipants", to.params.experimentId)
         .then(next, next)
     );
   },

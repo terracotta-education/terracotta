@@ -21,7 +21,7 @@
                 this.$router.push({
                     name:'Home',
                     params: {
-                        experiment: this.experiment.experimentId
+                        experimentId: this.experiment.experimentId
                     }
                 })
             }

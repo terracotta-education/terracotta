@@ -64,11 +64,11 @@ export default {
       assignment: 'assignment/assignment',
       conditions: 'experiment/conditions',
     }),
-    assignment_id() {
-      return parseInt(this.$route.params.assignment_id)
+    assignmentId() {
+      return parseInt(this.$route.params.assignmentId)
     },
-    exposure_id() {
-      return parseInt(this.$route.params.exposure_id)
+    exposureId() {
+      return parseInt(this.$route.params.exposureId)
     },
   },
   data() {
@@ -90,7 +90,7 @@ export default {
         return await this.createTreatment([
           this.experiment.experimentId,
           conditionId,
-          this.assignment_id,
+          this.assignmentId,
         ])
       } catch (error) {
         console.error("handleCreateTreatment | catch", {error})
@@ -133,10 +133,10 @@ export default {
       this.$router.push({
         name: 'TerracottaBuilder',
         params: {
-          experiment_id: this.experiment.experimentId,
-          condition_id: conditionId,
-          treatment_id: treatment?.data?.treatmentId,
-          assessment_id: assessment?.data?.assessmentId
+          experimentId: this.experiment.experimentId,
+          conditionId: conditionId,
+          treatmentId: treatment?.data?.treatmentId,
+          assessmentId: assessment?.data?.assessmentId
         },
       });
     },
@@ -145,7 +145,7 @@ export default {
       return !!this.conditionTreatments.find(conditionTreatment => {
         return conditionTreatment.treatment &&
           conditionTreatment.condition.conditionId === condition.conditionId &&
-          conditionTreatment.treatment.assignmentId === this.assignment_id
+          conditionTreatment.treatment.assignmentId === this.assignmentId
       })
     },
     async checkConditionTreatments() {
@@ -154,16 +154,16 @@ export default {
       for (let c of this.conditions) {
         const t = await this.checkTreatment([this.experiment.experimentId, c.conditionId])
 
-        if (t?.data?.find(o=>parseInt(o.assignmentId)===this.assignment_id)) {
+        if (t?.data?.find(o=>parseInt(o.assignmentId)===this.assignmentId)) {
           const ctObj = {
-            treatment: t.data ? t.data.find(o=>parseInt(o.assignmentId)===this.assignment_id) : null,
+            treatment: t.data ? t.data.find(o=>parseInt(o.assignmentId)===this.assignmentId) : null,
             condition: c
           }
 
           this.conditionTreatments = [
             ...this.conditionTreatments.filter((o) =>
               o.conditionId === ctObj.conditionId &&
-              o.treatment.assignmentId === this.assignment_id
+              o.treatment.assignmentId === this.assignmentId
             ),
             {...ctObj}
           ];
@@ -175,7 +175,7 @@ export default {
     }
   },
   async created() {
-    await this.fetchAssignment([this.experiment.experimentId, this.exposure_id, this.assignment_id])
+    await this.fetchAssignment([this.experiment.experimentId, this.exposureId, this.assignmentId])
     await this.checkConditionTreatments()
   },
 };

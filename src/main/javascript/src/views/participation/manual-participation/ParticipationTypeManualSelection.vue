@@ -186,7 +186,7 @@ export default {
   beforeRouteUpdate(to, from, next) {
     // don't load new data after participant selection screen
     return store
-      .dispatch("participants/fetchParticipants", to.params.experiment_id)
+      .dispatch("participants/fetchParticipants", to.params.experimentId)
       .then(next, next);
   },
 };

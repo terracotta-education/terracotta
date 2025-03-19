@@ -205,7 +205,13 @@
                           <v-list class="text-left">
                             <v-list-item
                               v-if="!outcome.external"
-                              :to="{name:'OutcomeScoring', params: {exposure_id: outcome.exposureId, outcome_id: outcome.outcomeId}}"
+                              :to="{
+                                name:'OutcomeScoring',
+                                params: {
+                                  exposureId: outcome.exposureId,
+                                  outcomeId: outcome.outcomeId
+                                }
+                              }"
                             >
                               <v-list-item-title>Edit</v-list-item-title>
                             </v-list-item>
@@ -239,7 +245,12 @@
               </template>
               <v-list>
                 <v-list-item
-                  :to="{name:'OutcomeGradebook', params: {exposure_id: exposure.exposureId}}"
+                  :to="{
+                    name:'OutcomeGradebook',
+                    params: {
+                      exposureId: exposure.exposureId
+                    }
+                  }"
                 >
                   <v-list-item-title>Select item from gradebook</v-list-item-title>
                 </v-list-item>
@@ -346,16 +357,22 @@ export default {
       deleteOutcome: "outcome/deleteOutcome",
       saveEditMode: "navigation/saveEditMode"
     }),
-    async handleCreateOutcome(exposure_id, external) {
+    async handleCreateOutcome(exposureId, external) {
       try {
-        const outcome = await this.createOutcome([this.experimentId, exposure_id, "", 0, external])
+        const outcome = await this.createOutcome([this.experimentId, exposureId, "", 0, external])
         const routeName = (external) ? "OutcomeGradebook" : "OutcomeScoring"
-        this.$router.push({name:routeName, params: {exposure_id, outcome_id: outcome.outcomeId}})
+        this.$router.push({
+          name:routeName,
+          params: {
+            exposureId,
+            outcomeId: outcome.outcomeId
+          }
+        })
       } catch(error) {
         console.error({error})
       }
     },
-    async handleDeleteOutcome(exposure_id, outcome_id) {
+    async handleDeleteOutcome(exposureId, outcomeId) {
       const reallyDelete = await this.$swal({
         icon: "question",
         text: `Do you really want to delete?`,
@@ -366,7 +383,7 @@ export default {
       // if confirmed, delete experiment
       if (reallyDelete.isConfirmed) {
         try {
-          await this.deleteOutcome([this.experimentId, exposure_id, outcome_id])
+          await this.deleteOutcome([this.experimentId, exposureId, outcomeId])
           this.fetchOutcomesByExposures([this.experimentId, [...new Set(this.exposures.map(item => item.exposureId))]])
         } catch (error) {
           console.error("handleDeleteOutcome | catch", {error})
