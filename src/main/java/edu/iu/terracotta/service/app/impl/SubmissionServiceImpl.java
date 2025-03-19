@@ -107,7 +107,9 @@ public class SubmissionServiceImpl implements SubmissionService {
     public List<SubmissionDto> getSubmissions(Long experimentId, String userId, Long assessmentId, boolean student) throws NoSubmissionsException {
         //for instructor
         if (!student) {
-            List<Submission> submissions = submissionRepository.findByAssessment_AssessmentId(assessmentId);
+            List<Submission> submissions = submissionRepository.findByAssessment_AssessmentId(assessmentId).stream()
+                .filter(submission -> !submission.getParticipant().isTestStudent())
+                .toList();
             List<SubmissionDto> submissionDtoList = new ArrayList<>();
 
             for (Submission submission : submissions) {
