@@ -1,13 +1,13 @@
 <template>
-	<router-view
-		:key="$route.fullPath"
-	/>
+  <router-view
+    :key="$route.fullPath"
+  />
 </template>
 
 <script>
 export default {
-	name: 'Experiment',
+  name: 'Experiment',
 
-	data: () => ({}),
+  data: () => ({}),
 }
 </script>

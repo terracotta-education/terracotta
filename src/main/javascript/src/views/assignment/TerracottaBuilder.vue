@@ -7,7 +7,7 @@
       class="header-container"
     >
       <h1>
-        {{ this.assignment_title }}
+        {{ this.assignmentTitle }}
       </h1>
       <div
         v-if="!hasSingleTreatment"
@@ -18,13 +18,13 @@
           Treatment
         </h4>
         <v-chip
-          :color="condition_color"
+          :color="conditionColor"
           label
         >
           <h4
             class="label-condition-name"
           >
-            {{ this.condition_name }}
+            {{ this.conditionName }}
           </h4>
         </v-chip>
       </div>
@@ -362,7 +362,7 @@
                           v-for="treatment in assignment.treatments"
                         >
                           <v-list-item
-                            v-if="treatment.treatmentId != treatment_id"
+                            v-if="treatment.treatmentId != treatmentId"
                             :key="treatment.treatmentId"
                             @click="duplicate(treatment)"
                           >
@@ -509,33 +509,33 @@ export default {
     assignmentCount() {
       return this.assignments.length;
     },
-    assignment_id() {
+    assignmentId() {
       return this.currentAssignment.assignmentId;
     },
-    assignment_title() {
+    assignmentTitle() {
       return this.currentAssignment.title;
     },
-    exposure_id() {
-      return parseInt(this.$route.params.exposure_id);
+    exposureId() {
+      return parseInt(this.$route.params.exposureId);
     },
-    treatment_id() {
-      return parseInt(this.$route.params.treatment_id);
+    treatmentId() {
+      return parseInt(this.$route.params.treatmentId);
     },
-    assessment_id() {
-      return parseInt(this.$route.params.assessment_id);
+    assessmentId() {
+      return parseInt(this.$route.params.assessmentId);
     },
-    condition_id() {
-      return parseInt(this.$route.params.condition_id);
+    conditionId() {
+      return parseInt(this.$route.params.conditionId);
     },
-    condition_name() {
+    conditionName() {
       return this.condition.name;
     },
-    condition_color() {
-      return this.conditionColorMapping[this.condition_name];
+    conditionColor() {
+      return this.conditionColorMapping[this.conditionName];
     },
     condition() {
       return this.experiment.conditions.find(
-        (c) => parseInt(c.conditionId) === parseInt(this.condition_id)
+        (c) => parseInt(c.conditionId) === parseInt(this.conditionId)
       );
     },
     canClearAll() {
@@ -672,9 +672,9 @@ export default {
       try {
         await this.createQuestion([
           this.experiment.experimentId,
-          this.condition_id,
-          this.treatment_id,
-          this.assessment_id,
+          this.conditionId,
+          this.treatmentId,
+          this.assessmentId,
           this.questions.length,
           questionType,
           1, // points
@@ -702,9 +702,9 @@ export default {
       try {
         await this.createAnswer([
           this.experiment.experimentId,
-          this.condition_id,
-          this.treatment_id,
-          this.assessment_id,
+          this.conditionId,
+          this.treatmentId,
+          this.assessmentId,
           question.questionId,
           "",
           false,
@@ -737,8 +737,8 @@ export default {
       this.deleteQuestions([
         this.experiment.experimentId,
         this.condition.conditionId,
-        this.treatment_id,
-        this.assessment_id,
+        this.treatmentId,
+        this.assessmentId,
         this.assessment.questions
       ]).then(response => {
         if (response.status === 400) {
@@ -753,8 +753,8 @@ export default {
       const response = await this.updateAssessment([
         this.experiment.experimentId,
         this.condition.conditionId,
-        this.treatment_id,
-        this.assessment_id,
+        this.treatmentId,
+        this.assessmentId,
         this.assessment.html,
         this.assessment.allowStudentViewResponses,
         this.assessment.studentViewResponsesAfter,
@@ -780,9 +780,9 @@ export default {
             this.updateQuestions(question);
             const q = await this.updateQuestion([
               this.experiment.experimentId,
-              this.condition_id,
-              this.treatment_id,
-              this.assessment_id,
+              this.conditionId,
+              this.treatmentId,
+              this.assessmentId,
               question.questionId,
               question.html,
               question.points,
@@ -806,9 +806,9 @@ export default {
             try {
               const a = await this.updateAnswer([
                 this.experiment.experimentId,
-                this.condition_id,
-                this.treatment_id,
-                this.assessment_id,
+                this.conditionId,
+                this.treatmentId,
+                this.assessmentId,
                 answer.questionId,
                 answer.answerId,
                 answer.answerType,
@@ -869,7 +869,7 @@ export default {
         this.handleRegradeQuestions();
         this.$router.push({
           name: routeName,
-          params: { exposure_id: isNaN(this.exposure_id) ? this.$route.params.exposure_id : this.exposure_id },
+          params: { exposureId: isNaN(this.exposureId) ? this.$route.params.exposureId : this.exposureId },
         });
       }
     },
@@ -881,9 +881,9 @@ export default {
 
       this.regradeQuestions([
         this.experiment.experimentId,
-        this.condition_id,
-        this.treatment_id,
-        this.assessment_id,
+        this.conditionId,
+        this.treatmentId,
+        this.assessmentId,
         this.regradeDetails
       ]);
     },
@@ -908,16 +908,16 @@ export default {
       try {
         await this.updateTreatment([
           this.experiment.experimentId,
-          this.condition_id,
-          this.treatment_id,
+          this.conditionId,
+          this.treatmentId,
           {
-            treatmentId: this.treatment_id,
-            conditionId: this.condition_id,
-            assignmentId: this.assignment_id,
+            treatmentId: this.treatmentId,
+            conditionId: this.conditionId,
+            assignmentId: this.assignmentId,
             assessmentDto: {
               ...copy,
-              treatmentId: this.treatment_id,
-              assessmentId: this.assessment_id
+              treatmentId: this.treatmentId,
+              assessmentId: this.assessmentId
             },
             assignmentDto: {
               ...this.assignment
@@ -929,9 +929,9 @@ export default {
 
         return await this.fetchAssessment([
           this.experiment.experimentId,
-          this.condition_id,
-          this.treatment_id,
-          this.assessment_id,
+          this.conditionId,
+          this.treatmentId,
+          this.assessmentId,
         ]);
       } catch (error) {
         console.error("handleCreateTreatment | catch", { error });
@@ -956,7 +956,7 @@ export default {
       return "question-panel-" + expandedQuestionPagePanel + "_" + expandedQuestionPanel;
     },
     hasTreatmentsNotCurrent(treatments) {
-      return treatments.some((t) => t.treatmentId !== this.treatment_id && !t.assessmentDto.integration);
+      return treatments.some((t) => t.treatmentId !== this.treatmentId && !t.assessmentDto.integration);
     },
     findAssignmentsAvailableToCopy() {
       this.assignments.forEach((a) => {
@@ -994,8 +994,8 @@ export default {
           var RegradeAssignmentDialogClass = Vue.extend(RegradeAssignmentDialog);
           var regradeAssignmentDialog = new RegradeAssignmentDialogClass({
             propsData: {
-              assignmentName: this.assignment_title,
-              conditionName: this.condition_name,
+              assignmentName: this.assignmentTitle,
+              conditionName: this.conditionName,
               studentCount: this.studentCount,
               editedQuestionCount: this.regradeDetails.editedMCQuestionIds.length
             }
@@ -1025,15 +1025,15 @@ export default {
   async created() {
     await this.fetchAssessment([
       this.experiment.experimentId,
-      this.condition_id,
-      this.treatment_id,
-      this.assessment_id,
+      this.conditionId,
+      this.treatmentId,
+      this.assessmentId,
     ]);
     await await this.fetchSubmissions([
       this.experiment.experimentId,
-      this.condition_id,
-      this.treatment_id,
-      this.assessment_id
+      this.conditionId,
+      this.treatmentId,
+      this.assessmentId
     ]);
     this.getAssignmentDetails();
     this.findAssignmentsAvailableToCopy();

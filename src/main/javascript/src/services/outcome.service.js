@@ -22,14 +22,14 @@ export const outcomeService = {
 /**
  * Get all Outcomes by Experiment and Exposure Id
  */
-function getAll(experiment_id, exposure_id) {
+function getAll(experimentId, exposureId) {
   const requestOptions = {
     method: 'GET',
     headers: authHeader(),
   }
 
   return fetch(
-    `${store.getters['api/aud']}/api/experiments/${experiment_id}/exposures/${exposure_id}/outcomes`,
+    `${store.getters['api/aud']}/api/experiments/${experimentId}/exposures/${exposureId}/outcomes`,
     requestOptions
   ).then(handleResponse)
 }
@@ -37,27 +37,27 @@ function getAll(experiment_id, exposure_id) {
 /**
  * Get Outcome by Experiment, Exposure, and Outcome Id
  */
-function getById(experiment_id, exposure_id, outcome_id) {
+function getById(experimentId, exposureId, outcomeId) {
   const requestOptions = {
     method: 'GET',
     headers: authHeader(),
   }
 
-  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/exposures/${exposure_id}/outcomes/${outcome_id}`, requestOptions).then(handleResponse)
+  return fetch(`${store.getters['api/aud']}/api/experiments/${experimentId}/exposures/${exposureId}/outcomes/${outcomeId}`, requestOptions).then(handleResponse)
 }
 
 /**
  * Get Outcomes by Experiment Id and a list of exposures
  */
-async function getByExperimentId(experiment_id, exposures = []) {
+async function getByExperimentId(experimentId, exposures = []) {
   const requestOptions = {
     method: 'GET',
     headers: authHeader()
   }
   // For One condition experiment, there will be one exposure
   if (exposures.length>=1) {
-    return await Promise.all(exposures.map(async exposure_id =>
-      fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/exposures/${exposure_id}/outcomes`, requestOptions).then(handleResponse)
+    return await Promise.all(exposures.map(async exposureId =>
+      fetch(`${store.getters['api/aud']}/api/experiments/${experimentId}/exposures/${exposureId}/outcomes`, requestOptions).then(handleResponse)
     ))
   }
 }
@@ -65,14 +65,14 @@ async function getByExperimentId(experiment_id, exposures = []) {
 /**
  * Get all Outcomes by Experiment and Exposure Id
  */
-function getAllByExperimentId(experiment_id) {
+function getAllByExperimentId(experimentId) {
   const requestOptions = {
     method: 'GET',
     headers: authHeader(),
   }
 
   return fetch(
-    `${store.getters['api/aud']}/api/experiments/${experiment_id}/outcomes`,
+    `${store.getters['api/aud']}/api/experiments/${experimentId}/outcomes`,
     requestOptions
   ).then(handleResponse)
 }
@@ -80,7 +80,7 @@ function getAllByExperimentId(experiment_id) {
 /**
  * Create Outcome
  */
-function create(experiment_id, exposure_id, title, max_points, external=false, lms_type='NONE', lms_outcome_id = null) {
+function create(experimentId, exposureId, title, max_points, external=false, lms_type='NONE', lms_outcomeId = null) {
   const requestOptions = {
     method: 'POST',
     headers: {
@@ -92,17 +92,17 @@ function create(experiment_id, exposure_id, title, max_points, external=false, l
       "maxPoints": max_points,
       external,
       "lmsType": lms_type,
-      "lmsOutcomeId": lms_outcome_id
+      "lmsOutcomeId": lms_outcomeId
     })
   }
 
-  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/exposures/${exposure_id}/outcomes`, requestOptions).then(handleResponse)
+  return fetch(`${store.getters['api/aud']}/api/experiments/${experimentId}/exposures/${exposureId}/outcomes`, requestOptions).then(handleResponse)
 }
 
 /**
  * Update Outcome by Outcome Id
  */
-function updateOutcome(experiment_id, exposure_id, outcome) {
+function updateOutcome(experimentId, exposureId, outcome) {
   const requestOptions = {
     method: 'PUT',
     headers: {
@@ -117,7 +117,7 @@ function updateOutcome(experiment_id, exposure_id, outcome) {
   }
 
   return fetch(
-    `${store.getters['api/aud']}/api/experiments/${experiment_id}/exposures/${exposure_id}/outcomes/${outcome.outcomeId}`,
+    `${store.getters['api/aud']}/api/experiments/${experimentId}/exposures/${exposureId}/outcomes/${outcome.outcomeId}`,
     requestOptions
   ).then(handleResponse)
 }
@@ -125,14 +125,14 @@ function updateOutcome(experiment_id, exposure_id, outcome) {
 /**
  * Delete Outcome by Outcome Id
  */
-function deleteOutcome(experiment_id, exposure_id, outcome_id) {
+function deleteOutcome(experimentId, exposureId, outcomeId) {
   const requestOptions = {
     method: 'DELETE',
     headers: authHeader(),
   }
 
   return fetch(
-    `${store.getters['api/aud']}/api/experiments/${experiment_id}/exposures/${exposure_id}/outcomes/${outcome_id}`,
+    `${store.getters['api/aud']}/api/experiments/${experimentId}/exposures/${exposureId}/outcomes/${outcomeId}`,
     requestOptions
   ).then(handleResponse)
 }
@@ -140,14 +140,14 @@ function deleteOutcome(experiment_id, exposure_id, outcome_id) {
 /**
  * Get Outcome Scores by Outcome Id
  */
-function getOutcomeScoresById(experiment_id, exposure_id, outcome_id) {
+function getOutcomeScoresById(experimentId, exposureId, outcomeId) {
   const requestOptions = {
     method: 'GET',
     headers: authHeader(),
   }
 
   return fetch(
-    `${store.getters['api/aud']}/api/experiments/${experiment_id}/exposures/${exposure_id}/outcomes/${outcome_id}/outcome_scores`,
+    `${store.getters['api/aud']}/api/experiments/${experimentId}/exposures/${exposureId}/outcomes/${outcomeId}/outcome_scores`,
     requestOptions
   ).then(handleResponse)
 }
@@ -155,14 +155,14 @@ function getOutcomeScoresById(experiment_id, exposure_id, outcome_id) {
 /**
  * Get Outcome Score by Outcome Score Id
  */
-function getScoreById(experiment_id, exposure_id, outcome_id, outcome_score_id) {
+function getScoreById(experimentId, exposureId, outcomeId, outcome_scoreId) {
   const requestOptions = {
     method: 'GET',
     headers: authHeader(),
   }
 
   return fetch(
-    `${store.getters['api/aud']}/api/experiments/${experiment_id}/exposures/${exposure_id}/outcomes/${outcome_id}/outcome_scores/${outcome_score_id}`,
+    `${store.getters['api/aud']}/api/experiments/${experimentId}/exposures/${exposureId}/outcomes/${outcomeId}/outcome_scores/${outcome_scoreId}`,
     requestOptions
   ).then(handleResponse)
 }
@@ -170,7 +170,7 @@ function getScoreById(experiment_id, exposure_id, outcome_id, outcome_score_id) 
 /**
  * POST Outcome Scores
  */
-async function createOutcomeScores(experiment_id, exposure_id, outcome_id, scores = null) {
+async function createOutcomeScores(experimentId, exposureId, outcomeId, scores = null) {
   // scores = array || object
   if (!Array.isArray(scores) || typeof scores !== 'object' && scores.participantId) {
     // if scores is not an array or object with the participantId key
@@ -186,13 +186,13 @@ async function createOutcomeScores(experiment_id, exposure_id, outcome_id, score
     body: JSON.stringify(scores)
   }
 
-  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/exposures/${exposure_id}/outcomes/${outcome_id}/outcome_scores`, requestOptions).then(handleResponse)
+  return fetch(`${store.getters['api/aud']}/api/experiments/${experimentId}/exposures/${exposureId}/outcomes/${outcomeId}/outcome_scores`, requestOptions).then(handleResponse)
 }
 
 /**
  * POST/PUT Outcome Scores
  */
-async function updateOutcomeScores(experiment_id, exposure_id, outcome_id, scores = null) {
+async function updateOutcomeScores(experimentId, exposureId, outcomeId, scores = null) {
   if (
     !scores ||
     // scores exists and is not an array
@@ -216,21 +216,21 @@ async function updateOutcomeScores(experiment_id, exposure_id, outcome_id, score
     requestOptions.method = 'PUT'
     return await Promise.all(scores.map(async score => {
       requestOptions.body = JSON.stringify({'participantId': score.participantId, 'scoreNumeric': score.scoreNumeric})
-      await fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/exposures/${exposure_id}/outcomes/${outcome_id}/outcome_scores/${score.outcomeScoreId}`, requestOptions).then(handleResponse)
+      await fetch(`${store.getters['api/aud']}/api/experiments/${experimentId}/exposures/${exposureId}/outcomes/${outcomeId}/outcome_scores/${score.outcomeScoreId}`, requestOptions).then(handleResponse)
     }))
 
   } else if (typeof scores === 'object' && scores.outcomeScoreId) {
     requestOptions.method = 'PUT'
     requestOptions.body = JSON.stringify(scores)
 
-    return await fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/exposures/${exposure_id}/outcomes/${outcome_id}/outcome_scores/${scores.outcomeScoreId}`, requestOptions).then(handleResponse)
+    return await fetch(`${store.getters['api/aud']}/api/experiments/${experimentId}/exposures/${exposureId}/outcomes/${outcomeId}/outcome_scores/${scores.outcomeScoreId}`, requestOptions).then(handleResponse)
   } else {
     requestOptions.method = 'POST'
     requestOptions.body = JSON.stringify(scores)
 
     return await Promise.all(scores.map(async score => {
       requestOptions.body = JSON.stringify({'participantId': score.participantId, 'scoreNumeric': score.scoreNumeric})
-      await fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/exposures/${exposure_id}/outcomes/${outcome_id}/outcome_scores`, requestOptions).then(handleResponse)
+      await fetch(`${store.getters['api/aud']}/api/experiments/${experimentId}/exposures/${exposureId}/outcomes/${outcomeId}/outcome_scores`, requestOptions).then(handleResponse)
     }))
   }
 }
@@ -239,13 +239,13 @@ async function updateOutcomeScores(experiment_id, exposure_id, outcome_id, score
 /**
  * Get Outcome Potentials by Experiment Id
  */
-function getOutcomePotentials(experiment_id) {
+function getOutcomePotentials(experimentId) {
   const requestOptions = {
     method: 'GET',
     headers: authHeader(),
   }
 
-  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/outcome_potentials`, requestOptions).then(handleResponse)
+  return fetch(`${store.getters['api/aud']}/api/experiments/${experimentId}/outcome_potentials`, requestOptions).then(handleResponse)
 }
 
 

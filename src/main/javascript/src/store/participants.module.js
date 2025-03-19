@@ -41,7 +41,7 @@ const actions = {
       )
   },
 
-  // payload = experiment_id, participant_data
+  // payload = experimentId, participant_data
   async updateParticipant({ commit }, payload) {
     try {
       const { experimentId, participantData } = payload;

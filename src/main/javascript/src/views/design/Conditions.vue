@@ -230,7 +230,7 @@ export default {
       }
 
       if (doAdd) {
-        await this.createCondition({name: "", experiment_experiment_id: this.experimentId});
+        await this.createCondition({name: "", experiment_experimentId: this.experimentId});
         this.$refs.conditionsForm.validate();
       }
     },
@@ -410,14 +410,14 @@ export default {
   },
   beforeRouteEnter(to, from, next) {
     if (store.state.experiment.experiment.conditions.length == 0) {
-      store.dispatch("condition/createDefaultConditions", to.params.experiment_id).then(() => next());
+      store.dispatch("condition/createDefaultConditions", to.params.experimentId).then(() => next());
     } else {
       next();
     }
   },
   beforeRouteUpdate(to, from, next) {
     if (store.state.experiment.experiment.conditions.length == 0) {
-      store.dispatch("condition/createDefaultConditions", to.params.experiment_id).then(() => next());
+      store.dispatch("condition/createDefaultConditions", to.params.experimentId).then(() => next());
     } else {
       next();
     }

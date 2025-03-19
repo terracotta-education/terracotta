@@ -737,10 +737,10 @@ export default {
       this.$router.push({
         name: "TerracottaBuilder",
         params: {
-          experiment_id: this.experimentId,
-          condition_id: conditionId,
-          treatment_id: treatment?.data?.treatmentId,
-          assessment_id: assessment?.data?.assessmentId,
+          experimentId: this.experimentId,
+          conditionId: conditionId,
+          treatmentId: treatment?.data?.treatmentId,
+          assessmentId: assessment?.data?.assessmentId,
         },
       });
     },
@@ -798,12 +798,12 @@ export default {
   },
   beforeRouteEnter(to, from, next) {
     return store
-      .dispatch("experiment/fetchExperimentById", to.params.experiment_id)
+      .dispatch("experiment/fetchExperimentById", to.params.experimentId)
       .then(next, next);
   },
   beforeRouteUpdate(to, from, next) {
     return store
-      .dispatch("experiment/fetchExperimentById", to.params.experiment_id)
+      .dispatch("experiment/fetchExperimentById", to.params.experimentId)
       .then(next, next);
   },
 };

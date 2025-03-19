@@ -51,14 +51,11 @@ export default {
     ...mapGetters({
       assignment: "assignment/assignment",
     }),
-    experiment_id() {
-      return parseInt(this.$route.params.experiment_id);
+    experimentId() {
+      return parseInt(this.$route.params.experimentId);
     },
-    exposure_id() {
-      return parseInt(this.$route.params.exposure_id);
-    },
-    condition_id() {
-      return parseInt(this.$route.params.condition_id);
+    exposureId() {
+      return parseInt(this.$route.params.exposureId);
     },
     conditionIds() {
       return JSON.parse(this.$route.params.conditionIds);
@@ -82,15 +79,15 @@ export default {
     async handleSaveAssignment() {
       // POST ASSESSMENT TITLE & HTML (description) & SETTINGS
       try {
-        const response = await this.createAssignment([this.experiment_id, this.exposure_id, this.assignment, 1]);
-        await this.handleCreateTreatmentsForAssignment(this.experiment_id, response.data.assignmentId);
+        const response = await this.createAssignment([this.experimentId, this.exposureId, this.assignment, 1]);
+        await this.handleCreateTreatmentsForAssignment(this.experimentId, response.data.assignmentId);
 
         if (response?.status === 201) {
           this.$router.push({
             name: 'ExperimentSummary',
             params: {
-              experiment_id: this.experiment_id,
-              assignment_id: response.data.assignmentId
+              experimentId: this.experimentId,
+              assignmentId: response.data.assignmentId
             }
           })
         } else {
@@ -133,7 +130,7 @@ export default {
       // POST ASSESSMENT TITLE & HTML (description)
       try {
         return await this.createAssessment([
-          this.experiment_id,
+          this.experimentId,
           conditionId,
           treatmentId,
         ]);

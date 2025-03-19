@@ -24,8 +24,8 @@
         <student-quiz
           v-if="!isTreatmentPreviewComplete"
           :experimentId="treatmentPreview.experimentId"
-          :condition_id="treatmentPreview.conditionId"
-          :treatment_id="treatmentPreview.treatmentId"
+          :previewConditionId="treatmentPreview.conditionId"
+          :previewTreatmentId="treatmentPreview.treatmentId"
           :previewId="treatmentPreview.previewId"
           :ownerId="treatmentPreview.ownerId"
           :preview="true"
@@ -52,7 +52,7 @@
           <student-quiz
             v-if="!consent && assignmentId"
             :experimentId="experimentId"
-            :assignment_id="assignmentId"
+            :assignmentId="assignmentId"
             :preview="false"
             @loaded="childLoaded = true"
           />

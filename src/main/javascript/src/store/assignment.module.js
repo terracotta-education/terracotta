@@ -29,7 +29,7 @@ const actions = {
     }
   },
   async fetchAssignment({commit}, payload) {
-    // payload = experiment_id, exposure_id, assignment_id
+    // payload = experimentId, exposureId, assignmentId
     // get assignment by it"s assignmentId
     try {
       const response = await assignmentService.fetchAssignment(...payload)
@@ -39,7 +39,7 @@ const actions = {
     }
   },
   async fetchAssignmentsByExposure({commit}, payload) {
-    // payload = experiment_id, exposure_id, submissions*
+    // payload = experimentId, exposureId, submissions*
     // * = optional
     // get assignments by their exposureId
     try {
@@ -50,7 +50,7 @@ const actions = {
     }
   },
   async deleteAssignment({commit}, payload) {
-    // payload = experiment_id, exposure_id, assignment_id
+    // payload = experimentId, exposureId, assignmentId
     // delete assignment, commit mutation, and return the status/data response
     const aId = payload[2]
     try {
@@ -69,7 +69,7 @@ const actions = {
     }
   },
   async duplicateAssignment({commit}, payload) {
-    // payload = experiment_id, exposure_id, assignment_id
+    // payload = experimentId, exposureId, assignmentId
     // duplicate assignment, commit mutation, and return the status/data response
     try {
       const response = await assignmentService.duplicateAssignment(...payload);
@@ -86,7 +86,7 @@ const actions = {
     }
   },
   async createAssignment({commit}, payload) {
-    // payload = experiment_id, exposure_id, title, order
+    // payload = experimentId, exposureId, title, order
     // create the assignment, commit an update mutation, and return the status/data response
     try {
       const response = await assignmentService.create(...payload)

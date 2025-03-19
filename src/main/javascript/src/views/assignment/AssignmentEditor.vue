@@ -50,17 +50,14 @@ export default {
       assignment: "assignment/assignment",
       editMode: "navigation/editMode"
     }),
-    experiment_id() {
-      return parseInt(this.$route.params.experiment_id);
+    experimentId() {
+      return parseInt(this.$route.params.experimentId);
     },
-    assignment_id() {
-      return parseInt(this.$route.params.assignment_id);
+    assignmentId() {
+      return parseInt(this.$route.params.assignmentId);
     },
-    exposure_id() {
-      return parseInt(this.$route.params.exposure_id);
-    },
-    condition_id() {
-      return parseInt(this.$route.params.condition_id);
+    exposureId() {
+      return parseInt(this.$route.params.exposureId);
     },
     contDisabled() {
       return (
@@ -96,7 +93,7 @@ export default {
           name: routeName,
           params: {
             experiment: this.experiment.experimentId,
-            exposure_id: isNaN(this.exposure_id) ? this.$route.params.exposure_id : this.exposure_id
+            exposureId: isNaN(this.exposureId) ? this.$route.params.exposureId : this.exposureId
           }
         });
       }
@@ -104,9 +101,9 @@ export default {
     async handleSaveAssignment() {
       // PUT ASSESSMENT TITLE & HTML (description) & SETTINGS
       const response = await this.updateAssignment([
-        this.experiment_id,
-        this.exposure_id,
-        this.assignment_id,
+        this.experimentId,
+        this.exposureId,
+        this.assignmentId,
         {
             ...this.assignment
         }
@@ -123,12 +120,12 @@ export default {
   },
   async created() {
     console.log(this.experiment.experimentId,
-      this.exposure_id,
-      this.assignment_id,)
+      this.exposureId,
+      this.assignmentId,)
     await this.fetchAssignment([
       this.experiment.experimentId,
-      this.exposure_id,
-      this.assignment_id,
+      this.exposureId,
+      this.assignmentId,
     ]);
   },
   components: {

@@ -18,7 +18,9 @@
       elevation="0"
       color="primary"
       :to="{ name: 'AssignmentExposureSets' }"
-      >Continue</v-btn
+    >
+      Continue
+    </v-btn
     >
   </div>
 </template>
@@ -29,7 +31,11 @@ export default {
   props: ['experiment'],
   methods: {
     saveExit() {
-      this.$router.push({name:'Home', params:{experiment: this.experiment.experimentId}})
+      this.$router.push({
+        name:'Home',
+        params:{
+          experiment: this.experiment.experimentId
+        }})
     }
   }
 };

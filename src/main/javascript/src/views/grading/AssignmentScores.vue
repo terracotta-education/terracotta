@@ -3,6 +3,7 @@
     v-if="experiment && assignment"
   >
     <div
+      v-if="showFileRequestAlert"
       class="pb-2"
     >
       <v-alert
@@ -108,12 +109,13 @@
                           :to="{
                             name: 'StudentSubmissionGrading',
                             params: {
-                              exposure_id: exposureId,
-                              assignment_id: assignmentId,
-                              assessment_id: participant.submission.assessmentId,
-                              condition_id: participant.submission.conditionId,
-                              treatment_id: participant.submission.treatmentId,
-                              participant_id: participant.participantId,
+                              experimentId: experimentId,
+                              exposureId: exposureId,
+                              assignmentId: assignmentId,
+                              assessmentId: participant.submission.assessmentId,
+                              conditionId: participant.submission.conditionId,
+                              treatmentId: participant.submission.treatmentId,
+                              participantId: participant.participantId,
                             },
                           }"
                         >
@@ -176,13 +178,13 @@ export default {
       fileRequest: "assignmentfilearchive/fileRequest"
     }),
     assignmentId() {
-      return parseInt(this.$route.params.assignmentId);
+      return this.assignment?.assignmentId || parseInt(this.$route.params.assignmentId);
     },
     exposureId() {
       return parseInt(this.$route.params.exposureId);
     },
     experimentId() {
-      return parseInt(this.$route.params.experimentId);
+      return this.experiment?.experimentId || parseInt(this.$route.params.experimentId);
     },
     selectedAssignmentTreatments() {
       return this.assignment.treatments;

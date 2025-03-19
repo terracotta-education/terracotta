@@ -27,7 +27,7 @@ const actions = {
     }
   },
   async createAssessment ({commit}, payload) {
-    // payload = experiment_id, condition_id, treatment_id, body
+    // payload = experimentId, conditionId, treatmentId, body
     // create the assessment, commit an update mutation, and return the status/data response
     try {
       // check if assessment exist before creating a new one
@@ -57,7 +57,7 @@ const actions = {
     }
   },
   regradeQuestions({state}, payload) {
-    // payload = experiment_id, condition_id, treatment_id, assessment_id, body
+    // payload = experimentId, conditionId, treatmentId, assessmentId, body
     // regrade the given question IDs
     try {
         assessmentService.regradeQuestions(...payload);
@@ -66,7 +66,7 @@ const actions = {
     }
   },
   async updateAssessment(context, payload) {
-    // payload = experiment_id, condition_id, treatment_id, assessment_id,
+    // payload = experimentId, conditionId, treatmentId, assessmentId,
     //           body, allowStudentViewResponses, studentViewResponsesAfter,
     //           studentViewResponsesBefore, allowStudentViewCorrectAnswers,
     //           studentViewCorrectAnswersAfter, studentViewCorrectAnswersBefore
@@ -84,12 +84,12 @@ const actions = {
     }
   },
   async createQuestion({dispatch}, payload) {
-    // payload = experiment_id, condition_id, treatment_id, assessment_id, question_order, question_type, points, body
+    // payload = experimentId, conditionId, treatmentId, assessmentId, question_order, question_type, points, body
     // create the assessment question, commit an update mutation, and return the status/data response
     await dispatch("createQuestionAtIndex", { payload });
   },
   async createQuestionAtIndex({commit}, {payload, questionIndex = -1}) {
-    // payload = experiment_id, condition_id, treatment_id, assessment_id, question_order, question_type, points, body
+    // payload = experimentId, conditionId, treatmentId, assessmentId, question_order, question_type, points, body
     // create the assessment question, commit an update mutation, and return the status/data response
     try {
       const response = await assessmentService.createQuestion(...payload)
@@ -110,14 +110,14 @@ const actions = {
     }
   },
   async updateQuestion({commit}, payload) {
-    // payload = experiment_id, condition_id, treatment_id, assessment_id, question_id, html, points, questionOrder, questionType, randomizeAnswers
+    // payload = experimentId, conditionId, treatmentId, assessmentId, questionId, html, points, questionOrder, questionType, randomizeAnswers
     // update question and return the status/data response
 
-    const getQuestion = (experiment_id,
-        condition_id,
-        treatment_id,
-        assessment_id,
-        question_id,
+    const getQuestion = (experimentId,
+        conditionId,
+        treatmentId,
+        assessmentId,
+        questionId,
         html,
         points,
         questionOrder,
@@ -126,7 +126,7 @@ const actions = {
         answers,
         integration
       ) => ({
-      questionId: question_id,
+      questionId: questionId,
       html,
       points,
       questionOrder,
@@ -151,7 +151,7 @@ const actions = {
   },
   async deleteQuestion({commit, state}, payload) {
     const questionId = payload[4];
-    // payload = experiment_id, condition_id, treatment_id, assessment_id, question_id
+    // payload = experimentId, conditionId, treatmentId, assessmentId, questionId
     // delete question, commit mutation, and return the status/data response
     try {
       const response = await assessmentService.deleteQuestion(...payload);
@@ -169,7 +169,7 @@ const actions = {
     }
   },
   async deleteQuestions({commit}, payload) {
-    // payload = experiment_id, condition_id, treatment_id, assessment_id, questions
+    // payload = experimentId, conditionId, treatmentId, assessmentId, questions
     // delete questions, commit mutation, and return the status/data response
     try {
       const response = await assessmentService.deleteQuestions(...payload);
@@ -187,7 +187,7 @@ const actions = {
     }
   },
   async createAnswer({commit}, payload) {
-    // payload = experiment_id, condition_id, treatment_id, assessment_id, question_id, html, correct, answerOrder
+    // payload = experimentId, conditionId, treatmentId, assessmentId, questionId, html, correct, answerOrder
     // create the assessment answer, commit an update mutation, and return the status/data response
     try {
       const response = await assessmentService.createAnswer(...payload);
@@ -205,7 +205,7 @@ const actions = {
     }
   },
   async updateAnswer({state}, payload) {
-    // payload = experiment_id, condition_id, treatment_id, assessment_id, question_id, answer_id, answer_type, html, correct, answer_order
+    // payload = experimentId, conditionId, treatmentId, assessmentId, questionId, answerId, answer_type, html, correct, answer_order
     // update answer and return the status/data response
     try {
       const response = await assessmentService.updateAnswer(...payload);
@@ -222,7 +222,7 @@ const actions = {
   },
   async deleteAnswer({commit}, payload) {
     const answerId = payload[5];
-    // payload = experiment_id, condition_id, treatment_id, assessment_id, question_id, answer_id
+    // payload = experimentId, conditionId, treatmentId, assessmentId, questionId, answerId
     // delete answer, commit mutation, and return the status/data response
     try {
       const response = await assessmentService.deleteAnswer(...payload);
@@ -307,8 +307,8 @@ const mutations = {
       })
   };
   },
-  deleteAnswer(state, answer_id) {
-    const aid = parseInt(answer_id);
+  deleteAnswer(state, answerId) {
+    const aid = parseInt(answerId);
     state.assessment.questions = state.assessment.questions.map((q) => {
       return {...q, answers: q.answers?.filter(a => parseInt(a.answerId) !== aid)}
     })

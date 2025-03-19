@@ -29,7 +29,7 @@
                       outlined
                       text
                       tile
-                      :to="{name:'AssignmentTreatmentSelect', params: {'exposure_id':assignment.exposureId, 'assignment_id':assignment.assignmentId}}">
+                      :to="{name:'AssignmentTreatmentSelect', params: {'exposureId':assignment.exposureId, 'assignmentId':assignment.assignmentId}}">
                       <v-icon>mdi-pencil</v-icon>
                     </v-btn>
                   </v-list-item-action>
@@ -56,7 +56,7 @@
                 plain
                 color="primary"
                 class="px-0"
-                :to="{ name: 'AssignmentCreateAssignment', params:{'exposure_id': parseInt(exposure.exposureId)} }"
+                :to="{ name: 'AssignmentCreateAssignment', params:{'exposureId': parseInt(exposure.exposureId)} }"
               >add component</v-btn>
             </v-expansion-panel-content>
           </v-expansion-panel>
@@ -79,10 +79,10 @@ export default {
   name: 'YourAssignments',
   props: ['experiment'],
   computed: {
-    exposure_id() {
-      return parseInt(this.$route.params.exposure_id)
+    exposureId() {
+      return parseInt(this.$route.params.exposureId)
     },
-    experiment_id() {
+    experimentId() {
       return parseInt(this.experiment.experimentId)
     },
     ...mapGetters({
@@ -169,7 +169,7 @@ export default {
       if (reallyDelete?.isConfirmed) {
         try {
           return await this.deleteAssignment([
-            this.experiment_id,
+            this.experimentId,
             eid,
             a.assignmentId
           ])
@@ -187,18 +187,18 @@ export default {
     // reset assignments to get a clean list
     await this.resetAssignments()
     // update assignments on load
-    await this.fetchExposures(this.experiment_id)
+    await this.fetchExposures(this.experimentId)
     for (const e of this.exposures) {
-      await this.fetchAssignmentsByExposure([this.experiment_id, e.exposureId])
+      await this.fetchAssignmentsByExposure([this.experimentId, e.exposureId])
     }
 
     // forward to create assignment if assignments array for selected exposure is empty
     if (
-      this.exposure_id &&
-      this.exposures.find(e => parseInt(e.exposureId) === this.exposure_id) &&
-      !this.assignments.find(a => parseInt(a.exposureId) === this.exposure_id)
+      this.exposureId &&
+      this.exposures.find(e => parseInt(e.exposureId) === this.exposureId) &&
+      !this.assignments.find(a => parseInt(a.exposureId) === this.exposureId)
     ) {
-      this.$router.push({name: 'AssignmentCreateAssignment', params:{exposure_id: this.exposure_id}})
+      this.$router.push({name: 'AssignmentCreateAssignment', params:{exposureId: this.exposureId}})
     } else {
       // we don't want to display empty fields
       this.loaded = true

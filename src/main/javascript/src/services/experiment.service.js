@@ -40,13 +40,13 @@ function create() {
 /**
  * Get individual Experiment
  */
-function getById(experiment_id) {
+function getById(experimentId) {
   const requestOptions = {
     method: 'GET',
     headers: {...authHeader()},
   }
 
-  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}?conditions=true`, requestOptions).then(handleResponse)
+  return fetch(`${store.getters['api/aud']}/api/experiments/${experimentId}?conditions=true`, requestOptions).then(handleResponse)
 }
 
 /**

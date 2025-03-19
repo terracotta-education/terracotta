@@ -11,9 +11,15 @@
     <v-btn
       elevation="0"
       color="primary"
-      :to="{ name: 'AssignmentYourAssignments', params:{exposure_id: this.$route.params.exposure_id} }"
-      >Continue</v-btn
+      :to="{
+        name: 'AssignmentYourAssignments',
+        params:{
+          exposureId: this.$route.params.exposureId
+        }
+      }"
     >
+      Continue
+    </v-btn>
 
     <v-card
       class="mt-10 pt-5 px-5 mx-auto blue lighten-5 rounded-lg"

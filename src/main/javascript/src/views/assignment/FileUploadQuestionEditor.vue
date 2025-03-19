@@ -18,17 +18,17 @@
       };
     },
     computed: {
-      experiment_id() {
-        return parseInt(this.$route.params.experiment_id);
+      experimentId() {
+        return parseInt(this.$route.params.experimentId);
       },
-      treatment_id() {
-        return parseInt(this.$route.params.treatment_id);
+      treatmentId() {
+        return parseInt(this.$route.params.treatmentId);
       },
-      assessment_id() {
-        return parseInt(this.$route.params.assessment_id);
+      assessmentId() {
+        return parseInt(this.$route.params.assessmentId);
       },
-      condition_id() {
-        return parseInt(this.$route.params.condition_id);
+      conditionId() {
+        return parseInt(this.$route.params.conditionId);
       },
       randomizeAnswers: {
         // two-way computed property
@@ -56,10 +56,10 @@
         // POST ANSWER
         try {
           await this.createAnswer([
-            this.experiment_id,
-            this.condition_id,
-            this.treatment_id,
-            this.assessment_id,
+            this.experimentId,
+            this.conditionId,
+            this.treatmentId,
+            this.assessmentId,
             question.questionId,
             "",
             false,
@@ -76,10 +76,10 @@
         // DELETE ANSWER
         try {
           await this.deleteAnswer([
-            this.experiment_id,
-            this.condition_id,
-            this.treatment_id,
-            this.assessment_id,
+            this.experimentId,
+            this.conditionId,
+            this.treatmentId,
+            this.assessmentId,
             q.questionId,
             a.answerId,
           ]);

@@ -22,12 +22,12 @@ const loadYoutubeIframeAPI = function() {
 };
 
 const sendEvent = function({
-  experiment_id,
-  condition_id,
-  treatment_id,
-  assessment_id,
-  submission_id,
-  question_id,
+  experimentId,
+  conditionId,
+  treatmentId,
+  assessmentId,
+  submissionId,
+  questionId,
   originalVideoUrl,
   videoURL,
   duration,
@@ -57,12 +57,12 @@ const sendEvent = function({
   }
   // Fire and forget
   mediaEventsService.createVideoEvent({
-    experiment_id,
-    condition_id,
-    treatment_id,
-    assessment_id,
-    submission_id,
-    question_id,
+    experimentId,
+    conditionId,
+    treatmentId,
+    assessmentId,
+    submissionId,
+    questionId,
     event,
   });
 };

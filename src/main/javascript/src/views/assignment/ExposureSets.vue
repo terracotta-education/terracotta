@@ -48,7 +48,7 @@
         name: 'AssignmentExposureSetsIntro',
         params: {
           numberOfExperimentSets: this.numberOfExperimentSets,
-          exposure_id: this.selectedExposure.exposureId,
+          exposureId: this.selectedExposure.exposureId,
         },
       }"
       >Continue
@@ -107,12 +107,12 @@ export default {
   },
   beforeRouteEnter(to, from, next) {
     return store
-      .dispatch("exposures/fetchExposures", to.params.experiment_id)
+      .dispatch("exposures/fetchExposures", to.params.experimentId)
       .then(next, next);
   },
   beforeRouteUpdate(to, from, next) {
     return store
-      .dispatch("exposures/fetchExposures", to.params.experiment_id)
+      .dispatch("exposures/fetchExposures", to.params.experimentId)
       .then(next, next);
   },
 };

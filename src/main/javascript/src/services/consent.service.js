@@ -15,7 +15,7 @@ export const consentService = {
 /**
  * Create Assignment
  */
-function create(experiment_id, pdfFile, title) {
+function create(experimentId, pdfFile, title) {
   const requestOptions = {
     headers: {
       'Content-Type': 'multipart/form-data',
@@ -30,7 +30,7 @@ function create(experiment_id, pdfFile, title) {
   return (
     axios
       .post(
-        `${store.getters["api/aud"]}/api/experiments/${experiment_id}/consent?title=${title}`,
+        `${store.getters["api/aud"]}/api/experiments/${experimentId}/consent?title=${title}`,
         formData,
         requestOptions
       )
@@ -57,14 +57,14 @@ function create(experiment_id, pdfFile, title) {
 /**
  * Update Assignment
  */
-function update(experiment_id) {
+function update(experimentId) {
   const requestOptions = {
     method: 'PUT',
     headers: { ...authHeader(), 'Content-Type': 'application/json' },
   }
 
   return fetch(
-    `${store.getters['api/aud']}/api/experiments/${experiment_id}/consent`,
+    `${store.getters['api/aud']}/api/experiments/${experimentId}/consent`,
     requestOptions
   ).then(handleResponse)
 }
@@ -72,14 +72,14 @@ function update(experiment_id) {
 /**
  * Get Consent File
  */
-async function getConsentFile(experiment_id) {
+async function getConsentFile(experimentId) {
   const requestOptions = {
     method: 'GET',
     headers: { ...authHeader() },
   };
 
   return fetch(
-    `${store.getters['api/aud']}/api/experiments/${experiment_id}/consent`,
+    `${store.getters['api/aud']}/api/experiments/${experimentId}/consent`,
     requestOptions
   ).then(handleResponseFile)
 }
@@ -89,14 +89,14 @@ async function getConsentFile(experiment_id) {
  *
  * (Prefixed function name with underscore because delete is a reserved word in javascript)
  */
-function _delete(experiment_id) {
+function _delete(experimentId) {
   const requestOptions = {
     method: 'DELETE',
     headers: { ...authHeader(), 'Content-Type': 'application/json' },
   }
 
   return fetch(
-    `${store.getters['api/aud']}/api/experiments/${experiment_id}/consent`,
+    `${store.getters['api/aud']}/api/experiments/${experimentId}/consent`,
     requestOptions
   ).then(handleResponse)
 }

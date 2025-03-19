@@ -10,7 +10,7 @@ const state = {
 
 const actions = {
   fetchSubmissions: ({ commit }, payload) => {
-    // payload = experiment_id, condition_id, treatment_id, assessment_id
+    // payload = experimentId, conditionId, treatmentId, assessmentId
     return submissionService
       .getAll(...payload)
       .then(({ data }) => {
@@ -21,7 +21,7 @@ const actions = {
       });
   },
   async fetchSubmission({ commit }, payload) {
-    // payload = experiment_id, condition_id, treatment_id, assessment_id, submission_id
+    // payload = experimentId, conditionId, treatmentId, assessmentId, submissionId
     return submissionService
       .getSubmission(...payload)
       .then(({ data }) => {
@@ -32,7 +32,7 @@ const actions = {
       });
   },
   async updateSubmission({ state }, payload) {
-    // payload = experiment_id, condition_id, treatment_id, assessment_id, submission_id, alteredCalculatedGrade, totalAlteredGrade
+    // payload = experimentId, conditionId, treatmentId, assessmentId, submissionId, alteredCalculatedGrade, totalAlteredGrade
     try {
       return await submissionService.updateSubmission(...payload);
     } catch (error) {
@@ -40,7 +40,7 @@ const actions = {
     }
   },
   async updateSubmissions({ state }, payload) {
-    // payload = experiment_id, condition_id, treatment_id, assessment_id, submissions
+    // payload = experimentId, conditionId, treatmentId, assessmentId, submissions
     try {
       return await submissionService.updateSubmissions(...payload);
     } catch (error) {
@@ -48,7 +48,7 @@ const actions = {
     }
   },
   fetchStudentResponse: ({ commit }, payload) => {
-    // payload = experiment_id, condition_id, treatment_id, assessment_id, submission_id
+    // payload = experimentId, conditionId, treatmentId, assessmentId, submissionId
     return submissionService
       .studentResponse(...payload)
       .then(({ data }) => {
@@ -59,7 +59,7 @@ const actions = {
       });
   },
   async fetchQuestionSubmissions({ commit }, payload) {
-    // payload = experiment_id, condition_id, treatment_id, assessment_id, submission_id
+    // payload = experimentId, conditionId, treatmentId, assessmentId, submissionId
     try {
       const { data } = await submissionService.getQuestionSubmissions(
         ...payload
@@ -70,7 +70,7 @@ const actions = {
     }
   },
   async createQuestionSubmissions({ state }, payload) {
-    // payload = experiment_id, condition_id, treatment_id, assessment_id, submission_id, questions
+    // payload = experimentId, conditionId, treatmentId, assessmentId, submissionId, questions
     try {
       return await submissionService.createQuestionSubmissions(...payload);
     } catch (error) {
@@ -78,7 +78,7 @@ const actions = {
     }
   },
   async updateQuestionSubmissions({ state }, payload) {
-    // payload = experiment_id, condition_id, treatment_id, assessment_id, submission_id, updatedResponseBody
+    // payload = experimentId, conditionId, treatmentId, assessmentId, submissionId, updatedResponseBody
     try {
       return await submissionService.updateQuestionSubmissions(...payload);
     } catch (error) {
@@ -86,7 +86,7 @@ const actions = {
     }
   },
   async createAnswerSubmissions({ state }, payload) {
-    // payload = experiment_id, condition_id, treatment_id, assessment_id, submission_id, answerSubmissions
+    // payload = experimentId, conditionId, treatmentId, assessmentId, submissionId, answerSubmissions
     try {
       return await submissionService.createAnswerSubmissions(...payload);
     } catch (error) {
@@ -94,7 +94,7 @@ const actions = {
     }
   },
   async updateAnswerSubmission({ state }, payload) {
-    // payload = experiment_id, condition_id, treatment_id, assessment_id, submission_id, question_submission_id, answer_submission_id, answerSubmission
+    // payload = experimentId, conditionId, treatmentId, assessmentId, submissionId, question_submissionId, answer_submissionId, answerSubmission
     try {
       return await submissionService.updateAnswerSubmission(...payload);
     } catch (error) {
@@ -102,7 +102,7 @@ const actions = {
     }
   },
   async clearQuestionSubmissions({ commit }) {
-    // payload = experiment_id, condition_id, treatment_id, assessment_id, submission_id, answerSubmissions
+    // payload = experimentId, conditionId, treatmentId, assessmentId, submissionId, answerSubmissions
     commit("setQuestionSubmissions", []);
 
     return Promise.resolve([]);

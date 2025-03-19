@@ -13,33 +13,33 @@ export const treatmentService = {
 /**
  * Fetch Treatment
  */
-async function fetchTreatment(experiment_id, condition_id) {
+async function fetchTreatment(experimentId, conditionId) {
   const requestOptions = {
     method: 'GET',
     headers: {...authHeader()}
   }
 
-  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments`, requestOptions).then(handleResponse)
+  return fetch(`${store.getters['api/aud']}/api/experiments/${experimentId}/conditions/${conditionId}/treatments`, requestOptions).then(handleResponse)
 }
 
 /**
  * Create Treatment
  */
-async function create(experiment_id, condition_id, assignment_id) {
+async function create(experimentId, conditionId, assignmentId) {
   const requestOptions = {
     method: 'POST',
     headers: { ...authHeader(), 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      assignmentId: parseInt(assignment_id)
+      assignmentId: parseInt(assignmentId)
     })
   }
-  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments`, requestOptions).then(handleResponse)
+  return fetch(`${store.getters['api/aud']}/api/experiments/${experimentId}/conditions/${conditionId}/treatments`, requestOptions).then(handleResponse)
 }
 
 /**
  * Update Treatment
  */
-async function update(experiment_id, condition_id, treatment_id, body = {}) {
+async function update(experimentId, conditionId, treatmentId, body = {}) {
   const requestOptions = {
     method: 'PUT',
     headers: { ...authHeader(), 'Content-Type': 'application/json' },
@@ -47,7 +47,7 @@ async function update(experiment_id, condition_id, treatment_id, body = {}) {
       ...body
     })
   }
-  return fetch(`${store.getters['api/aud']}/api/experiments/${experiment_id}/conditions/${condition_id}/treatments/${treatment_id}`, requestOptions).then(handleResponse)
+  return fetch(`${store.getters['api/aud']}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}`, requestOptions).then(handleResponse)
 }
 
 /**

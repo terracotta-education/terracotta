@@ -14,14 +14,14 @@ export const participantService = {
 /**
  * Get all Participants
  */
-function getAll(experiment_id) {
+function getAll(experimentId) {
   const requestOptions = {
     method: 'GET',
     headers: authHeader(),
   }
 
   return fetch(
-    `${store.getters['api/aud']}/api/experiments/${experiment_id}/participants`,
+    `${store.getters['api/aud']}/api/experiments/${experimentId}/participants`,
     requestOptions
   ).then(handleResponse)
 }
@@ -29,14 +29,14 @@ function getAll(experiment_id) {
 /**
  * Get individual Participant
  */
-function getById(experiment_id, participant_id) {
+function getById(experimentId, participantId) {
   const requestOptions = {
     method: 'GET',
     headers: authHeader(),
   }
 
   return fetch(
-    `${store.getters['api/aud']}/api/experiments/${experiment_id}/participants/${participant_id}`,
+    `${store.getters['api/aud']}/api/experiments/${experimentId}/participants/${participantId}`,
     requestOptions
   ).then(handleResponse)
 }
@@ -44,7 +44,7 @@ function getById(experiment_id, participant_id) {
 /**
  * Update Participants
  */
-function updateParticipants(experiement_id, participantDetails) {
+function updateParticipants(experiementId, participantDetails) {
   const requestOptions = {
     method: 'PUT',
     headers: { ...authHeader(), 'Content-Type': 'application/json' },
@@ -52,7 +52,7 @@ function updateParticipants(experiement_id, participantDetails) {
   }
 
   return fetch(
-    `${store.getters['api/aud']}/api/experiments/${experiement_id}/participants`,
+    `${store.getters['api/aud']}/api/experiments/${experiementId}/participants`,
     requestOptions
   ).then(handleResponse)
 }
@@ -60,7 +60,7 @@ function updateParticipants(experiement_id, participantDetails) {
 /**
  * Update Participant
  */
- function updateParticipant(experiement_id, participantDetails) {
+ function updateParticipant(experiementId, participantDetails) {
   const requestOptions = {
     method: 'PUT',
     headers: { ...authHeader(), 'Content-Type': 'application/json' },
@@ -68,7 +68,7 @@ function updateParticipants(experiement_id, participantDetails) {
   }
 
   return fetch(
-    `${store.getters['api/aud']}/api/experiments/${experiement_id}/participants/${participantDetails.participantId}`,
+    `${store.getters['api/aud']}/api/experiments/${experiementId}/participants/${participantDetails.participantId}`,
     requestOptions
   ).then(handleResponse)
 }

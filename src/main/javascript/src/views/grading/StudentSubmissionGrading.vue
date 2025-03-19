@@ -449,23 +449,20 @@ export default {
       questionPages: "assessment/questionPages",
     }),
 
-    assessment_id() {
-      return parseInt(this.$route.params.assessment_id);
+    assessmentId() {
+      return parseInt(this.$route.params.assessmentId);
     },
-    condition_id() {
-      return parseInt(this.$route.params.condition_id);
+    conditionId() {
+      return parseInt(this.$route.params.conditionId);
     },
-    treatment_id() {
-      return parseInt(this.$route.params.treatment_id);
+    treatmentId() {
+      return parseInt(this.$route.params.treatmentId);
     },
-    exposure_id() {
-      return parseInt(this.$route.params.exposure_id);
+    participantId() {
+      return parseInt(this.$route.params.participantId);
     },
-    participant_id() {
-      return parseInt(this.$route.params.participant_id);
-    },
-    experiment_id() {
-      return parseInt(this.$route.params.experiment_id);
+    experimentId() {
+      return parseInt(this.$route.params.experimentId);
     },
     allSubmissions() {
       return this.assessment.submissions || [];
@@ -543,7 +540,7 @@ export default {
     },
     participantSubmissions() {
       // return only this participant's submissions
-      return this.allSubmissions.filter(s => s.participantId == this.participant_id);
+      return this.allSubmissions.filter(s => s.participantId == this.participantId);
     },
     manualGradeText() {
       var text = "Please grade ";
@@ -711,7 +708,7 @@ export default {
     }),
     participantName() {
       return this.participants.filter(
-        (participant) => participant.participantId === this.participant_id
+        (participant) => participant.participantId === this.participantId
       )?.[0].user.displayName;
     },
     findSubmissionById(id) {
@@ -763,7 +760,7 @@ export default {
 
       try {
         await this.downloadAnswerFileSubmission([
-          this.experiment_id,
+          this.experimentId,
           this.selectedSubmission.conditionId,
           this.selectedSubmission.treatmentId,
           this.selectedSubmission.assessmentId,
@@ -830,16 +827,16 @@ export default {
         try {
           // Update Question Submissions
           await this.updateQuestionSubmissions([
-            this.experiment_id,
-            this.condition_id,
-            this.treatment_id,
-            this.assessment_id,
+            this.experimentId,
+            this.conditionId,
+            this.treatmentId,
+            this.assessmentId,
             attempt.submissionId,
             updateQuestionSubmissions
           ]);
           // Post Step to Experiment
           await this.reportStep({
-            experimentId: this.experiment_id,
+            experimentId: this.experimentId,
             step: "student_submission",
             parameters: { submissionIds: "" + attempt.submissionId },
           });
@@ -872,9 +869,9 @@ export default {
       // get the student response for this attempt
       await this.fetchStudentResponse([
         this.experiment.experimentId,
-        this.condition_id,
-        this.treatment_id,
-        this.assessment_id,
+        this.conditionId,
+        this.treatmentId,
+        this.assessmentId,
         submissionId,
       ]);
 
@@ -932,9 +929,9 @@ export default {
   async created() {
     await this.fetchAssessment([
       this.experiment.experimentId,
-      this.condition_id,
-      this.treatment_id,
-      this.assessment_id,
+      this.conditionId,
+      this.treatmentId,
+      this.assessmentId,
     ]);
 
     for (var submission of this.participantSubmissions) {

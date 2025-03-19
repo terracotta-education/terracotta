@@ -126,7 +126,7 @@ export default {
       return this.$router.currentRoute.meta.currentStep
     },
     routeExperimentId() {
-      return this.$route.params.experiment_id
+      return this.$route.params.experimentId
     },
     noSidebar() {
       // these pages should not show the sidebar
@@ -171,7 +171,7 @@ export default {
       next();
       return;
     }
-    return store.dispatch("experiment/fetchExperimentById", to.params.experiment_id).then(next, next)
+    return store.dispatch("experiment/fetchExperimentById", to.params.experimentId).then(next, next)
   },
   beforeRouteUpdate (to, from, next) {
     // don't load new data after consent title screen
@@ -179,7 +179,7 @@ export default {
       next();
       return;
     }
-    return store.dispatch("experiment/fetchExperimentById", to.params.experiment_id).then(next, next)
+    return store.dispatch("experiment/fetchExperimentById", to.params.experimentId).then(next, next)
   },
   methods: {
     ...mapActions({
