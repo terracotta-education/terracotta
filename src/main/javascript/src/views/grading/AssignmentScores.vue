@@ -178,13 +178,13 @@ export default {
       fileRequest: "assignmentfilearchive/fileRequest"
     }),
     assignmentId() {
-      return this.assignment?.assignmentId || parseInt(this.$route.params.assignmentId);
+      return parseInt(this.$route.params.assignmentId);
     },
     exposureId() {
       return parseInt(this.$route.params.exposureId);
     },
     experimentId() {
-      return this.experiment?.experimentId || parseInt(this.$route.params.experimentId);
+      return parseInt(this.$route.params.experimentId);
     },
     selectedAssignmentTreatments() {
       return this.assignment.treatments;
