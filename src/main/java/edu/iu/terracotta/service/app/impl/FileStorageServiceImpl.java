@@ -451,6 +451,26 @@ public class FileStorageServiceImpl implements FileStorageService {
     }
 
     @Override
+    public void deleteFileSubmission(long fileSubmissionId) {
+        Optional<AnswerFileSubmission> answerFileSubmission = answerFileSubmissionRepository.findById(fileSubmissionId);
+
+        if (answerFileSubmission.isEmpty()) {
+            return;
+        }
+
+        deleteFileSubmission(answerFileSubmission.get());
+    }
+
+    @Override
+    public void deleteFileSubmission(AnswerFileSubmission answerFileSubmission) {
+        try {
+            Files.deleteIfExists(Paths.get(String.format("%s/%s", uploadSubmissionsLocalPathRoot, answerFileSubmission.getFileUri())));
+        } catch (IOException e) {
+            throw new FileStorageException(String.format("Error 140: Could not delete file for file submission ID: '%s'.", answerFileSubmission.getAnswerFileSubmissionId()), e);
+        }
+    }
+
+    @Override
     public void saveAssignmentFileArchive(AssignmentFileArchive assignmentFileArchive, File file) {
         if (file == null) {
             throw new FileStorageException("Error 140: File cannot be null.");
