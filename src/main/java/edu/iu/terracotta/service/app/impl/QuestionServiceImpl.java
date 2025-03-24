@@ -14,9 +14,11 @@ import edu.iu.terracotta.dao.exceptions.integrations.IntegrationNotMatchingExcep
 import edu.iu.terracotta.dao.model.dto.AnswerDto;
 import edu.iu.terracotta.dao.model.dto.QuestionDto;
 import edu.iu.terracotta.dao.model.enums.QuestionTypes;
+import edu.iu.terracotta.dao.repository.AnswerFileSubmissionRepository;
 import edu.iu.terracotta.dao.repository.AssessmentRepository;
 import edu.iu.terracotta.dao.repository.QuestionRepository;
 import edu.iu.terracotta.dao.repository.QuestionSubmissionRepository;
+import edu.iu.terracotta.dao.repository.SubmissionRepository;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.InvalidQuestionTypeException;
@@ -50,9 +52,11 @@ import java.util.Optional;
 @Component
 public class QuestionServiceImpl implements QuestionService {
 
+    @Autowired private AnswerFileSubmissionRepository answerFileSubmissionRepository;
     @Autowired private AssessmentRepository assessmentRepository;
     @Autowired private QuestionRepository questionRepository;
     @Autowired private QuestionSubmissionRepository questionSubmissionRepository;
+    @Autowired private SubmissionRepository submissionRepository;
     @Autowired private AnswerService answerService;
     @Autowired private FileStorageService fileStorageService;
     @Autowired private IntegrationService integrationService;
@@ -245,8 +249,32 @@ public class QuestionServiceImpl implements QuestionService {
         Question question = questionRepository.findByQuestionId(id);
 
         if (question.getIntegration() != null) {
+            // handle integration deletions
             integrationService.delete(question.getIntegration());
         }
+
+        // delete existing submissions; should only be applicable if test student is the only submitter
+        submissionRepository.findByAssessment_AssessmentId(question.getAssessment().getAssessmentId())
+            .forEach(
+                submission -> {
+                    submission.getQuestionSubmissions().forEach(
+                        questionSubmission -> {
+                            if (QuestionTypes.FILE ==  questionSubmission.getQuestion().getQuestionType()) {
+                                answerFileSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmission.getQuestionSubmissionId())
+                                    .forEach(
+                                        answerFileSubmission -> {
+                                            fileStorageService.deleteFileSubmission(answerFileSubmission);
+                                            answerFileSubmissionRepository.delete(answerFileSubmission);
+                                            answerFileSubmissionRepository.flush();
+                                        }
+                                    );
+                            }
+                        }
+                    );
+                    submissionRepository.delete(submission);
+                }
+            );
+        submissionRepository.flush();
 
         questionRepository.deleteByQuestionId(id);
     }
