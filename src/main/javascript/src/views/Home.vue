@@ -535,7 +535,10 @@ export default {
         ...this.experimentDataExportRequests,
         [experimentId]: {
           showAlert: dataExportRequest.ready || dataExportRequest.error || dataExportRequest.processing || dataExportRequest.reprocessing || dataExportRequest.outdated,
-          polling: this.experimentDataExportRequests[experimentId].polling
+          polling: {
+            ...this.experimentDataExportRequests[experimentId].polling,
+            active: dataExportRequest.processing || dataExportRequest.reprocessing
+          }
         }
       };
     },
