@@ -1,4 +1,4 @@
-package edu.iu.terracotta.runner.assignmentfilearchive;
+package edu.iu.terracotta.runner.assignmentfilearchive.impl;
 
 import java.io.File;
 import java.io.IOException;
@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import edu.iu.terracotta.dao.entity.AssignmentFileArchive;
 import edu.iu.terracotta.dao.model.enums.AssignmentFileArchiveStatus;
 import edu.iu.terracotta.dao.repository.AssignmentFileArchiveRepository;
+import edu.iu.terracotta.runner.assignmentfilearchive.AssignmentFileArchiveSchedulerService;
 import edu.iu.terracotta.runner.assignmentfilearchive.model.AssignmentFileArchiveScheduleMessage;
 import edu.iu.terracotta.runner.assignmentfilearchive.model.AssignmentFileArchiveScheduleResult;
 import lombok.extern.slf4j.Slf4j;

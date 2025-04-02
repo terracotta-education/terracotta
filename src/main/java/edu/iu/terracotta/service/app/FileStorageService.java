@@ -6,6 +6,7 @@ import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorExcept
 import edu.iu.terracotta.dao.entity.AnswerFileSubmission;
 import edu.iu.terracotta.dao.entity.AssignmentFileArchive;
 import edu.iu.terracotta.dao.entity.FileSubmissionLocal;
+import edu.iu.terracotta.dao.entity.export.data.ExperimentDataExport;
 import edu.iu.terracotta.dao.exceptions.AssignmentNotCreatedException;
 import edu.iu.terracotta.dao.exceptions.AssignmentNotEditedException;
 import edu.iu.terracotta.dao.exceptions.AssignmentNotMatchingException;
@@ -35,5 +36,7 @@ public interface FileStorageService {
     File getAssignmentFileArchive(long id);
     void deleteFileSubmission(long fileSubmissionId);
     void deleteFileSubmission(AnswerFileSubmission answer);
+    void saveExperimentDataExport(ExperimentDataExport exportData, File file);
+    File getExperimentDataExport(long id);
 
 }

@@ -9,7 +9,7 @@ export * from "./exposures.service";
 export * from "./participants.service";
 export * from "./treatment.service";
 export * from "./outcome.service";
-export * from "./exportdata.service";
+export * from "./experimentdataexport.service";
 export * from "./submission.service";
 export * from "./mediaevents.service";
 export * from "./groups.service";

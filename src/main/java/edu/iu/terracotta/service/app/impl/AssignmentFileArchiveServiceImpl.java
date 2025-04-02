@@ -31,10 +31,10 @@ import lombok.extern.slf4j.Slf4j;
 public class AssignmentFileArchiveServiceImpl implements AssignmentFileArchiveService {
 
     @Autowired private AssignmentFileArchiveRepository assignmentFileArchiveRepository;
-    @Autowired private FileStorageService fileStorageService;
     @Autowired private LtiUserRepository ltiUserRepository;
     @Autowired private SubmissionRepository submissionRepository;
     @Autowired private AsyncService asyncService;
+    @Autowired private FileStorageService fileStorageService;
 
     @Override
     public AssignmentFileArchiveDto process(Assignment assignment, SecuredInfo securedInfo) throws IOException {

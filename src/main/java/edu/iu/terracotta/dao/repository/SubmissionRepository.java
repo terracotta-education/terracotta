@@ -28,6 +28,7 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long> {
     List<Submission> findByAssessment_Treatment_Assignment_AssignmentId(long assignmentId);
     long countByAssessment_Treatment_TreatmentId(long treatmentId);
     boolean existsByAssessment_AssessmentIdAndSubmissionId(long assessmentId, long submissionId);
+    Optional<Submission> findTopByParticipant_Experiment_ExperimentIdAndDateSubmittedNotNullOrderByDateSubmittedDesc(long experimentId);
     Optional<Submission> findTopByAssessment_Treatment_Assignment_AssignmentIdAndDateSubmittedNotNullOrderByDateSubmittedDesc(long assignmentId);
 
     @Modifying

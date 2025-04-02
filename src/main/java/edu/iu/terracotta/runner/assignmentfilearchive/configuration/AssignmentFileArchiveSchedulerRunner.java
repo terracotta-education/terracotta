@@ -1,8 +1,9 @@
-package edu.iu.terracotta.runner.assignmentfilearchive;
+package edu.iu.terracotta.runner.assignmentfilearchive.configuration;
 
 import com.github.kagkarlsson.scheduler.task.schedule.Schedules;
 
 import edu.iu.terracotta.exceptions.scheduledtask.ScheduledTaskNotFound;
+import edu.iu.terracotta.runner.assignmentfilearchive.AssignmentFileArchiveSchedulerService;
 import edu.iu.terracotta.runner.assignmentfilearchive.model.AssignmentFileArchiveScheduleResult;
 import edu.iu.terracotta.service.app.ScheduledTaskService;
 
@@ -52,7 +53,7 @@ public class AssignmentFileArchiveSchedulerRunner {
             return Tasks.oneTime(ASSIGNMENT_FILE_DELETE_TASK)
                 .execute(
                     (instance, ctx) -> {
-                        log.info("Assignment file archive delete task [{}] in not enabled.", ASSIGNMENT_FILE_DELETE_TASK);
+                        log.info("Assignment file archive delete task [{}] is not enabled.", ASSIGNMENT_FILE_DELETE_TASK);
                     }
                 );
         }

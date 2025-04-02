@@ -13,7 +13,7 @@ import { exposures } from "./exposures.module";
 import { participants } from "./participants.module";
 import { outcome } from "./outcome.module";
 import { treatment } from "./treatment.module";
-import { exportdata } from "./exportdata.module";
+import { dataexportrequest } from "./experimentdataexport.module";
 import { submissions } from "./submission.module";
 import { mediaevents } from "./mediaevents.module";
 import { navigation } from "./navigation.module";
@@ -42,7 +42,7 @@ const store = new Vuex.Store({
         participants,
         outcome,
         treatment,
-        exportdata,
+        dataexportrequest,
         submissions,
         mediaevents,
         navigation,
