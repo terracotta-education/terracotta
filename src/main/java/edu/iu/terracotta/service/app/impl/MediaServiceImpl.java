@@ -11,6 +11,9 @@ import edu.iu.terracotta.service.app.MediaService;
 import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.service.caliper.impl.CaliperServiceImpl;
 
+import java.sql.Timestamp;
+import java.time.Instant;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -27,7 +30,7 @@ public class MediaServiceImpl implements MediaService {
     public void fromDto(MediaEventDto mediaEventDto, SecuredInfo securedInfo, Long experimentId, Long submissionId, Long questionId)
             throws ParameterMissingException, NoSubmissionsException {
         if (mediaEventDto.getEventTime() == null) {
-            throw new ParameterMissingException("Event time is empty");
+            mediaEventDto.setEventTime(new Timestamp(Instant.now().toEpochMilli()));
         }
 
         if (mediaEventDto.getAction() == null) {

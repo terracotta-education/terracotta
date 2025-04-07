@@ -103,14 +103,14 @@ export default {
       );
     },
     add() {
-      const src = this.youtubeId ? "https://youtu.be/" + this.youtubeId : this.embedCode;
+      const src = this.youtubeId ? `https://youtu.be/${this.youtubeId}` : this.embedCode;
       const height = this.height;
       const width = this.width;
       this.resolve(
         {
           src,
           height,
-          width,
+          width
         }
       );
       this.dialog = false;

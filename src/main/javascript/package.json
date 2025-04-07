@@ -26,13 +26,13 @@
     "vuex-persistedstate": "^4.0.0-beta.3",
     "highcharts": "10.3.3",
     "zipcelx": "^1.6.2",
-    "@tiptap/vue-2": "^2.6.6",
-    "@tiptap/pm": "^2.6.6",
-    "@tiptap/starter-kit": "^2.6.6",
-    "@tiptap/extension-link": "^2.6.6",
-    "@tiptap/extension-placeholder": "^2.6.6",
-    "@tiptap/extension-underline": "^2.6.6",
-    "@tiptap/extension-youtube": "^2.6.6"
+    "@tiptap/vue-2": "^2.11.7",
+    "@tiptap/pm": "^2.11.7",
+    "@tiptap/starter-kit": "^2.11.7",
+    "@tiptap/extension-link": "^2.11.7",
+    "@tiptap/extension-placeholder": "^2.11.7",
+    "@tiptap/extension-underline": "^2.11.7",
+    "@tiptap/extension-youtube": "^2.11.7"
   },
   "devDependencies": {
     "@mdi/font": "^7.3.67",

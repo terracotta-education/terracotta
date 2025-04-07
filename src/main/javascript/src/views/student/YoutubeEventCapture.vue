@@ -56,10 +56,16 @@ export default {
       return null;
     },
     youtubeIframeAPIInit(YT) {
-      const allYoutubeIframes = this.$el.querySelectorAll(
-        "iframe[data-youtube-id]"
-      );
+      const allYoutubeIframes = this.$el.querySelectorAll("div[data-youtube-video] > iframe");
+
       for (const iframe of allYoutubeIframes) {
+        if (iframe.getAttribute("src")) {
+          // add the "enablejsapi=1" parameter to the src URL
+          let src = new URL(iframe.getAttribute("src"));
+          src.searchParams.set("enablejsapi", 1);
+          iframe.setAttribute("src", src.toString());
+        }
+
         const player = new YT.Player(iframe, {
           events: {
             onReady: (event) => {
@@ -134,7 +140,6 @@ export default {
         originalVideoUrl: originalVideoUrl,
         videoURL: player.getVideoUrl(),
         duration: player.getDuration(),
-        currentTime: player.getCurrentTime(),
         extensions,
       });
     },
@@ -230,15 +235,13 @@ export default {
   },
   mounted() {
     this.$nextTick(() => {
-      if (this.$el.querySelectorAll("iframe[data-youtube-id]").length > 0) {
+      if (this.$el.querySelectorAll("div[data-youtube-video] > iframe").length > 0) {
         this.getYT({ callback: this.youtubeIframeAPIInit });
       }
     });
   },
   destroyed() {
-    const allYoutubeIframes = this.$el.querySelectorAll(
-      "iframe[data-youtube-id]"
-    );
+    const allYoutubeIframes = this.$el.querySelectorAll("div[data-youtube-video] > iframe");
     // Remove fullscreenchange listeners
     for (const iframe of allYoutubeIframes) {
       iframe.removeEventListener("fullscreenchange", this.onFullscreenChange);
