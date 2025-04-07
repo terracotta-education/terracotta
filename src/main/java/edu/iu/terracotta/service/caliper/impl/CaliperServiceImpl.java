@@ -341,7 +341,7 @@ public class CaliperServiceImpl implements CaliperService {
             .action(mediaEventDto.getAction())
             .edApp(softwareApplication)
             .context(context)
-            .eventTime(mediaEventDto.getEventTime())
+            .eventTime(new DateTime(mediaEventDto.getEventTime()))
             .membership(prepareMembership(participant, securedInfo))
             .object(mediaObject);
 
@@ -368,7 +368,7 @@ public class CaliperServiceImpl implements CaliperService {
 
         Event event = new Event();
         event.setCaliperId(uuid);
-        event.setEventTime(new Timestamp(mediaEventDto.getEventTime().getMillis()));
+        event.setEventTime(mediaEventDto.getEventTime());
         event.setActorId(actor.getId());
         event.setActorType(actor.getType().value());
         event.setPlatform_deployment(participant.getLtiMembershipEntity().getUser().getPlatformDeployment().getBaseUrl());

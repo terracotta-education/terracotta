@@ -135,6 +135,9 @@ public class ExportServiceImpl implements ExportService {
     @Value("${app.export.events.output.participant.threshold:400}")
     private int eventsOutputParticipantThreshold;
 
+    @Value("${app.export.enable.readme:true}")
+    private boolean exportReadmeEnabled;
+
     private long consentedParticipantsCount;
     private List<Assignment> assignments;
     private List<ExposureGroupCondition> exposureGroupConditions;
@@ -707,6 +710,10 @@ public class ExportServiceImpl implements ExportService {
     }
 
     public void getReadMeFile(Map<String, String> files) throws IOException {
+        if (!exportReadmeEnabled) {
+            return;
+        }
+
         String readmeBucketName = env.getProperty("aws.bucket-name");
         String readmeObjectKey = env.getProperty("aws.object-key");
         Path path = createTempFile();
