@@ -35,7 +35,7 @@ export default {
   props: {
     html: {
       type: String,
-      required: false,
+      required: false
     }
   },
   data() {
@@ -84,7 +84,7 @@ export default {
         )
       ],
       onUpdate: ({ editor }) => {
-        this.$emit("edited", editor.getText() ? editor.getHTML() : "");
+        this.$emit("edited", editor.isEmpty ? "" : editor.getHTML());
       },
       onSelectionUpdate: ({ editor }) => {
         const { view } = editor;
