@@ -725,7 +725,7 @@ export default {
         return {
           showDownloadLink: true,
           showRecreateLink: false,
-          text: "Your data export is ready.",
+          text: `Your data export for experiment "${dataExportRequest.experimentTitle}" is ready.`,
           type: "success"
         }
       }
@@ -734,7 +734,7 @@ export default {
         return {
           showDownloadLink: false,
           showRecreateLink: false,
-          text: "Your data export is being processed. Please do not navigate away from this page.",
+          text: `The data export for experiment "${dataExportRequest.experimentTitle}" is being processed. Please do not navigate away from this page.`,
           type: "info"
         }
       }
@@ -743,7 +743,7 @@ export default {
         return {
           showDownloadLink: false,
           showRecreateLink: true,
-          text: `There are new submissions recorded since the last requested data export for experiment "${dataExportRequest.experimentTitle}".`,
+          text: `There have been new submissions since the last requested data export for experiment "${dataExportRequest.experimentTitle}".`,
           type: "warning"
         }
       }
@@ -752,7 +752,7 @@ export default {
         return {
           showDownloadLink: false,
           showRecreateLink: false,
-          text: "There was an error processing the requested data export. Please try again or contact support.",
+          text: `There was an error processing the requested data export for experiment "${dataExportRequest.experimentTitle}". Please try again or contact support.`,
           type: "error"
         }
       }
