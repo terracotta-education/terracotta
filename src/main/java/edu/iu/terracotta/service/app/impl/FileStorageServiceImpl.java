@@ -13,6 +13,7 @@ import edu.iu.terracotta.dao.entity.AssignmentFileArchive;
 import edu.iu.terracotta.dao.entity.ConsentDocument;
 import edu.iu.terracotta.dao.entity.Experiment;
 import edu.iu.terracotta.dao.entity.FileSubmissionLocal;
+import edu.iu.terracotta.dao.entity.export.data.ExperimentDataExport;
 import edu.iu.terracotta.dao.exceptions.AssignmentNotCreatedException;
 import edu.iu.terracotta.dao.exceptions.AssignmentNotEditedException;
 import edu.iu.terracotta.dao.exceptions.AssignmentNotMatchingException;
@@ -21,6 +22,7 @@ import edu.iu.terracotta.dao.repository.AnswerFileSubmissionRepository;
 import edu.iu.terracotta.dao.repository.AssignmentFileArchiveRepository;
 import edu.iu.terracotta.dao.repository.ConsentDocumentRepository;
 import edu.iu.terracotta.dao.repository.ExperimentRepository;
+import edu.iu.terracotta.dao.repository.export.data.ExperimentDataExportRepository;
 import edu.iu.terracotta.exceptions.app.FileStorageException;
 import edu.iu.terracotta.exceptions.app.MyFileNotFoundException;
 import edu.iu.terracotta.service.app.FileStorageService;
@@ -71,6 +73,7 @@ public class FileStorageServiceImpl implements FileStorageService {
     @Autowired private AssignmentFileArchiveRepository assignmentFileArchiveRepository;
     @Autowired private ConsentDocumentRepository consentDocumentRepository;
     @Autowired private ExperimentRepository experimentRepository;
+    @Autowired private ExperimentDataExportRepository exportDataRepository;
     @Autowired private LtiUserRepository ltiUserRepository;
     @Autowired private ApiClient apiClient;
     @Autowired private ApiJwtService apijwtService;
@@ -96,9 +99,16 @@ public class FileStorageServiceImpl implements FileStorageService {
     @Value("${assignment.file.archive.local.path.root}")
     private String assignmentFileArchiveLocalPathRoot;
 
+    @Value("${experiment.data.export.local.path}")
+    private String experimentDataExportLocalPath;
+
+    @Value("${experiment.data.export.local.path.root}")
+    private String experimentDataExportLocalPathRoot;
+
     private Path decompressedSubmissionFileTempDirectory;
     private Path decompressedConsentFileTempDirectory;
     private Path decompressedAssignmentFileArchiveTempDirectory;
+    private Path decompressedExperimentDataExportTempDirectory;
 
     @PostConstruct
     public void init() {
@@ -107,11 +117,13 @@ public class FileStorageServiceImpl implements FileStorageService {
             Files.createDirectories(Paths.get(uploadSubmissionsLocalPathRoot));
             Files.createDirectories(Paths.get(consentFileLocalPathRoot));
             Files.createDirectories(Paths.get(assignmentFileArchiveLocalPathRoot));
+            Files.createDirectories(Paths.get(experimentDataExportLocalPathRoot));
             this.decompressedSubmissionFileTempDirectory = Files.createTempDirectory(Paths.get(uploadSubmissionsLocalPath).toString() + ".");
             this.decompressedConsentFileTempDirectory = Files.createTempDirectory(Paths.get(consentFileLocalPath).toString() + ".");
             this.decompressedAssignmentFileArchiveTempDirectory = Files.createTempDirectory(Paths.get(assignmentFileArchiveLocalPath).toString() + ".");
+            this.decompressedExperimentDataExportTempDirectory = Files.createTempDirectory(Paths.get(experimentDataExportLocalPath).toString() + ".");
         } catch (IOException e) {
-            throw new RuntimeException("Error 138: Could not create upload folder!");
+            throw new RuntimeException("Error 138: Could not create upload folders!");
         }
     }
 
@@ -551,6 +563,94 @@ public class FileStorageServiceImpl implements FileStorageService {
                     "%s/%s",
                     decompressedAssignmentFileArchiveTempDirectory,
                     assignmentFileArchive.get().getFileUri()
+                )
+            );
+        } catch (FileStorageException e) {
+            throw e;
+        }
+    }
+
+    @Override
+    public void saveExperimentDataExport(ExperimentDataExport experimentDataExport, File file) {
+        if (file == null) {
+            throw new FileStorageException("Error 140: File cannot be null.");
+        }
+
+        String path = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy/MM/dd/HH"));
+
+        try {
+            // create the upload directory
+            Files.createDirectories(Paths.get(String.format("%s/%s", experimentDataExportLocalPathRoot, path)));
+            // assign random UUID as file name
+            String filePath = String.format("%s/%s", path, UUID.randomUUID().toString());
+
+            while (Files.exists(Paths.get(filePath))) {
+                // ensure no file name clashes
+                filePath = String.format("%s/%s", path, UUID.randomUUID().toString());
+            }
+
+            // copy the file to the directory
+            Files.copy(
+                FileUtils.openInputStream(file),
+                Paths.get(String.format("%s/%s", experimentDataExportLocalPathRoot, filePath)),
+                StandardCopyOption.REPLACE_EXISTING
+            );
+
+            String encryptionPhrase = UUID.randomUUID().toString();
+
+            experimentDataExport.setEncryptionMethod(EncryptionMethod.AES.toString());
+            experimentDataExport.setEncryptionPhrase(encryptionPhrase);
+            experimentDataExport.setMimeType(AssignmentFileArchive.MIME_TYPE);
+            experimentDataExport.setFileUri(filePath);
+
+            compressFile(
+                Paths.get(String.format("%s/%s", experimentDataExportLocalPathRoot, filePath)).toString(),
+                encryptionPhrase,
+                ExperimentDataExport.COMPRESSED_FILE_EXTENSION
+            );
+        } catch (IOException ex) {
+            throw new FileStorageException(String.format("Error 140: Could not store file '%s'. Please try again.", experimentDataExport.getFileName()), ex);
+        }
+    }
+
+    @Override
+    public File getExperimentDataExport(long id) {
+        Optional<ExperimentDataExport> experimentDataExport = exportDataRepository.findById(id);
+
+        if (experimentDataExport.isEmpty()) {
+            return null;
+        }
+
+        // decompress file and then return it
+        try {
+            decompressFile(
+                Paths.get(
+                    String.format(
+                        "%s/%s%s",
+                        experimentDataExportLocalPathRoot,
+                        experimentDataExport.get().getFileUri(),
+                        AssignmentFileArchive.COMPRESSED_FILE_EXTENSION
+                    )
+                )
+                .toString(),
+                experimentDataExport.get().getEncryptionPhrase(),
+                Path.of(
+                    String.format(
+                        "%s/%s",
+                        decompressedExperimentDataExportTempDirectory,
+                        org.apache.commons.lang3.StringUtils.substringBeforeLast(
+                            experimentDataExport.get().getFileUri(),
+                            "/"
+                        )
+                    )
+                )
+            );
+
+            return new File(
+                String.format(
+                    "%s/%s",
+                    decompressedExperimentDataExportTempDirectory,
+                    experimentDataExport.get().getFileUri()
                 )
             );
         } catch (FileStorageException e) {

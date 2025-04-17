@@ -1,11 +1,9 @@
 package edu.iu.terracotta.controller.app;
 
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
-import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
 import edu.iu.terracotta.dao.exceptions.ExperimentNotMatchingException;
-import edu.iu.terracotta.dao.exceptions.OutcomeNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.dao.model.dto.ExperimentDto;
 import edu.iu.terracotta.exceptions.BadTokenException;
@@ -16,13 +14,10 @@ import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.exceptions.WrongValueException;
 import edu.iu.terracotta.service.app.ExperimentService;
-import edu.iu.terracotta.service.app.ExportService;
 import edu.iu.terracotta.utils.TextConstants;
-import edu.iu.terracotta.utils.ZipUtil;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.ByteArrayResource;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -53,7 +48,6 @@ public class ExperimentController {
     public static final String REQUEST_ROOT = "api/experiments";
 
     @Autowired private ExperimentService experimentService;
-    @Autowired private ExportService exportService;
     @Autowired private ApiJwtService apijwtService;
 
     /**
@@ -89,9 +83,9 @@ public class ExperimentController {
           */
          @GetMapping("/{id}")
          public ResponseEntity<ExperimentDto> getExperiment(@PathVariable long id,
-                                                            @RequestParam(name = "conditions", defaultValue = "false") boolean conditions,
-                                                            @RequestParam(name = "exposures", defaultValue = "false") boolean exposures,
-                                                            @RequestParam(name = "participants", defaultValue = "false") boolean participants,
+                                                            @RequestParam(defaultValue = "false") boolean conditions,
+                                                            @RequestParam(defaultValue = "false") boolean exposures,
+                                                            @RequestParam(defaultValue = "false") boolean participants,
                                                             HttpServletRequest req)
                  throws ExperimentNotMatchingException, BadTokenException, NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
@@ -180,19 +174,6 @@ public class ExperimentController {
         }
 
         return new ResponseEntity<>(HttpStatus.OK);
-    }
-
-    @GetMapping(value = "/{experimentId}/zip", produces = "application/zip")
-    public ResponseEntity<ByteArrayResource> downloadZip(@PathVariable long experimentId, HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, IOException, ApiException, ParticipantNotUpdatedException, OutcomeNotMatchingException, NumberFormatException, TerracottaConnectorException {
-        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
-        apijwtService.experimentAllowed(securedInfo, experimentId);
-
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
-
-        return new ResponseEntity<>(ZipUtil.generateZipFile(exportService.getFiles(experimentId, securedInfo)), HttpStatus.OK);
     }
 
 }

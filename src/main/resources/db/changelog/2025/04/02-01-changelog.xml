@@ -1,0 +1,56 @@
+<?xml
+  version="1.1"
+  encoding="UTF-8"
+  standalone="no"
+?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+  xmlns:pro="http://www.liquibase.org/xml/ns/pro"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd
+    http://www.liquibase.org/xml/ns/dbchangelog-ext
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd
+    http://www.liquibase.org/xml/ns/pro
+    http://www.liquibase.org/xml/ns/pro/liquibase-pro-latest.xsd"
+>
+  <changeSet author="rlong" id="1743615518-00">
+    <createTable tableName="terr_experiment_data_export">
+      <column autoIncrement="true" name="id" type="BIGINT">
+        <constraints nullable="false" primaryKey="true"/>
+      </column>
+      <column name="uuid" type="BINARY(16)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="file_name" type="VARCHAR(255)"/>
+      <column name="file_uri" type="VARCHAR(255)"/>
+      <column name="mime_type" type="VARCHAR(255)"/>
+      <column name="encryption_phrase" type="VARCHAR(255)"/>
+      <column name="encryption_method" type="VARCHAR(255)"/>
+      <column name="experiment_id" type="BIGINT">
+        <constraints nullable="false"/>
+      </column>
+      <column name="owner_id" type="BIGINT">
+        <constraints nullable="false"/>
+      </column>
+      <column name="status" type="VARCHAR(255)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="entity_version" type="INT"/>
+      <column defaultValueComputed="CURRENT_TIMESTAMP" name="created_at" type="timestamp"/>
+      <column name="updated_at" type="datetime"/>
+    </createTable>
+  </changeSet>
+  <changeSet author="rlong" id="1743615518-01">
+    <createIndex associatedWith="" indexName="IDX1743615518" tableName="terr_experiment_data_export">
+      <column name="uuid"/>
+      <column name="experiment_id"/>
+      <column name="owner_id"/>
+    </createIndex>
+  </changeSet>
+  <changeSet author="rlong" id="1743615518-02">
+    <addForeignKeyConstraint baseColumnNames="experiment_id" baseTableName="terr_experiment_data_export" constraintName="FK1743615518-01" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="RESTRICT" referencedColumnNames="experiment_id" referencedTableName="terr_experiment" validate="true"/>
+    <addForeignKeyConstraint baseColumnNames="owner_id" baseTableName="terr_experiment_data_export" constraintName="FK1743615518-02" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="RESTRICT" referencedColumnNames="user_id" referencedTableName="lti_user" validate="true"/>
+  </changeSet>
+</databaseChangeLog>

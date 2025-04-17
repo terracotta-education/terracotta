@@ -167,7 +167,7 @@ export default {
         }
       },
       immediate: false
-    },
+    }
   },
   computed: {
     ...mapGetters({
@@ -486,24 +486,23 @@ export default {
     line-height: 1.5;
   }
   & .btn-row {
-  display: flex;
-  flex-direction: row;
-  justify-content:right;
-  > .download-files {
-    max-width: fit-content;
     display: flex;
-    flex-direction: column;
-    & .btn-download-file {
+    flex-direction: row;
+    justify-content:right;
+    > .download-files {
       max-width: fit-content;
-    }
-    & .file-archive-status {
-      max-width: fit-content;
-      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      & .btn-download-file {
+        max-width: fit-content;
+      }
+      & .file-archive-status {
+        max-width: fit-content;
+        margin: 0 auto;
+      }
     }
   }
 }
-}
-
 .alert-file-request {
   margin: 0 auto;
   & a {

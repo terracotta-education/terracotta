@@ -26,7 +26,7 @@
           class="header ma-0 pa-0"
         >
           <v-btn
-            @click="exportData()"
+            @click="handleDataExportRequest()"
             color="primary"
             elevation="0"
           >
@@ -41,6 +41,34 @@
             SAVE & EXIT
           </v-btn
           >
+        </div>
+      </v-row>
+      <v-row>
+        <div
+          v-if="experimentDataExportRequest.showAlert"
+          class="alert-data-export-request pb-2 px-3"
+        >
+          <v-alert
+            v-model="experimentDataExportRequest.showAlert"
+            @input="handleDataExportRequestAlertDismiss"
+            :type="dataExportRequestAlert.type"
+            elevation="0"
+            dismissible
+          >
+            {{ dataExportRequestAlert.text }}
+            <a
+              v-if="dataExportRequestAlert.showDownloadLink"
+              @click="handleAlertDataExportDownloadRequest()"
+            >
+              <b><i>Click here to download</i></b>.
+            </a>
+            <a
+              v-if="dataExportRequestAlert.showRecreateLink"
+              @click="handleDataExportRequest()"
+            >
+              <b><i>Click here to request a new data export</i></b>.
+            </a>
+          </v-alert>
         </div>
       </v-row>
       <v-row>
@@ -427,15 +455,14 @@
 </template>
 
 <script>
-import { mapGetters, mapActions } from "vuex"
-import { saveAs } from "file-saver"
-import { EventBus } from "@/helpers/event-bus"
-import ExperimentAssignments from "@/views/ExperimentAssignments"
-import ExperimentSummaryStatus from "@/views/ExperimentSummaryStatus"
-import ResultsDashboard from "@/views/dashboard/results/ResultsDashboard"
-import Spinner from "@/components/Spinner"
-import store from "@/store"
-import VuePdfEmbed from 'vue-pdf-embed/dist/vue2-pdf-embed'
+import { mapGetters, mapActions } from "vuex";
+import { EventBus } from "@/helpers/event-bus";
+import ExperimentAssignments from "@/views/ExperimentAssignments";
+import ExperimentSummaryStatus from "@/views/ExperimentSummaryStatus";
+import ResultsDashboard from "@/views/dashboard/results/ResultsDashboard";
+import Spinner from "@/components/Spinner";
+import store from "@/store";
+import VuePdfEmbed from "vue-pdf-embed/dist/vue2-pdf-embed";
 
 export default {
   name: "ExperimentSummary",
@@ -448,7 +475,13 @@ export default {
   },
   data: () => ({
     tab: null,
-    items: ["design", "participant", "components", "status", "results"],
+    items: [
+      "design",
+      "participant",
+      "components",
+      "status",
+      "results"
+    ],
     // Expansion Tab Header Values
     setupTabs: [
       {
@@ -460,8 +493,7 @@ export default {
       {
         title: "Participant",
         tab: "participant",
-        description:
-          "How students in your class become participants in your experiment",
+        description: "How students in your class become participants in your experiment",
         image: require("@/assets/participants_summary.svg"),
       },
       {
@@ -477,8 +509,7 @@ export default {
       {
         title: "Status",
         tab: "status",
-        description:
-          "Once your experiment is running, you will see status updates below",
+        description: "Once your experiment is running, you will see status updates below",
       },
       {
         title: "Results",
@@ -492,15 +523,33 @@ export default {
     loadPdfFrame: false,
     pdfFile: null,
     pdfLoading: false,
-    fileRequestAlert: {
-      show: false,
-      text: null
+    experimentDataExportRequest: {
+      showAlert: false,
+      downloadLinkClicked: false,
+      polling: {
+        active: false,
+        id: null
+      }
     }
   }),
   watch: {
     pdfFile() {
       this.loadPdfFrame = true;
       this.pdfLoading = false;
+    },
+    experimentDataExportRequest: {
+      handler: function (newExperimentDataExportRequest) {
+        if (newExperimentDataExportRequest.polling.active) {
+          // create export data request polling scheduler
+          this.experimentDataExportRequest.polling.id = window.setInterval(() => {
+            this.handleDataExportRequestPolling()
+          }, 5000);
+        } else {
+          // clear export data request polling scheduler
+          this.experimentDataExportRequest.polling.id = window.clearInterval(this.experimentDataExportRequest.polling.id);
+        }
+      },
+      immediate: false
     }
   },
   computed: {
@@ -509,9 +558,9 @@ export default {
       conditions: "experiment/conditions",
       exposures: "exposures/exposures",
       assignments: "assignment/assignments",
-      exportdata: "exportdata/exportData",
       conditionColorMapping: "condition/conditionColorMapping",
-      editMode: "navigation/editMode"
+      editMode: "navigation/editMode",
+      dataExportRequests: "dataexportrequest/dataExportRequests"
     }),
     // Higher Level Section Values
     sectionValuesMap() {
@@ -622,6 +671,96 @@ export default {
     },
     displayConsentFile() {
       return this.tab === this.setupTabs.findIndex((setupTab) => setupTab.tab === "participant") && this.loadPdfFrame;
+    },
+    dataExport() {
+      const dataExportRequest = this.dataExportRequest;
+
+      if (dataExportRequest?.ready || dataExportRequest?.downloaded) {
+        return {
+          status: "Files ready to download",
+          color: "success",
+          icon: "mdi-check",
+          showStatus: this.showDataExportRequestStatus
+        }
+      }
+
+      if (dataExportRequest?.processing || dataExportRequest?.reprocessing) {
+        return {
+          status: "Files are being processed",
+          color: "info",
+          icon: "mdi-clock",
+          showStatus: this.showDataExportRequestStatus
+        }
+      }
+
+      if (dataExportRequest?.error) {
+        return {
+          status: "File processing error",
+          color: "error",
+          icon: "mdi-exclamation",
+          showStatus: this.showDataExportRequestStatus
+        }
+      }
+
+      return {
+        show: false
+      }
+    },
+    showDataExportRequestStatus() {
+      const dataExportRequest = this.dataExportRequest;
+
+      return !this.experimentDataExportRequest.showAlert &&
+        [
+          dataExportRequest?.processing,
+          dataExportRequest?.reprocessing,
+          dataExportRequest?.ready,
+          dataExportRequest?.downloaded,
+          dataExportRequest?.outdated
+        ].some(e => e === true);
+    },
+    dataExportRequestAlert() {
+      const dataExportRequest = this.dataExportRequest;
+
+      if (dataExportRequest?.ready) {
+        return {
+          showDownloadLink: true,
+          showRecreateLink: false,
+          text: "Your data export is ready.",
+          type: "success"
+        }
+      }
+
+      if (dataExportRequest?.processing || dataExportRequest?.reprocessing) {
+        return {
+          showDownloadLink: false,
+          showRecreateLink: false,
+          text: "Your data export is being processed. Please do not navigate away from this page.",
+          type: "info"
+        }
+      }
+
+      if (dataExportRequest?.outdated) {
+        return {
+          showDownloadLink: false,
+          showRecreateLink: true,
+          text: `There are new submissions recorded since the last requested data export for experiment "${dataExportRequest.experimentTitle}".`,
+          type: "warning"
+        }
+      }
+
+      if (dataExportRequest?.error) {
+        return {
+          showDownloadLink: false,
+          showRecreateLink: false,
+          text: "There was an error processing the requested data export. Please try again or contact support.",
+          type: "error"
+        }
+      }
+
+      return {};
+    },
+    dataExportRequest() {
+      return this.dataExportRequests?.find(dataExportRequest => dataExportRequest.experimentId === parseInt(this.experimentId));
     }
   },
   methods: {
@@ -632,27 +771,25 @@ export default {
       createTreatment: "treatment/createTreatment",
       createAssessment: "assessment/createAssessment",
       getConsentFile: "consent/getConsentFile",
-      getZip: "exportdata/fetchExportData",
       resetAssignments: "assignment/resetAssignments",
       saveEditMode: "navigation/saveEditMode",
-      deleteEditMode: "navigation/deleteEditMode"
+      deleteEditMode: "navigation/deleteEditMode",
+      retrieveDataExportRequest: "dataexportrequest/retrieve",
+      prepareDataExportRequest: "dataexportrequest/prepare",
+      resetDataExportRequest: "dataexportrequest/reset",
+      pollDataExportRequest: "dataexportrequest/poll",
+      pollDataExportRequests: "dataexportrequest/pollList",
+      dataExportRequestAcknowledge: "dataexportrequest/acknowledge",
     }),
     saveExit() {
       this.$router.push({ name: "Home" });
-    },
-    async exportData() {
-      await this.getZip(this.experimentId);
-      saveAs(
-        this.exportdata,
-        `Terracotta Experiment ${this.experiment.title} Export.zip`
-      );
     },
     // Navigate to EDIT section
     async handleEdit(componentName, currentTab) {
       await this.saveEditMode({
         initialPage: componentName,
         callerPage: {
-          name: 'ExperimentSummary',
+          name: "ExperimentSummary",
           tab: currentTab
         }
       });
@@ -762,13 +899,152 @@ export default {
         .then((file) => {
           this.pdfFile = encodeURI(file);
         });
+    },
+    async handleAlertDataExportDownloadRequest() {
+      this.experimentDataExportRequest = {
+        ...this.experimentDataExportRequest,
+        downloadLinkClicked: true
+      };
+      await this.handleDataExportRequest();
+    },
+    async handleDataExportRequest() {
+      let dataExportRequest = this.dataExportRequest;
+      await this.pollDataExportRequest([
+        this.experimentId,
+        dataExportRequest ? (dataExportRequest.ready || dataExportRequest.downloaded) : false
+      ]);
+
+      dataExportRequest = this.dataExportRequest;
+
+      if (dataExportRequest?.ready || dataExportRequest?.downloaded) {
+        // retrieve file
+        await this.retrieveDataExportRequest([
+          this.experimentId,
+          dataExportRequest
+        ]);
+
+        if (dataExportRequest?.ready || dataExportRequest?.downloaded) {
+          // file has been delivered
+          return;
+        }
+      }
+
+      if (dataExportRequest?.processing) {
+        this.$swal({
+          icon: "info",
+          text: `The data export is still being processed. You will be notified when the export is ready for download.
+            Please do not navigate away from this page.`,
+          confirmButtonText: "OK"
+        });
+        return;
+      }
+
+      if (dataExportRequest?.reprocessing) {
+        this.$swal({
+          icon: "info",
+          text: `New submissons have occurred since the requested set of exported data was processed. A new export is being created.
+            You will be notified when the export is ready for download. Please do not navigate away from this page.`,
+          confirmButtonText: "OK"
+        });
+        return;
+      }
+
+      const dataExportRequestConfirm = await this.$swal({
+        icon: "info",
+        text: `Depending on the number of submissions, it could take several minutes to retrieve your data export.
+          You will see an alert when the export is ready to download. After you click “ok”, please stay on this page until your download is ready.`,
+        showCancelButton: true,
+        confirmButtonText: "OK"
+      });
+
+      if (dataExportRequestConfirm.isConfirmed) {
+        await this.prepareDataExportRequest([
+          this.experimentId
+        ]);
+
+        dataExportRequest = this.dataExportRequest;
+
+        this.experimentDataExportRequest = {
+          showAlert: dataExportRequest?.processing || dataExportRequest?.reprocessing,
+          downloadLinkClicked: false,
+          polling: {
+            active: dataExportRequest?.processing || dataExportRequest?.reprocessing,
+            id: null
+          }
+        }
+      }
+    },
+    async handleDataExportRequestPolling() {
+      await this.pollDataExportRequest([
+        this.experimentId,
+        false
+      ]);
+
+      const dataExportRequest = this.dataExportRequest;
+
+      this.experimentDataExportRequest = {
+        showAlert: dataExportRequest?.processing || dataExportRequest?.reprocessing || dataExportRequest.ready || dataExportRequest.error,
+        downloadLinkClicked: false,
+        polling: {
+          ...this.experimentDataExportRequest.polling,
+          active: dataExportRequest?.processing || dataExportRequest?.reprocessing
+        }
+      }
+    },
+    async handleDataExportRequestAlertDismiss() {
+      this.experimentDataExportRequest = {
+        showAlert: false,
+        downloadLinkClicked: false,
+        polling: {
+          ...this.experimentDataExportRequest.polling,
+          active: false
+        }
+      }
+
+      const dataExportRequest = this.dataExportRequest;
+
+      if (dataExportRequest?.error) {
+        this.dataExportRequestAcknowledge([
+          this.experimentId,
+          dataExportRequest.id,
+          "ERROR_ACKNOWLEDGED"
+        ]);
+      }
+
+      if (dataExportRequest?.ready) {
+        this.dataExportRequestAcknowledge([
+        this.experimentId,
+        dataExportRequest.id,
+        "READY_ACKNOWLEDGED"
+        ]);
+      }
+
+      if (dataExportRequest?.outdated) {
+        this.dataExportRequestAcknowledge([
+          this.experimentId,
+          dataExportRequest.id,
+          "OUTDATED_ACKNOWLEDGED"
+        ]);
+      }
     }
   },
   async mounted() {
     await this.resetAssignments();
+    this.resetDataExportRequest();
     this.tab = this.setupTabs.findIndex((s) => s.tab === this.activeTab);
     this.exposureSet = this.activeExposureSet;
     await this.saveEditMode(null);
+
+    // process experiment data exports
+    await this.pollDataExportRequests([
+      [this.experimentId],
+      false
+    ]);
+    const dataExportRequest = this.dataExportRequest;
+    this.experimentDataExportRequest = {
+      ...this.experimentDataExportRequest,
+      showAlert: dataExportRequest ? (dataExportRequest.ready || dataExportRequest.processing || dataExportRequest.reprocessing || dataExportRequest.outdated || dataExportRequest.error) : false,
+    }
 
     await this.fetchExposures(this.experimentId);
     for (const e of this.exposures) {
@@ -806,6 +1082,12 @@ export default {
       .dispatch("experiment/fetchExperimentById", to.params.experimentId)
       .then(next, next);
   },
+  beforeDestroy() {
+    // clear file request polling scheduler
+    if (this.experimentDataExportRequest.polling.id !== null) {
+      window.clearInterval(this.experimentDataExportRequest.polling.id);
+    }
+  }
 };
 </script>
 
@@ -956,5 +1238,14 @@ div.vue-pdf-embed {
 }
 div.results {
   padding-top: 0 !important;
+}
+.alert-data-export-request {
+  min-width: 100%;
+  > .v-alert {
+    margin: 0 auto;
+    & a {
+      color: white;
+    }
+  }
 }
 </style>
