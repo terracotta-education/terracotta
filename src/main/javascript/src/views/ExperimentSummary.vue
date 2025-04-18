@@ -932,7 +932,7 @@ export default {
       if (dataExportRequest?.processing) {
         this.$swal({
           icon: "info",
-          text: `The data export is still being processed. You will be notified when the export is ready for download.
+          text: `The data export for experiment "${dataExportRequest.experimentTitle}" is still being processed. You will be notified when the export is ready for download.
             Please do not navigate away from this page.`,
           confirmButtonText: "OK"
         });
@@ -942,7 +942,7 @@ export default {
       if (dataExportRequest?.reprocessing) {
         this.$swal({
           icon: "info",
-          text: `New submissons have occurred since the requested set of exported data was processed. A new export is being created.
+          text: `New submissons have occurred since the requested set of exported data for experiment "${dataExportRequest.experimentTitle}" was processed. A new export is being created.
             You will be notified when the export is ready for download. Please do not navigate away from this page.`,
           confirmButtonText: "OK"
         });
@@ -951,8 +951,8 @@ export default {
 
       const dataExportRequestConfirm = await this.$swal({
         icon: "info",
-        text: `Depending on the number of submissions, it could take several minutes to retrieve your data export.
-          You will see an alert when the export is ready to download. After you click “ok”, please stay on this page until your download is ready.`,
+        text: `Depending on its size, it could take several minutes to retrieve your data export.
+          You will see an alert when the export is ready to download. After you click "ok," please stay on this page until your download is ready.`,
         showCancelButton: true,
         confirmButtonText: "OK"
       });

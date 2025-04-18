@@ -502,7 +502,8 @@ export default {
 
       const dataExportRequestConfirm = await this.$swal({
         icon: "info",
-        text: `Depending on its size, it could take several minutes to retrieve your data export. You will see an alert when the export is ready to download. After you click "ok," please stay on this page until your download is ready.`,
+        text: `Depending on its size, it could take several minutes to retrieve your data export.
+          You will see an alert when the export is ready to download. After you click "ok," please stay on this page until your download is ready.`,
         showCancelButton: true,
         confirmButtonText: "OK"
       });
