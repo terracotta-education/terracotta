@@ -122,7 +122,6 @@ public class ExperimentDataExportServiceImpl implements ExperimentDataExportServ
         OutcomeNotMatchingException, ApiException, TerracottaConnectorException {
         Optional<ExperimentDataExport> experimentDataExport = findLatestAvailableExperimentDataExport(experiment.getExperimentId());
 
-
         if (experimentDataExport.isPresent()) {
             // existing valid data export found; return it
             experimentDataExport.get().setStatus(ExperimentDataExportStatus.DOWNLOADED);
@@ -141,7 +140,8 @@ public class ExperimentDataExportServiceImpl implements ExperimentDataExportServ
             experimentId,
             Arrays.asList(
                 ExperimentDataExportStatus.DOWNLOADED,
-                ExperimentDataExportStatus.READY
+                ExperimentDataExportStatus.READY,
+                ExperimentDataExportStatus.READY_ACKNOWLEDGED
             )
         );
 
