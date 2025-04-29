@@ -3,6 +3,14 @@
     v-show="pageFullyLoaded"
     class="consent-steps my-5 mx-auto"
   >
+    <v-row
+      class="mb-6 mx-0"
+    >
+      <div>
+        You are being asked to participate in a research study. Please read the statement below, and then select your response.
+        Your teacher will be able to see whether you submitted a response, but will not be able to see your selection.
+      </div>
+    </v-row>
     <v-alert
       v-if="respondedAlert.show"
       prominent
