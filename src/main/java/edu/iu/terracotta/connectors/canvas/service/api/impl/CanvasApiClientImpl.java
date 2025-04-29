@@ -232,9 +232,7 @@ public class CanvasApiClientImpl implements ApiClient {
                 .toUriString());
         assignmentExtended.getAssignment().setExternalToolTagAttributes(canvasExternalToolTagAttributes);
         assignmentExtended.getAssignment().setName(consentDocument.getTitle());
-        assignmentExtended.getAssignment().setDescription("You are being asked to participate in a research study. " +
-                "Please read the statement below, and then select your response. " +
-                "Your teacher will be able to see whether you submitted a response, but will not be able to see your selection.");
+        assignmentExtended.getAssignment().setDescription(StringUtils.EMPTY);
         assignmentExtended.getAssignment().setPublished(false);
         assignmentExtended.getAssignment().setGradingType("points");
         assignmentExtended.getAssignment().setPointsPossible(1.0);
