@@ -464,17 +464,17 @@ export default {
       let dataExportRequest = this.dataExportRequest(experimentId);
       await this.pollDataExportRequest([
         experimentId,
-        dataExportRequest ? (dataExportRequest.ready || dataExportRequest.downloaded) : false
+        dataExportRequest ? (dataExportRequest.ready || dataExportRequest?.readyAcknowledged || dataExportRequest.downloaded) : false
       ]);
 
-      if (dataExportRequest?.ready || dataExportRequest?.downloaded) {
+      if (dataExportRequest?.ready || dataExportRequest?.readyAcknowledged || dataExportRequest?.downloaded) {
         // retrieve file
         await this.retrieveDataExportRequest([
           experimentId,
           dataExportRequest
         ]);
 
-        if (dataExportRequest?.ready || dataExportRequest?.downloaded) {
+        if (dataExportRequest?.ready || dataExportRequest?.readyAcknowledged || dataExportRequest?.downloaded) {
           // file has been delivered
           return;
         }
@@ -544,6 +544,23 @@ export default {
       };
     },
     async handleDataExportRequestAlertDismiss(experimentId) {
+      let dataExportRequest = this.dataExportRequest(experimentId);
+
+      if (dataExportRequest?.processing || dataExportRequest?.reprocessing) {
+        // data export is still being processed; just dismiss alert
+        this.experimentDataExportRequests = {
+          ...this.experimentDataExportRequests,
+          [experimentId]: {
+            showAlert: false,
+            polling: {
+              active: this.experimentDataExportRequests[experimentId].polling.active,
+              id: this.experimentDataExportRequests[experimentId].polling.id
+            }
+          }
+        };
+        return;
+      }
+
       this.experimentDataExportRequests = {
         ...this.experimentDataExportRequests,
         [experimentId]: {
@@ -555,7 +572,7 @@ export default {
         }
       };
       this.experimentDataExportRequests.downloadLinkClicked = false;
-      const dataExportRequest = this.dataExportRequest(experimentId);
+      dataExportRequest = this.dataExportRequest(experimentId);
 
       if (dataExportRequest?.error) {
         this.dataExportRequestAcknowledge([
