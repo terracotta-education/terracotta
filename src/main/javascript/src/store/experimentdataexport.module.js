@@ -103,9 +103,12 @@ const mutations = {
             ...dataExportRequest,
             downloaded: dataExportRequest?.status === "DOWNLOADED",
             error: dataExportRequest?.status === "ERROR",
+            errorAcknowledged: dataExportRequest?.status === "ERROR_ACKNOWLEDGED",
             outdated: dataExportRequest?.status === "OUTDATED",
+            outdatedAcknowledged: dataExportRequest?.status === "OUTDATED_ACKNOWLEDGED",
             processing: dataExportRequest?.status === "PROCESSING",
             ready: dataExportRequest?.status === "READY",
+            readyAcknowledged: dataExportRequest?.status === "READY_ACKNOWLEDGED",
             reprocessing: dataExportRequest?.status === "REPROCESSING"
           }
         );
