@@ -916,14 +916,14 @@ export default {
 
       dataExportRequest = this.dataExportRequest;
 
-      if (dataExportRequest?.ready || dataExportRequest?.downloaded) {
+      if (dataExportRequest?.ready || dataExportRequest?.readyAcknowledged || dataExportRequest?.downloaded) {
         // retrieve file
         await this.retrieveDataExportRequest([
           this.experimentId,
           dataExportRequest
         ]);
 
-        if (dataExportRequest?.ready || dataExportRequest?.downloaded) {
+        if (dataExportRequest?.ready || dataExportRequest?.readyAcknowledged || dataExportRequest?.downloaded) {
           // file has been delivered
           return;
         }
@@ -992,6 +992,20 @@ export default {
       }
     },
     async handleDataExportRequestAlertDismiss() {
+      let dataExportRequest = this.dataExportRequest;
+
+      if (this.dataExportRequest?.processing || this.dataExportRequest?.reprocessing) {
+        // data export is still being processed; just dismiss alert
+        this.experimentDataExportRequest = {
+          showAlert: false,
+          downloadLinkClicked: false,
+          polling: {
+            ...this.experimentDataExportRequest.polling
+          }
+        }
+        return;
+      }
+
       this.experimentDataExportRequest = {
         showAlert: false,
         downloadLinkClicked: false,
@@ -1001,7 +1015,7 @@ export default {
         }
       }
 
-      const dataExportRequest = this.dataExportRequest;
+      dataExportRequest = this.dataExportRequest;
 
       if (dataExportRequest?.error) {
         this.dataExportRequestAcknowledge([
