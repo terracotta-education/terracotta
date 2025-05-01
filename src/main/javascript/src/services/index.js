@@ -16,3 +16,4 @@ export * from "./groups.service";
 export * from "./dashboard/results.service";
 export * from "./preview/preview.service";
 export * from "./assignmentfilearchive.service";
+export * from "./configuration.service";

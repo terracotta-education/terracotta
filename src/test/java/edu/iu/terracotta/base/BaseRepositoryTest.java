@@ -64,6 +64,7 @@ import edu.iu.terracotta.dao.repository.QuestionSubmissionCommentRepository;
 import edu.iu.terracotta.dao.repository.QuestionSubmissionRepository;
 import edu.iu.terracotta.dao.repository.SubmissionRepository;
 import edu.iu.terracotta.dao.repository.TreatmentRepository;
+import edu.iu.terracotta.dao.repository.distribute.ExperimentImportRepository;
 import edu.iu.terracotta.dao.repository.integrations.AnswerIntegrationSubmissionRepository;
 import edu.iu.terracotta.dao.repository.integrations.IntegrationClientRepository;
 import edu.iu.terracotta.dao.repository.integrations.IntegrationConfigurationRepository;
@@ -89,6 +90,7 @@ public class BaseRepositoryTest extends BaseModelTest {
     @Mock protected AssignmentRepository assignmentRepository;
     @Mock protected ConditionRepository conditionRepository;
     @Mock protected ConsentDocumentRepository consentDocumentRepository;
+    @Mock protected ExperimentImportRepository experimentImportRepository;
     @Mock protected EventRepository eventRepository;
     @Mock protected ExperimentRepository experimentRepository;
     @Mock protected ExposureRepository exposureRepository;

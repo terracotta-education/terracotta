@@ -2,12 +2,14 @@
   <div>
     <PageLoading
       :display="!isLoaded"
-      :message="`Loading experiments. Please wait.`"
+      message="Loading experiments. Please wait."
     />
     <v-container
       v-show="isLoaded && !hasExperiments"
     >
-      <div class="terracotta-appbg"></div>
+      <div
+        class="terracotta-appbg"
+      ></div>
       <v-row
         justify="center"
         class="text-center"
@@ -23,7 +25,9 @@
             max-width="400"
           />
           <h1>Experimental research in the LMS</h1>
-          <p class="mb-10">
+          <p
+            class="mb-10"
+          >
             Welcome to Terracotta, the platform that supports teachers' and researchers' abilities to easily run experiments in live classes.<br>
             New to Terracotta?
             <a
@@ -33,13 +37,25 @@
               Read an overview of the tool
             </a>.
           </p>
-          <p class="mb-0">Ready to get started?</p>
+          <p
+            class="mb-0"
+          >
+            Ready to get started?
+          </p>
           <v-btn
             @click="startExperiment"
             color="primary"
             elevation="0"
           >
             Create your first experiment
+          </v-btn>
+          <v-btn
+            v-if="experimentExportEnabled"
+            @click="handleImportExperiment"
+            color="primary"
+            elevation="0"
+          >
+            Import an experiment
           </v-btn>
         </v-col>
       </v-row>
@@ -63,6 +79,17 @@
           class="text-right"
         >
           <v-btn
+            v-if="experimentExportEnabled"
+            :disabled="isExperimentImporting"
+            @click="handleImportExperiment"
+            color="primary"
+            elevation="0"
+            class="mr-2"
+          >
+            Import Experiment
+          </v-btn>
+          <v-btn
+            :disabled="isExperimentImporting"
             @click="startExperiment"
             color="primary"
             elevation="0"
@@ -77,7 +104,7 @@
         <div
           v-for="dataExportRequestAlert in dataExportRequestAlerts"
           :key="dataExportRequestAlert.experimentId"
-          class="alert-data-export-request pb-2 px-3"
+          class="alert-request pb-2 px-3"
         >
           <v-alert
             v-model="experimentDataExportRequests[dataExportRequestAlert.experimentId].showAlert"
@@ -103,36 +130,88 @@
           </v-alert>
         </div>
       </v-row>
+      <v-row
+        v-if="importRequestAlerts.length > 0"
+        class="pb-2"
+      >
+        <div
+          v-for="importRequestAlert in importRequestAlerts"
+          :key="importRequestAlert.id"
+          class="alert-request pb-2 px-3"
+        >
+          <v-alert
+            v-model="experimentImportRequests[importRequestAlert.id].showAlert"
+            @input="handleImportRequestAlertDismiss(importRequestAlert.id)"
+            :type="importRequestAlert.type"
+            elevation="0"
+            dismissible
+          >
+            {{ importRequestAlert.text }}
+            <ul
+              v-if="importRequestAlert.showErrors"
+            >
+              <li
+                v-for="(error, i) in importRequestAlert.errors"
+                :key="i"
+              >
+                {{ error }}
+              </li>
+            </ul>
+          </v-alert>
+        </div>
+      </v-row>
       <v-row>
-        <v-col cols="12">
-          <h1 class="pl-4 mb-3">Experiments</h1>
+        <v-col
+          cols="12"
+        >
+          <h1
+            class="pl-4 mb-3"
+          >
+            Experiments
+          </h1>
           <v-data-table
             :headers="headers"
             :items="experiments || []"
             class="table-experiments"
           >
-            <template v-slot:item.title="{ item }">
+            <template
+              v-slot:item.title="{ item }"
+            >
               <button
                 v-if="item"
                 class="v-data-table__link"
                 @click="handleNavigate(item.experimentId)"
               >
-                <template v-if="item.title">
+                <template
+                  v-if="item.title"
+                >
                   {{ item.title }}
                 </template>
-                <template v-else>
+                <template
+                  v-else
+                >
                   <em>No Title</em>
                 </template>
               </button>
             </template>
-            <template v-slot:item.createdAt="{ item }">
-              <span v-if="item.createdAt">
+            <template
+              v-slot:item.createdAt="{ item }"
+            >
+              <span
+                v-if="item.createdAt"
+              >
                 {{ item.createdAt | formatDate }}
               </span>
             </template>
-            <template v-slot:item.actions="{ item }">
-              <v-menu offset-y>
-                <template v-slot:activator="{ on, attrs }">
+            <template
+              v-slot:item.actions="{ item }"
+            >
+              <v-menu
+                offset-y
+              >
+                <template
+                  v-slot:activator="{ on, attrs }"
+                >
                   <v-icon
                     color="black"
                     v-bind="attrs"
@@ -142,46 +221,75 @@
                     mdi-dots-horizontal
                   </v-icon>
                 </template>
-                <v-list dense>
+                <v-list
+                  dense
+                >
                   <v-list-item
-                      @click="handleDataExportRequest(item.experimentId)"
-                      :aria-label="`export experiment ${item.title}`"
+                    v-if="experimentExportEnabled"
+                    @click="handleExportExperiment(item)"
+                    :disabled="isExportingExperiment"
+                    :aria-label="`export experiment ${item.title}`"
                   >
-                    <v-list-item-icon class="mr-3">
-                      <v-icon color="black">mdi-download</v-icon>
+                    <v-list-item-icon
+                      class="mr-3"
+                    >
+                      <v-icon
+                        color="black"
+                      >
+                        mdi-briefcase-download
+                      </v-icon>
                     </v-list-item-icon>
                     <v-list-item-content>
-                      <v-list-item-title>Export</v-list-item-title>
+                      <v-list-item-title>Export Experiment</v-list-item-title>
                     </v-list-item-content>
                   </v-list-item>
-                    <v-tooltip
-                      :disabled="!item.started"
-                      top
+                  <v-list-item
+                    @click="handleDataExportRequest(item.experimentId)"
+                    :aria-label="`export experiment results ${item.title}`"
+                  >
+                    <v-list-item-icon
+                      class="mr-3"
                     >
-                      <template
-                        #activator="{ on }"
+                      <v-icon
+                        color="black"
                       >
-                        <span v-on="on">
-                          <v-list-item
-                            @click="handleDelete(item)"
-                            :aria-label="`delete experiment ${item.title}`"
-                            :disabled="item.started"
+                        mdi-download
+                      </v-icon>
+                    </v-list-item-icon>
+                    <v-list-item-content>
+                      <v-list-item-title>Export Results</v-list-item-title>
+                    </v-list-item-content>
+                  </v-list-item>
+                  <v-tooltip
+                    :disabled="!item.started"
+                    top
+                  >
+                    <template
+                      #activator="{ on }"
+                    >
+                      <span v-on="on">
+                        <v-list-item
+                          @click="handleDelete(item)"
+                          :aria-label="`delete experiment ${item.title}`"
+                          :disabled="item.started"
+                        >
+                          <v-list-item-icon
+                            class="mr-3"
                           >
-                            <v-list-item-icon class="mr-3">
-                              <v-icon
-                                :color="item.started ? 'grey' : 'black'"
-                              >
-                                mdi-delete
-                              </v-icon>
-                            </v-list-item-icon>
-                            <v-list-item-content>
-                              <v-list-item-title>Delete</v-list-item-title>
-                            </v-list-item-content>
-                          </v-list-item>
-                        </span>
-                      </template>
-                      <span>You cannot delete this experiment because at least one student has completed an assignment.</span>
-                    </v-tooltip>
+                            <v-icon
+                              :color="item.started ? 'grey' : 'black'"
+                            >
+                              mdi-delete
+                            </v-icon>
+                          </v-list-item-icon>
+                          <v-list-item-content>
+                            <v-list-item-title>Delete</v-list-item-title>
+                          </v-list-item-content>
+                        </v-list-item>
+                      </span>
+                    </template>
+                    <span>You cannot delete this experiment because at least one student has completed an assignment.</span>
+                  </v-tooltip>
                 </v-list>
               </v-menu>
             </template>
@@ -212,7 +320,11 @@ export default {
     experimentDataExportRequests: {
       downloadLinkClicked: false
       // experimentId: {showAlert, polling: {active, id}}
-    }
+    },
+    experimentImportRequests: {
+      // id: {showAlert, polling: {active, id}}
+    },
+    isExportingExperiment: false
   }),
   filters: {
     formatDate: function (date) {
@@ -272,21 +384,44 @@ export default {
         }
       },
       immediate: false
+    },
+    experimentImportRequests: {
+      handler: function (newExperimentImportRequests) {
+        for (const experimentImportRequestId in newExperimentImportRequests) {
+          if (newExperimentImportRequests[experimentImportRequestId].polling.active && newExperimentImportRequests[experimentImportRequestId].polling.id === null) {
+            // create import request polling scheduler
+            this.experimentImportRequests[experimentImportRequestId].polling.id = window.setInterval(() => {
+              this.handleImportRequestPolling(experimentImportRequestId)
+            }, 5000);
+          } else if (!newExperimentImportRequests[experimentImportRequestId].polling.active && newExperimentImportRequests[experimentImportRequestId].polling.id !== null) {
+            // clear import request polling scheduler
+            this.experimentImportRequests[experimentImportRequestId].polling.id = window.clearInterval(newExperimentImportRequests[experimentImportRequestId].polling.id);
+          }
+        }
+      },
+      immediate: false
     }
   },
   computed: {
     ...mapGetters({
       experiments: "experiment/experiments",
-      dataExportRequests: "dataexportrequest/dataExportRequests"
+      dataExportRequests: "dataexportrequest/dataExportRequests",
+      importRequests: "experiment/importRequests",
+      configurations: "configuration/get"
     }),
     hasExperiments() {
       return this.experiments && this.experiments.length > 0;
     },
+    experimentExportEnabled() {
+      return this.configurations?.experimentExportEnabled;
+    },
     showDataExportRequestStatus() {
       let experimentsToShow = [];
+
       for (const experimentId in this.experimentDataExportRequests) {
         if (this.experimentDataExportRequests[experimentId].showAlert) {
           const dataExportRequest = this.dataExportRequest(experimentId);
+
           if ([
               dataExportRequest?.processing,
               dataExportRequest?.reprocessing,
@@ -363,14 +498,68 @@ export default {
       }
 
       return experimentsToShow;
+    },
+    importRequestAlerts() {
+      let experimentsToShow = [];
+
+      for (const experimentImportRequestId in this.experimentImportRequests) {
+        const importRequest = this.importRequest(experimentImportRequestId);
+
+        if (importRequest?.complete) {
+          experimentsToShow.push(
+            {
+              id: experimentImportRequestId,
+              showAlert: true,
+              text: `Your import of experiment "${importRequest.sourceTitle}" is complete. The new title is "${importRequest.importedTitle}".`,
+              type: "success",
+              showErrors: false
+            }
+          );
+          continue;
+        }
+
+        if (importRequest?.processing) {
+          experimentsToShow.push(
+            {
+              id: experimentImportRequestId,
+              showAlert: true,
+              text: `Your import of experiment "${importRequest.sourceTitle}" is being processed. Please do not navigate away from this page.`,
+              type: "info",
+              showErrors: false
+            }
+          );
+          continue;
+        }
+
+        if (importRequest?.error) {
+          const errorMessages = importRequest.errorMessages || [];
+
+          experimentsToShow.push(
+            {
+              id: experimentImportRequestId,
+              showAlert: true,
+              text: `There were errors in processing the import of experiment "${importRequest.sourceTitle}". Please try again or contact support. ${errorMessages.length > 0 ? "Errors: " : ""}`,
+              type: "error",
+              errors: errorMessages.toSpliced(3).map(em => em.text),
+              showErrors: errorMessages.length > 0
+            }
+          );
+        }
+      }
+
+      return experimentsToShow;
+    },
+    isExperimentImporting() {
+      return Object.values(this.experimentImportRequests).some(eir => eir.polling.active);
     }
   },
-
   methods: {
     ...mapActions({
       fetchExperiments: "experiment/fetchExperiments",
       createExperiment: "experiment/createExperiment",
       deleteExperiment: "experiment/deleteExperiment",
+      exportExperiment: "experiment/exportExperiment",
+      importExperiment: "experiment/importExperiment",
       resetConsent: "consent/resetConsent",
       resetAssessments: "assessments/resetAssessments",
       resetAssignment: "assignments/resetAssignment",
@@ -390,8 +579,45 @@ export default {
       resetDataExportRequest: "dataexportrequest/reset",
       pollDataExportRequest: "dataexportrequest/poll",
       pollDataExportRequests: "dataexportrequest/pollList",
-      dataExportRequestAcknowledge: "dataexportrequest/acknowledge"
+      dataExportRequestAcknowledge: "dataexportrequest/acknowledge",
+      pollImport: "experiment/pollImport",
+      pollImports: "experiment/pollImports",
+      resetImportRequests: "experiment/resetImportRequests",
+      acknowledgeImport: "experiment/acknowledgeImport"
     }),
+    async handleExportExperiment(item) {
+      this.isExportingExperiment = true;
+      await this.exportExperiment(item.experimentId);
+      this.isExportingExperiment = false;
+    },
+    async handleImportExperiment() {
+      const { value: file } = await this.$swal({
+        title: "Import experiment from file",
+        text: "Please select the experiment file to import",
+        input: "file",
+        inputAttributes: {
+          accept: ".zip"
+        },
+        showCancelButton: true,
+        confirmButtonText: "Import",
+        cancelButtonText: "Cancel"
+      });
+
+      if (file) {
+        const newImport = await this.importExperiment(file);
+        const importRequest = this.importRequest(newImport.id);
+        this.experimentImportRequests = {
+          ...this.experimentImportRequests,
+          [newImport.id]: {
+            showAlert: true,
+            polling: {
+              active: importRequest.processing,
+              id: null
+            }
+          }
+        };
+      }
+    },
     async handleDelete(e) {
       if (e?.experimentId) {
         const reallyDelete = await this.$swal({
@@ -600,6 +826,60 @@ export default {
     },
     dataExportRequest(experimentId) {
       return this.dataExportRequests?.find(dataExportRequest => dataExportRequest.experimentId === parseInt(experimentId));
+    },
+    async handleImportRequestPolling(id) {
+      await this.pollImport([
+        id
+      ]);
+
+      const importRequest = this.importRequest(id);
+      const currentExperimentImportRequest = this.experimentImportRequest(id);
+      this.experimentImportRequests = {
+        ...this.experimentImportRequests,
+        [id]: {
+          ...currentExperimentImportRequest,
+          showAlert: importRequest.complete || importRequest.error || importRequest.processing,
+          polling: {
+            ...currentExperimentImportRequest.polling,
+            active: importRequest.processing
+          }
+        }
+      }
+
+      if (importRequest?.complete) {
+        // import complete; refresh experiments list
+        await this.fetchExperiments();
+      }
+    },
+    async handleImportRequestAlertDismiss(id) {
+      const importRequest = this.importRequest(id);
+
+      if (importRequest?.processing) {
+        // in-progress; don't acknowledge
+        return;
+      }
+
+      if (importRequest?.complete) {
+        await this.acknowledgeImport([
+          id,
+          "COMPLETE_ACKNOWLEDGED"
+        ]);
+      }
+
+      if (importRequest?.error) {
+        await this.acknowledgeImport([
+          id,
+          "ERROR_ACKNOWLEDGED"
+        ]);
+      }
+
+      delete this.experimentImportRequests[id];
+          },
+    importRequest(id) {
+      return this.importRequests.find((ir) => ir.id === id);
+    },
+    experimentImportRequest(id) {
+      return this.experimentImportRequests[id];
     }
   },
   async created() {
@@ -621,6 +901,7 @@ export default {
     this.resetTreatments();
     this.deleteEditMode();
     this.resetDataExportRequest();
+    this.resetImportRequests();
 
     // get experiments list
     await this.fetchExperiments();
@@ -655,6 +936,23 @@ export default {
       }
     );
 
+    // poll for any in-progress experiment imports
+    await this.pollImports();
+    this.importRequests.forEach(
+      importRequest => {
+        this.experimentImportRequests = {
+          ...this.experimentImportRequests,
+          [importRequest.id]: {
+            showAlert: true,
+            polling: {
+              active: importRequest.processing,
+              id: null
+            }
+          }
+        }
+      }
+    );
+
     this.isLoaded = true;
   },
   beforeDestroy() {
@@ -667,6 +965,17 @@ export default {
         window.clearInterval(this.experimentDataExportRequests[experimentId].polling.id);
       }
     }
+  },
+  beforeRouteLeave(to, from, next) {
+    // clear import request polling scheduler(s)
+    for (const experimentImportRequestId in this.experimentImportRequests) {
+      if (this.experimentImportRequests[experimentImportRequestId].polling.id !== null) {
+        window.clearInterval(this.experimentImportRequests[experimentImportRequestId].polling.id);
+      }
+    }
+
+    // Proceed with navigation
+    next();
   }
 }
 </script>
@@ -715,7 +1024,7 @@ div.v-tooltip__content {
     color: #afdcff;
   }
 }
-.alert-data-export-request {
+.alert-request {
   min-width: 100%;
   > .v-alert {
     margin: 0 auto;

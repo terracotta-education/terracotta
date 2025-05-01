@@ -1,0 +1,66 @@
+<?xml
+  version="1.1"
+  encoding="UTF-8"
+  standalone="no"
+?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+  xmlns:pro="http://www.liquibase.org/xml/ns/pro"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd http://www.liquibase.org/xml/ns/pro http://www.liquibase.org/xml/ns/pro/liquibase-pro-latest.xsd http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd"
+>
+  <changeSet author="rlong" id="1742413199-01">
+    <createTable tableName="terr_experiment_import">
+      <column autoIncrement="true" name="id" type="BIGINT">
+        <constraints nullable="false" primaryKey="true"/>
+      </column>
+      <column name="uuid" type="BINARY(16)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="source_title" type="VARCHAR(255)"/>
+      <column name="imported_title" type="VARCHAR(255)"/>
+      <column name="file_name" type="VARCHAR(255)"/>
+      <column name="file_uri" type="VARCHAR(255)"/>
+      <column name="status" type="VARCHAR(255)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="owner_id" type="BIGINT">
+        <constraints nullable="false"/>
+      </column>
+      <column name="context_id" type="BIGINT">
+        <constraints nullable="false"/>
+      </column>
+      <column name="entity_version" type="INT"/>
+      <column defaultValueComputed="CURRENT_TIMESTAMP" name="created_at" type="timestamp"/>
+      <column name="updated_at" type="datetime"/>
+    </createTable>
+    <createTable tableName="terr_experiment_import_error">
+      <column autoIncrement="true" name="id" type="BIGINT">
+        <constraints nullable="false" primaryKey="true"/>
+      </column>
+      <column name="uuid" type="BINARY(16)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="text" type="TEXT"/>
+      <column name="experiment_import_id" type="BIGINT">
+        <constraints nullable="false"/>
+      </column>
+      <column name="entity_version" type="INT"/>
+      <column defaultValueComputed="CURRENT_TIMESTAMP" name="created_at" type="timestamp"/>
+      <column name="updated_at" type="datetime"/>
+    </createTable>
+  </changeSet>
+  <changeSet author="rlong" id="1742413199-02">
+    <createIndex associatedWith="" indexName="IDX1742413199" tableName="terr_experiment_import">
+      <column name="uuid"/>
+      <column name="context_id"/>
+      <column name="owner_id"/>
+    </createIndex>
+  </changeSet>
+  <changeSet author="rlong" id="1742413199-03">
+    <addForeignKeyConstraint baseColumnNames="context_id" baseTableName="terr_experiment_import" constraintName="FK11742413199-1" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="RESTRICT" referencedColumnNames="context_id" referencedTableName="lti_context" validate="true"/>
+    <addForeignKeyConstraint baseColumnNames="owner_id" baseTableName="terr_experiment_import" constraintName="FK1742413199-2" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="RESTRICT" referencedColumnNames="user_id" referencedTableName="lti_user" validate="true"/>
+    <addForeignKeyConstraint baseColumnNames="experiment_import_id" baseTableName="terr_experiment_import_error" constraintName="FK1742413199-3" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="RESTRICT" referencedColumnNames="id" referencedTableName="terr_experiment_import" validate="true"/>
+  </changeSet>
+</databaseChangeLog>

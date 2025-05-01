@@ -52,7 +52,7 @@ public class ExportServiceImplTest extends BaseTest {
 
     @Spy
     @InjectMocks
-    private ExportServiceImpl exportService;
+    private DataExportServiceImpl exportService;
 
     @BeforeEach
     public void beforeEach() throws IOException {

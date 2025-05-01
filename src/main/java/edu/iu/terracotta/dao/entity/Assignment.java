@@ -1,6 +1,9 @@
 package edu.iu.terracotta.dao.entity;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import org.hibernate.annotations.OnDelete;
@@ -27,6 +30,9 @@ import jakarta.persistence.Transient;
 @Entity
 @Getter
 @Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Table(name = "terr_assignment")
 public class Assignment extends BaseEntity {
 
@@ -43,24 +49,29 @@ public class Assignment extends BaseEntity {
     @Column private Timestamp studentViewCorrectAnswersAfter;
     @Column private Timestamp studentViewCorrectAnswersBefore;
     @Column private Timestamp started;
-    @Transient private boolean published = false;
-    @Transient private Date dueDate;
     @Column private Float cumulativeScoringInitialPercentage;
     @Column private String lmsAssignmentId;
     @Column private String resourceLinkId;
     @Column private String title;
     @Column  private Integer assignmentOrder;
-    @Column private Boolean softDeleted = false;
     @Column private Integer numOfSubmissions; // if null, no multiple attempts allowed; if zero, then the number of submissions is unlimited
     @Column private Float hoursBetweenSubmissions;
+    @Transient private Date dueDate;
 
+    @Column
+    @Builder.Default
+    private Boolean softDeleted = false;
+
+    @Builder.Default
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     private MultipleSubmissionScoringScheme multipleSubmissionScoringScheme = MultipleSubmissionScoringScheme.MOST_RECENT;
 
+    @Builder.Default
     @Column(nullable = false)
     private boolean allowStudentViewResponses = false;
 
+    @Builder.Default
     @Column(nullable = false)
     private boolean allowStudentViewCorrectAnswers = false;
 
@@ -75,5 +86,9 @@ public class Assignment extends BaseEntity {
     public boolean isStarted() {
         return this.started != null;
     }
+
+    @Transient
+    @Builder.Default
+    private boolean published = false;
 
 }

@@ -80,7 +80,8 @@ public class QuestionServiceImpl implements QuestionService {
     }
 
     @Override
-    public QuestionDto postQuestion(QuestionDto questionDto, long assessmentId, boolean answers, boolean isNew) throws IdInPostException, DataServiceException, MultipleChoiceLimitReachedException, IntegrationNotFoundException, IntegrationClientNotFoundException {
+    public QuestionDto postQuestion(QuestionDto questionDto, long assessmentId, boolean answers, boolean isNew)
+        throws IdInPostException, DataServiceException, MultipleChoiceLimitReachedException, IntegrationNotFoundException, IntegrationClientNotFoundException {
         if (questionDto.getQuestionId() != null) {
             throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
         }

@@ -83,9 +83,9 @@ public class ExperimentController {
           */
          @GetMapping("/{id}")
          public ResponseEntity<ExperimentDto> getExperiment(@PathVariable long id,
-                                                            @RequestParam(defaultValue = "false") boolean conditions,
-                                                            @RequestParam(defaultValue = "false") boolean exposures,
-                                                            @RequestParam(defaultValue = "false") boolean participants,
+                                                            @RequestParam(name = "conditions", defaultValue = "false") boolean conditions,
+                                                            @RequestParam(name = "exposures", defaultValue = "false") boolean exposures,
+                                                            @RequestParam(name = "participants", defaultValue = "false") boolean participants,
                                                             HttpServletRequest req)
                  throws ExperimentNotMatchingException, BadTokenException, NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);

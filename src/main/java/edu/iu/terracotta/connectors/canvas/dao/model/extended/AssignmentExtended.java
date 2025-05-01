@@ -74,6 +74,10 @@ public class AssignmentExtended extends LmsAssignment {
 
     @Override
     public Float getPointsPossible() {
+        if (assignment.getPointsPossible() == null) {
+            return null;
+        }
+
         return assignment.getPointsPossible().floatValue();
     }
 

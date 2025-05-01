@@ -4,7 +4,10 @@ import edu.iu.terracotta.connectors.generic.dao.entity.BaseEntity;
 import edu.iu.terracotta.dao.entity.integrations.Integration;
 import edu.iu.terracotta.dao.model.enums.QuestionTypes;
 import edu.iu.terracotta.dao.model.enums.RegradeOption;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import jakarta.persistence.Column;
@@ -26,6 +29,9 @@ import jakarta.persistence.Transient;
 @Entity
 @Getter
 @Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Table(name = "terr_question")
 @Inheritance(strategy = InheritanceType.JOINED)
 public class Question extends BaseEntity {
@@ -63,6 +69,21 @@ public class Question extends BaseEntity {
     @Transient
     public boolean isIntegration() {
         return QuestionTypes.INTEGRATION == questionType;
+    }
+
+    @Transient
+    public boolean isMC() {
+        return QuestionTypes.MC == questionType;
+    }
+
+    @Transient
+    public boolean isEssay() {
+        return QuestionTypes.ESSAY == questionType;
+    }
+
+    @Transient
+    public boolean isFileSubmission() {
+        return QuestionTypes.FILE == questionType;
     }
 
 }

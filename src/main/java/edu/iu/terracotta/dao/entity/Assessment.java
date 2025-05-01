@@ -25,12 +25,18 @@ import edu.iu.terracotta.connectors.generic.dao.entity.BaseEntity;
 import edu.iu.terracotta.dao.entity.integrations.Integration;
 import edu.iu.terracotta.dao.model.enums.MultipleSubmissionScoringScheme;
 import edu.iu.terracotta.dao.model.enums.QuestionTypes;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
 @Getter
 @Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Table(name = "terr_assessment")
 public class Assessment extends BaseEntity {
 
@@ -58,6 +64,7 @@ public class Assessment extends BaseEntity {
     @Column(nullable = false)
     private boolean autoSubmit;
 
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(
         name = "multiple_submission_scoring_scheme",
@@ -65,12 +72,14 @@ public class Assessment extends BaseEntity {
     )
     private MultipleSubmissionScoringScheme multipleSubmissionScoringScheme = MultipleSubmissionScoringScheme.MOST_RECENT;
 
+    @Builder.Default
     @Column(
         name = "allow_student_view_responses",
         nullable = false
     )
     private boolean allowStudentViewResponses = false;
 
+    @Builder.Default
     @Column(
         name = "allow_student_view_correct_answers",
         nullable = false

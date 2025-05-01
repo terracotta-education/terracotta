@@ -21,6 +21,7 @@ import { groups } from "./groups.module";
 import { resultsDashboard } from "./dashboard/results.module";
 import { preview } from "./preview/preview.module";
 import { assignmentfilearchive } from "./assignmentfilearchive.module";
+import { configuration } from "./configuration.module";
 
 Vue.use(Vuex)
 
@@ -49,7 +50,8 @@ const store = new Vuex.Store({
         groups,
         resultsDashboard,
         preview,
-        assignmentfilearchive
+        assignmentfilearchive,
+        configuration
     },
     strict: process.env.NODE_ENV !== "production",
 })
