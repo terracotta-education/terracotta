@@ -103,7 +103,7 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
             experimentImportAsyncService.process(experimentImport, securedInfo);
 
             return toDto(experimentImport);
-        } catch (IOException e) {
+        } catch (Exception e) {
             String error = String.format("Error importing experiment: owner ID: [%s], content ID: [%s]", securedInfo.getUserId(), securedInfo.getContextId());
             log.error(error, e);
             throw new ExperimentImportException(error, e);
@@ -159,19 +159,6 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
 
     @Override
     public void validate(ExperimentImport experimentImport) {
-        Optional<Export> export = prepare(experimentImport);
-
-        if (export.isEmpty()) {
-            log.error("Experiment import ID: [{}] export object is null.", experimentImport.getId());
-
-            return;
-        }
-
-        experimentImport.setSourceTitle(export.get().getExperiment().getTitle());
-
-        // ["component": ["imported id"]]
-        Map<Class<? extends BaseEntity>, List<Long>> idMap = new HashMap<>();
-
         /*
          * Validate each experiment component.
          *
@@ -179,6 +166,18 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
          */
 
          try {
+            Optional<Export> export = prepare(experimentImport);
+
+            if (export.isEmpty()) {
+                log.error("Experiment import ID: [{}] export object is null.", experimentImport.getId());
+                handleError(experimentImport, "Unspecified error occurred processing import.");
+            }
+
+            experimentImport.setSourceTitle(export.get().getExperiment().getTitle());
+
+            // ["component": ["imported id"]]
+            Map<Class<? extends BaseEntity>, List<Long>> idMap = new HashMap<>();
+
             consentDocument(export.get(), experimentImport, export.get().getImportDirectory(), idMap);
             experiment(export.get(), experimentImport, idMap);
             conditions(export.get(), experimentImport, idMap);
