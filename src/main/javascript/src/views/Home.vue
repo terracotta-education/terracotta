@@ -140,6 +140,7 @@
           class="alert-request pb-2 px-3"
         >
           <v-alert
+            v-if="experimentImportRequests[importRequestAlert.id]"
             v-model="experimentImportRequests[importRequestAlert.id].showAlert"
             @input="handleImportRequestAlertDismiss(importRequestAlert.id)"
             :type="importRequestAlert.type"
