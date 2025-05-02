@@ -44,6 +44,7 @@ import edu.iu.terracotta.dao.entity.integrations.IntegrationClient;
 import edu.iu.terracotta.dao.entity.integrations.IntegrationConfiguration;
 import edu.iu.terracotta.dao.exceptions.AssignmentNotCreatedException;
 import edu.iu.terracotta.dao.model.distribute.export.Export;
+import edu.iu.terracotta.dao.model.enums.LmsType;
 import edu.iu.terracotta.dao.model.enums.ParticipationTypes;
 import edu.iu.terracotta.dao.model.enums.QuestionTypes;
 import edu.iu.terracotta.dao.model.enums.distribute.ExperimentImportStatus;
@@ -570,6 +571,7 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
                         Outcome.builder()
                             .exposure((Exposure) idMap.get(Exposure.class).get(outcome.getExposureId()))
                             .external(false)
+                            .lmsType(LmsType.none)
                             .maxPoints(outcome.getMaxPoints())
                             .title(outcome.getTitle())
                             .build()

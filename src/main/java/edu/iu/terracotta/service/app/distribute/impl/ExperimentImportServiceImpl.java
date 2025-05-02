@@ -563,13 +563,6 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
                         return;
                     }
 
-                    if (StringUtils.isBlank(outcome.getTitle())) {
-                        log.error("Experiment import ID: [{}] outcome ID: [{}] title is null.", experimentImport.getId(), outcome.getId());
-                        handleError(experimentImport, String.format("Outcome with ID: [%s] :: title cannot be blank.", outcome.getId()));
-
-                        return;
-                    }
-
                     idMap.get(Outcome.class).add(outcome.getId());
                 }
             );
