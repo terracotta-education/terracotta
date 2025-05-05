@@ -7,6 +7,37 @@
     <v-container
       v-show="isLoaded && !hasExperiments"
     >
+      <v-row
+        v-if="importRequestAlerts.length > 0"
+        class="pb-2"
+      >
+        <div
+          v-for="importRequestAlert in importRequestAlerts"
+          :key="importRequestAlert.id"
+          class="alert-request pb-2 px-3"
+        >
+          <v-alert
+            v-if="experimentImportRequests[importRequestAlert.id]"
+            v-model="experimentImportRequests[importRequestAlert.id].showAlert"
+            @input="handleImportRequestAlertDismiss(importRequestAlert.id)"
+            :type="importRequestAlert.type"
+            elevation="0"
+            dismissible
+          >
+            {{ importRequestAlert.text }}
+            <ul
+              v-if="importRequestAlert.showErrors"
+            >
+              <li
+                v-for="(error, i) in importRequestAlert.errors"
+                :key="i"
+              >
+                {{ error }}
+              </li>
+            </ul>
+          </v-alert>
+        </div>
+      </v-row>
       <div
         class="terracotta-appbg"
       ></div>
@@ -1031,6 +1062,7 @@ div.v-tooltip__content {
 }
 .alert-request {
   min-width: 100%;
+  z-index: 1000;
   > .v-alert {
     margin: 0 auto;
     & a {
