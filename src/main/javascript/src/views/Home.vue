@@ -908,34 +908,36 @@ export default {
     await this.fetchExperiments();
 
     // get existing data export requests
-    await this.pollDataExportRequests([
-      this.experiments.map(experiment => experiment.experimentId),
-      false
-    ]);
+    if (this.experiments && this.experiments.length > 0) {
+      await this.pollDataExportRequests([
+        this.experiments.map(experiment => experiment.experimentId),
+        false
+      ]);
 
-    // set up data export request alerts
-    this.experiments.forEach(
-      experiment => {
-        const experimentId = experiment.experimentId;
-        const dataExportRequest = this.dataExportRequest(experimentId);
-        this.experimentDataExportRequests = {
-          ...this.experimentDataExportRequests,
-          [experimentId]: {
-            showAlert: dataExportRequest ? (
-              dataExportRequest.ready ||
-              dataExportRequest.processing ||
-              dataExportRequest.reprocessing ||
-              dataExportRequest.outdated ||
-              dataExportRequest.error
-            ) : false,
-            polling: {
-              active: false,
-              id: null
+      // set up data export request alerts
+      this.experiments.forEach(
+        experiment => {
+          const experimentId = experiment.experimentId;
+          const dataExportRequest = this.dataExportRequest(experimentId);
+          this.experimentDataExportRequests = {
+            ...this.experimentDataExportRequests,
+            [experimentId]: {
+              showAlert: dataExportRequest ? (
+                dataExportRequest.ready ||
+                dataExportRequest.processing ||
+                dataExportRequest.reprocessing ||
+                dataExportRequest.outdated ||
+                dataExportRequest.error
+              ) : false,
+              polling: {
+                active: false,
+                id: null
+              }
             }
           }
         }
-      }
-    );
+      );
+    }
 
     // poll for any in-progress experiment imports
     await this.pollImports();

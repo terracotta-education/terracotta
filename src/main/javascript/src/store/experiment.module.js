@@ -2,7 +2,7 @@ import {experimentService} from "@/services";
 
 const state = {
   experiment: null,
-  experiments: null,
+  experiments: [],
   importRequests: []
 }
 
@@ -118,7 +118,7 @@ const mutations = {
     state.importRequests = [];
   },
   setExperiments(state, data) {
-    state.experiments = data;
+    state.experiments = data || [];
   },
   setConditions(state, conditions) {
     state.experiment.conditions = conditions;
