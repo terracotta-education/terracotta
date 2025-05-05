@@ -44,6 +44,7 @@
           </p>
           <v-btn
             @click="startExperiment"
+            class="mx-2"
             color="primary"
             elevation="0"
           >
@@ -52,6 +53,7 @@
           <v-btn
             v-if="experimentExportEnabled"
             @click="handleImportExperiment"
+            class="mx-2"
             color="primary"
             elevation="0"
           >
