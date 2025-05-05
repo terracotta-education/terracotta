@@ -42,7 +42,6 @@ import edu.iu.terracotta.dao.repository.AssessmentRepository;
 import edu.iu.terracotta.dao.repository.AssignmentRepository;
 import edu.iu.terracotta.dao.repository.ExperimentRepository;
 import edu.iu.terracotta.dao.repository.ExposureRepository;
-import edu.iu.terracotta.dao.repository.QuestionRepository;
 import edu.iu.terracotta.dao.repository.SubmissionRepository;
 import edu.iu.terracotta.dao.repository.TreatmentRepository;
 import edu.iu.terracotta.exceptions.AssignmentAttemptException;
@@ -60,7 +59,6 @@ import edu.iu.terracotta.service.app.AssignmentTreatmentService;
 import edu.iu.terracotta.service.app.ParticipantService;
 import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.service.app.integrations.IntegrationLaunchService;
-import edu.iu.terracotta.service.app.integrations.IntegrationService;
 import edu.iu.terracotta.service.app.integrations.IntegrationTokenService;
 import edu.iu.terracotta.service.caliper.CaliperService;
 import edu.iu.terracotta.utils.TextConstants;
@@ -110,7 +108,6 @@ public class AssignmentServiceImpl implements AssignmentService {
     @Autowired private ExposureRepository exposureRepository;
     @Autowired private LtiUserRepository ltiUserRepository;
     @Autowired private PlatformDeploymentRepository platformDeploymentRepository;
-    @Autowired private QuestionRepository questionRepository;
     @Autowired private SubmissionRepository submissionRepository;
     @Autowired private TreatmentRepository treatmentRepository;
     @Autowired private ApiJwtService apiJwtService;
@@ -119,7 +116,6 @@ public class AssignmentServiceImpl implements AssignmentService {
     @Autowired private CaliperService caliperService;
     @Autowired private ApiClient apiClient;
     @Autowired private IntegrationLaunchService integrationLaunchService;
-    @Autowired private IntegrationService integrationService;
     @Autowired private IntegrationTokenService integrationTokenService;
     @Autowired private ParticipantService participantService;
     @Autowired private SubmissionService submissionService;
@@ -324,39 +320,26 @@ public class AssignmentServiceImpl implements AssignmentService {
 
     @Override
     public void deleteById(Long id, SecuredInfo securedInfo) throws EmptyResultDataAccessException, ApiException, AssignmentNotEditedException, TerracottaConnectorException {
-        Assignment assignment = assignmentRepository.getReferenceById(id);
+        Optional<Assignment> assignment = assignmentRepository.findById(id);
+
+        if (assignment.isEmpty()) {
+            return;
+        }
+
         LtiUserEntity instructorUser = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
-        deleteAssignmentInLms(assignment, securedInfo.getLmsCourseId(), instructorUser);
+        deleteAssignmentInLms(assignment.get(), securedInfo.getLmsCourseId(), instructorUser);
 
         long submissionsCount = submissionRepository.countByAssessment_Treatment_Assignment_AssignmentId(id);
 
         if (submissionsCount == 0l) {
             // no submissions; hard delete
-
-            // first, delete questions
-            List<Assessment> assessments = assessmentRepository.findByTreatment_Assignment_AssignmentId(id);
-
-            CollectionUtils.emptyIfNull(assessments).stream()
-                .filter(assessment -> CollectionUtils.isNotEmpty(assessment.getQuestions()))
-                .forEach(assessment ->
-                    assessment.getQuestions().forEach(question -> {
-                        if (question.getIntegration() != null) {
-                            integrationService.delete(question.getIntegration());
-                        }
-
-                        question.setIntegration(null);
-                        questionRepository.deleteByQuestionId(question.getQuestionId());
-                    }
-                )
-            );
-
-            assignmentRepository.deleteByAssignmentId(id);
+            assignmentRepository.deleteById(id);
             return;
         }
 
         // has submissions; soft delete
-        assignment.setSoftDeleted(true);
-        saveAndFlush(assignment);
+        assignment.get().setSoftDeleted(true);
+        saveAndFlush(assignment.get());
     }
 
     @Override
