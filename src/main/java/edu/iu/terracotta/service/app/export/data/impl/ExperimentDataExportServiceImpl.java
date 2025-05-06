@@ -1,6 +1,7 @@
 package edu.iu.terracotta.service.app.export.data.impl;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -9,6 +10,7 @@ import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
@@ -44,6 +46,9 @@ public class ExperimentDataExportServiceImpl implements ExperimentDataExportServ
     @Autowired private ExperimentDataExportAsyncService experimentDataExportAsyncService;
     @Autowired private FileStorageService fileStorageService;
 
+    @Value("${experiment.data.export.processing.ttl.seconds:600}")
+    private long processingTtlSeconds;
+
     @Override
     public ExperimentDataExportDto process(Experiment experiment, SecuredInfo securedInfo)
         throws IOException, NumberFormatException, ExperimentDataExportException, ParticipantNotUpdatedException, ExperimentNotMatchingException, OutcomeNotMatchingException,
@@ -76,6 +81,35 @@ public class ExperimentDataExportServiceImpl implements ExperimentDataExportServ
         OutcomeNotMatchingException, ApiException, TerracottaConnectorException {
         ExperimentDataExport experimentDataExport = experimentDataExportRepository.findTopByExperiment_ExperimentIdOrderByCreatedAtDesc(experiment.getExperimentId())
             .orElseThrow(() -> new ExperimentDataExportNotFoundException(String.format("No experiment data export with experiment ID: [%s] found.", experiment.getExperimentId())));
+
+        // if marked as processing / reprocessing, has been in a processing / reprocessing state for > ttl, mark as error and notify
+        if ((ExperimentDataExportStatus.PROCESSING == experimentDataExport.getStatus() || ExperimentDataExportStatus.REPROCESSING == experimentDataExport.getStatus()) &&
+            Instant.now().isAfter(experimentDataExport.getUpdatedAt().toInstant().plusSeconds(processingTtlSeconds))
+        ) {
+            experimentDataExport.setStatus(ExperimentDataExportStatus.ERROR);
+            experimentDataExportRepository.save(experimentDataExport);
+            throw new ExperimentDataExportException(
+                String.format(
+                    "Experiment data export with ID: [%s] has been in a processing state for > [%s] seconds. Setting to error state.",
+                    experimentDataExport.getId(),
+                    processingTtlSeconds
+                )
+            );
+        }
+
+        // if marked as processing / reprocessing, but doesn't have any data associated, ,mark as error and notify
+        if ((ExperimentDataExportStatus.PROCESSING == experimentDataExport.getStatus() || ExperimentDataExportStatus.REPROCESSING == experimentDataExport.getStatus()) &&
+            StringUtils.isAnyBlank(
+                experimentDataExport.getFileName(),
+                experimentDataExport.getFileUri(),
+                experimentDataExport.getMimeType(),
+                experimentDataExport.getEncryptionPhrase()
+            )
+        ) {
+            experimentDataExport.setStatus(ExperimentDataExportStatus.ERROR);
+            experimentDataExportRepository.save(experimentDataExport);
+            throw new ExperimentDataExportException(String.format("Experiment data export with ID: [%s] is in processing state, but is not processing. Setting to error state.", experimentDataExport.getId()));
+        }
 
         // if exported data is marked as outdated and acknowledged, don't process it
         if (ExperimentDataExportStatus.OUTDATED_ACKNOWLEDGED == experimentDataExport.getStatus()) {
