@@ -9,7 +9,7 @@
     >
       <v-row
         v-if="importRequestAlerts.length > 0"
-        class="pb-2"
+        class="py-2"
       >
         <div
           v-for="importRequestAlert in importRequestAlerts"
