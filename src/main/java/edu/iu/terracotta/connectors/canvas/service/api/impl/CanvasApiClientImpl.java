@@ -27,7 +27,6 @@ import edu.iu.terracotta.dao.entity.Assignment;
 import edu.iu.terracotta.dao.entity.ConsentDocument;
 import edu.iu.terracotta.dao.entity.Experiment;
 import edu.iu.terracotta.dao.entity.Submission;
-import edu.ksu.canvas.exception.CanvasException;
 import edu.ksu.canvas.exception.ObjectNotFoundException;
 import edu.ksu.canvas.interfaces.CanvasReader;
 import edu.ksu.canvas.interfaces.CanvasWriter;
@@ -54,6 +53,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -94,7 +94,7 @@ public class CanvasApiClientImpl implements ApiClient {
             return getWriter(apiUser, AssignmentWriterExtended.class)
                 .createAssignment(canvasCourseId, assignmentExtended.getAssignment())
                 .orElseThrow(() -> new ApiException(String.format("Failed to create Assignment in Canvas course by ID [%s]", canvasCourseId)));
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new ApiException(String.format("Failed to create Assignment in Canvas course by ID [%s]", canvasCourseId), e);
         }
     }
@@ -118,7 +118,7 @@ public class CanvasApiClientImpl implements ApiClient {
                 getReader(apiUser,AssignmentReaderExtended.class)
                     .listCourseAssignments(new ListCourseAssignmentsOptions(canvasCourseId))
             );
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new ApiException(String.format("Failed to get the list of assignments Canvas course by ID [%s]", canvasCourseId), e);
         }
     }
@@ -130,8 +130,8 @@ public class CanvasApiClientImpl implements ApiClient {
                 getReader(platformDeployment.getBaseUrl(), AssignmentReaderExtended.class, tokenOverride)
                     .listCourseAssignments(new ListCourseAssignmentsOptions(canvasCourseId))
             );
-        } catch (IOException | CanvasException ex) {
-            throw new ApiException("Failed to get the list of assignments Canvas course [" + canvasCourseId + "]", ex);
+        } catch (Exception e) {
+            throw new ApiException(String.format("Failed to get the list of assignments Canvas course [%s]", canvasCourseId), e);
         }
     }
 
@@ -144,8 +144,8 @@ public class CanvasApiClientImpl implements ApiClient {
             );
         } catch (ObjectNotFoundException ex) {
             return Optional.empty();
-        } catch (IOException | CanvasException ex) {
-            throw new ApiException("Failed to get the assignments with id [" + canvasAssignmentId + "] from canvas course [" + canvasCourseId + "]", ex);
+        } catch (Exception e) {
+            throw new ApiException(String.format("Failed to get the assignments with id [%s] from canvas course [%s]", canvasAssignmentId, canvasCourseId), e);
         }
     }
 
@@ -158,8 +158,8 @@ public class CanvasApiClientImpl implements ApiClient {
             );
         } catch (ObjectNotFoundException e) {
             return Optional.empty();
-        } catch (IOException | CanvasException ex) {
-            throw new ApiException("Failed to get the Assignment in Canvas course by ID [" + canvasCourseId + "]", ex);
+        } catch (Exception e) {
+            throw new ApiException(String.format("Failed to get the Assignment in Canvas course by ID [%s]", canvasCourseId), e);
         }
     }
 
@@ -170,8 +170,8 @@ public class CanvasApiClientImpl implements ApiClient {
                 getWriter(apiUser, AssignmentWriterExtended.class)
                     .editAssignment(canvasCourseId, AssignmentExtended.of(lmsAssignment).getAssignment())
             );
-        } catch (IOException | CanvasException ex) {
-            throw new ApiException("Failed to edit the assignments with id [" + lmsAssignment.getId() + "] from canvas course [" + canvasCourseId + "]", ex);
+        } catch (Exception e) {
+            throw new ApiException(String.format("Failed to edit the assignments with id [%s] from canvas course [%s]", lmsAssignment.getId(), canvasCourseId), e);
         }
     }
 
@@ -182,7 +182,7 @@ public class CanvasApiClientImpl implements ApiClient {
                 getWriter(platformDeployment.getBaseUrl(), AssignmentWriterExtended.class, tokenOverride)
                     .editAssignment(canvasCourseId, AssignmentExtended.of(lmsAssignment).getAssignment())
             );
-        } catch (IOException | CanvasException e) {
+        } catch (Exception e) {
             throw new ApiException(String.format("Failed to edit the assignments with id [%s] from canvas course [%]", lmsAssignment.getId(), canvasCourseId), e);
         }
     }
@@ -216,7 +216,7 @@ public class CanvasApiClientImpl implements ApiClient {
     public void deleteAssignmentInLms(LmsAssignment lmsAssignment, String lmsCourseId, LtiUserEntity instructorUser) throws ApiException, IOException {
         try {
             getWriter(instructorUser, AssignmentWriterExtended.class).deleteAssignment(lmsCourseId, Long.parseLong(lmsAssignment.getId()));
-        } catch (IOException | CanvasException e) {
+        } catch (Exception e) {
             throw new ApiException(String.format("Failed to delete the LMS assignment with id [%s] from canvas course [%s]", lmsAssignment.getId(), lmsCourseId), e);
         }
     }
@@ -330,7 +330,7 @@ public class CanvasApiClientImpl implements ApiClient {
                 getReader(platformDeployment.getBaseUrl(), CourseReaderExtended.class, tokenOverride)
                     .listCoursesForUser(new ListUserCoursesOptions(canvasUserId))
             );
-        } catch (IOException | CanvasException e) {
+        } catch (Exception e) {
             throw new ApiException(String.format("Failed to get the courses from canvas for user ID [%s]", canvasUserId), e);
         }
     }
@@ -342,7 +342,7 @@ public class CanvasApiClientImpl implements ApiClient {
                 getWriter(platformDeployment.getBaseUrl(), CourseWriterExtended.class, tokenOverride)
                     .editCourse(canvasCourseId, CourseExtended.of(lmsCourse))
             );
-        } catch (IOException | CanvasException e) {
+        } catch (Exception e) {
             throw new ApiException(String.format("Failed to edit the course with ID [%s] in Canvas", canvasCourseId), e);
         }
     }
@@ -352,10 +352,15 @@ public class CanvasApiClientImpl implements ApiClient {
         GetSubmissionsOptions submissionsOptions = new GetSubmissionsOptions(canvasCourseId, Long.parseLong(canvasAssignmentId));
         submissionsOptions.includes(Collections.singletonList(GetSubmissionsOptions.Include.USER));
 
-        return castList(
-            getReader(apiUser, SubmissionReaderExtended.class)
-                .getCourseSubmissions(submissionsOptions)
-        );
+        try {
+            return castList(
+                getReader(apiUser, SubmissionReaderExtended.class)
+                    .getCourseSubmissions(submissionsOptions)
+            );
+        } catch (Exception e) {
+            throw new ApiException(String.format("Failed to list submissions for the assignment with ID [%s] in the course with ID [%s] in Canvas", canvasAssignmentId, canvasCourseId), e);
+        }
+
     }
 
     @Override
@@ -383,7 +388,7 @@ public class CanvasApiClientImpl implements ApiClient {
             return
                 getReader(apiUser,AssignmentReaderExtended.class, tokenOverride)
                     .listCourseAssignments(new ListCourseAssignmentsOptions(canvasCourseId));
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new ApiException(String.format("Failed to get the list of assignments Canvas course by ID [%s]", canvasCourseId), e);
         }
     }
@@ -483,13 +488,34 @@ public class CanvasApiClientImpl implements ApiClient {
     }
 
     private <T> Optional<T> castOptional(Optional<? extends LmsEntity<T>> extended) {
-        return Optional.of(extended.get().from());
+        try {
+            return Optional.of(extended.get().from());
+        } catch (Exception e) {
+            log.error("Error casting extended entity to optional entity", e);
+            return Optional.empty();
+        }
+
     }
 
     private <T> List<T> castList(List<? extends LmsEntity<T>> extendeds) {
-        return extendeds.stream()
-            .map(extended -> extended.from())
-            .toList();
+        try {
+            return extendeds.stream()
+                .map(
+                    extended -> {
+                        try {
+                            return extended.from();
+                        } catch (Exception e) {
+                            log.error("Error casting extended LMS entity", e);
+                            return null;
+                        }
+                    }
+                )
+                .filter(Objects::nonNull)
+                .toList();
+        } catch (Exception e) {
+            log.error("Error casting extended LMS entity list", e);
+            return Collections.emptyList();
+        }
     }
 
     /*@Override
