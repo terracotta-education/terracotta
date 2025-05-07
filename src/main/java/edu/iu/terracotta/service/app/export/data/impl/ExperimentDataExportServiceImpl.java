@@ -69,7 +69,7 @@ public class ExperimentDataExportServiceImpl implements ExperimentDataExportServ
 
         exportData = experimentDataExportRepository.save(exportData);
 
-        experimentDataExportAsyncService.process(exportData, securedInfo);
+        experimentDataExportAsyncService.process(exportData.getId(), securedInfo);
 
         log.info("Experiment data export with ID: [{}] is being processed.", exportData.getId());
         return toDto(exportData, false);
