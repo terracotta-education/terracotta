@@ -45,8 +45,11 @@ public class ExperimentDataExportAsyncServiceImpl implements ExperimentDataExpor
     @Async
     @Override
     @Transactional(rollbackFor = { IOException.class })
-    public void process(ExperimentDataExport experimentDataExport, SecuredInfo securedInfo) throws ExperimentDataExportException, NumberFormatException, IOException, ParticipantNotUpdatedException, ExperimentNotMatchingException, OutcomeNotMatchingException, ApiException, TerracottaConnectorException {
-        log.info("Processing experiment data export with ID: [{}]", experimentDataExport.getId());
+    public void process(long experimentDataExportId, SecuredInfo securedInfo) throws ExperimentDataExportException, NumberFormatException, IOException, ParticipantNotUpdatedException, ExperimentNotMatchingException, OutcomeNotMatchingException, ApiException, TerracottaConnectorException {
+        log.info("Processing experiment data export with ID: [{}]", experimentDataExportId);
+
+        ExperimentDataExport experimentDataExport = experimentDataExportRepository.findById(experimentDataExportId)
+                .orElseThrow(() -> new ExperimentDataExportException(String.format("Experiment data export with ID: [%s] not found", experimentDataExportId)));
 
         try {
             experimentDataExport.setFileName(
