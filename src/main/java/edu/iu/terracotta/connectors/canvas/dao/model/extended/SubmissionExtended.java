@@ -49,31 +49,51 @@ public class SubmissionExtended extends LmsSubmission {
 
     @Override
     public Long getUserId() {
-        return submission.getUser().getId();
+        return submission.getUserId();
     }
 
     @Override
     public void setUserId(Long userId) {
-        submission.getUser().setId(userId);
+        submission.setUserId(userId);
+
+        if (submission.getUser() != null) {
+            submission.getUser().setId(userId);
+        }
     }
 
     @Override
     public String getUserLoginId() {
+        if (submission.getUser() == null) {
+            return null;
+        }
+
         return submission.getUser().getLoginId();
     }
 
     @Override
     public void setUserLoginId(String userLoginId) {
+        if (submission.getUser() == null) {
+            return;
+        }
+
         submission.getUser().setLoginId(userLoginId);
     }
 
     @Override
     public String getUserName() {
+        if (submission.getUser() == null) {
+            return null;
+        }
+
         return submission.getUser().getName();
     }
 
     @Override
     public void setUserName(String userName) {
+        if (submission.getUser() == null) {
+            return;
+        }
+
         submission.getUser().setName(userName);
     }
 
