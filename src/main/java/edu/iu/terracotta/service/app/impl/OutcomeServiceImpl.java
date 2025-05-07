@@ -47,6 +47,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 @Component
@@ -253,104 +254,89 @@ public class OutcomeServiceImpl implements OutcomeService {
         String lmsCourseId = StringUtils.substringBetween(outcome.getExposure().getExperiment().getLtiContextEntity().getContext_memberships_url(), "courses/", "/names");
         LtiUserEntity instructorUser = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
         List<LmsSubmission> submissions = apiClient.listSubmissions(instructorUser, outcome.getLmsOutcomeId(), lmsCourseId);
+        List<Participant> participants = outcome.getExposure().getExperiment().getParticipants().stream()
+            .filter(participant -> !participant.isTestStudent())
+            .toList();
+        List<OutcomeScore> outcomeScores = outcome.getOutcomeScores().stream()
+            .filter(outcomeScore -> !outcomeScore.getParticipant().isTestStudent())
+            .toList();
 
         for (LmsSubmission lmsSubmission : submissions) {
             boolean found = false;
 
-            for (OutcomeScore outcomeScore : outcome.getOutcomeScores()) {
-                if (outcomeScore.getParticipant().isTestStudent()) {
-                    continue;
-                }
-
+            // check existing outcome scores
+            for (OutcomeScore outcomeScore : outcomeScores) {
                 if (outcomeScore.getParticipant().getLtiUserEntity().getEmail() != null &&
                     StringUtils.equals(outcomeScore.getParticipant().getLtiUserEntity().getEmail(), lmsSubmission.getUserLoginId()) &&
                     StringUtils.equals(outcomeScore.getParticipant().getLtiUserEntity().getDisplayName(), lmsSubmission.getUserName())
                 ) {
                     found = true;
+                    outcomeScore.setScoreNumeric(lmsSubmission.getScore() != null ? lmsSubmission.getScore().floatValue() : null);
 
-                    if (lmsSubmission.getScore() == null) {
-                        outcomeScore.setScoreNumeric(null);
-                    } else {
-                        outcomeScore.setScoreNumeric(lmsSubmission.getScore().floatValue());
-                    }
+                    break;
+                }
+
+                if (StringUtils.equals(outcomeScore.getParticipant().getLtiUserEntity().getDisplayName(), lmsSubmission.getUserName()) ||
+                    StringUtils.equals(outcomeScore.getParticipant().getLtiUserEntity().getLmsUserId(), Long.toString(lmsSubmission.getUserId()))
+                ) {
+                    found = true;
+                    outcomeScore.setScoreNumeric(lmsSubmission.getScore() != null ? lmsSubmission.getScore().floatValue() : null);
 
                     break;
                 }
             }
 
-            if (!found) {
-                for (OutcomeScore outcomeScore : outcome.getOutcomeScores()) {
-                    if (outcomeScore.getParticipant().isTestStudent()) {
-                        continue;
-                    }
-
-                    if (StringUtils.equals(outcomeScore.getParticipant().getLtiUserEntity().getDisplayName(), lmsSubmission.getUserName())) {
-                        found = true;
-
-                        if (lmsSubmission.getScore() == null) {
-                            outcomeScore.setScoreNumeric(null);
-                        } else {
-                            outcomeScore.setScoreNumeric(lmsSubmission.getScore().floatValue());
-                        }
-
-                        break;
-                    }
-                }
+            if (found) {
+                continue;
             }
 
-            if (!found) {
-                for (Participant participant : outcome.getExposure().getExperiment().getParticipants()) {
-                    if (participant.isTestStudent()) {
-                        continue;
-                    }
+            // no existing outcome score; check participants
+            for (Participant participant : participants) {
+                if (StringUtils.equals(participant.getLtiUserEntity().getLmsUserId(), Long.toString(lmsSubmission.getUserId()))) {
+                    newScores.add(
+                        OutcomeScore.builder()
+                            .scoreNumeric(lmsSubmission.getScore() != null ? lmsSubmission.getScore().floatValue() : null)
+                            .outcome(outcome)
+                            .participant(participant)
+                            .build()
+                    );
 
-                    if (participant.getLtiUserEntity().getEmail() != null &&
-                        StringUtils.equals(participant.getLtiUserEntity().getEmail(), lmsSubmission.getUserLoginId()) &&
-                        StringUtils.equals(participant.getLtiUserEntity().getDisplayName(), lmsSubmission.getUserName())
-                    ) {
-                        found = true;
-                        OutcomeScore outcomeScore = new OutcomeScore();
-                        outcomeScore.setOutcome(outcome);
-                        outcomeScore.setParticipant(participant);
-
-                        if (lmsSubmission.getScore() == null) {
-                            outcomeScore.setScoreNumeric(null);
-                        } else {
-                            outcomeScore.setScoreNumeric(lmsSubmission.getScore().floatValue());
-                        }
-
-                        newScores.add(outcomeScore);
-                        break;
-                    }
+                    break;
                 }
-            }
 
-            if (!found) {
-                for (Participant participant : outcome.getExposure().getExperiment().getParticipants()) {
-                    if (participant.isTestStudent()) {
-                        continue;
-                    }
+                if (participant.getLtiUserEntity().getEmail() != null &&
+                    StringUtils.equals(participant.getLtiUserEntity().getEmail(), lmsSubmission.getUserLoginId()) &&
+                    StringUtils.equals(participant.getLtiUserEntity().getDisplayName(), lmsSubmission.getUserName())
+                ) {
+                    newScores.add(
+                        OutcomeScore.builder()
+                            .scoreNumeric(lmsSubmission.getScore() != null ? lmsSubmission.getScore().floatValue() : null)
+                            .outcome(outcome)
+                            .participant(participant)
+                            .build()
+                    );
 
-                    if (participant.getLtiUserEntity().getDisplayName().equals(lmsSubmission.getUserName())) {
-                        OutcomeScore outcomeScore = new OutcomeScore();
-                        outcomeScore.setOutcome(outcome);
-                        outcomeScore.setParticipant(participant);
+                    break;
+                }
 
-                        if (lmsSubmission.getScore() == null) {
-                            outcomeScore.setScoreNumeric(null);
-                        } else {
-                            outcomeScore.setScoreNumeric(lmsSubmission.getScore().floatValue());
-                        }
+                if (StringUtils.equalsIgnoreCase(participant.getLtiUserEntity().getDisplayName(), lmsSubmission.getUserName())) {
+                    newScores.add(
+                        OutcomeScore.builder()
+                            .scoreNumeric(lmsSubmission.getScore() != null ? lmsSubmission.getScore().floatValue() : null)
+                            .outcome(outcome)
+                            .participant(participant)
+                            .build()
+                    );
 
-                        newScores.add(outcomeScore);
-                        break;
-                    }
+                    break;
                 }
             }
         }
 
-        newScores.forEach(
-            outcomeScore -> outcomeScoreRepository.save(outcomeScore)
+        outcomeScoreRepository.saveAll(
+            newScores.stream()
+                .filter(Objects::nonNull)
+                .toList()
         );
 
         // TODO what to do if the outcome score is there but the participant is dropped.
