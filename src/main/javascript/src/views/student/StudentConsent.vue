@@ -52,7 +52,7 @@
         class="mt-5"
       >
         <v-card-title>
-          In the consideration of the above, will you participate in this research study?
+          In consideration of the above, will you participate in this research study?
         </v-card-title>
         <v-list
           class="optionList"
