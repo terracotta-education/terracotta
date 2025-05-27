@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.4.5</version>
+        <version>3.5.0</version>
         <relativePath/>
     </parent>
     <groupId>edu.iu</groupId>
@@ -16,31 +16,31 @@
     <description>LTI 1.3 tool for educational experimentation</description>
 
     <properties>
-        <aws-java-sdk-s3.version>2.29.24</aws-java-sdk-s3.version>
-        <byte-buddy.version>1.14.17</byte-buddy.version>
+        <aws-java-sdk-s3.version>2.31.50</aws-java-sdk-s3.version>
+        <byte-buddy.version>1.17.5</byte-buddy.version>
         <caliper.version>1.1.2</caliper.version>
         <canvas-api.version>2.0.0</canvas-api.version>
-        <commons-collections4.version>4.4</commons-collections4.version>
-        <commons-io.version>2.18.0</commons-io.version>
+        <commons-collections4.version>4.5.0</commons-collections4.version>
+        <commons-io.version>2.19.0</commons-io.version>
         <commons-lang3.version>3.17.0</commons-lang3.version>
         <commons-math3.version>3.6.1</commons-math3.version>
         <commons-validator.version>1.9.0</commons-validator.version>
-        <db-scheduler.version>15.3.0</db-scheduler.version>
+        <db-scheduler.version>15.6.0</db-scheduler.version>
         <frontend-maven-plugin.version>1.15.0</frontend-maven-plugin.version>
-        <guava.version>33.3.1-jre</guava.version>
-        <jackson-datatype-joda.version>2.18.3</jackson-datatype-joda.version>
-        <jacoco.version>0.8.12</jacoco.version>
+        <guava.version>33.4.8-jre</guava.version>
+        <jackson-datatype-joda.version>2.19.0</jackson-datatype-joda.version>
+        <jacoco.version>0.8.13</jacoco.version>
         <java.version>21</java.version>
         <jjwt.version>0.12.6</jjwt.version>
-        <joda-time.version>2.13.0</joda-time.version>
-        <json.version>20240303</json.version>
-        <jsoup.version>1.18.3</jsoup.version>
-        <liquibase.version>4.30.0</liquibase.version>
-        <lombok.version>1.18.36</lombok.version>
-        <mysql-connector-j.version>9.1.0</mysql-connector-j.version>
-        <nimbus-jose-jwt.version>9.47</nimbus-jose-jwt.version>
+        <joda-time.version>2.14.0</joda-time.version>
+        <json.version>20250517</json.version>
+        <jsoup.version>1.20.1</jsoup.version>
+        <liquibase.version>4.32.0</liquibase.version>
+        <lombok.version>1.18.38</lombok.version>
+        <mysql-connector-j.version>9.3.0</mysql-connector-j.version>
+        <nimbus-jose-jwt.version>10.3</nimbus-jose-jwt.version>
         <node.version>v16.19.0</node.version>
-        <opencsv.version>5.9</opencsv.version>
+        <opencsv.version>5.11</opencsv.version>
         <spring-security-oauth.version>6.4.1</spring-security-oauth.version>
         <yarn.version>v1.22.19</yarn.version>
         <zip4j.version>2.11.5</zip4j.version>

@@ -81,6 +81,7 @@
                   :sort-by="['assignmentOrder']"
                   :mobile-breakpoint="mobileBreakpoint"
                   :items-per-page="assignmentsCount"
+                  :item-class="() => 'assignment-row'"
                   hide-default-footer
                   v-sortable-data-table
                   item-key="assignmentId"
@@ -95,7 +96,9 @@
                       )
                   "
                 >
-                  <template v-slot:item.title="{ item }">
+                  <template
+                    v-slot:item.title="{ item }"
+                  >
                     <v-icon
                       class="component-icon"
                     >
@@ -111,7 +114,9 @@
                       Only One Version
                     </v-chip>
                   </template>
-                  <template v-slot:expanded-item="{ item }">
+                  <template
+                    v-slot:expanded-item="{ item }"
+                  >
                     <td
                       :colspan="assignmentHeaders.length"
                       class="treatments-table-container"
@@ -122,10 +127,12 @@
                         hide-default-header
                         hide-default-footer
                         item-key="treatmentId"
-                        class="grey lighten-5"
+                        class="treatment-row grey lighten-5"
                       >
                         <!-- eslint-disable-next-line -->
-                        <template v-slot:item.title="{ item }">
+                        <template
+                          v-slot:item.title="{ item }"
+                        >
                           <v-icon
                             class="mr-1 component-icon"
                           >
@@ -445,7 +452,7 @@ export default {
   components: {
     AddAssignmentDialog,
     Spinner,
-},
+  },
   directives: {
     sortableDataTable: {
       bind(el, binding, vnode) {
@@ -455,8 +462,9 @@ export default {
             vnode.child.$emit("sorted", event);
           },
           handle: ".dragger",
+          draggable: ".assignment-row"
         };
-        Sortable.create(el.getElementsByTagName("tbody")[0], options);
+        Sortable.create(el.querySelector(".data-table-assignments tbody"), options);
       },
     },
   },
@@ -586,12 +594,14 @@ export default {
       saveEditMode: "navigation/saveEditMode"
     }),
     saveOrder(event, assignments, exposure) {
-      const movedItem = assignments.splice(event.oldIndex, 1)[0];
-      assignments.splice(event.newIndex, 0, movedItem);
-      const updated = assignments.map((a, idx) => ({
-        ...a,
-        assignmentOrder: idx + 1,
-      }));
+      const movedItem = assignments.splice(event.oldDraggableIndex, 1)[0];
+      assignments.splice(event.newDraggableIndex, 0, movedItem);
+      const updated = assignments.map(
+        (a, idx) => ({
+          ...a,
+          assignmentOrder: idx + 1,
+        })
+      );
       this.saveAssignmentOrder([
         this.experiment.experimentId,
         exposure.exposureId,
