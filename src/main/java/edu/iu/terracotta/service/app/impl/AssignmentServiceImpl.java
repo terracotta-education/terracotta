@@ -82,6 +82,7 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -185,6 +186,8 @@ public class AssignmentServiceImpl implements AssignmentService {
         } catch (DataServiceException e) {
             throw new DataServiceException("Error 105: Unable to create Assignment: " + e.getMessage());
         }
+
+        assignment.setAssignmentOrder(calculateNextAssignmentOrder(exposureId));
 
         Assignment assignmentSaved = save(assignment);
         createAssignmentInLms(instructorUser, assignmentSaved, experimentId, lmsCourseId);
@@ -731,6 +734,7 @@ public class AssignmentServiceImpl implements AssignmentService {
         }
 
         assignment.setExposure(exposure);
+        assignment.setAssignmentOrder(calculateNextAssignmentOrder(targetAssignmentDto.getExposureId()));
         assignmentRepository.save(assignment);
 
         return assignmentTreatmentService.toAssignmentDto(assignment, false, true);
@@ -752,4 +756,18 @@ public class AssignmentServiceImpl implements AssignmentService {
         return assignmentTreatments.size() <= 1;
     }
 
+    private int calculateNextAssignmentOrder(long exposureId) {
+        // get a list of all assignments in the given exposure set; ordered by assignment order descending
+        List<Assignment> exposureAssignments = assignmentRepository.findByExposure_ExposureIdAndSoftDeleted(exposureId, false).stream()
+            .sorted(Comparator.comparing(Assignment::getAssignmentOrder).reversed())
+            .toList();
+
+        if (CollectionUtils.isNotEmpty(exposureAssignments)) {
+            // set the assignment order to be the next one in the list
+            return exposureAssignments.get(0).getAssignmentOrder() + 1;
+        }
+
+        // if there are no assignments, set the order to 1
+        return 1;
+    }
 }
