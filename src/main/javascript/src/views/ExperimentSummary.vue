@@ -595,10 +595,14 @@ export default {
     },
     balanced() {
       return this.exposures
-        .map((exp) => {
-          return this.assignments.filter((a) => a.exposureId === exp.exposureId)
-            .length;
-        })
+        .map(
+          (exposure) => {
+            return this.assignments
+              .filter((assignment) => assignment.treatments.length > 1)
+              .filter((assignment) => assignment.exposureId === exposure.exposureId)
+              .length;
+          }
+        )
         .every((v, i, arr) => v === arr[0]);
     },
     // Design Expansion View Values
