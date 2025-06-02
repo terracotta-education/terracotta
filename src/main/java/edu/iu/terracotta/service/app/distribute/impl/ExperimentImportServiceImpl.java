@@ -69,7 +69,7 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
 
     @Override
     public ImportDto preprocess(MultipartFile file, SecuredInfo securedInfo) throws ExperimentImportException {
-        LtiUserEntity owner = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
+        LtiUserEntity owner = ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
         LtiContextEntity context = ltiContextRepository.findById(securedInfo.getContextId())
             .orElseThrow(() -> new ExperimentImportException(String.format("Context ID: [%s] not found", securedInfo.getContextId())));
 

@@ -1,8 +1,11 @@
 package edu.iu.terracotta.connectors.generic.dao.entity.lti;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 
 import edu.iu.terracotta.connectors.generic.dao.entity.BaseEntity;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -28,7 +31,9 @@ import java.util.Set;
 @Entity
 @Getter
 @Setter
+@Builder
 @NoArgsConstructor
+@AllArgsConstructor
 @Table(
     name = "lti_user",
     uniqueConstraints = {
@@ -110,7 +115,7 @@ public class LtiUserEntity extends BaseEntity {
 
     @Transient
     public boolean isTestStudent() {
-        return StringUtils.equalsIgnoreCase(displayName, TEST_STUDENT_DISPLAY_NAME);
+        return Strings.CS.equals(displayName, TEST_STUDENT_DISPLAY_NAME);
     }
 
 }

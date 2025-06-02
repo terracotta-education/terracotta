@@ -9,7 +9,16 @@ import edu.iu.terracotta.connectors.generic.service.connector.ConnectorService;
 import edu.iu.terracotta.connectors.generic.service.lti.LtiDataService;
 import edu.iu.terracotta.dao.entity.Assignment;
 import edu.iu.terracotta.dao.entity.Experiment;
+import edu.iu.terracotta.dao.entity.Exposure;
 import edu.iu.terracotta.dao.entity.distribute.ExperimentImport;
+import edu.iu.terracotta.dao.entity.messaging.conditional.MessageConditionalText;
+import edu.iu.terracotta.dao.entity.messaging.container.MessageContainer;
+import edu.iu.terracotta.dao.entity.messaging.container.MessageContainerConfiguration;
+import edu.iu.terracotta.dao.entity.messaging.content.MessageContent;
+import edu.iu.terracotta.dao.entity.messaging.message.Message;
+import edu.iu.terracotta.dao.entity.messaging.message.MessageConfiguration;
+import edu.iu.terracotta.dao.entity.messaging.recipient.MessageRecipientRule;
+import edu.iu.terracotta.dao.entity.messaging.recipient.MessageRecipientRuleSet;
 import edu.iu.terracotta.dao.exceptions.AnswerNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.AnswerSubmissionNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.AssessmentNotMatchingException;
@@ -50,9 +59,29 @@ import edu.iu.terracotta.dao.repository.SubmissionRepository;
 import edu.iu.terracotta.dao.repository.TreatmentRepository;
 import edu.iu.terracotta.dao.repository.distribute.ExperimentImportRepository;
 import edu.iu.terracotta.dao.repository.integrations.IntegrationRepository;
+import edu.iu.terracotta.dao.repository.messaging.conditional.MessageConditionalTextRepository;
+import edu.iu.terracotta.dao.repository.messaging.container.MessageContainerConfigurationRepository;
+import edu.iu.terracotta.dao.repository.messaging.container.MessageContainerRepository;
+import edu.iu.terracotta.dao.repository.messaging.content.MessageContentRepository;
+import edu.iu.terracotta.dao.repository.messaging.message.MessageConfigurationRepository;
+import edu.iu.terracotta.dao.repository.messaging.message.MessageRepository;
+import edu.iu.terracotta.dao.repository.messaging.recipient.MessageRecipientRuleRepository;
+import edu.iu.terracotta.dao.repository.messaging.recipient.MessageRecipientRuleSetRepository;
 import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.ConditionsLockedException;
 import edu.iu.terracotta.exceptions.ExperimentLockedException;
+import edu.iu.terracotta.exceptions.messaging.MessageConditionalTextNotMatchingException;
+import edu.iu.terracotta.exceptions.messaging.MessageConfigurationNotMatchingException;
+import edu.iu.terracotta.exceptions.messaging.MessageContainerConfigurationNotFoundException;
+import edu.iu.terracotta.exceptions.messaging.MessageContainerNotFoundException;
+import edu.iu.terracotta.exceptions.messaging.MessageContainerNotMatchingException;
+import edu.iu.terracotta.exceptions.messaging.MessageContainerOwnerNotMatchingException;
+import edu.iu.terracotta.exceptions.messaging.MessageContentNotMatchingException;
+import edu.iu.terracotta.exceptions.messaging.MessageNotFoundException;
+import edu.iu.terracotta.exceptions.messaging.MessageNotMatchingException;
+import edu.iu.terracotta.exceptions.messaging.MessageOwnerNotMatchingException;
+import edu.iu.terracotta.exceptions.messaging.MessageRuleNotMatchingException;
+import edu.iu.terracotta.exceptions.messaging.MessageRuleSetNotMatchingException;
 import edu.iu.terracotta.service.app.AdminService;
 import edu.iu.terracotta.utils.lti.Lti3Request;
 import io.jsonwebtoken.Claims;
@@ -115,6 +144,14 @@ public class ApiJwtServiceImpl implements ApiJwtService {
     @Autowired private ExposureRepository exposureRepository;
     @Autowired private GroupRepository groupRepository;
     @Autowired private IntegrationRepository integrationRepository;
+    @Autowired private MessageConditionalTextRepository messageConditionalTextRepository;
+    @Autowired private MessageConfigurationRepository messageConfigurationRepository;
+    @Autowired private MessageContainerRepository messageContainerRepository;
+    @Autowired private MessageContainerConfigurationRepository messageContainerConfigurationRepository;
+    @Autowired private MessageContentRepository messageContentRepository;
+    @Autowired private MessageRepository messageRepository;
+    @Autowired private MessageRecipientRuleRepository messageRuleRepository;
+    @Autowired private MessageRecipientRuleSetRepository messageRuleSetRepository;
     @Autowired private OutcomeRepository outcomeRepository;
     @Autowired private OutcomeScoreRepository outcomeScoreRepository;
     @Autowired private ParticipantRepository participantRepository;
@@ -499,17 +536,16 @@ public class ApiJwtServiceImpl implements ApiJwtService {
     }
 
     @Override
-    public void participantAllowed(SecuredInfo securedInfo, Long experimentId, Long participantId) throws ParticipantNotMatchingException {
-        if (!participantRepository.existsByExperiment_ExperimentIdAndParticipantId(experimentId, participantId)) {
+    public void participantAllowed(SecuredInfo securedInfo, Long experimentId, Long id) throws ParticipantNotMatchingException {
+        if (!participantRepository.existsByExperiment_ExperimentIdAndId(experimentId, id)) {
             throw new ParticipantNotMatchingException(TextConstants.PARTICIPANT_NOT_MATCHING);
         }
     }
 
     @Override
-    public void exposureAllowed(SecuredInfo securedInfo, Long experimentId, Long exposureId) throws ExposureNotMatchingException {
-        if (!exposureRepository.existsByExperiment_ExperimentIdAndExposureId(experimentId, exposureId)) {
-            throw new ExposureNotMatchingException(TextConstants.EXPOSURE_NOT_MATCHING);
-        }
+    public Exposure exposureAllowed(SecuredInfo securedInfo, Long experimentId, Long exposureId) throws ExposureNotMatchingException {
+        return exposureRepository.findByExperiment_ExperimentIdAndExposureId(experimentId, exposureId)
+            .orElseThrow(() -> new ExposureNotMatchingException(TextConstants.EXPOSURE_NOT_MATCHING));
     }
 
     @Override
@@ -630,6 +666,55 @@ public class ApiJwtServiceImpl implements ApiJwtService {
     public ExperimentImport experimentImportAllowed(SecuredInfo securedInfo, UUID uuid) throws ExperimentImportNotFoundException {
         return experimentImportRepository.findByUuidAndOwner_UserKeyAndContext_ContextId(uuid, securedInfo.getUserId(), securedInfo.getContextId())
             .orElseThrow(() -> new ExperimentImportNotFoundException(String.format("Experiment Import with UUID: [%s] not found", uuid)));
+    }
+
+    @Override
+    public MessageContainer messagingContainerAllowed(SecuredInfo securedInfo, long exposureId, UUID uuid) throws MessageContainerOwnerNotMatchingException, MessageContainerNotMatchingException, MessageContainerNotFoundException {
+        return messageContainerRepository.findByUuidAndExposure_ExposureIdAndOwner_LmsUserId(uuid, exposureId, securedInfo.getLmsUserId())
+            .orElseThrow(() -> new MessageContainerOwnerNotMatchingException(String.format("Message container UUID: [%s] not owned by user ID: [%s]", uuid, securedInfo.getLmsUserId())));
+    }
+
+    @Override
+    public MessageContainerConfiguration messagingContainerConfigurationAllowed(SecuredInfo securedInfo, UUID containerUuid, UUID uuid)
+            throws MessageContainerOwnerNotMatchingException, MessageContainerNotMatchingException, MessageContainerNotFoundException, MessageContainerConfigurationNotFoundException {
+        return messageContainerConfigurationRepository.findByUuidAndContainer_UuidAndContainer_Owner_LmsUserId(uuid, containerUuid, securedInfo.getLmsUserId())
+            .orElseThrow(() -> new MessageContainerConfigurationNotFoundException(String.format("Message container configuration UUID: [%s] not owned by user ID: [%s] and container UUID: [%s]", uuid, securedInfo.getLmsUserId(), containerUuid)));
+    }
+
+    @Override
+    public Message messagingAllowed(SecuredInfo securedInfo, UUID containerUuid, UUID uuid) throws MessageOwnerNotMatchingException, MessageNotMatchingException, MessageNotFoundException {
+        return messageRepository.findByUuidAndContainer_UuidAndContainer_Owner_LmsUserId(uuid, containerUuid, securedInfo.getLmsUserId())
+            .orElseThrow(() -> new MessageNotMatchingException(String.format("Message UUID: [%s] not owned by user ID: [%s] and container UUID: [%s]", uuid, securedInfo.getLmsUserId(), containerUuid)));
+    }
+
+    @Override
+    public MessageContent messagingContentAllowed(SecuredInfo securedInfo, UUID messageUuid, UUID uuid) throws MessageContentNotMatchingException {
+        return messageContentRepository.findByUuidAndMessage_UuidAndMessage_Container_Owner_LmsUserId(uuid, messageUuid, securedInfo.getLmsUserId())
+            .orElseThrow(() -> new MessageContentNotMatchingException(String.format("Message content UUID: [%s] not owned by user ID: [%s] and message UUID: [%s]", uuid, securedInfo.getLmsUserId(), messageUuid)));
+    }
+
+    @Override
+    public MessageConfiguration messagingConfigurationAllowed(SecuredInfo securedInfo, UUID messageUuid, UUID uuid) throws MessageConfigurationNotMatchingException {
+        return messageConfigurationRepository.findByUuidAndMessage_UuidAndMessage_Container_Owner_LmsUserId(uuid, messageUuid, securedInfo.getLmsUserId())
+            .orElseThrow(() -> new MessageConfigurationNotMatchingException(String.format("Message configuration UUID: [%s] not owned by user ID: [%s] and message UUID: [%s]", uuid, securedInfo.getLmsUserId(), messageUuid)));
+    }
+
+    @Override
+    public MessageRecipientRuleSet messagingRuleSetAllowed(SecuredInfo securedInfo, UUID messageUuid, UUID messageRuleSetUuid) throws MessageRuleSetNotMatchingException {
+        return messageRuleSetRepository.findByUuidAndMessage_Uuid(messageRuleSetUuid, messageUuid)
+            .orElseThrow(() -> new MessageRuleSetNotMatchingException(String.format("Message rule set UUID: [%s] not matching message UUID: [%s]", messageRuleSetUuid, messageUuid)));
+    }
+
+    @Override
+    public MessageRecipientRule messagingRuleAllowed(SecuredInfo securedInfo, UUID messageRuleSetUuid, UUID uuid) throws MessageRuleNotMatchingException {
+        return messageRuleRepository.findByUuidAndRuleSet_Uuid(uuid, messageRuleSetUuid)
+            .orElseThrow(() -> new MessageRuleNotMatchingException(String.format("Message rule UUID: [%s] not matching message rule set UUID: [%s]", messageRuleSetUuid, messageRuleSetUuid)));
+    }
+
+    @Override
+    public MessageConditionalText messagingConditionalTextAllowed(SecuredInfo securedInfo, UUID contentUuid, UUID conditionalTextUuid) throws MessageContentNotMatchingException, MessageNotMatchingException, MessageConditionalTextNotMatchingException {
+        return messageConditionalTextRepository.findByUuidAndContent_UuidAndContent_Message_Container_Owner_LmsUserId(conditionalTextUuid, contentUuid, securedInfo.getLmsUserId())
+            .orElseThrow(() -> new MessageConditionalTextNotMatchingException(String.format("Message conditional text UUID: [%s] not matching message content UUID: [%s] and owned by user ID: [%s]", conditionalTextUuid, contentUuid, securedInfo.getLmsUserId())));
     }
 
 }

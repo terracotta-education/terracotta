@@ -59,13 +59,11 @@ export default {
       required: false,
     },
   },
-  data() {
-    return {
-      dialog: false,
-      url: null,
-      resolve: null
-    }
-  },
+  data: () => ({
+    dialog: false,
+    url: null,
+    resolve: null
+  }),
   computed: {
     getHref() {
       return this.href || "";

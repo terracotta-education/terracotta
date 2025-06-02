@@ -25,7 +25,7 @@ public enum ResponseOptionsCsv {
     }
 
     public static String[] getHeaderRow() {
-        return Arrays.stream(ResponseOptionsCsv.values())
+        return Arrays.stream(values())
             .map(ResponseOptionsCsv::toString)
             .toArray(String[]::new);
     }

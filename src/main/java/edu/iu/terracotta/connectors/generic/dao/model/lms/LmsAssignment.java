@@ -29,6 +29,7 @@ public class LmsAssignment implements BaseLmsAssignment {
     private Date lockAt;
     private Date unlockAt;
     private LmsExternalToolFields lmsExternalToolFields;
+    private String gradingType;
 
     @Override
     public LmsAssignment from() {

@@ -17,6 +17,9 @@ public class LmsSubmission implements BaseLmsSubmission {
     private String userLoginId;
     private String userName;
     private Long attempt;
+    private String assignmentId;
+    private boolean gradeMatchesCurrentSubmission;
+    private String state;
 
     @Override
     public LmsSubmission from() {

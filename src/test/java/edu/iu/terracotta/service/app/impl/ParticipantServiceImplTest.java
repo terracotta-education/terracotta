@@ -481,14 +481,14 @@ public class ParticipantServiceImplTest extends BaseTest {
     }
 
     @Test
-    public void testGetParticipant() throws InvalidUserException {
+    public void testGetParticipant() throws InvalidUserException, ParticipantNotMatchingException {
         Participant retVal = participantService.getParticipant(1l, 1l, USER_ID, false);
 
         assertNotNull(retVal);
     }
 
     @Test
-    public void testGetParticipantStudent() throws InvalidUserException {
+    public void testGetParticipantStudent() throws InvalidUserException, ParticipantNotMatchingException {
         Participant retVal = participantService.getParticipant(1l, 1l, USER_ID, true);
 
         assertNotNull(retVal);
@@ -551,7 +551,7 @@ public class ParticipantServiceImplTest extends BaseTest {
     }
 
     @Test
-    public void testChangeConsent() throws ParticipantAlreadyStartedException, ExperimentNotMatchingException {
+    public void testChangeConsent() throws ParticipantAlreadyStartedException, ExperimentNotMatchingException, ParticipantNotMatchingException {
         when(securedInfo.getConsent()).thenReturn(true);
 
         Participant retVal = participantService.changeConsent(participantDto, securedInfo, 1L);

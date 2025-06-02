@@ -7,7 +7,16 @@ import edu.iu.terracotta.connectors.generic.dao.model.enums.LmsConnector;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.dao.entity.Assignment;
 import edu.iu.terracotta.dao.entity.Experiment;
+import edu.iu.terracotta.dao.entity.Exposure;
 import edu.iu.terracotta.dao.entity.distribute.ExperimentImport;
+import edu.iu.terracotta.dao.entity.messaging.conditional.MessageConditionalText;
+import edu.iu.terracotta.dao.entity.messaging.container.MessageContainer;
+import edu.iu.terracotta.dao.entity.messaging.container.MessageContainerConfiguration;
+import edu.iu.terracotta.dao.entity.messaging.content.MessageContent;
+import edu.iu.terracotta.dao.entity.messaging.message.Message;
+import edu.iu.terracotta.dao.entity.messaging.message.MessageConfiguration;
+import edu.iu.terracotta.dao.entity.messaging.recipient.MessageRecipientRule;
+import edu.iu.terracotta.dao.entity.messaging.recipient.MessageRecipientRuleSet;
 import edu.iu.terracotta.dao.exceptions.AnswerNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.AnswerSubmissionNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.AssessmentNotMatchingException;
@@ -30,6 +39,18 @@ import edu.iu.terracotta.dao.exceptions.integrations.IntegrationOwnerNotMatching
 import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.ConditionsLockedException;
 import edu.iu.terracotta.exceptions.ExperimentLockedException;
+import edu.iu.terracotta.exceptions.messaging.MessageConditionalTextNotMatchingException;
+import edu.iu.terracotta.exceptions.messaging.MessageConfigurationNotMatchingException;
+import edu.iu.terracotta.exceptions.messaging.MessageContainerConfigurationNotFoundException;
+import edu.iu.terracotta.exceptions.messaging.MessageContainerNotFoundException;
+import edu.iu.terracotta.exceptions.messaging.MessageContainerNotMatchingException;
+import edu.iu.terracotta.exceptions.messaging.MessageContainerOwnerNotMatchingException;
+import edu.iu.terracotta.exceptions.messaging.MessageContentNotMatchingException;
+import edu.iu.terracotta.exceptions.messaging.MessageNotFoundException;
+import edu.iu.terracotta.exceptions.messaging.MessageNotMatchingException;
+import edu.iu.terracotta.exceptions.messaging.MessageOwnerNotMatchingException;
+import edu.iu.terracotta.exceptions.messaging.MessageRuleNotMatchingException;
+import edu.iu.terracotta.exceptions.messaging.MessageRuleSetNotMatchingException;
 import edu.iu.terracotta.utils.lti.Lti3Request;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
@@ -112,7 +133,7 @@ public interface ApiJwtService {
     boolean conditionsLocked(Long experimentId, boolean throwException) throws ConditionsLockedException, ExperimentNotMatchingException;
     void conditionAllowed(SecuredInfo securedInfo, Long experimentId, Long conditionId) throws ConditionNotMatchingException;
     void participantAllowed(SecuredInfo securedInfo, Long experimentId, Long participantId) throws ParticipantNotMatchingException;
-    void exposureAllowed(SecuredInfo securedInfo, Long experimentId, Long exposureId) throws ExposureNotMatchingException;
+    Exposure exposureAllowed(SecuredInfo securedInfo, Long experimentId, Long exposureId) throws ExposureNotMatchingException;
     void groupAllowed(SecuredInfo securedInfo, Long experimentId, Long groupId) throws GroupNotMatchingException;
     Assignment assignmentAllowed(SecuredInfo securedInfo, long experimentId, long assignmentId) throws AssignmentNotMatchingException;
     Assignment assignmentAllowed(SecuredInfo securedInfo, long experimentId, long exposureId, long assignmentId) throws AssignmentNotMatchingException;
@@ -131,5 +152,13 @@ public interface ApiJwtService {
     String buildFileToken(String fileId, String localUrl) throws GeneralSecurityException;
     void integrationAllowed(long questionId, UUID integrationUuid) throws IntegrationOwnerNotMatchingException;
     ExperimentImport experimentImportAllowed(SecuredInfo securedInfo, UUID uuid) throws ExperimentImportNotFoundException;
+    MessageContainer messagingContainerAllowed(SecuredInfo securedInfo, long exposureId, UUID containerUuid) throws MessageContainerOwnerNotMatchingException, MessageContainerNotMatchingException, MessageContainerNotFoundException;
+    MessageContainerConfiguration messagingContainerConfigurationAllowed(SecuredInfo securedInfo, UUID containerUuid, UUID configurationId) throws MessageContainerOwnerNotMatchingException, MessageContainerNotMatchingException, MessageContainerNotFoundException, MessageContainerConfigurationNotFoundException;
+    Message messagingAllowed(SecuredInfo securedInfo, UUID containerUuid, UUID messageUuid) throws MessageOwnerNotMatchingException, MessageNotMatchingException, MessageNotFoundException;
+    MessageContent messagingContentAllowed(SecuredInfo securedInfo, UUID messageUuid, UUID contentUuid) throws MessageContentNotMatchingException;
+    MessageConfiguration messagingConfigurationAllowed(SecuredInfo securedInfo, UUID messageUuid, UUID configurationUuid) throws MessageConfigurationNotMatchingException;
+    MessageRecipientRuleSet messagingRuleSetAllowed(SecuredInfo securedInfo, UUID messageUuid, UUID messageRuleSetUuid) throws MessageRuleSetNotMatchingException;
+    MessageRecipientRule messagingRuleAllowed(SecuredInfo securedInfo, UUID messageUuid, UUID messageRuleSetUuid) throws MessageRuleNotMatchingException;
+    MessageConditionalText messagingConditionalTextAllowed(SecuredInfo securedInfo, UUID contentUuid, UUID conditionalTextUuid) throws MessageContentNotMatchingException, MessageNotMatchingException, MessageConditionalTextNotMatchingException;
 
 }

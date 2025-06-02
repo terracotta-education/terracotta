@@ -15,8 +15,8 @@ public class CourseExtended extends LmsCourse {
     @Builder.Default private Course course = Course.builder().build();
 
     @Override
-    public Long getId() {
-        return 1L;
+    public String getId() {
+        return "1";
     }
 
     @Override

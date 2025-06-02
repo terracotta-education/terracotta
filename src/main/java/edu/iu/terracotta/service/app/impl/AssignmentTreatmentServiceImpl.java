@@ -2,6 +2,7 @@ package edu.iu.terracotta.service.app.impl;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 import jakarta.persistence.EntityManager;
@@ -36,6 +37,7 @@ import edu.iu.terracotta.exceptions.ExceedingLimitException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.service.app.AssessmentService;
 import edu.iu.terracotta.service.app.AssignmentTreatmentService;
+import edu.iu.terracotta.utils.TextConstants;
 
 @Slf4j
 @Service
@@ -82,7 +84,7 @@ public class AssignmentTreatmentServiceImpl implements AssignmentTreatmentServic
         from.setAssessment(null);
 
         Treatment newTreatment = treatmentRepository.save(from);
-        LtiUserEntity instructorUser = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
+        LtiUserEntity instructorUser = ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
         setAssignmentDtoAttrs(newTreatment.getAssignment(), securedInfo.getLmsCourseId(), instructorUser);
         TreatmentDto treatmentDto = toTreatmentDto(newTreatment, false, true);
 
@@ -163,6 +165,22 @@ public class AssignmentTreatmentServiceImpl implements AssignmentTreatmentServic
         assignmentDto.setDueDate(assignment.getDueDate());
 
         return assignmentDto;
+    }
+
+    @Override
+    public List<AssignmentDto> toAssignmentDto(List<Assignment> assignments, boolean submissions, boolean addTreatmentDto) throws AssessmentNotMatchingException {
+        return assignments.stream()
+            .map(assignment -> {
+                try {
+                    return toAssignmentDto(assignment, submissions, addTreatmentDto);
+                } catch (AssessmentNotMatchingException e) {
+                    log.error(TextConstants.ASSIGNMENT_NOT_MATCHING, e);
+
+                    return null;
+                }
+            })
+            .filter(Objects::nonNull)
+            .toList();
     }
 
     @Override

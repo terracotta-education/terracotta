@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Component
+@SuppressWarnings({"PMD.LambdaCanBeMethodReference"})
 public class QuestionSubmissionCommentServiceImpl implements QuestionSubmissionCommentService {
 
     @Autowired private LtiUserRepository ltiUserRepository;
@@ -49,7 +50,7 @@ public class QuestionSubmissionCommentServiceImpl implements QuestionSubmissionC
         }
 
         questionSubmissionCommentDto.setQuestionSubmissionId(questionSubmissionId);
-        LtiUserEntity user = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
+        LtiUserEntity user = ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
         questionSubmissionCommentDto.setCreator(user.getDisplayName());
         QuestionSubmissionComment questionSubmissionComment;
 
@@ -65,7 +66,7 @@ public class QuestionSubmissionCommentServiceImpl implements QuestionSubmissionC
     @Override
     public void updateQuestionSubmissionComment(QuestionSubmissionCommentDto questionSubmissionCommentDto, long questionSubmissionCommentId, long experimentId, long submissionId, SecuredInfo securedInfo) throws DataServiceException {
         QuestionSubmissionComment questionSubmissionComment = getQuestionSubmissionComment(questionSubmissionCommentId);
-        LtiUserEntity user = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
+        LtiUserEntity user = ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
 
         if (!user.getDisplayName().equals(questionSubmissionComment.getCreator())) {
             throw new DataServiceException("Error 122: Only the creator of a comment can edit their own comment.");

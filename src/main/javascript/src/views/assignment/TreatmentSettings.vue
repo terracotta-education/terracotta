@@ -68,16 +68,13 @@ export default {
       },
       set(value) {
         this.setAssessment({ ...this.assessment, ...value });
-      },
-    },
-
+      }
+    }
   },
   methods: {
     ...mapMutations({
       setAssessment: "assessment/setAssessment",
-    }),
-  },
+    })
+  }
 };
 </script>
-
-<style lang="scss" scoped></style>

@@ -279,7 +279,7 @@ public class FileStorageServiceImpl implements FileStorageService {
         FileInfoDto fileInfoDto = uploadFile(multipartFile, experimentId);
         Experiment experiment = experimentRepository.findByExperimentId(experimentId);
         ConsentDocument consentDocument = experiment.getConsentDocument();
-        LtiUserEntity instructorUser = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
+        LtiUserEntity instructorUser = ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
         String lmsCourseId = org.apache.commons.lang3.StringUtils.substringBetween(experiment.getLtiContextEntity().getContext_memberships_url(), "courses/", "/names");
 
         if (consentDocument == null) {
@@ -350,7 +350,7 @@ public class FileStorageServiceImpl implements FileStorageService {
     @Override
     public void deleteConsentAssignment(long experimentId, SecuredInfo securedInfo) throws AssignmentNotEditedException, ApiException, IOException, NumberFormatException, TerracottaConnectorException {
         Experiment experiment = experimentRepository.findByExperimentId(experimentId);
-        LtiUserEntity instructorUser = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
+        LtiUserEntity instructorUser = ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
         ConsentDocument consentDocument = experiment.getConsentDocument();
 
         if (consentDocument == null) {

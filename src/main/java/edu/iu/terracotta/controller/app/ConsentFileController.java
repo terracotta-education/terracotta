@@ -57,7 +57,7 @@ public class ConsentFileController {
     @Transactional(rollbackFor = {AssignmentNotCreatedException.class, ApiException.class})
     public ResponseEntity<FileInfoDto> postConsent(@RequestParam("consent") MultipartFile file,
                                                           @PathVariable long experimentId,
-                                                          @RequestParam(name = "title", defaultValue = "Invitation to Participate in a Research Study") String title,
+                                                          @RequestParam(defaultValue = "Invitation to Participate in a Research Study") String title,
                                                           HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, BadConsentFileTypeException, AssignmentNotCreatedException, ApiException, AssignmentNotEditedException, AssignmentNotMatchingException, IOException, NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);

@@ -26,8 +26,8 @@
 
 <script>
 import Vue from "vue";
-import ToolbarItem from "./ToolbarItem";
 import LinkDialog from "./components/LinkDialog";
+import ToolbarItem from "./ToolbarItem";
 import YouTubeDialog from "./components/YouTubeDialog";
 
 export default {
@@ -44,132 +44,130 @@ export default {
       required: false
     }
   },
-  data() {
-    return {
-      items: [
-        {
-          icon: "mdi-undo",
-          title: "Undo",
-          action: "undo",
-          activate: false
-        },
-        {
-          icon: "mdi-redo",
-          title: "Redo",
-          action: "redo",
-          activate: false
-        },
-        {
-          icon: "mdi-format-quote-close",
-          title: "Block quote",
-          action: "blockquote",
-          activatable: true,
-          activate: false
-        },
-        {
-          icon: "mdi-link",
-          title: "Add link",
-          action: "link",
-          activatable: true,
-          activate: false
-        },
-        {
-          icon: "mdi-format-underline",
-          title: "Underline",
-          action: "underline",
-          activatable: true,
-          activate: false
-        },
-        {
-          icon: "mdi-format-strikethrough",
-          title: "Strike",
-          action: "strike",
-          activatable: true,
-          activate: false
-        },
-        {
-          icon: "mdi-format-italic",
-          title: "Italic",
-          action: "italic",
-          activatable: true,
-          activate: false
-        },
-        {
-          icon: "mdi-format-list-bulleted",
-          title: "Bulleted List",
-          action: "bulletList",
-          activatable: true,
-          activate: false
-        },
-        {
-          icon: "mdi-format-list-numbered",
-          title: "Ordered List",
-          action: "orderedList",
-          activatable: true,
-          activate: false
-        },
-        {
-          icon: "mdi-format-header-1",
-          title: "Heading 1",
-          action: "heading",
-          activatable: true,
-          attributes: { level: 1 },
-          activate: false
-        },
-        {
-          icon: "mdi-format-header-2",
-          title: "Heading 2",
-          action: "heading",
-          activatable: true,
-          attributes: { level: 2 },
-          activate: false
-        },
-        {
-          icon: "mdi-format-header-3",
-          title: "Heading 3",
-          action: "heading",
-          activatable: true,
-          attributes: { level: 3 },
-          activate: false
-        },
-        {
-          icon: "mdi-format-bold",
-          title: "Bold",
-          action: "bold",
-          activatable: true,
-          activate: false
-        },
-        {
-          icon: "mdi-code-tags",
-          title: "Code",
-          action: "code",
-          activatable: true,
-          activate: false
-        },
-        {
-          icon: "mdi-minus",
-          title: "Horizontal line",
-          action: "horizontalRule",
-          activatable: false,
-          activate: false
-        },
-        {
-          icon: "mdi-format-paragraph",
-          title: "Paragraph",
-          action: "paragraph",
-          activatable: true,
-          activate: false
-        },
-        {
-          icon: "mdi-youtube",
-          title: "YouTube",
-          action: "youtube",
-          activatable: true,
-          activate: false
-        },
-      ],
-    };
-  },
+  data: () => ({
+    items: [
+      {
+        icon: "mdi-undo",
+        title: "Undo",
+        action: "undo",
+        activate: false
+      },
+      {
+        icon: "mdi-redo",
+        title: "Redo",
+        action: "redo",
+        activate: false
+      },
+      {
+        icon: "mdi-format-quote-close",
+        title: "Block quote",
+        action: "blockquote",
+        activatable: true,
+        activate: false
+      },
+      {
+        icon: "mdi-link",
+        title: "Add link",
+        action: "link",
+        activatable: true,
+        activate: false
+      },
+      {
+        icon: "mdi-format-underline",
+        title: "Underline",
+        action: "underline",
+        activatable: true,
+        activate: false
+      },
+      {
+        icon: "mdi-format-strikethrough",
+        title: "Strike",
+        action: "strike",
+        activatable: true,
+        activate: false
+      },
+      {
+        icon: "mdi-format-italic",
+        title: "Italic",
+        action: "italic",
+        activatable: true,
+        activate: false
+      },
+      {
+        icon: "mdi-format-list-bulleted",
+        title: "Bulleted List",
+        action: "bulletList",
+        activatable: true,
+        activate: false
+      },
+      {
+        icon: "mdi-format-list-numbered",
+        title: "Ordered List",
+        action: "orderedList",
+        activatable: true,
+        activate: false
+      },
+      {
+        icon: "mdi-format-header-1",
+        title: "Heading 1",
+        action: "heading",
+        activatable: true,
+        attributes: { level: 1 },
+        activate: false
+      },
+      {
+        icon: "mdi-format-header-2",
+        title: "Heading 2",
+        action: "heading",
+        activatable: true,
+        attributes: { level: 2 },
+        activate: false
+      },
+      {
+        icon: "mdi-format-header-3",
+        title: "Heading 3",
+        action: "heading",
+        activatable: true,
+        attributes: { level: 3 },
+        activate: false
+      },
+      {
+        icon: "mdi-format-bold",
+        title: "Bold",
+        action: "bold",
+        activatable: true,
+        activate: false
+      },
+      {
+        icon: "mdi-code-tags",
+        title: "Code",
+        action: "code",
+        activatable: true,
+        activate: false
+      },
+      {
+        icon: "mdi-minus",
+        title: "Horizontal line",
+        action: "horizontalRule",
+        activatable: false,
+        activate: false
+      },
+      {
+        icon: "mdi-format-paragraph",
+        title: "Paragraph",
+        action: "paragraph",
+        activatable: true,
+        activate: false
+      },
+      {
+        icon: "mdi-youtube",
+        title: "YouTube",
+        action: "youtube",
+        activatable: true,
+        activate: false
+      },
+    ]
+  }),
   watch: {
     activeItems: {
       handler(activeItems) {

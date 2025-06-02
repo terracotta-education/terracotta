@@ -1,14 +1,14 @@
 <template>
   <v-container
     v-show="display"
-    :style="getContainerStyles"
+    :style="containerStyles"
     class="page-loading-container"
   >
     <div
-      :style="getSpinnerStyles"
+      :style="spinnerStyles"
       class="spinner-container"
     >
-      <h1>{{ getMessage }}</h1>
+      <h1>{{ message }}</h1>
       <Spinner
         :width="'100px'"
         :height="'100px'"
@@ -27,21 +27,20 @@
     components: {
       Spinner
     },
-    props: [
-      "message",
-      "display",
-      "containerStyles",
-      "spinnerStyles"
-    ],
-    computed: {
-      getMessage() {
-        return this.message || "Loading. Please wait.";
+    props: {
+      message: {
+        type: String,
+        default: "Loading. Please wait."
       },
-      getContainerStyles() {
-        return this.containerStyles || "";
+      display: {
+        type: Boolean,
+        default: false
       },
-      getSpinnerStyles() {
-        return this.spinnerStyles || "";
+      containerStyles: {
+        type: String
+      },
+      spinnerStyles: {
+        type: String
       }
     }
   }

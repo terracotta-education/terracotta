@@ -4,6 +4,6 @@ import edu.iu.terracotta.dao.model.dto.ConfigurationDto;
 
 public interface ConfigurationService {
 
-    ConfigurationDto getConfigurations();
+    ConfigurationDto getConfigurations(long platformDeploymentKeyId);
 
 }

@@ -10,6 +10,7 @@ Vue.config.productionTip = false
 
 Vue.use(VueRouterBackButton, { router })
 Vue.use(VueSweetalert2);
+var vm;
 
 const url = new URL(window.location.href);
 const params = new URLSearchParams(url.search);
@@ -74,13 +75,15 @@ function startVue() {
     appProps["treatmentPreviewData"] = treatmentPreview;
   }
 
-  new Vue({
+  vm = new Vue({
     store,
     router,
     vuetify,
     props: ["integrationData", "obsoleteData", "treatmentPreviewData"],
     render: h => h(App, {props: appProps}),
-  }).$mount("#app")
+  });
+
+  vm.$mount("#app");
 }
 
 function cleanURL() {

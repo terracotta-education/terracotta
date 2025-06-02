@@ -11,8 +11,14 @@ import org.springframework.stereotype.Service;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
 import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsAssignment;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsConversation;
 import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsCourse;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsFile;
 import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsSubmission;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsUser;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.options.LmsCreateConversationOptions;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.options.LmsGetSingleConversationOptions;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.options.LmsGetUsersInCourseOptions;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.Score;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
@@ -128,6 +134,36 @@ public class ApiClientImpl implements ApiClient {
     @Override
     public List<LmsSubmission> listSubmissions(LtiUserEntity apiUser, String lmsAssignmentId, String lmsCourseId) throws ApiException, IOException, TerracottaConnectorException {
         return instance(apiUser).listSubmissions(apiUser, lmsAssignmentId, lmsCourseId);
+    }
+
+    @Override
+    public List<LmsSubmission> listSubmissionsForMultipleAssignments(LtiUserEntity apiUser, String lmsCourseId,List<String> lmsAssignmentIds) throws ApiException, IOException, TerracottaConnectorException {
+        return instance(apiUser).listSubmissionsForMultipleAssignments(apiUser, lmsCourseId, lmsAssignmentIds);
+    }
+
+    @Override
+    public List<LmsConversation> sendConversation(LmsCreateConversationOptions lmsCreateConversationOptions, LtiUserEntity apiUser) throws ApiException, TerracottaConnectorException {
+        return instance(apiUser.getPlatformDeployment()).sendConversation(lmsCreateConversationOptions, apiUser);
+    }
+
+    @Override
+    public Optional<LmsConversation> getConversation(LmsGetSingleConversationOptions lmsGetSingleConversationOptions, LtiUserEntity apiUser) throws ApiException, TerracottaConnectorException {
+        return instance(apiUser.getPlatformDeployment()).getConversation(lmsGetSingleConversationOptions, apiUser);
+    }
+
+    @Override
+    public List<LmsUser> listUsersForCourse(LmsGetUsersInCourseOptions lmsGetUsersInCourseOptions, LtiUserEntity apiUser) throws ApiException, TerracottaConnectorException {
+        return instance(apiUser.getPlatformDeployment()).listUsersForCourse(lmsGetUsersInCourseOptions, apiUser);
+    }
+
+    @Override
+    public Optional<LmsFile> getFile(LtiUserEntity apiUser, String lmsFileId) throws ApiException, TerracottaConnectorException {
+        return instance(apiUser.getPlatformDeployment()).getFile(apiUser, lmsFileId);
+    }
+
+    @Override
+    public List<LmsFile> getFiles(LtiUserEntity apiUser) throws ApiException, TerracottaConnectorException {
+        return instance(apiUser.getPlatformDeployment()).getFiles(apiUser);
     }
 
 }

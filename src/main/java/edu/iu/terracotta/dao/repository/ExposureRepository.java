@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import edu.iu.terracotta.dao.entity.Exposure;
 
 import java.util.List;
+import java.util.Optional;
 
 @SuppressWarnings({"PMD.MethodNamingConventions"})
 public interface ExposureRepository extends JpaRepository<Exposure, Long> {
@@ -15,6 +16,7 @@ public interface ExposureRepository extends JpaRepository<Exposure, Long> {
     List<Exposure> findByExperiment_ExperimentId(Long experimentId);
     Exposure findByExposureId(Long exposureId);
     boolean existsByExperiment_ExperimentIdAndExposureId(Long experimentId, Long exposureId);
+    Optional<Exposure> findByExperiment_ExperimentIdAndExposureId(long experimentId, long exposureId);
     void deleteByExperiment_ExperimentId(Long experimentId);
 
     @Modifying

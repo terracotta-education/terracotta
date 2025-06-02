@@ -1,6 +1,6 @@
 <template>
   <div>
-    <PageLoading
+    <page-loading
       :display="!isLoaded"
       message="Loading experiments. Please wait."
     />
@@ -617,7 +617,9 @@ export default {
       pollImport: "experiment/pollImport",
       pollImports: "experiment/pollImports",
       resetImportRequests: "experiment/resetImportRequests",
-      acknowledgeImport: "experiment/acknowledgeImport"
+      acknowledgeImport: "experiment/acknowledgeImport",
+      resetMessageContainers: "messagingMessageContainer/reset",
+      resetConditionalTexts: "messagingConditionalText/reset"
     }),
     async handleExportExperiment(item) {
       this.isExportingExperiment = true;
@@ -936,6 +938,7 @@ export default {
     this.deleteEditMode();
     this.resetDataExportRequest();
     this.resetImportRequests();
+    this.resetMessageContainers();
 
     // get experiments list
     await this.fetchExperiments();

@@ -1,6 +1,6 @@
 {
   "name": "terracotta",
-  "version": "0.1.0",
+  "version": "25.0.0",
   "private": true,
   "scripts": {
     "serve": "vue-cli-service serve",
@@ -15,24 +15,31 @@
     "jwt-decode": "^3.1.2",
     "moment": "^2.29.1",
     "sortablejs": "^1.15.0",
+    "date-fns": "^2.29.2",
     "vue": "^2.6.11",
     "vue-router": "^3.2.0",
     "vue-router-back-button": "^1.3.0",
     "vue-sweetalert2": "^5.0.2",
     "vuedraggable": "^2.24.3",
-    "vuetify": "^2.4.0",
-    "vuetify-datetime-picker": "^2.1.1",
+    "vuetify": "^2.6.0",
     "vuex": "^3.6.2",
     "vuex-persistedstate": "^4.0.0-beta.3",
     "highcharts": "10.3.3",
     "zipcelx": "^1.6.2",
-    "@tiptap/vue-2": "^2.6.6",
-    "@tiptap/pm": "^2.6.6",
-    "@tiptap/starter-kit": "^2.6.6",
-    "@tiptap/extension-link": "^2.6.6",
-    "@tiptap/extension-placeholder": "^2.6.6",
-    "@tiptap/extension-underline": "^2.6.6",
-    "@tiptap/extension-youtube": "^2.6.6"
+    "@tiptap/core": "^2.23.1",
+    "@tiptap/vue-2": "^2.23.1",
+    "@tiptap/pm": "^2.23.1",
+    "@tiptap/starter-kit": "^2.23.1",
+    "@tiptap/suggestion": "^2.23.1",
+    "@tiptap/extension-document": "^2.23.1",
+    "@tiptap/extension-link": "^2.23.1",
+    "@tiptap/extension-mention": "^2.23.1",
+    "@tiptap/extension-paragraph": "^2.23.1",
+    "@tiptap/extension-placeholder": "^2.23.1",
+    "@tiptap/extension-text": "^2.23.1",
+    "@tiptap/extension-underline": "^2.23.1",
+    "@tiptap/extension-youtube": "^2.23.1",
+    "tippy.js": "^6.3.7"
   },
   "devDependencies": {
     "@mdi/font": "^7.3.67",
@@ -51,6 +58,9 @@
     "vue-pdf-embed": "~1.1.6",
     "vue-template-compiler": "^2.6.11",
     "vuetify-loader": "^1.7.0"
+  },
+  "resolutions": {
+    "prosemirror-model": "1.25.0"
   },
   "eslintConfig": {
     "rules": {

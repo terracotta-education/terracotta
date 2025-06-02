@@ -47,7 +47,7 @@ public class Submission extends BaseEntity {
 
     @ManyToOne(optional = false)
     @JoinColumn(
-        name = "participant_participant_id",
+        name = "participant_id",
         nullable = false
     )
     private Participant participant;

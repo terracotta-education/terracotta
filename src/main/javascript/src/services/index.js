@@ -17,3 +17,6 @@ export * from "./dashboard/results.service";
 export * from "./preview/preview.service";
 export * from "./assignmentfilearchive.service";
 export * from "./configuration.service";
+export * from "./messaging/container.service";
+export * from "./messaging/message.service";
+export * from "./messaging/attachment.service";

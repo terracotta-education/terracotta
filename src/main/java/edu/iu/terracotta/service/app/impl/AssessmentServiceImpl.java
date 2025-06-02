@@ -172,7 +172,7 @@ public class AssessmentServiceImpl implements AssessmentService {
     private AssessmentDto toDto(Assessment assessment, Participant participant, boolean canViewSubmissions) throws AssessmentNotMatchingException {
         AssessmentDto assessmentDto = toDto(assessment, null, false, false, false, false);
 
-        List<Submission> participantAssessmentSubmissionsSubmitted = CollectionUtils.emptyIfNull(submissionRepository.findByParticipant_ParticipantIdAndAssessment_AssessmentId(participant.getParticipantId(), assessment.getAssessmentId())).stream()
+        List<Submission> participantAssessmentSubmissionsSubmitted = CollectionUtils.emptyIfNull(submissionRepository.findByParticipant_IdAndAssessment_AssessmentId(participant.getParticipantId(), assessment.getAssessmentId())).stream()
             .filter(submission -> submission.getDateSubmitted() != null)
             .toList();
 
@@ -712,7 +712,7 @@ public class AssessmentServiceImpl implements AssessmentService {
             throw new AssessmentNotMatchingException("There is no assessment available for this user");
         }
 
-        List<Submission> submissionList = submissionRepository.findByParticipant_ParticipantIdAndAssessment_AssessmentId(participant.getParticipantId(), assessment.getAssessmentId());
+        List<Submission> submissionList = submissionRepository.findByParticipant_IdAndAssessment_AssessmentId(participant.getParticipantId(), assessment.getAssessmentId());
 
         if (CollectionUtils.isNotEmpty(submissionList)) {
             for (Submission submission : submissionList) {

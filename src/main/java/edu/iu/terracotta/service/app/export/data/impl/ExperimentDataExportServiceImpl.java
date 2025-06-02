@@ -21,6 +21,7 @@ import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorExcept
 import edu.iu.terracotta.dao.entity.Experiment;
 import edu.iu.terracotta.dao.entity.Submission;
 import edu.iu.terracotta.dao.entity.export.data.ExperimentDataExport;
+import edu.iu.terracotta.dao.entity.messaging.log.MessageLog;
 import edu.iu.terracotta.dao.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.OutcomeNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.ParticipantNotUpdatedException;
@@ -28,6 +29,7 @@ import edu.iu.terracotta.dao.model.dto.export.data.ExperimentDataExportDto;
 import edu.iu.terracotta.dao.model.enums.export.data.ExperimentDataExportStatus;
 import edu.iu.terracotta.dao.repository.SubmissionRepository;
 import edu.iu.terracotta.dao.repository.export.data.ExperimentDataExportRepository;
+import edu.iu.terracotta.dao.repository.messaging.log.MessageLogRepository;
 import edu.iu.terracotta.exceptions.export.data.ExperimentDataExportNotFoundException;
 import edu.iu.terracotta.exceptions.export.data.ExperimentDataExportException;
 import edu.iu.terracotta.service.app.FileStorageService;
@@ -42,6 +44,7 @@ public class ExperimentDataExportServiceImpl implements ExperimentDataExportServ
 
     @Autowired private ExperimentDataExportRepository experimentDataExportRepository;
     @Autowired private LtiUserRepository ltiUserRepository;
+    @Autowired private MessageLogRepository messageLogRepository;
     @Autowired private SubmissionRepository submissionRepository;
     @Autowired private ExperimentDataExportAsyncService experimentDataExportAsyncService;
     @Autowired private FileStorageService fileStorageService;
@@ -59,7 +62,7 @@ public class ExperimentDataExportServiceImpl implements ExperimentDataExportServ
     private ExperimentDataExportDto process(Experiment experiment, SecuredInfo securedInfo, ExperimentDataExportStatus exportDataStatus)
         throws IOException, NumberFormatException, ExperimentDataExportException, ParticipantNotUpdatedException, ExperimentNotMatchingException, OutcomeNotMatchingException,
         ApiException, TerracottaConnectorException {
-        LtiUserEntity owner = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
+        LtiUserEntity owner = ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
         log.info("User with ID: [{}] is processing data export for experiment with ID: [{}].", owner.getUserId(), experiment.getExperimentId());
         ExperimentDataExport exportData = ExperimentDataExport.builder()
             .experiment(experiment)
@@ -218,9 +221,15 @@ public class ExperimentDataExportServiceImpl implements ExperimentDataExportServ
     private boolean isExperimentDataExportCurrent(ExperimentDataExport experimentDataExport) {
         // get latest submission for the assignment
         Optional<Submission> submission = submissionRepository.findTopByParticipant_Experiment_ExperimentIdAndDateSubmittedNotNullOrderByDateSubmittedDesc(experimentDataExport.getExperimentId());
+        Optional<MessageLog> messageLog = messageLogRepository.findTopByMessage_ExposureGroupCondition_Condition_Experiment_ExperimentIdOrderByCreatedAtDesc(experimentDataExport.getExperimentId());
 
         // no submissions or export data is older than the latest submission
-        return submission.isEmpty() || experimentDataExport.getCreatedAt().after(submission.get().getDateSubmitted());
+        boolean noNewSubmission = submission.isEmpty() || experimentDataExport.getCreatedAt().after(submission.get().getDateSubmitted());
+
+        // no message logs or export data is older than the latest message log
+        boolean noNewMessageLog = messageLog.isEmpty() || experimentDataExport.getCreatedAt().after(messageLog.get().getCreatedAt());
+
+        return noNewSubmission && noNewMessageLog;
     }
 
 }

@@ -6,7 +6,7 @@ import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.List;
 
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -122,7 +122,7 @@ public class Assessment extends BaseEntity {
         }
 
         if (isIntegration()) {
-            if (StringUtils.equals(getIntegration().getConfiguration().getClient().getName(), "Qualtrics")) {
+            if (Strings.CS.equals(getIntegration().getConfiguration().getClient().getName(), "Qualtrics")) {
                 // Qualtrics integrations never see feedback
                 return false;
             }

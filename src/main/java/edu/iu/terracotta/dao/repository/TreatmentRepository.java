@@ -16,6 +16,7 @@ public interface TreatmentRepository extends JpaRepository<Treatment, Long> {
     List<Treatment> findByCondition_ConditionIdAndAssignment_AssignmentIdOrderByCondition_ConditionIdAsc(Long conditionId, Long assignmentId);
     List<Treatment> findByCondition_Experiment_ExperimentIdOrderByCondition_ConditionIdAsc(Long experimentId);
     List<Treatment> findByAssignment_AssignmentIdOrderByCondition_ConditionIdAsc(Long assignmentId);
+    List<Treatment> findByAssignment_Exposure_ExposureId(long exposureId);
     Treatment findByTreatmentId(Long treatmentId);
     boolean existsByCondition_Experiment_ExperimentIdAndCondition_ConditionIdAndTreatmentId(Long experimentId, Long conditionId, Long treatmentId);
     boolean existsByAssignment_AssignmentIdAndCondition_ConditionId(Long assignmentId, Long conditionId);

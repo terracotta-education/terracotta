@@ -69,7 +69,7 @@ public class Event {
 
     @ManyToOne(optional = true)
     @OnDelete(action = OnDeleteAction.CASCADE)
-    @JoinColumn(name = "participant_participant_id", nullable = true)
+    @JoinColumn(name = "participant_id", nullable = true)
     private Participant participant;
 
     /*

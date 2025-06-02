@@ -77,6 +77,7 @@ import edu.iu.terracotta.dao.entity.RegradeDetails;
 import edu.iu.terracotta.dao.entity.Submission;
 import edu.iu.terracotta.dao.entity.Treatment;
 import edu.iu.terracotta.dao.entity.distribute.ExperimentImport;
+import edu.iu.terracotta.dao.entity.distribute.ExperimentImportError;
 import edu.iu.terracotta.dao.entity.events.Event;
 import edu.iu.terracotta.dao.entity.integrations.AnswerIntegrationSubmission;
 import edu.iu.terracotta.dao.entity.integrations.Integration;
@@ -106,6 +107,8 @@ import edu.iu.terracotta.dao.model.dto.dashboard.results.outcomes.exposure.Outco
 import edu.iu.terracotta.dao.model.dto.dashboard.results.outcomes.request.AlternateIdDto;
 import edu.iu.terracotta.dao.model.dto.dashboard.results.outcomes.request.ResultsOutcomesRequestDto;
 import edu.iu.terracotta.dao.model.dto.dashboard.results.overview.ResultsOverviewDto;
+import edu.iu.terracotta.dao.model.dto.distribute.ExperimentImportErrorDto;
+import edu.iu.terracotta.dao.model.dto.distribute.ImportDto;
 import edu.iu.terracotta.dao.model.dto.integrations.IntegrationClientDto;
 import edu.iu.terracotta.dao.model.dto.integrations.IntegrationConfigurationDto;
 import edu.iu.terracotta.dao.model.dto.integrations.IntegrationDto;
@@ -174,6 +177,8 @@ public class BaseModelTest {
     @Mock protected Event event;
     @Mock protected Experiment experiment;
     @Mock protected ExperimentImport experimentImport;
+    @Mock protected ExperimentImportError experimentImportError;
+    @Mock protected ExperimentImportErrorDto experimentImportErrorDto;
     @Mock protected Export export;
     @Mock protected Exposure exposure;
     @Mock protected ExposureGroupCondition exposureGroupCondition;
@@ -184,6 +189,7 @@ public class BaseModelTest {
     @Mock protected HttpEntity<LineItem> lineItemHttpEntity;
     @Mock protected HttpEntity<LineItems> lineItemsHttpEntity;
     @Mock protected HttpServletRequest httpServletRequest;
+    @Mock protected ImportDto importDto;
     @Mock protected InputStream inputStream;
     @Mock protected Integration integration;
     @Mock protected IntegrationClient integrationClient;
@@ -371,7 +377,7 @@ public class BaseModelTest {
             when(lmsAssignment.getName()).thenReturn(ASSIGNMENT_TITLE);
             when(lmsAssignment.getSecureParams()).thenReturn(RESOURCE_LINK_ID);
             when(lmsAssignment.isPublished()).thenReturn(true);
-            when(lmsCourse.getId()).thenReturn(1L);
+            when(lmsCourse.getId()).thenReturn("1");
             when(lmsSubmission.getUserLoginId()).thenReturn(EMAIL);
             when(lmsSubmission.getUserName()).thenReturn(DISPLAY_NAME);
             when(lti3Request.getToolDeployment()).thenReturn(toolDeployment);
@@ -409,6 +415,7 @@ public class BaseModelTest {
             when(participant.isTestStudent()).thenReturn(false);
             when(participantDto.getGroupId()).thenReturn(1L);
             when(participantDto.getParticipantId()).thenReturn(1L);
+            when(participantDto.getSource()).thenReturn(ParticipationTypes.AUTO.toString());
             when(participantDto.getUser()).thenReturn(userDto);
             when(platformDeployment.getKeyId()).thenReturn(1L);
             when(platformDeployment.getLmsConnector()).thenReturn(LmsConnector.CANVAS);

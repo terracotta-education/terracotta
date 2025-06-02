@@ -21,6 +21,7 @@
         </div>
         <input
           type="file"
+          accept=".pdf,application/pdf"
           @change="onChange"
         >
       </div>

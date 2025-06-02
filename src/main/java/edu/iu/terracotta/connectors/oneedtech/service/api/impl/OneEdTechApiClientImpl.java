@@ -13,8 +13,14 @@ import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
 import edu.iu.terracotta.connectors.generic.dao.model.enums.LmsConnector;
 import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsAssignment;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsConversation;
 import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsCourse;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsFile;
 import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsSubmission;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsUser;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.options.LmsCreateConversationOptions;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.options.LmsGetSingleConversationOptions;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.options.LmsGetUsersInCourseOptions;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.LtiToken;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.LineItem;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.Score;
@@ -138,7 +144,37 @@ public class OneEdTechApiClientImpl implements ApiClient {
     }
 
     @Override
+    public List<LmsSubmission> listSubmissionsForMultipleAssignments(LtiUserEntity apiUser, String lmsCourseId, List<String> lmsAssignmentIds) throws ApiException, IOException, TerracottaConnectorException {
+        throw new UnsupportedOperationException("Unimplemented method 'listSubmissionsForMultipleAssignments'");
+    }
+
+    @Override
     public void addLmsExtensions(Score score, Submission submission, boolean studentSubmission) throws ApiException, IOException, TerracottaConnectorException {
+    }
+
+    @Override
+    public List<LmsConversation> sendConversation(LmsCreateConversationOptions lmsCreateConversationOptions, LtiUserEntity apiUser) throws ApiException {
+        throw new UnsupportedOperationException("Unimplemented method 'sendConversation'");
+    }
+
+    @Override
+    public Optional<LmsConversation> getConversation(LmsGetSingleConversationOptions lmsGetSingleConversationOptions, LtiUserEntity apiUser) throws ApiException {
+        throw new UnsupportedOperationException("Unimplemented method 'getConversation'");
+    }
+
+    @Override
+    public List<LmsUser> listUsersForCourse(LmsGetUsersInCourseOptions lmsGetUsersInCourseOptions, LtiUserEntity apiUser) throws ApiException {
+        throw new UnsupportedOperationException("Unimplemented method 'listUsersForCourse'");
+    }
+
+    @Override
+    public Optional<LmsFile> getFile(LtiUserEntity apiUser, String lmsFileId) throws ApiException {
+        throw new UnsupportedOperationException("Unimplemented method 'getFile'");
+    }
+
+    @Override
+    public List<LmsFile> getFiles(LtiUserEntity apiUser) throws ApiException, TerracottaConnectorException {
+        throw new UnsupportedOperationException("Unimplemented method 'getFiles'");
     }
 
 }

@@ -28,6 +28,7 @@ import edu.iu.terracotta.utils.lti.Lti3Request;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.utils.URIBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -78,7 +79,7 @@ public class Lti3Controller {
             Lti3Request lti3Request = Lti3Request.getInstance(link);
 
             // check if the request is for an obsolete assignment; redirect immediately if true
-            if (StringUtils.endsWithIgnoreCase(lti3Request.getLtiTargetLinkUrl(), ObsoleteAssignment.URL)) {
+            if (Strings.CS.endsWith(lti3Request.getLtiTargetLinkUrl(), ObsoleteAssignment.URL)) {
                 return String.format("redirect:/%s", ObsoleteAssignment.URL);
             }
 

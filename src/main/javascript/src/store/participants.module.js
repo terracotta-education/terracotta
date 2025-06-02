@@ -1,4 +1,4 @@
-import { participantService } from '@/services'
+import { participantService } from "@/services"
 
 const state = {
   participants: null,
@@ -11,15 +11,15 @@ const actions = {
     return participantService
       .getAll(experimentId)
       .then((data) => {
-        commit('setParticipants', data)
+        commit("setParticipants", data)
       })
       .catch((response) => {
-        console.log('fetchParticipants | catch', { response })
+        console.log("fetchParticipants | catch", { response })
       })
   },
 
   setParticipantsGroup: ({ commit }, participantsList) => {
-    commit('setParticipantsGroup', participantsList)
+    commit("setParticipantsGroup", participantsList)
   },
 
   async updateParticipants({ state }, experimentId) {
@@ -37,7 +37,7 @@ const actions = {
     return participantService
       .updateParticipants(experimentId, requestBody)
       .catch((response) =>
-        console.log('updateParticipants | catch', { response })
+        console.log("updateParticipants | catch", { response })
       )
   },
 
@@ -59,10 +59,10 @@ const actions = {
     return participantService
       .getGroups(experimentId)
       .then((data) => {
-        commit('setGroups', data)
+        commit("setGroups", data)
       })
       .catch((response) => {
-        console.log('fetchParticipants | catch', { response })
+        console.log("fetchParticipants | catch", { response })
       })
   },
   resetParticipants({state}) {

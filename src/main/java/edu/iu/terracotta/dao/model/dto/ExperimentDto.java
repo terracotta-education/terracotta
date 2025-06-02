@@ -30,11 +30,13 @@ public class ExperimentDto {
     private String distributionType;
     private Timestamp started;
     private Long createdBy;
+    private String createdByEmail;
     private Timestamp closed;
     private Integer potentialParticipants;
     private Integer acceptedParticipants;
     private Integer rejectedParticipants;
     private boolean exportEnabled;
+    private List<FeatureDto> features;
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private Timestamp createdAt;

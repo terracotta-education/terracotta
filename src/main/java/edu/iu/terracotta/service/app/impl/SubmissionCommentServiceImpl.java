@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Component
+@SuppressWarnings({"PMD.LambdaCanBeMethodReference"})
 public class SubmissionCommentServiceImpl implements SubmissionCommentService {
 
     @Autowired private LtiUserRepository ltiUserRepository;
@@ -44,7 +45,7 @@ public class SubmissionCommentServiceImpl implements SubmissionCommentService {
         }
 
         submissionCommentDto.setSubmissionId(submissionId);
-        LtiUserEntity user = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
+        LtiUserEntity user = ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
         submissionCommentDto.setCreator(user.getDisplayName());
         SubmissionComment submissionComment;
 

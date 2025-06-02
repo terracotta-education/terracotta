@@ -17,31 +17,38 @@ public class CourseExtended extends LmsCourse {
     @Builder.Default private Course course = new Course();
 
     @Override
-    public Long getId() {
-        return course.getId();
+    public String getId() {
+        if (course == null || course.getId() == null) {
+            return null;
+        }
+
+        return String.valueOf(course.getId());
     }
 
     @Override
-    public void setId(Long id) {
-        course.setId(id);
+    public void setId(String id) {
+        if (course == null) {
+            return;
+        }
+
+        course.setId(Long.valueOf(id));
     }
 
     @Override
     public LmsCourse from() {
         LmsCourse lmsCourse = LmsCourse.builder().build();
-        lmsCourse.setId(course.getId());
-        lmsCourse.setType(CourseExtended.class);
+        lmsCourse.setId(getId());
+        lmsCourse.setType(getType());
 
         return lmsCourse;
     }
 
     public static CourseExtended of(LmsCourse lmsCourse) {
-        CourseExtended courseExtended = CourseExtended.builder().build();
-
         if (lmsCourse == null) {
-            return courseExtended;
+            return CourseExtended.builder().build();
         }
 
+        CourseExtended courseExtended = CourseExtended.builder().build();
         courseExtended.setId(lmsCourse.getId());
 
         return courseExtended;

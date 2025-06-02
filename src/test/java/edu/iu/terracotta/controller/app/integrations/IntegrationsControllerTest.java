@@ -5,7 +5,7 @@ import static org.mockito.Mockito.doThrow;
 
 import java.util.Optional;
 
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -37,7 +37,7 @@ public class IntegrationsControllerTest extends BaseTest {
     void scoreTest() throws IntegrationTokenExpiredException, IntegrationTokenAlreadyRedeemedException {
         String ret = integrationsController.score("token", "1", httpServletRequest);
 
-        assertTrue(StringUtils.contains(ret, "status=" + HttpStatus.OK.name()), ret);
+        assertTrue(Strings.CS.contains(ret, "status=" + HttpStatus.OK.name()), ret);
     }
 
     @Test
@@ -46,7 +46,7 @@ public class IntegrationsControllerTest extends BaseTest {
 
         String ret = integrationsController.score("token", "1", httpServletRequest);
 
-        assertTrue(StringUtils.contains(ret, "status=" + HttpStatus.NOT_FOUND.name()), ret);
+        assertTrue(Strings.CS.contains(ret, "status=" + HttpStatus.NOT_FOUND.name()), ret);
     }
 
     @Test
@@ -55,7 +55,7 @@ public class IntegrationsControllerTest extends BaseTest {
 
         String ret = integrationsController.score("token", "1", httpServletRequest);
 
-        assertTrue(StringUtils.contains(ret, "status=" + HttpStatus.BAD_REQUEST.name()), ret);
+        assertTrue(Strings.CS.contains(ret, "status=" + HttpStatus.BAD_REQUEST.name()), ret);
     }
 
     @Test
@@ -64,7 +64,7 @@ public class IntegrationsControllerTest extends BaseTest {
 
         String ret = integrationsController.score("token", "1", httpServletRequest);
 
-        assertTrue(StringUtils.contains(ret, "status=" + HttpStatus.BAD_REQUEST.name()), ret);
+        assertTrue(Strings.CS.contains(ret, "status=" + HttpStatus.BAD_REQUEST.name()), ret);
     }
 
     @Test
@@ -73,7 +73,7 @@ public class IntegrationsControllerTest extends BaseTest {
 
         String ret = integrationsController.score("token", "1", httpServletRequest);
 
-        assertTrue(StringUtils.contains(ret, "status=" + HttpStatus.BAD_REQUEST.name()), ret);
+        assertTrue(Strings.CS.contains(ret, "status=" + HttpStatus.BAD_REQUEST.name()), ret);
     }
 
     @Test
@@ -81,14 +81,14 @@ public class IntegrationsControllerTest extends BaseTest {
         String url = "aHR0cDovL2xvY2FsaG9zdA==";
         String ret = integrationsController.preview(url);
 
-        assertTrue(StringUtils.contains(ret, "previewUrl=" + url), ret);
+        assertTrue(Strings.CS.contains(ret, "previewUrl=" + url), ret);
     }
 
     @Test
     void testPreviewNoUrl() throws IntegrationTokenExpiredException, IntegrationTokenAlreadyRedeemedException {
         String ret = integrationsController.preview(null);
 
-        assertTrue(StringUtils.contains(ret, "status=" + HttpStatus.BAD_REQUEST.name()), ret);
+        assertTrue(Strings.CS.contains(ret, "status=" + HttpStatus.BAD_REQUEST.name()), ret);
     }
 
 }

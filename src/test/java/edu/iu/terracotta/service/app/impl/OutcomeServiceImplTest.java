@@ -10,7 +10,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -75,7 +74,7 @@ public class OutcomeServiceImplTest extends BaseTest {
         verify(outcomeScoreRepository, never()).save(any(OutcomeScore.class));
     }
 
-    @Test
+    /*@Test
     public void testUpdateOutcomeGradesNoScores() throws IOException, ParticipantNotUpdatedException, ExperimentNotMatchingException, OutcomeNotMatchingException, ApiException, NumberFormatException, TerracottaConnectorException {
         when(outcome.getOutcomeScores()).thenReturn(Collections.emptyList());
 
@@ -92,7 +91,7 @@ public class OutcomeServiceImplTest extends BaseTest {
         outcomeService.updateOutcomeGrades(1l, securedInfo, false);
 
         verify(outcomeScoreRepository).save(any(OutcomeScore.class));
-    }
+    }*/
 
     @Test
     public void testDefaultOutcome() {

@@ -57,13 +57,11 @@ export default {
       required: true,
     }
   },
-  data() {
-    return {
-      dialog: false,
-      embedCode: null,
-      resolve: null
-    }
-  },
+  data: () => ({
+    dialog: false,
+    embedCode: null,
+    resolve: null
+  }),
   computed: {
     iframe() {
       return parseIframeEmbed(this.embedCode);
@@ -71,16 +69,16 @@ export default {
     height() {
       if (this.iframe && this.iframe.height && parseInt(this.iframe.height)) {
         return parseInt(this.iframe.height);
-      } else {
-        return 315;
       }
+
+      return 315;
     },
     width() {
       if (this.iframe && this.iframe.width && parseInt(this.iframe.width)) {
         return parseInt(this.iframe.width);
-      } else {
-        return 560;
       }
+
+      return 560;
     },
     youtubeId() {
       // Supports pasting in the iframe embed code, or the short url

@@ -63,13 +63,11 @@ export default {
       required: false
     }
   },
-  data() {
-    return {
-      buttonIndex: 0,
-      toggled: null,
-      nonActivatableItemKey: 0
-    }
-  },
+  data: () => ({
+    buttonIndex: 0,
+    toggled: null,
+    nonActivatableItemKey: 0
+  }),
   watch: {
     editor: {
       handler(editor) {

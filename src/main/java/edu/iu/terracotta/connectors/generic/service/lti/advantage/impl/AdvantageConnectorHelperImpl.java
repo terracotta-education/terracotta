@@ -13,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -222,7 +223,7 @@ public class AdvantageConnectorHelperImpl implements AdvantageConnectorHelper {
 
     private String indexOf(String[] tokens) {
         for (String token : tokens) {
-            if (StringUtils.contains(token, "rel=\"next\"")) {
+            if (Strings.CS.contains(token, "rel=\"next\"")) {
                 return StringUtils.substring(token, token.indexOf("<") + 1, token.indexOf(">"));
             }
         }

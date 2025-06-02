@@ -12,7 +12,16 @@ import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
 import edu.iu.terracotta.connectors.generic.service.lti.LtiDataService;
 import edu.iu.terracotta.dao.entity.Assignment;
 import edu.iu.terracotta.dao.entity.Experiment;
+import edu.iu.terracotta.dao.entity.Exposure;
 import edu.iu.terracotta.dao.entity.distribute.ExperimentImport;
+import edu.iu.terracotta.dao.entity.messaging.conditional.MessageConditionalText;
+import edu.iu.terracotta.dao.entity.messaging.container.MessageContainer;
+import edu.iu.terracotta.dao.entity.messaging.container.MessageContainerConfiguration;
+import edu.iu.terracotta.dao.entity.messaging.content.MessageContent;
+import edu.iu.terracotta.dao.entity.messaging.message.Message;
+import edu.iu.terracotta.dao.entity.messaging.message.MessageConfiguration;
+import edu.iu.terracotta.dao.entity.messaging.recipient.MessageRecipientRule;
+import edu.iu.terracotta.dao.entity.messaging.recipient.MessageRecipientRuleSet;
 import edu.iu.terracotta.dao.exceptions.AnswerNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.AnswerSubmissionNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.AssessmentNotMatchingException;
@@ -32,9 +41,26 @@ import edu.iu.terracotta.dao.exceptions.SubmissionCommentNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.SubmissionNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.TreatmentNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.integrations.IntegrationOwnerNotMatchingException;
+import edu.iu.terracotta.dao.repository.messaging.container.MessageContainerConfigurationRepository;
+import edu.iu.terracotta.dao.repository.messaging.container.MessageContainerRepository;
+import edu.iu.terracotta.dao.repository.messaging.content.MessageContentRepository;
+import edu.iu.terracotta.dao.repository.messaging.message.MessageConfigurationRepository;
+import edu.iu.terracotta.dao.repository.messaging.message.MessageRepository;
 import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.ConditionsLockedException;
 import edu.iu.terracotta.exceptions.ExperimentLockedException;
+import edu.iu.terracotta.exceptions.messaging.MessageConditionalTextNotMatchingException;
+import edu.iu.terracotta.exceptions.messaging.MessageConfigurationNotMatchingException;
+import edu.iu.terracotta.exceptions.messaging.MessageContainerConfigurationNotFoundException;
+import edu.iu.terracotta.exceptions.messaging.MessageContainerNotFoundException;
+import edu.iu.terracotta.exceptions.messaging.MessageContainerNotMatchingException;
+import edu.iu.terracotta.exceptions.messaging.MessageContainerOwnerNotMatchingException;
+import edu.iu.terracotta.exceptions.messaging.MessageContentNotMatchingException;
+import edu.iu.terracotta.exceptions.messaging.MessageNotFoundException;
+import edu.iu.terracotta.exceptions.messaging.MessageNotMatchingException;
+import edu.iu.terracotta.exceptions.messaging.MessageOwnerNotMatchingException;
+import edu.iu.terracotta.exceptions.messaging.MessageRuleNotMatchingException;
+import edu.iu.terracotta.exceptions.messaging.MessageRuleSetNotMatchingException;
 import edu.iu.terracotta.utils.lti.Lti3Request;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -98,6 +124,11 @@ public class CanvasApiJwtServiceImpl implements ApiJwtService {
     private static final String QUERY_PARAM_NAME = "token";
 
     @Autowired private ApiOneUseTokenRepository apiOneUseTokenRepository;
+    @Autowired private MessageConfigurationRepository messageConfigurationRepository;
+    @Autowired private MessageContentRepository messageContentRepository;
+    @Autowired private MessageContainerConfigurationRepository messageContainerConfigurationRepository;
+    @Autowired private MessageContainerRepository messageContainerRepository;
+    @Autowired private MessageRepository messageRepository;
     @Autowired private PlatformDeploymentRepository platformDeploymentRepository;
     @Autowired private LtiDataService ltiDataService;
 
@@ -717,7 +748,7 @@ public class CanvasApiJwtServiceImpl implements ApiJwtService {
     }
 
     @Override
-    public void exposureAllowed(SecuredInfo securedInfo, Long experimentId, Long exposureId) throws ExposureNotMatchingException {
+    public Exposure exposureAllowed(SecuredInfo securedInfo, Long experimentId, Long exposureId) throws ExposureNotMatchingException {
         throw new UnsupportedOperationException("Unimplemented method 'exposureAllowed'");
     }
 
@@ -799,6 +830,64 @@ public class CanvasApiJwtServiceImpl implements ApiJwtService {
     @Override
     public ExperimentImport experimentImportAllowed(SecuredInfo securedInfo, UUID uuid) throws ExperimentImportNotFoundException {
         throw new UnsupportedOperationException("Unimplemented method 'experimentImportAllowed'");
+    }
+
+    @Override
+    public MessageContainer messagingContainerAllowed(SecuredInfo securedInfo, long exposureId, UUID containerUuid) throws MessageContainerOwnerNotMatchingException, MessageContainerNotMatchingException, MessageContainerNotFoundException {
+        if (!messageContainerRepository.existsByUuidAndOwner_LmsUserId(containerUuid, securedInfo.getLmsUserId())) {
+            throw new MessageContainerOwnerNotMatchingException(String.format("User with LMS User ID: [%s] does not own message container with UUID: [%s]", securedInfo.getLmsUserId(), containerUuid));
+        }
+
+        if (!messageContainerRepository.existsByExposure_ExposureId(exposureId)) {
+            throw new MessageContainerNotMatchingException(String.format("Message container with UUID: [%s] not owned by exposure ID: [%s]", containerUuid, exposureId));
+        }
+
+        return messageContainerRepository.findByUuid(containerUuid)
+            .orElseThrow(() -> new MessageContainerNotFoundException(String.format("Message container with UUID: [%s] not found", containerUuid)));
+    }
+
+    @Override
+    public MessageContainerConfiguration messagingContainerConfigurationAllowed(SecuredInfo securedInfo, UUID containerUuid, UUID configurationUuid)
+        throws MessageContainerOwnerNotMatchingException, MessageContainerNotMatchingException, MessageContainerNotFoundException, MessageContainerConfigurationNotFoundException {
+            return messageContainerConfigurationRepository.findByUuidAndContainer_Uuid(configurationUuid, containerUuid)
+            .orElseThrow(() -> new MessageContainerConfigurationNotFoundException(String.format("Message container configuration with UUID: [%s] and container UUID: [%s] not found", configurationUuid, containerUuid)));
+    }
+
+    @Override
+    public Message messagingAllowed(SecuredInfo securedInfo, UUID containerUuid, UUID messageUuid) throws MessageOwnerNotMatchingException, MessageNotMatchingException, MessageNotFoundException {
+        if (!messageRepository.existsByUuidAndContainer_UuidAndContainer_Owner_LmsUserId(messageUuid, containerUuid, securedInfo.getLmsUserId())) {
+            throw new MessageOwnerNotMatchingException(String.format("User with LMS User ID: [%s] does not own message with UUID: [%s]", securedInfo.getLmsUserId(), messageUuid));
+        }
+
+        return messageRepository.findByUuid(messageUuid)
+            .orElseThrow(() -> new MessageNotFoundException(String.format("Message with UUID: [%s] not found", messageUuid)));
+    }
+
+    @Override
+    public MessageContent messagingContentAllowed(SecuredInfo securedInfo, UUID messageUuid, UUID contentUuid) throws MessageContentNotMatchingException {
+        return messageContentRepository.findByUuidAndMessage_Uuid(contentUuid, messageUuid)
+            .orElseThrow(() -> new MessageContentNotMatchingException(String.format("No message content with UUID: [%s] found for message UUID: [%s].", contentUuid, messageUuid)));
+    }
+
+    @Override
+    public MessageConfiguration messagingConfigurationAllowed(SecuredInfo securedInfo, UUID messageUuid, UUID configurationUuid) throws MessageConfigurationNotMatchingException {
+        return messageConfigurationRepository.findByUuidAndMessage_Uuid(configurationUuid, messageUuid)
+            .orElseThrow(() -> new MessageConfigurationNotMatchingException(String.format("No message configuration with UUID: [%s] found for message UUID: [%s].", configurationUuid, messageUuid)));
+    }
+
+    @Override
+    public MessageRecipientRuleSet messagingRuleSetAllowed(SecuredInfo securedInfo, UUID messageUuid, UUID messageRuleSetUuid) throws MessageRuleSetNotMatchingException {
+        throw new UnsupportedOperationException("Unimplemented method 'messagingRuleSetAllowed'");
+    }
+
+    @Override
+    public MessageRecipientRule messagingRuleAllowed(SecuredInfo securedInfo, UUID messageUuid, UUID messageRuleSetUuid) throws MessageRuleNotMatchingException {
+        throw new UnsupportedOperationException("Unimplemented method 'messagingRuleAllowed'");
+    }
+
+    @Override
+    public MessageConditionalText messagingConditionalTextAllowed(SecuredInfo securedInfo, UUID contentUuid, UUID conditionalTextUuid) throws MessageContentNotMatchingException, MessageNotMatchingException, MessageConditionalTextNotMatchingException {
+        throw new UnsupportedOperationException("Unimplemented method 'messagingConditionalTextAllowed'");
     }
 
 }

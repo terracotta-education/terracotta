@@ -133,7 +133,9 @@ export default {
       return [
         "TerracottaBuilder",
         "AssignmentCreateAssignment",
-        "AssignmentEditor"
+        "AssignmentEditor",
+        "Message",
+        "MessageContainer"
       ];
     },
     editModePage() {

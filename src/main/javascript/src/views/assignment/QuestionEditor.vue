@@ -1,8 +1,11 @@
 <template>
-  <div>
+  <div
+    v-if="isLoaded"
+  >
     <tip-tap-editor
-      :html="html"
+      :content="initialContent"
       @edited="handleEditedHtml"
+      editorType="html"
       required
     />
     <v-text-field
@@ -72,23 +75,29 @@ export default {
   components: {
     TipTapEditor
   },
-  props: [
-    "question",
-    "isMC"
-  ],
-  data() {
-    return {
-      editor: null,
-      rules: [
-        (v) => (v && !!v.trim()) || "required",
-        (v) => (v || "").length <= 255 || "A maximum of 255 characters is allowed",
-      ],
-      numberRule: [
-        (v) => (v && !isNaN(v)) || "required",
-        (v) => (!isNaN(parseFloat(v)) && v >= 0) || "The point value cannot be negative",
-      ]
-    };
+  props: {
+    question: {
+      type: Object,
+      required: true
+    },
+    isMC: {
+      type: Boolean,
+      default: false
+    }
   },
+  data: () => ({
+    isLoaded: false,
+    editor: null,
+    initialContent: null,
+    rules: [
+      (v) => (v && !!v.trim()) || "required",
+      (v) => (v || "").length <= 255 || "A maximum of 255 characters is allowed",
+    ],
+    numberRule: [
+      (v) => (v && !isNaN(v)) || "required",
+      (v) => (!isNaN(parseFloat(v)) && v >= 0) || "The point value cannot be negative",
+    ]
+  }),
   computed: {
     ...mapGetters({
       questions: "assessment/questions",
@@ -115,23 +124,24 @@ export default {
       return false;
     },
     isMultipleChoice() {
-      return this.isMC ? this.isMC : false;
+      return this.isMC;
     },
     html: {
-      // two-way computed property
       get() {
-        return this.question.html;
+        return this.question?.html || "";
       },
       set(value) {
         if (this.isMultipleChoice) {
           this.$emit("edited");
         }
 
-        this.updateQuestions({ ...this.question, html: value });
+        this.updateQuestions({
+          ...this.question,
+          html: value
+        });
       },
     },
     points: {
-      // two-way computed property
       get() {
         return this.question.points;
       },
@@ -140,8 +150,11 @@ export default {
           this.$emit("edited");
         }
 
-        this.updateQuestions({ ...this.question, points: value });
-      },
+        this.updateQuestions({
+          ...this.question,
+          points: value
+        });
+      }
     }
   },
   methods: {
@@ -266,6 +279,10 @@ export default {
     handleEditedHtml(html) {
       this.question.html = html;
     }
+  },
+  mounted() {
+    this.initialContent = this.html;
+    this.isLoaded = true;
   }
 };
 </script>

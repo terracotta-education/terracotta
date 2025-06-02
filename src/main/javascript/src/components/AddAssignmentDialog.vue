@@ -1,119 +1,124 @@
 <template>
-  <div
-    v-if="isSingleConditionExperiment"
+<div
+  v-if="isSingleConditionExperiment"
+>
+  <v-btn
+    v-if="hasExisting"
+    @click="handleVersionSelection('single')"
+    color="primary"
+    elevation="0"
   >
-    <v-btn
-      v-if="hasExistingAssignment"
-      @click="handleVersionSelection('single')"
-      color="primary"
-      elevation="0"
-    >
-      Add Component
-    </v-btn>
-    <v-btn
-      v-else
-      @click="handleVersionSelection('single')"
-      v-on="on"
-      v-bind="attrs"
-      class="btn-create-first-assignment"
-      elevation="0"
-    >
-      Create your first component
-    </v-btn>
-  </div>
-  <div
+    Add Assignment
+  </v-btn>
+  <v-btn
     v-else
+    @click="handleVersionSelection('single')"
+    v-on="on"
+    v-bind="attrs"
+    class="btn-create-first-assignment"
+    elevation="0"
   >
-    <v-menu
-      v-model="addAssignmentDialogOpen"
-      :close-on-content-click="false"
-      :open-on-click="true"
-      :open-on-hover="false"
-      content-class="add-assignment-dialog"
-      transition="scale-transition"
-      origin="right top"
-      bottom
-      left
-      offset-y
+    Create Assignment
+  </v-btn>
+</div>
+<div
+  v-else
+>
+  <v-menu
+    v-model="addAssignmentDialogOpen"
+    :close-on-content-click="false"
+    :open-on-click="true"
+    :open-on-hover="false"
+    content-class="add-assignment-dialog"
+    transition="scale-transition"
+    origin="right top"
+    bottom
+    left
+    offset-y
+  >
+    <template
+      v-slot:activator="{ on, attrs }"
     >
-      <template
-        v-slot:activator="{ on, attrs }"
+      <v-btn
+        v-if="hasExisting"
+        v-on="on"
+        v-bind="attrs"
+        color="primary"
+        elevation="0"
+        :disabled="disableAddAssignmentButton"
       >
+        Add Assignment
+      </v-btn>
+      <v-btn
+        v-else
+        v-on="on"
+        v-bind="attrs"
+        class="btn-create-first-assignment"
+        elevation="0"
+      >
+        Create Assignment
+      </v-btn>
+    </template>
+    <span class="add-assignment-dialog">
+      <div class="add-assignment-version-option">
         <v-btn
-          v-if="hasExistingAssignment"
-          v-on="on"
-          v-bind="attrs"
+          @click="handleVersionSelection('multiple')"
           color="primary"
           elevation="0"
-          :disabled="disableAddAssignmentButton"
         >
-          Add Component
+          With Different Versions
         </v-btn>
+        <p>
+          Create <u>multiple</u> treatments of your assignment so your students can experience different conditions.
+        </p>
+      </div>
+      <div class="add-assignment-version-option">
         <v-btn
-          v-else
-          v-on="on"
-          v-bind="attrs"
-          class="btn-create-first-assignment"
+          @click="handleVersionSelection('single')"
+          color="primary"
           elevation="0"
         >
-          Create your first component
+          With Only One Version
         </v-btn>
-      </template>
-      <span class="add-assignment-dialog">
-        <div class="add-assignment-version-option">
-          <v-btn
-            @click="handleVersionSelection('multiple')"
-            color="primary"
-            elevation="0"
-          >
-            With Different Versions
-          </v-btn>
-          <p>
-            Create <u>multiple</u> treatments of your component so your students can experience different conditions.
-          </p>
-        </div>
-        <div class="add-assignment-version-option">
-          <v-btn
-            @click="handleVersionSelection('single')"
-            color="primary"
-            elevation="0"
-          >
-            With Only One Version
-          </v-btn>
-          <p>
-            Create <u>one</u> treatment so all students experience the same condition (e.g., a questionnaire).
-          </p>
-        </div>
-      </span>
-    </v-menu>
-  </div>
-
+        <p>
+          Create <u>one</u> assignment so all students experience the same condition (e.g., a questionnaire).
+        </p>
+      </div>
+    </span>
+  </v-menu>
+</div>
 </template>
 
 <script>
-  export default {
-    name: "AddAssignmentDialog",
-    props: [
-      "hasExistingAssignment",
-      "isSingleConditionExperiment"
-    ],
-    data: () => ({
-      addAssignmentDialogOpen: false,
-      disableAddAssignmentButton: false
-    }),
-    watch: {
-      addAssignmentDialogOpen: {
-        handler(newVal) {
-          this.disableAddAssignmentButton = newVal;
-        }
-      }
+export default {
+  name: "AddAssignmentDialog",
+  props: {
+    hasExisting: {
+      type: Boolean,
+      default: false
     },
-    methods: {
-      handleVersionSelection(version) {
-        this.$emit(version);
+    isSingleConditionExperiment: {
+      type: Boolean,
+      default: false
+    }
+  },
+  data: () => ({
+    addAssignmentDialogOpen: false,
+    disableAddAssignmentButton: false
+  }),
+  watch: {
+    addAssignmentDialogOpen: {
+      handler(newVal) {
+        this.disableAddAssignmentButton = newVal;
       }
     }
+  },
+  methods: {
+    handleVersionSelection(version) {
+      this.$emit(version);
+    }
   }
+}
 </script>
 
 <style lang="scss" scoped>
