@@ -137,6 +137,11 @@ public class AssignmentExtended extends LmsAssignment {
     }
 
     @Override
+    public String getGradingType() {
+        return assignment.getGradingType();
+    }
+
+    @Override
     public LmsExternalToolFields getLmsExternalToolFields() {
         ExternalToolTagAttribute externalToolTagAttribute = assignment.getExternalToolTagAttributes();
 
@@ -155,32 +160,33 @@ public class AssignmentExtended extends LmsAssignment {
         LmsAssignment lmsAssignment = LmsAssignment.builder().build();
         lmsAssignment.setAllowedAttempts(getAllowedAttempts());
         lmsAssignment.setCanSubmit(isCanSubmit());
+        lmsAssignment.setDueAt(getDueAt());
+        lmsAssignment.setGradingType(getGradingType());
         lmsAssignment.setId(getId());
+        lmsAssignment.setLmsExternalToolFields(getLmsExternalToolFields());
+        lmsAssignment.setLockAt(getLockAt());
         lmsAssignment.setName(getName());
+        lmsAssignment.setPointsPossible(getPointsPossible());
         lmsAssignment.setPublished(isPublished());
         lmsAssignment.setSecureParams(getSecureParams());
-        lmsAssignment.setDueAt(getDueAt());
         lmsAssignment.setSubmissionTypes(getSubmissionTypes());
-        lmsAssignment.setPointsPossible(getPointsPossible());
-        lmsAssignment.setLockAt(getLockAt());
-        lmsAssignment.setUnlockAt(getUnlockAt());
         lmsAssignment.setType(AssignmentExtended.class);
-        lmsAssignment.setLmsExternalToolFields(getLmsExternalToolFields());
+        lmsAssignment.setUnlockAt(getUnlockAt());
 
         return lmsAssignment;
     }
 
     public static AssignmentExtended of(LmsAssignment lmsAssignment) {
-        AssignmentExtended assignmentExtended = AssignmentExtended.builder().build();
-
         if (lmsAssignment == null) {
-            return assignmentExtended;
+            return AssignmentExtended.builder().build();
         }
 
+        AssignmentExtended assignmentExtended = AssignmentExtended.builder().build();
         assignmentExtended.setAllowedAttempts(lmsAssignment.getAllowedAttempts());
         assignmentExtended.setCanSubmit(lmsAssignment.isCanSubmit());
         assignmentExtended.setDueAt(lmsAssignment.getDueAt());
         assignmentExtended.setId(lmsAssignment.getId());
+        assignmentExtended.setGradingType(lmsAssignment.getGradingType());
         assignmentExtended.setLmsExternalToolFields(lmsAssignment.getLmsExternalToolFields());
         assignmentExtended.setLockAt(lmsAssignment.getLockAt());
         assignmentExtended.setName(lmsAssignment.getName());

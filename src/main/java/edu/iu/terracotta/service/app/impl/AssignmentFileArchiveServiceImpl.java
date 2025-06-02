@@ -42,7 +42,7 @@ public class AssignmentFileArchiveServiceImpl implements AssignmentFileArchiveSe
     }
 
     private AssignmentFileArchiveDto process(Assignment assignment, SecuredInfo securedInfo, AssignmentFileArchiveStatus assignmentFileArchiveStatus) throws IOException {
-        LtiUserEntity owner = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
+        LtiUserEntity owner = ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
         log.info("User with ID: [{}] is processing assignment file archive for assignment with ID: [{}].", owner.getUserId(), assignment.getAssignmentId());
         AssignmentFileArchive assignmentFileArchive = AssignmentFileArchive.builder()
             .assignment(assignment)

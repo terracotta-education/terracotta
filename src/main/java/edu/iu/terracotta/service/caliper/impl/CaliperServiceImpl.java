@@ -22,7 +22,7 @@ import edu.iu.terracotta.utils.LtiStrings;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.lang3.BooleanUtils;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.imsglobal.caliper.Envelope;
 import org.imsglobal.caliper.Sensor;
 import org.imsglobal.caliper.actions.Action;
@@ -631,7 +631,7 @@ public class CaliperServiceImpl implements CaliperService {
             .type(EntityType.ATTEMPT)
             .assignee(actor)
             .assignable(assessment)
-            .count(submissionRepository.findByParticipant_ParticipantIdAndAssessment_AssessmentId(submission.getParticipant().getParticipantId(), submission.getAssessment().getAssessmentId()).size())
+            .count(submissionRepository.findByParticipant_IdAndAssessment_AssessmentId(submission.getParticipant().getParticipantId(), submission.getAssessment().getAssessmentId()).size())
             .dateCreated(convertTimestamp(submission.getCreatedAt(), false))
             .startedAtTime(convertTimestamp(submission.getCreatedAt(), false))
             .endedAtTime(convertTimestamp(submission.getDateSubmitted(), true)) //To avoid the error if they submit instantaneously for some reason.
@@ -685,7 +685,7 @@ public class CaliperServiceImpl implements CaliperService {
         Map<String, Object> messageParameters = new HashMap<>();
         messageParameters.put("lms_course_id", securedInfo.getLmsCourseId());
 
-        if (!StringUtils.startsWith(securedInfo.getLmsAssignmentId(), "$")) {
+        if (!Strings.CS.startsWith(securedInfo.getLmsAssignmentId(), "$")) {
             messageParameters.put("lms_assignment_id", securedInfo.getLmsAssignmentId());
         }
 

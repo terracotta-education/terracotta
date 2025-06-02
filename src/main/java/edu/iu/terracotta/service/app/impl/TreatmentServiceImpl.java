@@ -73,7 +73,7 @@ public class TreatmentServiceImpl implements TreatmentService {
         LtiUserEntity instructorUser = null;
 
         if (apiJwtService.isInstructorOrHigher(securedInfo)) {
-            instructorUser = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
+            instructorUser = ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
         }
 
         List<TreatmentDto> treatmentDtoList = new ArrayList<>();

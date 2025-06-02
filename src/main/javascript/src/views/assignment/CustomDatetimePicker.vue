@@ -1,6 +1,5 @@
 <template>
-  <v-datetime-picker
-    class="custom-datetime-picker"
+  <date-time-picker
     v-bind="{
       dateFormat: 'M/d/yy',
       timeFormat: 'h:mm aaa',
@@ -14,27 +13,52 @@
     }"
     v-on="$listeners"
     :datetime="value"
+    class="custom-datetime-picker"
   >
-    <template #dateIcon>
+    <template
+      #dateIcon
+    >
       <v-icon>mdi-calendar</v-icon>
     </template>
-    <template #timeIcon>
+    <template
+      #timeIcon
+    >
       <v-icon>mdi-clock-outline</v-icon>
     </template>
-    <template #actions="{ parent }">
-      <v-btn color="grey lighten-1" text @click.native="parent.clearHandler">{{
-        parent.clearText
-      }}</v-btn>
-      <v-btn color="primary" text @click="parent.okHandler">{{
-        parent.okText
-      }}</v-btn>
+    <template
+      #actions="{ parent }"
+    >
+      <v-btn
+        @click.native="parent.clearHandler"
+        color="grey lighten-1"
+        text
+      >
+        {{ parent.clearText }}
+      </v-btn>
+      <v-btn
+        @click="parent.okHandler"
+        color="primary"
+        text
+      >
+        {{ parent.okText }}
+      </v-btn>
     </template>
-  </v-datetime-picker>
+  </date-time-picker>
 </template>
 
 <script>
+import DateTimePicker from "@/components/picker/DateTimePicker.vue";
+
 export default {
-  props: ["value"],
+  components: {
+    DateTimePicker,
+  },
+  props: {
+    value: {
+      type: [Date, String],
+      default: null
+    }
+  }
 };
 </script>
 

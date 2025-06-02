@@ -1,5 +1,7 @@
 package edu.iu.terracotta.service.app;
 
+import java.util.List;
+
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
@@ -25,6 +27,7 @@ public interface AssignmentTreatmentService {
             TreatmentNotMatchingException, QuestionNotMatchingException, ApiException, TerracottaConnectorException;
     TreatmentDto toTreatmentDto(Treatment treatment, boolean submissions, boolean addAssignmentDto) throws AssessmentNotMatchingException;
     AssignmentDto toAssignmentDto(Assignment assignment, boolean submissions, boolean addTreatmentDto) throws AssessmentNotMatchingException;
+    List<AssignmentDto> toAssignmentDto(List<Assignment> assignments, boolean submissions, boolean addTreatmentDto) throws AssessmentNotMatchingException;
     void setAssignmentDtoAttrs(Assignment assignment, String lmsCourseId, LtiUserEntity instructorUser) throws NumberFormatException, ApiException, TerracottaConnectorException;
 
 }

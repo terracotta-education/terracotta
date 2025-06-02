@@ -23,6 +23,7 @@ import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.jsoup.Jsoup;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -170,7 +171,7 @@ public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
             .map(ObsoleteAssignment::getLmsAssignmentId)
             .toList();
 
-        LtiUserEntity apiUser = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
+        LtiUserEntity apiUser = ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
         LtiContextEntity ltiContext = ltiContextRepository.findById(securedInfo.getContextId())
             .orElseThrow(() -> new DataServiceException(String.format("LTI context ID: [%s] not found.", securedInfo.getContextId())));
         String localUrl = apiUser.getPlatformDeployment().getLocalUrl();
@@ -179,7 +180,7 @@ public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
         List<String> obsoleteAssignmentIds = lmsAssignments.stream()
             .filter(lmsAssignment -> !terracottaLmsAssignmentIds.contains(lmsAssignment.getId()))
             .filter(lmsAssignment -> !convertedLmsAssignmentIds.contains(lmsAssignment.getId()))
-            .filter(lmsAssignment -> StringUtils.containsIgnoreCase(lmsAssignment.getLmsExternalToolFields().getUrl(), localUrl))
+            .filter(lmsAssignment -> Strings.CI.contains(lmsAssignment.getLmsExternalToolFields().getUrl(), localUrl))
             .map(lmsAssignment -> {
                 try {
                     String[] queryParameters = StringUtils.split(URI.create(lmsAssignment.getLmsExternalToolFields().getUrl()).getQuery(), '&');
@@ -191,7 +192,7 @@ public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
 
                     // find the experiment ID from the query parameters
                     Optional<String> experimentId = Arrays.stream(queryParameters)
-                        .filter(queryParameter -> StringUtils.equalsIgnoreCase(StringUtils.split(queryParameter, '=')[0], "experiment"))
+                        .filter(queryParameter -> Strings.CI.equals(StringUtils.split(queryParameter, '=')[0], "experiment"))
                         .map(queryParameter -> StringUtils.split(queryParameter, '=')[1])
                         .findFirst();
 
@@ -249,7 +250,7 @@ public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
         assignmentFileArchive.setFileName(
             String.format(
                 "assignment_%s_--_files_(%s)",
-                StringUtils.replace(assignmentFileArchive.getAssignmentTitle(), " ", "_"),
+                Strings.CS.replace(assignmentFileArchive.getAssignmentTitle(), " ", "_"),
                 new SimpleDateFormat("yyyy-MM-dd'T'HH-mm").format(assignmentFileArchive.getCreatedAt())
             )
         );

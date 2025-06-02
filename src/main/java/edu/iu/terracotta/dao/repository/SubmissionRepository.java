@@ -17,14 +17,14 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long> {
 
     List<Submission> findByAssessment_AssessmentId(long assessmentId);
     long countByAssessment_AssessmentId(long assessmentId);
-    List<Submission> findByParticipant_ParticipantId(long participantId);
+    List<Submission> findByParticipant_Id(long participantId);
     List<Submission> findByParticipant_Experiment_ExperimentId(long experimentId);
     Page<Submission> findByParticipant_Experiment_ExperimentId(long experimentId, Pageable pageable);
     long countByAssessment_Treatment_Assignment_AssignmentId(long assignmentId);
-    Optional<Submission> findByParticipant_ParticipantIdAndSubmissionId(long participantId, long submissionId);
+    Optional<Submission> findByParticipant_IdAndSubmissionId(long participantId, long submissionId);
     Submission findBySubmissionId(long submissionId);
-    List<Submission> findByParticipant_ParticipantIdAndAssessment_AssessmentId(long participantId, long assessmentId);
-    List<Submission> findByParticipant_ParticipantIdAndAssessment_AssessmentIdAndDateSubmittedNotNullOrderByDateSubmitted(long participantId, long assessmentId);
+    List<Submission> findByParticipant_IdAndAssessment_AssessmentId(long participantId, long assessmentId);
+    List<Submission> findByParticipant_IdAndAssessment_AssessmentIdAndDateSubmittedNotNullOrderByDateSubmitted(long participantId, long assessmentId);
     List<Submission> findByAssessment_Treatment_Assignment_AssignmentId(long assignmentId);
     long countByAssessment_Treatment_TreatmentId(long treatmentId);
     boolean existsByAssessment_AssessmentIdAndSubmissionId(long assessmentId, long submissionId);

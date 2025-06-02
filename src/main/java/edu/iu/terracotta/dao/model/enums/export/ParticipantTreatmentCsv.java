@@ -31,7 +31,7 @@ public enum ParticipantTreatmentCsv {
     }
 
     public static String[] getHeaderRow() {
-        return Arrays.stream(ParticipantTreatmentCsv.values())
+        return Arrays.stream(values())
             .map(ParticipantTreatmentCsv::toString)
             .toArray(String[]::new);
     }

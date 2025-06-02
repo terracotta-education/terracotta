@@ -249,7 +249,7 @@ public class LtiDataServiceImpl implements LtiDataService {
         }
 
         if (lti.getUser() == null && lti.getSub() != null) {
-            LtiUserEntity ltiUserEntity = ltiUserRepository.findByUserKeyAndPlatformDeployment(lti.getSub(), toolDeployment.getPlatformDeployment());
+            LtiUserEntity ltiUserEntity = ltiUserRepository.findFirstByUserKeyAndPlatformDeployment(lti.getSub(), toolDeployment.getPlatformDeployment());
 
             if (ltiUserEntity == null) {
                 LtiUserEntity newUser = new LtiUserEntity(lti.getSub(), null, toolDeployment.getPlatformDeployment());
@@ -411,7 +411,7 @@ public class LtiDataServiceImpl implements LtiDataService {
 
     @Override
     public LtiUserEntity findByUserKeyAndPlatformDeployment(String userKey, PlatformDeployment platformDeployment) {
-        return ltiUserRepository.findByUserKeyAndPlatformDeployment(userKey,platformDeployment);
+        return ltiUserRepository.findFirstByUserKeyAndPlatformDeployment(userKey,platformDeployment);
     }
 
     @Override

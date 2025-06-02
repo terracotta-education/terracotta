@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Component
+@SuppressWarnings({"PMD.LambdaCanBeMethodReference"})
 public class OutcomeScoreServiceImpl implements OutcomeScoreService {
 
     @Autowired private OutcomeRepository outcomeRepository;
@@ -118,7 +119,7 @@ public class OutcomeScoreServiceImpl implements OutcomeScoreService {
             throw new InvalidParticipantException("Error 105: Must include a valid participant id in the POST");
         }
 
-        Optional<Participant> participant = participantRepository.findByParticipantIdAndExperiment_ExperimentId(participantId, experimentId);
+        Optional<Participant> participant = participantRepository.findByIdAndExperiment_ExperimentId(participantId, experimentId);
 
         if (participant.isEmpty()) {
             throw new InvalidParticipantException("Error 109: The participant provided does not belong to this experiment.");

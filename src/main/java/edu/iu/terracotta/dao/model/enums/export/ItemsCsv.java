@@ -25,7 +25,7 @@ public enum ItemsCsv {
     }
 
     public static String[] getHeaderRow() {
-        return Arrays.stream(ItemsCsv.values())
+        return Arrays.stream(values())
             .map(ItemsCsv::toString)
             .toArray(String[]::new);
     }

@@ -5,7 +5,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
@@ -44,11 +44,11 @@ public class OneEdTechAdvantageAgsServiceImpl implements AdvantageAgsService {
     public LtiToken getToken(String type, PlatformDeployment platformDeployment) throws ConnectionException {
         String scope = "https://purl.imsglobal.org/spec/lti-ags/scope/lineitem";
 
-        if (StringUtils.equals(type, "results")) {
+        if (Strings.CS.equals(type, "results")) {
             scope = "https://purl.imsglobal.org/spec/lti-ags/scope/result.readonly";
         }
 
-        if (StringUtils.equals(type, "scores")) {
+        if (Strings.CS.equals(type, "scores")) {
             scope = "https://purl.imsglobal.org/spec/lti-ags/scope/score";
         }
 

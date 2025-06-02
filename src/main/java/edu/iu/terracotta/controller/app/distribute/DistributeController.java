@@ -6,7 +6,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
@@ -97,7 +97,7 @@ public class DistributeController {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
 
-        if (!StringUtils.equalsIgnoreCase("application/zip", file.getContentType())) {
+        if (!Strings.CI.equals("application/zip", file.getContentType())) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
 

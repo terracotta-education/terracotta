@@ -176,7 +176,7 @@ public class AssessmentServiceImplTest extends BaseTest {
     public void testViewAssessmentNoSubmissions() throws ExperimentNotMatchingException, ParticipantNotMatchingException, AssessmentNotMatchingException, GroupNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, DataServiceException, ApiException, IOException, AssignmentDatesException, ConnectionException, TerracottaConnectorException {
         when(submission.getAssessment()).thenReturn(assessment1);
         when(assessment1.getAssessmentId()).thenReturn(2L);
-        when(submissionRepository.findByParticipant_ParticipantIdAndAssessment_AssessmentId(anyLong(), anyLong())).thenReturn(Collections.emptyList());
+        when(submissionRepository.findByParticipant_IdAndAssessment_AssessmentId(anyLong(), anyLong())).thenReturn(Collections.emptyList());
         AssessmentDto assessmentDto = assessmentService.viewAssessment(1l, securedInfo);
 
         assertNotNull(assessmentDto);
@@ -205,7 +205,7 @@ public class AssessmentServiceImplTest extends BaseTest {
 
     @Test
     public void testViewAssessmentWaitTimeNoSubmissions() throws ExperimentNotMatchingException, ParticipantNotMatchingException, AssessmentNotMatchingException, GroupNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, AssignmentAttemptException, DataServiceException, ApiException, IOException, AssignmentDatesException, ConnectionException, TerracottaConnectorException {
-        when(submissionRepository.findByParticipant_ParticipantIdAndAssessment_AssessmentId(anyLong(), anyLong())).thenReturn(Collections.emptyList());
+        when(submissionRepository.findByParticipant_IdAndAssessment_AssessmentId(anyLong(), anyLong())).thenReturn(Collections.emptyList());
         AssessmentDto assessmentDto = assessmentService.viewAssessment(1l, securedInfo);
 
         assertNotNull(assessmentDto);
@@ -251,7 +251,7 @@ public class AssessmentServiceImplTest extends BaseTest {
     @Test
     public void testViewAssessmentNoSubmittedScores() throws ExperimentNotMatchingException, ParticipantNotMatchingException, AssessmentNotMatchingException, GroupNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, DataServiceException, ApiException, IOException, AssignmentDatesException, ConnectionException, TerracottaConnectorException {
         when(submissionService.getScoreFromMultipleSubmissions(any(Participant.class), any(Assessment.class))).thenReturn(0F);
-        when(submissionRepository.findByParticipant_ParticipantIdAndAssessment_AssessmentId(anyLong(), anyLong())).thenReturn(Collections.emptyList());
+        when(submissionRepository.findByParticipant_IdAndAssessment_AssessmentId(anyLong(), anyLong())).thenReturn(Collections.emptyList());
         AssessmentDto assessmentDto = assessmentService.viewAssessment(1l, securedInfo);
 
         assertNotNull(assessmentDto);

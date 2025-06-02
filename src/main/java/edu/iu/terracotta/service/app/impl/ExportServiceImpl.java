@@ -28,6 +28,9 @@ import edu.iu.terracotta.dao.entity.QuestionSubmission;
 import edu.iu.terracotta.dao.entity.Submission;
 import edu.iu.terracotta.dao.entity.Treatment;
 import edu.iu.terracotta.dao.entity.events.Event;
+import edu.iu.terracotta.dao.entity.messaging.container.MessageContainer;
+import edu.iu.terracotta.dao.entity.messaging.log.MessageLog;
+import edu.iu.terracotta.dao.entity.messaging.message.Message;
 import edu.iu.terracotta.dao.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.OutcomeNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.ParticipantNotUpdatedException;
@@ -36,6 +39,9 @@ import edu.iu.terracotta.dao.model.enums.export.EventPersonalIdentifiers;
 import edu.iu.terracotta.dao.model.enums.export.ExperimentCsv;
 import edu.iu.terracotta.dao.model.enums.export.ItemResponsesCsv;
 import edu.iu.terracotta.dao.model.enums.export.ItemsCsv;
+import edu.iu.terracotta.dao.model.enums.export.MessageConditions;
+import edu.iu.terracotta.dao.model.enums.export.MessageContentCsv;
+import edu.iu.terracotta.dao.model.enums.export.MessagesCsv;
 import edu.iu.terracotta.dao.model.enums.export.OutcomesCsv;
 import edu.iu.terracotta.dao.model.enums.export.ParticipantTreatmentCsv;
 import edu.iu.terracotta.dao.model.enums.export.ParticipantsCsv;
@@ -56,11 +62,14 @@ import edu.iu.terracotta.dao.repository.QuestionRepository;
 import edu.iu.terracotta.dao.repository.QuestionSubmissionRepository;
 import edu.iu.terracotta.dao.repository.SubmissionRepository;
 import edu.iu.terracotta.dao.repository.TreatmentRepository;
+import edu.iu.terracotta.dao.repository.messaging.container.MessageContainerRepository;
+import edu.iu.terracotta.dao.repository.messaging.log.MessageLogRepository;
 import edu.iu.terracotta.service.app.AssignmentTreatmentService;
 import edu.iu.terracotta.service.app.ExportService;
 import edu.iu.terracotta.service.app.OutcomeService;
 import edu.iu.terracotta.service.app.ParticipantService;
 import edu.iu.terracotta.service.app.SubmissionService;
+import edu.iu.terracotta.service.app.messaging.MessageContentService;
 import edu.iu.terracotta.service.aws.AwsService;
 import lombok.extern.slf4j.Slf4j;
 
@@ -85,6 +94,7 @@ import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -108,10 +118,12 @@ public class ExportServiceImpl implements ExportService {
     @Autowired private AnswerMcSubmissionRepository answerMcSubmissionRepository;
     @Autowired private AssignmentRepository assignmentRepository;
     @Autowired private ConditionRepository conditionRepository;
+    @Autowired private MessageContainerRepository containerRepository;
     @Autowired private EventRepository eventRepository;
     @Autowired private ExperimentRepository experimentRepository;
     @Autowired private ExposureGroupConditionRepository exposureGroupConditionRepository;
     @Autowired private LtiUserRepository ltiUserRepository;
+    @Autowired private MessageLogRepository messageLogRepository;
     @Autowired private OutcomeRepository outcomeRepository;
     @Autowired private OutcomeScoreRepository outcomeScoreRepository;
     @Autowired private ParticipantRepository participantRepository;
@@ -122,6 +134,7 @@ public class ExportServiceImpl implements ExportService {
     @Autowired private AssignmentTreatmentService assignmentTreatmentService;
     @Autowired private AwsService awsService;
     @Autowired private Environment env;
+    @Autowired private MessageContentService messageContentService;
     @Autowired private OutcomeService outcomeService;
     @Autowired private ParticipantService participantService;
     @Autowired private SubmissionService submissionService;
@@ -142,6 +155,8 @@ public class ExportServiceImpl implements ExportService {
     private List<Assignment> assignments;
     private List<ExposureGroupCondition> exposureGroupConditions;
     private List<Treatment> treatments;
+    private List<Message> messages = new ArrayList<>();
+    private List<MessageLog> messageLogs = new ArrayList<>();
     private DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern(DATE_FORMAT);
     private SimpleDateFormat simpleDateFormatter = new SimpleDateFormat(DATE_FORMAT);
 
@@ -199,6 +214,15 @@ public class ExportServiceImpl implements ExportService {
 
         // response_options.csv
         handleResponseOptionsCsv(experimentId, files);
+
+        // messages.csv
+        handleMessagesCsv(experimentId, securedInfo.getLmsCourseId(), files);
+
+        // message_content.csv
+        handleMessageContentCsv(experimentId, securedInfo.getLmsCourseId(), files);
+
+        // message_conditions.csv
+        handleMessageConditionsCsv(experimentId, securedInfo.getLmsCourseId(), files);
 
         // events.json
         if (isEventExportAllowed()) {
@@ -607,6 +631,112 @@ public class ExportServiceImpl implements ExportService {
         }
     }
 
+    private void handleMessagesCsv(long experimentId, String courseId, Map<String, String> files) throws IOException {
+        Path path = createTempFile();
+        files.put(MessagesCsv.FILENAME, path.toString());
+
+        try (CSVWriter writer = createCsvFileWriter(path)) {
+            writer.writeNext(MessagesCsv.getHeaderRow());
+
+            if (CollectionUtils.isEmpty(messageLogs)) {
+                return;
+            }
+
+            List<Participant> participants = participantRepository.findByExperiment_ExperimentId(experimentId);
+
+            messageLogs.stream()
+                .forEach(
+                    messageLog -> {
+                        Optional<Participant> participant = participants.stream()
+                            .filter(p -> p.getLtiUserEntity().getUserId() == messageLog.getRecipient().getUserId())
+                            .findFirst();
+
+                        if (participant.isEmpty()) {
+                            log.warn("No participant found for message log ID: [{}]", messageLog.getId());
+                            return;
+                        }
+
+                        writer.writeNext(new String[] {
+                            messageLog.getMessage().getId().toString(),
+                            messageLog.getMessage().getConfiguration().getType().toString(),
+                            courseId,
+                            Long.toString(experimentId),
+                            Long.toString(messageLog.getConditionId()),
+                            messageLog.getConditionName(),
+                            messageLog.getMessageSubject(),
+                            participant.get().getParticipantId().toString(),
+                            BooleanUtils.isTrue(participant.get().getConsent()) ? "INCLUDED" : "EXCLUDED",
+                            messageLog.getCreatedAt().toLocalDateTime().format(dateTimeFormatter)
+                        });
+                    }
+                );
+        }
+    }
+
+    private void handleMessageContentCsv(long experimentId, String courseId, Map<String, String> files) throws IOException {
+        Path path = createTempFile();
+        files.put(MessageContentCsv.FILENAME, path.toString());
+
+        try (CSVWriter writer = createCsvFileWriter(path)) {
+            writer.writeNext(MessageContentCsv.getHeaderRow());
+
+            if (CollectionUtils.isEmpty(messages)) {
+                return;
+            }
+
+
+            messages.stream()
+                .forEach(
+                    message -> {
+                        writer.writeNext(new String[] {
+                            message.getId().toString(),
+                            courseId,
+                            Long.toString(experimentId),
+                            messageContentService.prepareBodyHtmlForExport(message.getContent().getHtml())
+                        });
+                    }
+                );
+        }
+    }
+
+    private void handleMessageConditionsCsv(long experimentId, String courseId, Map<String, String> files) throws IOException {
+        Path path = createTempFile();
+        files.put(MessageConditions.FILENAME, path.toString());
+
+        try (CSVWriter writer = createCsvFileWriter(path)) {
+            writer.writeNext(MessageConditions.getHeaderRow());
+
+            if (CollectionUtils.isEmpty(messages)) {
+                return;
+            }
+
+            messages.stream()
+                .forEach(
+                    message -> {
+                        message.getRuleSets().stream()
+                            .forEach(ruleSet -> {
+                                ruleSet.getRules().stream()
+                                    .forEach(rule -> {
+                                        writer.writeNext(new String[] {
+                                            message.getId().toString(),
+                                            courseId,
+                                            Long.toString(experimentId),
+                                            ruleSet.getId().toString(),
+                                            ruleSet.getOperator().toString(),
+                                            rule.getId().toString(),
+                                            rule.getOperator().toString(),
+                                            rule.getLmsAssignmentId().toString(),
+                                            rule.getComparison().getLabel(),
+                                            rule.getValue() != null ? rule.getValue().toString() : "",
+                                            message.getConfiguration().getRecipientMatchType().toString()
+                                        });
+                                    });
+                            });
+                    }
+                );
+        }
+    }
+
     public void getJsonFiles(Long experimentId, Map<String, String> files) throws IOException {
         Path path = createTempFile();
         files.put(EventPersonalIdentifiers.FILENAME, path.toString());
@@ -741,12 +871,25 @@ public class ExportServiceImpl implements ExportService {
         exposureGroupConditions = exposureGroupConditionRepository.findByCondition_Experiment_ExperimentId(experimentId);
         assignments = assignmentRepository.findByExposure_Experiment_ExperimentId(experimentId);
         treatments = treatmentRepository.findByCondition_Experiment_ExperimentIdOrderByCondition_ConditionIdAsc(experimentId);
+        List<MessageContainer> messageContainers = containerRepository.findAllByExposure_Experiment_ExperimentIdAndOwner_LmsUserId(experimentId, securedInfo.getLmsUserId());
+
+        CollectionUtils.emptyIfNull(messageContainers).stream()
+            .forEach(
+                messageContainer ->
+                    messageContainer.getMessages().stream()
+                        .forEach(
+                            message -> {
+                                messageLogs.addAll(messageLogRepository.findAllByMessage_Id(message.getId()));
+                                messages.add(message);
+                            }
+                        )
+            );
 
         if (CollectionUtils.isEmpty(assignments)) {
             return;
         }
 
-        LtiUserEntity ltiUserEntity = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
+        LtiUserEntity ltiUserEntity = ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
 
         assignments.stream()
             .forEach(

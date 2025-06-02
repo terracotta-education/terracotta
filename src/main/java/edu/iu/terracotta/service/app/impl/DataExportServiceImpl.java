@@ -746,7 +746,7 @@ public class DataExportServiceImpl implements DataExportService {
             return;
         }
 
-        LtiUserEntity ltiUserEntity = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
+        LtiUserEntity ltiUserEntity = ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
 
         assignments.stream()
             .forEach(

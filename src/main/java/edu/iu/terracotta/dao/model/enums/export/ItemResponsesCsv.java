@@ -35,7 +35,7 @@ public enum ItemResponsesCsv {
     }
 
     public static String[] getHeaderRow() {
-        return Arrays.stream(ItemResponsesCsv.values())
+        return Arrays.stream(values())
             .map(ItemResponsesCsv::toString)
             .toArray(String[]::new);
     }

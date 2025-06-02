@@ -18,7 +18,8 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
     Optional<Assignment> findByExposure_Experiment_ExperimentIdAndAssignmentId(long experimentId, long assignmentId);
     Optional<Assignment> findByExposure_Experiment_ExperimentIdAndExposure_ExposureIdAndAssignmentId(long experimentId, long exposureId, long assignmentId);
     Assignment findByAssignmentId(long assignmentId);
-    List<Assignment> findByExposure_ExposureIdAndSoftDeleted(long exposureId, boolean softDeleted);
+    List<Assignment> findByExposure_ExposureIdAndSoftDeletedOrderByAssignmentOrderAsc(long exposureId, boolean softDeleted);
+    List<Assignment> findByExposure_ExposureIdAndSoftDeletedOrderByAssignmentOrderDesc(long exposureId, boolean softDeleted);
     List<Assignment> findByExposure_Experiment_ExperimentId(long experimentId);
     boolean existsByExposure_Experiment_ExperimentIdAndExposure_ExposureIdAndAssignmentId(long experimentId, long exposureId, long assignmentId);
     boolean existsByExposure_Experiment_ExperimentIdAndAssignmentId(long experimentId, long assignmentId);

@@ -8,7 +8,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 
 import org.apache.commons.lang3.EnumUtils;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -36,7 +36,7 @@ public class IntegrationLaunchParameterServiceImplTest extends BaseTest {
         assertNotNull(ret);
         assertTrue(
             EnumUtils.getEnumList(IntegrationLaunchParameter.class).stream()
-                .allMatch(parameter -> StringUtils.contains(ret, parameter.key()))
+                .allMatch(parameter -> Strings.CS.contains(ret, parameter.key()))
         );
     }
 
@@ -48,7 +48,7 @@ public class IntegrationLaunchParameterServiceImplTest extends BaseTest {
         assertNotNull(ret);
         assertTrue(
             EnumUtils.getEnumList(IntegrationLaunchParameter.class).stream()
-                .allMatch(parameter -> StringUtils.contains(ret, parameter.key()))
+                .allMatch(parameter -> Strings.CS.contains(ret, parameter.key()))
         );
     }
 
@@ -59,7 +59,7 @@ public class IntegrationLaunchParameterServiceImplTest extends BaseTest {
         assertNotNull(ret);
         assertTrue(
             EnumUtils.getEnumList(IntegrationLaunchParameter.class).stream()
-                .allMatch(parameter -> StringUtils.contains(ret, parameter.key()))
+                .allMatch(parameter -> Strings.CS.contains(ret, parameter.key()))
         );
     }
 
@@ -71,7 +71,7 @@ public class IntegrationLaunchParameterServiceImplTest extends BaseTest {
         assertNotNull(ret);
         assertTrue(
             EnumUtils.getEnumList(IntegrationLaunchParameter.class).stream()
-                .allMatch(parameter -> StringUtils.contains(ret, parameter.key()))
+                .allMatch(parameter -> Strings.CS.contains(ret, parameter.key()))
         );
     }
 

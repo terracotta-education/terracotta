@@ -14,6 +14,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -474,7 +475,7 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
                     // find integration client with the same name and is enabled
                     IntegrationClient newIntegrationClient = existingIntegrationClients.stream()
                         .filter(IntegrationClient::isEnabled)
-                        .filter(existingClient -> StringUtils.equalsIgnoreCase(existingClient.getName(), integrationClient.getName()))
+                        .filter(existingClient -> Strings.CI.equals(existingClient.getName(), integrationClient.getName()))
                         .findFirst()
                         .orElse(null);
 

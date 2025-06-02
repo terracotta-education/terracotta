@@ -16,7 +16,7 @@ import edu.iu.terracotta.connectors.generic.service.lti.advantage.AdvantageAgsSe
 import edu.iu.terracotta.connectors.generic.service.lti.advantage.AdvantageConnectorHelper;
 import lombok.extern.slf4j.Slf4j;
 
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
 import org.springframework.http.HttpEntity;
@@ -57,11 +57,11 @@ public class AdvantageAgsServiceImpl implements AdvantageAgsService {
     public LtiToken getToken(String type, PlatformDeployment platformDeployment) throws ConnectionException {
         String scope = "https://purl.imsglobal.org/spec/lti-ags/scope/lineitem";
 
-        if (StringUtils.equals(type, "results")) {
+        if (Strings.CS.equals(type, "results")) {
             scope = "https://purl.imsglobal.org/spec/lti-ags/scope/result.readonly";
         }
 
-        if (StringUtils.equals(type, "scores")) {
+        if (Strings.CS.equals(type, "scores")) {
             scope = "https://purl.imsglobal.org/spec/lti-ags/scope/score";
         }
 

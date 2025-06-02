@@ -2,9 +2,17 @@ package edu.iu.terracotta.connectors.canvas.service.extended.impl;
 
 import edu.iu.terracotta.connectors.canvas.service.extended.AssignmentReaderExtended;
 import edu.iu.terracotta.connectors.canvas.service.extended.AssignmentWriterExtended;
+import edu.iu.terracotta.connectors.canvas.service.extended.ConversationReaderExtended;
+import edu.iu.terracotta.connectors.canvas.service.extended.ConversationWriterExtended;
 import edu.iu.terracotta.connectors.canvas.service.extended.CourseReaderExtended;
 import edu.iu.terracotta.connectors.canvas.service.extended.CourseWriterExtended;
+import edu.iu.terracotta.connectors.canvas.service.extended.FileReaderExtended;
+import edu.iu.terracotta.connectors.canvas.service.extended.FileWriterExtended;
+import edu.iu.terracotta.connectors.canvas.service.extended.FolderReaderExtended;
+import edu.iu.terracotta.connectors.canvas.service.extended.FolderWriterExtended;
 import edu.iu.terracotta.connectors.canvas.service.extended.SubmissionReaderExtended;
+import edu.iu.terracotta.connectors.canvas.service.extended.UserReaderExtended;
+import edu.iu.terracotta.connectors.canvas.service.extended.UserWriterExtended;
 import edu.ksu.canvas.impl.AccountImpl;
 import edu.ksu.canvas.impl.AccountReportImpl;
 import edu.ksu.canvas.impl.AccountReportSummaryImpl;
@@ -198,6 +206,11 @@ public class CanvasApiFactoryExtended {
         readerMap.put(CourseSettingsReader.class, CourseSettingsImpl.class);
         readerMap.put(GradingStandardReader.class, GradingStandardImpl.class);
         readerMap.put(CourseReaderExtended.class, CourseExtendedImpl.class);
+        readerMap.put(ConversationReaderExtended.class, ConversationExtendedImpl.class);
+        readerMap.put(ConversationReader.class, ConversationImpl.class);
+        readerMap.put(UserReaderExtended.class, UserExtendedImpl.class);
+        readerMap.put(FileReaderExtended.class, FileExtendedImpl.class);
+        readerMap.put(FolderReaderExtended.class, FolderExtendedImpl.class);
         writerMap.put(AssignmentOverrideWriter.class, AssignmentOverrideImpl.class);
         writerMap.put(AdminWriter.class, AdminImpl.class);
         writerMap.put(AssignmentWriter.class, AssignmentImpl.class);
@@ -226,6 +239,10 @@ public class CanvasApiFactoryExtended {
         writerMap.put(CourseSettingsWriter.class, CourseSettingsImpl.class);
         writerMap.put(GradingStandardWriter.class, GradingStandardImpl.class);
         writerMap.put(CourseWriterExtended.class, CourseExtendedImpl.class);
+        writerMap.put(ConversationWriterExtended.class, ConversationExtendedImpl.class);
+        writerMap.put(UserWriterExtended.class, UserExtendedImpl.class);
+        writerMap.put(FileWriterExtended.class, FileExtendedImpl.class);
+        writerMap.put(FolderWriterExtended.class, FolderExtendedImpl.class);
     }
 
 }

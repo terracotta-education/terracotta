@@ -64,7 +64,7 @@ public class TreatmentServiceImplTest extends BaseTest {
         clearInvocations(assignmentService);
 
         when(assessmentService.duplicateAssessment(anyLong(), anyLong())).thenReturn(assessment);
-        when(ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(anyString(), anyLong())).thenReturn(ltiUserEntity);
+        when(ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(anyString(), anyLong())).thenReturn(ltiUserEntity);
         when(treatmentRepository.findByCondition_ConditionIdOrderByCondition_ConditionIdAsc(anyLong())).thenReturn(Collections.singletonList(treatment));
 
         when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(true);

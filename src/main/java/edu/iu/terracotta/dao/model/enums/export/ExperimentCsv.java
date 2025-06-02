@@ -32,7 +32,7 @@ public enum ExperimentCsv {
     }
 
     public static String[] getHeaderRow() {
-        return Arrays.stream(ExperimentCsv.values())
+        return Arrays.stream(values())
             .map(ExperimentCsv::toString)
             .toArray(String[]::new);
     }

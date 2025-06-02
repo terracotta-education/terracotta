@@ -9,8 +9,14 @@ import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
 import edu.iu.terracotta.connectors.generic.dao.model.enums.LmsConnector;
 import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsAssignment;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsConversation;
 import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsCourse;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsFile;
 import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsSubmission;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsUser;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.options.LmsCreateConversationOptions;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.options.LmsGetSingleConversationOptions;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.options.LmsGetUsersInCourseOptions;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.Score;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
@@ -41,6 +47,13 @@ public interface ApiClient {
     Optional<LmsCourse> editCourse(PlatformDeployment platformDeployment, LmsCourse lmsCourse, String lmsCourseId, String tokenOverride) throws ApiException, TerracottaConnectorException;
 
     List<LmsSubmission> listSubmissions(LtiUserEntity apiUser, String lmsAssignmentId, String lmsCourseId) throws ApiException, IOException, TerracottaConnectorException;
+    List<LmsSubmission> listSubmissionsForMultipleAssignments(LtiUserEntity apiUser, String lmsCourseId, List<String> lmsAssignmentIds) throws ApiException, IOException, TerracottaConnectorException;
     void addLmsExtensions(Score score, Submission submission, boolean studentSubmission) throws ApiException, IOException, TerracottaConnectorException;
+
+    List<LmsConversation> sendConversation(LmsCreateConversationOptions lmsConversationOptions, LtiUserEntity apiUser) throws ApiException, TerracottaConnectorException;
+    Optional<LmsConversation> getConversation(LmsGetSingleConversationOptions lmsGetSingleConversationOptions, LtiUserEntity apiUser) throws ApiException, TerracottaConnectorException;
+    List<LmsUser> listUsersForCourse(LmsGetUsersInCourseOptions lmsGetUsersInCourseOptions, LtiUserEntity apiUser) throws ApiException, TerracottaConnectorException;
+    Optional<LmsFile> getFile(LtiUserEntity apiUser, String lmsFileId) throws ApiException, TerracottaConnectorException;
+    List<LmsFile> getFiles(LtiUserEntity apiUser) throws ApiException, TerracottaConnectorException;
 
 }
