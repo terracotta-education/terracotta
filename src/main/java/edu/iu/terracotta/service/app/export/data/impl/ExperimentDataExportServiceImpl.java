@@ -97,8 +97,9 @@ public class ExperimentDataExportServiceImpl implements ExperimentDataExportServ
             );
         }
 
+        // TODO this needs to be handled better
         // if marked as processing / reprocessing, but doesn't have any data associated, ,mark as error and notify
-        if ((ExperimentDataExportStatus.PROCESSING == experimentDataExport.getStatus() || ExperimentDataExportStatus.REPROCESSING == experimentDataExport.getStatus()) &&
+        /*if ((ExperimentDataExportStatus.PROCESSING == experimentDataExport.getStatus() || ExperimentDataExportStatus.REPROCESSING == experimentDataExport.getStatus()) &&
             StringUtils.isAnyBlank(
                 experimentDataExport.getFileName(),
                 experimentDataExport.getFileUri(),
@@ -109,7 +110,7 @@ public class ExperimentDataExportServiceImpl implements ExperimentDataExportServ
             experimentDataExport.setStatus(ExperimentDataExportStatus.ERROR);
             experimentDataExportRepository.save(experimentDataExport);
             throw new ExperimentDataExportException(String.format("Experiment data export with ID: [%s] is in processing state, but is not processing. Setting to error state.", experimentDataExport.getId()));
-        }
+        }*/
 
         // if exported data is marked as outdated and acknowledged, don't process it
         if (ExperimentDataExportStatus.OUTDATED_ACKNOWLEDGED == experimentDataExport.getStatus()) {
