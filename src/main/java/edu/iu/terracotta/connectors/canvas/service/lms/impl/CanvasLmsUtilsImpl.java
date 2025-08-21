@@ -22,4 +22,14 @@ public class CanvasLmsUtilsImpl implements LmsUtils {
         );
     }
 
+    @Override
+    public String parseDeploymentId(PlatformDeployment platformDeployment, String url) throws TerracottaConnectorException {
+        throw new UnsupportedOperationException("Unimplemented method 'parseDeploymentId'");
+    }
+
+    @Override
+    public String sanitize(String input) {
+        return input;
+    }
+
 }

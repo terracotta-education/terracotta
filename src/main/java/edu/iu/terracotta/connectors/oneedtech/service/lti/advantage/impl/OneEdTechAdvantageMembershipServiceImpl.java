@@ -67,7 +67,12 @@ public class OneEdTechAdvantageMembershipServiceImpl implements AdvantageMembers
                 nextPage = advantageConnectorHelper.nextPage(responseForNextPage.getHeaders());
             }
 
-            log.info("Received membership: [{}]", JsonMapper.builder().build().writeValueAsString(courseUserList));
+            log.info(
+                "Received membership: [{}]",
+                JsonMapper.builder()
+                    .build()
+                    .writeValueAsString(courseUserList)
+                );
 
             return CourseUsers.builder()
                 .courseUserList(courseUserList)

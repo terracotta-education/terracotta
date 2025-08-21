@@ -30,6 +30,7 @@ import edu.iu.terracotta.dao.entity.messaging.message.Message;
 import edu.iu.terracotta.dao.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.OutcomeNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.ParticipantNotUpdatedException;
+import edu.iu.terracotta.dao.model.enums.FeatureType;
 import edu.iu.terracotta.dao.model.enums.ParticipationTypes;
 import edu.iu.terracotta.dao.model.enums.export.EventPersonalIdentifiers;
 import edu.iu.terracotta.dao.model.enums.export.ExperimentCsv;
@@ -62,6 +63,7 @@ import edu.iu.terracotta.dao.repository.messaging.container.MessageContainerRepo
 import edu.iu.terracotta.dao.repository.messaging.log.MessageLogRepository;
 import edu.iu.terracotta.service.app.AssignmentTreatmentService;
 import edu.iu.terracotta.service.app.ExportService;
+import edu.iu.terracotta.service.app.FeatureService;
 import edu.iu.terracotta.service.app.OutcomeService;
 import edu.iu.terracotta.service.app.ParticipantService;
 import edu.iu.terracotta.service.app.SubmissionService;
@@ -134,6 +136,7 @@ public class ExportServiceImpl implements ExportService {
     @Autowired private AssignmentTreatmentService assignmentTreatmentService;
     @Autowired private AwsService awsService;
     @Autowired private Environment env;
+    @Autowired private FeatureService featureService;
     @Autowired private MessageContentService messageContentService;
     @Autowired private OutcomeService outcomeService;
     @Autowired private ParticipantService participantService;
@@ -215,14 +218,17 @@ public class ExportServiceImpl implements ExportService {
         // response_options.csv
         handleResponseOptionsCsv(experimentId, files);
 
-        // messages.csv
-        handleMessagesCsv(experimentId, securedInfo.getLmsCourseId(), files);
+        // handle messages CSVs only if messaging feature is enabled
+        if (featureService.isFeatureEnabled(FeatureType.MESSAGING, securedInfo.getPlatformDeploymentId())) {
+            // messages.csv
+            handleMessagesCsv(experimentId, securedInfo.getLmsCourseId(), files);
 
-        // message_content.csv
-        handleMessageContentCsv(experimentId, securedInfo.getLmsCourseId(), files);
+            // message_content.csv
+            handleMessageContentCsv(experimentId, securedInfo.getLmsCourseId(), files);
 
-        // message_conditions.csv
-        handleMessageConditionsCsv(experimentId, securedInfo.getLmsCourseId(), files);
+            // message_conditions.csv
+            handleMessageConditionsCsv(experimentId, securedInfo.getLmsCourseId(), files);
+        }
 
         // events.json
         if (isEventExportAllowed()) {

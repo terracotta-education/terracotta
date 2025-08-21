@@ -82,7 +82,7 @@ public class ExperimentServiceImpl implements ExperimentService {
     @Autowired private ParticipantService participantService;
 
     @Override
-    public List<ExperimentDto> getExperiments(SecuredInfo securedInfo, boolean syncWithLms) {
+    public List<ExperimentDto> getExperiments(SecuredInfo securedInfo, boolean syncWithLms) throws ConnectionException, TerracottaConnectorException {
         List<Experiment> experiments = experimentRepository.findByPlatformDeployment_KeyIdAndLtiContextEntity_ContextId(securedInfo.getPlatformDeploymentId(), securedInfo.getContextId());
         List<ExperimentDto> experimentDtoList = new ArrayList<>();
 
@@ -94,8 +94,7 @@ public class ExperimentServiceImpl implements ExperimentService {
         if (syncWithLms) {
             try {
                 log.info("Starting data sync in LMS.");
-                assignmentAsyncService.checkAndRestoreAssignmentsInLmsByContext(securedInfo);
-                assignmentAsyncService.handleObsoleteAssignmentsInLmsByContext(securedInfo);
+                assignmentAsyncService.handleAssignmentTasksInLmsByContext(securedInfo);
 
                 if (CollectionUtils.isNotEmpty(experiments)) {
                     participantAsyncService.updateParticipantData(experiments.get(0).getExperimentId(), securedInfo);

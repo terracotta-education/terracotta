@@ -7,6 +7,7 @@ import edu.iu.terracotta.connectors.generic.dao.model.lti.LtiToken;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.LineItem;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.LineItems;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.Score;
+import edu.iu.terracotta.connectors.generic.dao.model.lti.enums.LtiAgsScope;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
@@ -445,8 +446,8 @@ public class SubmissionServiceImpl implements SubmissionService {
         Assessment assessment = submission.getAssessment();
         Assignment assignment = assessment.getTreatment().getAssignment();
         Experiment experiment = assignment.getExposure().getExperiment();
-        LtiToken ltiTokenScore = advantageAgsService.getToken("scores", experiment.getPlatformDeployment());
-        LtiToken ltiTokenResults = advantageAgsService.getToken("results", experiment.getPlatformDeployment());
+        LtiToken ltiTokenScore = advantageAgsService.getToken(LtiAgsScope.SCORES, experiment.getPlatformDeployment());
+        LtiToken ltiTokenResults = advantageAgsService.getToken(LtiAgsScope.RESULTS, experiment.getPlatformDeployment());
         //find the right id to pass based on the assignment
         String lineitemId = lineItemId(assignment);
 
@@ -749,7 +750,7 @@ public class SubmissionServiceImpl implements SubmissionService {
 
     private String lineItemId(Assignment assignment) throws ConnectionException, TerracottaConnectorException {
         Experiment experiment = assignment.getExposure().getExperiment();
-        LtiToken ltiToken = advantageAgsService.getToken("lineitems", experiment.getPlatformDeployment());
+        LtiToken ltiToken = advantageAgsService.getToken(LtiAgsScope.LINEITEMS, experiment.getPlatformDeployment());
         //find the right id to pass based on the assignment
         LineItems lineItems = advantageAgsService.getLineItems(ltiToken, experiment.getLtiContextEntity());
 

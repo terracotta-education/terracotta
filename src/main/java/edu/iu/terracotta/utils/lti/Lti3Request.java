@@ -1,6 +1,5 @@
 package edu.iu.terracotta.utils.lti;
 
-import com.google.common.hash.Hashing;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.jwk.AsymmetricJWK;
 import com.nimbusds.jose.jwk.JWK;
@@ -26,8 +25,6 @@ import io.jsonwebtoken.Locator;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import tools.jackson.core.JacksonException;
-import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.json.JsonMapper;
 import edu.iu.terracotta.utils.LtiStrings;
 
@@ -35,6 +32,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -45,10 +43,7 @@ import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
-import java.security.GeneralSecurityException;
 import java.security.Key;
-import java.text.MessageFormat;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -193,7 +188,7 @@ public class Lti3Request {
     // We will return some hardcoded JWT's to test the deep Linking LTI Advanced Service standard, but the way this should work
     // is with the tool allowing the user to select the contents to link and generating the JWT with the selection
 
-    private Map<String, String> deepLinkJwts;
+    private Map<String, String> deepLinkJwts = Map.of();
 
     /**
      * @return the current Lti3Request object if there is one available, null if there isn't one and this is not a valid LTI3 based request
@@ -238,7 +233,7 @@ public class Lti3Request {
                 if (ltiDataService != null) {
                     ltiRequest = new Lti3Request(req, ltiDataService, true, linkId);
                 } else { //THIS SHOULD NOT HAPPEN
-                    throw new IllegalStateException("Error internal, no Dataservice available: " + req);
+                    throw new IllegalStateException(String.format("Error internal, no Dataservice available: [%s]", req));
                 }
             } catch (Exception e) {
                 log.warn("Failure trying to create the LTIRequest: ", e);
@@ -246,7 +241,7 @@ public class Lti3Request {
         }
 
         if (ltiRequest == null) {
-            throw new IllegalStateException("Invalid LTI request, cannot create LTIRequest from request: " + req);
+            throw new IllegalStateException(String.format("Invalid LTI request, cannot create LTIRequest from request: [%s]", req));
         }
 
         return ltiRequest;
@@ -272,8 +267,8 @@ public class Lti3Request {
         // extract the typical LTI data from the request
         String jwt = httpServletRequest.getParameter("id_token");
         JwtParserBuilder parser = Jwts.parser();
-        String[] jwtSections = jwt.split("\\.");
-        String jwtPayload = new String(Base64.getUrlDecoder().decode(jwtSections[1]));
+        String[] jwtSections = StringUtils.isNotBlank(jwt) ? jwt.split("\\.") : null;
+        String jwtPayload = jwtSections != null && jwtSections.length >= 1 ? new String(Base64.getUrlDecoder().decode(jwtSections[1])) : null;
         Map<String, Object> jwtClaims = null;
 
         try {
@@ -281,9 +276,9 @@ public class Lti3Request {
                 .build()
                 .readValue(
                     jwtPayload,
-                    new TypeReference<Map<String,Object>>() {}
+                    Map.class
                 );
-        } catch (JacksonException e) {
+        } catch (Exception e) {
             throw new IllegalStateException("Request is not a valid LTI3 request.", e);
         }
 
@@ -327,7 +322,7 @@ public class Lti3Request {
 
             while (sessionAttributes.hasMoreElements()) {
                 String attName = sessionAttributes.nextElement();
-                log.debug(attName + " : " + httpServletRequest.getSession().getAttribute(attName));
+                log.debug("[{}] : [{}]", attName, httpServletRequest.getSession().getAttribute(attName));
             }
 
             log.debug("-------------------------------------------------------------------------------------------------------");
@@ -337,43 +332,52 @@ public class Lti3Request {
         String isLti3Request = isLti3Request(jws);
 
         if (!(LtiStrings.LTI_MESSAGE_TYPE_RESOURCE_LINK.equals(isLti3Request) || LtiStrings.LTI_MESSAGE_TYPE_DEEP_LINKING.equals(isLti3Request))) {
-            throw new IllegalStateException("Request is not a valid LTI3 request: " + isLti3Request);
+            throw new IllegalStateException(String.format("Request is not a valid LTI3 request: [%s]", isLti3Request));
         }
 
         //Now we are going to check the if the nonce is valid.
         String checkNonce = checkNonce(jws);
 
         if (!BooleanUtils.toBoolean(checkNonce)) {
-            throw new IllegalStateException("Nonce error: " + checkNonce);
+            throw new IllegalStateException(String.format("Nonce error: [%s]", checkNonce));
         }
 
-        //Here we will populate the Lti3Request object
+        // populate the Lti3Request object
         String processRequestParameters = processRequestParameters(request, jws);
 
         if (!BooleanUtils.toBoolean(processRequestParameters)) {
-            throw new IllegalStateException("Request is not a valid LTI3 request: " + processRequestParameters);
+            throw new IllegalStateException(String.format("Request is not a valid LTI3 request: [%s]", processRequestParameters));
         }
 
-        // We update the database in case we have new values. (New users, new resources...etc)
-        if (isLti3Request.equals(LtiStrings.LTI_MESSAGE_TYPE_RESOURCE_LINK) || isLti3Request.equals(LtiStrings.LTI_MESSAGE_TYPE_DEEP_LINKING)) {
-            //Load data from DB related with this request and update it if needed with the new values.
-            ToolDeployment toolDeployment = ltiDataService.findOrCreateToolDeployment(this.iss, this.aud, this.ltiDeploymentId);
+        // update the database in case we have new values. (new users, new resources, etc.)
+        if (!Strings.CI.equals(isLti3Request, LtiStrings.LTI_MESSAGE_TYPE_RESOURCE_LINK) && !Strings.CI.equals(isLti3Request, LtiStrings.LTI_MESSAGE_TYPE_DEEP_LINKING)) {
+            return;
+        }
 
-            if (toolDeployment == null) {
-                throw new IllegalStateException(
-                        MessageFormat.format("Could not find a tool deployment for iss: {0}, clientId: {1}, ltiDeploymentId: {2}",
-                                this.iss, this.aud, this.ltiDeploymentId));
-            }
+        // Load data from DB related with this request and update it if needed with the new values.
+        ToolDeployment toolDeployment = ltiDataService.findOrCreateToolDeployment(this.iss, this.aud, this.ltiDeploymentId);
 
-            ltiDataService.loadLTIDataFromDB(this, linkId);
+        if (toolDeployment == null) {
+            throw new IllegalStateException(
+                String.format(
+                    "Could not find a tool deployment for iss: [%s], clientId: [%s], ltiDeploymentId: [%s]",
+                    this.iss,
+                    this.aud,
+                    this.ltiDeploymentId
+                )
+            );
+        }
 
-            if (update) {
-                if (isLti3Request.equals(LtiStrings.LTI_MESSAGE_TYPE_RESOURCE_LINK)) {
-                    ltiDataService.upsertLTIDataInDB(this, toolDeployment, linkId);
-                } else {
-                    ltiDataService.upsertLTIDataInDB(this, toolDeployment, null);
-                }
-            }
+        ltiDataService.loadLTIDataFromDB(this, linkId);
+
+        if (!update) {
+            return;
+        }
+
+        if (Strings.CI.equals(isLti3Request, LtiStrings.LTI_MESSAGE_TYPE_RESOURCE_LINK)) {
+            ltiDataService.upsertLTIDataInDB(this, toolDeployment, linkId);
+        } else {
+            ltiDataService.upsertLTIDataInDB(this, toolDeployment, null);
         }
     }
 
@@ -454,11 +458,7 @@ public class Lti3Request {
 
         locale = getStringFromLTIRequest(jws, LtiStrings.LTI_PRES_LOCALE);
 
-        if (locale == null) {
-            ltiPresLocale = Locale.getDefault();
-        } else {
-            ltiPresLocale = Locale.forLanguageTag(locale);
-        }
+        ltiPresLocale = locale == null ? Locale.getDefault() : Locale.forLanguageTag(locale);
 
         ltiLaunchPresentation = getMapFromLTIRequest(jws, LtiStrings.LTI_LAUNCH_PRESENTATION);
         ltiPresHeight = getIntegerFromLTIRequestMap(ltiLaunchPresentation, LtiStrings.LTI_PRES_HEIGHT);
@@ -471,7 +471,7 @@ public class Lti3Request {
 
         ltiTargetLinkUrl = getStringFromLTIRequest(jws, LtiStrings.LTI_TARGET_LINK_URI);
 
-        //LTI3 DEEP LINKING
+        // LTI3 DEEP LINKING
 
         deepLinkingSettings = getMapFromLTIRequest(jws, LtiStrings.DEEP_LINKING_SETTINGS);
         deepLinkReturnUrl = getStringFromLTIRequestMap(deepLinkingSettings, LtiStrings.DEEP_LINK_RETURN_URL);
@@ -487,7 +487,6 @@ public class Lti3Request {
         // A sample that shows how we can store some of this in the session
         HttpSession session = this.httpServletRequest.getSession();
         session.setAttribute(LtiStrings.LTI_SESSION_USER_ID, sub);
-        session.setAttribute(LtiStrings.LTI_SESSION_CONTEXT_ID, ltiContextId);
         session.setAttribute(LtiStrings.LTI_SESSION_CONTEXT_ID, ltiContextId);
 
         try {
@@ -516,17 +515,6 @@ public class Lti3Request {
             complete = BooleanUtils.toBoolean(isComplete);
             isCorrect = checkCorrectDeepLinkingRequest();
             correct = BooleanUtils.toBoolean(isCorrect);
-
-            // NOTE: This is just to hardcode some demo information.
-            try {
-                deepLinkJwts = DeepLinkUtils.generateDeepLinkJWT(
-                    ltiDataService,
-                    ltiDataService.getPlatformDeploymentRepository().findByToolDeployments_LtiDeploymentId(ltiDeploymentId).get(0),
-                    this,
-                    toolDeployment.getPlatformDeployment().getLocalUrl());
-            } catch (GeneralSecurityException | IOException | NullPointerException ex) {
-                log.error("Error creating the DeepLinking Response", ex);
-            }
         }
 
         // This is an ugly way to display the error... can be improved.
@@ -536,7 +524,9 @@ public class Lti3Request {
 
         if (complete) {
             isComplete = "";
-        } else if (correct) {
+        }
+
+        if (correct) {
             isCorrect = "";
         }
 
@@ -546,9 +536,13 @@ public class Lti3Request {
     private String getNormalizedRoleName() {
         if (isRoleAdministrator()) {
             return LtiStrings.LTI_ROLE_ADMIN;
-        } else if (isRoleInstructor()) {
+        }
+
+        if (isRoleInstructor()) {
             return LtiStrings.LTI_ROLE_MEMBERSHIP_INSTRUCTOR;
-        } else if (isRoleLearner()) {
+        }
+
+        if (isRoleLearner()) {
             return LtiStrings.LTI_ROLE_MEMBERSHIP_LEARNER;
         }
 
@@ -572,55 +566,55 @@ public class Lti3Request {
     }
 
     private Integer getIntegerFromLTIRequestMap(Map<String, Object> map, String integerToGet) {
-        if (map.containsKey(integerToGet)) {
-            try {
-                return Integer.valueOf(map.get(integerToGet).toString());
-            } catch (Exception ex) {
-                log.error("No integer when expected in: {0}. Returning null", integerToGet);
-                return null;
-            }
+        if (!map.containsKey(integerToGet)) {
+            return null;
         }
 
-        return null;
+        try {
+            return Integer.valueOf(map.get(integerToGet).toString());
+        } catch (Exception ex) {
+            log.error("No integer when expected in: [{}]. Returning null", integerToGet);
+            return null;
+        }
     }
 
     private List<String> getListFromLTIRequestMap(Map<String, Object> map, String listToGet) {
-        if (map.containsKey(listToGet)) {
-            try {
-                return (List<String>) map.get(listToGet);
-            } catch (Exception ex) {
-                log.error("No list when expected in: {0} Returning null", listToGet);
-                return new ArrayList<>();
-            }
+        if (!map.containsKey(listToGet)) {
+            return new ArrayList<>();
         }
 
-        return new ArrayList<>();
+        try {
+            return (List<String>) map.get(listToGet);
+        } catch (Exception ex) {
+            log.error("No list when expected in: [{}]. Returning null", listToGet);
+            return new ArrayList<>();
+        }
     }
 
     private Map<String, Object> getMapFromLTIRequest(Jws<Claims> jws, String mapToGet) {
-        if (jws.getPayload().containsKey(mapToGet)) {
-            try {
-                return jws.getPayload().get(mapToGet, Map.class);
-            } catch (Exception ex) {
-                log.error("No map integer when expected in: {0}. Returning null", mapToGet);
-                return new HashMap<>();
-            }
+        if (!jws.getPayload().containsKey(mapToGet)) {
+            return new HashMap<>();
         }
 
-        return new HashMap<>();
+        try {
+            return jws.getPayload().get(mapToGet, Map.class);
+        } catch (Exception ex) {
+            log.error("No map integer when expected in: [{}]. Returning null", mapToGet);
+            return new HashMap<>();
+        }
     }
 
     private List<String> getListFromLTIRequest(Jws<Claims> jws, String listToGet) {
-        if (jws.getPayload().containsKey(listToGet)) {
-            try {
-                return jws.getPayload().get(listToGet, List.class);
-            } catch (Exception ex) {
-                log.error("No map integer when expected in: '{}'. Returning null", listToGet);
-                return new ArrayList<>();
-            }
+        if (!jws.getPayload().containsKey(listToGet)) {
+            return new ArrayList<>();
         }
 
-        return new ArrayList<>();
+        try {
+            return jws.getPayload().get(listToGet, List.class);
+        } catch (Exception ex) {
+            log.error("No map integer when expected in: '{}'. Returning null", listToGet);
+            return new ArrayList<>();
+        }
     }
 
     /**
@@ -673,7 +667,7 @@ public class Lti3Request {
         }
 
         if (StringUtils.isBlank(completeStr)) {
-            return "true";
+            return Boolean.TRUE.toString();
         } else {
             return completeStr;
         }
@@ -723,7 +717,7 @@ public class Lti3Request {
         }
 
         if (StringUtils.isBlank(completeStr)) {
-            return "true";
+            return Boolean.TRUE.toString();
         }
 
         return completeStr;
@@ -752,7 +746,7 @@ public class Lti3Request {
      * @return true if this is a valid LTI request
      */
     public String checkNonce(Jws<Claims> jws) {
-        //We get all the nonces from the session, and compare.
+        // get all the nonces from the session, and compare.
         List<String> ltiNonce = (List) httpServletRequest.getSession().getAttribute("lti_nonce");
         List<String> ltiNonceNew = new ArrayList<>();
         boolean found = false;
@@ -760,26 +754,24 @@ public class Lti3Request {
 
         if (nonceToCheck == null || ListUtils.isEmpty(ltiNonce)) {
             return "Nonce = null in the JWT or in the session.";
-        } else {
-            // Really, we send the hash of the nonce to the platform.
-            for (String nonceStored : ltiNonce) {
-                String nonceHash = Hashing.sha256()
-                    .hashString(nonceStored, StandardCharsets.UTF_8)
-                    .toString();
+        }
 
-                if (nonceToCheck.equals(nonceHash)) {
-                    found = true;
-                } else { //If not found, we add it to another list... so we keep the unused nonces.
-                    ltiNonceNew.add(nonceStored);
-                }
-            }
-            if (found) {
-                httpServletRequest.getSession().setAttribute("lti_nonce", ltiNonceNew);
-                return Boolean.TRUE.toString();
+        // send the hash of the nonce to the platform.
+        for (String nonceStored : ltiNonce) {
+            if (nonceToCheck.equals(nonceStored)) {
+                found = true;
             } else {
-                return "Unknown or already used nounce.";
+                // If not found, add it to another list... keep the unused nonces.
+                ltiNonceNew.add(nonceStored);
             }
         }
+
+        if (found) {
+            httpServletRequest.getSession().setAttribute("lti_nonce", ltiNonceNew);
+            return Boolean.TRUE.toString();
+        }
+
+        return "Unknown or already used nounce.";
     }
 
     /**
@@ -843,12 +835,16 @@ public class Lti3Request {
      * @return the number that represents the role (higher is more access)
      */
     public int makeUserRoleNum(List<String> rawUserRoles) {
-        if (rawUserRoles != null) {
-            if (rawUserRoles.contains(LtiStrings.LTI_ROLE_MEMBERSHIP_ADMIN)) {
-                return 2;
-            } else if (rawUserRoles.contains(LtiStrings.LTI_ROLE_MEMBERSHIP_INSTRUCTOR)) {
-                return 1;
-            }
+        if (rawUserRoles == null) {
+            return 0;
+        }
+
+        if (rawUserRoles.contains(LtiStrings.LTI_ROLE_MEMBERSHIP_ADMIN)) {
+            return 2;
+        }
+
+        if (rawUserRoles.contains(LtiStrings.LTI_ROLE_MEMBERSHIP_INSTRUCTOR)) {
+            return 1;
         }
 
         return 0;

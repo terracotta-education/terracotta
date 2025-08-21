@@ -169,21 +169,21 @@ public class IntegrationServiceImpl implements IntegrationService {
         } catch (Exception e) {
             try {
                 response = new RestTemplate().exchange(
-                url,
-                HttpMethod.GET,
-                null,
-                String.class
-            );
-            } catch (Exception ex) {
-                throw new IntegrationUrlIframeInvalidException(
-                    String.format(
-                        "Error validating iframe embedding for URL: [%s]. Error: [%s]",
-                        url,
-                        ex.getMessage()
-                    ),
-                    ex
+                    url,
+                    HttpMethod.GET,
+                    null,
+                    String.class
                 );
-            }
+                } catch (Exception ex) {
+                    throw new IntegrationUrlIframeInvalidException(
+                        String.format(
+                            "Error validating iframe embedding for URL: [%s]. Error: [%s]",
+                            url,
+                            ex.getMessage()
+                        ),
+                        ex
+                    );
+                }
         }
 
         Optional<String> validationErrors = analyzeHeaders(response.getHeaders(), url, platformDeployment.getLocalUrl());

@@ -9,5 +9,7 @@ import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorExcept
 public interface LmsUtils {
 
     String parseCourseId(PlatformDeployment platformDeployment, String url) throws TerracottaConnectorException;
+    String parseDeploymentId(PlatformDeployment platformDeployment, String url) throws TerracottaConnectorException;
+    String sanitize(String input);
 
 }

@@ -32,9 +32,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.util.UriComponentsBuilder;
-import org.springframework.http.HttpHeaders;
-
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.HashMap;
 import java.util.List;
@@ -42,7 +39,7 @@ import java.util.Map;
 
 @Slf4j
 @Controller
-@SuppressWarnings({"rawtypes", "unchecked", "PMD.GuardLogStatement"})
+@SuppressWarnings({"rawtypes", "unchecked", "PMD.GuardLogStatement", "PMD.LooseCoupling"})
 @RequestMapping(value = ConditionController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
 public class ConditionController {
 
@@ -87,11 +84,9 @@ public class ConditionController {
 
     @PostMapping
     public ResponseEntity<ConditionDto> postCondition(@PathVariable long experimentId,
-                                                      @RequestBody ConditionDto conditionDto,
-                                                      UriComponentsBuilder ucBuilder,
+                                                      @RequestBody(required = false) ConditionDto conditionDto,
                                                       HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ExperimentLockedException, TitleValidationException, ConditionsLockedException, IdInPostException, DataServiceException, ExperimentConditionLimitReachedException, NumberFormatException, TerracottaConnectorException {
-
         log.debug("Creating Condition for experiment ID: {}", experimentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentLocked(experimentId,true);
@@ -101,10 +96,13 @@ public class ConditionController {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
-        ConditionDto returnedDto = conditionService.postCondition(conditionDto, experimentId);
-        HttpHeaders headers = conditionService.buildHeader(ucBuilder, experimentId, returnedDto.getConditionId());
+        if (conditionDto == null) {
+            conditionDto = ConditionDto.builder().build();
+        }
 
-        return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
+        ConditionDto returnedDto = conditionService.postCondition(conditionDto, experimentId);
+
+        return new ResponseEntity<>(returnedDto, HttpStatus.CREATED);
     }
 
     @PutMapping("/{conditionId}")

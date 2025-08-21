@@ -9,17 +9,18 @@ import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.LineItem;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.LineItems;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.Results;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.Score;
+import edu.iu.terracotta.connectors.generic.dao.model.lti.enums.LtiAgsScope;
 import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 
 @TerracottaConnector(LmsConnector.GENERIC)
 public interface AdvantageAgsService {
 
-    LtiToken getToken(String scope, PlatformDeployment platformDeployment) throws ConnectionException;
+    LtiToken getToken(LtiAgsScope scope, PlatformDeployment platformDeployment) throws ConnectionException;
     LineItem getLineItem(LtiToken ltiToken, LtiContextEntity context, String id) throws ConnectionException;
-    LineItem postLineItem(LtiToken ltiToken, LtiContextEntity context, LineItem lineItem) throws ConnectionException;
+    LineItem postLineItem(LtiToken ltiToken, LtiContextEntity context, LineItem lineItem) throws ConnectionException, TerracottaConnectorException;
     LineItem putLineItem(LtiToken ltiToken, LtiContextEntity context, LineItem lineItem) throws ConnectionException;
-    boolean deleteLineItem(LtiToken ltiToken, LtiContextEntity context, String id) throws ConnectionException;
+    boolean deleteLineItem(LtiToken ltiToken, LtiContextEntity context, String id) throws ConnectionException, TerracottaConnectorException;
     LineItems getLineItems(LtiToken ltiToken, LtiContextEntity context) throws ConnectionException, TerracottaConnectorException;
     LineItems postLineItems(LtiToken ltiToken, LtiContextEntity context, LineItems lineItems) throws ConnectionException;
     Results getResults(LtiToken ltiTokenResults, LtiContextEntity context, String lineItemId) throws ConnectionException;

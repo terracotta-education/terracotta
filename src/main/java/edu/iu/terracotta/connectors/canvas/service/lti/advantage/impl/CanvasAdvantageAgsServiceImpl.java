@@ -22,7 +22,9 @@ import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.LineItem;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.LineItems;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.Results;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.Score;
+import edu.iu.terracotta.connectors.generic.dao.model.lti.enums.LtiAgsScope;
 import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
+import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.connectors.generic.exceptions.helper.ExceptionMessageGenerator;
 import edu.iu.terracotta.connectors.generic.service.lti.advantage.AdvantageAgsService;
 import edu.iu.terracotta.connectors.generic.service.lti.advantage.AdvantageConnectorHelper;
@@ -39,7 +41,7 @@ public class CanvasAdvantageAgsServiceImpl implements AdvantageAgsService {
     @Autowired private ExceptionMessageGenerator exceptionMessageGenerator;
 
     @Override
-    public LtiToken getToken(String scope, PlatformDeployment platformDeployment) throws ConnectionException {
+    public LtiToken getToken(LtiAgsScope scope, PlatformDeployment platformDeployment) throws ConnectionException {
         throw new UnsupportedOperationException("Unimplemented method 'getToken'");
     }
 
@@ -77,8 +79,29 @@ public class CanvasAdvantageAgsServiceImpl implements AdvantageAgsService {
     }
 
     @Override
-    public boolean deleteLineItem(LtiToken ltiToken, LtiContextEntity context, String id) throws ConnectionException {
-        throw new UnsupportedOperationException("Unimplemented method 'deleteLineItem'");
+    public boolean deleteLineItem(LtiToken ltiToken, LtiContextEntity context, String id) throws ConnectionException, TerracottaConnectorException {
+        try {
+            ResponseEntity<String> lineItemsGetResponse = advantageConnectorHelper.createRestTemplate().exchange(
+                context.getLineitems() + "/" + id,
+                HttpMethod.DELETE,
+                advantageConnectorHelper.createTokenizedRequestEntity(ltiToken),
+                String.class
+            );
+
+            if (lineItemsGetResponse.getStatusCode().is2xxSuccessful()) {
+                return true;
+            }
+
+            String exceptionMsg = String.format("Can't delete the lineitem with id: %s", id);
+            log.error(exceptionMsg);
+            throw new ConnectionException(exceptionMsg);
+        } catch (Exception e) {
+            StringBuilder exceptionMsg = new StringBuilder()
+                .append("Can't delete the lineitem with id ")
+                .append(id);
+            log.error(exceptionMsg.toString(), e);
+            throw new ConnectionException(exceptionMessageGenerator.exceptionMessage(exceptionMsg.toString(), e));
+        }
     }
 
     @Override
@@ -93,7 +116,28 @@ public class CanvasAdvantageAgsServiceImpl implements AdvantageAgsService {
 
     @Override
     public LineItem postLineItem(LtiToken ltiToken, LtiContextEntity context, LineItem lineItem) throws ConnectionException {
-        throw new UnsupportedOperationException("Unimplemented method 'postLineItem'");
+        try {
+            ResponseEntity<LineItem> response = advantageConnectorHelper.createRestTemplate().exchange(
+                context.getLineitems(),
+                HttpMethod.POST,
+                advantageConnectorHelper.createTokenizedRequestEntityWithAcceptAndContentType(ltiToken, lineItem, "application/vnd.ims.lis.v2.lineitem+json", "application/vnd.ims.lis.v2.lineitem+json"),
+                LineItem.class
+            );
+
+            if (!response.getStatusCode().is2xxSuccessful()) {
+                String exceptionMsg = String.format("Can't post the lineitem [%s]", lineItem.getId());
+                log.error(exceptionMsg);
+                throw new ConnectionException(exceptionMsg);
+            }
+
+            return response.getBody();
+        } catch (Exception e) {
+            StringBuilder exceptionMsg = new StringBuilder()
+                .append("Can't get post lineitem ")
+                .append(lineItem.getId());
+            log.error(exceptionMsg.toString(), e);
+            throw new ConnectionException(exceptionMessageGenerator.exceptionMessage(exceptionMsg.toString(), e));
+        }
     }
 
     @Override

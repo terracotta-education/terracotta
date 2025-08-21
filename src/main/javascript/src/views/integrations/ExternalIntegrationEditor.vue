@@ -221,7 +221,8 @@ export default {
   },
   computed: {
     ...mapGetters({
-      isIframeUrlValid: "integrations/isIframeUrlValid"
+      isIframeUrlValid: "integrations/isIframeUrlValid",
+      configurations: "configuration/get"
     }),
     integration() {
       return this.integrationQuestion.integration;
@@ -244,7 +245,7 @@ export default {
           return {
             header: {
               directions: `
-                Terracotta allows you to present a custom interactive website as an assignment in Canvas. First, provide the URL of the custom web activity and set the maximum score
+                Terracotta allows you to present a custom interactive website as an assignment in ${this.lmsTitle}. First, provide the URL of the custom web activity and set the maximum score
                 that students can receive. Second, edit the web activity so that, upon completing the survey, student submissions return to Terracotta.
               `,
               instructions: `
@@ -282,7 +283,7 @@ export default {
           return {
             header: {
               directions: `
-                Terracotta makes it possible to present a Qualtrics survey as an assignment in Canvas. First, provide the URL of the Qualtrics survey and set the maximum score
+                Terracotta makes it possible to present a Qualtrics survey as an assignment in ${this.lmsTitle}. First, provide the URL of the Qualtrics survey and set the maximum score
                 that students can receive. Second, in your Qualtrics survey edit the End of Survey section so that, upon completing the survey, student submissions return to Terracotta.
               `,
               instructions: `
@@ -404,6 +405,9 @@ export default {
     },
     iframeInvalidInfoUrl() {
       return this.assessment.integrationIframeInfoUrl;
+    },
+    lmsTitle() {
+      return this.configurations?.lmsTitle || "LMS";
     }
   },
   methods: {

@@ -114,30 +114,30 @@ public class AssessmentServiceImplTest extends BaseTest {
         verifySubmissionWaitTime.setAccessible(true);
 
         when(assessmentRepository.existsByTreatment_Condition_Experiment_ExperimentIdAndTreatment_Condition_ConditionIdAndTreatment_TreatmentIdAndAssessmentId(anyLong(), anyLong(), anyLong(), anyLong())).thenReturn(true);
-        when(assessmentRepository.findByTreatment_TreatmentId(anyLong())).thenReturn(Collections.singletonList(assessment));
-        when(assignmentRepository.findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(anyLong(), anyString())).thenReturn(assignment);
-        when(conditionRepository.findByExperiment_ExperimentIdOrderByConditionIdAsc(anyLong())).thenReturn(Collections.singletonList(condition));
+        when(assessmentRepository.findByTreatment_TreatmentId(anyLong())).thenReturn(List.of(assessment));
+        when(assignmentRepository.findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(anyLong(), anyString())).thenReturn(Optional.of(assignment));
+        when(conditionRepository.findByExperiment_ExperimentIdOrderByConditionIdAsc(anyLong())).thenReturn(List.of(condition));
         when(exposureGroupConditionRepository.getByCondition_ConditionIdAndExposure_ExposureId(anyLong(), anyLong())).thenReturn(Optional.of(exposureGroupCondition));
         when(exposureGroupConditionRepository.getByGroup_GroupIdAndExposure_ExposureId(anyLong(), anyLong())).thenReturn(Optional.of(exposureGroupCondition));
         when(participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(anyLong(), anyString())).thenReturn(participant);
-        when(questionMcRepository.findAllById(anyList())).thenReturn(Collections.singletonList(questionMc));
+        when(questionMcRepository.findAllById(anyList())).thenReturn(List.of(questionMc));
         when(questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(anyLong())).thenReturn(Collections.emptyList());
-        when(submissionRepository.findByAssessment_AssessmentId(anyLong())).thenReturn(Collections.singletonList(submission));
-        when(treatmentRepository.findByCondition_ConditionIdAndAssignment_AssignmentIdOrderByCondition_ConditionIdAsc(anyLong(), anyLong())).thenReturn(Collections.singletonList(treatment));
+        when(submissionRepository.findByAssessment_AssessmentId(anyLong())).thenReturn(List.of(submission));
+        when(treatmentRepository.findByCondition_ConditionIdAndAssignment_AssignmentIdOrderByCondition_ConditionIdAsc(anyLong(), anyLong())).thenReturn(List.of(treatment));
 
         when(fileStorageService.parseHTMLFiles(anyString(), anyString())).thenReturn(StringUtils.EMPTY);
         when(participantService.handleExperimentParticipant(any(Experiment.class), any(SecuredInfo.class))).thenReturn(participant);
-        when(questionService.duplicateQuestionsForAssessment(anyLong(), any(Assessment.class))).thenReturn(Collections.singletonList(question));
+        when(questionService.duplicateQuestionsForAssessment(anyLong(), any(Assessment.class))).thenReturn(List.of(question));
 
         when(assessment.isAllowStudentViewResponses()).thenReturn(true);
         when(assessment.getMultipleSubmissionScoringScheme()).thenReturn(MultipleSubmissionScoringScheme.MOST_RECENT);
         when(assessment.getQuestions()).thenReturn(Collections.emptyList());
         when(assessmentDto.getMultipleSubmissionScoringScheme()).thenReturn(MultipleSubmissionScoringScheme.MOST_RECENT.toString());
-        when(assessmentDto.getQuestions()).thenReturn(Collections.singletonList(questionDto));
+        when(assessmentDto.getQuestions()).thenReturn(List.of(questionDto));
         when(assignment.getMultipleSubmissionScoringScheme()).thenReturn(MultipleSubmissionScoringScheme.MOST_RECENT);
         when(condition.getDefaultCondition()).thenReturn(true);
         when(questionDto.getQuestionId()).thenReturn(1L);
-        when(regradeDetails.getEditedMCQuestionIds()).thenReturn(Collections.singletonList(1L));
+        when(regradeDetails.getEditedMCQuestionIds()).thenReturn(List.of(1L));
         when(regradeDetails.getRegradeOption()).thenReturn(RegradeOption.BOTH);
     }
 
@@ -281,7 +281,7 @@ public class AssessmentServiceImplTest extends BaseTest {
 
     @Test
     public void testGetAssessmentByGroupIdNoAssignment() throws AssessmentNotMatchingException {
-        when(assignmentRepository.findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(anyLong(), anyString())).thenReturn(null);
+        when(assignmentRepository.findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(anyLong(), anyString())).thenReturn(Optional.empty());
         Exception exception = assertThrows(AssessmentNotMatchingException.class, () -> { assessmentService.getAssessmentByGroupId(1L, "1", 1L); });
 
         assertEquals("Error 127: This assignment does not exist in Terracotta for this experiment", exception.getMessage());
@@ -304,7 +304,7 @@ public class AssessmentServiceImplTest extends BaseTest {
 
     @Test
     public void testGetAssessmentByConditionIdNoAssignment() throws AssessmentNotMatchingException {
-        when(assignmentRepository.findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(anyLong(), anyString())).thenReturn(null);
+        when(assignmentRepository.findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(anyLong(), anyString())).thenReturn(Optional.empty());
         Exception exception = assertThrows(AssessmentNotMatchingException.class, () -> { assessmentService.getAssessmentByConditionId(1L, "1", 1l); });
 
         assertEquals("Error 127: This assignment does not exist in Terracotta for this experiment", exception.getMessage());
@@ -423,7 +423,7 @@ public class AssessmentServiceImplTest extends BaseTest {
         Submission submission = new Submission();
         submission.setDateSubmitted(Timestamp.from(Instant.now().minus(30, ChronoUnit.MINUTES)));
 
-        assertDoesNotThrow(() -> verifySubmissionWaitTime.invoke(assessmentService, .1F, Collections.singletonList(submission)));
+        assertDoesNotThrow(() -> verifySubmissionWaitTime.invoke(assessmentService, .1F, List.of(submission)));
     }
 
     @Test
@@ -431,7 +431,7 @@ public class AssessmentServiceImplTest extends BaseTest {
         Submission submission = new Submission();
         submission.setDateSubmitted(Timestamp.from(Instant.now().minus(30, ChronoUnit.MINUTES)));
 
-        InvocationTargetException e = assertThrows(InvocationTargetException.class, () -> verifySubmissionWaitTime.invoke(assessmentService, 1F, Collections.singletonList(submission)));
+        InvocationTargetException e = assertThrows(InvocationTargetException.class, () -> verifySubmissionWaitTime.invoke(assessmentService, 1F, List.of(submission)));
         assertTrue(e.getCause() instanceof AssignmentAttemptException);
         assertEquals(TextConstants.ASSIGNMENT_SUBMISSION_WAIT_TIME_NOT_REACHED, e.getCause().getMessage());
     }

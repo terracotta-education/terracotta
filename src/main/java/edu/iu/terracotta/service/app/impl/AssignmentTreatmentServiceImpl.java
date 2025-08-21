@@ -185,7 +185,7 @@ public class AssignmentTreatmentServiceImpl implements AssignmentTreatmentServic
 
     @Override
     public void setAssignmentDtoAttrs(Assignment assignment, String lmsCourseId, LtiUserEntity instructorUser) throws NumberFormatException, ApiException, TerracottaConnectorException {
-        Optional<LmsAssignment> lmsAssignment = apiClient.listAssignment(instructorUser, lmsCourseId, assignment.getLmsAssignmentId());
+        Optional<LmsAssignment> lmsAssignment = apiClient.listAssignment(instructorUser, lmsCourseId, assignment);
 
         if (lmsAssignment.isEmpty()) {
             return;

@@ -10,13 +10,13 @@
 <body>
 
 <script th:inline="javascript">
-    const url = [[${oicdEndpointComplete}]];
-    const targetLinkUri = [[${targetLinkUri}]];
-    const iss = [[${iss}]];
-    const login_hint = [[${login_hint}]];
-    const client_id = [[${client_id}]];
-    const lti_message_hint = [[${lti_message_hint}]];
-    const lti_deployment_id = [[${lti_deployment_id}]];
+    const url = /*[[${oicdEndpointComplete}]]*/ null;
+    const targetLinkUri = /*[[${targetLinkUri}]]*/ null;
+    const iss = /*[[${iss}]]*/ null;
+    const login_hint = /*[[${login_hint}]]*/ null;
+    const client_id = /*[[${client_id}]]*/ null;
+    const lti_message_hint = /*[[${lti_message_hint}]]*/ null;
+    const lti_deployment_id = /*[[${lti_deployment_id}]]*/ null;
 
     function continueOIDCLogin() {
 

@@ -76,7 +76,7 @@ public class LtiContextEntity extends BaseEntity {
     private String settings;
 
     @ManyToOne(
-        fetch = FetchType.LAZY,
+        fetch = FetchType.EAGER,
         optional = false
     )
     @JoinColumn(

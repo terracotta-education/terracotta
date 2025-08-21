@@ -14,14 +14,14 @@ export const conditionService = {
 /**
  * Create Condition
  */
-function create(condition) {
+async function create(experimentId) {
   const requestOptions = {
     method: "POST",
     headers: {...authHeader(), "Content-Type": "application/json"},
-    body: JSON.stringify(condition)
+    body: null
   }
 
-  return fetch(`${store.getters["api/aud"]}/api/experiments/${condition.experiment_experimentId}/conditions`, requestOptions).then(handleResponse);
+  return fetch(`${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions`, requestOptions).then(handleResponse);
 }
 
 /**

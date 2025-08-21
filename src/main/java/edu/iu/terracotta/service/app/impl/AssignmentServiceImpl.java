@@ -1,17 +1,20 @@
 package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.connectors.generic.dao.entity.api.ApiTokenEntity;
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiContextEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsAssignment;
 import edu.iu.terracotta.connectors.generic.dao.repository.api.ApiTokenRepository;
+import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiContextRepository;
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiUserRepository;
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.PlatformDeploymentRepository;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
+import edu.iu.terracotta.connectors.generic.service.lms.LmsUtils;
 import edu.iu.terracotta.connectors.generic.service.api.ApiClient;
 import edu.iu.terracotta.dao.entity.Assessment;
 import edu.iu.terracotta.dao.entity.Assignment;
@@ -107,6 +110,7 @@ public class AssignmentServiceImpl implements AssignmentService {
     @Autowired private ApiTokenRepository apiTokenRepository;
     @Autowired private ExperimentRepository experimentRepository;
     @Autowired private ExposureRepository exposureRepository;
+    @Autowired private LtiContextRepository ltiContextRepository;
     @Autowired private LtiUserRepository ltiUserRepository;
     @Autowired private PlatformDeploymentRepository platformDeploymentRepository;
     @Autowired private SubmissionRepository submissionRepository;
@@ -118,6 +122,7 @@ public class AssignmentServiceImpl implements AssignmentService {
     @Autowired private ComponentUtils componentUtils;
     @Autowired private IntegrationLaunchService integrationLaunchService;
     @Autowired private IntegrationTokenService integrationTokenService;
+    @Autowired private LmsUtils lmsUtils;
     @Autowired private ParticipantService participantService;
     @Autowired private SubmissionService submissionService;
     @Autowired private ApiClient apiClient;
@@ -484,10 +489,12 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     @Override
-    public List<LmsAssignment> getAllAssignmentsForLmsCourse(SecuredInfo securedInfo) throws ApiException, TerracottaConnectorException {
+    public List<LmsAssignment> getAllAssignmentsForLmsCourse(SecuredInfo securedInfo) throws ApiException, TerracottaConnectorException, DataServiceException {
+        LtiContextEntity ltiContext = ltiContextRepository.findById(securedInfo.getContextId())
+            .orElseThrow(() -> new DataServiceException(String.format("Context does not exist for ID: [%s]", securedInfo.getContextId())));
         LtiUserEntity instructorUser = ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
 
-        return apiClient.listAssignments(instructorUser, securedInfo.getLmsCourseId());
+        return apiClient.listAssignments(instructorUser, ltiContext);
     }
 
     @Override
@@ -499,9 +506,10 @@ public class AssignmentServiceImpl implements AssignmentService {
 
     @Override
     public boolean checkLmsAssignmentExists(Assignment assignment, LtiUserEntity instructorUser) throws ApiException, NumberFormatException, TerracottaConnectorException {
-        String lmsCourseId = StringUtils.substringBetween(
-                assignment.getExposure().getExperiment().getLtiContextEntity().getContext_memberships_url(), "courses/",
-                "/names");
+        String lmsCourseId = lmsUtils.parseCourseId(
+            assignment.getExposure().getExperiment().getPlatformDeployment(),
+            assignment.getExposure().getExperiment().getLtiContextEntity().getContext_memberships_url()
+        );
 
         Optional<ApiTokenEntity> apiTokenEntity = apiTokenRepository.findByUser(instructorUser);
 
@@ -512,6 +520,7 @@ public class AssignmentServiceImpl implements AssignmentService {
     public Assignment restoreAssignmentInLms(Assignment assignment) throws ApiException, DataServiceException, ConnectionException, IOException, TerracottaConnectorException {
         LmsAssignment lmsAssignmentReturned = apiClient.restoreAssignment(assignment);
         assignment.setLmsAssignmentId(lmsAssignmentReturned.getId());
+        assignment.setMetadata(lmsAssignmentReturned.getMetadata());
         String jwtTokenAssignment = lmsAssignmentReturned.getSecureParams();
         String resourceLinkId = apiJwtService.unsecureToken(jwtTokenAssignment, assignment.getExposure().getExperiment().getPlatformDeployment()).get("lti_assignment_id").toString();
         assignment.setResourceLinkId(resourceLinkId);
@@ -625,10 +634,11 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     @Override
-    public void createAssignmentInLms(LtiUserEntity instructorUser, Assignment assignment, long experimentId, String lmsCourseId) throws AssignmentNotCreatedException, TerracottaConnectorException {
+    public Assignment createAssignmentInLms(LtiUserEntity instructorUser, Assignment assignment, long experimentId, String lmsCourseId) throws AssignmentNotCreatedException, TerracottaConnectorException {
         try {
             LmsAssignment lmsAssignmentReturned = apiClient.createLmsAssignment(instructorUser, assignment, lmsCourseId);
             assignment.setLmsAssignmentId(lmsAssignmentReturned.getId());
+            assignment.setMetadata(lmsAssignmentReturned.getMetadata());
             String jwtTokenAssignment = lmsAssignmentReturned.getSecureParams();
             String resourceLinkId = apiJwtService.unsecureToken(jwtTokenAssignment, instructorUser.getPlatformDeployment()).get("lti_assignment_id").toString();
             assignment.setResourceLinkId(resourceLinkId);
@@ -636,6 +646,8 @@ public class AssignmentServiceImpl implements AssignmentService {
             log.error("Creating the assignment in the LMS failed", e);
             throw new AssignmentNotCreatedException("Error 137: The assignment was not created in the LMS.");
         }
+
+        return assignment;
     }
 
     @Override

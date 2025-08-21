@@ -4,14 +4,14 @@
       In this section, you'll set up your experiment assignments
     </h1>
     <p>
-      Terracotta will populate Canvas assignments with learning activities and
+      Terracotta will populate {{ lmsTitle }} assignments with learning activities and
       materials that change depending on who's looking at them, automatically
       managing experimental variation within the buckets.
     </p>
     <p>
       All you need to do is create your assignments and specify which treatments
       will be contained with each assignment. From your student's perspective,
-      they'll be completing assignments as normal within Canvas, with no outward
+      they'll be completing assignments as normal within {{ lmsTitle }}, with no outward
       appearance that the assignment is different from any other assignment.
     </p>
     <v-btn
@@ -20,19 +20,33 @@
       :to="{ name: 'AssignmentExposureSets' }"
     >
       Continue
-    </v-btn
-    >
+    </v-btn>
   </div>
 </template>
 
 <script>
+import { mapGetters } from "vuex";
+
 export default {
   name: "AssignmentIntro",
-  props: ['experiment'],
+  props: {
+    experiment: {
+      type: Object,
+      required: true
+    }
+  },
+  computed: {
+    ...mapGetters({
+      configurations: "configuration/get"
+    }),
+    lmsTitle() {
+      return this.configurations?.lmsTitle || "LMS";
+    }
+  },
   methods: {
     saveExit() {
       this.$router.push({
-        name:'Home',
+        name: "Home",
         params:{
           experiment: this.experiment.experimentId
         }})

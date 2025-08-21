@@ -47,14 +47,25 @@
 import { mapActions, mapGetters } from "vuex";
 
 export default {
-  name: 'ParticipationSelectionMethod',
-  props: ['experiment'],
-  data() {
-    return {
-      loading: false,
-      expanded: [0, 1, 2],
-      initialParticipationType: null,
-      panels: [
+  name: "ParticipationSelectionMethod",
+  props: {
+    experiment: {
+      type: Object,
+      required: true
+    }
+  },
+  data: () => ({
+    loading: false,
+    expanded: [0, 1, 2],
+    initialParticipationType: null
+  }),
+  computed: {
+    ...mapGetters({
+      editMode: "navigation/editMode",
+      configurations: "configuration/get"
+    }),
+    panels() {
+      return [
         {
           type: "CONSENT",
           img: {
@@ -62,7 +73,7 @@ export default {
             alt: "invite students"
           },
           header: "Students will be invited to consent",
-          body: "Select this option if you would like to create a consent assignment within Canvas"
+          body: `Select this option if you would like to create a consent assignment within ${this.lmsTitle}`
         },
         {
           type: "MANUAL",
@@ -82,27 +93,25 @@ export default {
           header: "Automatically include all students",
           body: "Select this option if informed consent is not needed to run the study"
         }
-      ]
-    }
-  },
-  computed: {
-    ...mapGetters({
-      editMode: 'navigation/editMode'
-    }),
+      ];
+    },
     getSaveExitPage() {
-      return this.editMode?.callerPage?.name || 'Home';
+      return this.editMode?.callerPage?.name || "Home";
     },
     participationType() {
       return this.experiment.participationType;
     },
     hasParticipantTypeSelected() {
       return this.initialParticipationType && this.initialParticipationType !== "NOSET";
+    },
+    lmsTitle() {
+      return this.configurations?.lmsTitle || "LMS";
     }
   },
   methods: {
     ...mapActions({
-      reportStep: 'api/reportStep',
-      updateExperiment: 'experiment/updateExperiment',
+      reportStep: "api/reportStep",
+      updateExperiment: "experiment/updateExperiment",
     }),
     setParticipationType(type) {
       this.initialParticipationType = type;
@@ -124,7 +133,7 @@ export default {
               switch(e.participationType) {
                 case "CONSENT":
                   this.$router.push({
-                    name:'ParticipationTypeConsentOverview',
+                    name:"ParticipationTypeConsentOverview",
                     params: {
                       experiment: experimentId
                     }
@@ -132,7 +141,7 @@ export default {
                   break;
                 case "MANUAL":
                   this.$router.push({
-                    name:'ParticipationTypeManual',
+                    name:"ParticipationTypeManual",
                     params: {
                       experiment: experimentId
                     }
@@ -140,7 +149,7 @@ export default {
                   break;
                 case "AUTO":
                   this.$router.push({
-                    name:'ParticipationTypeAutoConfirm',
+                    name:"ParticipationTypeAutoConfirm",
                     params: {
                       experiment: experimentId
                     }
@@ -153,13 +162,13 @@ export default {
             } else if (response?.message) {
               this.$swal(`Error: ${response.message}`)
             } else {
-              this.$swal('There was an error saving your experiment.')
+              this.$swal("There was an error saving your experiment.")
             }
           }
         )
         .catch(response => {
             console.error("updateExperiment | catch", {response})
-            this.$swal('There was an error saving the experiment.')
+            this.$swal("There was an error saving the experiment.")
         })
         .finally(
           () => {

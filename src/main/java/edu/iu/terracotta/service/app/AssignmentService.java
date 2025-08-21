@@ -102,7 +102,7 @@ public interface AssignmentService {
     Assignment restoreAssignmentInLms(Assignment assignment) throws DataServiceException, ConnectionException, IOException, ApiException, TerracottaConnectorException;
     void validateTitle(String title) throws TitleValidationException;
     HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, long experimentId, long exposureId, long assignmentId);
-    void createAssignmentInLms(LtiUserEntity instructorUser, Assignment assignment, long experimentId, String lmsCourseId) throws AssignmentNotCreatedException, TerracottaConnectorException;
+    Assignment createAssignmentInLms(LtiUserEntity instructorUser, Assignment assignment, long experimentId, String lmsCourseId) throws AssignmentNotCreatedException, TerracottaConnectorException;
     void editAssignmentNameInLms(Assignment assignment, String lmsCourseId, String newName, LtiUserEntity instructorUser) throws AssignmentNotEditedException, ApiException, TerracottaConnectorException;
     void deleteAssignmentInLms(Assignment assignment, String lmsCourseId, LtiUserEntity instructorUser) throws AssignmentNotEditedException, ApiException, TerracottaConnectorException;
     void deleteAllFromExperiment(Long id, SecuredInfo securedInfo) throws TerracottaConnectorException;
@@ -111,7 +111,7 @@ public interface AssignmentService {
                     AssignmentNotCreatedException, RevealResponsesSettingValidationException, AssignmentNotMatchingException,
                     MultipleAttemptsSettingsValidationException, NumberFormatException, ExceedingLimitException,
                     TreatmentNotMatchingException, ExposureNotMatchingException, AssignmentMoveException, AssignmentNotEditedException, QuestionNotMatchingException, ApiException;
-    List<LmsAssignment> getAllAssignmentsForLmsCourse(SecuredInfo securedInfo) throws ApiException, TerracottaConnectorException;
+    List<LmsAssignment> getAllAssignmentsForLmsCourse(SecuredInfo securedInfo) throws ApiException, TerracottaConnectorException, DataServiceException;
     Optional<LmsAssignment> getLmsAssignmentById(String lmsAssignmentId, SecuredInfo securedInfo) throws ApiException, TerracottaConnectorException;
     boolean isSingleVersion(long assignmentId);
     boolean isSingleVersion(Assignment assignment);
