@@ -31,11 +31,11 @@ public class ConfigurationController {
     public ResponseEntity<ConfigurationDto> get(HttpServletRequest req) throws NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
 
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
+        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
 
-        return new ResponseEntity<>(configurationService.getConfigurations(), HttpStatus.OK);
+        return new ResponseEntity<>(configurationService.getConfigurations(securedInfo.getPlatformDeploymentId()), HttpStatus.OK);
     }
 
 }

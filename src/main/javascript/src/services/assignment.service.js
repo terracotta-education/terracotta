@@ -133,13 +133,12 @@ function handleResponse(response) {
     if (!response || !response.ok) {
       if (response.status === 401 || response.status === 402 || response.status === 500) {
         console.log("handleResponse | 401/402/500",{response})
-      } else if (response.status===404) {
+      } else if (response.status === 404) {
         console.log("handleResponse | 404",{response})
       }
 
       return response
-    } else if (response.status===204) {
-      console.log("handleResponse | 204",{text,data,response})
+    } else if (response.status === 204) {
       return []
     }
 

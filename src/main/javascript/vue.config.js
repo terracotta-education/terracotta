@@ -6,21 +6,21 @@ module.exports = {
   publicPath: "/app/",
   assetsDir: "./",
   pages: {
-    app: 'src/main.js',
-    storageAccessRequest: 'src/storageAccessRequest.js',
-    firstParty: 'src/firstPartyInteraction.js',
+    app: "src/main.js",
+    storageAccessRequest: "src/storageAccessRequest.js",
+    firstParty: "src/firstPartyInteraction.js",
   },
 
   transpileDependencies: [
-    'vuetify'
+    "vuetify"
   ],
   chainWebpack: config => {
     config
       .module
-      .rule('file-loader')
+      .rule("file-loader")
         .test(/\.(doc|docx|csv|xlsx|xls)$/)
-        .use('file-loader')
-          .loader('file-loader')
+        .use("file-loader")
+          .loader("file-loader")
           .options({
             name: `[path][name].[ext]`
           })

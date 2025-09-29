@@ -26,5 +26,6 @@ public interface BaseLmsAssignment extends LmsEntity<LmsAssignment> {
     LmsAssignment from();
     LmsExternalToolFields getLmsExternalToolFields();
     void setLmsExternalToolFields(LmsExternalToolFields lmsExternalToolFields);
+    String getGradingType();
 
 }

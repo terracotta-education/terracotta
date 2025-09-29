@@ -37,8 +37,11 @@ import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.app.ConditionService;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.ExposureService;
+import edu.iu.terracotta.service.app.FeatureService;
+import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.service.app.ParticipantService;
 import edu.iu.terracotta.service.app.async.AssignmentAsyncService;
+import edu.iu.terracotta.service.app.async.ParticipantAsyncService;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.collections4.CollectionUtils;
@@ -70,10 +73,12 @@ public class ExperimentServiceImpl implements ExperimentService {
     @Autowired private ParticipantRepository participantRepository;
     @Autowired private PlatformDeploymentRepository platformDeploymentRepository;
     @Autowired private AssignmentService assignmentService;
-    @Autowired private AssignmentAsyncService asyncService;
+    @Autowired private AssignmentAsyncService assignmentAsyncService;
     @Autowired private ConditionService conditionService;
     @Autowired private ExposureService exposureService;
-    @Autowired private FileStorageServiceImpl fileStorageService;
+    @Autowired private FeatureService featureService;
+    @Autowired private FileStorageService fileStorageService;
+    @Autowired private ParticipantAsyncService participantAsyncService;
     @Autowired private ParticipantService participantService;
 
     @Override
@@ -85,15 +90,18 @@ public class ExperimentServiceImpl implements ExperimentService {
             experimentDtoList.add(toDto(experiment, false, false, false, securedInfo));
         }
 
-        // sync assignments with LMS, if configured
+        // sync data with LMS, if configured
         if (syncWithLms) {
             try {
-                log.info("Starting assignment sync in LMS.");
-                asyncService.checkAndRestoreAssignmentsInLmsByContext(securedInfo);
-                asyncService.handleObsoleteAssignmentsInLmsByContext(securedInfo);
-                log.info("Assignment sync in LMS finished.");
+                log.info("Starting data sync in LMS.");
+                assignmentAsyncService.checkAndRestoreAssignmentsInLmsByContext(securedInfo);
+                assignmentAsyncService.handleObsoleteAssignmentsInLmsByContext(securedInfo);
+
+                if (CollectionUtils.isNotEmpty(experiments)) {
+                    participantAsyncService.updateParticipantData(experiments.get(0).getExperimentId(), securedInfo);
+                }
             } catch (ApiException | DataServiceException | ConnectionException | IOException | TerracottaConnectorException e) {
-                log.error("Error syncing assignments with LMS. Context ID: '{}'", securedInfo.getContextId(), e);
+                log.error("Error syncing data with LMS. Context ID: '{}'", securedInfo.getContextId(), e);
             }
         }
 
@@ -118,7 +126,16 @@ public class ExperimentServiceImpl implements ExperimentService {
             throw new DataServiceException("Error 105: Unable to create the experiment:" + e.getMessage(), e);
         }
 
-        return toDto(save(experiment), false, false, false, securedInfo);
+        experiment = save(experiment);
+
+        try {
+            log.info("Starting data sync in LMS.");
+            participantAsyncService.updateParticipantData(experiment.getExperimentId(), securedInfo);
+        } catch (ApiException | DataServiceException | ConnectionException | IOException | TerracottaConnectorException e) {
+            log.error("Error syncing data with LMS. Experiment ID: '{}'", experiment.getExperimentId(), e);
+        }
+
+        return toDto(experiment, false, false, false, securedInfo);
     }
 
     @Override
@@ -241,6 +258,8 @@ public class ExperimentServiceImpl implements ExperimentService {
         experimentDto.setCreatedAt(experiment.getCreatedAt());
         experimentDto.setUpdatedAt(experiment.getUpdatedAt());
         experimentDto.setCreatedBy(experiment.getCreatedBy().getUserId());
+        experimentDto.setCreatedByEmail(experiment.getCreatedBy().getEmail());
+        experimentDto.setFeatures(featureService.toDto(experiment.getPlatformDeployment().getFeatures()));
         List<ConditionDto> conditionDtoList = new ArrayList<>();
 
         if (conditions) {
@@ -346,7 +365,7 @@ public class ExperimentServiceImpl implements ExperimentService {
         experiment.setDistributionType(EnumUtils.getEnum(DistributionTypes.class, experimentDto.getDistributionType(), DistributionTypes.NOSET));
         experiment.setStarted(experimentDto.getStarted());
         experiment.setClosed(experimentDto.getClosed());
-        LtiUserEntity user = ltiUserRepository.findByUserIdAndPlatformDeployment_KeyId(experimentDto.getCreatedBy(),platformDeployment.get().getKeyId());
+        LtiUserEntity user = ltiUserRepository.findFirstByUserIdAndPlatformDeployment_KeyId(experimentDto.getCreatedBy(),platformDeployment.get().getKeyId());
 
         if (user == null) {
             throw new DataServiceException("The user specified to create the experiment does not exist or does not belong to this course");
@@ -380,7 +399,7 @@ public class ExperimentServiceImpl implements ExperimentService {
         //than the one in the token.
         experimentDto.setContextId(securedInfo.getContextId());
         experimentDto.setPlatformDeploymentId(securedInfo.getPlatformDeploymentId());
-        LtiUserEntity user = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
+        LtiUserEntity user = ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
 
         if (user != null) {
             experimentDto.setCreatedBy(user.getUserId());

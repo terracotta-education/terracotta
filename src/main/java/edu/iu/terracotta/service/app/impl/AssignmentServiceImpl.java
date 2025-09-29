@@ -56,6 +56,7 @@ import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.service.app.AssessmentService;
 import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.app.AssignmentTreatmentService;
+import edu.iu.terracotta.service.app.ComponentUtils;
 import edu.iu.terracotta.service.app.ParticipantService;
 import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.service.app.integrations.IntegrationLaunchService;
@@ -82,7 +83,6 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -115,17 +115,18 @@ public class AssignmentServiceImpl implements AssignmentService {
     @Autowired private AssessmentService assessmentService;
     @Autowired private AssignmentTreatmentService assignmentTreatmentService;
     @Autowired private CaliperService caliperService;
-    @Autowired private ApiClient apiClient;
+    @Autowired private ComponentUtils componentUtils;
     @Autowired private IntegrationLaunchService integrationLaunchService;
     @Autowired private IntegrationTokenService integrationTokenService;
     @Autowired private ParticipantService participantService;
     @Autowired private SubmissionService submissionService;
+    @Autowired private ApiClient apiClient;
 
     @PersistenceContext private EntityManager entityManager;
 
     @Override
     public List<Assignment> findAllByExposureId(long exposureId, boolean includeDeleted) {
-        return assignmentRepository.findByExposure_ExposureIdAndSoftDeleted(exposureId, includeDeleted);
+        return assignmentRepository.findByExposure_ExposureIdAndSoftDeletedOrderByAssignmentOrderAsc(exposureId, includeDeleted);
     }
 
     @Override
@@ -138,7 +139,7 @@ public class AssignmentServiceImpl implements AssignmentService {
         }
 
         List<AssignmentDto> assignmentDtoList = new ArrayList<>();
-        LtiUserEntity instructorUser = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
+        LtiUserEntity instructorUser = ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
 
         for (Assignment assignment : assignments) {
             if (instructorUser != null) {
@@ -160,7 +161,7 @@ public class AssignmentServiceImpl implements AssignmentService {
             throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
         }
 
-        LtiUserEntity instructorUser = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
+        LtiUserEntity instructorUser = ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
         Assignment assignment = createAssignment(assignmentDto, experimentId, securedInfo.getLmsCourseId(), exposureId, instructorUser);
 
         assignmentTreatmentService.setAssignmentDtoAttrs(assignment, securedInfo.getLmsCourseId(), instructorUser);
@@ -187,7 +188,7 @@ public class AssignmentServiceImpl implements AssignmentService {
             throw new DataServiceException("Error 105: Unable to create Assignment: " + e.getMessage());
         }
 
-        assignment.setAssignmentOrder(calculateNextAssignmentOrder(exposureId));
+        assignment.setAssignmentOrder(componentUtils.calculateNextOrder(exposureId, instructorUser));
 
         Assignment assignmentSaved = save(assignment);
         createAssignmentInLms(instructorUser, assignmentSaved, experimentId, lmsCourseId);
@@ -278,7 +279,7 @@ public class AssignmentServiceImpl implements AssignmentService {
 
         if (!assignment.getTitle().equals(assignmentDto.getTitle())) {
             assignment.setTitle(assignmentDto.getTitle());
-            LtiUserEntity instructorUser = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
+            LtiUserEntity instructorUser = ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
             editAssignmentNameInLms(assignment, securedInfo.getLmsCourseId(), assignmentDto.getTitle(), instructorUser);
         }
 
@@ -329,7 +330,7 @@ public class AssignmentServiceImpl implements AssignmentService {
             return;
         }
 
-        LtiUserEntity instructorUser = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
+        LtiUserEntity instructorUser = ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
         deleteAssignmentInLms(assignment.get(), securedInfo.getLmsCourseId(), instructorUser);
 
         long submissionsCount = submissionRepository.countByAssessment_Treatment_Assignment_AssignmentId(id);
@@ -384,7 +385,7 @@ public class AssignmentServiceImpl implements AssignmentService {
 
         //4. Maybe create the submission and return it (it must include info about the assessment)
         // First, try to find the submissions for this assessment and participant.
-        List<Submission> submissionList = submissionRepository.findByParticipant_ParticipantIdAndAssessment_AssessmentId(participant.getParticipantId(), assessment.getAssessmentId());
+        List<Submission> submissionList = submissionRepository.findByParticipant_IdAndAssessment_AssessmentId(participant.getParticipantId(), assessment.getAssessmentId());
 
         if (CollectionUtils.isNotEmpty(submissionList)) {
             for (Submission submission : submissionList) {
@@ -462,7 +463,7 @@ public class AssignmentServiceImpl implements AssignmentService {
         List<Assignment> assignmentsToCheck = assignmentRepository.findAssignmentsToCheckByPlatform(platformDeploymentKeyId);
 
         for (Assignment assignment : assignmentsToCheck) {
-            LtiUserEntity instructorUser = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(
+            LtiUserEntity instructorUser = ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(
                 assignment.getExposure().getExperiment().getCreatedBy().getUserKey(),
                 platformDeploymentKeyId
             );
@@ -475,14 +476,14 @@ public class AssignmentServiceImpl implements AssignmentService {
 
     @Override
     public List<LmsAssignment> getAllAssignmentsForLmsCourse(SecuredInfo securedInfo) throws ApiException, TerracottaConnectorException {
-        LtiUserEntity instructorUser = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
+        LtiUserEntity instructorUser = ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
 
         return apiClient.listAssignments(instructorUser, securedInfo.getLmsCourseId());
     }
 
     @Override
     public Optional<LmsAssignment> getLmsAssignmentById(String lmsAssignmentId, SecuredInfo securedInfo) throws ApiException, TerracottaConnectorException {
-        LtiUserEntity instructorUser = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
+        LtiUserEntity instructorUser = ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
 
         return apiClient.listAssignment(instructorUser, securedInfo.getLmsCourseId(), lmsAssignmentId);
     }
@@ -634,7 +635,7 @@ public class AssignmentServiceImpl implements AssignmentService {
             apiClient.editAssignmentNameInLms(assignment, lmsCourseId, newName, instructorUser);
         } catch (ApiException | IOException e) {
             log.error("Editing the LMS assignment ID: [{}] failed", assignment.getAssignmentId(), e);
-            throw new AssignmentNotEditedException("Error 137: The assignment was not created in the LMS.");
+            throw new AssignmentNotEditedException("Error 137: The assignment was not edited in the LMS.");
         }
     }
 
@@ -644,7 +645,7 @@ public class AssignmentServiceImpl implements AssignmentService {
             apiClient.deleteAssignmentInLms(assignment, lmsCourseId, instructorUser);
         } catch (ApiException | IOException e) {
             log.error("Deleting the assignment failed", e);
-            throw new AssignmentNotEditedException("Error 137: The assignment was not created.");
+            throw new AssignmentNotEditedException("Error 137: The assignment was not deleted.");
         }
     }
 
@@ -661,7 +662,7 @@ public class AssignmentServiceImpl implements AssignmentService {
                 deleteAssignmentInLms(
                     assignment,
                     securedInfo.getLmsCourseId(),
-                    ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId())
+                    ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId())
                 );
             } catch (ApiException | AssignmentNotEditedException e) {
                 log.warn("Assignment : {} was not deleted in the LMS", assignment.getTitle());
@@ -697,7 +698,7 @@ public class AssignmentServiceImpl implements AssignmentService {
             from.getExposure().getExperiment().getExperimentId(),
             securedInfo.getLmsCourseId(),
             from.getExposure().getExposureId(),
-            ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId())
+            ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId())
         );
 
         // duplicate treatments
@@ -705,7 +706,7 @@ public class AssignmentServiceImpl implements AssignmentService {
             assignmentTreatmentService.duplicateTreatment(treatment.getTreatmentId(), newAssignment, securedInfo);
         }
 
-        assignmentTreatmentService.setAssignmentDtoAttrs(newAssignment, securedInfo.getLmsCourseId(), ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId()));
+        assignmentTreatmentService.setAssignmentDtoAttrs(newAssignment, securedInfo.getLmsCourseId(), ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId()));
 
         return assignmentTreatmentService.toAssignmentDto(newAssignment, false, true);
     }
@@ -734,7 +735,7 @@ public class AssignmentServiceImpl implements AssignmentService {
         }
 
         assignment.setExposure(exposure);
-        assignment.setAssignmentOrder(calculateNextAssignmentOrder(targetAssignmentDto.getExposureId()));
+        assignment.setAssignmentOrder(componentUtils.calculateNextOrder(targetAssignmentDto.getExposureId(), exposure.getExperiment().getCreatedBy()));
         assignmentRepository.save(assignment);
 
         return assignmentTreatmentService.toAssignmentDto(assignment, false, true);
@@ -756,18 +757,4 @@ public class AssignmentServiceImpl implements AssignmentService {
         return assignmentTreatments.size() <= 1;
     }
 
-    private int calculateNextAssignmentOrder(long exposureId) {
-        // get a list of all assignments in the given exposure set; ordered by assignment order descending
-        List<Assignment> exposureAssignments = assignmentRepository.findByExposure_ExposureIdAndSoftDeleted(exposureId, false).stream()
-            .sorted(Comparator.comparing(Assignment::getAssignmentOrder).reversed())
-            .toList();
-
-        if (CollectionUtils.isNotEmpty(exposureAssignments)) {
-            // set the assignment order to be the next one in the list
-            return exposureAssignments.get(0).getAssignmentOrder() + 1;
-        }
-
-        // if there are no assignments, set the order to 1
-        return 1;
-    }
 }

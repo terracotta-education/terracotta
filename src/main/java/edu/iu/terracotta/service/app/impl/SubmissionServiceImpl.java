@@ -1,6 +1,8 @@
 package edu.iu.terracotta.service.app.impl;
 
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsSubmission;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.LtiToken;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.LineItem;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.LineItems;
@@ -73,6 +75,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -121,7 +124,7 @@ public class SubmissionServiceImpl implements SubmissionService {
 
         //for student
         Participant participant = findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, userId);
-        List<Submission> submissions = submissionRepository.findByParticipant_ParticipantId(participant.getParticipantId());
+        List<Submission> submissions = submissionRepository.findByParticipant_Id(participant.getParticipantId());
 
         if (submissions.isEmpty()) {
             throw new NoSubmissionsException("There are no existing submissions for current user.");
@@ -145,7 +148,7 @@ public class SubmissionServiceImpl implements SubmissionService {
 
         //for student
         Participant participant = findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, userId);
-        Optional<Submission> submission = submissionRepository.findByParticipant_ParticipantIdAndSubmissionId(participant.getParticipantId(), submissionId);
+        Optional<Submission> submission = submissionRepository.findByParticipant_IdAndSubmissionId(participant.getParticipantId(), submissionId);
 
         if (submission.isEmpty()) {
             throw new NoSubmissionsException("A submission for participant " + participant.getParticipantId() + "  with id " + submissionId + " not found");
@@ -497,7 +500,7 @@ public class SubmissionServiceImpl implements SubmissionService {
      * @return null if all submissions require manual grading
      */
     public Float getScoreFromMultipleSubmissions(Participant participant, Assessment assessment) {
-        List<Submission> submissionList = submissionRepository.findByParticipant_ParticipantIdAndAssessment_AssessmentIdAndDateSubmittedNotNullOrderByDateSubmitted(
+        List<Submission> submissionList = submissionRepository.findByParticipant_IdAndAssessment_AssessmentIdAndDateSubmittedNotNullOrderByDateSubmitted(
                 participant.getParticipantId(), assessment.getAssessmentId());
 
         // Handle case where only one submission is allowed
@@ -647,7 +650,7 @@ public class SubmissionServiceImpl implements SubmissionService {
     @Override
     public void validateUser(Long experimentId, String userId, Long submissionId) throws InvalidUserException {
         Participant participant = participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, userId);
-        Optional<Submission> submission = submissionRepository.findByParticipant_ParticipantIdAndSubmissionId(participant.getParticipantId(), submissionId);
+        Optional<Submission> submission = submissionRepository.findByParticipant_IdAndSubmissionId(participant.getParticipantId(), submissionId);
 
         if (submission.isEmpty()) {
             throw new InvalidUserException("Error 121: Students can only access answer submissions from their own submissions. Submission with id "
@@ -775,6 +778,18 @@ public class SubmissionServiceImpl implements SubmissionService {
             submissionsCount,
             submission.getIntegration()
         );
+    }
+
+    @Override
+    public Map<String, List<LmsSubmission>> getAllSubmissionsForMultipleAssignments(LtiUserEntity ltiUserEntity, String lmsCourseId, List<String> lmsAssignmentIds) throws ApiException, TerracottaConnectorException, IOException {
+        Map<String, List<LmsSubmission>> submissionsMap = new HashMap<>();
+
+        for (String lmsAssignmentId : lmsAssignmentIds) {
+            List<LmsSubmission> submissions = apiClient.listSubmissions(ltiUserEntity, lmsAssignmentId, lmsCourseId);
+            submissionsMap.put(lmsAssignmentId, submissions);
+        }
+
+        return submissionsMap;
     }
 
 }

@@ -43,7 +43,7 @@ public class TreatmentPreviewServiceImpl implements TreatmentPreviewService {
             TreatmentPreview.builder()
                 .condition(conditionRepository.findByConditionId(conditionId))
                 .experiment(experiment)
-                .owner(ltiUserRepository.findByUserKeyAndPlatformDeployment(ownerId, experiment.getPlatformDeployment()))
+                .owner(ltiUserRepository.findFirstByUserKeyAndPlatformDeployment(ownerId, experiment.getPlatformDeployment()))
                 .treatment(treatmentRepository.findByTreatmentId(treatmentId))
                 .build());
     }

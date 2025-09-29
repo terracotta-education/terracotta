@@ -409,6 +409,7 @@
 <script>
 import { mapActions, mapGetters, mapMutations } from "vuex";
 import { assessmentService } from '@/services';
+import { shrinkContainer, widenContainer } from "@/helpers/ui-utils.js";
 import draggable from 'vuedraggable';
 import FileUploadQuestionEditor from "./FileUploadQuestionEditor.vue";
 import ExternalIntegrationEditor from "@/views/integrations/ExternalIntegrationEditor.vue";
@@ -666,7 +667,7 @@ export default {
       let integrationClientId = this.integrationClients.find((integrationClient) => integrationClient.name === integrationName).id;
       this.treatmentOptionSelected = true;
       await this.handleAddQuestion('INTEGRATION', integrationClientId);
-      this.widenContainer();
+      widenContainer();
     },
     async handleAddQuestion(questionType, integrationClientId = null) {
       try {
@@ -1010,16 +1011,6 @@ export default {
       }
 
       this.regradeDetails.editedMCQuestionIds.push(questionId);
-    },
-    widenContainer() {
-      const element = document.getElementsByClassName("steps-container-col")[0];
-      element.classList.remove("col-md-6");
-      element.classList.add("col-md-10");
-    },
-    shrinkContainer() {
-      const element = document.getElementsByClassName("steps-container-col")[0];
-      element.classList.remove("col-md-10");
-      element.classList.add("col-md-6");
     }
   },
   async created() {
@@ -1040,10 +1031,10 @@ export default {
     this.treatmentOptionSelected = this.questions.length;
   },
   mounted() {
-    this.widenContainer();
+    widenContainer();
   },
   beforeUnmount() {
-    this.shrinkContainer();
+    shrinkContainer();
   }
 };
 </script>

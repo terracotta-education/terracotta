@@ -255,6 +255,7 @@
                               Balanced Exposure Sets
                             </strong>
                             Your exposure sets contain all the same number components, and components contain the same number of treatments. Great work!
+                            Single version {{ isMessagingEnabled ? 'messages and' : '' }} assignments do not count toward balance.
                           </span>
                           <span
                             v-if="!balanced"
@@ -264,17 +265,17 @@
                             >
                               Unbalanced Exposure Sets
                             </strong>
-                            A balanced experiment needs to have the same number of components within each exposure set, and a treatment for each condition within each component.
-                            This will allow your students to be exposed to every condition, but in different orders, so you can compare how the different conditions affected each
-                            individual student.
+                            A balanced experiment needs to have the same number of {{ isMessagingEnabled ? 'assignments, integrations, and/or messages' : 'assignments and integrations' }} within each exposure set, and a treatment for each condition.
+                            This will expose your students to every condition, but in different orders, so you can compare how the different conditions affected each student.
+                            Single version {{ isMessagingEnabled ? 'messages and' : '' }} assignments do not count toward balance.
                           </span>
                         </v-tooltip>
                       </span>
                     </div>
                     <experiment-assignments
+                      v-if="loaded"
                       :experiment="experiment"
                       :balanced="balanced"
-                      :loaded="loaded"
                       :activeExposureSet="exposureSet"
                     />
                   </div>
@@ -526,10 +527,9 @@ export default {
         tab: "results"
       }
     ],
-    conditionTreatments: {},
     conditionColors: [""],
     isLoading: true,
-    exposureSet: 0,
+    exposureSet: 0, // exposure set tab index
     loadPdfFrame: false,
     pdfFile: null,
     pdfLoading: false,
@@ -571,7 +571,8 @@ export default {
       conditionColorMapping: "condition/conditionColorMapping",
       editMode: "navigation/editMode",
       dataExportRequests: "dataexportrequest/dataExportRequests",
-      configurations: "configuration/get"
+      configurations: "configuration/get",
+      allMessageContainers: "messagingMessageContainer/messageContainers"
     }),
     // Higher Level Section Values
     sectionValuesMap() {
@@ -598,9 +599,19 @@ export default {
         .map(
           (exposure) => {
             return this.assignments
-              .filter((assignment) => assignment.treatments.length > 1)
               .filter((assignment) => assignment.exposureId === exposure.exposureId)
-              .length;
+              .filter((assignment) => assignment.treatments.length > 1)
+              .length
+              +
+              (
+                this.isMessagingEnabled ?
+                this.allMessageContainers
+                .filter((messageContainer) => messageContainer.exposureId === exposure.exposureId)
+                .filter((messageContainer) => messageContainer.messages.length > 1)
+                .length
+                :
+                0
+              );
           }
         )
         .every((v, i, arr) => v === arr[0]);
@@ -779,6 +790,9 @@ export default {
     },
     experimentExportEnabled() {
       return this.configurations?.experimentExportEnabled;
+    },
+    isMessagingEnabled() {
+      return this.configurations?.messagingEnabled || false;
     }
   },
   methods: {
@@ -799,7 +813,8 @@ export default {
       pollDataExportRequests: "dataexportrequest/pollList",
       dataExportRequestAcknowledge: "dataexportrequest/acknowledge",
       exportExperiment: "experiment/exportExperiment",
-      importExperiment: "experiment/importExperiment"
+      importExperiment: "experiment/importExperiment",
+      getAllMessageContainers: "messagingMessageContainer/getAll"
     }),
     saveExit() {
       this.$router.push({ name: "Home" });
@@ -830,17 +845,6 @@ export default {
     async getAssignmentDetails() {
       await this.fetchExposures(this.experimentId);
       return this.exposures;
-    },
-    hasTreatment(conditionId, assignmentId) {
-      const assignmentBasedOnConditions = this.conditionTreatments[
-        +conditionId
-      ];
-
-      return (
-        assignmentBasedOnConditions?.find(
-          (assignment) => assignment.assignmentId === assignmentId
-        ) !== undefined
-      );
     },
     async handleCreateTreatment(conditionId, assignmentId) {
       // POST TREATMENT
@@ -1084,24 +1088,25 @@ export default {
     }
 
     await this.fetchExposures(this.experimentId);
-    for (const e of this.exposures) {
+
+    for (const exposure of this.exposures) {
       // add submissions to assignments request
       const submissions = true;
-      await this.fetchAssignmentsByExposure([
-        this.experimentId,
-        e.exposureId,
-        submissions,
-      ]);
+      await this.fetchAssignmentsByExposure(
+        [
+          this.experimentId,
+          exposure.exposureId,
+          submissions,
+        ]
+      );
+      await this.getAllMessageContainers(
+        [
+          this.experimentId,
+          exposure.exposureId
+        ]
+      );
     }
-    for (let c of this.conditions) {
-      // find treatment for this condition
-      for (let a of this.assignments) {
-        this.conditionTreatments[c.conditionId] = a.treatments.find((t) => t.conditionId === c.conditionId);
-        if (this.conditionTreatments[c.conditionId]) {
-          break;
-        }
-      }
-    }
+
     this.getAssignmentDetails();
     this.isLoading = false;
   },

@@ -12,7 +12,7 @@ import java.util.UUID;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -55,10 +55,11 @@ public class ExperimentDataExportAsyncServiceImpl implements ExperimentDataExpor
             experimentDataExport.setFileName(
                 String.format(
                     ExperimentDataExport.FILE_NAME,
-                    StringUtils.replace(experimentDataExport.getExperimentTitle(), " ", "_"),
+                    Strings.CS.replace(experimentDataExport.getExperimentTitle(), " ", "_"),
                     new SimpleDateFormat("yyyy-MM-dd'T'HH-mm").format(experimentDataExport.getCreatedAt())
                 )
             );
+
             File zipFile = generateZipFile(exportService.getFiles(experimentDataExport.getExperimentId(), securedInfo));
             fileStorageService.saveExperimentDataExport(experimentDataExport, zipFile);
             experimentDataExport.setStatus(ExperimentDataExportStatus.READY);

@@ -2,11 +2,18 @@ package edu.iu.terracotta.connectors.canvas.service.api.impl;
 
 import edu.iu.terracotta.connectors.canvas.dao.model.extended.AssignmentExtended;
 import edu.iu.terracotta.connectors.canvas.dao.model.extended.CourseExtended;
+import edu.iu.terracotta.connectors.canvas.dao.model.extended.FolderExtended;
+import edu.iu.terracotta.connectors.canvas.dao.model.extended.options.GetSubmissionsOptionsExtended;
 import edu.iu.terracotta.connectors.canvas.service.extended.AssignmentReaderExtended;
 import edu.iu.terracotta.connectors.canvas.service.extended.AssignmentWriterExtended;
+import edu.iu.terracotta.connectors.canvas.service.extended.ConversationReaderExtended;
+import edu.iu.terracotta.connectors.canvas.service.extended.ConversationWriterExtended;
 import edu.iu.terracotta.connectors.canvas.service.extended.CourseReaderExtended;
 import edu.iu.terracotta.connectors.canvas.service.extended.CourseWriterExtended;
+import edu.iu.terracotta.connectors.canvas.service.extended.FileReaderExtended;
+import edu.iu.terracotta.connectors.canvas.service.extended.FolderReaderExtended;
 import edu.iu.terracotta.connectors.canvas.service.extended.SubmissionReaderExtended;
+import edu.iu.terracotta.connectors.canvas.service.extended.UserReaderExtended;
 import edu.iu.terracotta.connectors.canvas.service.extended.impl.CanvasApiFactoryExtended;
 import edu.iu.terracotta.connectors.canvas.service.lms.impl.CanvasLmsOAuthServiceImpl;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
@@ -16,9 +23,15 @@ import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
 import edu.iu.terracotta.connectors.generic.dao.model.enums.LmsConnector;
 import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsAssignment;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsConversation;
 import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsCourse;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsFile;
 import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsSubmission;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsUser;
 import edu.iu.terracotta.connectors.generic.dao.model.lms.base.LmsEntity;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.options.LmsCreateConversationOptions;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.options.LmsGetSingleConversationOptions;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.options.LmsGetUsersInCourseOptions;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.Score;
 import edu.iu.terracotta.connectors.generic.exceptions.LmsOAuthException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
@@ -27,21 +40,27 @@ import edu.iu.terracotta.dao.entity.Assignment;
 import edu.iu.terracotta.dao.entity.ConsentDocument;
 import edu.iu.terracotta.dao.entity.Experiment;
 import edu.iu.terracotta.dao.entity.Submission;
+import edu.ksu.canvas.exception.CanvasException;
 import edu.ksu.canvas.exception.ObjectNotFoundException;
 import edu.ksu.canvas.interfaces.CanvasReader;
 import edu.ksu.canvas.interfaces.CanvasWriter;
 import edu.ksu.canvas.model.assignment.Assignment.ExternalToolTagAttribute;
 import edu.ksu.canvas.oauth.NonRefreshableOauthToken;
 import edu.ksu.canvas.oauth.OauthToken;
+import edu.ksu.canvas.requestOptions.CreateConversationOptions;
 import edu.ksu.canvas.requestOptions.GetSingleAssignmentOptions;
+import edu.ksu.canvas.requestOptions.GetSingleConversationOptions;
 import edu.ksu.canvas.requestOptions.GetSubmissionsOptions;
+import edu.ksu.canvas.requestOptions.GetUsersInCourseOptions;
 import edu.ksu.canvas.requestOptions.ListCourseAssignmentsOptions;
 import edu.ksu.canvas.requestOptions.ListUserCoursesOptions;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.EnumUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -284,12 +303,12 @@ public class CanvasApiClientImpl implements ApiClient {
                 assignmentExtended -> {
                     String[] baseUrl = StringUtils.splitByWholeSeparator(assignmentExtended.getAssignment().getExternalToolTagAttributes().getUrl(), "/lti3");
 
-                    return ArrayUtils.isNotEmpty(baseUrl) || !StringUtils.equalsIgnoreCase(baseUrl[0], platformDeployment.getLocalUrl());
+                    return ArrayUtils.isNotEmpty(baseUrl) || !Strings.CI.equals(baseUrl[0], platformDeployment.getLocalUrl());
                 }
             )
             .map(
                 assignmentToUpdate -> {
-                    String updatedTargetLinkUri = StringUtils.replaceOnce(
+                    String updatedTargetLinkUri = Strings.CS.replaceOnce(
                         assignmentToUpdate.getAssignment().getExternalToolTagAttributes().getUrl(),
                         StringUtils.splitByWholeSeparator(assignmentToUpdate.getAssignment().getExternalToolTagAttributes().getUrl(), "/lti3")[0],
                         platformDeployment.getLocalUrl()
@@ -350,7 +369,8 @@ public class CanvasApiClientImpl implements ApiClient {
     @Override
     public List<LmsSubmission> listSubmissions(LtiUserEntity apiUser, String canvasAssignmentId, String canvasCourseId) throws ApiException, IOException {
         GetSubmissionsOptions submissionsOptions = new GetSubmissionsOptions(canvasCourseId, Long.parseLong(canvasAssignmentId));
-        submissionsOptions.includes(Collections.singletonList(GetSubmissionsOptions.Include.USER));
+        submissionsOptions.includes(List.of(GetSubmissionsOptions.Include.USER));
+        submissionsOptions.userIds(List.of(GetSubmissionsOptionsExtended.UserId.ALL.toString()));
 
         try {
             return castList(
@@ -358,9 +378,23 @@ public class CanvasApiClientImpl implements ApiClient {
                     .getCourseSubmissions(submissionsOptions)
             );
         } catch (Exception e) {
-            throw new ApiException(String.format("Failed to list submissions for the assignment with ID [%s] in the course with ID [%s] in Canvas", canvasAssignmentId, canvasCourseId), e);
+            throw new ApiException(String.format("Failed to list submissions for the assignment with ID: [%s] in the course with ID: [%s] in Canvas", canvasAssignmentId, canvasCourseId), e);
         }
+    }
 
+    @Override
+    public List<LmsSubmission> listSubmissionsForMultipleAssignments(LtiUserEntity apiUser, String canvasCourseId, List<String> canvasAssignmentIds) throws ApiException, IOException, TerracottaConnectorException {
+        GetSubmissionsOptionsExtended submissionsOptions = new GetSubmissionsOptionsExtended(canvasCourseId, canvasAssignmentIds);
+        submissionsOptions.includes(Collections.singletonList(GetSubmissionsOptions.Include.USER));
+
+        try {
+            return castList(
+                getReader(apiUser, SubmissionReaderExtended.class)
+                    .listSubmissionsForMultipleAssignments(submissionsOptions)
+            );
+        } catch (Exception e) {
+            throw new ApiException(String.format("Failed to list submissions for the assignments with IDs: [%s] in the course with ID: [%s] in Canvas", String.join(",", canvasAssignmentIds), canvasCourseId), e);
+        }
     }
 
     @Override
@@ -381,6 +415,116 @@ public class CanvasApiClientImpl implements ApiClient {
         submissionData.put("submitted_at", dateSubmittedFormatted);
 
         score.setLmsSubmissionExtension(submissionData);
+    }
+
+    @Override
+    public List<LmsConversation> sendConversation(LmsCreateConversationOptions lmsCreateConversationOptions, LtiUserEntity apiUser) throws ApiException {
+        CreateConversationOptions createConversationOptions = new CreateConversationOptions(
+            lmsCreateConversationOptions.getLmsUserId(),
+            lmsCreateConversationOptions.getBody()
+        );
+        createConversationOptions.attachmentIds(lmsCreateConversationOptions.getAttachmentIds().stream().map(Long::parseLong).collect(Collectors.toList()));
+        createConversationOptions.forceNew(lmsCreateConversationOptions.isForceNew());
+        createConversationOptions.groupConversation(lmsCreateConversationOptions.isGroupConversation());
+        createConversationOptions.subject(lmsCreateConversationOptions.getSubject());
+
+        try {
+            return castList(getWriter(apiUser, ConversationWriterExtended.class).createConversation(createConversationOptions));
+        } catch (IOException | CanvasException ex) {
+            throw new ApiException(
+                String.format("Failed to send a conversation from Canvas user ID: [%s] to Canvas user ID: [%s] in Canvas",
+                    apiUser.getLmsUserId(),
+                    StringUtils.join(createConversationOptions.getOptionsMap().get("recipients[]"), ',')
+                ),
+                ex
+            );
+        }
+    }
+
+    @Override
+    public Optional<LmsConversation> getConversation(LmsGetSingleConversationOptions lmsGetSingleConversationOptions, LtiUserEntity apiUser) throws ApiException {
+        GetSingleConversationOptions getSingleConversationOptions = new GetSingleConversationOptions(Long.parseLong(lmsGetSingleConversationOptions.getConversationId()));
+        getSingleConversationOptions.autoMarkAsRead(lmsGetSingleConversationOptions.isAutoMarkAsRead());
+
+        try {
+            return castOptional(getReader(apiUser, ConversationReaderExtended.class).getSingleConversation(getSingleConversationOptions));
+        } catch (IOException | CanvasException ex) {
+            throw new ApiException(String.format("Failed to get conversation with ID: [%s] for Canvas user ID: [%s]", getSingleConversationOptions.getConversationId(), apiUser.getLmsUserId()), ex);
+        }
+    }
+
+    @Override
+    public List<LmsUser> listUsersForCourse(LmsGetUsersInCourseOptions lmsGetUsersInCourseOptions, LtiUserEntity apiUser) throws ApiException {
+        List<GetUsersInCourseOptions.EnrollmentState> enrollmentStates = lmsGetUsersInCourseOptions.getEnrollmentState().stream()
+            .map(enrollmentState -> EnumUtils.getEnumIgnoreCase(GetUsersInCourseOptions.EnrollmentState.class, enrollmentState.toString(), GetUsersInCourseOptions.EnrollmentState.ACTIVE))
+            .toList();
+        List<GetUsersInCourseOptions.EnrollmentType> enrollmentTypes = lmsGetUsersInCourseOptions.getEnrollmentType().stream()
+            .map(enrollmentType -> EnumUtils.getEnumIgnoreCase(GetUsersInCourseOptions.EnrollmentType.class, enrollmentType.toString(), GetUsersInCourseOptions.EnrollmentType.STUDENT))
+            .toList();
+        GetUsersInCourseOptions getUsersInCourseOptions = new GetUsersInCourseOptions(lmsGetUsersInCourseOptions.getLmsCourseId());
+        getUsersInCourseOptions.enrollmentState(enrollmentStates);
+        getUsersInCourseOptions.enrollmentType(enrollmentTypes);
+
+        try {
+            return castList(getReader(apiUser, UserReaderExtended.class).getUsersInCourse(getUsersInCourseOptions));
+        } catch (IOException | CanvasException ex) {
+            throw new ApiException(String.format("Failed to get the list of users for Canvas course ID: [%s] for Canvas user ID: [%s]", getUsersInCourseOptions.getCourseId(), apiUser.getLmsUserId()), ex);
+        }
+    }
+
+    @Override
+    public Optional<LmsFile> getFile(LtiUserEntity apiUser, String canvasFileId) throws ApiException {
+        try {
+            return castOptional(
+                getReader(
+                    apiUser,
+                    FileReaderExtended.class
+                )
+                .getFile(
+                    String.format(
+                "file/%s",
+                        canvasFileId
+                    )
+                )
+            );
+        } catch (IOException | CanvasException e) {
+            throw new ApiException(String.format("Failed to get for with Canvas file ID: [%s] for Canvas user ID: [%s]", canvasFileId, apiUser.getLmsUserId()), e);
+        }
+    }
+
+    @Override
+    public List<LmsFile> getFiles(LtiUserEntity apiUser) throws ApiException {
+        try {
+            List<FolderExtended> folders = getReader(apiUser, FolderReaderExtended.class).getFolders();
+
+            if (CollectionUtils.isEmpty(folders)) {
+                log.warn("No folders found for Canvas user ID: [{}]", apiUser.getLmsUserId());
+                throw new ApiException(String.format("No folders found for Canvas user ID: [%s]", apiUser.getLmsUserId()));
+            }
+
+            // ind "my files/conversation attachments" folder if exists
+            FolderExtended conversationAttachmentsFolder = folders.stream()
+                .filter(folder -> Strings.CI.equals(folder.getFullName(), "my files/conversation attachments"))
+                .findFirst()
+                .orElseThrow(() -> new ApiException(
+                    String.format("The 'my files/conversation attachments' folder was not found for Canvas user ID: [%s]", apiUser.getLmsUserId())
+                ));
+
+            return castList(
+                getReader(
+                    apiUser,
+                    FileReaderExtended.class
+                )
+                .getFiles(
+                    String.format(
+                        "folders/%s/files",
+                        conversationAttachmentsFolder.getId()
+                    )
+                )
+            );
+        } catch (IOException | CanvasException e) {
+            throw new ApiException(String.format("Failed to get files for Canvas user ID: [%s]", apiUser.getLmsUserId()), e);
+        }
     }
 
     private List<AssignmentExtended> listAssignmentExtendeds(LtiUserEntity apiUser, String canvasCourseId, String tokenOverride) throws ApiException {

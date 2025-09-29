@@ -1,10 +1,16 @@
 <template>
   <div>
-    <div class="mb-5 pb-2">
-      <multiple-attempts-setting v-model="multipleAttemptsSettings" />
+    <div
+      class="mb-5 pb-2"
+    >
+      <multiple-attempts-setting
+        v-model="multipleAttemptsSettings"
+      />
     </div>
     <div>
-      <reveal-responses-setting v-model="revealResponseSettings" />
+      <reveal-responses-setting
+        v-model="revealResponseSettings"
+      />
     </div>
   </div>
 </template>
@@ -24,7 +30,6 @@ export default {
       assignment: "assignment/assignment",
     }),
     revealResponseSettings: {
-      // two-way computed property
       get() {
         return this.assignment
           ? {
@@ -42,7 +47,6 @@ export default {
       },
     },
     multipleAttemptsSettings: {
-      // two-way computed property
       get() {
         return this.assignment
           ? {
@@ -67,5 +71,3 @@ export default {
   },
 };
 </script>
-
-<style lang="scss" scoped></style>

@@ -11,7 +11,7 @@ import java.util.function.Predicate;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -359,7 +359,7 @@ public class ExperimentExportServiceImpl implements ExperimentExportService {
         try {
             String exportFilename = String.format(
                 Export.EXPORT_FILE_NAME,
-                StringUtils.replace(experiment.getTitle(), " ", "_"),
+                Strings.CS.replace(experiment.getTitle(), " ", "_"),
                 LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH-mm"))
             );
 

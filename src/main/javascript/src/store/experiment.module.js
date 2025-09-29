@@ -16,10 +16,7 @@ const actions = {
   createExperiment: () => {
     return experimentService.create();
   },
-  fetchExperimentById: ({commit,state}, experimentId) => {
-    if (parseInt(state.experiment?.experimentId) !== parseInt(experimentId)) {
-      commit("resetExperiment");
-    }
+  fetchExperimentById: ({commit}, experimentId) => {
     return experimentService.getById(experimentId)
       .then(response => {
         if (response.status === 200) {
@@ -112,6 +109,19 @@ const mutations = {
   },
   setExperiment(state, data) {
     state.experiment = data;
+
+    if (!state.experiments.length) {
+      state.experiments.push(data);
+      return;
+    }
+
+    const foundIndex = state.experiments.findIndex(e => e.experimentId === data.experimentId);
+
+    if (foundIndex >= 0) {
+      state.experiments.splice(foundIndex, 1, data);
+    } else {
+      state.experiments.push(data);
+    }
   },
   resetExperiments(state) {
     state.experiments = null;

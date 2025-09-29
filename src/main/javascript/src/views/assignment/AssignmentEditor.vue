@@ -119,9 +119,6 @@ export default {
     },
   },
   async created() {
-    console.log(this.experiment.experimentId,
-      this.exposureId,
-      this.assignmentId,)
     await this.fetchAssignment([
       this.experiment.experimentId,
       this.exposureId,

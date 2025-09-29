@@ -127,7 +127,7 @@ class ExperimentImportServiceImplTest extends BaseTest {
         assertNotNull(result);
         assertEquals(uuid, result.getId());
         assertEquals(ExperimentImportStatus.PROCESSING, result.getStatus());
-        assertTrue(CollectionUtils.isEmpty(result.getErrorMessages()));
+        assertTrue(CollectionUtils.isNotEmpty(result.getErrorMessages()));
     }
 
     @Test

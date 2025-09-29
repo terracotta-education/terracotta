@@ -54,7 +54,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
@@ -132,18 +132,19 @@ public class ParticipantServiceImpl implements ParticipantService {
     }
 
     @Override
-    public Participant getParticipant(long participantId, long experimentId, String userId, boolean student) throws InvalidUserException {
+    public Participant getParticipant(long id, long experimentId, String userId, boolean student) throws InvalidUserException, ParticipantNotMatchingException {
         if (!student) {
-            return participantRepository.findByParticipantId(participantId);
+            return participantRepository.findById(id)
+                .orElseThrow(() -> new ParticipantNotMatchingException(TextConstants.PARTICIPANT_NOT_MATCHING));
         }
 
         Participant participant = participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, userId);
 
-        if (!participant.getParticipantId().equals(participantId)) {
+        if (!participant.getParticipantId().equals(id)) {
             throw new InvalidUserException("Error 146: Students are not authorized to view other participants.");
         }
 
-        return participantRepository.findByParticipantId(participantId);
+        return participant;
     }
 
     @Override
@@ -176,21 +177,25 @@ public class ParticipantServiceImpl implements ParticipantService {
 
     @Override
     public ParticipantDto toDto(Participant participant, List<Long> publishedExperimentAssignmentIds, SecuredInfo securedInfo) {
-        ParticipantDto participantDto = new ParticipantDto();
+        ParticipantDto participantDto = ParticipantDto.builder()
+            .id(participant.getUuid())
+            .consent(participant.getConsent())
+            .createdAt(participant.getCreatedAt())
+            .dateGiven(participant.getDateGiven())
+            .dateRevoked(participant.getDateRevoked())
+            .dropped(participant.getDropped())
+            .experimentId(participant.getExperiment().getExperimentId())
+            .source(participant.getSource().name())
+            .started(hasParticipantSubmitted(participant, publishedExperimentAssignmentIds))
+            .updatedAt(participant.getUpdatedAt())
+            .user(userToDTO(participant.getLtiUserEntity()))
+            .build();
+
         participantDto.setParticipantId(participant.getParticipantId());
-        participantDto.setExperimentId(participant.getExperiment().getExperimentId());
-        participantDto.setUser(userToDTO(participant.getLtiUserEntity()));
-        participantDto.setConsent(participant.getConsent());
-        participantDto.setDateGiven(participant.getDateGiven());
-        participantDto.setDateRevoked(participant.getDateRevoked());
-        participantDto.setSource(participant.getSource().name());
-        participantDto.setDropped(participant.getDropped());
 
         if (participant.getGroup() != null) {
             participantDto.setGroupId(participant.getGroup().getGroupId());
         }
-
-        participantDto.setStarted(hasParticipantSubmitted(participant, publishedExperimentAssignmentIds));
 
         return participantDto;
     }
@@ -206,23 +211,26 @@ public class ParticipantServiceImpl implements ParticipantService {
 
     @Override
     public Participant fromDto(ParticipantDto participantDto) throws DataServiceException {
-        Participant participant = new Participant();
         Optional<Experiment> experiment = experimentRepository.findById(participantDto.getExperimentId());
 
         if (experiment.isEmpty()) {
             throw new DataServiceException("The experiment for the participant does not exist");
         }
 
-        participant.setExperiment(experiment.get());
+        Participant participant = Participant.builder()
+            .consent(participantDto.getConsent())
+            .dateGiven(participantDto.getDateGiven())
+            .dateRevoked(participantDto.getDateRevoked())
+            .dropped(participantDto.getDropped())
+            .experiment(experiment.get())
+            .source(ParticipationTypes.valueOf(participantDto.getSource()))
+            .build();
 
         try {
-            Optional<LtiUserEntity> userEntity = ltiUserRepository.findById(participantDto.getUser().getUserId());
+            LtiUserEntity userEntity = ltiUserRepository.findById(participantDto.getUser().getUserId())
+                .orElseThrow(() -> new DataServiceException("The user for the participant does not exist"));
 
-            if (userEntity.isEmpty()) {
-                throw new DataServiceException("The user for the participant does not exist");
-            }
-
-            participant.setLtiUserEntity(userEntity.get());
+            participant.setLtiUserEntity(userEntity);
         } catch (Exception e) {
             throw new DataServiceException("The user for the participant is not valid", e);
         }
@@ -230,13 +238,6 @@ public class ParticipantServiceImpl implements ParticipantService {
         if (participantDto.getGroupId() != null && groupRepository.existsByExperiment_ExperimentIdAndGroupId(experiment.get().getExperimentId(), participantDto.getGroupId())) {
             participant.setGroup(groupRepository.getReferenceById(participantDto.getGroupId()));
         }
-
-        participant.setParticipantId(participant.getParticipantId());
-        participant.setConsent(participantDto.getConsent());
-        participant.setDateGiven(participantDto.getDateGiven());
-        participant.setDateRevoked(participantDto.getDateRevoked());
-        participant.setDropped(participantDto.getDropped());
-        participant.setSource(experiment.get().getParticipationType());
 
         return participant;
     }
@@ -417,17 +418,17 @@ public class ParticipantServiceImpl implements ParticipantService {
         LtiMembershipEntity ltiMembershipEntity = ltiDataService.findByUserAndContext(ltiUserEntity, experiment.getLtiContextEntity());
 
         if (ltiMembershipEntity == null) {
-            ltiMembershipEntity = new LtiMembershipEntity(experiment.getLtiContextEntity(), ltiUserEntity,
-                    LtiStrings.ROLE_STUDENT);
+            ltiMembershipEntity = new LtiMembershipEntity(experiment.getLtiContextEntity(), ltiUserEntity, LtiStrings.ROLE_STUDENT);
             ltiMembershipEntity = ltiDataService.saveLtiMembershipEntity(ltiMembershipEntity);
         }
 
-        Participant newParticipant = new Participant();
-        newParticipant.setExperiment(experiment);
-        newParticipant.setLtiUserEntity(ltiUserEntity);
-        newParticipant.setLtiMembershipEntity(ltiMembershipEntity);
-        newParticipant.setDropped(false);
-        newParticipant.setSource(experiment.getParticipationType());
+        Participant newParticipant = Participant.builder()
+            .experiment(experiment)
+            .dropped(false)
+            .ltiUserEntity(ltiUserEntity)
+            .ltiMembershipEntity(ltiMembershipEntity)
+            .source(experiment.getParticipationType())
+            .build();
 
         switch (experiment.getParticipationType()) {
             case MANUAL:
@@ -443,9 +444,7 @@ public class ParticipantServiceImpl implements ParticipantService {
             default:
         }
 
-        newParticipant = participantRepository.save(newParticipant);
-
-        return newParticipant;
+        return participantRepository.save(newParticipant);
     }
 
     @Override
@@ -512,11 +511,12 @@ public class ParticipantServiceImpl implements ParticipantService {
 
     @Override
     @Transactional
-    public Participant changeConsent(ParticipantDto participantDto, SecuredInfo securedInfo, Long experimentId) throws ParticipantAlreadyStartedException, ExperimentNotMatchingException {
-        Participant participant = participantRepository.findByParticipantId(participantDto.getParticipantId());
+    public Participant changeConsent(ParticipantDto participantDto, SecuredInfo securedInfo, Long experimentId) throws ParticipantAlreadyStartedException, ExperimentNotMatchingException, ParticipantNotMatchingException {
+        Participant participant = participantRepository.findById(participantDto.getParticipantId())
+            .orElseThrow(() -> new ParticipantNotMatchingException(TextConstants.PARTICIPANT_NOT_MATCHING));
 
         if (participant == null
-                || !StringUtils.equals(participant.getLtiUserEntity().getUserKey(), securedInfo.getUserId())
+                || !Strings.CS.equals(participant.getLtiUserEntity().getUserKey(), securedInfo.getUserId())
                 || securedInfo.getConsent() == null
                 || BooleanUtils.isFalse(securedInfo.getConsent())) {
             return participant;
@@ -562,7 +562,7 @@ public class ParticipantServiceImpl implements ParticipantService {
     @Override
     public Participant findParticipant(List<Participant> participants, String userId) {
         return participants.stream()
-            .filter(participant -> StringUtils.equals(participant.getLtiUserEntity().getUserKey(), userId))
+            .filter(participant -> Strings.CS.equals(participant.getLtiUserEntity().getUserKey(), userId))
             .findFirst()
             .orElse(null);
     }
@@ -584,7 +584,7 @@ public class ParticipantServiceImpl implements ParticipantService {
      */
     private boolean hasParticipantSubmitted(Participant participant, List<Long> publishedExperimentAssignmentIds) {
         // find only published assignment submissions
-        List<Submission> publishedSubmissions = submissionRepository.findByParticipant_ParticipantId(participant.getParticipantId()).stream()
+        List<Submission> publishedSubmissions = submissionRepository.findByParticipant_Id(participant.getParticipantId()).stream()
             .filter(submission -> publishedExperimentAssignmentIds.contains(submission.getAssessment().getTreatment().getAssignment().getAssignmentId()))
             .toList();
 
@@ -678,7 +678,7 @@ public class ParticipantServiceImpl implements ParticipantService {
         LineItems lineItems = advantageAgsService.getLineItems(ltiToken, experiment.getLtiContextEntity());
 
         Optional<LineItem> lineItem = lineItems.getLineItemList().stream()
-            .filter(li -> StringUtils.equals(li.getResourceLinkId(), participant.getExperiment().getConsentDocument().getResourceLinkId()))
+            .filter(li -> Strings.CS.equals(li.getResourceLinkId(), participant.getExperiment().getConsentDocument().getResourceLinkId()))
             .findFirst();
 
         if (lineItem.isEmpty()) {

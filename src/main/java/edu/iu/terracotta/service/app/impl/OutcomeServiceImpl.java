@@ -38,6 +38,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.EnumUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
@@ -196,7 +197,7 @@ public class OutcomeServiceImpl implements OutcomeService {
             throw new DataServiceException("Error 105: Experiment does not exist.");
         }
 
-        LtiUserEntity instructorUser = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
+        LtiUserEntity instructorUser = ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
         List<Assignment> assignmentList = assignmentRepository.findByExposure_Experiment_ExperimentId(experimentId);
         List<OutcomePotentialDto> outcomePotentialDtos = new ArrayList<>();
         String lmsCourseId = StringUtils.substringBetween(experiment.get().getLtiContextEntity().getContext_memberships_url(), "courses/", "/names");
@@ -205,13 +206,13 @@ public class OutcomeServiceImpl implements OutcomeService {
         for (LmsAssignment lmsAssignment : lmsAssignments) {
             List<Assignment> matched = assignmentList.stream()
                 .filter(x -> {
-                    return StringUtils.equalsIgnoreCase(lmsAssignment.getId(), x.getLmsAssignmentId());
+                    return Strings.CI.equals(lmsAssignment.getId(), x.getLmsAssignmentId());
                 })
                 .toList();
 
             if (matched.isEmpty()
                     && !(experiment.get().getConsentDocument() != null
-                    && StringUtils.equalsIgnoreCase(lmsAssignment.getId(), experiment.get().getConsentDocument().getLmsAssignmentId()))) {
+                    && Strings.CI.equals(lmsAssignment.getId(), experiment.get().getConsentDocument().getLmsAssignmentId()))) {
                 outcomePotentialDtos.add(lmsAssignmentToOutcomePotentialDto(lmsAssignment));
             }
         }
@@ -252,7 +253,7 @@ public class OutcomeServiceImpl implements OutcomeService {
 
         List<OutcomeScore> newScores = new ArrayList<>();
         String lmsCourseId = StringUtils.substringBetween(outcome.getExposure().getExperiment().getLtiContextEntity().getContext_memberships_url(), "courses/", "/names");
-        LtiUserEntity instructorUser = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
+        LtiUserEntity instructorUser = ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
         List<LmsSubmission> submissions = apiClient.listSubmissions(instructorUser, outcome.getLmsOutcomeId(), lmsCourseId);
         List<Participant> participants = outcome.getExposure().getExperiment().getParticipants().stream()
             .filter(participant -> !participant.isTestStudent())
@@ -267,8 +268,8 @@ public class OutcomeServiceImpl implements OutcomeService {
             // check existing outcome scores
             for (OutcomeScore outcomeScore : outcomeScores) {
                 if (outcomeScore.getParticipant().getLtiUserEntity().getEmail() != null &&
-                    StringUtils.equals(outcomeScore.getParticipant().getLtiUserEntity().getEmail(), lmsSubmission.getUserLoginId()) &&
-                    StringUtils.equals(outcomeScore.getParticipant().getLtiUserEntity().getDisplayName(), lmsSubmission.getUserName())
+                    Strings.CS.equals(outcomeScore.getParticipant().getLtiUserEntity().getEmail(), lmsSubmission.getUserLoginId()) &&
+                    Strings.CS.equals(outcomeScore.getParticipant().getLtiUserEntity().getDisplayName(), lmsSubmission.getUserName())
                 ) {
                     found = true;
                     outcomeScore.setScoreNumeric(lmsSubmission.getScore() != null ? lmsSubmission.getScore().floatValue() : null);
@@ -276,8 +277,8 @@ public class OutcomeServiceImpl implements OutcomeService {
                     break;
                 }
 
-                if (StringUtils.equals(outcomeScore.getParticipant().getLtiUserEntity().getDisplayName(), lmsSubmission.getUserName()) ||
-                    StringUtils.equals(outcomeScore.getParticipant().getLtiUserEntity().getLmsUserId(), Long.toString(lmsSubmission.getUserId()))
+                if (Strings.CS.equals(outcomeScore.getParticipant().getLtiUserEntity().getDisplayName(), lmsSubmission.getUserName()) ||
+                    Strings.CS.equals(outcomeScore.getParticipant().getLtiUserEntity().getLmsUserId(), Long.toString(lmsSubmission.getUserId()))
                 ) {
                     found = true;
                     outcomeScore.setScoreNumeric(lmsSubmission.getScore() != null ? lmsSubmission.getScore().floatValue() : null);
@@ -292,7 +293,7 @@ public class OutcomeServiceImpl implements OutcomeService {
 
             // no existing outcome score; check participants
             for (Participant participant : participants) {
-                if (StringUtils.equals(participant.getLtiUserEntity().getLmsUserId(), Long.toString(lmsSubmission.getUserId()))) {
+                if (Strings.CS.equals(participant.getLtiUserEntity().getLmsUserId(), Long.toString(lmsSubmission.getUserId()))) {
                     newScores.add(
                         OutcomeScore.builder()
                             .scoreNumeric(lmsSubmission.getScore() != null ? lmsSubmission.getScore().floatValue() : null)
@@ -305,8 +306,8 @@ public class OutcomeServiceImpl implements OutcomeService {
                 }
 
                 if (participant.getLtiUserEntity().getEmail() != null &&
-                    StringUtils.equals(participant.getLtiUserEntity().getEmail(), lmsSubmission.getUserLoginId()) &&
-                    StringUtils.equals(participant.getLtiUserEntity().getDisplayName(), lmsSubmission.getUserName())
+                    Strings.CS.equals(participant.getLtiUserEntity().getEmail(), lmsSubmission.getUserLoginId()) &&
+                    Strings.CS.equals(participant.getLtiUserEntity().getDisplayName(), lmsSubmission.getUserName())
                 ) {
                     newScores.add(
                         OutcomeScore.builder()
@@ -319,7 +320,7 @@ public class OutcomeServiceImpl implements OutcomeService {
                     break;
                 }
 
-                if (StringUtils.equalsIgnoreCase(participant.getLtiUserEntity().getDisplayName(), lmsSubmission.getUserName())) {
+                if (Strings.CI.equals(participant.getLtiUserEntity().getDisplayName(), lmsSubmission.getUserName())) {
                     newScores.add(
                         OutcomeScore.builder()
                             .scoreNumeric(lmsSubmission.getScore() != null ? lmsSubmission.getScore().floatValue() : null)

@@ -80,7 +80,7 @@ public class LmsOAuthController {
         LmsOAuthService<?> lmsoAuthService = lmsOAuthServiceManager.getLmsOAuthService(platformDeploymentId);
 
         String userKey = claims.get().getPayload().get("userId", String.class);
-        LtiUserEntity user = ltiUserRepository.findByUserKeyAndPlatformDeployment_KeyId(userKey, platformDeploymentId);
+        LtiUserEntity user = ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(userKey, platformDeploymentId);
 
         try {
             lmsoAuthService.fetchAndSaveAccessToken(user, code);

@@ -13,6 +13,7 @@ import lombok.Setter;
 @AllArgsConstructor
 public class ConfigurationDto {
 
-    private boolean experimentExportEnabled;
+    @Builder.Default private boolean experimentExportEnabled = false;
+    @Builder.Default private boolean messagingEnabled = false;
 
 }

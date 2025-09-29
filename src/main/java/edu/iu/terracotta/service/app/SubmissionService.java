@@ -1,6 +1,8 @@
 package edu.iu.terracotta.service.app;
 
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsSubmission;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
@@ -47,5 +49,6 @@ public interface SubmissionService {
     Float getScoreFromMultipleSubmissions(Participant participant, Assessment assessment);
     Float getSubmissionScore(Submission submission);
     boolean isManualGradingNeeded(Submission submission);
+    Map<String, List<LmsSubmission>> getAllSubmissionsForMultipleAssignments(LtiUserEntity ltiUserEntity, String lmsCourseId, List<String> lmsAssignmentIds) throws ApiException, TerracottaConnectorException, IOException;
 
 }

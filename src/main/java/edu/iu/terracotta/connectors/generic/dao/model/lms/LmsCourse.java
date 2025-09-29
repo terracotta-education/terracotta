@@ -11,7 +11,7 @@ import lombok.experimental.SuperBuilder;
 public class LmsCourse implements BaseLmsCourse {
 
     private Class<?> type;
-    private Long id;
+    private String id;
 
     @Override
     public LmsCourse from() {
