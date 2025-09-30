@@ -23,9 +23,11 @@ import edu.iu.terracotta.connectors.generic.service.api.ApiClient;
 import edu.iu.terracotta.connectors.generic.service.lms.LmsUtils;
 import edu.iu.terracotta.dao.entity.Experiment;
 import edu.iu.terracotta.dao.entity.Participant;
+import edu.iu.terracotta.dao.model.enums.FeatureType;
 import edu.iu.terracotta.dao.repository.ExperimentRepository;
 import edu.iu.terracotta.dao.repository.ParticipantRepository;
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.service.app.FeatureService;
 import edu.iu.terracotta.service.app.async.ParticipantAsyncService;
 import lombok.extern.slf4j.Slf4j;
 
@@ -37,6 +39,7 @@ public class ParticipantAsyncServiceImpl implements ParticipantAsyncService {
     @Autowired private ExperimentRepository experimentRepository;
     @Autowired private ParticipantRepository participantRepository;
     @Autowired private ApiClient apiClient;
+    @Autowired private FeatureService featureService;
     @Autowired private LmsUtils lmsUtils;
 
     @Async
@@ -47,6 +50,16 @@ public class ParticipantAsyncServiceImpl implements ParticipantAsyncService {
 
         if (experiment == null) {
             log.error("Experiment not found for ID: [{}]", experimentId);
+            return;
+        }
+
+        if (!featureService.isFeatureEnabled(FeatureType.MESSAGING, experiment.getPlatformDeployment().getKeyId())) {
+            log.info(
+                "Messaging is not enabled for the platform deployment with key ID: [{}]. Participant data update aborted for experiment ID: [{}].",
+                experiment.getPlatformDeployment().getKeyId(),
+                experimentId
+            );
+
             return;
         }
 

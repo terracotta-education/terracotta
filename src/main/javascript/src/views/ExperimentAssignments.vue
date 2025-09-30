@@ -584,6 +584,7 @@ export default {
     maxDesignGroups: 2,
     conditionTreatments: {},
     conditionColors: [""],
+    rows: [],
     rowsExpanded: [],
     designExpanded: false,
     loaded: false,
@@ -647,6 +648,7 @@ export default {
   watch: {
     rowsCount: {
       handler() {
+        this.calculateRows();
         this.expandRows();
       },
       immediate: true
@@ -702,7 +704,35 @@ export default {
     messageStatuses() {
       return messageStatus;
     },
-    rows() {
+    exposureRows() {
+      return this.rows[this.tab] || [];
+    },
+    isMessagingEnabled() {
+      return this.configurations?.messagingEnabled || false;
+    }
+  },
+  methods: {
+    ...mapActions({
+      fetchExposures: "exposures/fetchExposures",
+      fetchAssignmentsByExposure: "assignment/fetchAssignmentsByExposure",
+      saveAssignmentOrder: "assignment/saveAssignmentOrder",
+      deleteAssignment: "assignment/deleteAssignment",
+      duplicateAssignment: "assignment/duplicateAssignment",
+      checkTreatment: "treatment/checkTreatment",
+      createTreatment: "treatment/createTreatment",
+      createAssessment: "assessment/createAssessment",
+      getConsentFile: "consent/getConsentFile",
+      moveAssignment: "assignment/moveAssignment",
+      setCurrentAssignment: 'assignments/setCurrentAssignment',
+      saveEditMode: "navigation/saveEditMode",
+      updateMessageContainer: "messagingMessageContainer/update",
+      updateAllMessageContainers: "messagingMessageContainer/updateAll",
+      sendMessageContainer: "messagingMessageContainer/send",
+      deleteMessageContainer: "messagingMessageContainer/deleteContainer",
+      moveMessageContainer: "messagingMessageContainer/move",
+      duplicateMessageContainer: "messagingMessageContainer/duplicate"
+    }),
+    calculateRows() {
       // only display message containers if messaging is enabled
       const messageContainerRows = this.isMessagingEnabled ? this.allMessageContainers.map(
         (messageContainer) => ({
@@ -750,36 +780,8 @@ export default {
           );
         }
 
-        return rows;
+        this.rows = rows;
     },
-    exposureRows() {
-      return this.rows[this.tab] || [];
-    },
-    isMessagingEnabled() {
-      return this.configurations?.messagingEnabled || false;
-    }
-  },
-  methods: {
-    ...mapActions({
-      fetchExposures: "exposures/fetchExposures",
-      fetchAssignmentsByExposure: "assignment/fetchAssignmentsByExposure",
-      saveAssignmentOrder: "assignment/saveAssignmentOrder",
-      deleteAssignment: "assignment/deleteAssignment",
-      duplicateAssignment: "assignment/duplicateAssignment",
-      checkTreatment: "treatment/checkTreatment",
-      createTreatment: "treatment/createTreatment",
-      createAssessment: "assessment/createAssessment",
-      getConsentFile: "consent/getConsentFile",
-      moveAssignment: "assignment/moveAssignment",
-      setCurrentAssignment: 'assignments/setCurrentAssignment',
-      saveEditMode: "navigation/saveEditMode",
-      updateMessageContainer: "messagingMessageContainer/update",
-      updateAllMessageContainers: "messagingMessageContainer/updateAll",
-      sendMessageContainer: "messagingMessageContainer/send",
-      deleteMessageContainer: "messagingMessageContainer/deleteContainer",
-      moveMessageContainer: "messagingMessageContainer/move",
-      duplicateMessageContainer: "messagingMessageContainer/duplicate"
-    }),
     messageContainers(exposure) {
       if (!exposure) {
         return [];
@@ -1492,6 +1494,7 @@ export default {
   },
   async mounted() {
     this.tab = parseInt(this.activeExposureSet);
+    this.calculateRows();
     this.loaded = true;
   }
 };
