@@ -241,7 +241,7 @@
                             </v-btn>
                             <v-btn
                               v-if="isIntegrationAssignment(row, treatment) && !displayTreatmentMenu"
-                              :href="integrationsPreviewLaunchUrl(row.assessmentDto ? row.assessmentDto.integrationPreviewUrl : 'http://localhost')"
+                              :href="integrationsPreviewLaunchUrl(treatment.assessmentDto.integrationPreviewUrl)"
                               target="_blank"
                               text
                               tile
@@ -285,7 +285,7 @@
                                     <v-icon>mdi-eye-outline</v-icon>
                                     <span class="treatment-btn">
                                       <a
-                                        :href="integrationsPreviewLaunchUrl(row.assessmentDto ? row.assessmentDto.integrationPreviewUrl : 'http://localhost')"
+                                        :href="integrationsPreviewLaunchUrl(treatment.assessmentDto.integrationPreviewUrl)"
                                         target="_blank"
                                         class="integration-preview-link"
                                       >
