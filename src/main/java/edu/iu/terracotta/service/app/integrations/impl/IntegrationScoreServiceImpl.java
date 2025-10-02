@@ -1,5 +1,6 @@
 package edu.iu.terracotta.service.app.integrations.impl;
 
+import java.io.IOException;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Optional;
@@ -9,8 +10,15 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
+import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.dao.entity.QuestionSubmission;
+import edu.iu.terracotta.dao.entity.Submission;
 import edu.iu.terracotta.dao.entity.integrations.IntegrationClient;
+import edu.iu.terracotta.dao.entity.integrations.IntegrationError;
 import edu.iu.terracotta.dao.entity.integrations.IntegrationToken;
 import edu.iu.terracotta.dao.entity.integrations.IntegrationTokenLog;
 import edu.iu.terracotta.dao.exceptions.integrations.IntegrationTokenAlreadyRedeemedException;
@@ -23,7 +31,10 @@ import edu.iu.terracotta.dao.repository.QuestionSubmissionRepository;
 import edu.iu.terracotta.dao.repository.SubmissionRepository;
 import edu.iu.terracotta.dao.repository.integrations.IntegrationClientRepository;
 import edu.iu.terracotta.dao.repository.integrations.IntegrationTokenLogRepository;
+import edu.iu.terracotta.exceptions.AssignmentAttemptException;
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.service.app.QuestionSubmissionService;
+import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.service.app.integrations.IntegrationScoreAsyncService;
 import edu.iu.terracotta.service.app.integrations.IntegrationScoreService;
 import edu.iu.terracotta.service.app.integrations.IntegrationTokenService;
@@ -43,6 +54,8 @@ public class IntegrationScoreServiceImpl implements IntegrationScoreService {
     @Autowired private CaliperService caliperService;
     @Autowired private IntegrationScoreAsyncService integrationScoreAsyncService;
     @Autowired private IntegrationTokenService integrationTokenService;
+    @Autowired private QuestionSubmissionService questionSubmissionService;
+    @Autowired private SubmissionService submissionService;
 
     @Override
     public void score(String launchToken, String score, Optional<String> previewTokenClient) throws IntegrationTokenNotFoundException, DataServiceException, IntegrationTokenInvalidException, IntegrationTokenExpiredException, IntegrationTokenAlreadyRedeemedException {
@@ -54,7 +67,7 @@ public class IntegrationScoreServiceImpl implements IntegrationScoreService {
             }
 
             // invalidate the token; skip if preview
-            IntegrationToken integrationToken = previewTokenClient.isEmpty() ? integrationTokenService.redeemToken(launchToken) : null;
+            final IntegrationToken integrationToken = previewTokenClient.isEmpty() ? integrationTokenService.redeemToken(launchToken) : null;
             Float calculatedScore;
 
             try {
@@ -136,7 +149,7 @@ public class IntegrationScoreServiceImpl implements IntegrationScoreService {
 
             submissionRepository.save(integrationToken.getSubmission());
 
-            // send event to Caliper id SecuredInfo is present
+            // send event to Caliper if SecuredInfo is present
             if (integrationToken.getSecuredInfo().isPresent()) {
                 caliperService.sendAssignmentSubmitted(integrationToken.getSubmission(), integrationToken.getSecuredInfo().get());
             }
@@ -154,42 +167,54 @@ public class IntegrationScoreServiceImpl implements IntegrationScoreService {
             );
         } catch (IntegrationTokenInvalidException e) {
             throw new IntegrationTokenInvalidException(
-                createErrorLog(e.getMessage(), score, launchToken, IntegrationTokenStatus.INVALID),
+                handleError(e.getMessage(), score, launchToken, IntegrationTokenStatus.INVALID),
                 e
             );
         } catch (IntegrationTokenExpiredException e) {
             throw new IntegrationTokenExpiredException(
-                createErrorLog(e.getMessage(), score, launchToken, IntegrationTokenStatus.EXPIRED),
+                handleError(e.getMessage(), score, launchToken, IntegrationTokenStatus.EXPIRED),
                 e
             );
         } catch (IntegrationTokenAlreadyRedeemedException e) {
             throw new IntegrationTokenAlreadyRedeemedException(
-                createErrorLog(e.getMessage(), score, launchToken, IntegrationTokenStatus.ALREADY_REDEEMED),
+                handleError(e.getMessage(), score, launchToken, IntegrationTokenStatus.ALREADY_REDEEMED),
                 e
             );
         } catch (IntegrationTokenNotFoundException e) {
             throw new IntegrationTokenNotFoundException(
-                createErrorLog(e.getMessage(), score, launchToken, IntegrationTokenStatus.NOT_FOUND),
+                handleError(e.getMessage(), score, launchToken, IntegrationTokenStatus.NOT_FOUND),
                 e
             );
         } catch (DataServiceException e) {
             throw new DataServiceException(
-                createErrorLog(e.getMessage(), score, launchToken),
+                handleError(e.getMessage(), score, launchToken),
                 e
             );
         } catch (Exception e) {
             throw new RuntimeException(
-                createErrorLog(e.getMessage(), score, launchToken),
+                handleError(e.getMessage(), score, launchToken),
                 e
             );
         }
     }
 
-    private String createErrorLog(String errorMessage, String score, String launchToken) {
-        return createErrorLog(errorMessage, score, launchToken, IntegrationTokenStatus.ERROR);
+    private boolean canResubmit(String launchToken) {
+        try {
+            IntegrationToken integrationToken = integrationTokenService.findByToken(launchToken);
+            questionSubmissionService.canSubmit(integrationToken.getSecuredInfo().get(), integrationToken.getSubmission().getParticipant().getExperiment().getExperimentId());
+        } catch (IOException | AssignmentAttemptException | ApiException | TerracottaConnectorException | IntegrationTokenNotFoundException e) {
+            log.error("Error retrieiving assignment attempt information for token: [{}]", launchToken, e);
+            return false;
+        }
+
+        return true;
     }
 
-    private String createErrorLog(String errorMessage, String score, String launchToken, IntegrationTokenStatus status) {
+    private String handleError(String errorMessage, String score, String launchToken) {
+        return handleError(errorMessage, score, launchToken, IntegrationTokenStatus.ERROR);
+    }
+
+    private String handleError(String errorMessage, String score, String launchToken, IntegrationTokenStatus status) {
         String code = RandomStringUtils.secure().nextAlphanumeric(IntegrationTokenLog.ERROR_CODE_LENGTH);
 
         while(integrationTokenLogRepository.findByCode(code).isPresent()) {
@@ -207,7 +232,30 @@ public class IntegrationScoreServiceImpl implements IntegrationScoreService {
                 .build()
         );
 
-        return code;
+        boolean moreAttemptsAvailable = canResubmit(launchToken);
+
+        if (moreAttemptsAvailable) {
+            // more attempts available; delete invalid submission
+            Optional<Submission> submission = submissionRepository.findByIntegrationToken_Token(launchToken);
+
+            if (submission.isPresent()) {
+                submissionService.deleteById(submission.get().getSubmissionId());
+            } else {
+                log.error("Cannot find submission for token: [{}] to delete invalid submission after error: [{}]", launchToken, errorMessage);
+            }
+        }
+
+        try {
+            return new ObjectMapper().writeValueAsString(IntegrationError.builder()
+                .code(code)
+                .moreAttemptsAvailable(moreAttemptsAvailable)
+                .build()
+            );
+        } catch (JsonProcessingException e) {
+            log.error("Error creating integration log error message for token: [{}]", launchToken, e);
+
+            return null;
+        }
     }
 
     @Override

@@ -25,7 +25,8 @@ const integration = {
   score: params.get("score") === "" || params.get("score") === "null" ? null : params.get("score"),
   url: params.get("url"),
   errorCode: params.get("errorCode") === "null" ? null : params.get("errorCode"),
-  previewUrl: params.get("previewUrl")
+  previewUrl: params.get("previewUrl"),
+  moreAttemptsAvailable: params.get("moreAttemptsAvailable") === "true"
 };
 const obsolete = {
   obsolete: params.get("obsolete") === "true",
