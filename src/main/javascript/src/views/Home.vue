@@ -4,95 +4,15 @@
       :display="!isLoaded"
       message="Loading experiments. Please wait."
     />
-    <v-container
+    <zero-state
       v-show="isLoaded && !hasExperiments"
-    >
-      <v-row
-        v-if="importRequestAlerts.length > 0"
-        class="py-2"
-      >
-        <div
-          v-for="importRequestAlert in importRequestAlerts"
-          :key="importRequestAlert.id"
-          class="alert-request pb-2 px-3"
-        >
-          <v-alert
-            v-if="experimentImportRequests[importRequestAlert.id]"
-            v-model="experimentImportRequests[importRequestAlert.id].showAlert"
-            @input="handleImportRequestAlertDismiss(importRequestAlert.id)"
-            :type="importRequestAlert.type"
-            elevation="0"
-            dismissible
-          >
-            {{ importRequestAlert.text }}
-            <ul
-              v-if="importRequestAlert.showErrors"
-            >
-              <li
-                v-for="(error, i) in importRequestAlert.errors"
-                :key="i"
-              >
-                {{ error }}
-              </li>
-            </ul>
-          </v-alert>
-        </div>
-      </v-row>
-      <div
-        class="terracotta-appbg"
-      ></div>
-      <v-row
-        justify="center"
-        class="text-center"
-      >
-        <v-col
-          md="6"
-          class="mt-15"
-        >
-          <v-img
-            src="@/assets/terracotta_logo.svg"
-            alt="Terracotta Logo"
-            class="mb-13 mx-auto"
-            max-width="400"
-          />
-          <h1>Experimental research in the LMS</h1>
-          <p
-            class="mb-10"
-          >
-            Welcome to Terracotta, the platform that supports teachers' and researchers' abilities to easily run experiments in live classes.<br>
-            New to Terracotta?
-            <a
-              href="https://terracotta.education/terracotta-overview"
-              target="_blank"
-            >
-              Read an overview of the tool
-            </a>.
-          </p>
-          <p
-            class="mb-0"
-          >
-            Ready to get started?
-          </p>
-          <v-btn
-            @click="startExperiment"
-            class="mx-2"
-            color="primary"
-            elevation="0"
-          >
-            Create your first experiment
-          </v-btn>
-          <v-btn
-            v-if="experimentExportEnabled"
-            @click="handleImportExperiment"
-            class="mx-2"
-            color="primary"
-            elevation="0"
-          >
-            Import an experiment
-          </v-btn>
-        </v-col>
-      </v-row>
-    </v-container>
+      :experimentExportEnabled="experimentExportEnabled"
+      :experimentImportRequests="experimentImportRequests"
+      :importRequestAlerts="importRequestAlerts"
+      @handleImportExperiment="handleImportExperiment"
+      @handleImportRequestAlertDismiss="handleImportRequestAlertDismiss"
+      @startExperiment="startExperiment"
+    />
     <v-container
       v-show="isLoaded && hasExperiments"
     >
@@ -199,10 +119,29 @@
           cols="12"
         >
           <h1
-            class="pl-4 mb-3"
+            class="mb-3"
           >
             Experiments
           </h1>
+          <p>
+            All your experiments for this course are here. You can also start a new one or import an existing experiment.
+            <br />
+            Need a hand? Check out our
+            <a
+              href="https://www.terracotta.education/help-center/quick-start-guide"
+              target="_blank"
+              rel="noopener"
+              class="user-help-link"
+            >Quick Start Guide</a>
+            or explore the
+            <a
+              href="https://terracotta-education.atlassian.net/wiki/spaces/TC/overview"
+              target="_blank"
+              rel="noopener"
+              class="user-help-link"
+            >Knowledge Base</a>
+            for tips and troubleshooting.
+          </p>
           <v-data-table
             :headers="headers"
             :items="experiments || []"
@@ -338,11 +277,13 @@
 import {mapActions, mapGetters} from "vuex";
 import moment from "moment";
 import PageLoading from "@/components/PageLoading";
+import ZeroState from "@/views/ZeroState.vue";
 
 export default {
   name: "Home",
   components: {
-    PageLoading
+    PageLoading,
+    ZeroState
   },
   data: () => ({
     headers: [
@@ -1042,19 +983,6 @@ export default {
     border-top: none !important;
   }
 }
-.terracotta-appbg {
-	background: url("~@/assets/terracotta_appbg.jpg") no-repeat center center;
-	background-size: cover;
-	height: 100%;
-	width: 100%;
-	position: fixed;
-	top: 0;
-	left: 0;
-	opacity: 0.5;
-}
-.terracotta-appbg + * {
-	position: relative; /*place the content above the terracotta-appbg*/
-}
 div.v-tooltip__content {
   max-width: 400px;
   opacity: 1.0 !important;
@@ -1071,6 +999,11 @@ div.v-tooltip__content {
     & a {
       color: white;
     }
+  }
+}
+a {
+  &.user-help-link {
+    color: rgba(0, 0, 0, .87) !important;
   }
 }
 </style>

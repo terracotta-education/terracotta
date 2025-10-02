@@ -124,7 +124,7 @@ const mutations = {
     }
   },
   resetExperiments(state) {
-    state.experiments = null;
+    state.experiments = [];
     state.importRequests = [];
   },
   setExperiments(state, data) {
