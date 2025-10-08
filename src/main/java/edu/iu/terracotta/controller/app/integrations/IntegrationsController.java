@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import edu.iu.terracotta.dao.entity.integrations.IntegrationError;
 import edu.iu.terracotta.dao.exceptions.integrations.IntegrationTokenAlreadyRedeemedException;
 import edu.iu.terracotta.dao.exceptions.integrations.IntegrationTokenExpiredException;
 import edu.iu.terracotta.dao.exceptions.integrations.IntegrationTokenInvalidException;
@@ -37,6 +38,7 @@ public class IntegrationsController {
         String errorCode = null;
         Optional<String> previewTokenClient = integrationScoreService.getPreviewTokenClient(launchToken);
         String url = null;
+        IntegrationError integrationError = null;
 
         try {
             url = String.format(
@@ -47,26 +49,36 @@ public class IntegrationsController {
 
             integrationScoreService.score(launchToken, score, previewTokenClient);
         } catch (IntegrationTokenNotFoundException e) {
-            errorCode = e.getMessage();
+            integrationError = IntegrationError.from(e.getMessage());
+            errorCode = integrationError.getCode();
             status = HttpStatus.NOT_FOUND;
         } catch (IntegrationTokenAlreadyRedeemedException | IntegrationTokenExpiredException | IntegrationTokenInvalidException | DataServiceException | RuntimeException | UnsupportedEncodingException e) {
-            errorCode = e.getMessage();
+            integrationError = IntegrationError.from(e.getMessage());
+            errorCode = integrationError.getCode();
             status = HttpStatus.BAD_REQUEST;
         }
 
         if (StringUtils.isNotBlank(errorCode)) {
-            log.error("launch_token: [{}], score: [{}], error code: [{}], status: [{}]", launchToken, score, errorCode, status);
+            log.error(
+                "launch_token: [{}], score: [{}], error code: [{}], status: [{}], moreAttemptsAvailable: [{}]",
+                launchToken,
+                score,
+                errorCode,
+                status,
+                integrationError.isMoreAttemptsAvailable()
+            );
         }
 
         return String.format(
-            "redirect:/app/app.html?integration=true&status=%s&preview=%s&client=%s&launch_token=%s&score=%s&url=%s&errorCode=%s",
+            "redirect:/app/app.html?integration=true&status=%s&preview=%s&client=%s&launch_token=%s&score=%s&url=%s&errorCode=%s&moreAttemptsAvailable=%s",
             status.name(),
             previewTokenClient.isPresent(),
             previewTokenClient.isPresent() ? previewTokenClient.get() : null,
             launchToken,
             score,
             url,
-            errorCode
+            errorCode,
+            integrationError != null && integrationError.isMoreAttemptsAvailable() || false
         );
     }
 

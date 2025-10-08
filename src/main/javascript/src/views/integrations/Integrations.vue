@@ -102,9 +102,24 @@
                   class="first-party-card__text"
                 >
                   <div
-                    v-html="error.info"
-                    class="mb-8"
+                    v-html="error.info[0]"
+                    class="mb-4"
                   ></div>
+                  <div
+                    v-if="error.info.length > 1"
+                  >
+                    <v-btn
+                      v-if="moreAttemptsAvailable"
+                      class="mb-4"
+                      color="primary"
+                      @click="handleReattemptAssignment"
+                    >
+                      Reattempt assignment
+                    </v-btn>
+                    <div
+                      v-html="error.info[1]"
+                    ></div>
+                  </div>
                   <div
                     v-if="preview"
                   >
@@ -152,6 +167,9 @@ export default {
     },
     isError() {
       return this.status !== "OK";
+    },
+    moreAttemptsAvailable() {
+      return this.integrationData.moreAttemptsAvailable;
     },
     isSuccess() {
       if (this.isError) {
@@ -203,34 +221,73 @@ export default {
           case "Custom Web Activity":
             return {
               title: "Invalid submission token",
-              info: `
-                You are seeing this screen because a custom web activity preview returned to Terracotta without a valid score
-                parameter. For detailed instructions on how to configure your custom web activity,
-                <a href="https://terracotta-education.atlassian.net/wiki/spaces/TC/pages/336330757/Terracotta+Custom+Web+Activity+Integration+Guide" target="_blank">click here</a>.
-                If the score parameter is omitted, Terracotta assumes that the student should receive the maximum score for their submission.
-              `
+              info: [
+                `
+                  You are seeing this screen because a custom web activity preview returned to Terracotta without a valid score
+                  parameter. For detailed instructions on how to configure your custom web activity,
+                  <a href="https://terracotta-education.atlassian.net/wiki/spaces/TC/pages/336330757/Terracotta+Custom+Web+Activity+Integration+Guide" target="_blank">click here</a>.
+                  If the score parameter is omitted, Terracotta assumes that the student should receive the maximum score for their submission.
+                `
+              ]
             }
           default:
             return {
               title: "Invalid submission token",
-              info: `
-                You are seeing this screen because a ${this.client} preview returned to Terracotta without a valid score parameter. For
-                detailed instructions on how to configure your Qualtrics survey,
-                <a href="https://terracotta-education.atlassian.net/wiki/spaces/TC/pages/336265230/Terracotta+Qualtrics+Integration+Guide" target="_blank">click here</a>.
-                If the score parameter is omitted, Terracotta assumes that the student should receive the maximum score for their submission.
-              `
+              info: [
+                `
+                  You are seeing this screen because a ${this.client} preview returned to Terracotta without a valid score parameter. For
+                  detailed instructions on how to configure your Qualtrics survey,
+                  <a href="https://terracotta-education.atlassian.net/wiki/spaces/TC/pages/336265230/Terracotta+Qualtrics+Integration+Guide" target="_blank">click here</a>.
+                  If the score parameter is omitted, Terracotta assumes that the student should receive the maximum score for their submission.
+                `
+              ]
             }
         }
       } else {
-        return {
-          title: "Invalid submission attempt",
-          info: `
-            You are seeing this screen because an error occurred while attempting to record an assignment submission from a web activity.<br /><br />
-            Please contact <a href="mailto:support@terracotta.education">support@terracotta.education</a> and reference the error code: ${this.errorCode}
-          `
+        if (this.moreAttemptsAvailable) {
+          return {
+            title: "Invalid submission attempt",
+            info: [
+              `
+                You are seeing this screen because an error occurred while attempting to record an assignment submission from a web activity.<br /><br />
+                If you are a student, you're seeing this error because your session has expired. Click the button below to try again.
+              `,
+              `
+                If you are an instructor, please revisit documentation on integrating your survey or web activity.
+                If the issue continues, contact <a href="mailto:support@terracotta.education">support@terracotta.education</a> and reference the error code: ${this.errorCode}
+              `
+            ]
+          }
+        } else {
+          return {
+            title: "Invalid submission attempt",
+            info: [
+              `
+                You are seeing this screen because an error occurred while attempting to record an assignment submission from a web activity.<br /><br />
+                If you are a student, you're seeing this error because your session has expired.
+              `,
+              `
+                If you are an instructor, please revisit documentation on integrating your survey or web activity.
+                If the issue continues, contact <a href="mailto:support@terracotta.education">support@terracotta.education</a> and reference the error code: ${this.errorCode}
+              `
+            ]
+          }
         }
       }
     },
+  },
+  methods: {
+    handleReattemptAssignment() {
+      var event = new CustomEvent(
+        "integrations_reattempt",
+        {
+          detail: {
+            integrationData: this.integrationData
+          }
+        }
+      );
+      window.parent.document.dispatchEvent(event);
+    }
   },
   mounted() {
     if (this.preview || this.isError) {

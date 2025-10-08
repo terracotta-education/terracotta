@@ -1004,9 +1004,12 @@ export default {
   mounted() {
     // handle integration iframe score return event
     window.document.addEventListener("integrations_score", this.handleIntegrationsScore);
+    // handle integration iframe reattempt event
+    window.document.addEventListener("integrations_reattempt", this.handleTryAgain);
   },
   beforeDestroy () {
     window.removeEventListener("integrations_score", this.handleIntegrationsScore);
+    window.removeEventListener("integrations_reattempt", this.handleTryAgain);
   }
 };
 </script>

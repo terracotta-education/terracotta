@@ -30,6 +30,7 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long> {
     boolean existsByAssessment_AssessmentIdAndSubmissionId(long assessmentId, long submissionId);
     Optional<Submission> findTopByParticipant_Experiment_ExperimentIdAndDateSubmittedNotNullOrderByDateSubmittedDesc(long experimentId);
     Optional<Submission> findTopByAssessment_Treatment_Assignment_AssignmentIdAndDateSubmittedNotNullOrderByDateSubmittedDesc(long assignmentId);
+    Optional<Submission> findByIntegrationToken_Token(String token);
 
     @Modifying
     @Transactional
