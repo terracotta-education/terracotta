@@ -99,7 +99,7 @@ import java.security.Key;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.sql.Timestamp;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Base64;
 import java.util.Date;
 import java.util.List;
@@ -554,15 +554,21 @@ public class CanvasApiJwtServiceImpl implements ApiJwtService {
     }
 
     private Timestamp extractTimestamp(Jws<Claims> claims, String id) {
-        Timestamp extracted;
-
         try {
-            extracted = Timestamp.valueOf(LocalDateTime.parse(claims.getPayload().get(id).toString()));
-        } catch (Exception ex) {
+            return Timestamp.from(
+                Instant.parse(
+                    claims.getPayload().get(id).toString()
+                )
+            );
+        } catch (Exception e) {
+            log.error(
+                "Error parsing JWT payload claim key: [{}] and value: [{}]",
+                id,
+                claims.getPayload().get(id).toString(),
+                e
+            );
             return null;
         }
-
-        return extracted;
     }
 
     @Override
