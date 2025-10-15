@@ -1,15 +1,19 @@
 package edu.iu.terracotta.service.app.integrations.impl;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.EnumUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.dao.entity.Submission;
 import edu.iu.terracotta.dao.entity.integrations.Integration;
 import edu.iu.terracotta.dao.model.enums.integrations.IntegrationLaunchParameter;
@@ -45,6 +49,15 @@ public class IntegrationLaunchParameterServiceImpl implements IntegrationLaunchP
 
                                 if (submission.getAssessment().getTreatment().getAssignment().getDueDate() != null) {
                                     dueAt = submission.getAssessment().getTreatment().getAssignment().getDueDate().toString();
+                                }
+
+                                if (StringUtils.isBlank(dueAt)) {
+                                    // try secured info due date if available
+                                    Optional<SecuredInfo> securedInfo = submission.getIntegrationToken().getSecuredInfo();
+
+                                    if (securedInfo.isPresent() && securedInfo.get().getDueAt() != null) {
+                                        dueAt = new Date(securedInfo.get().getDueAt().getTime()).toString();
+                                    }
                                 }
 
                                 value = dueAt;
