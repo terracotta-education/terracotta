@@ -561,12 +561,6 @@ public class CanvasApiJwtServiceImpl implements ApiJwtService {
                 )
             );
         } catch (Exception e) {
-            log.error(
-                "Error parsing JWT payload claim key: [{}] and value: [{}]",
-                id,
-                claims.getPayload().get(id).toString(),
-                e
-            );
             return null;
         }
     }
