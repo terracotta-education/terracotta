@@ -199,6 +199,10 @@ public class IntegrationScoreServiceImpl implements IntegrationScoreService {
     }
 
     private boolean canResubmit(String launchToken) {
+        if (StringUtils.isBlank(launchToken)) {
+            return false;
+        }
+
         try {
             IntegrationToken integrationToken = integrationTokenService.findByToken(launchToken);
             questionSubmissionService.canSubmit(integrationToken.getSecuredInfo().get(), integrationToken.getSubmission().getParticipant().getExperiment().getExperimentId());

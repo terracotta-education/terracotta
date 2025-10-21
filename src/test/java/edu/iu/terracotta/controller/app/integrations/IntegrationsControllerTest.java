@@ -42,7 +42,7 @@ public class IntegrationsControllerTest extends BaseTest {
 
     @Test
     void scoreTokenNotFoundTest() throws IntegrationTokenNotFoundException, DataServiceException, IntegrationTokenInvalidException, IntegrationTokenExpiredException, IntegrationTokenAlreadyRedeemedException {
-        doThrow(new IntegrationTokenNotFoundException("token")).when(integrationScoreService).score("token", "1", Optional.of(INTEGRATION_CLIENT_NAME));
+        doThrow(new IntegrationTokenNotFoundException("{\"code\":\"token\",\"moreAttemptsAvailable\":true}")).when(integrationScoreService).score("token", "1", Optional.of(INTEGRATION_CLIENT_NAME));
 
         String ret = integrationsController.score("token", "1", httpServletRequest);
 
@@ -51,7 +51,7 @@ public class IntegrationsControllerTest extends BaseTest {
 
     @Test
     void scoreBadRequestTest() throws IntegrationTokenNotFoundException, DataServiceException, IntegrationTokenInvalidException, IntegrationTokenExpiredException, IntegrationTokenAlreadyRedeemedException {
-        doThrow(new IntegrationTokenInvalidException("token")).when(integrationScoreService).score("token", "1", Optional.of(INTEGRATION_CLIENT_NAME));
+        doThrow(new IntegrationTokenInvalidException("{\"code\":\"token\",\"moreAttemptsAvailable\":true}")).when(integrationScoreService).score("token", "1", Optional.of(INTEGRATION_CLIENT_NAME));
 
         String ret = integrationsController.score("token", "1", httpServletRequest);
 
@@ -60,7 +60,7 @@ public class IntegrationsControllerTest extends BaseTest {
 
     @Test
     void scoreExpiredBadRequestTest() throws IntegrationTokenNotFoundException, DataServiceException, IntegrationTokenInvalidException, IntegrationTokenExpiredException, IntegrationTokenAlreadyRedeemedException {
-        doThrow(new IntegrationTokenExpiredException("token")).when(integrationScoreService).score("token", "1", Optional.of(INTEGRATION_CLIENT_NAME));
+        doThrow(new IntegrationTokenExpiredException("{\"code\":\"token\",\"moreAttemptsAvailable\":true}")).when(integrationScoreService).score("token", "1", Optional.of(INTEGRATION_CLIENT_NAME));
 
         String ret = integrationsController.score("token", "1", httpServletRequest);
 
@@ -69,7 +69,7 @@ public class IntegrationsControllerTest extends BaseTest {
 
     @Test
     void scoreAlreadyRedeemedBadRequestTest() throws IntegrationTokenNotFoundException, DataServiceException, IntegrationTokenInvalidException, IntegrationTokenExpiredException, IntegrationTokenAlreadyRedeemedException {
-        doThrow(new IntegrationTokenAlreadyRedeemedException("token")).when(integrationScoreService).score("token", "1", Optional.of(INTEGRATION_CLIENT_NAME));
+        doThrow(new IntegrationTokenAlreadyRedeemedException("{\"code\":\"token\",\"moreAttemptsAvailable\":true}")).when(integrationScoreService).score("token", "1", Optional.of(INTEGRATION_CLIENT_NAME));
 
         String ret = integrationsController.score("token", "1", httpServletRequest);
 
