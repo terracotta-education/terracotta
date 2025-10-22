@@ -26,7 +26,8 @@ const integration = {
   url: params.get("url"),
   errorCode: params.get("errorCode") === "null" ? null : params.get("errorCode"),
   previewUrl: params.get("previewUrl"),
-  moreAttemptsAvailable: params.get("moreAttemptsAvailable") === "true"
+  moreAttemptsAvailable: params.get("moreAttemptsAvailable") === "true",
+  errorMessage: params.get("errorMessage") === "null" ? null : params.get("errorMessage"),
 };
 const obsolete = {
   obsolete: params.get("obsolete") === "true",

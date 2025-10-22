@@ -20,6 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 public class IntegrationError {
 
     private String code;
+    private String errorMessage;
     private boolean moreAttemptsAvailable;
 
     public static IntegrationError from(String json) {

@@ -13,6 +13,7 @@ import edu.iu.terracotta.dao.exceptions.QuestionSubmissionNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.SubmissionNotMatchingException;
 import edu.iu.terracotta.dao.model.dto.QuestionSubmissionDto;
 import edu.iu.terracotta.exceptions.AssignmentAttemptException;
+import edu.iu.terracotta.exceptions.AssignmentLockedException;
 import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.DuplicateQuestionException;
@@ -164,7 +165,7 @@ public class QuestionSubmissionController {
             HttpHeaders headers = questionSubmissionService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, submissionId);
 
             return new ResponseEntity<>(returnedDtoList, headers, HttpStatus.CREATED);
-        } catch (AssignmentAttemptException e) {
+        } catch (AssignmentAttemptException | AssignmentLockedException e) {
             return new ResponseEntity(e.getMessage(), HttpStatus.UNAUTHORIZED);
         }
     }
@@ -287,7 +288,7 @@ public class QuestionSubmissionController {
                                                                                   HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, BadTokenException, InvalidUserException, TypeNotSupportedException, DataServiceException, IdInPostException,
             IOException, SubmissionNotMatchingException, NoSubmissionsException, ApiException, IdMissingException, ExceedingLimitException, AnswerNotMatchingException,
-            DuplicateQuestionException, AnswerSubmissionNotMatchingException, AssignmentAttemptException, NumberFormatException, TerracottaConnectorException {
+            DuplicateQuestionException, AnswerSubmissionNotMatchingException, AssignmentAttemptException, NumberFormatException, TerracottaConnectorException, AssignmentLockedException {
 
         if (file.isEmpty()) {
             log.error("File cannot be empty.");
@@ -329,7 +330,7 @@ public class QuestionSubmissionController {
                                                                                   HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, BadTokenException, InvalidUserException, TypeNotSupportedException, DataServiceException, IdInPostException,
             IOException, SubmissionNotMatchingException, NoSubmissionsException, ApiException, IdMissingException, ExceedingLimitException, AnswerNotMatchingException,
-            DuplicateQuestionException, AnswerSubmissionNotMatchingException, AssignmentAttemptException, QuestionSubmissionNotMatchingException, NumberFormatException, TerracottaConnectorException {
+            DuplicateQuestionException, AnswerSubmissionNotMatchingException, AssignmentAttemptException, QuestionSubmissionNotMatchingException, NumberFormatException, TerracottaConnectorException, AssignmentLockedException {
         if (file.isEmpty()) {
             log.error("File cannot be empty.");
             return new ResponseEntity(TextConstants.FILE_MISSING, HttpStatus.BAD_REQUEST);

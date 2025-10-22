@@ -37,6 +37,7 @@ import edu.iu.terracotta.dao.repository.QuestionSubmissionCommentRepository;
 import edu.iu.terracotta.dao.repository.QuestionSubmissionRepository;
 import edu.iu.terracotta.dao.repository.SubmissionRepository;
 import edu.iu.terracotta.exceptions.AssignmentAttemptException;
+import edu.iu.terracotta.exceptions.AssignmentLockedException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.DuplicateQuestionException;
 import edu.iu.terracotta.exceptions.ExceedingLimitException;
@@ -67,6 +68,8 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -392,27 +395,56 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
     }
 
     @Override
-    public void canSubmit(SecuredInfo securedInfo, long experimentId) throws ApiException, AssignmentAttemptException, IOException, TerracottaConnectorException {
+    public void canSubmit(SecuredInfo securedInfo, long experimentId) throws ApiException, AssignmentAttemptException, AssignmentLockedException, IOException, TerracottaConnectorException {
+        canSubmit(securedInfo, experimentId, false);
+    }
+
+    @Override
+    public void canSubmit(SecuredInfo securedInfo, long experimentId, boolean preferLmsCheck) throws ApiException, AssignmentAttemptException, AssignmentLockedException, IOException, TerracottaConnectorException {
         // There are two possible ways to do this check. First, and preferred, is using LTI custom variable substitution to get the allowed attempts
         // and the number of student attempts. The second is by making LMS API calls to get the same information.
 
-        // (Approach #1) Using LTI custom variable substitution
-        if (securedInfo.getAllowedAttempts() != null && securedInfo.getAllowedAttempts() == -1) {
-            // unlimited attempts
-            return;
-        }
+        if (!preferLmsCheck) {
+            /* (Approach #1) Using LTI custom variable substitution */
 
-        if (securedInfo.getAllowedAttempts() != null && securedInfo.getStudentAttempts() != null) {
-            if (securedInfo.getStudentAttempts() < securedInfo.getAllowedAttempts()) {
-                // more attempts left
+            if (securedInfo.getUnlockAt() != null && securedInfo.getUnlockAt().after(Timestamp.from(Instant.now()))) {
+                // assignment is not unlocked yet
+                throw new AssignmentLockedException(
+                    String.format(
+                        TextConstants.ASSIGNMENT_LOCKED_UNTIL,
+                        securedInfo.getUnlockAt().getTime()
+                    )
+                );
+            }
+
+            if (securedInfo.getLockAt() != null && securedInfo.getLockAt().before(Timestamp.from(Instant.now()))) {
+                // assignment is locked
+                throw new AssignmentLockedException(
+                    String.format(
+                        TextConstants.ASSIGNMENT_LOCKED_AT,
+                        securedInfo.getLockAt().getTime()
+                    )
+                );
+            }
+
+            if (securedInfo.getAllowedAttempts() != null && securedInfo.getAllowedAttempts() == -1) {
+                // unlimited attempts
                 return;
             }
 
-            // attempts limit reached
-            throw new AssignmentAttemptException(TextConstants.MAX_SUBMISSION_ATTEMPTS_REACHED);
+            if (securedInfo.getAllowedAttempts() != null && securedInfo.getStudentAttempts() != null) {
+                if (securedInfo.getStudentAttempts() < securedInfo.getAllowedAttempts()) {
+                    // more attempts left
+                    return;
+                }
+
+                // attempts limit reached
+                throw new AssignmentAttemptException(TextConstants.MAX_SUBMISSION_ATTEMPTS_REACHED);
+            }
         }
 
-        // (Approach #2) Using LMS API calls
+        /* (Approach #2) Using LMS API calls */
+
         Assignment assignment = assignmentRepository.findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(experimentId, securedInfo.getLmsAssignmentId());
         LtiUserEntity instructorUser = assignment.getExposure().getExperiment().getCreatedBy();
         Optional<LmsAssignment> lmsAssignment = apiClient.listAssignment(instructorUser, securedInfo.getLmsCourseId(), securedInfo.getLmsAssignmentId());
@@ -426,6 +458,26 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
         if (lmsAssignment.isEmpty() || submission.isEmpty()) {
             // no extends assignment and no submissions exist
             return;
+        }
+
+        if (lmsAssignment.get().getUnlockAt() != null && lmsAssignment.get().getUnlockAt().after(Timestamp.from(Instant.now()))) {
+            // assignment is not unlocked yet
+            throw new AssignmentLockedException(
+                String.format(
+                    TextConstants.ASSIGNMENT_LOCKED_UNTIL,
+                    lmsAssignment.get().getUnlockAt().getTime()
+                )
+            );
+        }
+
+        if (lmsAssignment.get().getLockAt() != null && lmsAssignment.get().getLockAt().before(Timestamp.from(Instant.now()))) {
+            // assignment is locked
+            throw new AssignmentLockedException(
+                String.format(
+                    TextConstants.ASSIGNMENT_LOCKED_AT,
+                    lmsAssignment.get().getLockAt().getTime()
+                )
+            );
         }
 
         int allowedAttempts = lmsAssignment.get().getAllowedAttempts();
@@ -447,7 +499,7 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
 
     public List<QuestionSubmissionDto> handleFileQuestionSubmission(MultipartFile file, String questionSubmissionDtoStr, long experimentId, long assessmentId, long submissionId, boolean student, SecuredInfo securedInfo)
             throws IOException, ApiException, AssignmentAttemptException, IdInPostException, DataServiceException, DuplicateQuestionException, InvalidUserException, IdMissingException,
-                AnswerSubmissionNotMatchingException, AnswerNotMatchingException, ExceedingLimitException, TypeNotSupportedException, TerracottaConnectorException {
+                AnswerSubmissionNotMatchingException, AnswerNotMatchingException, ExceedingLimitException, TypeNotSupportedException, TerracottaConnectorException, AssignmentLockedException {
         String fileName = file.getResource().getFilename();
         File tempFile = getFile(file, file.getName());
 
@@ -479,7 +531,7 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
 
     public List<QuestionSubmissionDto> handleFileQuestionSubmissionUpdate(MultipartFile file, String questionSubmissionDtoStr, long experimentId, long assessmentId, long submissionId, long questionSubmissionId, boolean student, SecuredInfo securedInfo)
             throws IOException, ApiException, AssignmentAttemptException, IdInPostException, DataServiceException, DuplicateQuestionException, InvalidUserException, IdMissingException,
-                AnswerSubmissionNotMatchingException, AnswerNotMatchingException, ExceedingLimitException, TypeNotSupportedException, QuestionSubmissionNotMatchingException, TerracottaConnectorException {
+                AnswerSubmissionNotMatchingException, AnswerNotMatchingException, ExceedingLimitException, TypeNotSupportedException, QuestionSubmissionNotMatchingException, TerracottaConnectorException, AssignmentLockedException {
         QuestionSubmissionDto questionSubmissionDto = objectMapper.readValue(questionSubmissionDtoStr, QuestionSubmissionDto.class);
         QuestionSubmission questionSubmission = questionSubmissionRepository.findByQuestionSubmissionId(questionSubmissionId);
 

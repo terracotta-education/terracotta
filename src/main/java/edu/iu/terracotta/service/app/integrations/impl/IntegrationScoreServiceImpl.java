@@ -32,6 +32,7 @@ import edu.iu.terracotta.dao.repository.SubmissionRepository;
 import edu.iu.terracotta.dao.repository.integrations.IntegrationClientRepository;
 import edu.iu.terracotta.dao.repository.integrations.IntegrationTokenLogRepository;
 import edu.iu.terracotta.exceptions.AssignmentAttemptException;
+import edu.iu.terracotta.exceptions.AssignmentLockedException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.service.app.QuestionSubmissionService;
 import edu.iu.terracotta.service.app.SubmissionService;
@@ -198,20 +199,20 @@ public class IntegrationScoreServiceImpl implements IntegrationScoreService {
         }
     }
 
-    private boolean canResubmit(String launchToken) {
+    private Optional<String> canResubmit(String launchToken) {
         if (StringUtils.isBlank(launchToken)) {
-            return false;
+            return Optional.of("Launch token cannot be null");
         }
 
         try {
             IntegrationToken integrationToken = integrationTokenService.findByToken(launchToken);
-            questionSubmissionService.canSubmit(integrationToken.getSecuredInfo().get(), integrationToken.getSubmission().getParticipant().getExperiment().getExperimentId());
-        } catch (IOException | AssignmentAttemptException | ApiException | TerracottaConnectorException | IntegrationTokenNotFoundException e) {
-            log.error("Error retrieiving assignment attempt information for token: [{}]", launchToken, e);
-            return false;
+            questionSubmissionService.canSubmit(integrationToken.getSecuredInfo().get(), integrationToken.getSubmission().getParticipant().getExperiment().getExperimentId(), true);
+        } catch (IOException | ApiException | AssignmentLockedException | AssignmentAttemptException | TerracottaConnectorException | IntegrationTokenNotFoundException e) {
+            log.error("Error retrieving assignment attempt information for token: [{}]", launchToken, e);
+            return Optional.of(e.getMessage());
         }
 
-        return true;
+        return Optional.empty();
     }
 
     private String handleError(String errorMessage, String score, String launchToken) {
@@ -236,7 +237,8 @@ public class IntegrationScoreServiceImpl implements IntegrationScoreService {
                 .build()
         );
 
-        boolean moreAttemptsAvailable = canResubmit(launchToken);
+        Optional<String> resubmitError = canResubmit(launchToken);
+        boolean moreAttemptsAvailable = resubmitError.isEmpty();
 
         if (moreAttemptsAvailable) {
             // more attempts available; delete invalid submission
@@ -250,8 +252,10 @@ public class IntegrationScoreServiceImpl implements IntegrationScoreService {
         }
 
         try {
-            return new ObjectMapper().writeValueAsString(IntegrationError.builder()
+            return new ObjectMapper().writeValueAsString(
+                IntegrationError.builder()
                 .code(code)
+                .errorMessage(resubmitError.orElse(null))
                 .moreAttemptsAvailable(moreAttemptsAvailable)
                 .build()
             );
