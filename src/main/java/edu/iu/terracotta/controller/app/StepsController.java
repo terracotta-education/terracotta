@@ -20,6 +20,7 @@ import edu.iu.terracotta.dao.model.dto.ParticipantDto;
 import edu.iu.terracotta.dao.model.dto.StepDto;
 import edu.iu.terracotta.exceptions.AssignmentAttemptException;
 import edu.iu.terracotta.exceptions.AssignmentDatesException;
+import edu.iu.terracotta.exceptions.AssignmentLockedException;
 import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentStartedException;
@@ -43,6 +44,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
@@ -75,6 +77,7 @@ public class StepsController {
 
     @PostMapping
     public ResponseEntity<Object> postStep(@PathVariable long experimentId,
+                                            @RequestParam(name = "preferLmsChecks", defaultValue = "false") boolean preferLmsChecks,
                                            @RequestBody StepDto stepDto,
                                            HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, DataServiceException,
@@ -131,7 +134,7 @@ public class StepsController {
                         }
 
                         Long submissionId = Long.parseLong(submissionsId.get(0));
-                        questionSubmissionService.canSubmit(securedInfo, experimentId);
+                        questionSubmissionService.canSubmit(securedInfo, experimentId, preferLmsChecks);
                         submissionService.allowedSubmission(submissionId, securedInfo);
                         submissionService.finalizeAndGrade(submissionId, securedInfo, student);
                     } else if (apijwtService.isInstructorOrHigher(securedInfo)) {
@@ -142,7 +145,7 @@ public class StepsController {
                     } else {
                         return new ResponseEntity<>(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
                     }
-                } catch (AssignmentAttemptException e) {
+                } catch (AssignmentAttemptException | AssignmentLockedException e) {
                     return new ResponseEntity<>(e.getMessage(), HttpStatus.UNAUTHORIZED);
                 }
 
@@ -182,10 +185,10 @@ public class StepsController {
                 }
 
                 try {
-                    questionSubmissionService.canSubmit(securedInfo, experimentId);
+                    questionSubmissionService.canSubmit(securedInfo, experimentId, preferLmsChecks);
 
                     return assignmentService.launchAssignment(experimentId, securedInfo);
-                } catch (AssignmentAttemptException | AssignmentNotMatchingException e) {
+                } catch (AssignmentAttemptException | AssignmentNotMatchingException | AssignmentLockedException e) {
                     return new ResponseEntity<>(e.getMessage(), HttpStatus.UNAUTHORIZED);
                 }
             case LAUNCH_CONSENT_ASSIGNMENT:

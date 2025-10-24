@@ -45,6 +45,8 @@ public class TextConstants {
     public static final String CONSENT_PENDING = "Error 114: Consent_Pending: The student has not signed the consent";
     public static final String GROUP_PENDING = "Error 115: Group_Pending: The student has not been assigned to a group";
     public static final String ASSIGNMENT_LOCKED = "Error 116: The assignment is not open at this moment";
+    public static final String ASSIGNMENT_LOCKED_AT = "Error Locked::%s";
+    public static final String ASSIGNMENT_LOCKED_UNTIL = "Error Unlocked::%s";
     public static final String LIMIT_OF_SUBMISSIONS_REACHED ="Error 117: You can't answer this assignment again";
     public static final String MAX_SUBMISSION_ATTEMPTS_REACHED = "Error 150: Max submission attempts already reached";
     public static final String ASSIGNMENT_SUBMISSION_WAIT_TIME_NOT_REACHED = "Error 158: You must wait to answer this assignment again";

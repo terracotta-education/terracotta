@@ -90,7 +90,12 @@ public interface AssignmentService {
     void sendAssignmentGradeToLms(Assignment assignment) throws ConnectionException, DataServiceException, IOException, ApiException, TerracottaConnectorException;
     ResponseEntity<Object> launchAssignment(Long experimentId, SecuredInfo securedInfo)
             throws AssessmentNotMatchingException, ParticipantNotUpdatedException, AssignmentDatesException, DataServiceException,
-                    IOException, GroupNotMatchingException, ParticipantNotMatchingException, ConnectionException, AssignmentAttemptException, AssignmentNotMatchingException, ExperimentNotMatchingException, ApiException, TerracottaConnectorException, IntegrationTokenNotFoundException;
+                    IOException, GroupNotMatchingException, ParticipantNotMatchingException, ConnectionException, AssignmentAttemptException, AssignmentNotMatchingException,
+                    ExperimentNotMatchingException, ApiException, TerracottaConnectorException, IntegrationTokenNotFoundException;
+    ResponseEntity<Object> launchAssignment(Long experimentId, SecuredInfo securedInfo, boolean preferLmsCheck)
+            throws AssessmentNotMatchingException, ParticipantNotUpdatedException, AssignmentDatesException, DataServiceException,
+                    IOException, GroupNotMatchingException, ParticipantNotMatchingException, ConnectionException, AssignmentAttemptException, AssignmentNotMatchingException,
+                    ExperimentNotMatchingException, ApiException, TerracottaConnectorException, IntegrationTokenNotFoundException;
     void checkAndRestoreAllAssignmentsInLms() throws DataServiceException, ConnectionException, IOException, ApiException, NumberFormatException, TerracottaConnectorException;
     void checkAndRestoreAssignmentsInLms(Long platformDeploymentKeyId) throws DataServiceException, ConnectionException, IOException, ApiException, NumberFormatException, TerracottaConnectorException;
     boolean checkLmsAssignmentExists(Assignment assignment, LtiUserEntity instructorUser) throws ApiException, NumberFormatException, TerracottaConnectorException;

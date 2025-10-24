@@ -11,6 +11,7 @@ import edu.iu.terracotta.dao.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.QuestionSubmissionNotMatchingException;
 import edu.iu.terracotta.dao.model.dto.QuestionSubmissionDto;
 import edu.iu.terracotta.exceptions.AssignmentAttemptException;
+import edu.iu.terracotta.exceptions.AssignmentLockedException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.DuplicateQuestionException;
 import edu.iu.terracotta.exceptions.ExceedingLimitException;
@@ -42,12 +43,13 @@ public interface QuestionSubmissionService {
     HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId, Long submissionId);
     void validateAndPrepareQuestionSubmissionList(List<QuestionSubmissionDto> questionSubmissionDtoList, long assessmentId, long submissionId, boolean student) throws IdInPostException, DataServiceException, DuplicateQuestionException, InvalidUserException, IdMissingException, AnswerSubmissionNotMatchingException, AnswerNotMatchingException, ExceedingLimitException, TypeNotSupportedException;
     void validateQuestionSubmission(QuestionSubmissionDto questionSubmissionDto) throws DataServiceException;
-    void canSubmit(SecuredInfo securedInfo, long experimentId) throws IOException, AssignmentAttemptException, ApiException, TerracottaConnectorException;
+    void canSubmit(SecuredInfo securedInfo, long experimentId) throws IOException, AssignmentAttemptException, ApiException, TerracottaConnectorException, AssignmentLockedException;
+    void canSubmit(SecuredInfo securedInfo, long experimentId, boolean preferLmsCheck) throws IOException, AssignmentAttemptException, ApiException, TerracottaConnectorException, AssignmentLockedException;
     List<QuestionSubmissionDto> handleFileQuestionSubmission(MultipartFile file, String questionSubmissionDtoStr, long experimentId, long assessmentId, long submissionId, boolean student, SecuredInfo securedInfo)
             throws IOException, AssignmentAttemptException, IdInPostException, DataServiceException, DuplicateQuestionException, InvalidUserException, IdMissingException,
-                AnswerSubmissionNotMatchingException, AnswerNotMatchingException, ExceedingLimitException, TypeNotSupportedException, ApiException, TerracottaConnectorException;
+                AnswerSubmissionNotMatchingException, AnswerNotMatchingException, ExceedingLimitException, TypeNotSupportedException, ApiException, TerracottaConnectorException, AssignmentLockedException;
     List<QuestionSubmissionDto> handleFileQuestionSubmissionUpdate(MultipartFile file, String questionSubmissionDtoStr, long experimentId, long assessmentId, long submissionId, long questionSubmissionId, boolean student, SecuredInfo securedInfo)
             throws IOException, AssignmentAttemptException, IdInPostException, DataServiceException, DuplicateQuestionException, InvalidUserException, IdMissingException,
-                AnswerSubmissionNotMatchingException, AnswerNotMatchingException, ExceedingLimitException, TypeNotSupportedException, QuestionSubmissionNotMatchingException, ApiException, TerracottaConnectorException;
+                AnswerSubmissionNotMatchingException, AnswerNotMatchingException, ExceedingLimitException, TypeNotSupportedException, QuestionSubmissionNotMatchingException, ApiException, TerracottaConnectorException, AssignmentLockedException;
 
 }

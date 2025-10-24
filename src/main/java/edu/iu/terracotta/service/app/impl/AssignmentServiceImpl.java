@@ -372,6 +372,15 @@ public class AssignmentServiceImpl implements AssignmentService {
     public ResponseEntity<Object> launchAssignment(Long experimentId, SecuredInfo securedInfo)
             throws AssessmentNotMatchingException, ParticipantNotUpdatedException, AssignmentDatesException, DataServiceException, ApiException, IOException, GroupNotMatchingException,
                 ParticipantNotMatchingException, ConnectionException, AssignmentAttemptException, AssignmentNotMatchingException, ExperimentNotMatchingException, TerracottaConnectorException, IntegrationTokenNotFoundException {
+
+        return launchAssignment(experimentId, securedInfo, false);
+    }
+
+    @Override
+    @Transactional
+    public ResponseEntity<Object> launchAssignment(Long experimentId, SecuredInfo securedInfo, boolean preferLmsCheck)
+            throws AssessmentNotMatchingException, ParticipantNotUpdatedException, AssignmentDatesException, DataServiceException, ApiException, IOException, GroupNotMatchingException,
+                ParticipantNotMatchingException, ConnectionException, AssignmentAttemptException, AssignmentNotMatchingException, ExperimentNotMatchingException, TerracottaConnectorException, IntegrationTokenNotFoundException {
         Optional<Experiment> experiment = experimentRepository.findById(experimentId);
 
         if (experiment.isEmpty()) {

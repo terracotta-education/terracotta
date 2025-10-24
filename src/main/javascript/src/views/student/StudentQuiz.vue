@@ -567,6 +567,9 @@ export default {
       setAssessment: "assessment/setAssessment",
       clearFiles: "submissions/clearFiles"
     }),
+    async handleTryAgainIntegration() {
+      this.attempt(true);
+    },
     async handleTryAgain() {
       this.attempt();
     },
@@ -889,14 +892,14 @@ export default {
       const step = "view_assignment";
       return this.reportStep({ experimentId, step });
     },
-    async attempt() {
+    async attempt(preferLmsChecks = false) {
       this.questionPageIndex = 0;
       const experimentId = this.experimentId;
       const step = "launch_assignment";
       this.readonly = false;
       this.loading = true;
       try {
-        const stepResponse = await this.reportStep({ experimentId, step });
+        const stepResponse = await this.reportStep({ experimentId, step, undefined, preferLmsChecks });
 
         if (stepResponse?.status === 200) {
           const data = stepResponse?.data;
@@ -1005,11 +1008,11 @@ export default {
     // handle integration iframe score return event
     window.document.addEventListener("integrations_score", this.handleIntegrationsScore);
     // handle integration iframe reattempt event
-    window.document.addEventListener("integrations_reattempt", this.handleTryAgain);
+    window.document.addEventListener("integrations_reattempt", this.handleTryAgainIntegration);
   },
   beforeDestroy () {
     window.removeEventListener("integrations_score", this.handleIntegrationsScore);
-    window.removeEventListener("integrations_reattempt", this.handleTryAgain);
+    window.removeEventListener("integrations_reattempt", this.handleTryAgainIntegration);
   }
 };
 </script>

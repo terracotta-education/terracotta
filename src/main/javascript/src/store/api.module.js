@@ -65,10 +65,10 @@ const actions = {
         console.error('refreshToken | catch', {response})
       })
   },
-  async reportStep({state}, {experimentId, step, parameters=null}) {
+  async reportStep({state}, {experimentId, step, parameters = null, preferLmsChecks = false}) {
     // report the current step to the server to do some magic
     // used for exposure_type, participation_type, and distribution_type selection steps
-    return await apiService.reportStep(experimentId, step, parameters)
+    return await apiService.reportStep(experimentId, step, parameters, preferLmsChecks)
       .then(data => {
         return data
       })

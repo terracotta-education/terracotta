@@ -136,6 +136,8 @@
 </template>
 
 <script>
+import moment from "moment";
+
 export default {
   props: {
     integrationData:{
@@ -170,6 +172,23 @@ export default {
     },
     moreAttemptsAvailable() {
       return this.integrationData.moreAttemptsAvailable;
+    },
+    errorMessage() {
+      if (!this.integrationData.errorMessage) {
+        return "";
+      }
+
+      const time = moment(Number(this.integrationData.errorMessage.split("::")[1])).format("MMMM DD [at] h:mm A");
+
+      if (this.integrationData.errorMessage.startsWith("Error Locked::")) {
+        return `The assignment was locked ${time}.`
+      }
+
+      if (this.integrationData.errorMessage.startsWith("Error Unlocked::")) {
+        return `The assignment is locked until ${time}.`
+      }
+
+      return "";
     },
     isSuccess() {
       if (this.isError) {
@@ -264,7 +283,9 @@ export default {
             info: [
               `
                 You are seeing this screen because an error occurred while attempting to record an assignment submission from a web activity.<br /><br />
-                If you are a student, you're seeing this error because your session has expired.
+                If you are a student, you're seeing this error because your session has expired.<br /><br />
+
+                ${this.errorMessage}
               `,
               `
                 If you are an instructor, please revisit documentation on integrating your survey or web activity.

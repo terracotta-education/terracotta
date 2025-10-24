@@ -39,6 +39,7 @@ public class IntegrationsController {
         Optional<String> previewTokenClient = integrationScoreService.getPreviewTokenClient(launchToken);
         String url = null;
         IntegrationError integrationError = null;
+        String errorMessage = null;
 
         try {
             url = String.format(
@@ -55,6 +56,7 @@ public class IntegrationsController {
         } catch (IntegrationTokenAlreadyRedeemedException | IntegrationTokenExpiredException | IntegrationTokenInvalidException | DataServiceException | RuntimeException | UnsupportedEncodingException e) {
             integrationError = IntegrationError.from(e.getMessage());
             errorCode = integrationError.getCode();
+            errorMessage = integrationError.getErrorMessage();
             status = HttpStatus.BAD_REQUEST;
         }
 
@@ -70,7 +72,7 @@ public class IntegrationsController {
         }
 
         return String.format(
-            "redirect:/app/app.html?integration=true&status=%s&preview=%s&client=%s&launch_token=%s&score=%s&url=%s&errorCode=%s&moreAttemptsAvailable=%s",
+            "redirect:/app/app.html?integration=true&status=%s&preview=%s&client=%s&launch_token=%s&score=%s&url=%s&errorCode=%s&moreAttemptsAvailable=%s&errorMessage=%s",
             status.name(),
             previewTokenClient.isPresent(),
             previewTokenClient.isPresent() ? previewTokenClient.get() : null,
@@ -78,7 +80,8 @@ public class IntegrationsController {
             score,
             url,
             errorCode,
-            integrationError != null && integrationError.isMoreAttemptsAvailable() || false
+            integrationError != null && integrationError.isMoreAttemptsAvailable() || false,
+            errorMessage != null ? URLEncoder.encode(errorMessage, StandardCharsets.UTF_8) : null
         );
     }
 

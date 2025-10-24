@@ -47,7 +47,7 @@ function refreshToken() {
 /**
  * Report to the server which step has been completed
  */
-async function reportStep(experimentId, step, parameters) {
+async function reportStep(experimentId, step, parameters, preferLmsChecks = false) {
   const requestOptions = {
     method: 'POST',
     headers: {...authHeader()},
@@ -57,7 +57,7 @@ async function reportStep(experimentId, step, parameters) {
     })
   }
 
-  return fetch(`${store.getters['api/aud']}/api/experiments/${experimentId}/step`, requestOptions).then(handleResponse)
+  return fetch(`${store.getters['api/aud']}/api/experiments/${experimentId}/step?preferLmsChecks=${preferLmsChecks}`, requestOptions).then(handleResponse)
 }
 
 
