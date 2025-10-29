@@ -243,15 +243,13 @@ public class IntegrationScoreServiceImpl implements IntegrationScoreService {
         Optional<String> resubmitError = canResubmit(launchToken);
         boolean moreAttemptsAvailable = resubmitError.isEmpty();
 
-        if (moreAttemptsAvailable) {
-            // more attempts available; delete invalid submission
-            Optional<Submission> submission = submissionRepository.findByIntegrationToken_Token(launchToken);
+        // delete invalid submission
+        Optional<Submission> submission = submissionRepository.findByIntegrationToken_Token(launchToken);
 
-            if (submission.isPresent()) {
-                submissionService.deleteById(submission.get().getSubmissionId());
-            } else {
-                log.error("Cannot find submission for token: [{}] to delete invalid submission after error: [{}]", launchToken, errorMessage);
-            }
+        if (submission.isPresent()) {
+            submissionService.deleteById(submission.get().getSubmissionId());
+        } else {
+            log.error("Cannot find submission for token: [{}] to delete invalid submission after error: [{}]", launchToken, errorMessage);
         }
 
         try {
