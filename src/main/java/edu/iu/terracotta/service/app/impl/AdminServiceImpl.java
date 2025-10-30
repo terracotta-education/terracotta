@@ -26,7 +26,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
-@SuppressWarnings({"PMD.GuardLogStatement"})
+@SuppressWarnings({"unused", "PMD.GuardLogStatement"})
 public class AdminServiceImpl implements AdminService {
 
     @Autowired private AdminUserRepository adminUserRepository;
