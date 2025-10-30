@@ -23,7 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Configuration
-@SuppressWarnings({"PMD.GuardLogStatement"})
+@SuppressWarnings({"unused", "PMD.GuardLogStatement"})
 public class ExperimentDataExportSchedulerRunner {
 
     public static final String TASK_NAME = "delete_expired_experiment_data_exports";

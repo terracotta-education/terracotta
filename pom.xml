@@ -30,7 +30,7 @@
         <guava.version>33.5.0-jre</guava.version>
         <jackson-datatype-joda.version>2.20.0</jackson-datatype-joda.version>
         <jacoco.version>0.8.13</jacoco.version>
-        <java.version>21</java.version>
+        <java.version>25</java.version>
         <jjwt.version>0.13.0</jjwt.version>
         <joda-time.version>2.14.0</joda-time.version>
         <json.version>20250517</json.version>
@@ -316,6 +316,19 @@
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.jacoco</groupId>

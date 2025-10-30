@@ -25,7 +25,7 @@ import org.springframework.context.annotation.Configuration;
 
 @Slf4j
 @Configuration
-@SuppressWarnings({"PMD.GuardLogStatement"})
+@SuppressWarnings({"unused", "PMD.GuardLogStatement"})
 public class MessagingSchedulerRunner {
 
     public static final String TASK_NAME = "send_queued_messages";
