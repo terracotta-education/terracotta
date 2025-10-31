@@ -196,7 +196,10 @@ export default {
   },
   async created() {
     localStorage.clear();
-    await this.retrieveConfiguration();
+
+    if (!this.isTreatmentPreview) {
+      await this.retrieveConfiguration();
+    }
 
     setInterval(function () {
       this.refreshToken(this.apiToken);
