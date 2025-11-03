@@ -27,7 +27,7 @@ import java.util.Enumeration;
 import java.util.List;
 
 /**
- * LTI3 Redirect calls will be filtered on this class. We will check if the JWT is valid and then extract all the needed data.
+ * LTI3 Redirect calls will be filtered on this class. Check if the JWT is valid and then extract all the needed data.
  */
 @Slf4j
 @SuppressWarnings({"unchecked", "PMD.GuardLogStatement"})
@@ -40,7 +40,7 @@ public class Lti3OAuthProviderProcessingFilter extends GenericFilterBean {
     private LtiJwtService ltijwtService;
 
     /**
-     * We need to load the data service to find the iss configurations and extract the keys.
+     * Load the data service to find the iss configurations and extract the keys.
      */
     public Lti3OAuthProviderProcessingFilter(LtiDataService ltiDataService, LtiJwtService ltijwtService) {
         super();
@@ -59,7 +59,7 @@ public class Lti3OAuthProviderProcessingFilter extends GenericFilterBean {
     }
 
     /**
-     * We filter all the LTI3 queries received on this endpoint.
+     * Filter all the LTI3 queries received on this endpoint.
      */
     @Override
     public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) throws IOException,
@@ -87,42 +87,44 @@ public class Lti3OAuthProviderProcessingFilter extends GenericFilterBean {
                 log.debug("-------------------------------------------------------------------------------------------------------");
             }
 
-            // First we validate that the state is a good state.
+            // validate that the state is a good state.
 
-            //First, we make sure that the query has an state
+            // ensure that the query has an state
             String state = httpServletRequest.getParameter("state");
             String link = httpServletRequest.getParameter("link");
 
             if (httpServletRequest.getSession().getAttribute("lti_state") == null) {
-                throw new IllegalStateException("LTI request doesn't contains the expected state");
+                log.error("LTI request doesn't contain the expected state");
+                return;
             }
 
-            //Second, as the state is something that we have created, it should be in our list of states.
+            // as the state is something that we have created, it should be in our list of states
             List<String> ltiState = (List<String>) httpServletRequest.getSession().getAttribute("lti_state");
 
             if (!ltiState.contains(state)) {
-                throw new IllegalStateException("LTI request doesn't contains the expected state");
+                log.error("LTI request doesn't contain the expected state");
+                return;
             }
 
-            //Third, we validate the state to be sure that is correct
+            // validate the state to be sure that is correct
             Jws<Claims> stateClaims = ltijwtService.validateState(state);
 
-            // Once we have the state validated we need the key to check the JWT signature from the id_token,
-            // and extract all the values in the Lti3Request object.
-            // Most of the platforms will provide a JWK repo URL and we will have it stored in configuration,
-            // where they store the public keys
-            // With that URL and the "kid" in the header of the jwt id_token, we can get the public key too.
-            // In our tool we have included a alternative mechanism for those platforms without JWK endpoint
-            // The state provides us the way to find that key in our repo. This is not a requirement in LTI, it is just a way to do it that we've implemented, but each one can use the
-            // state in a different way.
+            /*
+                Once we have the state validated we need the key to check the JWT signature from the id_token, and extract all the values in the Lti3Request object.
+                Most of the platforms will provide a JWK repo URL and we will have it stored in configuration, where they store the public keys
+                With that URL and the "kid" in the header of the jwt id_token, we can get the public key too.
+                In our tool we have included a alternative mechanism for those platforms without JWK endpoint.
+                The state provides us the way to find that key in our repo. This is not a requirement in LTI, it is just a way to do it that we've implemented, but each one can use the
+                state in a different way.
+            */
+
             String jwt = httpServletRequest.getParameter("id_token");
 
             if (StringUtils.hasText(jwt)) {
-                //Now we validate the JWT token
+                // validate the JWT token
                 Jws<Claims> jws = ltijwtService.validateJWT(jwt, stateClaims.getPayload().getAudience().toArray(new String[stateClaims.getPayload().getAudience().size()])[0]);
                 if (jws != null) {
-                    //Here we create and populate the Lti3Request object and we will add it to the httpServletRequest, so the redirect endpoint will have all that information
-                    //ready and will be able to use it.
+                    // Create and populate the Lti3Request object and add it to the httpServletRequest, so the redirect endpoint will have all that information ready and will be able to use it.
                     Lti3Request lti3Request = new Lti3Request(httpServletRequest, ltiDataService, true, link); // IllegalStateException if invalid
                     httpServletRequest.setAttribute("LTI3", true); // indicate this request is an LTI3 one
                     httpServletRequest.setAttribute("lti3_valid", lti3Request.isLoaded() && lti3Request.isComplete()); // is LTI3 request totally valid and complete
@@ -131,8 +133,7 @@ public class Lti3OAuthProviderProcessingFilter extends GenericFilterBean {
                 }
             }
 
-            // Now that the user is authenticated, if this their first time, set
-            // the first-party-interaction cookie
+            // Now that the user is authenticated, if this their first time, set the first-party-interaction cookie
             createFirstPartyInteractionCookieIfMissing(servletResponse, httpServletRequest);
             filterChain.doFilter(servletRequest, servletResponse);
 
@@ -163,8 +164,7 @@ public class Lti3OAuthProviderProcessingFilter extends GenericFilterBean {
         }
 
         if (!hasFirstPartyInteractionCookie) {
-            // A permanent first-party cookie is needed by Safari in order to be
-            // able to set cookies like the JSESSIONID in a third-party (iFrame) context
+            // A permanent first-party cookie is needed by Safari in order to be able to set cookies like the JSESSIONID in a third-party (iFrame) context
             Cookie firstPartyInteractionCookie = new Cookie("first-party-interaction", "true");
             firstPartyInteractionCookie.setHttpOnly(false);
             firstPartyInteractionCookie.setSecure(true);
