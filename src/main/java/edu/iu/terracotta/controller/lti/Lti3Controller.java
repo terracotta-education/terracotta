@@ -168,7 +168,7 @@ public class Lti3Controller {
                 if (platformRedirectUrl.isPresent()) {
                     return String.format(
                         "redirect:/app/firstParty.html?targetLinkUri=%s",
-                        URLEncoder.encode(platformRedirectUrl.get().getValue(), Charset.defaultCharset())
+                        URLEncoder.encode(lti3Request.getLtiTargetLinkUrl(), Charset.defaultCharset())
                     );
                 }
             } catch (URISyntaxException ex) {
