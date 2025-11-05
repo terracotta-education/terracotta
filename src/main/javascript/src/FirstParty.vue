@@ -14,7 +14,7 @@
               <v-card-title class="text-h5">You need to establish a first-party interaction with Terracotta.</v-card-title>
               <v-card-text class="first-party-card__text">
                 <p>
-                  Click the button below to establish the connection. This will return you to {{ isAssignment ? "your Canvas assignment" : "Canvas" }},
+                  Click the button below to establish the connection. This will return you to your LMS {{ isAssignment ? "assignment" : "" }},
                   and you'll see the same pop-up window as before. It may look like nothing has changed, but please click
                   {{ isAssignment ? '"Launch Assignment"' : '"Launch Terracotta"' }} again.
                 </p>
@@ -49,7 +49,7 @@
                   color="primary"
                   elevation="0"
                 >
-                  Return to Canvas
+                  Return to your LMS
                 </v-btn>
               </v-card-actions>
             </v-card>
@@ -69,7 +69,7 @@ export default {
   computed: {
     isAssignment() {
       return !!this.assignmentId;
-    },
+    }
   }
 };
 </script>

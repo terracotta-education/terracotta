@@ -166,8 +166,10 @@ public class Lti3Controller {
                     .findFirst();
 
                 if (platformRedirectUrl.isPresent()) {
-                    model.addAttribute("targetLinkUri", lti3Request.getLtiTargetLinkUrl());
-                    return "redirect:/app/firstParty.html";
+                    return String.format(
+                        "redirect:/app/firstParty.html?targetLinkUri=%s",
+                        URLEncoder.encode(platformRedirectUrl.get().getValue(), Charset.defaultCharset())
+                    );
                 }
             } catch (URISyntaxException ex) {
                 model.addAttribute(TextConstants.ERROR, ex.getMessage());

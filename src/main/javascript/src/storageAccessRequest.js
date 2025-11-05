@@ -12,7 +12,6 @@ const loginHint = params.get("login_hint");
 const clientId = params.get("client_id");
 const ltiMessageHint = params.get("lti_message_hint");
 const ltiDeploymentId = params.get("lti_deployment_id");
-
 const targetLinkURL = new URL(targetLinkUri);
 const targetLinkUriParams = new URLSearchParams(targetLinkURL.search);
 const assignmentId = targetLinkUriParams.get("assignment");
