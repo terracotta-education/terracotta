@@ -43,13 +43,13 @@
                       <div>
                         <h3>What is Terracotta?</h3>
                         <div>
-                          Terracotta is a Canvas plug-in that allows teachers and researchers to embed studies directly in their learning management system course sites.
+                          Terracotta is an LMS plug-in that allows teachers and researchers to embed studies directly in their learning management system course sites.
                         </div>
                       </div>
                     </v-tooltip>
                   </li>
                   <li>
-                    Allow Terracotta to use cookies and website data while you use Canvas.
+                    Allow Terracotta to use cookies and website data while you use your LMS.
                     <v-tooltip
                       top
                       color="#373d3f"
@@ -68,7 +68,7 @@
                       <div>
                         <h3>How Terracotta uses cookies</h3>
                         <div>
-                          Cookies allow Terracotta to associate your activity with your Canvas account. Some browsers restrict 3rd party access because it's often used to track activity
+                          Cookies allow Terracotta to associate your activity with your LMS account. Some browsers restrict 3rd party access because it's often used to track activity
                           across multiple sites. That's not what Terracotta is doing; it's only tracking your activity on this site to ensure it's associated with your account.
                         </div>
                       </div>
@@ -183,7 +183,7 @@ export default {
   computed: {
     isAssignment() {
       return !!this.assignmentId;
-    },
+    }
   },
   methods: {
     restartLoginProcess() {
@@ -210,8 +210,8 @@ export default {
           // so we'll redirect to Terracotta for a first-party interaction
           this.requestFullWindowLaunch();
         });
-    },
-  },
+    }
+  }
 };
 </script>
 
