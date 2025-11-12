@@ -3,6 +3,7 @@ package edu.iu.terracotta.service.app.integrations;
 import java.util.List;
 import java.util.UUID;
 
+import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.dao.entity.Question;
 import edu.iu.terracotta.dao.entity.integrations.Integration;
 import edu.iu.terracotta.dao.exceptions.integrations.IntegrationClientNotFoundException;
@@ -10,6 +11,7 @@ import edu.iu.terracotta.dao.exceptions.integrations.IntegrationConfigurationNot
 import edu.iu.terracotta.dao.exceptions.integrations.IntegrationConfigurationNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.integrations.IntegrationNotFoundException;
 import edu.iu.terracotta.dao.exceptions.integrations.IntegrationNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.integrations.IntegrationUrlIframeInvalidException;
 import edu.iu.terracotta.dao.model.dto.integrations.IntegrationDto;
 
 public interface IntegrationService {
@@ -23,5 +25,6 @@ public interface IntegrationService {
     List<IntegrationDto> toDto(List<Integration> integrations);
     IntegrationDto toDto(Integration integration);
     Integration fromDto(IntegrationDto integrationDto, Integration integration);
+    void validateIntegrationUrlIframe(String url, SecuredInfo securedInfo) throws IntegrationUrlIframeInvalidException;
 
 }

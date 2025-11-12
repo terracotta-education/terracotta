@@ -65,7 +65,7 @@ public class AssignmentTreatmentServiceImplTest extends BaseTest {
 
     @Test
     public void testToAssignmentDtoWithTreatment() throws AssessmentNotMatchingException {
-        AssignmentDto retVal = assignmentTreatmentService.toAssignmentDto(assignment, false, true);
+        AssignmentDto retVal = assignmentTreatmentService.toAssignmentDto(assignment, false, true, securedInfo);
 
         assertNotNull(retVal);
         assertEquals(1, retVal.getTreatments().size());

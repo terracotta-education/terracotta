@@ -39,6 +39,8 @@ public class AssessmentDto {
     private RetakeDetails retakeDetails;
     private boolean isIntegration;
     private String integrationPreviewUrl;
+    private boolean isIntegrationUrlValid;
+    private String integrationIframeInfoUrl;
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<SubmissionDto> submissions;

@@ -25,9 +25,9 @@ public interface AssignmentTreatmentService {
     TreatmentDto duplicateTreatment(long treatmentId, Assignment assignment, SecuredInfo securedInfo)
         throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, NumberFormatException,
             TreatmentNotMatchingException, QuestionNotMatchingException, ApiException, TerracottaConnectorException;
-    TreatmentDto toTreatmentDto(Treatment treatment, boolean submissions, boolean addAssignmentDto) throws AssessmentNotMatchingException;
-    AssignmentDto toAssignmentDto(Assignment assignment, boolean submissions, boolean addTreatmentDto) throws AssessmentNotMatchingException;
-    List<AssignmentDto> toAssignmentDto(List<Assignment> assignments, boolean submissions, boolean addTreatmentDto) throws AssessmentNotMatchingException;
+    TreatmentDto toTreatmentDto(Treatment treatment, boolean submissions, boolean addAssignmentDto, SecuredInfo securedInfo) throws AssessmentNotMatchingException;
+    AssignmentDto toAssignmentDto(Assignment assignment, boolean submissions, boolean addTreatmentDto, SecuredInfo securedInfo) throws AssessmentNotMatchingException;
+    List<AssignmentDto> toAssignmentDto(List<Assignment> assignments, boolean submissions, boolean addTreatmentDto, SecuredInfo securedInfo) throws AssessmentNotMatchingException;
     void setAssignmentDtoAttrs(Assignment assignment, String lmsCourseId, LtiUserEntity instructorUser) throws NumberFormatException, ApiException, TerracottaConnectorException;
 
 }

@@ -40,15 +40,15 @@ import java.util.List;
 
 public interface AssessmentService {
 
-    List<AssessmentDto> getAllAssessmentsByTreatment(Long treatmentId, boolean submissions) throws AssessmentNotMatchingException;
-    AssessmentDto postAssessment(AssessmentDto assessmentDto, long treatmentId) throws IdInPostException, AssessmentNotMatchingException, DataServiceException, TitleValidationException;
+    List<AssessmentDto> getAllAssessmentsByTreatment(Long treatmentId, boolean submissions, SecuredInfo securedInfo) throws AssessmentNotMatchingException;
+    AssessmentDto postAssessment(AssessmentDto assessmentDto, long treatmentId, SecuredInfo securedInfo) throws IdInPostException, AssessmentNotMatchingException, DataServiceException, TitleValidationException;
     Assessment duplicateAssessment(long assessmentId, long treatmentId) throws DataServiceException, AssessmentNotMatchingException, TreatmentNotMatchingException, QuestionNotMatchingException;
     Assessment duplicateAssessment(long assessmentId, Treatment treatment, Assignment assignment) throws DataServiceException, AssessmentNotMatchingException, QuestionNotMatchingException;
-    AssessmentDto toDto(Assessment assessment, boolean questions, boolean answers, boolean submissions, boolean isStudent) throws AssessmentNotMatchingException;
-    AssessmentDto toDto(Assessment assessment, Long submissionId, boolean questions, boolean answers, boolean submissions, boolean isStudent) throws AssessmentNotMatchingException;
+    AssessmentDto toDto(Assessment assessment, boolean questions, boolean answers, boolean submissions, boolean isStudent, SecuredInfo securedInfo) throws AssessmentNotMatchingException;
+    AssessmentDto toDto(Assessment assessment, Long submissionId, boolean questions, boolean answers, boolean submissions, boolean isStudent, SecuredInfo securedInfo) throws AssessmentNotMatchingException;
     Assessment fromDto(AssessmentDto assessmentDto) throws DataServiceException;
     Assessment getAssessment(Long id);
-    AssessmentDto putAssessment(Long id, AssessmentDto assessmentDto, boolean processQuestions)
+    AssessmentDto putAssessment(Long id, AssessmentDto assessmentDto, boolean processQuestions, SecuredInfo securedInfo)
         throws TitleValidationException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException, IdInPostException,
         DataServiceException, NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException, IntegrationClientNotFoundException, IntegrationNotFoundException;
     Assessment updateAssessment(Long id, AssessmentDto assessmentDto, boolean processQuestions)

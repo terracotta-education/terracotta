@@ -98,6 +98,7 @@ import edu.iu.terracotta.utils.oauth.OAuthUtils;
 import edu.iu.terracotta.utils.LtiStrings;
 import edu.iu.terracotta.utils.TextConstants;
 
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.DateUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -105,6 +106,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Primary;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+
 import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
@@ -297,10 +299,10 @@ public class ApiJwtServiceImpl implements ApiJwtService {
 
     /**
      * This JWT will contain the token request
-          * @throws TerracottaConnectorException
-          */
-         @Override
-         public String buildJwt(boolean oneUse, Lti3Request lti3Request) throws GeneralSecurityException, IOException, TerracottaConnectorException {
+     * @throws TerracottaConnectorException
+    */
+    @Override
+    public String buildJwt(boolean oneUse, Lti3Request lti3Request) throws GeneralSecurityException, IOException, TerracottaConnectorException {
         return instance(lti3Request).buildJwt(oneUse, lti3Request);
     }
 
@@ -437,32 +439,32 @@ public class ApiJwtServiceImpl implements ApiJwtService {
 
     @Override
     public boolean isAdmin(SecuredInfo securedInfo) {
-        return securedInfo.getRoles().contains(Roles.ADMIN);
+        return !CollectionUtils.isEmpty(securedInfo.getRoles()) && securedInfo.getRoles().contains(Roles.ADMIN);
     }
 
     @Override
     public boolean isTerracottaAdmin(SecuredInfo securedInfo) {
-        return adminService.isTerracottaAdmin(securedInfo.getUserId());
+        return securedInfo != null && adminService.isTerracottaAdmin(securedInfo.getUserId());
     }
 
     @Override
     public boolean isInstructor(SecuredInfo securedInfo) {
-        return securedInfo.getRoles().contains(Roles.MEMBERSHIP_INSTRUCTOR);
+        return !CollectionUtils.isEmpty(securedInfo.getRoles()) && securedInfo.getRoles().contains(Roles.MEMBERSHIP_INSTRUCTOR);
     }
 
     @Override
     public boolean isLearner(SecuredInfo securedInfo) {
-        return securedInfo.getRoles().contains(Roles.MEMBERSHIP_LEARNER);
+        return !CollectionUtils.isEmpty(securedInfo.getRoles()) && securedInfo.getRoles().contains(Roles.MEMBERSHIP_LEARNER);
     }
 
     @Override
     public boolean isGeneral(SecuredInfo securedInfo) {
-        return securedInfo.getRoles().contains(Roles.GENERAL);
+        return !CollectionUtils.isEmpty(securedInfo.getRoles()) && securedInfo.getRoles().contains(Roles.GENERAL);
     }
 
     @Override
     public boolean isTestStudent(SecuredInfo securedInfo) {
-        return securedInfo.getRoles().contains(Roles.TEST_STUDENT);
+        return !CollectionUtils.isEmpty(securedInfo.getRoles()) && securedInfo.getRoles().contains(Roles.TEST_STUDENT);
     }
 
     @Override
@@ -476,7 +478,7 @@ public class ApiJwtServiceImpl implements ApiJwtService {
     }
 
     private boolean isBearerToken(String rawHeaderValue) {
-        return rawHeaderValue.toLowerCase(Locale.US).startsWith(JWT_BEARER_TYPE.toLowerCase(Locale.US));
+        return StringUtils.isNotEmpty(rawHeaderValue) && rawHeaderValue.toLowerCase(Locale.US).startsWith(JWT_BEARER_TYPE.toLowerCase(Locale.US));
     }
 
     @Override
@@ -492,13 +494,10 @@ public class ApiJwtServiceImpl implements ApiJwtService {
 
     @Override
     public boolean experimentLocked(Long experimentId, boolean throwException) throws ExperimentLockedException, ExperimentNotMatchingException {
-        Optional<Experiment> experiment = experimentRepository.findById(experimentId);
+        Experiment experiment = experimentRepository.findById(experimentId)
+            .orElseThrow(() -> new ExperimentNotMatchingException(TextConstants.EXPERIMENT_NOT_MATCHING));
 
-        if (experiment.isEmpty()) {
-            throw new ExperimentNotMatchingException("The experiment with id " + experimentId + " does not exist");
-        }
-
-        if (!experiment.get().isStarted()) {
+        if (!experiment.isStarted()) {
             return false;
         }
 
@@ -511,13 +510,10 @@ public class ApiJwtServiceImpl implements ApiJwtService {
 
     @Override
     public boolean conditionsLocked(Long experimentId, boolean throwException) throws ConditionsLockedException, ExperimentNotMatchingException {
-        Optional<Experiment> experiment = experimentRepository.findById(experimentId);
+        Experiment experiment = experimentRepository.findById(experimentId)
+            .orElseThrow(() -> new ExperimentNotMatchingException(String.format("The experiment with ID: [%s] does not exist", experimentId)));
 
-        if (experiment.isEmpty()) {
-            throw new ExperimentNotMatchingException("The experiment with id " + experimentId + " does not exist");
-        }
-
-        if (experiment.get().getExposureType().equals(ExposureTypes.NOSET)) {
+        if (experiment.getExposureType().equals(ExposureTypes.NOSET)) {
             return false;
         }
 
@@ -576,9 +572,7 @@ public class ApiJwtServiceImpl implements ApiJwtService {
 
     @Override
     public void assessmentAllowed(SecuredInfo securedInfo, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId) throws AssessmentNotMatchingException {
-        if (!assessmentRepository.existsByTreatment_Condition_Experiment_ExperimentIdAndTreatment_Condition_ConditionIdAndTreatment_TreatmentIdAndAssessmentId(
-            experimentId, conditionId, treatmentId, assessmentId)
-        ) {
+        if (!assessmentRepository.existsByTreatment_Condition_Experiment_ExperimentIdAndTreatment_Condition_ConditionIdAndTreatment_TreatmentIdAndAssessmentId(experimentId, conditionId, treatmentId, assessmentId)) {
             throw new AssessmentNotMatchingException(TextConstants.ASSESSMENT_NOT_MATCHING);
         }
     }
@@ -596,7 +590,7 @@ public class ApiJwtServiceImpl implements ApiJwtService {
             if (!answerMcRepository.existsByQuestion_Assessment_AssessmentIdAndQuestion_QuestionIdAndAnswerMcId(assessmentId, questionId, answerId)) {
                 throw new AnswerNotMatchingException(TextConstants.ANSWER_NOT_MATCHING);
             }
-        } //Note: as more answer types are added, continue checking. Same exception can be thrown.
+        } // Note: as more answer types are added, continue checking. Same exception can be thrown.
     }
 
     @Override
@@ -610,7 +604,7 @@ public class ApiJwtServiceImpl implements ApiJwtService {
                 throw new AnswerSubmissionNotMatchingException(TextConstants.ANSWER_SUBMISSION_NOT_MATCHING);
             }
         }
-        //Note: as more answer submission types are added, continue checking. Same exception can be thrown.
+        // Note: as more answer submission types are added, continue checking. Same exception can be thrown.
     }
 
     @Override

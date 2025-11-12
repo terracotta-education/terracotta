@@ -146,7 +146,7 @@ public class AssignmentServiceImpl implements AssignmentService {
                 assignmentTreatmentService.setAssignmentDtoAttrs(assignment, securedInfo.getLmsCourseId(), instructorUser);
             }
 
-            assignmentDtoList.add(assignmentTreatmentService.toAssignmentDto(assignment, submissions, true));
+            assignmentDtoList.add(assignmentTreatmentService.toAssignmentDto(assignment, submissions, true, securedInfo));
         }
 
         return assignmentDtoList;
@@ -166,7 +166,7 @@ public class AssignmentServiceImpl implements AssignmentService {
 
         assignmentTreatmentService.setAssignmentDtoAttrs(assignment, securedInfo.getLmsCourseId(), instructorUser);
 
-        return assignmentTreatmentService.toAssignmentDto(assignment, false, true);
+        return assignmentTreatmentService.toAssignmentDto(assignment, false, true, securedInfo);
     }
 
     private Assignment createAssignment(AssignmentDto assignmentDto, long experimentId, String lmsCourseId, long exposureId, LtiUserEntity instructorUser)
@@ -256,7 +256,7 @@ public class AssignmentServiceImpl implements AssignmentService {
     public AssignmentDto putAssignment(Long id, AssignmentDto assignmentDto, SecuredInfo securedInfo)
             throws TitleValidationException, ApiException, AssignmentNotEditedException,
                 RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException, AssignmentNotMatchingException, TerracottaConnectorException {
-        return assignmentTreatmentService.toAssignmentDto(updateAssignment(id, assignmentDto, securedInfo), false, true);
+        return assignmentTreatmentService.toAssignmentDto(updateAssignment(id, assignmentDto, securedInfo), false, true, securedInfo);
     }
 
     @Override
@@ -690,7 +690,7 @@ public class AssignmentServiceImpl implements AssignmentService {
             throw new DataServiceException("The assignment with the given ID does not exist");
         }
 
-        AssignmentDto fromDto = assignmentTreatmentService.toAssignmentDto(from, false, false);
+        AssignmentDto fromDto = assignmentTreatmentService.toAssignmentDto(from, false, false, securedInfo);
 
         // reset assignment details
         fromDto.setAssignmentId(null);
@@ -717,7 +717,7 @@ public class AssignmentServiceImpl implements AssignmentService {
 
         assignmentTreatmentService.setAssignmentDtoAttrs(newAssignment, securedInfo.getLmsCourseId(), ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId()));
 
-        return assignmentTreatmentService.toAssignmentDto(newAssignment, false, true);
+        return assignmentTreatmentService.toAssignmentDto(newAssignment, false, true, securedInfo);
     }
 
     @Override
@@ -747,7 +747,7 @@ public class AssignmentServiceImpl implements AssignmentService {
         assignment.setAssignmentOrder(componentUtils.calculateNextOrder(targetAssignmentDto.getExposureId(), exposure.getExperiment().getCreatedBy()));
         assignmentRepository.save(assignment);
 
-        return assignmentTreatmentService.toAssignmentDto(assignment, false, true);
+        return assignmentTreatmentService.toAssignmentDto(assignment, false, true, securedInfo);
     }
 
     @Override

@@ -79,7 +79,7 @@ public class AssessmentController {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
 
-        List<AssessmentDto> assessmentDtoList = assessmentService.getAllAssessmentsByTreatment(treatmentId, submissions);
+        List<AssessmentDto> assessmentDtoList = assessmentService.getAllAssessmentsByTreatment(treatmentId, submissions, securedInfo);
 
         if (assessmentDtoList.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
@@ -119,8 +119,7 @@ public class AssessmentController {
             this.submissionService.getSubmission(experimentId, securedInfo.getUserId(), submissionId, isStudent);
         }
 
-        AssessmentDto assessmentDto = assessmentService.toDto(assessmentService.getAssessment(assessmentId),
-                submissionId, questions, answers, submissions, isStudent);
+        AssessmentDto assessmentDto = assessmentService.toDto(assessmentService.getAssessment(assessmentId), submissionId, questions, answers, submissions, isStudent, securedInfo);
 
         return new ResponseEntity<>(assessmentDto, HttpStatus.OK);
     }
@@ -143,7 +142,7 @@ public class AssessmentController {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
-        AssessmentDto returnedDto = assessmentService.postAssessment(assessmentDto, treatmentId);
+        AssessmentDto returnedDto = assessmentService.postAssessment(assessmentDto, treatmentId, securedInfo);
         HttpHeaders headers = assessmentService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, returnedDto.getAssessmentId());
 
         return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
@@ -168,7 +167,7 @@ public class AssessmentController {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
-        AssessmentDto updatedAssessmentDto = assessmentService.putAssessment(assessmentId, assessmentDto, true);
+        AssessmentDto updatedAssessmentDto = assessmentService.putAssessment(assessmentId, assessmentDto, true, securedInfo);
 
         return new ResponseEntity<>(updatedAssessmentDto, HttpStatus.OK);
     }
