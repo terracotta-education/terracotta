@@ -202,8 +202,8 @@ public class BaseServiceTest extends BaseRepositoryTest {
             when(assignmentService.getAllAssignmentsForLmsCourse(any(SecuredInfo.class))).thenReturn(Collections.singletonList(lmsAssignment));
             when(assignmentService.getLmsAssignmentById(anyString(), any(SecuredInfo.class))).thenReturn(Optional.of(lmsAssignment));
             when(assignmentService.save(any(Assignment.class))).thenReturn(assignment);
-            when(assignmentTreatmentService.toAssignmentDto(any(Assignment.class), anyBoolean(), anyBoolean())).thenReturn(assignmentDto);
-            when(assignmentTreatmentService.toTreatmentDto(any(Treatment.class), anyBoolean(), anyBoolean())).thenReturn(treatmentDto);
+            when(assignmentTreatmentService.toAssignmentDto(any(Assignment.class), anyBoolean(), anyBoolean(), any(SecuredInfo.class))).thenReturn(assignmentDto);
+            when(assignmentTreatmentService.toTreatmentDto(any(Treatment.class), anyBoolean(), anyBoolean(), any(SecuredInfo.class))).thenReturn(treatmentDto);
             when(canvasAdvantageAgsService.getLineItems(any(LtiToken.class), any(LtiContextEntity.class))).thenReturn(lineItems);
             when(canvasAdvantageAgsService.getToken(anyString(), any(PlatformDeployment.class))).thenReturn(ltiToken);
             when(canvasApiClient.checkAssignmentExists(any(LtiUserEntity.class), anyString(), anyString())).thenReturn(Optional.of(canvasAssignmentExtended));

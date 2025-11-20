@@ -164,7 +164,8 @@
             v-if="treatmentOptionSelected && isIntegrationType"
           >
             <external-integration-editor
-              @integrationUpdated="handleIntegrationUpdate($event)"
+              @integration-updated="handleIntegrationUpdate($event)"
+              @url-validation-in-progress="handleUrlValidationInProgress"
               :assessment="assessment"
               :question="questions[0]"
             />
@@ -458,7 +459,8 @@ export default {
         }
       },
       treatmentOptionSelected: false,
-      integrationQuestionValidation: null
+      integrationQuestionValidation: null,
+      urlValidationInProgress: false
     };
   },
   watch: {
@@ -650,7 +652,7 @@ export default {
       this.handleClearQuestions();
       this.treatmentOptionSelected = false;
     },
-    handleIntegrationUpdate(question) {
+    async handleIntegrationUpdate(question) {
       // updates the integration and points data for the associated question
       if (question.points === null) {
         question.points = 0;
@@ -940,6 +942,18 @@ export default {
       }
     },
     async saveExit() {
+      let startTime = Date.now();
+
+      while (this.urlValidationInProgress) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        if (Date.now() - startTime > 5000) {
+          // timeout after 5 seconds
+          console.log("URL validation timeout");
+          this.urlValidationInProgress = false;
+        }
+      }
+
       return this.saveAll("ExperimentSummary");
     },
     textOnly(htmlString) {
@@ -1011,6 +1025,9 @@ export default {
       }
 
       this.regradeDetails.editedMCQuestionIds.push(questionId);
+    },
+    handleUrlValidationInProgress(value) {
+      this.urlValidationInProgress = value;
     }
   },
   async created() {

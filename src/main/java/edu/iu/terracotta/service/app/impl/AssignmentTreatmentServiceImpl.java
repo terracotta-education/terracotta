@@ -86,7 +86,7 @@ public class AssignmentTreatmentServiceImpl implements AssignmentTreatmentServic
         Treatment newTreatment = treatmentRepository.save(from);
         LtiUserEntity instructorUser = ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
         setAssignmentDtoAttrs(newTreatment.getAssignment(), securedInfo.getLmsCourseId(), instructorUser);
-        TreatmentDto treatmentDto = toTreatmentDto(newTreatment, false, true);
+        TreatmentDto treatmentDto = toTreatmentDto(newTreatment, false, true, securedInfo);
 
         // duplicate assessment
         List<Assessment> existingAssessments = assessmentRepository.findByTreatment_TreatmentId(treatmentId);
@@ -95,24 +95,24 @@ public class AssignmentTreatmentServiceImpl implements AssignmentTreatmentServic
             Assessment newAssessment = assessmentService.duplicateAssessment(existingAssessments.get(0).getAssessmentId(), newTreatment, assignment);
             newTreatment.setAssessment(newAssessment);
             treatmentRepository.saveAndFlush(newTreatment);
-            treatmentDto.setAssessmentDto(assessmentService.toDto(newAssessment, true, true, true, false));
+            treatmentDto.setAssessmentDto(assessmentService.toDto(newAssessment, true, true, true, false, securedInfo));
         }
 
         return treatmentDto;
     }
 
     @Override
-    public TreatmentDto toTreatmentDto(Treatment treatment, boolean submissions, boolean addAssignmentDto) throws AssessmentNotMatchingException {
+    public TreatmentDto toTreatmentDto(Treatment treatment, boolean submissions, boolean addAssignmentDto, SecuredInfo securedInfo) throws AssessmentNotMatchingException {
         TreatmentDto treatmentDto = new TreatmentDto();
 
         treatmentDto.setTreatmentId(treatment.getTreatmentId());
 
         if (addAssignmentDto) {
-            treatmentDto.setAssignmentDto(toAssignmentDto(treatment.getAssignment(), false, false));
+            treatmentDto.setAssignmentDto(toAssignmentDto(treatment.getAssignment(), false, false, securedInfo));
         }
 
         if (treatment.getAssessment() != null) {
-            treatmentDto.setAssessmentDto(assessmentService.toDto(treatment.getAssessment(), true, false, submissions, false));
+            treatmentDto.setAssessmentDto(assessmentService.toDto(treatment.getAssessment(), true, false, submissions, false, securedInfo));
         }
 
         treatmentDto.setConditionId(treatment.getCondition().getConditionId());
@@ -123,7 +123,7 @@ public class AssignmentTreatmentServiceImpl implements AssignmentTreatmentServic
     }
 
     @Override
-    public AssignmentDto toAssignmentDto(Assignment assignment, boolean submissions, boolean addTreatmentDto) throws AssessmentNotMatchingException {
+    public AssignmentDto toAssignmentDto(Assignment assignment, boolean submissions, boolean addTreatmentDto, SecuredInfo securedInfo) throws AssessmentNotMatchingException {
         AssignmentDto assignmentDto = AssignmentDto.builder().build();
         assignmentDto.setAssignmentId(assignment.getAssignmentId());
         assignmentDto.setLmsAssignmentId(assignment.getLmsAssignmentId());
@@ -154,7 +154,7 @@ public class AssignmentTreatmentServiceImpl implements AssignmentTreatmentServic
             List<TreatmentDto> treatmentDtoList = new ArrayList<>();
 
             for (Treatment treatment : treatments) {
-                TreatmentDto treatmentDto = toTreatmentDto(treatment, submissions, false);
+                TreatmentDto treatmentDto = toTreatmentDto(treatment, submissions, false, securedInfo);
                 treatmentDtoList.add(treatmentDto);
             }
 
@@ -168,11 +168,11 @@ public class AssignmentTreatmentServiceImpl implements AssignmentTreatmentServic
     }
 
     @Override
-    public List<AssignmentDto> toAssignmentDto(List<Assignment> assignments, boolean submissions, boolean addTreatmentDto) throws AssessmentNotMatchingException {
+    public List<AssignmentDto> toAssignmentDto(List<Assignment> assignments, boolean submissions, boolean addTreatmentDto, SecuredInfo securedInfo) throws AssessmentNotMatchingException {
         return assignments.stream()
             .map(assignment -> {
                 try {
-                    return toAssignmentDto(assignment, submissions, addTreatmentDto);
+                    return toAssignmentDto(assignment, submissions, addTreatmentDto, securedInfo);
                 } catch (AssessmentNotMatchingException e) {
                     log.error(TextConstants.ASSIGNMENT_NOT_MATCHING, e);
 

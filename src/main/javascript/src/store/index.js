@@ -26,6 +26,7 @@ import { container as messagingMessageContainer } from "./messaging/container.mo
 import { message as messagingMessage } from "./messaging/message.module";
 import { attachment as messagingContentAttachment } from "./messaging/attachment.module";
 import { conditionaltext as messagingConditionalText } from "./messaging/conditionaltext.module";
+import { integrations } from "./integrations/integrations.module";
 
 Vue.use(Vuex)
 
@@ -59,7 +60,8 @@ const store = new Vuex.Store({
       messagingMessageContainer,
       messagingMessage,
       messagingContentAttachment,
-      messagingConditionalText
+      messagingConditionalText,
+      integrations
     },
     strict: process.env.NODE_ENV !== "production",
 })

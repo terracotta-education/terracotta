@@ -100,7 +100,7 @@ public class AssignmentController {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
 
-        AssignmentDto assignmentDto = assignmentTreatmentService.toAssignmentDto(assignmentService.getAssignment(assignmentId), submissions, true);
+        AssignmentDto assignmentDto = assignmentTreatmentService.toAssignmentDto(assignmentService.getAssignment(assignmentId), submissions, true, securedInfo);
 
         return new ResponseEntity<>(assignmentDto, HttpStatus.OK);
     }

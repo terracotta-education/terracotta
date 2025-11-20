@@ -39,6 +39,8 @@
               v-model="launchUrl"
               :label="messages.launchUrl.label"
               :rules="textRules"
+              :error="showIframeValidationError"
+              @blur="validateIframeUrl"
               class="mb-3"
               rows="1"
               hide-details="auto"
@@ -75,17 +77,30 @@
             />
           </div>
           <div
-            class="mb-8"
+            :class="!showIframeValidationError ? 'mb-8' : 'mb-2'"
           >
             <v-btn
               :disabled="!enablePreviewButton"
-              :href="previewLaunchUrl"
+              :href="!showIframeValidationError ? previewLaunchUrl : null"
+              :color="!showIframeValidationError ? 'primary' : 'error'"
               target="_blank"
-              color="primary"
             >
               <v-icon>mdi-eye-outline</v-icon>
               PREVIEW
             </v-btn>
+          </div>
+          <div
+            v-if="showIframeValidationError"
+            class="mb-8 error--text"
+          >
+            Error rendering content. Please see
+            <a
+              :href="iframeInvalidInfoUrl"
+              target="_blank"
+            >
+              this link
+            </a>
+            for more information.
           </div>
         </v-card-text>
       </v-card>
@@ -150,6 +165,8 @@
 </template>
 
 <script>
+import { mapGetters, mapActions, mapMutations } from "vuex";
+
 export default {
   props: {
     assessment: {
@@ -195,9 +212,17 @@ export default {
       handler() {
         this.emit();
       }
+    },
+    isIframeUrlValid: {
+      handler() {
+        this.emit();
+      }
     }
   },
   computed: {
+    ...mapGetters({
+      isIframeUrlValid: "integrations/isIframeUrlValid"
+    }),
     integration() {
       return this.integrationQuestion.integration;
     },
@@ -373,9 +398,21 @@ export default {
         icon: this.showCopied ? "mdi-check" :"mdi-content-copy",
         label: this.showCopied ? "COPIED" : "COPY URL"
       }
+    },
+    showIframeValidationError() {
+      return this.launchUrl && !this.isIframeUrlValid;
+    },
+    iframeInvalidInfoUrl() {
+      return this.assessment.integrationIframeInfoUrl;
     }
   },
   methods: {
+    ...mapActions({
+      iframeUrl: "integrations/validateIframeUrl"
+    }),
+    ...mapMutations({
+      setIframeValid: "integrations/setIframeValid"
+    }),
     async copyReturnUrl() {
       try {
         await navigator.clipboard.writeText(this.returnUrl);
@@ -384,7 +421,7 @@ export default {
         console.log("error copying return url to clipboard");
       }
     },
-    validateLaunchUrl() {
+    async validateLaunchUrl() {
       if (!this.launchUrl) {
         return false;
       }
@@ -397,7 +434,13 @@ export default {
         "(\\?[;&a-z\\d%_.~+=-]*)?"+ // validate query string
         "(\\#[-a-z\\d_]*)?$","i" // validate fragment locator
       );
-      return pattern.test(this.launchUrl);
+      let isValid = pattern.test(this.launchUrl);
+
+      if (!isValid) {
+        return false;
+      }
+
+      return this.isIframeUrlValid;
     },
     validatePoints() {
       if (this.points === null || (this.points + "").trim() === "") {
@@ -417,23 +460,36 @@ export default {
 
       return true;
     },
-    emit() {
-      this.$emit(
-          "integrationUpdated",
+    async validateIframeUrl() {
+      this.$emit("url-validation-in-progress", true);
+      await this.iframeUrl(this.launchUrl);
+      await this.emit();
+      this.$emit("url-validation-in-progress", false);
+    },
+    async emit() {
+      let urlValid = await this.validateLaunchUrl();
+      await this.$emit(
+          "integration-updated",
           {
             ...this.integrationQuestion,
-            launchUrlValidated: this.validateLaunchUrl(),
+            launchUrlValidated: urlValid,
             pointsValidated: this.validatePoints(),
             feedbackEnabled: this.showFeedbackEnabled ? this.feedbackEnabled : this.assessment.allowStudentViewResponses
           }
         );
     }
   },
-  mounted() {
+  async mounted() {
     this.integrationQuestion = this.question;
 
     if (this.showFeedbackEnabled) {
       this.feedbackEnabled = this.assessment ? this.assessment.allowStudentViewResponses : false;
+    }
+
+    if (this.launchUrl) {
+      await this.validateIframeUrl();
+    } else {
+      this.setIframeValid(false);
     }
 
     this.emit();
