@@ -489,7 +489,7 @@ export default {
     if (this.launchUrl) {
       await this.validateIframeUrl();
     } else {
-      this.setIframeValid(false);
+      this.setIframeValid(true);
     }
 
     this.emit();
