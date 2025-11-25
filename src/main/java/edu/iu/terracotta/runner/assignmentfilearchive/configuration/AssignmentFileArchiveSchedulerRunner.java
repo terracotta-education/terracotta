@@ -7,13 +7,13 @@ import edu.iu.terracotta.runner.assignmentfilearchive.AssignmentFileArchiveSched
 import edu.iu.terracotta.runner.assignmentfilearchive.model.AssignmentFileArchiveScheduleResult;
 import edu.iu.terracotta.service.app.ScheduledTaskService;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.kagkarlsson.scheduler.task.Task;
 import com.github.kagkarlsson.scheduler.task.TaskDescriptor;
 import com.github.kagkarlsson.scheduler.task.helper.Tasks;
 
 import lombok.extern.slf4j.Slf4j;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.time.Duration;
 import java.util.Optional;
@@ -71,8 +71,14 @@ public class AssignmentFileArchiveSchedulerRunner {
                     }
 
                     try {
-                        log.info("Task [{}] ran. Processed assignment file archives: [{}]", TASK_NAME, new ObjectMapper().writeValueAsString(results.get()));
-                    } catch (JsonProcessingException e) {
+                        log.info(
+                            "Task [{}] ran. Processed assignment file archives: [{}]",
+                            TASK_NAME,
+                            JsonMapper.builder()
+                                .build()
+                                .writeValueAsString(results.get())
+                        );
+                    } catch (JacksonException e) {
                         log.error("Error occurred writing value to JSON", e);
                     }
                 }

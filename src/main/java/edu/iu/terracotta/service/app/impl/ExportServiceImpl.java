@@ -1,9 +1,5 @@
 package edu.iu.terracotta.service.app.impl;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.opencsv.CSVWriter;
 
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
@@ -72,6 +68,10 @@ import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.service.app.messaging.MessageContentService;
 import edu.iu.terracotta.service.aws.AwsService;
 import lombok.extern.slf4j.Slf4j;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ObjectNode;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.io.FileUtils;
@@ -107,7 +107,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
 @Service
-@SuppressWarnings({"PMD.GuardLogStatement"})
+@SuppressWarnings({"PMD.GuardLogStatement", "PMD.LooseCoupling"})
 public class ExportServiceImpl implements ExportService {
 
     private static final String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
@@ -815,8 +815,8 @@ public class ExportServiceImpl implements ExportService {
 
     private String removePersonalIdentifiersFromEvent(String eventJson) {
         try {
-            ObjectMapper objectMapper = new ObjectMapper();
-            JsonNode root = objectMapper.readTree(eventJson);
+            JsonMapper jsonMapper = JsonMapper.builder().build();
+            JsonNode root = jsonMapper.readTree(eventJson);
 
             for (String fieldName : EventPersonalIdentifiers.getFields()) {
                 List<JsonNode> nodes = root.findParents(fieldName);
@@ -831,8 +831,8 @@ public class ExportServiceImpl implements ExportService {
                 }
             }
 
-            return objectMapper.writeValueAsString(root);
-        } catch (JsonProcessingException e) {
+            return jsonMapper.writeValueAsString(root);
+        } catch (JacksonException e) {
             log.error("Failure while trying to remove personally identifying information from event JSON", e);
             // return an empty object
             return "{}";

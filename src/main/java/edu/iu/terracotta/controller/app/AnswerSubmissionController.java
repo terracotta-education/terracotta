@@ -21,6 +21,7 @@ import edu.iu.terracotta.service.app.AnswerSubmissionService;
 import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.utils.TextConstants;
 import lombok.extern.slf4j.Slf4j;
+import tools.jackson.databind.json.JsonMapper;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.InputStreamResource;
@@ -41,8 +42,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.util.UriComponentsBuilder;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
@@ -251,7 +250,12 @@ public class AnswerSubmissionController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
 
-        AnswerSubmissionDto answerSubmissionDto = new ObjectMapper().readValue(answerSubmissionDtoStr, AnswerSubmissionDto.class);
+        AnswerSubmissionDto answerSubmissionDto = JsonMapper.builder()
+            .build()
+            .readValue(
+                answerSubmissionDtoStr,
+                AnswerSubmissionDto.class
+            );
         apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, answerSubmissionDto.getQuestionSubmissionId());
 
         if (!apijwtService.isLearnerOrHigher(securedInfo)) {
@@ -294,7 +298,12 @@ public class AnswerSubmissionController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
 
-        AnswerSubmissionDto answerSubmissionDto = new ObjectMapper().readValue(answerSubmissionDtoStr, AnswerSubmissionDto.class);
+        AnswerSubmissionDto answerSubmissionDto = JsonMapper.builder()
+            .build()
+            .readValue(
+                answerSubmissionDtoStr,
+                AnswerSubmissionDto.class
+            );
         apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, answerSubmissionDto.getQuestionSubmissionId());
 
         if (!apijwtService.isLearnerOrHigher(securedInfo)) {
