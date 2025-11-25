@@ -36,6 +36,7 @@ import net.lingala.zip4j.ZipFile;
 import net.lingala.zip4j.model.ZipParameters;
 import net.lingala.zip4j.model.enums.CompressionLevel;
 import net.lingala.zip4j.model.enums.EncryptionMethod;
+import tools.jackson.databind.json.JsonMapper;
 
 import org.apache.commons.io.FileUtils;
 import org.jsoup.Jsoup;
@@ -48,8 +49,6 @@ import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.springframework.core.io.Resource;
 
@@ -697,7 +696,9 @@ public class FileStorageServiceImpl implements FileStorageService {
         Path parentPath = Files.createDirectories(Paths.get(String.format("%s/%s/%s", experimentExportLocalPathRoot, path, filename)));
         // create the json file
         File jsonFile = new File(parentPath.toString(), ExperimentImport.JSON_FILE_NAME);
-        new ObjectMapper().writeValue(jsonFile, export);
+        JsonMapper.builder()
+            .build()
+            .writeValue(jsonFile, export);
 
         if (export.getExperiment().getParticipationType() == ParticipationTypes.CONSENT) {
             // experiment is a consent type, include the consent document

@@ -13,8 +13,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import edu.iu.terracotta.connectors.generic.annotation.TerracottaConnector;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiContextEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
@@ -30,6 +28,7 @@ import edu.iu.terracotta.connectors.generic.exceptions.helper.ExceptionMessageGe
 import edu.iu.terracotta.connectors.generic.service.lti.advantage.AdvantageAgsService;
 import edu.iu.terracotta.connectors.generic.service.lti.advantage.AdvantageConnectorHelper;
 import lombok.extern.slf4j.Slf4j;
+import tools.jackson.databind.json.JsonMapper;
 
 @Slf4j
 @Service
@@ -76,7 +75,13 @@ public class OneEdTechAdvantageAgsServiceImpl implements AdvantageAgsService {
                 throw new ConnectionException(exceptionMsg);
             }
 
-            log.info("POST lineItem to: [{}] response: [{}]", context.getLineitems(), new ObjectMapper().writeValueAsString(response.getBody()));
+            log.info(
+                "POST lineItem to: [{}] response: [{}]",
+                context.getLineitems(),
+                JsonMapper.builder()
+                    .build()
+                    .writeValueAsString(response.getBody())
+            );
 
             return response.getBody();
         } catch (Exception e) {
@@ -157,7 +162,7 @@ public class OneEdTechAdvantageAgsServiceImpl implements AdvantageAgsService {
             ResponseEntity<Void> scoreGetResponse = advantageConnectorHelper.createRestTemplate().exchange(
                 String.format("%s/scores", lineItemUrl),
                 HttpMethod.POST,
-                advantageConnectorHelper.createTokenizedRequestEntity(ltiTokenScores, new ObjectMapper().writeValueAsString(score)),
+                advantageConnectorHelper.createTokenizedRequestEntity(ltiTokenScores, JsonMapper.builder().build().writeValueAsString(score)),
                 Void.class
             );
 

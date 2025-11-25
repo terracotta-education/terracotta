@@ -72,6 +72,9 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.Jwts.SIG;
 import io.jsonwebtoken.Locator;
 import lombok.extern.slf4j.Slf4j;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.json.JsonMapper;
 import edu.iu.terracotta.utils.oauth.OAuthUtils;
 import edu.iu.terracotta.utils.LtiStrings;
 import edu.iu.terracotta.utils.TextConstants;
@@ -87,10 +90,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.util.UriComponentsBuilder;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
@@ -115,7 +114,7 @@ import java.util.UUID;
 @Slf4j
 @Service
 @TerracottaConnector(LmsConnector.CANVAS)
-@SuppressWarnings({"unchecked", "PMD.GuardLogStatement"})
+@SuppressWarnings({"unchecked", "PMD.GuardLogStatement", "PMD.LooseCoupling"})
 public class CanvasApiJwtServiceImpl implements ApiJwtService {
 
     private static final String ISSUER_LMS_OAUTH_API_TOKEN_REQUEST = "lmsOAuthAPITokenRequest";
@@ -195,8 +194,13 @@ public class CanvasApiJwtServiceImpl implements ApiJwtService {
         String jwtPayload = new String(Base64.getUrlDecoder().decode(jwtSections[1]));
 
         try {
-            return new ObjectMapper().readValue(jwtPayload, new TypeReference<Map<String,Object>>() {});
-        } catch (JsonProcessingException e) {
+            return JsonMapper.builder()
+                .build()
+                .readValue(
+                    jwtPayload,
+                    new TypeReference<Map<String,Object>>() {}
+                );
+        } catch (JacksonException e) {
             throw new IllegalStateException("Request is not a valid LTI3 request.", e);
         }
     }
