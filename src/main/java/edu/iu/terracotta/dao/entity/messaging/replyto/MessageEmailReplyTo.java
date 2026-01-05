@@ -1,5 +1,7 @@
 package edu.iu.terracotta.dao.entity.messaging.replyto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import edu.iu.terracotta.dao.entity.messaging.BaseMessageEntity;
 import edu.iu.terracotta.dao.entity.messaging.container.MessageContainerConfiguration;
 import edu.iu.terracotta.dao.entity.messaging.message.MessageConfiguration;
@@ -20,6 +22,7 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 @Table(name = "terr_messaging_email_reply_to")
 public class MessageEmailReplyTo extends BaseMessageEntity {
 

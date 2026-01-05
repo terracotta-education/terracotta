@@ -2,7 +2,11 @@ package edu.iu.terracotta.connectors.generic.dao.entity.lti;
 
 import org.apache.commons.lang3.StringUtils;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import edu.iu.terracotta.connectors.generic.dao.entity.BaseEntity;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -25,7 +29,11 @@ import java.util.Set;
 @Entity
 @Getter
 @Setter
+@Builder
 @NoArgsConstructor
+@AllArgsConstructor
+@SuppressWarnings({"PMD.LooseCoupling"})
+@JsonIgnoreProperties(ignoreUnknown = true)
 @Table(name = "lti_context",
     uniqueConstraints = {
         @UniqueConstraint(columnNames = { "context_key", "deployment_id" })

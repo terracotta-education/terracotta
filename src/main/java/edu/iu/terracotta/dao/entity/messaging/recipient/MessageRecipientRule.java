@@ -1,5 +1,7 @@
 package edu.iu.terracotta.dao.entity.messaging.recipient;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import edu.iu.terracotta.dao.entity.messaging.BaseMessageEntity;
 import edu.iu.terracotta.dao.model.enums.messaging.rule.MessageRuleComparison;
 import edu.iu.terracotta.dao.model.enums.messaging.rule.MessageRuleOperator;
@@ -22,6 +24,7 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 @Table(name = "terr_messaging_recipient_rule")
 public class MessageRecipientRule extends BaseMessageEntity {
 

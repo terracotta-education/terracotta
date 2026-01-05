@@ -1,5 +1,7 @@
 package edu.iu.terracotta.connectors.generic.dao.entity.lti;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import edu.iu.terracotta.connectors.generic.dao.entity.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -11,7 +13,8 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
-
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -19,7 +22,11 @@ import lombok.Setter;
 @Entity
 @Getter
 @Setter
+@Builder
 @NoArgsConstructor
+@AllArgsConstructor
+@SuppressWarnings({"PMD.LooseCoupling"})
+@JsonIgnoreProperties(ignoreUnknown = true)
 @Table(name = "lti_membership",
     uniqueConstraints = {
         @UniqueConstraint(columnNames = { "user_id", "context_id" })

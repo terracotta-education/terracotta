@@ -3,6 +3,8 @@ package edu.iu.terracotta.dao.entity.messaging.content;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import edu.iu.terracotta.dao.entity.messaging.BaseMessageEntity;
 import edu.iu.terracotta.dao.entity.messaging.attachment.MessageContentAttachment;
 import edu.iu.terracotta.dao.entity.messaging.conditional.MessageConditionalText;
@@ -29,6 +31,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "terr_messaging_content")
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class MessageContent extends BaseMessageEntity {
 
     @OneToOne

@@ -10,6 +10,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import edu.iu.terracotta.connectors.generic.dao.entity.BaseEntity;
 
 import jakarta.persistence.Column;
@@ -29,6 +31,7 @@ import jakarta.persistence.Transient;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "terr_consent_document")
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ConsentDocument extends BaseEntity {
 
     public static final String COMPRESSED_FILE_EXTENSION = ".zip";

@@ -2,6 +2,8 @@ package edu.iu.terracotta.dao.model.dto;
 
 import java.io.File;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -13,6 +15,7 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class AnswerSubmissionDto {
 
     private Long answerSubmissionId;
