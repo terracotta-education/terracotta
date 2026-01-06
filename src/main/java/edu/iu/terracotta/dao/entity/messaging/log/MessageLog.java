@@ -1,5 +1,7 @@
 package edu.iu.terracotta.dao.entity.messaging.log;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
 import edu.iu.terracotta.dao.entity.Condition;
 import edu.iu.terracotta.dao.entity.messaging.BaseMessageEntity;
@@ -27,6 +29,7 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 @Table(name = "terr_messaging_message_log")
 public class MessageLog extends BaseMessageEntity {
 

@@ -3,6 +3,8 @@ package edu.iu.terracotta.connectors.generic.dao.entity.lti;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import edu.iu.terracotta.connectors.generic.dao.entity.BaseEntity;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -34,6 +36,8 @@ import java.util.Set;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@SuppressWarnings({"PMD.LooseCoupling"})
+@JsonIgnoreProperties(ignoreUnknown = true)
 @Table(
     name = "lti_user",
     uniqueConstraints = {

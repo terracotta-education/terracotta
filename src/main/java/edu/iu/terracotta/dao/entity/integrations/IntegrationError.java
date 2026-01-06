@@ -1,5 +1,7 @@
 package edu.iu.terracotta.dao.entity.integrations;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -15,6 +17,7 @@ import tools.jackson.databind.json.JsonMapper;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 @SuppressWarnings({"PMD.GuardLogStatement"})
 public class IntegrationError {
 

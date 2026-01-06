@@ -12,13 +12,22 @@ import jakarta.persistence.Table;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import edu.iu.terracotta.connectors.generic.dao.entity.BaseEntity;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
 @Getter
 @Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 @Table(name = "terr_answer_mc_submission_option")
 public class AnswerMcSubmissionOption extends BaseEntity {
 

@@ -1,5 +1,7 @@
 package edu.iu.terracotta.dao.model.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import edu.iu.terracotta.dao.model.enums.FeatureType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -12,6 +14,7 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class FeatureDto {
 
     private FeatureType type;

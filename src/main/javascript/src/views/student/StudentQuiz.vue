@@ -124,10 +124,11 @@
     </v-row>
     <v-row
       v-if="isIntegration"
-      class="integration"
+      class="integration mt-0"
     >
       <v-col
         v-if="!submitted"
+        class="py-0"
       >
         <div
           v-if="assessment.html"
@@ -136,6 +137,7 @@
         <iframe
           v-if="!readonly"
           :src="integrationLaunchUrl"
+          id="integration-iframe"
           title="student assignment"
           aria-label="student assignment"
         >
@@ -933,6 +935,32 @@ export default {
     round(n) {
       return n % 1 ? n.toFixed(2) : n;
     },
+    async handleIntegrationsResize(event) {
+      console.log("event: ", event);
+      if (event.data && event.data.height) {
+        const iframe = document.getElementById("integration-iframe");
+
+        if (!iframe || iframe.height === event.data.height) {
+          // skip resize if no iframe or height is the same as previous
+          console.log("iframe not found or height unchanged, skipping resize");
+          return;
+        }
+
+        const heightPadded = event.data.height;
+        iframe.height = `${heightPadded}px`;
+        console.log(`iframe height updated to: ${heightPadded}px`);
+
+        // postMessage to Canvas LMS to resize iframe there as well
+        console.log(`posting message to Canvas with height: ${heightPadded}px`);
+        window.parent.postMessage(
+          {
+            subject: "lti.frameResize",
+            height: heightPadded
+          },
+          "*"
+        )
+      }
+    },
     async handleIntegrationsScore() {
       const view = await this.viewAssignment();
 
@@ -1005,12 +1033,47 @@ export default {
     this.$emit('loaded');
   },
   mounted() {
+    // handle integration iframe resizing
+    window.addEventListener(
+      "message",
+      (event) => {
+        if (!event.origin) {
+          // no origin, ignore
+          return;
+        }
+
+        const messageOrigin = new URL(event.origin).hostname;
+        const expectedOrigin = new URL(this.integrationLaunchUrl).hostname;
+
+        if (messageOrigin !== expectedOrigin) {
+          // origin does not match integration launch url, ignore
+          console.log(`ignoring message from origin ${messageOrigin}, expected from ${expectedOrigin}`);
+          return;
+        }
+
+        if (!event.data || !event.data.subject) {
+          // not an expected postMessage event
+          console.log(`ignoring message from origin ${messageOrigin}, unexpected subject ${event.data.subject || 'null'}`);
+          return;
+        }
+
+        switch (event.data.subject) {
+          case "terracotta_iframe_resize":
+            this.handleIntegrationsResize(event);
+            break;
+          default:
+            break;
+        }
+      },
+      false
+    );
     // handle integration iframe score return event
     window.document.addEventListener("integrations_score", this.handleIntegrationsScore);
     // handle integration iframe reattempt event
     window.document.addEventListener("integrations_reattempt", this.handleTryAgainIntegration);
   },
   beforeDestroy () {
+    window.removeEventListener("message", this.handleIntegrationsResize);
     window.removeEventListener("integrations_score", this.handleIntegrationsScore);
     window.removeEventListener("integrations_reattempt", this.handleTryAgainIntegration);
   }
@@ -1033,13 +1096,10 @@ export default {
   min-width: 100%;
 }
 .integration {
-  min-height: 100%;
   min-width: 100%;
   & > .col {
-    min-height: 100%;
     min-width: 100%;
     & > iframe {
-      min-height: 100%;
       min-width: 100%;
       border: none;
     }

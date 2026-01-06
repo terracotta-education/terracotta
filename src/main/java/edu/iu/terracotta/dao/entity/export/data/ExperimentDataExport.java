@@ -2,6 +2,8 @@ package edu.iu.terracotta.dao.entity.export.data;
 
 import java.beans.Transient;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import edu.iu.terracotta.connectors.generic.dao.entity.BaseUuidEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
 import edu.iu.terracotta.dao.entity.Experiment;
@@ -25,6 +27,7 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 @Table(name = "terr_experiment_data_export")
 public class ExperimentDataExport extends BaseUuidEntity {
 

@@ -1,14 +1,15 @@
 html, body {
-    font-family: Roboto, Helvetica, "Helvetica Neue", sans-serif;
+  font-family: Roboto, Helvetica, "Helvetica Neue", sans-serif;
 }
 .v-main {
-    &__wrap {
-        > div {
-            min-height: 100%;
-            height: 100%;
-        }
+  overflow-y: visible;
+  &__wrap {
+    > div {
+      min-height: 100%;
+      height: 100%;
     }
+  }
 }
 .v-tabs-slider {
-    background: #E0E0E0;
+  background: #E0E0E0;
 }

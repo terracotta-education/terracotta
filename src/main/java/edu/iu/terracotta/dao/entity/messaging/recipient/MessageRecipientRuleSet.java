@@ -3,6 +3,8 @@ package edu.iu.terracotta.dao.entity.messaging.recipient;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import edu.iu.terracotta.dao.entity.messaging.BaseMessageEntity;
 import edu.iu.terracotta.dao.entity.messaging.message.Message;
 import edu.iu.terracotta.dao.model.enums.messaging.rule.MessageRuleOperator;
@@ -27,6 +29,7 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 @Table(name = "terr_messaging_recipient_rule_set")
 public class MessageRecipientRuleSet extends BaseMessageEntity {
 

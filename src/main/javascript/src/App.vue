@@ -38,10 +38,13 @@
       <template
         v-else-if="hasTokens && userInfo === 'Learner'"
       >
-        <div class="student-view mt-5">
+        <div
+          class="student-view"
+        >
           <page-loading
             :display="!childLoaded"
             message="Loading your assignment. Please wait."
+            class="mt-5"
           />
           <student-consent
             v-if="consent"

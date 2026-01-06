@@ -6,6 +6,8 @@ import java.util.List;
 
 import org.apache.commons.lang3.BooleanUtils;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
 import edu.iu.terracotta.dao.entity.Condition;
@@ -39,6 +41,7 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 @Table(name = "terr_messaging_message")
 public class Message extends BaseMessageEntity {
 
