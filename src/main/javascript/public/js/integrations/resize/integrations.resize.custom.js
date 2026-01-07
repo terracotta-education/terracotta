@@ -1,3 +1,9 @@
+/**
+ * Custom Web Application Script
+ *
+ * Integration for resize observer to monitor changes to the document size. ES6 module version.
+ */
+
 import { resizeObserver } from "https://terracotta-js.s3.us-east-2.amazonaws.com/integrations.resize.js";
 
 document.addEventListener("DOMContentLoaded", (event) => {

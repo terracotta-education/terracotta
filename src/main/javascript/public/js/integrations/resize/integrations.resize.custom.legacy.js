@@ -1,8 +1,10 @@
 /**
- * Utility resize observer method to monitor changes to the document size. For use with ES6 module code.
+ * Custom Web Application Script
+ *
+ * Integration for resize observer to monitor changes to the document size. non-ES6 module version.
  */
 
-export const resizeObserver = new ResizeObserver((target) => {
+document.addEventListener("DOMContentLoaded", (event) => {
   // Calculate the height of the survey content and post the message to Terracotta parent window
   parent.postMessage(
   {
@@ -14,4 +16,7 @@ export const resizeObserver = new ResizeObserver((target) => {
   },
   "*"
   );
+
+  // start observing for resize
+  resizeObserver.observe(document.documentElement);
 });
