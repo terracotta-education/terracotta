@@ -936,7 +936,6 @@ export default {
       return n % 1 ? n.toFixed(2) : n;
     },
     async handleIntegrationsResize(event) {
-      console.log("event: ", event);
       if (event.data && event.data.height) {
         const iframe = document.getElementById("integration-iframe");
 
@@ -948,10 +947,8 @@ export default {
 
         const heightPadded = event.data.height;
         iframe.height = `${heightPadded}px`;
-        console.log(`iframe height updated to: ${heightPadded}px`);
 
-        // postMessage to Canvas LMS to resize iframe there as well
-        console.log(`posting message to Canvas with height: ${heightPadded}px`);
+        // postMessage to LMS to resize iframe there as well
         window.parent.postMessage(
           {
             subject: "lti.frameResize",
@@ -1037,8 +1034,8 @@ export default {
     window.addEventListener(
       "message",
       (event) => {
-        if (!event.origin) {
-          // no origin, ignore
+        if (!event || !event.origin) {
+          // no event or origin, ignore
           return;
         }
 
