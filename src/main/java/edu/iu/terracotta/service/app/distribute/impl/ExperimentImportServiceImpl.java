@@ -38,7 +38,6 @@ import edu.iu.terracotta.dao.entity.integrations.Integration;
 import edu.iu.terracotta.dao.entity.integrations.IntegrationClient;
 import edu.iu.terracotta.dao.entity.integrations.IntegrationConfiguration;
 import edu.iu.terracotta.dao.model.distribute.export.Export;
-import edu.iu.terracotta.dao.model.distribute.export.IntegrationExport;
 import edu.iu.terracotta.dao.model.dto.distribute.ImportDto;
 import edu.iu.terracotta.dao.model.enums.ParticipationTypes;
 import edu.iu.terracotta.dao.model.enums.distribute.ExperimentImportStatus;
@@ -174,10 +173,10 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
             experimentImport.setSourceTitle(export.get().getExperiment().getTitle());
 
             // ["component": ["imported id"]]
-            Map<Class<? extends BaseEntity>, List<Long>> idMap = new HashMap<>();
+            Map<Class<? extends BaseEntity>, List<Long>> idMap = prepareIdMap(export.get());
 
-            consentDocument(export.get(), experimentImport, export.get().getImportDirectory(), idMap);
-            experiment(export.get(), experimentImport, idMap);
+            consentDocument(export.get(), experimentImport, export.get().getImportDirectory());
+            experiment(export.get(), experimentImport);
             conditions(export.get(), experimentImport, idMap);
             exposures(export.get(), experimentImport, idMap);
             groups(export.get(), experimentImport, idMap);
@@ -186,7 +185,7 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
             treatments(export.get(), experimentImport, idMap);
             assessments(export.get(), experimentImport, idMap);
             questions(export.get(), experimentImport, idMap);
-            integrationClients(export.get(), idMap);
+            integrationClients();
             integrationConfigurations(export.get(), experimentImport, idMap);
             integrations(export.get(), experimentImport, idMap);
             answerMcs(export.get(), experimentImport, idMap);
@@ -194,6 +193,86 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
          } catch (ExperimentImportException e) {
             log.warn("Validation exception occured for experiment import ID: [{}]. Exiting.", experimentImport.getId(), e);
          }
+    }
+
+    private Map<Class<? extends BaseEntity>, List<Long>> prepareIdMap(Export export) {
+        Map<Class<? extends BaseEntity>, List<Long>> idMap = new HashMap<>();
+        idMap.put(
+            AnswerMc.class,
+            CollectionUtils.emptyIfNull(export.getAnswersMc()).stream().map(answerMc -> answerMc.getId()).toList()
+        );
+
+        idMap.put(
+            Assessment.class,
+            CollectionUtils.emptyIfNull(export.getAssessments()).stream().map(assessment -> assessment.getId()).toList()
+        );
+
+        idMap.put(
+            Assignment.class,
+            CollectionUtils.emptyIfNull(export.getAssignments()).stream().map(assignment -> assignment.getId()).toList()
+        );
+
+        idMap.put(
+            Condition.class,
+            CollectionUtils.emptyIfNull(export.getConditions()).stream().map(condition -> condition.getId()).toList()
+        );
+
+        idMap.put(
+            ConsentDocument.class,
+            CollectionUtils.emptyIfNull(export.getConsentDocument() != null ? List.of(export.getConsentDocument()) : List.of()).stream().map(consentDocument -> consentDocument.getId()).toList()
+        );
+
+        idMap.put(
+            Experiment.class,
+            CollectionUtils.emptyIfNull(export.getExperiment() != null ? List.of(export.getExperiment()) : List.of()).stream().map(experiment -> experiment.getId()).toList()
+        );
+
+        idMap.put(
+            Exposure.class,
+            CollectionUtils.emptyIfNull(export.getExposures()).stream().map(exposure -> exposure.getId()).toList()
+        );
+
+        idMap.put(
+            ExposureGroupCondition.class,
+            CollectionUtils.emptyIfNull(export.getExposureGroupConditions()).stream().map(exposureGroupCondition -> exposureGroupCondition.getId()).toList()
+        );
+
+        idMap.put(
+            Group.class,
+            CollectionUtils.emptyIfNull(export.getGroups()).stream().map(group -> group.getId()).toList()
+        );
+
+        idMap.put(
+            Integration.class,
+            CollectionUtils.emptyIfNull(export.getIntegrations()).stream().map(integration -> integration.getId()).toList()
+        );
+
+        idMap.put(
+            IntegrationClient.class,
+            CollectionUtils.emptyIfNull(export.getIntegrationClients()).stream().map(integrationClient -> integrationClient.getId()).toList()
+        );
+
+        idMap.put(
+            IntegrationConfiguration.class,
+            CollectionUtils.emptyIfNull(export.getIntegrationConfigurations()).stream().map(integrationConfiguration -> integrationConfiguration.getId()).toList()
+        );
+
+        idMap.put(
+            Outcome.class,
+            CollectionUtils.emptyIfNull(export.getOutcomes()).stream().map(outcome -> outcome.getId()).toList()
+        );
+
+        idMap.put(
+            Question.class,
+            CollectionUtils.emptyIfNull(export.getQuestions()).stream().map(question -> question.getId()).toList()
+        );
+
+        idMap.put(
+            Treatment.class,
+            CollectionUtils.emptyIfNull(export.getTreatments()).stream().map(treatment -> treatment.getId()).toList()
+        );
+
+        return idMap;
     }
 
     private Optional<Export> prepare(ExperimentImport experimentImport) {
@@ -234,9 +313,7 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
         return Optional.empty();
     }
 
-    private void consentDocument(Export export, ExperimentImport experimentImport, File importDirectory, Map<Class<? extends BaseEntity>, List<Long>> idMap) {
-        idMap.put(ConsentDocument.class, new ArrayList<>());
-
+    private void consentDocument(Export export, ExperimentImport experimentImport, File importDirectory) {
         if (export.getExperiment().getParticipationType() == ParticipationTypes.CONSENT) {
             // experiment is consent type; process consent file
             File consentFile = FileUtils.getFile(importDirectory, String.format("/consent/%s", ExperimentImport.CONSENT_FILE_NAME));
@@ -244,15 +321,11 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
             if (!consentFile.isFile()) {
                 log.error("Experiment import ID: [{}] consent file : [{}] not found.", experimentImport.getId(), ExperimentImport.CONSENT_FILE_NAME);
                 handleError(experimentImport, String.format("No consent PDF file [%s] found for experiment with consent participation type.", ExperimentImport.CONSENT_FILE_NAME));
-
-                return;
             }
-
-            idMap.get(ConsentDocument.class).add(export.getConsentDocument().getId());
         }
     }
 
-    private void experiment(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<Long>> idMap) {
+    private void experiment(Export export, ExperimentImport experimentImport) {
         if (export.getExperiment() == null) {
             log.error("Experiment import ID: [{}] experiment is null.", experimentImport.getId());
             handleError(experimentImport, "No experiment found in import file.");
@@ -262,16 +335,13 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
             log.error("Experiment import ID: [{}] experiment title is null.", experimentImport.getId());
             handleError(experimentImport, "Experiment title cannot be blank.");
         }
-
-        idMap.put(Experiment.class, List.of(export.getExperiment().getId()));
     }
 
     private void conditions(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<Long>> idMap) {
-        idMap.put(Condition.class, new ArrayList<>());
         CollectionUtils.emptyIfNull(export.getConditions()).stream()
             .forEach(
                 condition -> {
-                    if (idMap.get(Experiment.class).stream().noneMatch(experimentId -> experimentId == condition.getExperimentId())) {
+                    if (idMap.get(Experiment.class).stream().noneMatch(experimentId -> experimentId.equals(condition.getExperimentId()))) {
                         log.error("Experiment import ID: [{}] experiment ID: [{}] not found for condition ID: [{}]", experimentImport.getId(), condition.getExperimentId(), condition.getId());
                         handleError(experimentImport, String.format("No experiment ID: [%s] found for condition ID: [%s]", condition.getExperimentId(), condition.getId()));
 
@@ -281,21 +351,16 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
                     if (StringUtils.isBlank(condition.getName())) {
                         log.error("Experiment import ID: [{}] condition ID: [{}] name is null.", experimentImport.getId(), condition.getId());
                         handleError(experimentImport, String.format("Condition with ID: [%s] :: name cannot be blank.", condition.getId()));
-
-                        return;
                     }
-
-                    idMap.get(Condition.class).add(condition.getId());
                 }
             );
     }
 
     private void exposures(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<Long>> idMap) {
-        idMap.put(Exposure.class, new ArrayList<>());
         CollectionUtils.emptyIfNull(export.getExposures()).stream()
             .forEach(
                 exposure -> {
-                    if (idMap.get(Experiment.class).stream().noneMatch(experimentId -> experimentId == exposure.getExperimentId())) {
+                    if (idMap.get(Experiment.class).stream().noneMatch(experimentId -> experimentId.equals(exposure.getExperimentId()))) {
                         log.error("Experiment import ID: [{}] experiment ID: [{}] not found for exposure ID: [{}]", experimentImport.getId(), exposure.getExperimentId(), exposure.getId());
                         handleError(experimentImport, String.format("No experiment ID: [%s] found for exposure ID: [%s]", exposure.getExperimentId(), exposure.getId()));
 
@@ -305,21 +370,16 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
                     if (StringUtils.isBlank(exposure.getTitle())) {
                         log.error("Experiment import ID: [{}] exposure ID: [{}] title is null.", experimentImport.getId(), exposure.getId());
                         handleError(experimentImport, String.format("Exposure with ID: [%s] :: title cannot be blank.", exposure.getId()));
-
-                        return;
                     }
-
-                    idMap.get(Exposure.class).add(exposure.getId());
                 }
             );
     }
 
     private void groups(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<Long>> idMap) {
-        idMap.put(Group.class, new ArrayList<>());
         CollectionUtils.emptyIfNull(export.getGroups()).stream()
             .forEach(
                 group -> {
-                    if (idMap.get(Experiment.class).stream().noneMatch(experimentId -> experimentId == group.getExperimentId())) {
+                    if (idMap.get(Experiment.class).stream().noneMatch(experimentId -> experimentId.equals(group.getExperimentId()))) {
                         log.error("Experiment import ID: [{}] experiment ID: [{}] not found for group ID: [{}]", experimentImport.getId(), group.getExperimentId(), group.getId());
                         handleError(experimentImport, String.format("No experiment ID: [%s] found for group ID: [%s]", group.getExperimentId(), group.getId()));
 
@@ -329,52 +389,42 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
                     if (StringUtils.isBlank(group.getName())) {
                         log.error("Experiment import ID: [{}] group ID: [{}] name is null.", experimentImport.getId(), group.getId());
                         handleError(experimentImport, String.format("Group with ID: [%s] :: name cannot be blank.", group.getId()));
-
-                        return;
                     }
-
-                    idMap.get(Group.class).add(group.getId());
                 }
             );
     }
 
     private void exposureGroupConditions(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<Long>> idMap) {
-        idMap.put(ExposureGroupCondition.class, new ArrayList<>());
         CollectionUtils.emptyIfNull(export.getExposureGroupConditions()).stream()
             .forEach(
                 exposureGroupCondition -> {
-                    if (idMap.get(Exposure.class).stream().noneMatch(exposureId -> exposureId == exposureGroupCondition.getExposureId())) {
+                    if (idMap.get(Exposure.class).stream().noneMatch(exposureId -> exposureId.equals(exposureGroupCondition.getExposureId()))) {
                         log.error("Experiment import ID: [{}] exposure ID: [{}] not found for exposureGroupCondition ID: [{}]", experimentImport.getId(), exposureGroupCondition.getExposureId(), exposureGroupCondition.getId());
                         handleError(experimentImport, String.format("No exposure ID: [%s] found for exposureGroupCondition ID: [%s]", exposureGroupCondition.getExposureId(), exposureGroupCondition.getId()));
 
                         return;
                     }
 
-                    if (idMap.get(Group.class).stream().noneMatch(groupId -> groupId == exposureGroupCondition.getGroupId())) {
+                    if (idMap.get(Group.class).stream().noneMatch(groupId -> groupId.equals(exposureGroupCondition.getGroupId()))) {
                         log.error("Experiment import ID: [{}] group ID: [{}] not found for exposureGroupCondition ID: [{}]", experimentImport.getId(), exposureGroupCondition.getGroupId(), exposureGroupCondition.getId());
                         handleError(experimentImport, String.format("No group ID: [%s] found for exposureGroupCondition ID: [%s]", exposureGroupCondition.getGroupId(), exposureGroupCondition.getId()));
 
                         return;
                     }
 
-                    if (idMap.get(Condition.class).stream().noneMatch(conditionId -> conditionId == exposureGroupCondition.getConditionId())) {
+                    if (idMap.get(Condition.class).stream().noneMatch(conditionId -> conditionId.equals(exposureGroupCondition.getConditionId()))) {
                         log.error("Experiment import ID: [{}] condition ID: [{}] not found for exposureGroupCondition ID: [{}]", experimentImport.getId(), exposureGroupCondition.getConditionId(), exposureGroupCondition.getId());
                         handleError(experimentImport, String.format("No condition ID: [%s] found for exposureGroupCondition ID: [%s]", exposureGroupCondition.getConditionId(), exposureGroupCondition.getId()));
-
-                        return;
                     }
-
-                    idMap.get(ExposureGroupCondition.class).add(exposureGroupCondition.getId());
                 }
             );
     }
 
     private void assignments(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<Long>> idMap) {
-        idMap.put(Assignment.class, new ArrayList<>());
         CollectionUtils.emptyIfNull(export.getAssignments()).stream()
             .forEach(
                 assignment -> {
-                    if (idMap.get(Exposure.class).stream().noneMatch(exposureId -> exposureId == assignment.getExposureId())) {
+                    if (idMap.get(Exposure.class).stream().noneMatch(exposureId -> exposureId.equals(assignment.getExposureId()))) {
                         log.error("Experiment import ID: [{}] exposure ID: [{}] not found for exposureGroupCondition ID: [{}]", experimentImport.getId(), assignment.getExposureId(), assignment.getId());
                         handleError(experimentImport, String.format("No exposure ID: [%s] found for assignment ID: [%s]", assignment.getExposureId(), assignment.getId()));
 
@@ -384,79 +434,54 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
                     if (StringUtils.isBlank(assignment.getTitle())) {
                         log.error("Experiment import ID: [{}] assignment ID: [{}] title is null.", experimentImport.getId(), assignment.getId());
                         handleError(experimentImport, String.format("Assignment with ID: [%s] :: title cannot be blank.", assignment.getId()));
-
-                        return;
                     }
-
-                    idMap.get(Assignment.class).add(assignment.getId());
                 }
             );
     }
 
     private void treatments(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<Long>> idMap) {
-        idMap.put(Treatment.class, new ArrayList<>());
         CollectionUtils.emptyIfNull(export.getTreatments()).stream()
             .forEach(
                 treatment -> {
-                    if (idMap.get(Condition.class).stream().noneMatch(conditionId -> conditionId == treatment.getConditionId())) {
+                    if (idMap.get(Condition.class).stream().noneMatch(conditionId -> conditionId.equals(treatment.getConditionId()))) {
                         log.error("Experiment import ID: [{}] condition ID: [{}] not found for treatment ID: [{}]", experimentImport.getId(), treatment.getConditionId(), treatment.getId());
                         handleError(experimentImport, String.format("No condition ID: [%s] found for treatment ID: [%s]", treatment.getConditionId(), treatment.getId()));
 
                         return;
                     }
 
-                    if (idMap.get(Assignment.class).stream().noneMatch(assignmentId -> assignmentId == treatment.getAssignmentId())) {
+                    if (idMap.get(Assignment.class).stream().noneMatch(assignmentId -> assignmentId.equals(treatment.getAssignmentId()))) {
                         log.error("Experiment import ID: [{}] Assignment ID: [{}] not found for treatment ID: [{}]", experimentImport.getId(), treatment.getAssignmentId(), treatment.getId());
                         handleError(experimentImport, String.format("No assignment ID: [%s] found for treatment ID: [%s]", treatment.getAssignmentId(), treatment.getId()));
-
-                        return;
                     }
-
-                    idMap.get(Treatment.class).add(treatment.getId());
                 }
             );
     }
 
     private void assessments(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<Long>> idMap) {
-        idMap.put(Assessment.class, new ArrayList<>());
         CollectionUtils.emptyIfNull(export.getAssessments()).stream()
             .forEach(
                 assessment -> {
-                    if (idMap.get(Treatment.class).stream().noneMatch(treatmentId -> treatmentId == assessment.getTreatmentId())) {
+                    if (idMap.get(Treatment.class).stream().noneMatch(treatmentId -> treatmentId.equals(assessment.getTreatmentId()))) {
                         log.error("Experiment import ID: [{}] treatment ID: [{}] not found for assessment ID: [{}]", experimentImport.getId(), assessment.getTreatmentId(), assessment.getId());
                         handleError(experimentImport, String.format("No treatment ID: [%s] found for assessment ID: [%s]", assessment.getTreatmentId(), assessment.getId()));
-
-                        return;
                     }
-
-                    idMap.get(Assessment.class).add(assessment.getId());
                 }
             );
     }
 
     private void questions(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<Long>> idMap) {
-        idMap.put(Question.class, new ArrayList<>());
-
-        // check if any question is an integration type
-        boolean hasIntegrationQuestions = CollectionUtils.emptyIfNull(export.getQuestions()).stream()
-            .anyMatch(question -> question.getIntegrationId() != null);
-
-        if (hasIntegrationQuestions) {
-            // create temp map of integration IDs
-            idMap.put(Integration.class, CollectionUtils.emptyIfNull(export.getIntegrations()).stream().map(IntegrationExport::getId).toList());
-        }
-
         CollectionUtils.emptyIfNull(export.getQuestions()).stream()
             .forEach(
                 question -> {
-                    if (idMap.get(Assessment.class).stream().noneMatch(assessmentId -> assessmentId == question.getAssessmentId())) {
+                    if (idMap.get(Assessment.class).stream().noneMatch(assessmentId -> assessmentId.equals(question.getAssessmentId()))) {
                         log.error("Experiment import ID: [{}] assessment ID: [{}] not found for question ID: [{}]", experimentImport.getId(), question.getAssessmentId(), question.getId());
                         handleError(experimentImport, String.format("No assessment ID: [%s] found for question ID: [%s]", question.getAssessmentId(), question.getId()));
 
                         return;
                     }
 
-                    if (question.getIntegrationId() != null && idMap.get(Integration.class).stream().noneMatch(integrationId -> integrationId == question.getIntegrationId())) {
+                    if (question.getIntegrationId() != null && idMap.get(Integration.class).stream().noneMatch(integrationId -> integrationId.equals(question.getIntegrationId()))) {
                         log.error("Experiment import ID: [{}] integration ID: [{}] not found for question ID: [{}]", experimentImport.getId(), question.getIntegrationId(), question.getId());
                         handleError(experimentImport, String.format("No integration ID: [%s] found for question ID: [%s]", question.getIntegrationId(), question.getId()));
 
@@ -466,75 +491,51 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
                     if (question.getQuestionOrder() == null) {
                         log.error("Experiment import ID: [{}] question ID: [{}] question order is null.", experimentImport.getId(), question.getId());
                         handleError(experimentImport, String.format("Question with ID: [%s] :: order cannot be null.", question.getId()));
-
-                        return;
                     }
-
-                    idMap.get(Question.class).add(question.getId());
                 }
             );
-
-            // reset integration IDs map
-            idMap.put(Integration.class, new ArrayList<>());
     }
 
-    private void integrationClients(Export export, Map<Class<? extends BaseEntity>, List<Long>> idMap) {
-        idMap.put(IntegrationClient.class, new ArrayList<>());
-        CollectionUtils.emptyIfNull(export.getIntegrationClients()).stream()
-            .forEach(
-                integrationClient -> {
-                    idMap.get(IntegrationClient.class).add(integrationClient.getId());
-                }
-            );
+    private void integrationClients() {
+        // integration clients require no validation
     }
 
     private void integrationConfigurations(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<Long>> idMap) {
-        idMap.put(IntegrationConfiguration.class, new ArrayList<>());
         CollectionUtils.emptyIfNull(export.getIntegrationConfigurations()).stream()
             .forEach(
                 integrationConfiguration -> {
-                    if (idMap.get(IntegrationClient.class).stream().noneMatch(integrationClientId -> integrationClientId == integrationConfiguration.getClientId())) {
+                    if (idMap.get(IntegrationClient.class).stream().noneMatch(integrationClientId -> integrationClientId.equals(integrationConfiguration.getClientId()))) {
                         log.error("Experiment import ID: [{}] integration client ID: [{}] not found for integration configuration ID: [{}]", experimentImport.getId(), integrationConfiguration.getClientId(), integrationConfiguration.getId());
                         handleError(experimentImport, String.format("No integration client ID: [%s] found for integration configuration ID: [%s]", integrationConfiguration.getClientId(), integrationConfiguration.getId()));
-
-                        return;
                     }
-
-                    idMap.get(IntegrationConfiguration.class).add(integrationConfiguration.getId());
                 }
             );
     }
 
     private void integrations(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<Long>> idMap) {
-        idMap.put(Integration.class, new ArrayList<>());
         CollectionUtils.emptyIfNull(export.getIntegrations()).stream()
             .forEach(
                 integration -> {
-                    if (idMap.get(IntegrationConfiguration.class).stream().noneMatch(integrationConfigurationId -> integrationConfigurationId == integration.getConfigurationId())) {
+                    if (idMap.get(IntegrationConfiguration.class).stream().noneMatch(integrationConfigurationId -> integrationConfigurationId.equals(integration.getConfigurationId()))) {
                         log.error("Experiment import ID: [{}] integration configuration ID: [{}] not found for integration ID: [{}]", experimentImport.getId(), integration.getConfigurationId(), integration.getId());
                         handleError(experimentImport, String.format("No integration configuration ID: [%s] found for integration ID: [%s]", integration.getConfigurationId(), integration.getId()));
 
                         return;
                     }
 
-                    if (idMap.get(Question.class).stream().noneMatch(questionId -> questionId == integration.getQuestionId())) {
+                    if (idMap.get(Question.class).stream().noneMatch(questionId -> questionId.equals(integration.getQuestionId()))) {
                         log.error("Experiment import ID: [{}] question ID: [{}] not found for integration ID: [{}]", experimentImport.getId(), integration.getQuestionId(), integration.getId());
                         handleError(experimentImport, String.format("No question ID: [%s] found for integration ID: [%s]", integration.getQuestionId(), integration.getId()));
-
-                        return;
                     }
-
-                    idMap.get(Integration.class).add(integration.getId());
                 }
             );
     }
 
     private void answerMcs(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<Long>> idMap) {
-        idMap.put(AnswerMc.class, new ArrayList<>());
         CollectionUtils.emptyIfNull(export.getAnswersMc()).stream()
             .forEach(
                 answerMc -> {
-                    if (idMap.get(Question.class).stream().noneMatch(questionId -> questionId == answerMc.getQuestionId())) {
+                    if (idMap.get(Question.class).stream().noneMatch(questionId -> questionId.equals(answerMc.getQuestionId()))) {
                         log.error("Experiment import ID: [{}] question ID: [{}] not found for answerMc ID: [{}]", experimentImport.getId(), answerMc.getQuestionId(), answerMc.getId());
                         handleError(experimentImport, String.format("No question ID: [%s] found for multiple choice answer ID: [%s]", answerMc.getQuestionId(), answerMc.getId()));
 
@@ -544,11 +545,7 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
                     if (answerMc.getAnswerOrder() == null) {
                         log.error("Experiment import ID: [{}] answerMc ID: [{}] answer order is null.", experimentImport.getId(), answerMc.getId());
                         handleError(experimentImport, String.format("AnswerMc with ID: [%s] :: order cannot be null.", answerMc.getId()));
-
-                        return;
                     }
-
-                    idMap.get(AnswerMc.class).add(answerMc.getId());
                 }
             );
     }
@@ -559,14 +556,10 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
         CollectionUtils.emptyIfNull(export.getOutcomes()).stream()
             .forEach(
                 outcome -> {
-                    if (idMap.get(Exposure.class).stream().noneMatch(exposureId -> exposureId == outcome.getExposureId())) {
+                    if (idMap.get(Exposure.class).stream().noneMatch(exposureId -> exposureId.equals(outcome.getExposureId()))) {
                         log.error("Experiment import ID: [{}] exposure ID: [{}] not found for exposureGroupCondition ID: [{}]", experimentImport.getId(), outcome.getExposureId(), outcome.getId());
                         handleError(experimentImport, String.format("No exposure ID: [%s] found for exposureGroupCondition ID: [%s]", outcome.getExposureId(), outcome.getId()));
-
-                        return;
                     }
-
-                    idMap.get(Outcome.class).add(outcome.getId());
                 }
             );
     }
