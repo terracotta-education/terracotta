@@ -6,6 +6,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import edu.iu.terracotta.dao.entity.messaging.BaseMessageEntity;
 import edu.iu.terracotta.dao.entity.messaging.replyto.MessageEmailReplyTo;
 import edu.iu.terracotta.dao.model.enums.messaging.MessageContainerUpdatedFields;
@@ -33,6 +35,8 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@SuppressWarnings({"PMD.LooseCoupling"})
+@JsonIgnoreProperties(ignoreUnknown = true)
 @Table(name = "terr_messaging_container_configuration")
 public class MessageContainerConfiguration extends BaseMessageEntity {
 

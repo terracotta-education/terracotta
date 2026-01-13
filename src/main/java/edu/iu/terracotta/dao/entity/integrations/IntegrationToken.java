@@ -6,8 +6,8 @@ import java.util.List;
 import java.util.Optional;
 
 import org.apache.commons.lang3.StringUtils;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import edu.iu.terracotta.connectors.generic.dao.entity.BaseUuidEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
@@ -27,6 +27,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
 
 @Slf4j
 @Entity
@@ -35,6 +37,7 @@ import lombok.extern.slf4j.Slf4j;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 @Table(name = "terr_integrations_token")
 public class IntegrationToken extends BaseUuidEntity {
 
@@ -81,8 +84,15 @@ public class IntegrationToken extends BaseUuidEntity {
         }
 
         try {
-            return Optional.of(new ObjectMapper().readValue(securedInfo, SecuredInfo.class));
-        } catch (JsonProcessingException e) {
+            return Optional.of(
+                JsonMapper.builder()
+                    .build()
+                    .readValue(
+                        securedInfo,
+                        SecuredInfo.class
+                    )
+            );
+        } catch (JacksonException e) {
             log.error("Error mapping json to SecuredInfo", e);
         }
 
@@ -91,8 +101,10 @@ public class IntegrationToken extends BaseUuidEntity {
 
     public void setSecuredInfo(SecuredInfo securedInfo) {
         try {
-            this.securedInfo = new ObjectMapper().writeValueAsString(securedInfo);
-        } catch (JsonProcessingException e) {
+            this.securedInfo = JsonMapper.builder()
+                .build()
+                .writeValueAsString(securedInfo);
+        } catch (JacksonException e) {
             log.error("Error mapping SecuredInfo to json", e);
         }
     }

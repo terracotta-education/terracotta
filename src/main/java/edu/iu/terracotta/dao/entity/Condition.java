@@ -18,6 +18,8 @@ import jakarta.persistence.Table;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import edu.iu.terracotta.connectors.generic.dao.entity.BaseEntity;
 
 @Entity
@@ -27,6 +29,7 @@ import edu.iu.terracotta.connectors.generic.dao.entity.BaseEntity;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "terr_condition")
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Condition extends BaseEntity {
 
     @Id

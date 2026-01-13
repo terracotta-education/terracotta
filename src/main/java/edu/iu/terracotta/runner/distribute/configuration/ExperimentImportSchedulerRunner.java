@@ -8,8 +8,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.kagkarlsson.scheduler.task.Task;
 import com.github.kagkarlsson.scheduler.task.TaskDescriptor;
 import com.github.kagkarlsson.scheduler.task.helper.Tasks;
@@ -20,6 +18,8 @@ import edu.iu.terracotta.runner.distribute.ExperimentImportSchedulerService;
 import edu.iu.terracotta.runner.distribute.model.ExperimentImportScheduleResult;
 import edu.iu.terracotta.service.app.ScheduledTaskService;
 import lombok.extern.slf4j.Slf4j;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
 
 @Slf4j
 @Configuration
@@ -69,8 +69,14 @@ public class ExperimentImportSchedulerRunner {
                     }
 
                     try {
-                        log.info("Task [{}] ran. Processed experiment imports: [{}]", TASK_NAME, new ObjectMapper().writeValueAsString(results.get()));
-                    } catch (JsonProcessingException e) {
+                        log.info(
+                            "Task [{}] ran. Processed experiment imports: [{}]",
+                            TASK_NAME,
+                            JsonMapper.builder()
+                                .build()
+                                .writeValueAsString(results.get())
+                        );
+                    } catch (JacksonException e) {
                         log.error("Error occurred writing value to JSON", e);
                     }
                 }

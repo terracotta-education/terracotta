@@ -1,5 +1,7 @@
 package edu.iu.terracotta.dao.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import edu.iu.terracotta.connectors.generic.dao.entity.BaseUuidEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiContextEntity;
 import jakarta.persistence.Column;
@@ -20,6 +22,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "terr_obsolete_assignment")
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ObsoleteAssignment extends BaseUuidEntity {
 
     public static final String PREFIX = "OBSOLETE";

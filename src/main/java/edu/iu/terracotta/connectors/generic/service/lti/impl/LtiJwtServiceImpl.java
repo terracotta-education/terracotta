@@ -1,8 +1,5 @@
 package edu.iu.terracotta.connectors.generic.service.lti.impl;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.jwk.AsymmetricJWK;
 import com.nimbusds.jose.jwk.JWK;
@@ -16,6 +13,9 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.Locator;
 import io.jsonwebtoken.Jwts.SIG;
 import lombok.extern.slf4j.Slf4j;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.json.JsonMapper;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.PlatformDeploymentRepository;
 import edu.iu.terracotta.connectors.generic.service.lti.LtiDataService;
@@ -47,6 +47,7 @@ import java.util.UUID;
  */
 @Slf4j
 @Service
+@SuppressWarnings({"PMD.LooseCoupling", "PMD.GuardLogStatement"})
 public class LtiJwtServiceImpl implements LtiJwtService {
 
     @Autowired private PlatformDeploymentRepository platformDeploymentRepository;
@@ -119,8 +120,13 @@ public class LtiJwtServiceImpl implements LtiJwtService {
                             Map<String, Object> jwtClaims = null;
 
                             try {
-                                jwtClaims = new ObjectMapper().readValue(jwtPayload, new TypeReference<Map<String,Object>>() {});
-                            } catch (JsonProcessingException e) {
+                                jwtClaims = JsonMapper.builder()
+                                    .build()
+                                    .readValue(
+                                        jwtPayload,
+                                        new TypeReference<Map<String,Object>>() {}
+                                    );
+                            } catch (JacksonException e) {
                                 throw new IllegalStateException("Request is not a valid LTI3 request.", e);
                             }
 

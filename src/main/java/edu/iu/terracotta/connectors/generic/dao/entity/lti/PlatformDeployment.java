@@ -14,10 +14,15 @@ import jakarta.persistence.Table;
 
 import org.apache.commons.lang3.StringUtils;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import edu.iu.terracotta.connectors.generic.dao.entity.BaseEntity;
 import edu.iu.terracotta.connectors.generic.dao.model.enums.LmsConnector;
 import edu.iu.terracotta.dao.entity.Feature;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.List;
@@ -26,7 +31,11 @@ import java.util.Set;
 @Entity
 @Getter
 @Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Table(name = "iss_configuration")
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class PlatformDeployment extends BaseEntity {
 
     public static final String LOCAL_URL = "https://app.terracotta.education";
@@ -64,6 +73,7 @@ public class PlatformDeployment extends BaseEntity {
     @Column(name = "oAuth2_token_aud")
     private String oAuth2TokenAud;  // Sometimes, for example D2L, has a different aud for the tokens.
 
+    @Builder.Default
     @Column(nullable = false)
     private Boolean enableAutomaticDeployments = false;
 

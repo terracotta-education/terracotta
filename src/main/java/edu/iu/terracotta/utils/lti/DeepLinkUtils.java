@@ -1,12 +1,11 @@
 package edu.iu.terracotta.utils.lti;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import edu.iu.terracotta.utils.oauth.OAuthUtils;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.Jwts.SIG;
 import lombok.experimental.UtilityClass;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
 import edu.iu.terracotta.connectors.generic.service.lti.LtiDataService;
 import edu.iu.terracotta.utils.LtiStrings;
@@ -23,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 
 @UtilityClass
+@SuppressWarnings("PMD.LooseCoupling")
 public final class DeepLinkUtils {
 
     public static Map<String, String> generateDeepLinkJWT(LtiDataService ltiDataService, PlatformDeployment platformDeployment, Lti3Request lti3Request, String localUrl) throws GeneralSecurityException, IOException {
@@ -270,8 +270,11 @@ public final class DeepLinkUtils {
 
     private static String listMapToJson(List<Map<String, Object>> listMap) {
         try {
-            return new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(listMap);
-        } catch (JsonProcessingException e) {
+            return JsonMapper.builder()
+                .build()
+                .writerWithDefaultPrettyPrinter()
+                .writeValueAsString(listMap);
+        } catch (JacksonException e) {
             return "";
         }
     }

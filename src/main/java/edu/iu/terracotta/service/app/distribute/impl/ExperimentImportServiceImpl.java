@@ -1,7 +1,6 @@
 package edu.iu.terracotta.service.app.distribute.impl;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -14,8 +13,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import edu.iu.terracotta.connectors.generic.dao.entity.BaseEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiContextEntity;
@@ -52,10 +49,11 @@ import edu.iu.terracotta.service.app.async.ExperimentImportAsyncService;
 import edu.iu.terracotta.service.app.distribute.ExperimentImportErrorService;
 import edu.iu.terracotta.service.app.distribute.ExperimentImportService;
 import lombok.extern.slf4j.Slf4j;
+import tools.jackson.databind.json.JsonMapper;
 
 @Slf4j
 @Service
-@SuppressWarnings({"PMD.GuardLogStatement"})
+@SuppressWarnings({"PMD.GuardLogStatement", "PMD.LooseCoupling"})
 public class ExperimentImportServiceImpl implements ExperimentImportService {
 
     @Autowired private ExperimentImportErrorRepository experimentImportErrorRepository;
@@ -298,11 +296,16 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
         }
 
         try {
-            Export export = new ObjectMapper().readValue(jsonFile, Export.class);
+            Export export = JsonMapper.builder()
+                .build()
+                .readValue(
+                    jsonFile,
+                    Export.class
+                );
             export.setImportDirectory(importDirectory);
 
             return Optional.of(export);
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error("Error reading JSON file: [{}] for experiment import ID: [{}] ", jsonFile.getName(), experimentImport.getId(), e);
             handleError(experimentImport, String.format("Error reading JSON file: [%s]", jsonFile.getName()));
         }

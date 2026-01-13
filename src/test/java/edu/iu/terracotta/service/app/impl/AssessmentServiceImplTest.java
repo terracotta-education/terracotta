@@ -480,7 +480,7 @@ public class AssessmentServiceImplTest extends BaseTest {
 
     @Test
     public void testGetAllAssessmentsByTreatment() throws IdInPostException, DataServiceException, TitleValidationException, AssessmentNotMatchingException {
-        List<AssessmentDto> retVal = assessmentService.getAllAssessmentsByTreatment(1L, false);
+        List<AssessmentDto> retVal = assessmentService.getAllAssessmentsByTreatment(1L, false, securedInfo);
 
         assertNotNull(retVal);
         assertEquals(1, retVal.size());
@@ -488,7 +488,7 @@ public class AssessmentServiceImplTest extends BaseTest {
 
     @Test
     public void testGetAllAssessmentsByTreatmentWithSubmissions() throws IdInPostException, DataServiceException, TitleValidationException, AssessmentNotMatchingException {
-        List<AssessmentDto> retVal = assessmentService.getAllAssessmentsByTreatment(1L, true);
+        List<AssessmentDto> retVal = assessmentService.getAllAssessmentsByTreatment(1L, true, securedInfo);
 
         assertNotNull(retVal);
         assertEquals(1, retVal.size());
@@ -497,14 +497,14 @@ public class AssessmentServiceImplTest extends BaseTest {
     @Test
     public void testPostAssessment() throws IdInPostException, DataServiceException, TitleValidationException, AssessmentNotMatchingException {
         when(assessmentDto.getAssessmentId()).thenReturn(null);
-        AssessmentDto retVal = assessmentService.postAssessment(assessmentDto, 1L);
+        AssessmentDto retVal = assessmentService.postAssessment(assessmentDto, 1L, securedInfo);
 
         assertNotNull(retVal);
     }
 
     @Test
     public void testPostAssessmentIdInPostExceptionThrown() {
-        IdInPostException e = assertThrows(IdInPostException.class, () -> assessmentService.postAssessment(assessmentDto, 1L));
+        IdInPostException e = assertThrows(IdInPostException.class, () -> assessmentService.postAssessment(assessmentDto, 1L, securedInfo));
         assertEquals(TextConstants.ID_IN_POST_ERROR, e.getMessage());
     }
 

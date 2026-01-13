@@ -10,9 +10,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.dao.entity.QuestionSubmission;
@@ -41,6 +38,7 @@ import edu.iu.terracotta.service.app.integrations.IntegrationScoreService;
 import edu.iu.terracotta.service.app.integrations.IntegrationTokenService;
 import edu.iu.terracotta.service.caliper.CaliperService;
 import lombok.extern.slf4j.Slf4j;
+import tools.jackson.databind.json.JsonMapper;
 
 @Slf4j
 @Service
@@ -253,14 +251,16 @@ public class IntegrationScoreServiceImpl implements IntegrationScoreService {
         }
 
         try {
-            return new ObjectMapper().writeValueAsString(
-                IntegrationError.builder()
-                .code(code)
-                .errorMessage(resubmitError.orElse(null))
-                .moreAttemptsAvailable(moreAttemptsAvailable)
+            return JsonMapper.builder()
                 .build()
-            );
-        } catch (JsonProcessingException e) {
+                .writeValueAsString(
+                    IntegrationError.builder()
+                    .code(code)
+                    .errorMessage(resubmitError.orElse(null))
+                    .moreAttemptsAvailable(moreAttemptsAvailable)
+                    .build()
+                );
+        } catch (Exception e) {
             log.error("Error creating integration log error message for token: [{}]", launchToken, e);
 
             return null;

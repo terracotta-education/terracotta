@@ -5,6 +5,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiUserRepository;
 import edu.iu.terracotta.dao.entity.Experiment;
 import edu.iu.terracotta.dao.entity.preview.TreatmentPreview;
@@ -49,7 +50,7 @@ public class TreatmentPreviewServiceImpl implements TreatmentPreviewService {
     }
 
     @Override
-    public TreatmentPreviewDto getTreatmentPreview(UUID uuid, long treatmentId, long experimentId, long conditionId, String ownerId) throws TreatmentNotMatchingException, AssessmentNotMatchingException {
+    public TreatmentPreviewDto getTreatmentPreview(UUID uuid, long treatmentId, long experimentId, long conditionId, String ownerId, SecuredInfo securedInfo) throws TreatmentNotMatchingException, AssessmentNotMatchingException {
         TreatmentPreview treatmentPreview = treatmentPreviewRepository.findByUuidAndTreatment_TreatmentIdAndExperiment_ExperimentIdAndCondition_ConditionIdAndOwner_UserKey(uuid, treatmentId, experimentId, conditionId, ownerId)
             .orElseThrow(() -> new TreatmentNotMatchingException(
                 String.format(
@@ -63,7 +64,7 @@ public class TreatmentPreviewServiceImpl implements TreatmentPreviewService {
             )
         );
 
-        TreatmentDto treatmentDto = assignmentTreatmentService.toTreatmentDto(treatmentPreview.getTreatment(), false, false);
+        TreatmentDto treatmentDto = assignmentTreatmentService.toTreatmentDto(treatmentPreview.getTreatment(), false, false, securedInfo);
         treatmentDto.getAssessmentDto().setQuestions(
             questionService.toDto(
                 treatmentPreview.getTreatment().getAssessment().getQuestions(),

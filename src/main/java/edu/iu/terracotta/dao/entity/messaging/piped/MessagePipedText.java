@@ -3,6 +3,8 @@ package edu.iu.terracotta.dao.entity.messaging.piped;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import edu.iu.terracotta.dao.entity.messaging.BaseMessageEntity;
 import edu.iu.terracotta.dao.entity.messaging.content.MessageContent;
 import jakarta.persistence.CascadeType;
@@ -24,6 +26,7 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 @Table(name = "terr_messaging_piped_text")
 public class MessagePipedText extends BaseMessageEntity {
 

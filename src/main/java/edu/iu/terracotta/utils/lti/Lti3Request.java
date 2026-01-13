@@ -1,8 +1,5 @@
 package edu.iu.terracotta.utils.lti;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.hash.Hashing;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.jwk.AsymmetricJWK;
@@ -29,6 +26,9 @@ import io.jsonwebtoken.Locator;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.json.JsonMapper;
 import edu.iu.terracotta.utils.LtiStrings;
 
 import org.apache.commons.collections4.CollectionUtils;
@@ -78,7 +78,7 @@ import java.util.Map;
 @Slf4j
 @Getter
 @Setter
-@SuppressWarnings({ "PMD.GuardLogStatement", "ConstantConditions", "PMD.SingletonClassReturningNewInstance", "unchecked", "rawtypes" })
+@SuppressWarnings({"PMD.GuardLogStatement", "ConstantConditions", "PMD.SingletonClassReturningNewInstance", "unchecked", "rawtypes", "PMD.LooseCoupling"})
 public class Lti3Request {
 
     @Value("${app.lti.data.verbose.logging.enabled:false}")
@@ -277,8 +277,13 @@ public class Lti3Request {
         Map<String, Object> jwtClaims = null;
 
         try {
-            jwtClaims = new ObjectMapper().readValue(jwtPayload, new TypeReference<Map<String,Object>>() {});
-        } catch (JsonProcessingException e) {
+            jwtClaims = JsonMapper.builder()
+                .build()
+                .readValue(
+                    jwtPayload,
+                    new TypeReference<Map<String,Object>>() {}
+                );
+        } catch (JacksonException e) {
             throw new IllegalStateException("Request is not a valid LTI3 request.", e);
         }
 

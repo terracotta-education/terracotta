@@ -2,6 +2,8 @@ package edu.iu.terracotta.dao.entity;
 
 import java.beans.Transient;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import edu.iu.terracotta.connectors.generic.dao.entity.BaseUuidEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
 import edu.iu.terracotta.dao.model.enums.AssignmentFileArchiveStatus;
@@ -24,6 +26,7 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 @Table(name = "terr_assignment_file_archive")
 public class AssignmentFileArchive extends BaseUuidEntity {
 

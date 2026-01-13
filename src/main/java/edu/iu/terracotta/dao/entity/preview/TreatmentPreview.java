@@ -1,5 +1,7 @@
 package edu.iu.terracotta.dao.entity.preview;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import edu.iu.terracotta.connectors.generic.dao.entity.BaseUuidEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
 import edu.iu.terracotta.dao.entity.Condition;
@@ -22,6 +24,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "terr_preview_treatment")
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class TreatmentPreview extends BaseUuidEntity {
 
     @ManyToOne

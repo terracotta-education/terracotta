@@ -52,6 +52,7 @@ import edu.iu.terracotta.service.app.QuestionSubmissionCommentService;
 import edu.iu.terracotta.service.app.QuestionSubmissionService;
 import edu.iu.terracotta.utils.TextConstants;
 import lombok.extern.slf4j.Slf4j;
+import tools.jackson.databind.json.JsonMapper;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
@@ -61,8 +62,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.util.UriComponentsBuilder;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -97,7 +96,7 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
     @Autowired private QuestionSubmissionCommentService questionSubmissionCommentService;
     @Autowired private ApiClient apiClient;
 
-    private ObjectMapper objectMapper = new ObjectMapper();
+    private JsonMapper jsonMapper = JsonMapper.builder().build();
 
     @Override
     public List<QuestionSubmissionDto> getQuestionSubmissions(long submissionId, boolean answerSubmissions, boolean questionSubmissionComments, long assessmentId, boolean isStudent) throws AssessmentNotMatchingException, IOException {
@@ -504,7 +503,7 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
         File tempFile = getFile(file, file.getName());
 
         FileSubmissionLocal fileSubmissionLocal = fileStorageService.saveFileSubmissionLocal(file);
-        QuestionSubmissionDto questionSubmissionDto = objectMapper.readValue(questionSubmissionDtoStr, QuestionSubmissionDto.class);
+        QuestionSubmissionDto questionSubmissionDto = jsonMapper.readValue(questionSubmissionDtoStr, QuestionSubmissionDto.class);
         AnswerSubmissionDto answerSubmissionDto = AnswerSubmissionDto.builder().build();
         answerSubmissionDto.setFileName(fileName);
         answerSubmissionDto.setMimeType(file.getContentType());
@@ -532,7 +531,7 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
     public List<QuestionSubmissionDto> handleFileQuestionSubmissionUpdate(MultipartFile file, String questionSubmissionDtoStr, long experimentId, long assessmentId, long submissionId, long questionSubmissionId, boolean student, SecuredInfo securedInfo)
             throws IOException, ApiException, AssignmentAttemptException, IdInPostException, DataServiceException, DuplicateQuestionException, InvalidUserException, IdMissingException,
                 AnswerSubmissionNotMatchingException, AnswerNotMatchingException, ExceedingLimitException, TypeNotSupportedException, QuestionSubmissionNotMatchingException, TerracottaConnectorException, AssignmentLockedException {
-        QuestionSubmissionDto questionSubmissionDto = objectMapper.readValue(questionSubmissionDtoStr, QuestionSubmissionDto.class);
+        QuestionSubmissionDto questionSubmissionDto = jsonMapper.readValue(questionSubmissionDtoStr, QuestionSubmissionDto.class);
         QuestionSubmission questionSubmission = questionSubmissionRepository.findByQuestionSubmissionId(questionSubmissionId);
 
         if (questionSubmission == null) {

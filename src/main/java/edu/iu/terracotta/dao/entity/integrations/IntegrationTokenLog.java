@@ -1,5 +1,7 @@
 package edu.iu.terracotta.dao.entity.integrations;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import edu.iu.terracotta.connectors.generic.dao.entity.BaseUuidEntity;
 import edu.iu.terracotta.dao.model.enums.integrations.IntegrationTokenStatus;
 import jakarta.persistence.Column;
@@ -21,6 +23,7 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 @Table(name = "terr_integrations_token_log")
 public class IntegrationTokenLog extends BaseUuidEntity {
 
