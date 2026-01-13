@@ -137,6 +137,7 @@
         <iframe
           v-if="!readonly"
           :src="integrationLaunchUrl"
+          :class="{'no-resize': !hasResizeMessage}"
           id="integration-iframe"
           title="student assignment"
           aria-label="student assignment"
@@ -390,7 +391,8 @@ export default {
       answerSubmissionId: null,
       downloadId: null,
       integrationLaunchUrl: null,
-      treatment: null
+      treatment: null,
+      hasResizeMessage: false
     };
   },
   watch: {
@@ -937,6 +939,7 @@ export default {
     },
     async handleIntegrationsResize(event) {
       if (event.data && event.data.height) {
+        this.hasResizeMessage = true;
         const iframe = document.getElementById("integration-iframe");
 
         if (!iframe || iframe.height === event.data.height) {
@@ -1093,13 +1096,18 @@ export default {
   min-width: 100%;
 }
 .integration {
+  min-height: 100%;
   min-width: 100%;
   & > .col {
+    min-height: 100%;
     min-width: 100%;
     & > iframe {
       min-width: 100%;
       border: none;
     }
+  }
+  & .no-resize {
+    height: 100%;
   }
 }
 .preview {
