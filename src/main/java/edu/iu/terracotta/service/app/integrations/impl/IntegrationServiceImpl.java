@@ -37,7 +37,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
-@SuppressWarnings({"PMD.LambdaCanBeMethodReference", "PMD.GuardLogStatement"})
+@SuppressWarnings({"PMD.LambdaCanBeMethodReference", "PMD.GuardLogStatement", "PMD.PreserveStackTrace"})
 public class IntegrationServiceImpl implements IntegrationService {
 
     @Autowired private IntegrationRepository integrationRepository;
@@ -156,13 +156,36 @@ public class IntegrationServiceImpl implements IntegrationService {
         PlatformDeployment platformDeployment = platformDeploymentRepository.findByKeyId(securedInfo.getPlatformDeploymentId())
             .orElseThrow(() -> new IntegrationUrlIframeInvalidException("Platform deployment not found for iframe validation."));
 
-        // Use HEAD request to get headers without downloading full content
-        ResponseEntity<String> response = new RestTemplate().exchange(
-            url,
-            HttpMethod.HEAD,
-            null,
-            String.class
-        );
+        ResponseEntity<String> response;
+
+        try {
+            // Use HEAD request to get headers without downloading full content
+            response = new RestTemplate().exchange(
+                url,
+                HttpMethod.HEAD,
+                null,
+                String.class
+            );
+        } catch (Exception e) {
+            log.warn("HEAD request failed for URL: [{}], falling back to GET. Error: [{}]", url, e.getMessage(), e);
+            try {
+                response = new RestTemplate().exchange(
+                url,
+                HttpMethod.GET,
+                null,
+                String.class
+            );
+            } catch (Exception ex) {
+                throw new IntegrationUrlIframeInvalidException(
+                    String.format(
+                        "Error validating iframe embedding for URL: [%s]. Error: [%s]",
+                        url,
+                        ex.getMessage()
+                    ),
+                    ex
+                );
+            }
+        }
 
         Optional<String> validationErrors = analyzeHeaders(response.getHeaders(), url, platformDeployment.getLocalUrl());
 
