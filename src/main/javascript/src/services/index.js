@@ -20,3 +20,4 @@ export * from "./configuration.service";
 export * from "./messaging/container.service";
 export * from "./messaging/message.service";
 export * from "./messaging/attachment.service";
+export * from "./integrations/integrations.service";

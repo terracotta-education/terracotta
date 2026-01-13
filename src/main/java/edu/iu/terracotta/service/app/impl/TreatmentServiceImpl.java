@@ -84,7 +84,7 @@ public class TreatmentServiceImpl implements TreatmentService {
                 assignmentTreatmentService.setAssignmentDtoAttrs(treatment.getAssignment(), securedInfo.getLmsCourseId(), instructorUser);
             }
 
-            treatmentDtoList.add(assignmentTreatmentService.toTreatmentDto(treatment, submissions, true));
+            treatmentDtoList.add(assignmentTreatmentService.toTreatmentDto(treatment, submissions, true, securedInfo));
         }
 
         return treatmentDtoList;
@@ -96,7 +96,7 @@ public class TreatmentServiceImpl implements TreatmentService {
     }
 
     @Override
-    public TreatmentDto postTreatment(TreatmentDto treatmentDto, long conditionId) throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, TreatmentNotMatchingException {
+    public TreatmentDto postTreatment(TreatmentDto treatmentDto, long conditionId, SecuredInfo securedInfo) throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, TreatmentNotMatchingException {
         if (treatmentDto.getTreatmentId() != null) {
             throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
         }
@@ -118,7 +118,7 @@ public class TreatmentServiceImpl implements TreatmentService {
         limitToOne(treatment.getAssignment().getAssignmentId(), conditionId);
         Treatment treatmentSaved = save(treatment);
 
-        return assignmentTreatmentService.toTreatmentDto(treatmentSaved, false, true);
+        return assignmentTreatmentService.toTreatmentDto(treatmentSaved, false, true, securedInfo);
     }
 
     @Override
@@ -160,7 +160,7 @@ public class TreatmentServiceImpl implements TreatmentService {
             throw new DataServiceException(String.format(TextConstants.UNABLE_TO_UPDATE_TREATMENT, e.getMessage()), e);
         }
 
-        return assignmentTreatmentService.toTreatmentDto(save(treatment), false, true);
+        return assignmentTreatmentService.toTreatmentDto(save(treatment), false, true, securedInfo);
     }
 
     @Override

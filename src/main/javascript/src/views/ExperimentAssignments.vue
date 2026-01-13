@@ -195,7 +195,7 @@
                                   mdi-alert-circle-outline
                               </v-icon>
                             </template>
-                            <span>Please add content to this treatment.</span>
+                            <span>{{ treatmentRowTooltipText(row, treatment) }}</span>
                           </v-tooltip>
                           <span
                             :class="treatmentRowClass(row, treatment)"
@@ -242,6 +242,7 @@
                             <v-btn
                               v-if="isIntegrationAssignment(row, treatment) && !displayTreatmentMenu"
                               :href="integrationsPreviewLaunchUrl(treatment.assessmentDto.integrationPreviewUrl)"
+                              :disabled="!treatment.assessmentDto.questions.length || !treatment.assessmentDto.integrationUrlValid"
                               target="_blank"
                               text
                               tile
@@ -261,6 +262,7 @@
                             </v-btn>
                             <v-menu
                               v-if="isIntegrationAssignment(row, treatment) && displayTreatmentMenu"
+                              :disabled="!treatment.assessmentDto.questions.length || !treatment.assessmentDto.integrationUrlValid"
                               offset-y
                             >
                               <template
@@ -753,6 +755,8 @@ export default {
               assessmentDto: {
                 integrationPreviewUrl: "",
                 integration: false,
+                integrationUrlValid: false,
+                integrationIframeInfoUrl: "",
                 questions: []
               }
             })
@@ -1229,6 +1233,10 @@ export default {
     hasIncompleteTreatments(row) {
       switch (row.type) {
         case this.rowType.assignment:
+          if (row.treatments.some(treatment => treatment.assessmentDto.integration && !treatment.assessmentDto.integrationUrlValid)) {
+            return true;
+          }
+
           return row.treatments.some(treatment => !(treatment.assessmentDto && treatment.assessmentDto.questions && treatment.assessmentDto.questions.length));
         case this.rowType.message:
           return !row.treatments.every((treatment) => [messageStatus.ready, messageStatus.disabled, messageStatus.sent].includes(treatment.configuration.status));
@@ -1276,6 +1284,10 @@ export default {
     showTreatmentRowTooltip(row, treatment) {
       switch (row.type) {
         case this.rowType.assignment:
+          if (treatment.assessmentDto.integration && !treatment.assessmentDto.integrationUrlValid) {
+            return true;
+          }
+
           return !(treatment.assessmentDto && treatment.assessmentDto.questions.length);
         case this.rowType.message:
           return ![messageStatus.ready, messageStatus.disabled, messageStatus.sent].includes(treatment.configuration.status);
@@ -1283,9 +1295,13 @@ export default {
           return false;
       }
     },
-    treatmentRowTooltipText(row) {
+    treatmentRowTooltipText(row, treatment) {
       switch (row.type) {
         case this.rowType.assignment:
+          if (treatment.assessmentDto.integration && !treatment.assessmentDto.integrationUrlValid) {
+            return "Error rendering content. Please check the URL.";
+          }
+
           return "Please add content to this treatment.";
         case this.rowType.message:
           return "Please create a message for this treatment.";

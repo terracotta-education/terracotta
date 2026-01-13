@@ -11,8 +11,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import edu.iu.terracotta.connectors.generic.annotation.TerracottaConnector;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiContextEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
@@ -27,6 +25,7 @@ import edu.iu.terracotta.connectors.generic.service.lti.advantage.AdvantageConne
 import edu.iu.terracotta.connectors.generic.service.lti.advantage.AdvantageMembershipService;
 import edu.iu.terracotta.utils.TextConstants;
 import lombok.extern.slf4j.Slf4j;
+import tools.jackson.databind.json.JsonMapper;
 
 @Slf4j
 @Service
@@ -68,7 +67,7 @@ public class OneEdTechAdvantageMembershipServiceImpl implements AdvantageMembers
                 nextPage = advantageConnectorHelper.nextPage(responseForNextPage.getHeaders());
             }
 
-            log.info("Received membership: [{}]", new ObjectMapper().writeValueAsString(courseUserList));
+            log.info("Received membership: [{}]", JsonMapper.builder().build().writeValueAsString(courseUserList));
 
             return CourseUsers.builder()
                 .courseUserList(courseUserList)

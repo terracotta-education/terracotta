@@ -20,8 +20,6 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import edu.iu.terracotta.connectors.generic.dao.entity.BaseEntity;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
@@ -70,10 +68,11 @@ import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.service.app.async.ExperimentImportAsyncService;
 import lombok.extern.slf4j.Slf4j;
+import tools.jackson.databind.json.JsonMapper;
 
 @Slf4j
 @Service
-@SuppressWarnings({"PMD.GuardLogStatement"})
+@SuppressWarnings({"PMD.GuardLogStatement", "PMD.LooseCoupling"})
 public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncService {
 
     @Autowired private AnswerMcRepository answerMcRepository;
@@ -181,11 +180,16 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
         }
 
         try {
-            Export export = new ObjectMapper().readValue(jsonFile, Export.class);
+            Export export = JsonMapper.builder()
+                .build()
+                .readValue(
+                    jsonFile,
+                    Export.class
+                );
             export.setImportDirectory(importDirectory);
 
             return Optional.of(export);
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error("Error reading JSON file: [{}] for experiment import ID: [{}] ", jsonFile.getName(), experimentImport.getId(), e);
             handleError(experimentImport, String.format("Error reading JSON file: [%s]", jsonFile.getName()));
         }

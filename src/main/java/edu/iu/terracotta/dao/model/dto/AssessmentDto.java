@@ -6,7 +6,10 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import edu.iu.terracotta.dao.entity.RetakeDetails;
 import edu.iu.terracotta.dao.model.dto.integrations.IntegrationClientDto;
 import edu.iu.terracotta.dao.model.enums.MultipleSubmissionScoringScheme;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.sql.Timestamp;
@@ -14,6 +17,9 @@ import java.util.List;
 
 @Getter
 @Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class AssessmentDto {
 
@@ -23,22 +29,24 @@ public class AssessmentDto {
     private boolean autoSubmit;
     private Integer numOfSubmissions;
     private Float hoursBetweenSubmissions;
-    private String multipleSubmissionScoringScheme = MultipleSubmissionScoringScheme.MOST_RECENT.name();
+    @Builder.Default private String multipleSubmissionScoringScheme = MultipleSubmissionScoringScheme.MOST_RECENT.name();
     private Float cumulativeScoringInitialPercentage;
     private Float maxPoints;
     private boolean started;
     private Long submissionsExpected;
     private Long submissionsCompletedCount;
     private Long submissionsInProgressCount;
-    private boolean allowStudentViewResponses = false;
+    @Builder.Default private boolean allowStudentViewResponses = false;
     private Timestamp studentViewResponsesAfter;
     private Timestamp studentViewResponsesBefore;
-    private boolean allowStudentViewCorrectAnswers = false;
+    @Builder.Default private boolean allowStudentViewCorrectAnswers = false;
     private Timestamp studentViewCorrectAnswersAfter;
     private Timestamp studentViewCorrectAnswersBefore;
     private RetakeDetails retakeDetails;
     private boolean isIntegration;
     private String integrationPreviewUrl;
+    private boolean isIntegrationUrlValid;
+    private String integrationIframeInfoUrl;
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<SubmissionDto> submissions;

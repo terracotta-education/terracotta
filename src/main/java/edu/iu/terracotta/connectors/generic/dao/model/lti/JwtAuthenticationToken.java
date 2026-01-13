@@ -5,11 +5,14 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.util.Collection;
+import java.util.List;
+
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
 
 @Getter
 @Setter
+@SuppressWarnings({"PMD.LooseCoupling"})
 public class JwtAuthenticationToken extends AbstractAuthenticationToken {
 
     private String token;
@@ -17,7 +20,7 @@ public class JwtAuthenticationToken extends AbstractAuthenticationToken {
     private Claims claims;
 
     public JwtAuthenticationToken(String token) {
-        super(null);
+        super(List.of());
         this.token = token;
         setAuthenticated(false);
     }

@@ -1,5 +1,7 @@
 package edu.iu.terracotta.dao.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import edu.iu.terracotta.connectors.generic.dao.entity.BaseEntity;
 import edu.iu.terracotta.dao.entity.integrations.Integration;
 import edu.iu.terracotta.dao.model.enums.QuestionTypes;
@@ -33,6 +35,7 @@ import jakarta.persistence.Transient;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "terr_question")
+@JsonIgnoreProperties(ignoreUnknown = true)
 @Inheritance(strategy = InheritanceType.JOINED)
 public class Question extends BaseEntity {
 

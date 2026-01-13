@@ -27,10 +27,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import edu.iu.terracotta.connectors.generic.annotation.TerracottaConnector;
 import edu.iu.terracotta.connectors.generic.dao.entity.api.ApiOneUseToken;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
@@ -102,11 +98,14 @@ import io.jsonwebtoken.Jwts.SIG;
 import io.jsonwebtoken.Locator;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.json.JsonMapper;
 
 @Slf4j
 @Service
 @TerracottaConnector(LmsConnector.ONE_ED_TECH)
-@SuppressWarnings({"unchecked", "PMD.GuardLogStatement"})
+@SuppressWarnings({"unchecked", "PMD.GuardLogStatement", "PMD.LooseCoupling"})
 public class OneEdTechApiJwtServiceImpl implements ApiJwtService {
 
     private static final String ISSUER_LMS_OAUTH_API_TOKEN_REQUEST = "lmsOAuthAPITokenRequest";
@@ -180,8 +179,13 @@ public class OneEdTechApiJwtServiceImpl implements ApiJwtService {
         String jwtPayload = new String(Base64.getDecoder().decode(token));
 
         try {
-            return new ObjectMapper().readValue(jwtPayload, new TypeReference<Map<String,Object>>() {});
-        } catch (JsonProcessingException e) {
+            return JsonMapper.builder()
+                .build()
+                .readValue(
+                    jwtPayload,
+                    new TypeReference<Map<String,Object>>() {}
+            );
+        } catch (JacksonException e) {
             throw new IllegalStateException("Request is not a valid LTI3 request.", e);
         }
     }

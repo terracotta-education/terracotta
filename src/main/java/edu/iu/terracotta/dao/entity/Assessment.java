@@ -8,6 +8,8 @@ import java.util.List;
 
 import org.apache.commons.lang3.Strings;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -38,6 +40,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "terr_assessment")
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Assessment extends BaseEntity {
 
     @Id

@@ -2,7 +2,11 @@ package edu.iu.terracotta.connectors.generic.dao.entity.api;
 
 import org.apache.commons.lang3.StringUtils;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import edu.iu.terracotta.connectors.generic.dao.entity.BaseEntity;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -17,8 +21,11 @@ import jakarta.persistence.Table;
 @Entity
 @Getter
 @Setter
+@Builder
 @NoArgsConstructor
+@AllArgsConstructor
 @Table(name = "api_one_use_token")
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ApiOneUseToken extends BaseEntity {
 
     @Id

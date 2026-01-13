@@ -100,7 +100,7 @@ public class TreatmentController {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
 
-        TreatmentDto treatmentDto = assignmentTreatmentService.toTreatmentDto(treatmentService.getTreatment(treatmentId), submissions, true);
+        TreatmentDto treatmentDto = assignmentTreatmentService.toTreatmentDto(treatmentService.getTreatment(treatmentId), submissions, true, securedInfo);
 
         return new ResponseEntity<>(treatmentDto, HttpStatus.OK);
     }
@@ -121,7 +121,7 @@ public class TreatmentController {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
-        TreatmentDto returnedDto = treatmentService.postTreatment(treatmentDto, conditionId);
+        TreatmentDto returnedDto = treatmentService.postTreatment(treatmentDto, conditionId, securedInfo);
         HttpHeaders headers = treatmentService.buildHeaders(ucBuilder, experimentId, conditionId, returnedDto.getTreatmentId());
 
         return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);

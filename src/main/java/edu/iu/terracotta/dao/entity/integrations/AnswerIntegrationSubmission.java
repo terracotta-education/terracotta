@@ -1,5 +1,7 @@
 package edu.iu.terracotta.dao.entity.integrations;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import edu.iu.terracotta.connectors.generic.dao.entity.BaseUuidEntity;
 import edu.iu.terracotta.dao.entity.QuestionSubmission;
 import jakarta.persistence.Entity;
@@ -18,6 +20,7 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 @Table(name = "terr_answer_integration_submission")
 public class AnswerIntegrationSubmission extends BaseUuidEntity {
 

@@ -30,6 +30,7 @@ import edu.iu.terracotta.dao.exceptions.integrations.IntegrationConfigurationNot
 import edu.iu.terracotta.dao.exceptions.integrations.IntegrationConfigurationNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.integrations.IntegrationNotFoundException;
 import edu.iu.terracotta.dao.exceptions.integrations.IntegrationNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.integrations.IntegrationUrlIframeInvalidException;
 import edu.iu.terracotta.dao.model.dto.AssessmentDto;
 import edu.iu.terracotta.dao.model.dto.QuestionDto;
 import edu.iu.terracotta.dao.model.dto.SubmissionDto;
@@ -65,6 +66,7 @@ import edu.iu.terracotta.service.app.QuestionService;
 import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.service.app.integrations.IntegrationClientService;
 import edu.iu.terracotta.service.app.integrations.IntegrationLaunchParameterService;
+import edu.iu.terracotta.service.app.integrations.IntegrationService;
 import edu.iu.terracotta.utils.TextConstants;
 import lombok.extern.slf4j.Slf4j;
 
@@ -73,6 +75,7 @@ import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
@@ -97,7 +100,7 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Component
-@SuppressWarnings({"PMD.PreserveStackTrace", "PMD.GuardLogStatement"})
+@SuppressWarnings({"PMD.PreserveStackTrace", "PMD.GuardLogStatement", "PMD.LooseCoupling"})
 public class AssessmentServiceImpl implements AssessmentService {
 
     public static final int TITLE_MAX_LENGTH = 255;
@@ -120,30 +123,34 @@ public class AssessmentServiceImpl implements AssessmentService {
     @Autowired private FileStorageService fileStorageService;
     @Autowired private IntegrationClientService integrationClientService;
     @Autowired private IntegrationLaunchParameterService integrationLaunchParameterService;
+    @Autowired private IntegrationService integrationService;
     @Autowired private ParticipantService participantService;
     @Autowired private QuestionService questionService;
     @Autowired private SubmissionService submissionService;
 
     @PersistenceContext private EntityManager entityManager;
 
+    @Value("${app.integrations.iframe.info.url}")
+    private String integrationIframeInfoUrl;
+
     private List<Assessment> findAllByTreatmentId(Long treatmentId) {
         return assessmentRepository.findByTreatment_TreatmentId(treatmentId);
     }
 
     @Override
-    public List<AssessmentDto> getAllAssessmentsByTreatment(Long treatmentId, boolean submissions) throws AssessmentNotMatchingException {
+    public List<AssessmentDto> getAllAssessmentsByTreatment(Long treatmentId, boolean submissions, SecuredInfo securedInfo) throws AssessmentNotMatchingException {
         List<Assessment> assessmentList = findAllByTreatmentId(treatmentId);
         List<AssessmentDto> assessmentDtoList = new ArrayList<>();
 
         for (Assessment assessment : assessmentList) {
-            assessmentDtoList.add(toDto(assessment, false, false, submissions, false));
+            assessmentDtoList.add(toDto(assessment, false, false, submissions, false, securedInfo));
         }
 
         return assessmentDtoList;
     }
 
     @Override
-    public AssessmentDto postAssessment(AssessmentDto assessmentDto, long treatmentId)
+    public AssessmentDto postAssessment(AssessmentDto assessmentDto, long treatmentId, SecuredInfo securedInfo)
             throws IdInPostException, DataServiceException, TitleValidationException, AssessmentNotMatchingException {
         if (assessmentDto.getAssessmentId() != null) {
             throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
@@ -166,11 +173,11 @@ public class AssessmentServiceImpl implements AssessmentService {
         Assessment assessmentSaved = save(assessment);
         updateTreatment(treatmentId, assessmentSaved);
 
-        return toDto(assessmentSaved, false, false, false, false);
+        return toDto(assessmentSaved, false, false, false, false, securedInfo);
     }
 
-    private AssessmentDto toDto(Assessment assessment, Participant participant, boolean canViewSubmissions) throws AssessmentNotMatchingException {
-        AssessmentDto assessmentDto = toDto(assessment, null, false, false, false, false);
+    private AssessmentDto toDto(Assessment assessment, Participant participant, boolean canViewSubmissions, SecuredInfo securedInfo) throws AssessmentNotMatchingException {
+        AssessmentDto assessmentDto = toDto(assessment, null, false, false, false, false, securedInfo);
 
         List<Submission> participantAssessmentSubmissionsSubmitted = CollectionUtils.emptyIfNull(submissionRepository.findByParticipant_IdAndAssessment_AssessmentId(participant.getParticipantId(), assessment.getAssessmentId())).stream()
             .filter(submission -> submission.getDateSubmitted() != null)
@@ -214,12 +221,12 @@ public class AssessmentServiceImpl implements AssessmentService {
     }
 
     @Override
-    public AssessmentDto toDto(Assessment assessment, boolean questions, boolean answers, boolean submissions, boolean isStudent) throws AssessmentNotMatchingException {
-        return toDto(assessment, null, questions, answers, submissions, isStudent);
+    public AssessmentDto toDto(Assessment assessment, boolean questions, boolean answers, boolean submissions, boolean isStudent, SecuredInfo securedInfo) throws AssessmentNotMatchingException {
+        return toDto(assessment, null, questions, answers, submissions, isStudent, securedInfo);
     }
 
     @Override
-    public AssessmentDto toDto(Assessment assessment, Long submissionId, boolean questions, boolean answers, boolean submissions, boolean isStudent)
+    public AssessmentDto toDto(Assessment assessment, Long submissionId, boolean questions, boolean answers, boolean submissions, boolean isStudent, SecuredInfo securedInfo)
             throws AssessmentNotMatchingException {
         Long submissionsCompletedCount = null;
         Long submissionsInProgressCount = null;
@@ -239,6 +246,8 @@ public class AssessmentServiceImpl implements AssessmentService {
         assessmentDto.setStudentViewCorrectAnswersBefore(assessment.getStudentViewCorrectAnswersBefore());
         assessmentDto.setQuestions(handleQuestionDtos(assessment, submissionId, questions, answers, isStudent));
         assessmentDto.setIntegration(assessment.isIntegration());
+        assessmentDto.setIntegrationUrlValid(false);
+        assessmentDto.setIntegrationIframeInfoUrl(integrationIframeInfoUrl);
         assessmentDto.setIntegrationClients(
             integrationClientService.toDto(
                 integrationClientService.getAll(),
@@ -255,6 +264,19 @@ public class AssessmentServiceImpl implements AssessmentService {
                     integrationLaunchParameterService.buildPreviewQueryString(assessment.getIntegration())
                 )
             );
+
+            try {
+                // check if launch url can be embedded in an iframe
+                if (StringUtils.isBlank(assessment.getIntegration().getLaunchUrl())) {
+                    throw new IntegrationUrlIframeInvalidException("Integration launch URL is blank");
+                }
+
+                integrationService.validateIntegrationUrlIframe(assessment.getIntegration().getLaunchUrl(), securedInfo);
+                assessmentDto.setIntegrationUrlValid(true);
+            } catch (IntegrationUrlIframeInvalidException e) {
+                // launchUrl is not valid for iframe embedding
+                log.warn("Integration launch URL is not valid for iframe embedding: [{}] in assessment ID: [{}]", assessment.getIntegration().getLaunchUrl(), assessment.getAssessmentId());
+            }
         }
 
         List<SubmissionDto> submissionDtoList = new ArrayList<>();
@@ -360,11 +382,11 @@ public class AssessmentServiceImpl implements AssessmentService {
     }
 
     @Override
-    public AssessmentDto putAssessment(Long id, AssessmentDto assessmentDto, boolean processQuestions)
+    public AssessmentDto putAssessment(Long id, AssessmentDto assessmentDto, boolean processQuestions, SecuredInfo securedInfo)
             throws TitleValidationException, RevealResponsesSettingValidationException,
                 MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException, IdInPostException, DataServiceException,
                 NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException, IntegrationClientNotFoundException, IntegrationNotFoundException {
-        return toDto(updateAssessment(id, assessmentDto, processQuestions), true, true, false, false);
+        return toDto(updateAssessment(id, assessmentDto, processQuestions), true, true, false, false, securedInfo);
     }
 
     @Override
@@ -741,7 +763,7 @@ public class AssessmentServiceImpl implements AssessmentService {
             }
         }
 
-        return toDto(assessment, participant, assessment.isAllowStudentViewResponses());
+        return toDto(assessment, participant, assessment.isAllowStudentViewResponses(), securedInfo);
     }
 
     @Override

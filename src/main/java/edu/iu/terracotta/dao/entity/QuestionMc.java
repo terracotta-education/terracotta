@@ -1,5 +1,7 @@
 package edu.iu.terracotta.dao.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
@@ -14,6 +16,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "terr_question_mc")
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class QuestionMc extends Question {
 
     @Column(nullable = false)

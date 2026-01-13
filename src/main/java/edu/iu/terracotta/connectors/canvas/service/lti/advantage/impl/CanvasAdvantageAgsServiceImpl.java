@@ -12,8 +12,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import edu.iu.terracotta.connectors.canvas.dao.model.lti.ags.CanvasScore;
 import edu.iu.terracotta.connectors.generic.annotation.TerracottaConnector;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiContextEntity;
@@ -29,6 +27,7 @@ import edu.iu.terracotta.connectors.generic.exceptions.helper.ExceptionMessageGe
 import edu.iu.terracotta.connectors.generic.service.lti.advantage.AdvantageAgsService;
 import edu.iu.terracotta.connectors.generic.service.lti.advantage.AdvantageConnectorHelper;
 import lombok.extern.slf4j.Slf4j;
+import tools.jackson.databind.json.JsonMapper;
 
 @Slf4j
 @Service
@@ -110,13 +109,14 @@ public class CanvasAdvantageAgsServiceImpl implements AdvantageAgsService {
     @Override
     public void postScore(LtiToken ltiTokenScores, LtiToken ltiTokenResults, LtiContextEntity context, String lineItemId, Score score) throws ConnectionException {
         try {
-            ObjectMapper objectMapper = new ObjectMapper();
-            objectMapper.addMixIn(Score.class, CanvasScore.class); // mixin to add Canvas-specific submission key
+            JsonMapper jsonMapper = JsonMapper.builder()
+                .addMixIn(Score.class, CanvasScore.class) // mixin to add Canvas-specific submission key
+                .build();
 
             ResponseEntity<Void> response = advantageConnectorHelper.createRestTemplate().exchange(
                 lineItemId + "/scores",
                 HttpMethod.POST,
-                advantageConnectorHelper.createTokenizedRequestEntity(ltiTokenScores, objectMapper.writeValueAsString(score)),
+                advantageConnectorHelper.createTokenizedRequestEntity(ltiTokenScores, jsonMapper.writeValueAsString(score)),
                 Void.class
             );
 

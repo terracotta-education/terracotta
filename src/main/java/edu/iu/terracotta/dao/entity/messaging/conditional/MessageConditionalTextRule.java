@@ -1,5 +1,7 @@
 package edu.iu.terracotta.dao.entity.messaging.conditional;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import edu.iu.terracotta.dao.entity.messaging.BaseMessageEntity;
 import edu.iu.terracotta.dao.model.enums.messaging.rule.MessageRuleComparison;
 import edu.iu.terracotta.dao.model.enums.messaging.rule.MessageRuleOperator;
@@ -22,6 +24,7 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 @Table(name = "terr_messaging_conditional_text_rule")
 public class MessageConditionalTextRule extends BaseMessageEntity {
 

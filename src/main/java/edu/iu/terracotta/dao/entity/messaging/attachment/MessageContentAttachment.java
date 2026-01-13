@@ -1,5 +1,7 @@
 package edu.iu.terracotta.dao.entity.messaging.attachment;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import edu.iu.terracotta.dao.entity.messaging.BaseMessageEntity;
 import edu.iu.terracotta.dao.entity.messaging.content.MessageContent;
 import jakarta.persistence.Column;
@@ -19,6 +21,7 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 @Table(name = "terr_messaging_content_attachment")
 public class MessageContentAttachment extends BaseMessageEntity {
 

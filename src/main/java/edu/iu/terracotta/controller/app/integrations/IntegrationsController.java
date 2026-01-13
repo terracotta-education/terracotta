@@ -9,18 +9,24 @@ import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
+import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
+import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
 import edu.iu.terracotta.dao.entity.integrations.IntegrationError;
 import edu.iu.terracotta.dao.exceptions.integrations.IntegrationTokenAlreadyRedeemedException;
 import edu.iu.terracotta.dao.exceptions.integrations.IntegrationTokenExpiredException;
 import edu.iu.terracotta.dao.exceptions.integrations.IntegrationTokenInvalidException;
 import edu.iu.terracotta.dao.exceptions.integrations.IntegrationTokenNotFoundException;
+import edu.iu.terracotta.dao.exceptions.integrations.IntegrationUrlIframeInvalidException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.service.app.integrations.IntegrationScoreService;
+import edu.iu.terracotta.service.app.integrations.IntegrationService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 
@@ -30,7 +36,9 @@ import lombok.extern.slf4j.Slf4j;
 @SuppressWarnings({"PMD.GuardLogStatement"})
 public class IntegrationsController {
 
+    @Autowired private ApiJwtService apiJwtService;
     @Autowired private IntegrationScoreService integrationScoreService;
+    @Autowired private IntegrationService integrationService;
 
     @GetMapping
     public String score(@RequestParam(name = "launch_token", required = false) String launchToken, @RequestParam(required = false) String score, HttpServletRequest req) throws IntegrationTokenExpiredException, IntegrationTokenAlreadyRedeemedException {
@@ -102,6 +110,23 @@ public class IntegrationsController {
         }
 
         return String.format("redirect:/app/app.html?integration=true&preview=true&previewUrl=%s&status=%s", url != null ? url : "", status.name());
+    }
+
+    @GetMapping("/validate/iframe")
+    public ResponseEntity<Void> iframe(@RequestParam String url, HttpServletRequest req) throws NumberFormatException, TerracottaConnectorException {
+        SecuredInfo securedInfo = apiJwtService.extractValues(req, false);
+
+        if (!apiJwtService.isInstructorOrHigher(securedInfo)) {
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        }
+
+        try {
+            integrationService.validateIntegrationUrlIframe(url, securedInfo);
+        } catch (IntegrationUrlIframeInvalidException e) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
 }
