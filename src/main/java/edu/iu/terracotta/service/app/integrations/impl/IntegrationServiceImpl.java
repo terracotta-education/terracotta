@@ -167,7 +167,6 @@ public class IntegrationServiceImpl implements IntegrationService {
                 String.class
             );
         } catch (Exception e) {
-            log.warn("HEAD request failed for URL: [{}], falling back to GET. Error: [{}]", url, e.getMessage());
             try {
                 response = new RestTemplate().exchange(
                 url,
