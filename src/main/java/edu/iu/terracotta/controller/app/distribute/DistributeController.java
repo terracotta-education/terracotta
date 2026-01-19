@@ -96,9 +96,11 @@ public class DistributeController {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
 
-        if (!Strings.CI.containsAny("application/x-zip-compressed", MediaType.APPLICATION_PDF_VALUE, MediaType.APPLICATION_OCTET_STREAM_VALUE, file.getContentType())) {
-            log.error("Invalid MIME type: [{}] for file: [{}]", file.getContentType(), file.getOriginalFilename());
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        if (!Strings.CI.containsAny(file.getContentType(),"application/zip", "application/x-zip-compressed")) {
+            String error = String.format("Invalid MIME type: [%s] for file: [%s]", file.getContentType(), file.getOriginalFilename());
+            log.error(error);
+
+            return new ResponseEntity<>(importService.preprocessError(file, error, securedInfo), HttpStatus.ACCEPTED);
         }
 
         try {
