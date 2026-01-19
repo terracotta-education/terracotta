@@ -121,7 +121,7 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
                 experimentImportErrorService.toDto(experimentImport.getErrors())
             )
             .id(experimentImport.getUuid())
-            .importedTitle(experimentImport.getImportedTitle())
+            .importedTitle(StringUtils.isNotBlank(experimentImport.getImportedTitle()) ? experimentImport.getImportedTitle() : experimentImport.getSourceTitle())
             .sourceTitle(experimentImport.getSourceTitle())
             .status(experimentImport.getStatus())
             .build();
