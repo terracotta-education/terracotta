@@ -21,7 +21,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.multipart.MultipartFile;
 
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
@@ -89,7 +88,7 @@ public class DistributeController {
     }
 
     @PostMapping("/import")
-    public ResponseEntity<ImportDto> importExperiment(@RequestPart("file") MultipartFile file, HttpServletRequest req)
+    public ResponseEntity<ImportDto> importExperiment(@RequestParam("file") MultipartFile file, HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ApiException, IOException, TerracottaConnectorException {
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
 
@@ -97,7 +96,8 @@ public class DistributeController {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
 
-        if (!Strings.CI.equals("application/zip", file.getContentType())) {
+        if (!Strings.CI.containsAny("application/x-zip-compressed", MediaType.APPLICATION_PDF_VALUE, MediaType.APPLICATION_OCTET_STREAM_VALUE, file.getContentType())) {
+            log.error("Invalid MIME type: [{}] for file: [{}]", file.getContentType(), file.getOriginalFilename());
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
 
