@@ -9,6 +9,7 @@ import edu.iu.terracotta.connectors.generic.dao.entity.BaseUuidEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiContextEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
 import edu.iu.terracotta.dao.model.enums.distribute.ExperimentImportStatus;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -64,7 +65,11 @@ public class ExperimentImport extends BaseUuidEntity {
     private LtiContextEntity context;
 
     @Builder.Default
-    @OneToMany(mappedBy = "experimentImport")
+    @OneToMany(
+        mappedBy = "experimentImport",
+        cascade = CascadeType.ALL,
+        orphanRemoval = true
+    )
     private List<ExperimentImportError> errors = new ArrayList<>();
 
     public void addErrorMessage(String error) {
@@ -74,6 +79,7 @@ public class ExperimentImport extends BaseUuidEntity {
 
         errors.add(
             ExperimentImportError.builder()
+                .experimentImport(this)
                 .text(error)
                 .build()
         );
