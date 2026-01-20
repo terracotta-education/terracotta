@@ -1,11 +1,9 @@
 package edu.iu.terracotta.dao.entity.distribute;
 
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
-
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import edu.iu.terracotta.connectors.generic.dao.entity.BaseUuidEntity;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.JoinColumn;
@@ -29,8 +27,10 @@ public class ExperimentImportError extends BaseUuidEntity {
 
     @Column private String text;
 
-    @ManyToOne(optional = false)
-    @OnDelete(action = OnDeleteAction.CASCADE)
+    @ManyToOne(
+        optional = false,
+        cascade = CascadeType.ALL
+    )
     @JoinColumn(
         name = "experiment_import_id",
         nullable = false

@@ -439,7 +439,7 @@ public class ApiJwtServiceImpl implements ApiJwtService {
 
     @Override
     public boolean isAdmin(SecuredInfo securedInfo) {
-        return !CollectionUtils.isEmpty(securedInfo.getRoles()) && securedInfo.getRoles().contains(Roles.ADMIN);
+        return securedInfo != null && CollectionUtils.isNotEmpty(securedInfo.getRoles()) && securedInfo.getRoles().contains(Roles.ADMIN);
     }
 
     @Override
@@ -449,22 +449,22 @@ public class ApiJwtServiceImpl implements ApiJwtService {
 
     @Override
     public boolean isInstructor(SecuredInfo securedInfo) {
-        return !CollectionUtils.isEmpty(securedInfo.getRoles()) && securedInfo.getRoles().contains(Roles.MEMBERSHIP_INSTRUCTOR);
+        return securedInfo != null && CollectionUtils.isNotEmpty(securedInfo.getRoles()) && securedInfo.getRoles().contains(Roles.MEMBERSHIP_INSTRUCTOR);
     }
 
     @Override
     public boolean isLearner(SecuredInfo securedInfo) {
-        return !CollectionUtils.isEmpty(securedInfo.getRoles()) && securedInfo.getRoles().contains(Roles.MEMBERSHIP_LEARNER);
+        return securedInfo != null && CollectionUtils.isNotEmpty(securedInfo.getRoles()) && securedInfo.getRoles().contains(Roles.MEMBERSHIP_LEARNER);
     }
 
     @Override
     public boolean isGeneral(SecuredInfo securedInfo) {
-        return !CollectionUtils.isEmpty(securedInfo.getRoles()) && securedInfo.getRoles().contains(Roles.GENERAL);
+        return securedInfo != null && CollectionUtils.isNotEmpty(securedInfo.getRoles()) && securedInfo.getRoles().contains(Roles.GENERAL);
     }
 
     @Override
     public boolean isTestStudent(SecuredInfo securedInfo) {
-        return !CollectionUtils.isEmpty(securedInfo.getRoles()) && securedInfo.getRoles().contains(Roles.TEST_STUDENT);
+        return securedInfo != null && CollectionUtils.isNotEmpty(securedInfo.getRoles()) && securedInfo.getRoles().contains(Roles.TEST_STUDENT);
     }
 
     @Override

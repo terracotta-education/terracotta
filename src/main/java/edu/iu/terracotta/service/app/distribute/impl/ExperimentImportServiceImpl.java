@@ -108,6 +108,25 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
     }
 
     @Override
+    public ImportDto preprocessError(MultipartFile file, String errorMessage, SecuredInfo securedInfo) {
+        LtiUserEntity owner = ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
+        LtiContextEntity context = ltiContextRepository.findById(securedInfo.getContextId())
+            .orElseThrow(() -> new ExperimentImportException(String.format("Context ID: [%s] not found", securedInfo.getContextId())));
+        ExperimentImport experimentImport = ExperimentImport.builder()
+            .context(context)
+            .fileName(file.getOriginalFilename())
+            .importedTitle(file.getOriginalFilename())
+            .owner(owner)
+            .sourceTitle(file.getOriginalFilename())
+            .status(ExperimentImportStatus.ERROR)
+            .build();
+
+        experimentImport.addErrorMessage(errorMessage);
+
+        return toDto(experimentImportRepository.save(experimentImport));
+    }
+
+    @Override
     public List<ImportDto> toDto(List<ExperimentImport> experimentImports) {
         return experimentImports.stream()
             .map(this::toDto)
@@ -121,7 +140,7 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
                 experimentImportErrorService.toDto(experimentImport.getErrors())
             )
             .id(experimentImport.getUuid())
-            .importedTitle(experimentImport.getImportedTitle())
+            .importedTitle(StringUtils.isNotBlank(experimentImport.getImportedTitle()) ? experimentImport.getImportedTitle() : experimentImport.getSourceTitle())
             .sourceTitle(experimentImport.getSourceTitle())
             .status(experimentImport.getStatus())
             .build();
@@ -171,6 +190,7 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
             }
 
             experimentImport.setSourceTitle(export.get().getExperiment().getTitle());
+            experimentImport = experimentImportRepository.save(experimentImport);
 
             // ["component": ["imported id"]]
             Map<Class<? extends BaseEntity>, List<Long>> idMap = prepareIdMap(export.get());
