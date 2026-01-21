@@ -36,6 +36,9 @@ public class SubmissionDto {
     private boolean gradeOverridden;
     private String integrationLaunchUrl;
     private boolean integrationFeedbackEnabled;
+    private Long integrationTokenExpirationDate;
+    private Long integrationTokenWarningPeriod;
+    private Long integrationTokenExpirationCheckInterval;
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<QuestionSubmissionDto> questionSubmissionDtoList;

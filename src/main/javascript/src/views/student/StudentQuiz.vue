@@ -136,7 +136,7 @@
         ></div>
         <iframe
           v-if="!readonly"
-          :src="integrationLaunchUrl"
+          :src="integration.launchUrl"
           :class="{'no-resize': !hasResizeMessage}"
           id="integration-iframe"
           title="student assignment"
@@ -355,14 +355,32 @@ Vue.filter('formatDate', (value) => {
 
 export default {
   name: "StudentQuiz",
-  props: [
-    "experimentId",
-    "previewConditionId",
-    "previewTreatmentId",
-    "ownerId",
-    "previewId",
-    "preview"
-  ],
+  props: {
+    experimentId: {
+      type: String,
+      required: true
+    },
+    previewConditionId: {
+      type: String,
+      required: false
+    },
+    previewTreatmentId: {
+      type: String,
+      required: false
+    },
+    ownerId: {
+      type: String,
+      required: false
+    },
+    previewId: {
+      type: String,
+      required: false
+    },
+    preview: {
+      type: Boolean,
+      required: false
+    }
+  },
   components: {
     EssayResponseEditor,
     FileUploadResponseEditor,
@@ -390,9 +408,28 @@ export default {
       submissions: [],
       answerSubmissionId: null,
       downloadId: null,
-      integrationLaunchUrl: null,
       treatment: null,
-      hasResizeMessage: false
+      hasResizeMessage: false,
+      integration: {
+        launchUrl: null,
+        token: {
+          countdownInterval: null,
+          expirationDate: null,
+          expirationDateCheckInterval: null,
+          expirationRemaining: null,
+          warningPeriod: null,
+          alert: {
+            date: null,
+            display: null,
+            type: null,
+            types: {
+              initial: "initial",
+              warning: "warning",
+              expired: "expired"
+            }
+          }
+        }
+      }
     };
   },
   watch: {
@@ -416,6 +453,38 @@ export default {
           response: null,
         };
       });
+    },
+    integrationTokenExpirationRemaining(newValue) {
+      if (newValue <= this.integration.token.expirationDateCheckInterval) {
+        // expired
+        this.integration.token.alert = {
+          ...this.integration.token.alert,
+          date: moment(this.integration.token.expirationDate).format("MMMM D, YYYY [at] h:mma"),
+          display: true,
+          type: this.integration.token.alert.types.expired,
+        }
+      } else if (newValue <= this.integration.token.warningPeriod) {
+        // less than warning period remain until expiration
+        const totalMinutes = Math.floor(newValue / (60 * 1000));
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = totalMinutes % 60;
+
+        this.integration.token.alert = {
+          ...this.integration.token.alert,
+          date: `${hours} hour${hours !== 1 ? "s" : ""} ${minutes} minute${minutes !== 1 ? "s" : ""}`,
+          display: true,
+          type: this.integration.token.alert.types.warning
+        }
+      } else {
+        // initial alert display
+        this.integration.token.alert = {
+          ...this.integration.token.alert,
+          date: moment(this.integration.token.expirationDate).format("MMMM D, YYYY [at] h:mma"),
+          type: this.integration.token.alert.types.initial
+        }
+      }
+
+      this.$emit("integrationsTokenAlert", this.integration.token.alert);
     }
   },
   computed: {
@@ -553,6 +622,17 @@ export default {
         file: "FILE",
         integration: "INTEGRATION",
         mc: "MC"
+      }
+    },
+    integrationTokenExpiration() {
+      return this.integration.token.expirationDate || 0;
+    },
+    integrationTokenExpirationRemaining: {
+      get() {
+        return this.integration.token.expirationRemaining;
+      },
+      set(value) {
+        this.integration.token.expirationRemaining = value;
       }
     }
   },
@@ -911,7 +991,31 @@ export default {
           this.treatmentId = data.treatmentId;
           this.assessmentId = data.assessmentId;
           this.submissionId = data.submissionId;
-          this.integrationLaunchUrl = data.integrationLaunchUrl;
+
+          // integrations
+          if (this.isIntegration) {
+            this.integration.launchUrl = data.integrationLaunchUrl;
+            this.integration.token.expirationDate = data.integrationTokenExpirationDate;
+            this.integration.token.warningPeriod = data.integrationTokenWarningPeriod;
+            this.integration.token.expirationDateCheckInterval = data.integrationTokenExpirationCheckInterval;
+
+            // start countdown for integration token expiration alerts
+            this.integrationTokenCountdown();
+
+            this.integration.token.countdownInterval = window.setInterval(
+              () => {
+                this.integrationTokenCountdown();
+              },
+              this.integration.token.expirationDateCheckInterval
+            ); // check every interval
+
+            this.integration.token.alert = {
+              ...this.integration.token.alert,
+              date: moment(this.integrationTokenExpiration).format('MMMM D, YYYY [at] h:mma'),
+              display: true,
+              type: this.integration.token.alert.types.initial,
+            }
+          }
 
           const { experimentId, conditionId, assessmentId, treatmentId, submissionId, questionSubmissionDtoList } = data;
 
@@ -955,13 +1059,21 @@ export default {
         window.parent.postMessage(
           {
             subject: "lti.frameResize",
-            height: heightPadded
+            height: heightPadded + 200, // add extra padding to LMS iframe
           },
           "*"
         )
       }
     },
     async handleIntegrationsScore() {
+      // clear any existing integration alerts
+      this.$emit("integrationsTokenAlert", null);
+
+      if (this.integration.token.countdownInterval) {
+        window.clearInterval(this.integration.token.countdownInterval);
+        this.integration.token.countdownInterval = null;
+      }
+
       const view = await this.viewAssignment();
 
       if (view?.status === 200) {
@@ -971,6 +1083,14 @@ export default {
         // auto-select the last submission
         this.selectedSubmissionId = this.assignmentData.submissions[this.assignmentData.submissions.length - 1];
       }
+    },
+    integrationTokenCountdown() {
+      if (!this.integrationTokenExpiration) {
+        // no expiration, do nothing
+        return;
+      }
+
+      this.integration.token.expirationRemaining = this.integrationTokenExpiration - Date.now();
     }
   },
   async created() {
@@ -991,7 +1111,7 @@ export default {
       this.conditionId = this.treatment.conditionId;
       this.submissions = [treatmentPreview.submission];
       this.submissionId = treatmentPreview.submission.submissionId;
-      this.integrationLaunchUrl = null;
+      this.integration.launchUrl = null;
       this.readonly = false;
       this.pageLoaded = true;
       this.$emit("loaded");
@@ -1043,7 +1163,7 @@ export default {
         }
 
         const messageOrigin = new URL(event.origin).hostname;
-        const expectedOrigin = new URL(this.integrationLaunchUrl).hostname;
+        const expectedOrigin = new URL(this.integration.launchUrl).hostname;
 
         if (messageOrigin !== expectedOrigin) {
           // origin does not match integration launch url, ignore

@@ -103,6 +103,15 @@ public class Submission extends BaseEntity {
     }
 
     @Transient
+    public Timestamp getIntegrationTokenLaunchedAt() {
+        if (integrationToken == null) {
+            return null;
+        }
+
+        return integrationToken.getLastLaunchedAt();
+    }
+
+    @Transient
     public boolean isSubmitted() {
         return dateSubmitted != null;
     }

@@ -68,7 +68,7 @@ public class IntegrationToken extends BaseUuidEntity {
     @Column private Timestamp redeemedAt;
 
     @Transient
-    public boolean isExpired(int ttl) {
+    public boolean isExpired(long ttl) {
         return ttl >= 1 && Timestamp.from(Instant.now()).after(new Timestamp(this.getLastLaunchedAt().getTime() + (ttl * 1000L)));
     }
 
