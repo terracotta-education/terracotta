@@ -467,7 +467,7 @@ export default {
         // less than warning period remain until expiration
         const totalMinutes = Math.floor(newValue / (60 * 1000));
         const hours = Math.floor(totalMinutes / 60);
-        const minutes = totalMinutes % 60;
+        const minutes = Math.max(totalMinutes % 60, 1);
 
         this.integration.token.alert = {
           ...this.integration.token.alert,
