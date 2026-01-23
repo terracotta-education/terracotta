@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>4.0.1</version>
+        <version>4.0.2</version>
         <relativePath/>
     </parent>
     <groupId>edu.iu</groupId>
@@ -25,7 +25,7 @@
         <commons-lang3.version>3.20.0</commons-lang3.version>
         <commons-math3.version>3.6.1</commons-math3.version>
         <commons-validator.version>1.10.1</commons-validator.version>
-        <db-scheduler.version>16.6.0</db-scheduler.version>
+        <db-scheduler.version>16.7.0</db-scheduler.version>
         <frontend-maven-plugin.version>1.15.4</frontend-maven-plugin.version>
         <guava.version>33.5.0-jre</guava.version>
         <jackson-datatype-joda.version>3.0.2</jackson-datatype-joda.version>
@@ -250,7 +250,7 @@
         <!-- task scheduler -->
         <dependency>
             <groupId>com.github.kagkarlsson</groupId>
-            <artifactId>db-scheduler-spring-boot-starter</artifactId>
+            <artifactId>db-scheduler-spring-boot-4-starter</artifactId>
             <version>${db-scheduler.version}</version>
         </dependency>
     </dependencies>
