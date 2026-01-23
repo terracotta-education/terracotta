@@ -460,7 +460,6 @@ export default {
         this.integration.token.alert = {
           ...this.integration.token.alert,
           date: moment(this.integration.token.expirationDate).format("MMMM D, YYYY [at] h:mma"),
-          display: true,
           type: this.integration.token.alert.types.expired,
         }
       } else if (newValue <= this.integration.token.warningPeriod) {
@@ -472,7 +471,6 @@ export default {
         this.integration.token.alert = {
           ...this.integration.token.alert,
           date: `${hours} hour${hours !== 1 ? "s" : ""} ${minutes} minute${minutes !== 1 ? "s" : ""}`,
-          display: true,
           type: this.integration.token.alert.types.warning
         }
       } else {
@@ -1012,7 +1010,6 @@ export default {
             this.integration.token.alert = {
               ...this.integration.token.alert,
               date: moment(this.integrationTokenExpiration).format('MMMM D, YYYY [at] h:mma'),
-              display: true,
               type: this.integration.token.alert.types.initial,
             }
           }

@@ -3,8 +3,8 @@
     class="px-3"
   >
     <v-alert
-      v-if="alert.type === alert.types.initial"
-      v-model="alert.display"
+      v-if="alertType === alertData.types.initial"
+      v-model="alertDisplay"
       type="error"
       icon="mdi-alert-circle-outline"
       class="alert initial my-0"
@@ -14,7 +14,7 @@
       dense
     >
       <p>
-        <b>This attempt will expire on {{ alert.date }}.</b>
+        <b>This attempt will expire on {{ alertData.date }}.</b>
       </p>
       <p>
         If you can't complete your assignment now and still have time before it's due,
@@ -23,17 +23,18 @@
       </p>
     </v-alert>
     <v-alert
-      v-if="alert.type === alert.types.warning"
-      v-model="alert.display"
+      v-if="alertType === alertData.types.warning"
+      v-model="alertDisplay"
       type="warning"
       icon="mdi-clock-outline"
       class="alert warning my-0"
       elevation="0"
+      dismissible
       outlined
       dense
     >
       <p>
-        <b>This attempt will expire in <span class="warn-expiration-time">{{ alert.date }}</span>.</b>
+        <b>This attempt will expire in <span class="warn-expiration-time">{{ alertData.date }}</span>.</b>
       </p>
       <p>
         If you can't complete your assignment now and still have time before it's due,
@@ -42,8 +43,8 @@
       </p>
     </v-alert>
     <v-alert
-      v-if="alert.type === alert.types.expired"
-      v-model="alert.display"
+      v-if="alertType === alertData.types.expired"
+      v-model="alertDisplay"
       type="error"
       icon="mdi-close-circle-outline"
       class="alert expired my-0"
@@ -53,7 +54,7 @@
     >
       <p>
         <b><span class="warn-expiration-time">This attempt has expired.</span></b>
-        Your session ended on {{ alert.date }}.
+        Your session ended on {{ alertData.date }}.
         If you attempt to submit now, your work will be lost. Copy any completed work into a document, click the Assignment tab in the menu on the left to open a new, blank assignment.
       </p>
     </v-alert>
@@ -66,6 +67,44 @@ export default {
     alert:{
       type: Object,
       required: true
+    }
+  },
+  data: () => ({
+    alertData: null
+  }),
+  watch: {
+    alert: {
+      handler(newAlert) {
+        this.alertData = newAlert;
+      },
+      immediate: true,
+      deep: true
+    },
+    alertType: {
+      handler(newType, oldType) {
+        if (newType !== oldType) {
+          this.alertDisplay = true;
+        }
+      },
+      immediate: true
+    }
+  },
+  computed: {
+    alertType: {
+      get() {
+        return this.alertData.type;
+      },
+      set(value) {
+        this.alertData.type = value;
+      }
+    },
+    alertDisplay: {
+      get() {
+        return this.alertData.display;
+      },
+      set(value) {
+        this.alertData.display = value;
+      }
     }
   }
 };
