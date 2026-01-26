@@ -992,10 +992,16 @@ export default {
 
           // integrations
           if (this.isIntegration) {
-            this.integration.launchUrl = data.integrationLaunchUrl;
-            this.integration.token.expirationDate = data.integrationTokenExpirationDate;
-            this.integration.token.warningPeriod = data.integrationTokenWarningPeriod;
-            this.integration.token.expirationDateCheckInterval = data.integrationTokenExpirationCheckInterval;
+            this.integration = {
+              ...this.integration,
+              launchUrl: data.integrationLaunchUrl,
+              token: {
+                ...this.integration.token,
+                expirationDate: data.integrationTokenExpirationDate,
+                warningPeriod: data.integrationTokenWarningPeriod,
+                expirationDateCheckInterval: data.integrationTokenExpirationCheckInterval
+              }
+            };
 
             // start countdown for integration token expiration alerts
             this.integrationTokenCountdown();
@@ -1224,7 +1230,7 @@ export default {
     }
   }
   & .no-resize {
-    height: 100%;
+    min-height: 100vh;
   }
 }
 .preview {
