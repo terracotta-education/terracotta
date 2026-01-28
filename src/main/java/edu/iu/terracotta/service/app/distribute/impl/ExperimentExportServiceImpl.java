@@ -58,7 +58,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
-@SuppressWarnings({"PMD.GuardLogStatement"})
+@SuppressWarnings({"PMD.GuardLogStatement", "PMD.LooseCoupling"})
 public class ExperimentExportServiceImpl implements ExperimentExportService {
 
     @Autowired private AnswerMcRepository answerMcRepository;
@@ -357,9 +357,13 @@ public class ExperimentExportServiceImpl implements ExperimentExportService {
 
     private ExportDto createExportFile(Export export) throws ExperimentExportException {
         try {
+            String experimentTitle = Strings.CS.replace(experiment.getTitle(), " ", "_");
+            experimentTitle = Strings.CS.replace(experimentTitle, "/", "_");
+            experimentTitle = Strings.CS.replace(experimentTitle, "\\", "_");
+
             String exportFilename = String.format(
                 Export.EXPORT_FILE_NAME,
-                Strings.CS.replace(experiment.getTitle(), " ", "_"),
+                experimentTitle,
                 LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH-mm"))
             );
 
