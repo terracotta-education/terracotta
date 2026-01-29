@@ -29,14 +29,22 @@
       icon="mdi-clock-outline"
       class="alert warning my-0"
       elevation="0"
-      dismissible
       outlined
       dense
     >
+      <template v-slot:close="{ }">
+        <v-icon
+          @click="handleWarningMinimize()"
+        >
+          {{  warningMinimized ? "mdi-chevron-down" : "mdi-chevron-up" }}
+        </v-icon>
+      </template>
       <p>
         <b>This attempt will expire in <span class="warn-expiration-time">{{ alertData.date }}</span>.</b>
       </p>
-      <p>
+      <p
+        v-if="!warningMinimized"
+      >
         If you can't complete your assignment now and still have time before it's due,
         <b>begin a new timed session by closing and reopening this assignment</b>.
         Any unfinished work will be lost if you exit, or if the allotted time expires, before you submit.
@@ -70,7 +78,8 @@ export default {
     }
   },
   data: () => ({
-    alertData: null
+    alertData: null,
+    warningMinimized: false
   }),
   watch: {
     alert: {
@@ -105,6 +114,12 @@ export default {
       set(value) {
         this.alertData.display = value;
       }
+    }
+  },
+  methods: {
+    handleWarningMinimize() {
+      this.alertDisplay = true;
+      this.warningMinimized = !this.warningMinimized;
     }
   }
 };
