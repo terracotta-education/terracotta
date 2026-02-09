@@ -275,7 +275,7 @@ public class AssessmentServiceImpl implements AssessmentService {
                 assessmentDto.setIntegrationUrlValid(true);
             } catch (IntegrationUrlIframeInvalidException e) {
                 // launchUrl is not valid for iframe embedding
-                log.warn("Integration launch URL is not valid for iframe embedding: [{}] in assessment ID: [{}]", assessment.getIntegration().getLaunchUrl(), assessment.getAssessmentId());
+                log.debug(e.getMessage());
             }
         }
 
@@ -641,29 +641,19 @@ public class AssessmentServiceImpl implements AssessmentService {
 
     @Override
     public Assessment getAssessmentByGroupId(Long experimentId, String lmsAssignmentId, Long groupId) throws AssessmentNotMatchingException {
-        Assignment assignment = assignmentRepository.findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(experimentId, lmsAssignmentId);
+        Assignment assignment = assignmentRepository.findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(experimentId, lmsAssignmentId)
+            .orElseThrow(() -> new AssessmentNotMatchingException("Error 127: This assignment does not exist in Terracotta for this experiment"));
 
-        if (assignment == null) {
-            throw new AssessmentNotMatchingException("Error 127: This assignment does not exist in Terracotta for this experiment");
-        }
+        ExposureGroupCondition exposureGroupCondition = exposureGroupConditionRepository.getByGroup_GroupIdAndExposure_ExposureId(groupId, assignment.getExposure().getExposureId())
+            .orElseThrow(() -> new AssessmentNotMatchingException("Error 130: This assignment does not have a condition assigned for the participant group."));
 
-        Optional<ExposureGroupCondition> exposureGroupCondition = exposureGroupConditionRepository.getByGroup_GroupIdAndExposure_ExposureId(groupId, assignment.getExposure().getExposureId());
-
-        if (exposureGroupCondition.isEmpty()) {
-            throw new AssessmentNotMatchingException("Error 130: This assignment does not have a condition assigned for the participant group.");
-        }
-
-        return retrieveTreatmentAssessment(exposureGroupCondition.get().getCondition().getConditionId(), assignment.getAssignmentId(), experimentId);
+        return retrieveTreatmentAssessment(exposureGroupCondition.getCondition().getConditionId(), assignment.getAssignmentId(), experimentId);
     }
 
     @Override
     public Assessment getAssessmentByConditionId(Long experimentId, String lmsAssignmentId, Long conditionId) throws AssessmentNotMatchingException {
-        Assignment assignment = assignmentRepository.findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(experimentId, lmsAssignmentId);
-
-        if (assignment == null) {
-            throw new AssessmentNotMatchingException("Error 127: This assignment does not exist in Terracotta for this experiment");
-        }
-
+        Assignment assignment = assignmentRepository.findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(experimentId, lmsAssignmentId)
+            .orElseThrow(() -> new AssessmentNotMatchingException("Error 127: This assignment does not exist in Terracotta for this experiment"));
 
         return retrieveTreatmentAssessment(conditionId, assignment.getAssignmentId(), experimentId);
     }
@@ -703,8 +693,8 @@ public class AssessmentServiceImpl implements AssessmentService {
 
     @Override
     public AssessmentDto viewAssessment(long experimentId, SecuredInfo securedInfo)
-            throws ExperimentNotMatchingException, ParticipantNotMatchingException, AssessmentNotMatchingException,
-                GroupNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, DataServiceException, IOException, AssignmentDatesException, ConnectionException, ApiException, TerracottaConnectorException {
+            throws ExperimentNotMatchingException, ParticipantNotMatchingException, AssessmentNotMatchingException, GroupNotMatchingException, ParticipantNotUpdatedException,
+                AssignmentNotMatchingException, DataServiceException, IOException, AssignmentDatesException, ConnectionException, ApiException, TerracottaConnectorException {
         Optional<Experiment> experiment = experimentRepository.findById(experimentId);
 
         if (experiment.isEmpty()) {

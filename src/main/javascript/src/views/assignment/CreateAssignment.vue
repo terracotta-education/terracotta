@@ -1,29 +1,35 @@
 <template>
   <div>
     <h1>Create your component</h1>
-    <p>This will create an unpublished component shell in Canvas and will be the way Terracotta will deliver treatments to students.</p>
+    <p>This will create an unpublished component shell in {{ lmsTitle }} and will be the way Terracotta will deliver treatments to students.</p>
     <v-row>
-      <div class="col-6">
+      <div
+        class="col-6"
+      >
         <v-text-field
           v-model="assignment.title"
-          label="Component name"
           :rules="rules"
+          label="Component name"
           outlined
         >
         </v-text-field>
       </div>
     </v-row>
-    <v-divider></v-divider>
+    <v-divider />
     <v-tabs
       v-model="tab"
       class="tabs"
     >
       <v-tab>Settings</v-tab>
     </v-tabs>
-    <v-divider></v-divider>
-    <v-tabs-items v-model="tab">
-      <v-tab-item class="my-5">
-          <assignment-settings />
+    <v-divider />
+    <v-tabs-items
+      v-model="tab"
+    >
+      <v-tab-item
+        class="my-5"
+      >
+        <assignment-settings />
       </v-tab-item>
     </v-tabs-items>
   </div>
@@ -31,25 +37,24 @@
 
 <script>
 import { mapGetters, mapActions, mapMutations } from "vuex";
-import AssignmentSettings from './AssignmentSettings.vue';
+import AssignmentSettings from "./AssignmentSettings.vue";
 
 export default {
   name: "CreateAssignment",
   components: {
     AssignmentSettings,
   },
-  data() {
-    return {
-      tab: null,
-      rules: [
-        v => v && !!v.trim() || 'Component Name is required',
-        v => (v || '').length <= 255 || 'A maximum of 255 characters is allowed'
+  data: () => ({
+    tab: null,
+    rules: [
+      v => v && !!v.trim() || "Component Name is required",
+      v => (v || "").length <= 255 || "A maximum of 255 characters is allowed"
       ],
-    };
-  },
+  }),
   computed: {
     ...mapGetters({
       assignment: "assignment/assignment",
+      configurations: "configuration/get"
     }),
     experimentId() {
       return parseInt(this.$route.params.experimentId);
@@ -62,6 +67,9 @@ export default {
     },
     contDisabled() {
       return !this.assignment.title;
+    },
+    lmsTitle() {
+      return this.configurations?.lmsTitle || "LMS";
     }
   },
   methods: {
@@ -69,9 +77,9 @@ export default {
       this.handleSaveAssignment();
     },
     ...mapActions({
-      createAssignment: 'assignment/createAssignment',
-      createTreatment: 'treatment/createTreatment',
-      createAssessment: 'assessment/createAssessment'
+      createAssignment: "assignment/createAssignment",
+      createTreatment: "treatment/createTreatment",
+      createAssessment: "assessment/createAssessment"
     }),
     ...mapMutations({
       setAssignment: "assignment/setAssignment",
@@ -84,7 +92,7 @@ export default {
 
         if (response?.status === 201) {
           this.$router.push({
-            name: 'ExperimentSummary',
+            name: "ExperimentSummary",
             params: {
               experimentId: this.experimentId,
               assignmentId: response.data.assignmentId
@@ -95,7 +103,7 @@ export default {
         }
       } catch (error) {
         console.error("createAssignment | catch", {error})
-        this.$swal('There was an error creating the assignment.')
+        this.$swal("There was an error creating the assignment.")
       }
     },
     async handleCreateTreatmentsForAssignment(experimentId, assignmentId) {

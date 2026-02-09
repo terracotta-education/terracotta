@@ -12,6 +12,7 @@ import edu.iu.terracotta.connectors.generic.dao.model.lti.Roles;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.LineItem;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.LineItems;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.Score;
+import edu.iu.terracotta.connectors.generic.dao.model.lti.enums.LtiAgsScope;
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiUserRepository;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
@@ -670,10 +671,10 @@ public class ParticipantServiceImpl implements ParticipantService {
         // need the assignment and the iss configuration
         PlatformDeployment platformDeployment = participant.getExperiment().getPlatformDeployment();
         Experiment experiment = participant.getExperiment();
-        LtiToken ltiTokenScore = advantageAgsService.getToken("scores", platformDeployment);
-        LtiToken ltiTokenResults = advantageAgsService.getToken("results", platformDeployment);
+        LtiToken ltiTokenScore = advantageAgsService.getToken(LtiAgsScope.SCORES, platformDeployment);
+        LtiToken ltiTokenResults = advantageAgsService.getToken(LtiAgsScope.RESULTS, platformDeployment);
         // find the right id to pass based on the assignment
-        LtiToken ltiToken = advantageAgsService.getToken("lineitems", experiment.getPlatformDeployment());
+        LtiToken ltiToken = advantageAgsService.getToken(LtiAgsScope.LINEITEMS, experiment.getPlatformDeployment());
         // find the right id to pass based on the assignment
         LineItems lineItems = advantageAgsService.getLineItems(ltiToken, experiment.getLtiContextEntity());
 

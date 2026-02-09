@@ -21,6 +21,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -97,7 +98,10 @@ public class Experiment extends BaseEntity {
     @JoinColumn(name = "experiment_experiment_id")
     private List<Participant> participants;
 
-    @ManyToOne(optional = false)
+    @ManyToOne(
+        optional = false,
+        fetch = FetchType.EAGER
+    )
     @OnDelete(action = OnDeleteAction.CASCADE)
     @JoinColumn(
         name = "lti_context_entity_context_id",

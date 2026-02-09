@@ -1,5 +1,6 @@
 package edu.iu.terracotta.controller.lti;
 
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiDeepLink;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiLinkEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
@@ -13,6 +14,7 @@ import edu.iu.terracotta.connectors.generic.service.lms.LmsOAuthService;
 import edu.iu.terracotta.connectors.generic.service.lms.LmsOAuthServiceManager;
 import edu.iu.terracotta.connectors.generic.service.lti.LtiDataService;
 import edu.iu.terracotta.connectors.generic.service.lti.LtiJwtService;
+import edu.iu.terracotta.connectors.generic.service.lti.advantage.AdvantageDeepLinkService;
 import edu.iu.terracotta.controller.app.LmsOAuthController;
 import edu.iu.terracotta.dao.entity.ObsoleteAssignment;
 import edu.iu.terracotta.dao.exceptions.FeatureNotFoundException;
@@ -60,11 +62,12 @@ import java.util.Optional;
 @SuppressWarnings({"PMD.GuardLogStatement"})
 public class Lti3Controller {
 
-    @Autowired  private LtiJwtService ltijwtService;
-    @Autowired private ApiJwtService apiJwtService;
     @Autowired private LtiLinkRepository ltiLinkRepository;
-    @Autowired private LtiDataService ltiDataService;
+    @Autowired private ApiJwtService apiJwtService;
+    @Autowired private AdvantageDeepLinkService advantageDeepLinkService;
     @Autowired private CaliperService caliperService;
+    @Autowired private LtiDataService ltiDataService;
+    @Autowired private LtiJwtService ltiJwtService;
     @Autowired private LmsOAuthServiceManager lmsOAuthServiceManager;
 
     @RequestMapping({"", "/"})
@@ -75,11 +78,11 @@ public class Lti3Controller {
         String link = req.getParameter("link");
 
         try {
-            Jws<Claims> claims = ltijwtService.validateState(state);
+            Jws<Claims> claims = ltiJwtService.validateState(state);
             Lti3Request lti3Request = Lti3Request.getInstance(link);
 
             // check if the request is for an obsolete assignment; redirect immediately if true
-            if (Strings.CS.endsWith(lti3Request.getLtiTargetLinkUrl(), ObsoleteAssignment.URL)) {
+            if (Strings.CI.endsWith(lti3Request.getLtiTargetLinkUrl(), ObsoleteAssignment.URL)) {
                 return String.format("redirect:/%s", ObsoleteAssignment.URL);
             }
 
@@ -124,26 +127,6 @@ public class Lti3Controller {
                     model.addAttribute(TextConstants.HTML_CONTENT, "<b>No element was requested or it doesn't exists</b>");
                 }
 
-                if (LtiStrings.LTI_MESSAGE_TYPE_DEEP_LINKING.equals(lti3Request.getLtiMessageType())) {
-                    // Let's create the LtiLinkEntity's in our database
-                    // This should be done AFTER the user selects the link in the content selector, and we are doing it before
-                    // just to keep it simple. The ideal process would be, the user selects a link, sends it to the platform and
-                    // we create the LtiLinkEntity in our code after that.
-                    LtiLinkEntity ltiLinkEntity = new LtiLinkEntity("1234", lti3Request.getContext(), "My Test Link");
-
-                    if (ltiLinkRepository.findByLinkKeyAndContext(ltiLinkEntity.getLinkKey(), ltiLinkEntity.getContext()).size() == 0) {
-                        ltiLinkRepository.save(ltiLinkEntity);
-                    }
-
-                    LtiLinkEntity ltiLinkEntity2 = new LtiLinkEntity("4567", lti3Request.getContext(), "Another Link");
-
-                    if (ltiLinkRepository.findByLinkKeyAndContext(ltiLinkEntity2.getLinkKey(), ltiLinkEntity2.getContext()).size() == 0) {
-                        ltiLinkRepository.save(ltiLinkEntity2);
-                    }
-
-                    return "lti3DeepLink";
-                }
-
                 return "lti3Result";
             }
 
@@ -157,6 +140,21 @@ public class Lti3Controller {
                 lti3Request.getLtiRoles(),
                 lti3Request.getLtiCustom().getOrDefault("lms_user_name", "Anonymous").toString()
             );
+
+            if (LtiStrings.LTI_MESSAGE_TYPE_DEEP_LINKING.equals(lti3Request.getLtiMessageType())) {
+                if (LtiStrings.LTI_MESSAGE_TYPE_DEEP_LINKING.equals(lti3Request.getLtiMessageType())) {
+                    LtiDeepLink ltiDeepLink = advantageDeepLinkService.generateLtiDeepLink(
+                        lti3Request,
+                        req,
+                        state
+                    );
+
+                    return String.format(
+                        "redirect:/app/deepLink.html?id=%s",
+                        ltiDeepLink.getUuid()
+                    );
+                }
+            }
 
             // Check for platform_redirect_url to determine if this is a first-party interaction request
             try {

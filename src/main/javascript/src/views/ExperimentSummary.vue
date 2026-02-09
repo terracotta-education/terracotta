@@ -493,40 +493,7 @@ export default {
       "status",
       "results"
     ],
-    // Expansion Tab Header Values
-    setupTabs: [
-      {
-        title: "Design",
-        tab: "design",
-        description: "The basic design of your experiment",
-        image: require("@/assets/design_summary.svg"),
-      },
-      {
-        title: "Participant",
-        tab: "participant",
-        description: "How students in your class become participants in your experiment",
-        image: require("@/assets/participants_summary.svg"),
-      },
-      {
-        title: "Components",
-        tab: "components",
-        description: `Terracotta populates Canvas assignments with learning activities and
-                      materials that change depending on who's looking at them, automatically
-                      managing experimental variation within the treatments. Just create different
-                      treatments within each component. To your students, it will look like
-                      they're completing assignments as usual within Canvas.`,
-        image: require("@/assets/assignments_summary.svg"),
-      },
-      {
-        title: "Status",
-        tab: "status",
-        description: "Once your experiment is running, you will see status updates below",
-      },
-      {
-        title: "Results",
-        tab: "results"
-      }
-    ],
+    conditionTreatments: {},
     conditionColors: [""],
     isLoading: true,
     exposureSet: 0, // exposure set tab index
@@ -574,6 +541,42 @@ export default {
       configurations: "configuration/get",
       allMessageContainers: "messagingMessageContainer/messageContainers"
     }),
+    setupTabs() {
+      // Expansion Tab Header Values
+      return [
+        {
+          title: "Design",
+          tab: "design",
+          description: "The basic design of your experiment",
+          image: require("@/assets/design_summary.svg"),
+        },
+        {
+          title: "Participant",
+          tab: "participant",
+          description: "How students in your class become participants in your experiment",
+          image: require("@/assets/participants_summary.svg"),
+        },
+        {
+          title: "Components",
+          tab: "components",
+          description: `Terracotta populates ${this.lmsTitle} assignments with learning activities and
+                        materials that change depending on who's looking at them, automatically
+                        managing experimental variation within the treatments. Just create different
+                        treatments within each component. To your students, it will look like
+                        they're completing assignments as usual within ${this.lmsTitle}.`,
+          image: require("@/assets/assignments_summary.svg"),
+        },
+        {
+          title: "Status",
+          tab: "status",
+          description: "Once your experiment is running, you will see status updates below",
+        },
+        {
+          title: "Results",
+          tab: "results"
+        }
+      ];
+    },
     // Higher Level Section Values
     sectionValuesMap() {
       return {
@@ -793,6 +796,9 @@ export default {
     },
     isMessagingEnabled() {
       return this.configurations?.messagingEnabled || false;
+    },
+    lmsTitle() {
+      return this.configurations?.lmsTitle || "your LMS";
     }
   },
   methods: {

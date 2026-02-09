@@ -17,6 +17,8 @@ import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
+
 import org.apache.commons.collections4.CollectionUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -175,7 +177,7 @@ public class QuestionSubmissionServiceImplTest extends BaseTest {
     @Test
     public void testCanSubmitWithNullStudentAttempts()
             throws ApiException, IOException, AssignmentAttemptException {
-        when(assignmentRepository.findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(anyLong(), anyString())).thenReturn(assignment);
+        when(assignmentRepository.findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(anyLong(), anyString())).thenReturn(Optional.of(assignment));
         when(securedInfo.getAllowedAttempts()).thenReturn(2);
         when(securedInfo.getStudentAttempts()).thenReturn(1);
 

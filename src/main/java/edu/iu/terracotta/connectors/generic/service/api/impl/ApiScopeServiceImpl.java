@@ -11,8 +11,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import edu.iu.terracotta.connectors.generic.dao.entity.api.ApiScope;
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
 import edu.iu.terracotta.connectors.generic.dao.model.enums.LmsConnector;
 import edu.iu.terracotta.connectors.generic.dao.repository.api.ApiScopeRepository;
+import edu.iu.terracotta.connectors.generic.dao.repository.lti.PlatformDeploymentRepository;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiScopeNotFoundException;
 import edu.iu.terracotta.connectors.generic.service.api.ApiScopeService;
 import edu.iu.terracotta.dao.model.enums.FeatureType;
@@ -21,6 +23,7 @@ import edu.iu.terracotta.dao.model.enums.FeatureType;
 public class ApiScopeServiceImpl implements ApiScopeService {
 
     @Autowired private ApiScopeRepository apiScopeRepository;
+    @Autowired private PlatformDeploymentRepository platformDeploymentRepository;
 
     @Override
     public ApiScope getScopeById(long id) throws ApiScopeNotFoundException {
@@ -62,9 +65,9 @@ public class ApiScopeServiceImpl implements ApiScopeService {
     }
 
     @Override
-    public Set<String> getNecessaryScopes(long plaformDeploymentKeyId) {
-        List<ApiScope> scopes = findScopesForPlatformDeploymentId(plaformDeploymentKeyId);
-        Set<String> allNecessaryScopes = getDefaultScopes();
+    public Set<String> getNecessaryScopes(long platformDeploymentKeyId) {
+        List<ApiScope> scopes = findScopesForPlatformDeploymentId(platformDeploymentKeyId);
+        Set<String> allNecessaryScopes = getDefaultScopes(platformDeploymentKeyId);
 
         for (ApiScope scope : scopes) {
             allNecessaryScopes.add(scope.getScope());
@@ -74,9 +77,9 @@ public class ApiScopeServiceImpl implements ApiScopeService {
     }
 
     @Override
-    public String getNecessaryScopes(long plaformDeploymentKeyId, String separator) {
-        List<ApiScope> scopes = findScopesForPlatformDeploymentId(plaformDeploymentKeyId);
-        Set<String> allNecessaryScopes = getDefaultScopes();
+    public String getNecessaryScopes(long platformDeploymentKeyId, String separator) {
+        List<ApiScope> scopes = findScopesForPlatformDeploymentId(platformDeploymentKeyId);
+        Set<String> allNecessaryScopes = getDefaultScopes(platformDeploymentKeyId);
 
         for (ApiScope scope : scopes) {
             allNecessaryScopes.add(scope.getScope());
@@ -85,8 +88,10 @@ public class ApiScopeServiceImpl implements ApiScopeService {
         return StringUtils.join(allNecessaryScopes, separator);
     }
 
-    private Set<String> getDefaultScopes() {
-        List<ApiScope> scopes = apiScopeRepository.findAll();
+    private Set<String> getDefaultScopes(long platformDeploymentKeyId) {
+        PlatformDeployment platformDeployment = platformDeploymentRepository.findById(platformDeploymentKeyId)
+            .orElseThrow(() -> new IllegalArgumentException(String.format("No Platform Deployment found for ID: [%s] ", platformDeploymentKeyId)));
+        List<ApiScope> scopes = getScopesForLmsConnector(platformDeployment.getLmsConnector());
 
         return scopes.stream()
             .filter(

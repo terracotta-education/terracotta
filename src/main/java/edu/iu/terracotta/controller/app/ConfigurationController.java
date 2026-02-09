@@ -35,7 +35,7 @@ public class ConfigurationController {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
 
-        return new ResponseEntity<>(configurationService.getConfigurations(securedInfo.getPlatformDeploymentId()), HttpStatus.OK);
+        return new ResponseEntity<>(configurationService.getConfigurations(securedInfo), HttpStatus.OK);
     }
 
 }

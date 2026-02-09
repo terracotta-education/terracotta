@@ -11,7 +11,7 @@
         <h2><b>Regrade Options</b></h2>
         <p>
           Choose a regrade option for the <b>{{ studentCountLabel }}</b> who {{ studentCountHaveLabel }} already completed the <b>{{ conditionName }} version</b> of the {{ assignmentName }} assignment.
-          Canvas will regrade all submissions for this version of the assignment after you save the treatment (students' scores MAY be affected).
+          {{ lmsTitle }} will regrade all submissions for this version of the assignment after you save the treatment (students' scores MAY be affected).
           Scores for short answer and file submission questions that have already been graded will remain the same.
         </p>
       </template>
@@ -38,6 +38,7 @@
 </template>
 
 <script>
+import { mapGetters } from "vuex";
   import Vuetify from 'vuetify/lib'
 
   export default {
@@ -57,11 +58,9 @@
         type: Number
       }
     },
-    data () {
-      return {
-        selectedRegradeOption: null
-      }
-    },
+    data: () => ({
+      selectedRegradeOption: null
+    }),
     watch: {
       selectedRegradeOption: {
         handler(newValue) {
@@ -77,6 +76,9 @@
       }
     },
     computed: {
+      ...mapGetters({
+        configurations: "configuration/get"
+      }),
       regradeOptions() {
         return [
           {value: "BOTH", label: "Award points for both corrected and previously correct answers (no scores will be reduced)"},
@@ -93,6 +95,9 @@
       },
       questionLabel() {
         return this.editedQuestionCount === 1 ? "this question" : "the questions you've changed";
+      },
+      lmsTitle() {
+        return this.configurations?.lmsTitle || "LMS";
       }
     }
   }

@@ -15,6 +15,7 @@ import org.apache.commons.lang3.Strings;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import edu.iu.terracotta.connectors.generic.service.lms.LmsUtils;
 import edu.iu.terracotta.dao.entity.AnswerMc;
 import edu.iu.terracotta.dao.entity.Assessment;
 import edu.iu.terracotta.dao.entity.Assignment;
@@ -69,6 +70,7 @@ public class ExperimentExportServiceImpl implements ExperimentExportService {
     @Autowired private QuestionMcRepository questionMcRepository;
     @Autowired private TreatmentRepository treatmentRepository;
     @Autowired private FileStorageService fileStorageService;
+    @Autowired private LmsUtils lmsUtils;
 
     private Experiment experiment;
     private List<AnswerMc> answersMc;
@@ -358,8 +360,7 @@ public class ExperimentExportServiceImpl implements ExperimentExportService {
     private ExportDto createExportFile(Export export) throws ExperimentExportException {
         try {
             String experimentTitle = Strings.CS.replace(experiment.getTitle(), " ", "_");
-            experimentTitle = Strings.CS.replace(experimentTitle, "/", "_");
-            experimentTitle = Strings.CS.replace(experimentTitle, "\\", "_");
+            experimentTitle = lmsUtils.sanitize(experimentTitle);
 
             String exportFilename = String.format(
                 Export.EXPORT_FILE_NAME,

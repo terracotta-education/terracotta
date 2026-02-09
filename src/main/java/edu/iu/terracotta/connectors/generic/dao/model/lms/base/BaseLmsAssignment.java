@@ -2,8 +2,10 @@ package edu.iu.terracotta.connectors.generic.dao.model.lms.base;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsAssignment;
+import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 
 public interface BaseLmsAssignment extends LmsEntity<LmsAssignment> {
 
@@ -27,5 +29,6 @@ public interface BaseLmsAssignment extends LmsEntity<LmsAssignment> {
     LmsExternalToolFields getLmsExternalToolFields();
     void setLmsExternalToolFields(LmsExternalToolFields lmsExternalToolFields);
     String getGradingType();
+    String addMetadata(String key, Map<String, Object> values) throws TerracottaConnectorException;
 
 }

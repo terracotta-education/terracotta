@@ -4,11 +4,13 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
@@ -22,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import edu.iu.terracotta.connectors.generic.dao.entity.BaseEntity;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
+import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.dao.entity.AnswerMc;
 import edu.iu.terracotta.dao.entity.Assessment;
@@ -42,6 +45,7 @@ import edu.iu.terracotta.dao.entity.integrations.Integration;
 import edu.iu.terracotta.dao.entity.integrations.IntegrationClient;
 import edu.iu.terracotta.dao.entity.integrations.IntegrationConfiguration;
 import edu.iu.terracotta.dao.exceptions.AssignmentNotCreatedException;
+import edu.iu.terracotta.dao.exceptions.AssignmentNotEditedException;
 import edu.iu.terracotta.dao.model.distribute.export.Export;
 import edu.iu.terracotta.dao.model.enums.LmsType;
 import edu.iu.terracotta.dao.model.enums.ParticipationTypes;
@@ -596,23 +600,50 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
             return;
         }
 
+        List<Assignment> createdAssignments = new ArrayList<>();
+        AtomicBoolean errorOccurred = new AtomicBoolean(false);
+
         idMap.get(Assignment.class).entrySet().stream()
             .forEach(
                 entry -> {
+                    if (errorOccurred.get()) {
+                        // an error has already occurred; skip processing remaining assignments
+                        return;
+                    }
+
                     Assignment assignment = (Assignment) entry.getValue();
+
                     try {
-                        assignmentService.createAssignmentInLms(
+                        Assignment newAssignment = assignmentService.createAssignmentInLms(
                             experimentImport.getOwner(),
                             assignment,
                             ((Experiment) idMap.get(Experiment.class).get(export.getExperiment().getId())).getExperimentId(),
                             securedInfo.getLmsCourseId()
                         );
+
+                        createdAssignments.add(newAssignment);
                     } catch (AssignmentNotCreatedException | TerracottaConnectorException e) {
                         log.error("Error processing experiment import with ID: [{}]. Assignment creation in LMS failed.", experimentImport.getUuid(), e);
                         handleError(experimentImport, "Assignment creation in LMS failed");
+                        errorOccurred.set(true);
                     }
                 }
             );
+
+        if (CollectionUtils.isNotEmpty(experimentImport.getErrors())) {
+            // an error occurred; delete any created assignments in LMS
+            log.warn("An error occurred creating an assignment in the LMS. Removing all newly-created assignments from the LMS course ID: [{}].", securedInfo.getLmsCourseId());
+            createdAssignments.stream()
+                .forEach(
+                    assignment -> {
+                        try {
+                            assignmentService.deleteAssignmentInLms(assignment, securedInfo.getLmsCourseId(), experimentImport.getOwner());
+                        } catch (AssignmentNotEditedException | ApiException | TerracottaConnectorException e) {
+                            log.warn("Error occurred while deleting an assignment LMS ID: [{}] from LMS Course ID: [{}]", assignment.getLmsAssignmentId(), securedInfo.getLmsCourseId());
+                        }
+                    }
+                );
+        }
 
         if (CollectionUtils.isEmpty(experimentImport.getErrors())) {
             if (MapUtils.isNotEmpty(idMap.get(ConsentDocument.class))) {

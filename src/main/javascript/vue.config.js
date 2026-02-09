@@ -9,8 +9,8 @@ module.exports = {
     app: "src/main.js",
     storageAccessRequest: "src/storageAccessRequest.js",
     firstParty: "src/firstPartyInteraction.js",
+    deepLink: "src/deepLink.js"
   },
-
   transpileDependencies: [
     "vuetify"
   ],

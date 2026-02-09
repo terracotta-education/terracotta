@@ -7,27 +7,18 @@ const actions = {
     commit("setCondition", {})
   },
   createDefaultConditions: ({dispatch}, experimentId) => {
-    const defaultConditions = [
-      {
-        name: "",
-        experiment_experimentId: experimentId
-      },
-      {
-        name: "",
-        experiment_experimentId: experimentId
-      }
-    ]
-    dispatch("createConditions", defaultConditions)
+    const defaultConditions = [{}, {}];
+    dispatch("createConditions", {conditions: defaultConditions, experimentId: experimentId});
   },
-  createConditions: ({dispatch}, conditions) => {
-    if (conditions.length > 0) {
-      conditions.forEach(condition => {
-        dispatch("createCondition", condition)
+  createConditions: ({dispatch}, payload) => {
+    if (payload.conditions.length) {
+      payload.conditions.forEach(() => {
+        dispatch("createCondition", payload.experimentId)
       })
     }
   },
-  createCondition: ({commit}, condition) => {
-    return conditionService.create(condition)
+  createCondition: ({commit}, experimentId) => {
+    return conditionService.create(experimentId)
             .then(condition => {
               // commit mutation from experiment module
               if (condition.message) {

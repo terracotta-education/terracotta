@@ -14,7 +14,7 @@ import java.util.Optional;
 @SuppressWarnings({"PMD.MethodNamingConventions"})
 public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
 
-    Assignment findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(long experimentId, String lmsAssignmentId);
+    Optional<Assignment> findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(long experimentId, String lmsAssignmentId);
     Optional<Assignment> findByExposure_Experiment_ExperimentIdAndAssignmentId(long experimentId, long assignmentId);
     Optional<Assignment> findByExposure_Experiment_ExperimentIdAndExposure_ExposureIdAndAssignmentId(long experimentId, long exposureId, long assignmentId);
     Assignment findByAssignmentId(long assignmentId);

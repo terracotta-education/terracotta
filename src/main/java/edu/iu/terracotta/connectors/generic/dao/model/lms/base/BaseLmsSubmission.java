@@ -7,7 +7,7 @@ public interface BaseLmsSubmission extends LmsEntity<LmsSubmission> {
     Class<?> getType();
     Double getScore();
     Object getUser();
-    Long getUserId();
+    String getUserId();
     String getUserLoginId();
     String getUserName();
     Long getAttempt();

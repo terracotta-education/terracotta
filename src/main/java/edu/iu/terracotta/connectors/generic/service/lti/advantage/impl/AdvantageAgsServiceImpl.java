@@ -8,6 +8,7 @@ import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.LineItems;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.Result;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.Results;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.Score;
+import edu.iu.terracotta.connectors.generic.dao.model.lti.enums.LtiAgsScope;
 import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.connectors.generic.exceptions.helper.ExceptionMessageGenerator;
@@ -16,7 +17,6 @@ import edu.iu.terracotta.connectors.generic.service.lti.advantage.AdvantageAgsSe
 import edu.iu.terracotta.connectors.generic.service.lti.advantage.AdvantageConnectorHelper;
 import lombok.extern.slf4j.Slf4j;
 
-import org.apache.commons.lang3.Strings;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
 import org.springframework.http.HttpEntity;
@@ -52,17 +52,15 @@ public class AdvantageAgsServiceImpl implements AdvantageAgsService {
         return connectorService.instance(platformDeployment, AdvantageAgsService.class);
     }
 
-    //Asking for a token with the right scope.
     @Override
-    public LtiToken getToken(String type, PlatformDeployment platformDeployment) throws ConnectionException {
-        String scope = "https://purl.imsglobal.org/spec/lti-ags/scope/lineitem";
+    public LtiToken getToken(LtiAgsScope type, PlatformDeployment platformDeployment) throws ConnectionException {
+        String scope;
 
-        if (Strings.CS.equals(type, "results")) {
-            scope = "https://purl.imsglobal.org/spec/lti-ags/scope/result.readonly";
-        }
-
-        if (Strings.CS.equals(type, "scores")) {
-            scope = "https://purl.imsglobal.org/spec/lti-ags/scope/score";
+        switch (type) {
+            case LINEITEM -> scope = LtiAgsScope.AGS_LINEITEM.key();
+            case RESULTS -> scope = LtiAgsScope.AGS_RESULT_READONLY.key();
+            case SCORES -> scope = LtiAgsScope.AGS_SCORE.key();
+            default -> scope = LtiAgsScope.AGS_LINEITEM.key();
         }
 
         return advantageConnectorHelper.getToken(platformDeployment, scope);
@@ -75,62 +73,20 @@ public class AdvantageAgsServiceImpl implements AdvantageAgsService {
     }
 
     @Override
-    public boolean deleteLineItem(LtiToken ltiToken, LtiContextEntity context, String id) throws ConnectionException {
-        try {
-            ResponseEntity<String> lineItemsGetResponse = advantageConnectorHelper.createRestTemplate().exchange(
-                context.getLineitems() + "/" + id,
-                HttpMethod.DELETE,
-                advantageConnectorHelper.createTokenizedRequestEntity(ltiToken),
-                String.class
-            );
-
-            if (lineItemsGetResponse.getStatusCode().is2xxSuccessful()) {
-                return true;
-            }
-
-            String exceptionMsg = String.format("Can't delete the lineitem with id: %s", id);
-            log.error(exceptionMsg);
-            throw new ConnectionException(exceptionMsg);
-        } catch (Exception e) {
-            StringBuilder exceptionMsg = new StringBuilder()
-                .append("Can't delete the lineitem with id ")
-                .append(id);
-            log.error(exceptionMsg.toString(), e);
-            throw new ConnectionException(exceptionMessageGenerator.exceptionMessage(exceptionMsg.toString(), e));
-        }
+    public boolean deleteLineItem(LtiToken ltiToken, LtiContextEntity context, String id) throws ConnectionException, TerracottaConnectorException {
+        return instance(context).deleteLineItem(ltiToken, context, id);
     }
 
     @Override
-    public LineItem postLineItem(LtiToken ltiToken, LtiContextEntity context, LineItem lineItem) throws ConnectionException {
-        try {
-            ResponseEntity<LineItem> response = advantageConnectorHelper.createRestTemplate().exchange(
-                context.getLineitems(),
-                HttpMethod.POST,
-                advantageConnectorHelper.createTokenizedRequestEntityWithAcceptAndContentType(ltiToken, lineItem, "application/vnd.ims.lis.v2.lineitem+json", "application/vnd.ims.lis.v2.lineitem+json"),
-                LineItem.class
-            );
-
-            if (!response.getStatusCode().is2xxSuccessful()) {
-                String exceptionMsg = String.format("Can't post the lineitem [%s]", lineItem.getId());
-                log.error(exceptionMsg);
-                throw new ConnectionException(exceptionMsg);
-            }
-
-            return response.getBody();
-        } catch (Exception e) {
-            StringBuilder exceptionMsg = new StringBuilder()
-                .append("Can't get post lineitem ")
-                .append(lineItem.getId());
-            log.error(exceptionMsg.toString(), e);
-            throw new ConnectionException(exceptionMessageGenerator.exceptionMessage(exceptionMsg.toString(), e));
-        }
+    public LineItem postLineItem(LtiToken ltiToken, LtiContextEntity context, LineItem lineItem) throws ConnectionException, TerracottaConnectorException {
+        return instance(context).postLineItem(ltiToken, context, lineItem);
     }
 
     @Override
     public LineItem putLineItem(LtiToken ltiToken, LtiContextEntity context, LineItem lineItem) throws ConnectionException {
         try {
             ResponseEntity<LineItem> lineItemsGetResponse = advantageConnectorHelper.createRestTemplate().exchange(
-                context.getLineitems() + "/" + lineItem.getId(),
+                String.format("%s/%s", context.getLineitems(), lineItem.getId()),
                 HttpMethod.PUT,
                 advantageConnectorHelper.createTokenizedRequestEntity(ltiToken, lineItem),
                 LineItem.class
@@ -155,7 +111,7 @@ public class AdvantageAgsServiceImpl implements AdvantageAgsService {
     @Override
     public LineItem getLineItem(LtiToken ltiToken, LtiContextEntity context, String id) throws ConnectionException {
         try {
-            final String getLineItem = context.getLineitems() + "/" + id;
+            final String getLineItem = String.format("%s/%s", context.getLineitems(), id);
             ResponseEntity<LineItem> lineItemsGetResponse = advantageConnectorHelper.createRestTemplate().exchange(
                 getLineItem,
                 HttpMethod.GET,
@@ -218,7 +174,12 @@ public class AdvantageAgsServiceImpl implements AdvantageAgsService {
         try {
             RestTemplate restTemplate = advantageConnectorHelper.createRestTemplate();
             HttpEntity request = advantageConnectorHelper.createTokenizedRequestEntity(ltiTokenResults);
-            ResponseEntity<Result[]> resultsGetResponse = restTemplate.exchange(lineItemId + "/results", HttpMethod.GET, request, Result[].class);
+            ResponseEntity<Result[]> resultsGetResponse = restTemplate.exchange(
+                String.format("%s/results", lineItemId),
+                HttpMethod.GET,
+                request,
+                Result[].class
+            );
 
             if (!resultsGetResponse.getStatusCode().is2xxSuccessful()) {
                 String exceptionMsg = "Can't get the AGS";

@@ -42,7 +42,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 @TerracottaConnector(LmsConnector.CANVAS)
-@SuppressWarnings({"PMD.GuardLogStatement"})
+@SuppressWarnings({"PMD.GuardLogStatement", "PMD.LooseCoupling"})
 public class CanvasLmsOAuthServiceImpl implements LmsOAuthService<ApiTokenEntity> {
 
     @Autowired private ApiTokenRepository apiTokenRepository;
@@ -93,7 +93,7 @@ public class CanvasLmsOAuthServiceImpl implements LmsOAuthService<ApiTokenEntity
 
         ApiTokenEntity newTokenEntity = new ApiTokenEntity();
         newTokenEntity.setAccessToken(token.getAccessToken());
-        newTokenEntity.setLmsUserId(token.getUser().getId());
+        newTokenEntity.setLmsUserId(Long.toString(token.getUser().getId()));
         newTokenEntity.setLmsUserName(token.getUser().getName());
         newTokenEntity.setExpiresAt(new Timestamp(System.currentTimeMillis() + token.getExpiresIn() * 1000));
         newTokenEntity.setRefreshToken(token.getRefreshToken());

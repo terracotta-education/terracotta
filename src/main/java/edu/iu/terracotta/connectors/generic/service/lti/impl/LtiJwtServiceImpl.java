@@ -187,15 +187,17 @@ public class LtiJwtServiceImpl implements LtiJwtService {
             .header()
             .add(LtiStrings.KID, TextConstants.DEFAULT_KID)
             .add(LtiStrings.TYP, LtiStrings.JWT)
+            .add(LtiStrings.ALG, LtiStrings.RS256)
             .and()
             .issuer(platformDeployment.getClientId())  // D2L needs the issuer to be the clientId
             .subject(platformDeployment.getClientId()) // The clientId
-            .audience()
-            .add(aud)  //We send here the authToken url.
-            .and()
+            //.audience()
+            //.add(aud)  //We send here the authToken url.
+            //.and()
             .expiration(DateUtils.addSeconds(date, 3600)) //a java.util.Date
             .notBefore(date) //a java.util.Date
             .issuedAt(date) // for example, now
+            .claim(LtiStrings.AUD, aud)  //Audience is the token url
             .claim(LtiStrings.JTI, UUID.randomUUID().toString())  //This is an specific claim to ask for tokens.
             .signWith(OAuthUtils.loadPrivateKey(ltiDataService.getOwnPrivateKey()), SIG.RS256)  //We sign it with our own private key. The platform has the public one.
             .compact();

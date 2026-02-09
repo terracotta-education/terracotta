@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import edu.iu.terracotta.connectors.generic.annotation.TerracottaConnector;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
 import edu.iu.terracotta.connectors.generic.dao.model.enums.LmsConnector;
+import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.connectors.generic.service.lms.LmsUtils;
 
 @Service
@@ -14,6 +15,16 @@ public class OneEdTechLmsUtilsImpl implements LmsUtils {
     @Override
     public String parseCourseId(PlatformDeployment platformDeployment, String url) {
         return url;
+    }
+
+    @Override
+    public String parseDeploymentId(PlatformDeployment platformDeployment, String url) throws TerracottaConnectorException {
+        throw new UnsupportedOperationException("Unimplemented method 'parseDeploymentId'");
+    }
+
+    @Override
+    public String sanitize(String input) {
+        return input;
     }
 
 }

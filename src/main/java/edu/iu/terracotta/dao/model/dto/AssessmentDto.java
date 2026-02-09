@@ -29,17 +29,14 @@ public class AssessmentDto {
     private boolean autoSubmit;
     private Integer numOfSubmissions;
     private Float hoursBetweenSubmissions;
-    @Builder.Default private String multipleSubmissionScoringScheme = MultipleSubmissionScoringScheme.MOST_RECENT.name();
     private Float cumulativeScoringInitialPercentage;
     private Float maxPoints;
     private boolean started;
     private Long submissionsExpected;
     private Long submissionsCompletedCount;
     private Long submissionsInProgressCount;
-    @Builder.Default private boolean allowStudentViewResponses = false;
     private Timestamp studentViewResponsesAfter;
     private Timestamp studentViewResponsesBefore;
-    @Builder.Default private boolean allowStudentViewCorrectAnswers = false;
     private Timestamp studentViewCorrectAnswersAfter;
     private Timestamp studentViewCorrectAnswersBefore;
     private RetakeDetails retakeDetails;
@@ -47,6 +44,10 @@ public class AssessmentDto {
     private String integrationPreviewUrl;
     private boolean isIntegrationUrlValid;
     private String integrationIframeInfoUrl;
+
+    @Builder.Default private String multipleSubmissionScoringScheme = MultipleSubmissionScoringScheme.MOST_RECENT.name();
+    @Builder.Default private boolean allowStudentViewResponses = false;
+    @Builder.Default private boolean allowStudentViewCorrectAnswers = false;
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<SubmissionDto> submissions;

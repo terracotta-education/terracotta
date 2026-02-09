@@ -179,7 +179,7 @@ public class MessageEmailServiceImpl implements MessageEmailService {
                             Collectors.toMap(
                                 Map.Entry::getKey,
                                 entry -> entry.getValue().stream()
-                                    .filter(lmsSubmission -> Strings.CS.equals(Long.toString(lmsSubmission.getUserId()), recipient.getLmsUserId()))
+                                    .filter(lmsSubmission -> Strings.CS.equals(lmsSubmission.getUserId(), recipient.getLmsUserId()))
                                     .toList()
                             )
                         );

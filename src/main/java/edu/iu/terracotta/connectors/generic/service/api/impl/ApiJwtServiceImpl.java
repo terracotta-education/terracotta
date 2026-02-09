@@ -89,7 +89,6 @@ import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Header;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.JwsHeader;
-import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.Jwts.SIG;
 import io.jsonwebtoken.Locator;
@@ -111,7 +110,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.Key;
-import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.Date;
 import java.util.List;
@@ -331,23 +329,22 @@ public class ApiJwtServiceImpl implements ApiJwtService {
     @Override
     public String buildFileToken(String fileId, String localUrl) throws GeneralSecurityException {
         Date date = new Date();
-        PrivateKey toolPrivateKey = OAuthUtils.loadPrivateKey(ltiDataService.getOwnPrivateKey());
-        JwtBuilder builder = Jwts.builder()
+        String token = Jwts.builder()
             .header()
             .add(LtiStrings.KID, TextConstants.DEFAULT_KID)
             .add(LtiStrings.TYP, LtiStrings.JWT)
             .and()
             .issuer(ISSUER_TERRACOTTA_API)
-            .subject("no_user") // The clientId
+            .subject("no_user")
             .audience()
-            .add(localUrl)  //We send here the authToken url.
+            .add(localUrl)
             .and()
-            .expiration(DateUtils.addSeconds(date, 3600)) //a java.util.Date
-            .notBefore(date) //a java.util.Date
-            .issuedAt(date) // for example, now
-            .claim("fileId", fileId)  //This is an specific claim to ask for tokens.
-            .signWith(toolPrivateKey, SIG.RS256);  //We sign it with our own private key. The platform has the public one.
-        String token = builder.compact();
+            .expiration(DateUtils.addSeconds(date, 3600))
+            .notBefore(date)
+            .issuedAt(date)
+            .claim("fileId", fileId)
+            .signWith(OAuthUtils.loadPrivateKey(ltiDataService.getOwnPrivateKey()), SIG.RS256)
+            .compact();
 
         if (tokenLoggingEnabled) {
             log.debug("Token Request: \n {} \n", token);

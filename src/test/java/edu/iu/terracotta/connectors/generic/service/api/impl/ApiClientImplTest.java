@@ -37,9 +37,17 @@ public class ApiClientImplTest extends BaseTest {
     }
 
     @Test
-    public void testListAssignments() throws ApiException, TerracottaConnectorException {
+    public void testListAssignmentsForContext() throws ApiException, TerracottaConnectorException {
 
-        List<LmsAssignment> ret = apiClient.listAssignments(ltiUserEntity, "courseId");
+        List<LmsAssignment> ret = apiClient.listAssignments(ltiUserEntity, ltiContextEntity);
+
+        assertEquals(1, ret.size());
+    }
+
+    @Test
+    public void testListAssignmentsForExperiment() throws ApiException, TerracottaConnectorException {
+
+        List<LmsAssignment> ret = apiClient.listAssignments(ltiUserEntity, experiment);
 
         assertEquals(1, ret.size());
     }

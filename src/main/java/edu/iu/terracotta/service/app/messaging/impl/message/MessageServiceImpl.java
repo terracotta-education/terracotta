@@ -21,6 +21,7 @@ import edu.iu.terracotta.dao.model.enums.messaging.MessageStatus;
 import edu.iu.terracotta.dao.repository.ExposureGroupConditionRepository;
 import edu.iu.terracotta.dao.repository.messaging.container.MessageContainerRepository;
 import edu.iu.terracotta.dao.repository.messaging.message.MessageRepository;
+import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.messaging.MessageBodyParseException;
 import edu.iu.terracotta.exceptions.messaging.MessagePipedTextFileUploadException;
 import edu.iu.terracotta.exceptions.messaging.MessagePipedTextValidationException;
@@ -207,7 +208,7 @@ public class MessageServiceImpl implements MessageService {
     }
 
     @Override
-    public List<MessageRuleAssignmentDto> getAssignments(SecuredInfo securedInfo) throws ApiException, TerracottaConnectorException {
+    public List<MessageRuleAssignmentDto> getAssignments(SecuredInfo securedInfo) throws ApiException, TerracottaConnectorException, DataServiceException {
         return messageRuleAssignmentService.toDto(
             assignmentService.getAllAssignmentsForLmsCourse(securedInfo)
         );

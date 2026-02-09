@@ -1,10 +1,12 @@
 package edu.iu.terracotta.connectors.canvas.service.api.impl;
 
+import edu.iu.terracotta.connectors.canvas.dao.model.enums.jwt.CanvasJwtClaim;
 import edu.iu.terracotta.connectors.generic.annotation.TerracottaConnector;
 import edu.iu.terracotta.connectors.generic.dao.entity.api.ApiOneUseToken;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.dao.model.enums.LmsConnector;
+import edu.iu.terracotta.connectors.generic.dao.model.enums.jwt.JwtClaim;
 import edu.iu.terracotta.connectors.generic.dao.repository.api.ApiOneUseTokenRepository;
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.PlatformDeploymentRepository;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
@@ -117,11 +119,6 @@ import java.util.UUID;
 @SuppressWarnings({"unchecked", "PMD.GuardLogStatement", "PMD.LooseCoupling"})
 public class CanvasApiJwtServiceImpl implements ApiJwtService {
 
-    private static final String ISSUER_LMS_OAUTH_API_TOKEN_REQUEST = "lmsOAuthAPITokenRequest";
-    private static final String JWT_REQUEST_HEADER_NAME = "Authorization";
-    private static final String JWT_BEARER_TYPE = "Bearer";
-    private static final String QUERY_PARAM_NAME = "token";
-
     @Autowired private ApiOneUseTokenRepository apiOneUseTokenRepository;
     @Autowired private MessageConfigurationRepository messageConfigurationRepository;
     @Autowired private MessageContentRepository messageContentRepository;
@@ -209,25 +206,25 @@ public class CanvasApiJwtServiceImpl implements ApiJwtService {
     public String buildJwt(long platformDeploymentId, String userKey, Claims claims) throws GeneralSecurityException, IOException {
         return buildJwt(
             true,
-            claims.get("roles", List.class),
-            claims.get("contextId", Long.class),
+            claims.get(JwtClaim.ROLES.key(), List.class),
+            claims.get(JwtClaim.CONTEXT_ID.key(), Long.class),
             platformDeploymentId,
             userKey,
-            claims.get("assignmentId", Long.class),
-            claims.get("experimentId", Long.class),
-            claims.get("consent", Boolean.class),
-            claims.get("canvasUserId", String.class),
-            claims.get("canvasUserGlobalId", String.class),
-            claims.get("canvasLoginId", String.class),
-            claims.get("canvasUserName", String.class),
-            claims.get("canvasCourseId", String.class),
-            claims.get("canvasAssignmentId", String.class),
-            claims.get("dueAt", String.class),
-            claims.get("lockAt", String.class),
-            claims.get("unlockAt", String.class),
-            claims.get("nonce", String.class),
-            claims.get("allowedAttempts", Integer.class),
-            claims.get("studentAttempts", Integer.class)
+            claims.get(JwtClaim.ASSIGNMENT_ID.key(), Long.class),
+            claims.get(JwtClaim.EXPERIMENT_ID.key(), Long.class),
+            claims.get(JwtClaim.CONSENT.key(), Boolean.class),
+            claims.get(CanvasJwtClaim.CANVAS_USER_ID.key(), String.class),
+            claims.get(CanvasJwtClaim.CANVAS_USER_GLOBAL_ID.key(), String.class),
+            claims.get(CanvasJwtClaim.CANVAS_LOGIN_ID.key(), String.class),
+            claims.get(CanvasJwtClaim.CANVAS_USER_NAME.key(), String.class),
+            claims.get(CanvasJwtClaim.CANVAS_COURSE_ID.key(), String.class),
+            claims.get(JwtClaim.LMS_ASSIGNMENT_ID.key(), String.class),
+            claims.get(JwtClaim.DUE_AT.key(), String.class),
+            claims.get(JwtClaim.LOCK_AT.key(), String.class),
+            claims.get(JwtClaim.UNLOCK_AT.key(), String.class),
+            claims.get(JwtClaim.NONCE.key(), String.class),
+            claims.get(JwtClaim.ALLOWED_ATTEMPTS.key(), Integer.class),
+            claims.get(JwtClaim.STUDENT_ATTEMPTS.key(), Integer.class)
         );
     }
 
@@ -245,7 +242,7 @@ public class CanvasApiJwtServiceImpl implements ApiJwtService {
         String canvasLoginId,
         String canvasUserName,
         String canvasCourseId,
-        String canvasAssignmentId,
+        String lmsAssignmentId,
         String dueAt,
         String lockAt,
         String unlockAt,
@@ -253,12 +250,33 @@ public class CanvasApiJwtServiceImpl implements ApiJwtService {
         Integer allowedAttempts,
         Integer studentAttempts
     ) throws GeneralSecurityException, IOException {
-        return buildJwt(oneUse, ISSUER_TERRACOTTA_API, roles, contextId, platformDeploymentId, userId, assignmentId,
-                experimentId, consent, canvasUserId, canvasUserGlobalId, canvasLoginId, canvasUserName, canvasCourseId,
-                canvasAssignmentId, dueAt, lockAt, unlockAt, nonce, allowedAttempts, studentAttempts);
+        return buildJwt(
+            oneUse,
+            ISSUER_TERRACOTTA_API,
+            roles,
+            contextId,
+            platformDeploymentId,
+            userId,
+            assignmentId,
+            experimentId,
+            consent,
+            canvasUserId,
+            canvasUserGlobalId,
+            canvasLoginId,
+            canvasUserName,
+            canvasCourseId,
+            lmsAssignmentId,
+            dueAt,
+            lockAt,
+            unlockAt,
+            nonce,
+            allowedAttempts,
+            studentAttempts
+        );
     }
 
-    private String buildJwt(boolean oneUse,
+    private String buildJwt(
+        boolean oneUse,
         String issuer,
         List<String> roles,
         Long contextId,
@@ -272,7 +290,7 @@ public class CanvasApiJwtServiceImpl implements ApiJwtService {
         String canvasLoginId,
         String canvasUserName,
         String canvasCourseId,
-        String canvasAssignmentId,
+        String lmsAssignmentId,
         String dueAt,
         String lockAt,
         String unlockAt,
@@ -305,26 +323,27 @@ public class CanvasApiJwtServiceImpl implements ApiJwtService {
             .expiration(DateUtils.addSeconds(date, length)) // a java.util.Date
             .notBefore(date) // a java.util.Date
             .issuedAt(date) // for example, now
-            .claim("contextId", contextId) // This is an specific claim to ask for tokens.
-            .claim("platformDeploymentId", platformDeploymentId) // This is an specific claim to ask for tokens.
-            .claim("userId", userId) // This is an specific claim to ask for tokens.
-            .claim("roles", roles)
-            .claim("assignmentId", assignmentId)
-            .claim("consent", consent)
-            .claim("experimentId", experimentId)
-            .claim("oneUse", oneUse) // This is an specific claim to ask for tokens.
-            .claim("canvasUserId", canvasUserId)
-            .claim("canvasUserGlobalId", canvasUserGlobalId)
-            .claim("canvasLoginId", canvasLoginId)
-            .claim("canvasUserName", canvasUserName)
-            .claim("canvasCourseId", canvasCourseId)
-            .claim("canvasAssignmentId", canvasAssignmentId)
-            .claim("dueAt", dueAt)
-            .claim("lockAt", lockAt)
-            .claim("unlockAt", unlockAt)
-            .claim("nonce", nonce)
-            .claim("allowedAttempts", allowedAttempts)
-            .claim("studentAttempts", studentAttempts)
+            .claim(JwtClaim.CONTEXT_ID.key(), contextId) // This is an specific claim to ask for tokens.
+            .claim(JwtClaim.PLATFORM_DEPLOYMENT_ID.key(), platformDeploymentId) // This is an specific claim to ask for tokens.
+            .claim(JwtClaim.USER_ID.key(), userId) // This is an specific claim to ask for tokens.
+            .claim(JwtClaim.ROLES.key(), roles)
+            .claim(JwtClaim.ASSIGNMENT_ID.key(), assignmentId)
+            .claim(JwtClaim.CONSENT.key(), consent)
+            .claim(JwtClaim.EXPERIMENT_ID.key(), experimentId)
+            .claim(JwtClaim.ONE_USE.key(), oneUse) // This is an specific claim to ask for tokens.
+            .claim(CanvasJwtClaim.CANVAS_USER_ID.key(), canvasUserId)
+            .claim(CanvasJwtClaim.CANVAS_USER_GLOBAL_ID.key(), canvasUserGlobalId)
+            .claim(CanvasJwtClaim.CANVAS_LOGIN_ID.key(), canvasLoginId)
+            .claim(CanvasJwtClaim.CANVAS_USER_NAME.key(), canvasUserName)
+            .claim(CanvasJwtClaim.CANVAS_COURSE_ID.key(), canvasCourseId)
+            .claim(JwtClaim.LMS_ASSIGNMENT_ID.key(), lmsAssignmentId)
+            .claim(JwtClaim.DUE_AT.key(), dueAt)
+            .claim(JwtClaim.LOCK_AT.key(), lockAt)
+            .claim(JwtClaim.UNLOCK_AT.key(), unlockAt)
+            .claim(JwtClaim.NONCE.key(), nonce)
+            .claim(JwtClaim.ALLOWED_ATTEMPTS.key(), allowedAttempts)
+            .claim(JwtClaim.STUDENT_ATTEMPTS.key(), studentAttempts)
+            .claim(JwtClaim.LMS_NAME.key(), CanvasJwtClaim.CANVAS.key())
             .signWith(toolPrivateKey, SIG.RS256);  //We sign it with our own private key. The platform has the public one.
 
         String token = builder.compact();
@@ -351,39 +370,42 @@ public class CanvasApiJwtServiceImpl implements ApiJwtService {
     private String buildJwt(boolean oneUse, String issuer, Lti3Request lti3Request) throws GeneralSecurityException, IOException {
         String targetLinkUrl = lti3Request.getLtiTargetLinkUrl();
         MultiValueMap<String, String> queryParams = UriComponentsBuilder.fromUriString(targetLinkUrl).build().getQueryParams();
-        String assignmentIdText = queryParams.getFirst("assignment");
+        String assignmentIdText = queryParams.getFirst(JwtClaim.ASSIGNMENT.key());
         Long assignmentId = null;
 
         if (StringUtils.isNotBlank(assignmentIdText)) {
             assignmentId = Long.parseLong(assignmentIdText);
         }
 
-        String consentText = queryParams.getFirst("consent");
+        String consentText = queryParams.getFirst(JwtClaim.CONSENT.key());
         boolean consent = BooleanUtils.toBoolean(consentText);
 
-        String experimentIdText = queryParams.getFirst("experiment");
+        String experimentIdText = queryParams.getFirst(JwtClaim.EXPERIMENT.key());
         Long experimentId = null;
 
         if (StringUtils.isNotBlank(experimentIdText)) {
             experimentId = Long.parseLong(experimentIdText);
         }
 
-        return buildJwt(oneUse, issuer, lti3Request.getLtiRoles(),
+        return buildJwt(
+            oneUse,
+            issuer,
+            lti3Request.getLtiRoles(),
             lti3Request.getContext().getContextId(),
             lti3Request.getKey().getKeyId(),
             lti3Request.getUser().getUserKey(),
             assignmentId,
             experimentId,
             consent,
-            MapUtils.getString(lti3Request.getLtiCustom(), "canvas_user_id", ""),
-            MapUtils.getString(lti3Request.getLtiCustom(), "canvas_user_global_id", ""),
-            MapUtils.getString(lti3Request.getLtiCustom(), "canvas_login_id", ""),
-            MapUtils.getString(lti3Request.getLtiCustom(), "canvas_user_name", ""),
-            MapUtils.getString(lti3Request.getLtiCustom(), "canvas_course_id", ""),
-            MapUtils.getString(lti3Request.getLtiCustom(), "canvas_assignment_id", ""),
-            MapUtils.getString(lti3Request.getLtiCustom(), "due_at", ""),
-            MapUtils.getString(lti3Request.getLtiCustom(), "lock_at", ""),
-            MapUtils.getString(lti3Request.getLtiCustom(), "unlock_at", ""),
+            MapUtils.getString(lti3Request.getLtiCustom(), CanvasJwtClaim.CANVAS_USER_ID.key(1), ""),
+            MapUtils.getString(lti3Request.getLtiCustom(), CanvasJwtClaim.CANVAS_USER_GLOBAL_ID.key(1), ""),
+            MapUtils.getString(lti3Request.getLtiCustom(), CanvasJwtClaim.CANVAS_LOGIN_ID.key(1), ""),
+            MapUtils.getString(lti3Request.getLtiCustom(), CanvasJwtClaim.CANVAS_USER_NAME.key(1), ""),
+            MapUtils.getString(lti3Request.getLtiCustom(), CanvasJwtClaim.CANVAS_COURSE_ID.key(1), ""),
+            MapUtils.getString(lti3Request.getLtiCustom(), CanvasJwtClaim.CANVAS_ASSIGNMENT_ID.key(1), ""),
+            MapUtils.getString(lti3Request.getLtiCustom(), JwtClaim.DUE_AT.key(), ""),
+            MapUtils.getString(lti3Request.getLtiCustom(), JwtClaim.LOCK_AT.key(), ""),
+            MapUtils.getString(lti3Request.getLtiCustom(), JwtClaim.UNLOCK_AT.key(), ""),
             lti3Request.getNonce(),
             extractAllowedAttempts(lti3Request.getLtiCustom()),
             extractStudentAttempts(lti3Request.getLtiCustom()));
@@ -391,7 +413,7 @@ public class CanvasApiJwtServiceImpl implements ApiJwtService {
 
     @Override
     public String generateStateForAPITokenRequest(Lti3Request lti3Request) throws GeneralSecurityException, IOException {
-        return buildJwt(false, ISSUER_LMS_OAUTH_API_TOKEN_REQUEST, lti3Request);
+        return buildJwt(false, JwtClaim.ISSUER_LMS_OAUTH_API_TOKEN_REQUEST.key(), lti3Request);
     }
 
     @Override
@@ -401,7 +423,7 @@ public class CanvasApiJwtServiceImpl implements ApiJwtService {
         if (claims != null) {
             String issuer = claims.getPayload().getIssuer();
 
-            if (!ISSUER_LMS_OAUTH_API_TOKEN_REQUEST.equals(issuer)) {
+            if (!JwtClaim.ISSUER_LMS_OAUTH_API_TOKEN_REQUEST.key().equals(issuer)) {
                 return Optional.empty();
             }
 
@@ -420,15 +442,15 @@ public class CanvasApiJwtServiceImpl implements ApiJwtService {
             .add(LtiStrings.KID, TextConstants.DEFAULT_KID)
             .add(LtiStrings.TYP, LtiStrings.JWT)
             .and()
-            .issuer("TERRACOTTA")
-            .subject("no_user") // The clientId
+            .issuer(JwtClaim.TERRACOTTA.key())
+            .subject(JwtClaim.NO_USER.key()) // The clientId
             .audience()
             .add(localUrl)  //We send here the authToken url.
             .and()
             .expiration(DateUtils.addSeconds(date, 3600)) //a java.util.Date
             .notBefore(date) //a java.util.Date
             .issuedAt(date) // for example, now
-            .claim("fileId", fileId)  //This is an specific claim to ask for tokens.
+            .claim(JwtClaim.FILE_ID.key(), fileId)  //This is an specific claim to ask for tokens.
             .signWith(toolPrivateKey, SIG.RS256);  //We sign it with our own private key. The platform has the public one.
         String token = builder.compact();
 
@@ -448,7 +470,7 @@ public class CanvasApiJwtServiceImpl implements ApiJwtService {
             throw new BadTokenException("Token is invalid.");
         }
 
-        if (BooleanUtils.isTrue((Boolean) tokenClaims.getPayload().get("oneUse"))) {
+        if (BooleanUtils.isTrue((Boolean) tokenClaims.getPayload().get(JwtClaim.ONE_USE.key()))) {
             throw new BadTokenException("Trying to refresh an one use token");
         }
 
@@ -467,26 +489,27 @@ public class CanvasApiJwtServiceImpl implements ApiJwtService {
             .expiration(DateUtils.addDays(date, length)) //a java.util.Date
             .notBefore(date) //a java.util.Date
             .issuedAt(date) // for example, now
-            .claim("contextId", tokenClaims.getPayload().get("contextId"))
-            .claim("platformDeploymentId", tokenClaims.getPayload().get("platformDeploymentId"))
-            .claim("userId", tokenClaims.getPayload().get("userId"))
-            .claim("roles", tokenClaims.getPayload().get("roles"))
-            .claim("assignmentId", tokenClaims.getPayload().get("assignmentId"))
-            .claim("consent", tokenClaims.getPayload().get("consent"))
-            .claim("experimentId", tokenClaims.getPayload().get("experimentId"))
-            .claim("oneUse", false)
-            .claim("canvasUserId", tokenClaims.getPayload().get("canvasUserId"))
-            .claim("canvasUserGlobalId", tokenClaims.getPayload().get("canvasUserGlobalId"))
-            .claim("canvasLoginId", tokenClaims.getPayload().get("canvasLoginId"))
-            .claim("canvasUserName", tokenClaims.getPayload().get("canvasUserName"))
-            .claim("canvasCourseId", tokenClaims.getPayload().get("canvasCourseId"))
-            .claim("canvasAssignmentId", tokenClaims.getPayload().get("canvasAssignmentId"))
-            .claim("dueAt", tokenClaims.getPayload().get("dueAt"))
-            .claim("lockAt", tokenClaims.getPayload().get("lockAt"))
-            .claim("unlockAt", tokenClaims.getPayload().get("unlockAt"))
-            .claim("nonce", tokenClaims.getPayload().get("nonce"))
-            .claim("allowedAttempts", tokenClaims.getPayload().get("allowedAttempts"))
-            .claim("studentAttempts", tokenClaims.getPayload().get("studentAttempts"))
+            .claim(JwtClaim.CONTEXT_ID.key(), tokenClaims.getPayload().get(JwtClaim.CONTEXT_ID.key()))
+            .claim(JwtClaim.PLATFORM_DEPLOYMENT_ID.key(), tokenClaims.getPayload().get(JwtClaim.PLATFORM_DEPLOYMENT_ID.key()))
+            .claim(JwtClaim.USER_ID.key(), tokenClaims.getPayload().get(JwtClaim.USER_ID.key()))
+            .claim(JwtClaim.ROLES.key(), tokenClaims.getPayload().get(JwtClaim.ROLES.key()))
+            .claim(JwtClaim.ASSIGNMENT_ID.key(), tokenClaims.getPayload().get(JwtClaim.ASSIGNMENT_ID.key()))
+            .claim(JwtClaim.CONSENT.key(), tokenClaims.getPayload().get(JwtClaim.CONSENT.key()))
+            .claim(JwtClaim.EXPERIMENT_ID.key(), tokenClaims.getPayload().get(JwtClaim.EXPERIMENT_ID.key()))
+            .claim(JwtClaim.ONE_USE.key(), false)
+            .claim(CanvasJwtClaim.CANVAS_USER_ID.key(), tokenClaims.getPayload().get(CanvasJwtClaim.CANVAS_USER_ID.key()))
+            .claim(CanvasJwtClaim.CANVAS_USER_GLOBAL_ID.key(), tokenClaims.getPayload().get(CanvasJwtClaim.CANVAS_USER_GLOBAL_ID.key()))
+            .claim(CanvasJwtClaim.CANVAS_LOGIN_ID.key(), tokenClaims.getPayload().get(CanvasJwtClaim.CANVAS_LOGIN_ID.key()))
+            .claim(CanvasJwtClaim.CANVAS_USER_NAME.key(), tokenClaims.getPayload().get(CanvasJwtClaim.CANVAS_USER_NAME.key()))
+            .claim(CanvasJwtClaim.CANVAS_COURSE_ID.key(), tokenClaims.getPayload().get(CanvasJwtClaim.CANVAS_COURSE_ID.key()))
+            .claim(JwtClaim.LMS_ASSIGNMENT_ID.key(), tokenClaims.getPayload().get(JwtClaim.LMS_ASSIGNMENT_ID.key()))
+            .claim(JwtClaim.DUE_AT.key(), tokenClaims.getPayload().get(JwtClaim.DUE_AT.key()))
+            .claim(JwtClaim.LOCK_AT.key(), tokenClaims.getPayload().get(JwtClaim.LOCK_AT.key()))
+            .claim(JwtClaim.UNLOCK_AT.key(), tokenClaims.getPayload().get(JwtClaim.UNLOCK_AT.key()))
+            .claim(JwtClaim.NONCE.key(), tokenClaims.getPayload().get(JwtClaim.NONCE.key()))
+            .claim(JwtClaim.ALLOWED_ATTEMPTS.key(), tokenClaims.getPayload().get(JwtClaim.ALLOWED_ATTEMPTS.key()))
+            .claim(JwtClaim.STUDENT_ATTEMPTS.key(), tokenClaims.getPayload().get(JwtClaim.STUDENT_ATTEMPTS.key()))
+            .claim(JwtClaim.LMS_NAME.key(), CanvasJwtClaim.CANVAS.key())
             .signWith(toolPrivateKey, SIG.RS256);  //We sign it with our own private key. The platform has the public one.
 
         String newToken = builder.compact();
@@ -500,11 +523,11 @@ public class CanvasApiJwtServiceImpl implements ApiJwtService {
 
     @Override
     public String extractJwtStringValue(HttpServletRequest request, boolean allowQueryParam) {
-        String rawHeaderValue = StringUtils.trimToNull(request.getHeader(JWT_REQUEST_HEADER_NAME));
+        String rawHeaderValue = StringUtils.trimToNull(request.getHeader(JwtClaim.JWT_REQUEST_HEADER_NAME.key()));
 
         if (rawHeaderValue == null) {
             if (allowQueryParam) {
-                return StringUtils.trimToNull(request.getParameter(QUERY_PARAM_NAME));
+                return StringUtils.trimToNull(request.getParameter(JwtClaim.QUERY_PARAM_NAME.key()));
             }
         }
 
@@ -514,7 +537,7 @@ public class CanvasApiJwtServiceImpl implements ApiJwtService {
 
         // very similar to BearerTokenExtractor.java in Spring spring-security-oauth2
         if (isBearerToken(rawHeaderValue)) {
-            return rawHeaderValue.substring(JWT_BEARER_TYPE.length()).trim();
+            return rawHeaderValue.substring(JwtClaim.JWT_BEARER_TYPE.key().length()).trim();
         }
 
         return null;
@@ -536,23 +559,24 @@ public class CanvasApiJwtServiceImpl implements ApiJwtService {
         }
 
         SecuredInfo securedInfo = new SecuredInfo();
-        securedInfo.setUserId(claims.getPayload().get("userId").toString());
-        securedInfo.setPlatformDeploymentId(Long.valueOf((Integer) claims.getPayload().get("platformDeploymentId")));
-        securedInfo.setContextId(Long.valueOf((Integer) claims.getPayload().get("contextId")));
-        securedInfo.setRoles((List<String>) claims.getPayload().get("roles"));
-        securedInfo.setLmsUserId(claims.getPayload().get("canvasUserId").toString());
-        securedInfo.setLmsUserGlobalId(claims.getPayload().get("canvasUserGlobalId").toString());
-        securedInfo.setLmsLoginId(claims.getPayload().get("canvasLoginId").toString());
-        securedInfo.setLmsUserName(claims.getPayload().get("canvasUserName").toString());
-        securedInfo.setLmsCourseId(claims.getPayload().get("canvasCourseId").toString());
-        securedInfo.setLmsAssignmentId(claims.getPayload().get("canvasAssignmentId").toString());
-        securedInfo.setDueAt(extractTimestamp(claims,"dueAt"));
-        securedInfo.setLockAt(extractTimestamp(claims,"lockAt"));
-        securedInfo.setUnlockAt(extractTimestamp(claims,"unlockAt"));
-        securedInfo.setNonce(claims.getPayload().get("nonce").toString());
-        securedInfo.setConsent((Boolean)claims.getPayload().get("consent"));
-        securedInfo.setAllowedAttempts(claims.getPayload().get("allowedAttempts", Integer.class));
-        securedInfo.setStudentAttempts(claims.getPayload().get("studentAttempts", Integer.class));
+        securedInfo.setUserId(claims.getPayload().get(JwtClaim.USER_ID.key()).toString());
+        securedInfo.setPlatformDeploymentId(Long.valueOf((Integer) claims.getPayload().get(JwtClaim.PLATFORM_DEPLOYMENT_ID.key())));
+        securedInfo.setContextId(Long.valueOf((Integer) claims.getPayload().get(JwtClaim.CONTEXT_ID.key())));
+        securedInfo.setRoles((List<String>) claims.getPayload().get(JwtClaim.ROLES.key()));
+        securedInfo.setLmsUserId(claims.getPayload().get(CanvasJwtClaim.CANVAS_USER_ID.key()).toString());
+        securedInfo.setLmsUserGlobalId(claims.getPayload().get(CanvasJwtClaim.CANVAS_USER_GLOBAL_ID.key()).toString());
+        securedInfo.setLmsLoginId(claims.getPayload().get(CanvasJwtClaim.CANVAS_LOGIN_ID.key()).toString());
+        securedInfo.setLmsName(claims.getPayload().getOrDefault(JwtClaim.LMS_NAME.key(), CanvasJwtClaim.CANVAS.key()).toString());
+        securedInfo.setLmsUserName(claims.getPayload().get(CanvasJwtClaim.CANVAS_USER_NAME.key()).toString());
+        securedInfo.setLmsCourseId(claims.getPayload().get(CanvasJwtClaim.CANVAS_COURSE_ID.key()).toString());
+        securedInfo.setLmsAssignmentId(claims.getPayload().get(JwtClaim.LMS_ASSIGNMENT_ID.key()).toString());
+        securedInfo.setDueAt(extractTimestamp(claims,JwtClaim.DUE_AT.key()));
+        securedInfo.setLockAt(extractTimestamp(claims,JwtClaim.LOCK_AT.key()));
+        securedInfo.setUnlockAt(extractTimestamp(claims,JwtClaim.UNLOCK_AT.key()));
+        securedInfo.setNonce(claims.getPayload().get(JwtClaim.NONCE.key()).toString());
+        securedInfo.setConsent((Boolean)claims.getPayload().get(JwtClaim.CONSENT.key()));
+        securedInfo.setAllowedAttempts(claims.getPayload().get(JwtClaim.ALLOWED_ATTEMPTS.key(), Integer.class));
+        securedInfo.setStudentAttempts(claims.getPayload().get(JwtClaim.STUDENT_ATTEMPTS.key(), Integer.class));
 
         return securedInfo;
     }
@@ -583,46 +607,46 @@ public class CanvasApiJwtServiceImpl implements ApiJwtService {
     public ResponseEntity<String> getTimedToken(String token) throws NumberFormatException, TerracottaConnectorException {
         Jws<Claims> claims = validateToken(token);
 
-        if ((Boolean) claims.getPayload().get("oneUse")) {
+        if ((Boolean) claims.getPayload().get(JwtClaim.ONE_USE.key())) {
             try {
                 // experimentId and assignmentId are optionals so check the null.
                 Long assignmentId = null;
 
-                if (claims.getPayload().get("assignmentId") != null) {
-                    assignmentId = Long.parseLong(claims.getPayload().get("assignmentId").toString());
+                if (claims.getPayload().get(JwtClaim.ASSIGNMENT_ID.key()) != null) {
+                    assignmentId = Long.parseLong(claims.getPayload().get(JwtClaim.ASSIGNMENT_ID.key()).toString());
                 }
 
                 Long experimentId = null;
 
-                if (claims.getPayload().get("experimentId") != null) {
-                    experimentId = Long.parseLong(claims.getPayload().get("experimentId").toString());
+                if (claims.getPayload().get(JwtClaim.EXPERIMENT_ID.key()) != null) {
+                    experimentId = Long.parseLong(claims.getPayload().get(JwtClaim.EXPERIMENT_ID.key()).toString());
                 }
 
                 return new ResponseEntity<>(
                     buildJwt(
                         false,
-                        (List<String>) claims.getPayload().get("roles"),
-                        Long.parseLong(claims.getPayload().get("contextId").toString()),
-                        Long.parseLong(claims.getPayload().get("platformDeploymentId").toString()),
-                        claims.getPayload().get("userId").toString(),
+                        (List<String>) claims.getPayload().get(JwtClaim.ROLES.key()),
+                        Long.parseLong(claims.getPayload().get(JwtClaim.CONTEXT_ID.key()).toString()),
+                        Long.parseLong(claims.getPayload().get(JwtClaim.PLATFORM_DEPLOYMENT_ID.key()).toString()),
+                        claims.getPayload().get(JwtClaim.USER_ID.key()).toString(),
                         assignmentId,
                         experimentId,
-                        (Boolean) claims.getPayload().get("consent"),
-                        claims.getPayload().get("canvasUserId").toString(),
-                        claims.getPayload().get("canvasUserGlobalId").toString(),
-                        claims.getPayload().get("canvasLoginId").toString(),
-                        claims.getPayload().get("canvasUserName").toString(),
-                        claims.getPayload().get("canvasCourseId").toString(),
-                        claims.getPayload().get("canvasAssignmentId").toString(),
-                        claims.getPayload().get("dueAt").toString(),
-                        claims.getPayload().get("lockAt").toString(),
-                        claims.getPayload().get("unlockAt").toString(),
-                        claims.getPayload().get("nonce").toString(),
-                        claims.getPayload().get("allowedAttempts", Integer.class),
-                        claims.getPayload().get("studentAttempts", Integer.class))
+                        (Boolean) claims.getPayload().get(JwtClaim.CONSENT.key()),
+                        claims.getPayload().get(CanvasJwtClaim.CANVAS_USER_ID.key()).toString(),
+                        claims.getPayload().get(CanvasJwtClaim.CANVAS_USER_GLOBAL_ID.key()).toString(),
+                        claims.getPayload().get(CanvasJwtClaim.CANVAS_LOGIN_ID.key()).toString(),
+                        claims.getPayload().get(CanvasJwtClaim.CANVAS_USER_NAME.key()).toString(),
+                        claims.getPayload().get(CanvasJwtClaim.CANVAS_COURSE_ID.key()).toString(),
+                        claims.getPayload().get(JwtClaim.LMS_ASSIGNMENT_ID.key()).toString(),
+                        claims.getPayload().get(JwtClaim.DUE_AT.key()).toString(),
+                        claims.getPayload().get(JwtClaim.LOCK_AT.key()).toString(),
+                        claims.getPayload().get(JwtClaim.UNLOCK_AT.key()).toString(),
+                        claims.getPayload().get(JwtClaim.NONCE.key()).toString(),
+                        claims.getPayload().get(JwtClaim.ALLOWED_ATTEMPTS.key(), Integer.class),
+                        claims.getPayload().get(JwtClaim.STUDENT_ATTEMPTS.key(), Integer.class))
                         , HttpStatus.OK);
             } catch (GeneralSecurityException | IOException e) {
-                return new ResponseEntity<>("Error generating token: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+                return new ResponseEntity<>(String.format("Error generating token: [%s]", e.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
             }
         }
 
@@ -648,12 +672,12 @@ public class CanvasApiJwtServiceImpl implements ApiJwtService {
      * @return
      */
     private Integer extractAllowedAttempts(Map<String, Object> ltiCustomClaims) {
-        if (ltiCustomClaims.containsKey("allowed_attempts")) {
-            Integer allowedAttempts = parseInt(ltiCustomClaims.get("allowed_attempts"));
+        if (ltiCustomClaims.containsKey(CanvasJwtClaim.ALLOWED_ATTEMPTS.key(1))) {
+            Integer allowedAttempts = parseInt(ltiCustomClaims.get(CanvasJwtClaim.ALLOWED_ATTEMPTS.key(1)));
 
             if (allowedAttempts != null) {
                 return allowedAttempts;
-            } else if (ltiCustomClaims.get("allowed_attempts") == null) {
+            } else if (ltiCustomClaims.get(CanvasJwtClaim.ALLOWED_ATTEMPTS.key(1)) == null) {
                 return -1;
             }
         }
@@ -669,12 +693,12 @@ public class CanvasApiJwtServiceImpl implements ApiJwtService {
      * @return
      */
     private Integer extractStudentAttempts(Map<String, Object> ltiCustomClaims) {
-        if (ltiCustomClaims.containsKey("student_attempts")) {
-            Integer allowedAttempts = parseInt(ltiCustomClaims.get("student_attempts"));
+        if (ltiCustomClaims.containsKey(CanvasJwtClaim.STUDENT_ATTEMPTS.key(1))) {
+            Integer allowedAttempts = parseInt(ltiCustomClaims.get(CanvasJwtClaim.STUDENT_ATTEMPTS.key(1)));
 
             if (allowedAttempts != null) {
                 return allowedAttempts;
-            } else if (ltiCustomClaims.get("student_attempts") == null) {
+            } else if (ltiCustomClaims.get(CanvasJwtClaim.STUDENT_ATTEMPTS.key(1)) == null) {
                 return 0;
             }
         }
@@ -683,7 +707,7 @@ public class CanvasApiJwtServiceImpl implements ApiJwtService {
     }
 
     private boolean isBearerToken(String rawHeaderValue) {
-        return rawHeaderValue.toLowerCase(Locale.US).startsWith(JWT_BEARER_TYPE.toLowerCase(Locale.US));
+        return rawHeaderValue.toLowerCase(Locale.US).startsWith(JwtClaim.JWT_BEARER_TYPE.key().toLowerCase(Locale.US));
     }
 
     @Override

@@ -56,6 +56,7 @@ import tools.jackson.databind.json.JsonMapper;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.Strings;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
@@ -444,14 +445,14 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
 
         /* (Approach #2) Using LMS API calls */
 
-        Assignment assignment = assignmentRepository.findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(experimentId, securedInfo.getLmsAssignmentId());
-        LtiUserEntity instructorUser = assignment.getExposure().getExperiment().getCreatedBy();
+        Optional<Assignment> assignment = assignmentRepository.findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(experimentId, securedInfo.getLmsAssignmentId());
+        LtiUserEntity instructorUser = assignment.get().getExposure().getExperiment().getCreatedBy();
         Optional<LmsAssignment> lmsAssignment = apiClient.listAssignment(instructorUser, securedInfo.getLmsCourseId(), securedInfo.getLmsAssignmentId());
         List<LmsSubmission> submissionsList = apiClient.listSubmissions(instructorUser, securedInfo.getLmsAssignmentId(), securedInfo.getLmsCourseId());
 
         Optional<LmsSubmission> submission = submissionsList.stream()
             .filter(sub -> sub.getUser() != null)
-            .filter(sub -> sub.getUserId() == Integer.parseInt(securedInfo.getLmsUserId()))
+            .filter(sub -> Strings.CS.equals(sub.getUserId(), securedInfo.getLmsUserId()))
             .findFirst();
 
         if (lmsAssignment.isEmpty() || submission.isEmpty()) {
