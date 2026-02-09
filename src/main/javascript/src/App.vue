@@ -1,119 +1,125 @@
 <template>
-  <v-app
-    :style="appStyle"
-    tabindex="0"
+<v-app
+  :style="appStyle"
+  tabindex="0"
+>
+  <skip-to
+    v-if="showSkipLink"
+  />
+  <status-alert />
+  <v-main
+    v-if="!isIntegration && !isObsolete"
   >
-    <v-main
-      v-if="!isIntegration && !isObsolete"
+    <template
+      v-if="!isTreatmentPreview && hasTokens && userInfo === 'Instructor'"
     >
-      <template
-        v-if="!isTreatmentPreview && hasTokens && userInfo === 'Instructor'"
+      <router-view
+        :key="$route.fullPath"
+      />
+    </template>
+    <template
+      v-else-if="isTreatmentPreview"
+    >
+      <page-loading
+        v-if="!isTreatmentPreviewComplete"
+        :display="!childLoaded"
+        message="Loading your preview. Please wait."
+      />
+      <student-quiz
+        v-if="!isTreatmentPreviewComplete"
+        :experimentId="treatmentPreview.experimentId"
+        :previewConditionId="treatmentPreview.conditionId"
+        :previewTreatmentId="treatmentPreview.treatmentId"
+        :previewId="treatmentPreview.previewId"
+        :ownerId="treatmentPreview.ownerId"
+        :preview="true"
+        @loaded="childLoaded = true"
+      />
+      <treatment-preview-complete
+        v-if="isTreatmentPreviewComplete"
+      />
+    </template>
+    <template
+      v-else-if="hasTokens && userInfo === 'Learner'"
+    >
+      <div
+        class="student-view"
       >
-        <router-view
-          :key="$route.fullPath"
+        <integrations-token-alert
+          v-if="!consent && assignmentId && childLoaded && integrationsTokenAlert"
+          :alert="integrationsTokenAlert"
         />
-      </template>
-      <template
-        v-else-if="isTreatmentPreview"
-      >
         <page-loading
-          v-if="!isTreatmentPreviewComplete"
           :display="!childLoaded"
-          message="Loading your preview. Please wait."
+          message="Loading your assignment. Please wait."
+          class="mt-5"
         />
-        <student-quiz
-          v-if="!isTreatmentPreviewComplete"
-          :experimentId="treatmentPreview.experimentId"
-          :previewConditionId="treatmentPreview.conditionId"
-          :previewTreatmentId="treatmentPreview.treatmentId"
-          :previewId="treatmentPreview.previewId"
-          :ownerId="treatmentPreview.ownerId"
-          :preview="true"
+        <student-consent
+          v-if="consent"
+          :experimentId="experimentId"
+          :userId="userId"
           @loaded="childLoaded = true"
         />
-        <treatment-preview-complete
-          v-if="isTreatmentPreviewComplete"
+        <student-quiz
+          v-if="!consent && assignmentId"
+          :experimentId="experimentId"
+          :assignmentId="assignmentId"
+          :preview="false"
+          @loaded="childLoaded = true"
+          @integrationsTokenAlert="integrationsTokenAlert = $event"
         />
-      </template>
-      <template
-        v-else-if="hasTokens && userInfo === 'Learner'"
-      >
-        <div
-          class="student-view"
-        >
-          <integrations-token-alert
-            v-if="!consent && assignmentId && childLoaded && integrationsTokenAlert"
-            :alert="integrationsTokenAlert"
-          />
-          <page-loading
-            :display="!childLoaded"
-            message="Loading your assignment. Please wait."
-            class="mt-5"
-          />
-          <student-consent
-            v-if="consent"
-            :experimentId="experimentId"
-            :userId="userId"
-            @loaded="childLoaded = true"
-          />
-          <student-quiz
-            v-if="!consent && assignmentId"
-            :experimentId="experimentId"
-            :assignmentId="assignmentId"
-            :preview="false"
-            @loaded="childLoaded = true"
-            @integrationsTokenAlert="integrationsTokenAlert = $event"
-          />
-        </div>
-      </template>
-      <template
-        v-else
-      >
-        <v-row
-          justify="center"
-        >
-          <v-col
-            md="6"
-          >
-            <v-alert
-              prominent
-              type="error"
-            >
-              <v-row
-                align="center"
-              >
-                <v-col
-                  class="grow"
-                >
-                  Error
-                </v-col>
-              </v-row>
-            </v-alert>
-          </v-col>
-        </v-row>
-      </template>
-    </v-main>
-    <v-main
-      v-else-if="isIntegration"
-    >
-      <integrations
-        v-if="!isIntegrationPreview"
-        :integrationData="integrationData"
-        @integrationsTokenAlert="integrationsTokenAlert = $event"
-      />
-      <integrations-preview
-        v-if="isIntegrationPreview"
-        :url="integrationPreviewUrl"
-      />
-    </v-main>
-    <v-main
+      </div>
+    </template>
+    <template
       v-else
     >
-      <assignment
-        v-if="isObsoleteAssignment"
-      />
-    </v-main>
-  </v-app>
+      <v-row
+        justify="center"
+      >
+        <v-col
+          md="6"
+        >
+          <v-alert
+            type="error"
+            prominent
+            outlined
+            text
+          >
+            <v-row
+              align="center"
+            >
+              <v-col
+                class="grow"
+              >
+                Error
+              </v-col>
+            </v-row>
+          </v-alert>
+        </v-col>
+      </v-row>
+    </template>
+  </v-main>
+  <v-main
+    v-else-if="isIntegration"
+  >
+    <integrations
+      v-if="!isIntegrationPreview"
+      :integrationData="integrationData"
+      @integrationsTokenAlert="integrationsTokenAlert = $event"
+    />
+    <integrations-preview
+      v-if="isIntegrationPreview"
+      :url="integrationPreviewUrl"
+    />
+  </v-main>
+  <v-main
+    v-else
+  >
+    <assignment
+      v-if="isObsoleteAssignment"
+    />
+  </v-main>
+</v-app>
 </template>
 
 <script>
@@ -123,6 +129,8 @@ import Integrations from "@/views/integrations/Integrations.vue";
 import IntegrationsPreview from "@/views/integrations/IntegrationsPreview.vue";
 import IntegrationsTokenAlert from "@/views/integrations/IntegrationsTokenAlert.vue";
 import PageLoading from "@/components/PageLoading";
+import SkipTo from "@/components/SkipTo.vue";
+import StatusAlert from "@/components/alert/StatusAlert.vue";
 import StudentConsent from "@/views/student/StudentConsent.vue";
 import StudentQuiz from "@/views/student/StudentQuiz.vue";
 import TreatmentPreviewComplete from "@/views/preview/TreatmentPreviewComplete.vue";
@@ -135,6 +143,8 @@ export default {
     IntegrationsPreview,
     IntegrationsTokenAlert,
     PageLoading,
+    SkipTo,
+    StatusAlert,
     StudentQuiz,
     StudentConsent,
     TreatmentPreviewComplete
@@ -163,6 +173,7 @@ export default {
       consent: "api/consent",
       userId: "api/userId",
       apiToken: "api/api_token",
+      configuration: "configuration/get"
     }),
     // Apply per route global styling to the v-app component
     appStyle() {
@@ -198,6 +209,9 @@ export default {
         ownerId: this.treatmentPreviewData?.ownerId || null,
         complete: this.treatmentPreviewData?.complete || false
       }
+    },
+    showSkipLink() {
+      return this.configuration?.showSkipLink || false;
     }
   },
   methods: {
@@ -221,14 +235,15 @@ export default {
 </script>
 
 <style lang="scss" >
-  @import "./styles/custom";
+@import "@/styles/custom";
+@import "@/styles/variables";
 
-  h1, h2, h3, h4 {
-    line-height: 1.2;
-    font-weight: 400;
-    padding-bottom: 10px;
-  }
-  p {
-    padding-bottom: 15px;
-  }
+h1, h2, h3, h4 {
+  line-height: 1.2;
+  font-weight: 400;
+  padding-bottom: 10px;
+}
+p {
+  padding-bottom: 15px;
+}
 </style>

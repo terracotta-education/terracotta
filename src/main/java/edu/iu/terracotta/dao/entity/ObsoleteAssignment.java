@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import edu.iu.terracotta.connectors.generic.dao.entity.BaseUuidEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiContextEntity;
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -28,9 +27,9 @@ public class ObsoleteAssignment extends BaseUuidEntity {
     public static final String PREFIX = "OBSOLETE";
     public static final String URL = "obsolete/assignment";
 
-    @Column private String lmsAssignmentId;
-    @Column private String originalTitle;
-    @Column private String originalUrl;
+    private String lmsAssignmentId;
+    private String originalTitle;
+    private String originalUrl;
 
     @ManyToOne
     @JoinColumn(

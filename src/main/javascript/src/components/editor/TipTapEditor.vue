@@ -1,9 +1,10 @@
 <template>
 <div
-  v-if="show"
   class="editor mb-6 outlined"
 >
   <v-card
+    v-if="show"
+    class="editor-card"
     flat
   >
     <editor-content
@@ -23,6 +24,7 @@
 import { mapGetters } from "vuex";
 import { Editor, EditorContent } from "@tiptap/vue-2";
 import { findChildren } from "@tiptap/core";
+import { addAttributesToObservedElement, addAttributesToElement } from "@/helpers/ui-utils.js";
 import store from "@/store/index.js";
 import Document from "@tiptap/extension-document";
 import Link from "@tiptap/extension-link";
@@ -461,6 +463,8 @@ export default {
   mounted() {
     this.html = this.content;
     this.createEditors();
+    addAttributesToObservedElement(".editor", "ProseMirror", ".tiptap.ProseMirror", [{ name: "aria-label", value: "message editor content" }]);
+    addAttributesToElement(".tiptap.ProseMirror", [{ name: "aria-label", value: "message editor content" }]);
   },
   beforeDestroy() {
     this.destroyEditors();
@@ -475,11 +479,13 @@ window.updateMessageConditionalTextEditId = function(id) {
 </script>
 
 <style lang="scss" scoped>
+@import "~@/styles/variables";
+
 .editor::v-deep {
   min-width: 100%;
   box-shadow: none;
   border-radius: 4px;
-  border: 1px solid map-get($grey, "base");
+  border: 1px solid map-get($grey, "darker");
   background-color: white;
   overflow: hidden;
   .ProseMirror {
@@ -510,15 +516,15 @@ window.updateMessageConditionalTextEditId = function(id) {
     & conditional-text,
     & piped-text {
       border-radius: 0.4rem;
-      color: #0077d2;
+      color: map-get($blue, "primary");
       padding: 0;
       &:hover {
         cursor: pointer;
-        background-color: #0077d2;
+        background-color: map-get($blue, "primary");
         color: white;
       }
       &.invalid-piped-text {
-        color: red;
+        color: map-get($red, "base");
       }
     }
   }

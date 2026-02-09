@@ -1,9 +1,9 @@
 <template>
-  <DataTable
-    :titleHeader="`Exposure`"
-    :tableData="exposures"
-    :outcomeType="outcomeType"
-  />
+<data-table
+  :tableData="exposures"
+  :outcomeType="outcomeType"
+  titleHeader="Exposure"
+/>
 </template>
 
 <script>

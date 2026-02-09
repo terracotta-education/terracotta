@@ -18,11 +18,15 @@
         v-slot:header.submissionRate="{ header }"
       >
         {{ header.text }}
-        <InfoTooltip
+        <tool-tip
           :header="submissionRateTooltip.header"
-          :message="submissionRateTooltip.message"
-          :activator="submissionRateTooltip.activator"
+          :content="submissionRateTooltip.message"
+          :activatorType="submissionRateTooltip.activator.type"
+          :activatorContent="submissionRateTooltip.activator.text"
+          :icon="submissionRateTooltip.activator.text"
           :iconStyle="submissionRateTooltip.iconStyle"
+          alignment="top"
+          aria-label="Submission rate tooltip"
         />
       </template>
       <template
@@ -67,10 +71,11 @@
               v-else
             >
               &#8212;
-              <InfoTooltip
-                :header=null
-                :message="avgGradeTooltip"
-                :activator="avgGradeTooltipActivator"
+              <tool-tip
+                content="This component includes items that must be graded manually. Data will appear when those items have been graded."
+                activatorType="icon"
+                activatorContent="mdi-information-outline"
+                aria-label="Average grade explanation tooltip"
               />
             </span>
           </td>
@@ -109,7 +114,7 @@
       <template
         v-slot:expanded-item="{ headers, item }"
       >
-        <DataTableTreatment
+        <data-table-treatment
           v-if="hasTreatments(item)"
           :headers="headers"
           :item="item"
@@ -127,7 +132,7 @@
 
 <script>
 import DataTableTreatment from "./DataTableTreatment.vue";
-import InfoTooltip from "@/components/InfoTooltip.vue";
+import ToolTip from "@/components/ToolTip.vue";
 import { round, percent } from "@/helpers/dashboard/utils.js";
 
 export default {
@@ -143,7 +148,7 @@ export default {
   ],
   components: {
     DataTableTreatment,
-    InfoTooltip
+    ToolTip
   },
   data: () => ({
     mobileBreakpoint: 636,
@@ -229,12 +234,6 @@ export default {
     },
     noSubmissionsText() {
       return this.noSubmissionsMessage || "N/A";
-    },
-    avgGradeTooltip() {
-      return "This component includes items that must be graded manually. Data will appear when those items have been graded.";
-    },
-    avgGradeTooltipActivator() {
-      return {"type": "icon", "text": "mdi-information-outline"};
     },
     customTooltips() {
       return this.tooltips || [];

@@ -1,9 +1,9 @@
 <template>
-    <iframe
-      v-if="feedbackEnabled"
-      :src="feedbackUrl"
-    >
-    </iframe>
+<iframe
+  v-if="feedbackEnabled"
+  :src="feedbackUrl"
+>
+</iframe>
 </template>
 
 <script>

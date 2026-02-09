@@ -1,18 +1,18 @@
 <template>
-  <div>
-    <div
-      class="mb-5 pb-2"
-    >
-      <multiple-attempts-setting
-        v-model="multipleAttemptsSettings"
-      />
-    </div>
-    <div>
-      <reveal-responses-setting
-        v-model="revealResponseSettings"
-      />
-    </div>
+<div>
+  <div
+    class="mb-5 pb-2"
+  >
+    <multiple-attempts-setting
+      v-model="multipleAttemptsSettings"
+    />
   </div>
+  <div>
+    <reveal-responses-setting
+      v-model="revealResponseSettings"
+    />
+  </div>
+</div>
 </template>
 
 <script>

@@ -18,6 +18,7 @@
         :activatable="item.activatable || false"
         :attributes="item.attributes"
         :activate="item.activate"
+        :ref="`item-${item.icon}`"
         @clicked="clicked"
       />
     </v-toolbar>
@@ -166,7 +167,8 @@ export default {
         activatable: true,
         activate: false
       },
-    ]
+    ],
+    itemRefs: [] // ["item-<item.icon>", ...] used for tooltip anchoring
   }),
   watch: {
     activeItems: {
@@ -464,13 +466,21 @@ export default {
         )
         .run();
     }
+  },
+  mounted() {
+    // set refs for each item for tooltip anchoring
+    this.items.forEach((item) => {
+      this.itemRefs.push(`item-${item.icon}`);
+    });
   }
 };
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+@import "@/styles/variables";
+
 .toolbar {
-  border-top: 1px solid #9e9e9e;
+  border-top: 1px solid map-get($grey, "darker");
   border-radius: 0 !important;
   & .v-toolbar {
     display: flex;

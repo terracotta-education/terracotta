@@ -1,28 +1,31 @@
 <template>
-  <v-row
-    class="container-table"
-  >
-    <h3>Components</h3>
-    <DataTable
-      :tableData="rows"
-      :titleHeader="`Component name`"
-      :includeNote="true"
-      :showExpand="true"
-      :hasOverall="true"
-      :noSubmissionsMessage="`No submissions yet`"
-      :tooltips="tooltips"
-    />
-  </v-row>
+<v-row
+  class="container-table"
+>
+  <h3>Components</h3>
+  <data-table
+    :tableData="rows"
+    :tooltips="tooltips"
+    :includeNote="true"
+    :showExpand="true"
+    :hasOverall="true"
+    noSubmissionsMessage="No submissions yet"
+    titleHeader="Component name"
+  />
+</v-row>
 </template>
 
 <script>
-import DataTable from "./subsection/DataTable"
+import DataTable from "./subsection/DataTable";
 
 export default {
   name: "Assignments",
-  props: [
-    "assignmentsData"
-  ],
+  props: {
+    assignmentsData: {
+      type: Object,
+      required: false
+    }
+  },
   components: {
     DataTable
   },
@@ -36,7 +39,7 @@ export default {
       ]
     },
     sectionData() {
-        return this.assignmentsData || {};
+      return this.assignmentsData || {};
     },
     rows() {
       return this.sectionData.rows || [];

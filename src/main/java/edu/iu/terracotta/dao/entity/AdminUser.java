@@ -34,7 +34,6 @@ public class AdminUser extends BaseEntity  {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long adminUserId;
 
-    @Column
     private boolean enabled;
 
     @OneToOne(optional = false)

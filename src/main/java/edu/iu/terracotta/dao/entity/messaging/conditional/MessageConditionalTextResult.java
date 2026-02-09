@@ -3,7 +3,6 @@ package edu.iu.terracotta.dao.entity.messaging.conditional;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import edu.iu.terracotta.dao.entity.messaging.BaseMessageEntity;
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Lob;
@@ -30,7 +29,6 @@ public class MessageConditionalTextResult extends BaseMessageEntity {
     private MessageConditionalText conditionalText;
 
     @Lob
-    @Column
     private String html;
 
 }

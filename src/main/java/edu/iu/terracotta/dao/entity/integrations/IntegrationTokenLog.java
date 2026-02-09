@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import edu.iu.terracotta.connectors.generic.dao.entity.BaseUuidEntity;
 import edu.iu.terracotta.dao.model.enums.integrations.IntegrationTokenStatus;
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -29,17 +28,16 @@ public class IntegrationTokenLog extends BaseUuidEntity {
 
     public static final int ERROR_CODE_LENGTH = 6;
 
+    private String score;
+    private String error;
+    private String token;
+    private String code;
+
     @ManyToOne
     @JoinColumn(name = "token_id")
     private IntegrationToken integrationToken;
 
-    @Column
     @Enumerated(EnumType.STRING)
     private IntegrationTokenStatus status;
-
-    @Column private String score;
-    @Column private String error;
-    @Column private String token;
-    @Column private String code;
 
 }

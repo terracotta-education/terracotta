@@ -5,7 +5,6 @@ import java.util.List;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import edu.iu.terracotta.connectors.generic.dao.entity.BaseUuidEntity;
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
@@ -27,13 +26,13 @@ public class IntegrationClient extends BaseUuidEntity {
 
     public static final String RETURN_URL = "%s/integrations?launch_token=%s&score=%s";
 
+    private String name;
+    private String scoreVariable;
+    private String tokenVariable;
+    private String previewToken;
+    private boolean enabled;
+
     @OneToMany(mappedBy = "client")
     private List<IntegrationConfiguration> configuration;
-
-    @Column private String name;
-    @Column private String scoreVariable;
-    @Column private String tokenVariable;
-    @Column private String previewToken;
-    @Column private boolean enabled;
 
 }

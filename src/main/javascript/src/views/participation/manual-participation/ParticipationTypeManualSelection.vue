@@ -1,93 +1,107 @@
 <template>
-  <div>
-    <h1 class="my-3">
-      Which students can participate in the study?
-    </h1>
-
-    <!-- Groups Section -->
-    <p>Groups</p>
-    <v-expansion-panels
-      class="v-expansion-panels--icon"
-      flat
+<div>
+  <h1
+    class="my-3"
+  >
+    Which students can participate in the study?
+  </h1>
+  <!-- Groups Section -->
+  <p>Groups</p>
+  <v-expansion-panels
+    class="v-expansion-panels--icon"
+    flat
+  >
+    <v-expansion-panel
+      @click="panelExpansion"
     >
-      <v-expansion-panel>
-        <v-expansion-panel-header>
-          Participating ({{ participating.length }})
-        </v-expansion-panel-header>
-        <v-expansion-panel-content>
-          <ListParticipants
-            :listOfParticipants="participating"
-            :moveToHandler="moveToHandler"
-            :moveToOptions="moveToOptions"
-            selectedOption="0"
-          />
-        </v-expansion-panel-content>
-      </v-expansion-panel>
-
-      <v-expansion-panel>
-        <v-expansion-panel-header>
-          Not participating ({{ notParticipating.length }})
-        </v-expansion-panel-header>
-        <v-expansion-panel-content>
-          <ListParticipants
-            :listOfParticipants="notParticipating"
-            :moveToOptions="moveToOptions"
-            :moveToHandler="moveToHandler"
-            selectedOption="1"
-          />
-        </v-expansion-panel-content>
-      </v-expansion-panel>
-
-      <v-expansion-panel>
-        <v-expansion-panel-header>
-          Unassigned ({{ unassigned.length }})
-        </v-expansion-panel-header>
-        <v-expansion-panel-content>
-          <ListParticipants
-            :listOfParticipants="unassigned"
-            :moveToOptions="moveToOptions"
-            :moveToHandler="moveToHandler"
-            selectedOption="2"
-          />
-        </v-expansion-panel-content>
-      </v-expansion-panel>
-    </v-expansion-panels>
-
-    <div class="mt-5">
-      <v-btn
-        elevation="0"
-        color="primary"
-        @click="submitParticipants(nextPage('ParticipationDistribution'))"
-      >
-        Continue
-      </v-btn>
-    </div>
+      <v-expansion-panel-header>
+        Participating ({{ participating.length }})
+      </v-expansion-panel-header>
+      <v-expansion-panel-content>
+        <list-participants
+          :listOfParticipants="participating"
+          :moveToHandler="moveToHandler"
+          :moveToOptions="moveToOptions"
+          selectedOption="0"
+        />
+      </v-expansion-panel-content>
+    </v-expansion-panel>
+    <v-expansion-panel
+      @click="panelExpansion"
+    >
+      <v-expansion-panel-header>
+        Not participating ({{ notParticipating.length }})
+      </v-expansion-panel-header>
+      <v-expansion-panel-content>
+        <list-participants
+          :listOfParticipants="notParticipating"
+          :moveToOptions="moveToOptions"
+          :moveToHandler="moveToHandler"
+          selectedOption="1"
+        />
+      </v-expansion-panel-content>
+    </v-expansion-panel>
+    <v-expansion-panel
+      @click="panelExpansion"
+    >
+      <v-expansion-panel-header>
+        Unassigned ({{ unassigned.length }})
+      </v-expansion-panel-header>
+      <v-expansion-panel-content>
+        <list-participants
+          :listOfParticipants="unassigned"
+          :moveToOptions="moveToOptions"
+          :moveToHandler="moveToHandler"
+          selectedOption="2"
+        />
+      </v-expansion-panel-content>
+    </v-expansion-panel>
+  </v-expansion-panels>
+  <div
+    class="mt-5"
+  >
+    <v-btn
+      @click="submitParticipants(nextPage('ParticipationDistribution'))"
+      elevation="0"
+      color="primary"
+    >
+      Continue
+    </v-btn>
   </div>
+</div>
 </template>
 
 <script>
 import { mapActions, mapGetters } from "vuex";
-import ListParticipants from "../../../components/ListParticipants.vue";
+import { deleteAttributesFromElement } from "@/helpers/ui-utils.js";
+import ListParticipants from "@/components/ListParticipants.vue";
 import store from "@/store";
 
 export default {
   name: "ParticipationTypeManualSelection",
-  props: ["experiment"],
+  props: {
+    experiment: {
+      type: Object,
+      required: true
+    }
+  },
   components: {
     ListParticipants,
   },
-  data() {
-    return {
-      moveToOptions: ["Participating", "Not participating", "Unassigned"],
-    };
-  },
+  data: () => ({
+    moveToOptions: [
+      "Participating",
+      "Not participating",
+      "Unassigned"
+      ],
+  }),
   computed: {
     ...mapGetters({
       participants: "participants/participants",
-      editMode: 'navigation/editMode'
+      editMode: "navigation/editMode"
     }),
     getSaveExitPage() {
-      return this.editMode?.callerPage?.name || 'Home';
+      return this.editMode?.callerPage?.name || "Home";
     },
     experimentId() {
       return this.experiment.experimentId;
@@ -134,20 +148,21 @@ export default {
       const selectedIds = this.getParticipantIds(tempSelected);
       let updatedParticipants = [];
 
-      if (option === "Participating") {
-        updatedParticipants = this.updateParticipantConsent(selectedIds, true);
+      switch (option) {
+        case "Participating":
+          updatedParticipants = this.updateParticipantConsent(selectedIds, true);
+          break;
+        case "Not participating":
+          updatedParticipants = this.updateParticipantConsent(
+            selectedIds,
+            false
+          );
+          break;
+        case "Unassigned":
+          updatedParticipants = this.updateParticipantConsent(selectedIds, null);
+          break;
       }
 
-      if (option === "Not participating") {
-        updatedParticipants = this.updateParticipantConsent(
-          selectedIds,
-          false
-        );
-      }
-
-      if (option === "Unassigned") {
-        updatedParticipants = this.updateParticipantConsent(selectedIds, null);
-      }
       this.setParticipantsGroup(updatedParticipants);
     },
     submitParticipants(path) {
@@ -178,10 +193,18 @@ export default {
       }
 
       return toPage;
+    },
+    panelExpansion() {
+      setTimeout(() => {
+        deleteAttributesFromElement(".v-expansion-panel", ["aria-expanded"]);
+      }, 1000);
     }
   },
   async created() {
     await this.fetchParticipants(this.experiment.experimentId);
+  },
+  mounted() {
+    deleteAttributesFromElement(".v-expansion-panel", ["aria-expanded"]);
   },
   beforeRouteUpdate(to, from, next) {
     // don't load new data after participant selection screen

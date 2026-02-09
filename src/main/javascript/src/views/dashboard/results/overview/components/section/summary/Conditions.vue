@@ -1,15 +1,15 @@
 <template>
-  <div
-    class="container-summary"
-  >
-    <SummaryData
-      :title="title"
-      :value="count"
-      :message="tooltip"
-      :icon="headerIcon"
-      :iconBgColor="`#E5FAFF`"
-    />
-  </div>
+<div
+  class="container-summary"
+>
+  <summary-data
+    :title="title"
+    :value="count"
+    :message="tooltip"
+    :icon="headerIcon"
+    iconBgColor="#e5faff"
+  />
+</div>
 </template>
 
 <script>
@@ -18,20 +18,24 @@ import SummaryData from "./components/SummaryData.vue";
 
 export default {
   name: "Conditions",
-  props: [
-    "conditionCount"
-  ],
   components: {
     SummaryData
   },
+  props: {
+    conditionCount: {
+      type: Number,
+      required: false,
+      default: 0
+    }
+  },
   data: () => ({
-    tooltip: "Fun conditions summary tooltip here...",
+    tooltip: "",
     headerIcon: icon,
     title: "Conditions"
   }),
   computed: {
     count() {
-      return this.conditionCount || 0;
+      return this.conditionCount;
     }
   }
 }

@@ -1,15 +1,15 @@
 <template>
-  <div
-    class="container-summary"
-  >
-    <SummaryData
-      :title="title"
-      :value="count"
-      :message="tooltip"
-      :icon="headerIcon"
-      :iconBgColor="`#FEF3E7`"
-    />
-  </div>
+<div
+  class="container-summary"
+>
+  <summary-data
+    :title="title"
+    :value="count"
+    :message="tooltip"
+    :icon="headerIcon"
+    iconBgColor="#fef3e7"
+  />
+</div>
 </template>
 
 <script>
@@ -18,20 +18,25 @@ import SummaryData from "./components/SummaryData.vue";
 
 export default {
   name: "Assignments",
-  props: [
-    "assignmentCount"
-  ],
   components: {
     SummaryData
   },
+  props: {
+    assignmentCount: {
+      type: Number,
+      required: false,
+      default: 0
+    }
+  },
+
   data: () => ({
-    tooltip: "Fun assignments summary tooltip here...",
+    tooltip: "",
     headerIcon: icon,
     title: "Components"
   }),
   computed: {
     count() {
-      return this.assignmentCount || 0;
+      return this.assignmentCount;
     }
   }
 }

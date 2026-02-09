@@ -1,20 +1,20 @@
 <template>
-  <div
-    class="container-summary"
-  >
-    <SummaryData
-      :title="title"
-      :value="count"
-      :message="tooltip"
-      :icon="headerIcon"
-      :iconBgColor="`#FEF8E6`"
-      :showTooltip="true"
-    />
-    <PercentBar
-      :value="toPercent(consentRate)"
-      class="progress-bar"
-    />
-  </div>
+<div
+  class="container-summary"
+>
+  <summary-data
+    :title="title"
+    :value="count"
+    :message="tooltip"
+    :icon="headerIcon"
+    :showTooltip="true"
+    iconBgColor="#fef8e6"
+  />
+  <percent-bar
+    :value="toPercent(consentRate)"
+    class="progress-bar"
+  />
+</div>
 </template>
 
 <script>
@@ -25,13 +25,16 @@ import SummaryData from "./components/SummaryData.vue";
 
 export default {
   name: "Participants",
-  props: [
-    "participantsData"
-  ],
   components: {
     PercentBar,
     SummaryData
-},
+  },
+  props: {
+    participantsData: {
+      type: Object,
+      required: false
+    }
+  },
   data: () => ({
     tooltip: "The number of people who consented to participate in the experiment",
     headerIcon: icon,
@@ -39,7 +42,7 @@ export default {
   }),
   computed: {
     sectionData() {
-        return this.participantsData || {};
+      return this.participantsData || {};
     },
     count() {
       return this.sectionData.count || 0;

@@ -1,18 +1,19 @@
 <template>
-  <div>
-    <div
-      class="mb-5 pb-2"
-    >
-      <multiple-attempts-setting
-        v-model="multipleAttemptsSettings"
-      />
-    </div>
-    <div>
-      <reveal-responses-setting
-        v-model="revealResponseSettings"
-      />
-    </div>
+<div>
+  <div
+    class="mb-5 pb-2"
+  >
+    <multiple-attempts-setting
+      v-model="multipleAttemptsSettings"
+    />
   </div>
+  <div>
+    <reveal-responses-setting
+      v-model="revealResponseSettings"
+      @input="(value) => revealResponseSettings = value"
+    />
+  </div>
+</div>
 </template>
 
 <script>
@@ -31,43 +32,51 @@ export default {
     }),
     revealResponseSettings: {
       get() {
-        return this.assignment
-          ? {
-              allowStudentViewResponses: this.assignment.allowStudentViewResponses,
-              studentViewResponsesAfter: this.assignment.studentViewResponsesAfter,
-              studentViewResponsesBefore: this.assignment.studentViewResponsesBefore,
-              allowStudentViewCorrectAnswers: this.assignment.allowStudentViewCorrectAnswers,
-              studentViewCorrectAnswersAfter: this.assignment.studentViewCorrectAnswersAfter,
-              studentViewCorrectAnswersBefore: this.assignment.studentViewCorrectAnswersBefore
-            }
-          : null;
+        return this.assignment ?
+          {
+            allowStudentViewResponses: this.assignment.allowStudentViewResponses,
+            studentViewResponsesAfter: this.assignment.studentViewResponsesAfter,
+            studentViewResponsesBefore: this.assignment.studentViewResponsesBefore,
+            allowStudentViewCorrectAnswers: this.assignment.allowStudentViewCorrectAnswers,
+            studentViewCorrectAnswersAfter: this.assignment.studentViewCorrectAnswersAfter,
+            studentViewCorrectAnswersBefore: this.assignment.studentViewCorrectAnswersBefore
+          }
+          :
+          null;
       },
       set(value) {
-        this.setAssignment({ ...this.assignment, ...value });
-      },
+        this.setAssignment({
+          ...this.assignment,
+          ...value
+        });
+      }
     },
     multipleAttemptsSettings: {
       get() {
-        return this.assignment
-          ? {
-              allowMultipleAttempts: this.assignment.allowMultipleAttempts,
-              numOfSubmissions: this.assignment.numOfSubmissions,
-              hoursBetweenSubmissions: this.assignment.hoursBetweenSubmissions,
-              multipleSubmissionScoringScheme: this.assignment.multipleSubmissionScoringScheme,
-              cumulativeScoringInitialPercentage: this.assignment.cumulativeScoringInitialPercentage
-            }
-          : null;
+        return this.assignment ?
+          {
+            allowMultipleAttempts: this.assignment.allowMultipleAttempts,
+            numOfSubmissions: this.assignment.numOfSubmissions,
+            hoursBetweenSubmissions: this.assignment.hoursBetweenSubmissions,
+            multipleSubmissionScoringScheme: this.assignment.multipleSubmissionScoringScheme,
+            cumulativeScoringInitialPercentage: this.assignment.cumulativeScoringInitialPercentage
+          }
+          :
+          null;
       },
       set(value) {
-        this.setAssignment({ ...this.assignment, ...value });
+        this.setAssignment({
+          ...this.assignment,
+          ...value
+        });
       },
     },
 
   },
   methods: {
     ...mapMutations({
-      setAssignment: "assignment/setAssignment",
-    }),
-  },
-};
+      setAssignment: "assignment/setAssignment"
+    })
+  }
+}
 </script>

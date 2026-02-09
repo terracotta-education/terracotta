@@ -1,117 +1,93 @@
 <template>
-  <v-container>
-    <v-row>
-      <v-col>
-        <v-img
-          class="mx-auto mt-7 mb-7"
-          src="@/assets/terracotta_logo.svg"
-          alt="Terracotta Logo"
-          max-width="173"
-        />
-        <v-card
-          class="oauth-permissions-card mx-auto"
-          max-width="700"
+<v-container>
+  <v-row>
+    <v-col>
+      <v-img
+        class="mx-auto mt-7 mb-7"
+        src="@/assets/terracotta_logo.svg"
+        alt="Terracotta Logo"
+        max-width="173"
+      />
+      <v-card
+        class="oauth-permissions-card mx-auto"
+        max-width="700"
+      >
+        <v-card-title
+          class="text-h5"
         >
-          <v-card-title
-            class="text-h5"
+          Terracotta wants to access your {{ lmsTitle }} account
+        </v-card-title>
+        <v-card-text
+          class="oauth-permissions-card__text"
+        >
+          <p>This will allow Terracotta to:</p>
+          <ul
+            class="permission-list"
           >
-            Terracotta wants to access your {{ lmsTitle }} account
-          </v-card-title>
-          <v-card-text
-            class="oauth-permissions-card__text"
+            <li>
+              <div
+                class="d-flex"
+              >
+                <div>List assignment submissions</div>
+                <tool-tip
+                  :content="`Terracotta will pull information from your ${lmsTitle} site which allows it to list students' names and assignments in order and match them up with the outcomes you choose.`"
+                  header="What does this mean?"
+                  aria-label="Assignment submission listing explanation tooltip"
+                  alignment="top"
+                  activatorType="icon"
+                  icon="mdi-information-outline"
+                  ref="ref-list-submissions-tooltip"
+                />
+              </div>
+            </li>
+            <li>
+              <div
+                class="d-flex"
+              >
+                <div>Create, list, edit and delete assignments</div>
+                <tool-tip
+                  :content="`When you create an assignment in Terracotta, it automatically creates that same assignment in ${lmsTitle}. Terracotta assignments are listed with other ${lmsTitle}
+                    assignments, and when you edit or delete them in Terracotta, Terracotta communicates with ${lmsTitle} to keep the assignments up to date.`"
+                  header="What does this involve?"
+                  aria-label="Assignment management explanation tooltip"
+                  alignment="top"
+                  activatorType="icon"
+                  icon="mdi-information-outline"
+                  ref="ref-manage-assignments-tooltip"
+                />
+              </div>
+            </li>
+          </ul>
+        </v-card-text>
+        <v-card-actions>
+          <v-btn
+            :href="lmsApiOAuthURL"
+            class="redirect-button"
+            elevation="0"
           >
-            <p>This will allow Terracotta to:</p>
-            <ul
-              class="permission-list"
-            >
-              <li>
-                <div
-                  class="d-flex"
-                >
-                  <div>List assignment submissions</div>
-                  <v-tooltip
-                    top
-                    color="#373d3f"
-                    transition="slide-y-transition"
-                    max-width="360px"
-                  >
-                    <template
-                      v-slot:activator="{ on, attrs }"
-                    >
-                      <v-icon
-                        v-bind="attrs"
-                        v-on="on"
-                        class="ml-auto"
-                      >
-                        mdi-information-outline
-                      </v-icon>
-                    </template>
-                    <div
-                      class="tooltip-content"
-                    >
-                      <h3>What does this mean?</h3>
-                      <div>
-                        Terracotta will pull information from your {{ lmsTitle }} site which allows it to list students' names and assignments in order and match them up with the outcomes you choose.
-                      </div>
-                    </div>
-                  </v-tooltip>
-                </div>
-              </li>
-              <li>
-                <div
-                  class="d-flex"
-                >
-                  <div>Create, list, edit and delete assignments</div>
-                  <v-tooltip
-                    color="#373d3f"
-                    transition="slide-y-transition"
-                    max-width="360px"
-                    top
-                  >
-                    <template
-                      v-slot:activator="{ on, attrs }"
-                    >
-                      <v-icon
-                        v-bind="attrs"
-                        v-on="on"
-                        class="ml-auto"
-                      >
-                        mdi-information-outline
-                      </v-icon>
-                    </template>
-                    <div
-                      class="tooltip-content"
-                    >
-                      <h3>What does this involve?</h3>
-                      <div>
-                        When you create an assignment in Terracotta, it automatically creates that same assignment in {{ lmsTitle }}. Terracotta assignments are listed with other {{ lmsTitle }}
-                        assignments, and when you edit or delete them in Terracotta, Terracotta communicates with {{ lmsTitle }} to keep the assignments up to date.
-                      </div>
-                    </div>
-                  </v-tooltip>
-                </div>
-              </li>
-            </ul>
-          </v-card-text>
-          <v-card-actions>
-            <v-btn
-              :href="lmsApiOAuthURL"
-              class="redirect-button"
-              elevation="0"
-            >
-              Go to the {{ lmsTitle }} Authorization Page
-            </v-btn>
-          </v-card-actions>
-        </v-card>
-      </v-col>
-    </v-row>
-  </v-container>
+            Go to the {{ lmsTitle }} Authorization Page
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-col>
+  </v-row>
+</v-container>
 </template>
 
 <script>
 import { mapGetters } from "vuex";
+import ToolTip from "@/components/ToolTip.vue";
 
 export default {
+  components: {
+    ToolTip
+  },
+  data: () => ({
+    tooltipRefs: [
+      "ref-list-submissions-tooltip",
+      "ref-manage-assignments-tooltip"
+    ]
+  }),
   computed: {
     ...mapGetters({
       lmsApiOAuthURL: "api/lmsApiOAuthURL",
@@ -120,8 +96,8 @@ export default {
     lmsTitle() {
       return this.configurations.lmsTitle || "LMS";
     }
-  },
-};
+  }
+}
 </script>
 
 <style lang="scss" scoped>
@@ -166,21 +142,6 @@ export default {
     padding-bottom: 36px;
     margin-bottom: 18px;
     border-bottom: 1px solid #dddcd5;
-  }
-}
-.tooltip-content {
-  padding: 10px 0px;
-  h3 {
-    font-style: normal;
-    font-weight: 600;
-    font-size: 16px;
-    line-height: 20px;
-  }
-  div {
-    font-style: normal;
-    font-weight: 400;
-    font-size: 14px;
-    line-height: 21px;
   }
 }
 </style>

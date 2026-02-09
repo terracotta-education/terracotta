@@ -1,4 +1,4 @@
-import {resultsDashboardService} from '@/services'
+import {resultsDashboardService} from "@/services";
 
 const state = {
   resultsDashboard: {
@@ -14,9 +14,9 @@ const actions = {
       const response = await resultsDashboardService.overview(experimentId);
       const results = response?.data;
 
-      commit('setOverview', results.overview);
+      commit("setOverview", results.overview);
     } catch (error) {
-      console.error('overview catch', error);
+      console.error("overview catch", error);
     }
   },
   async getOutcomes ({commit}, payload) {
@@ -25,21 +25,21 @@ const actions = {
       const response = await resultsDashboardService.outcomes(...payload);
       const results = response?.data;
 
-      commit('setOutcomes', results.outcomes);
+      commit("setOutcomes", results.outcomes);
     } catch (error) {
-      console.log('outcomes catch', error);
+      console.error("outcomes catch", error);
     }
   },
   clearOverview({commit}) {
-    commit('setOverview', null);
+    commit("setOverview", null);
   },
   clearOutcomes({commit}) {
-    commit('setOutcomes', null);
+    commit("setOutcomes", null);
   },
   resetResultsDashboard({commit}) {
-    commit('setExperimentId', null);
-    commit('setOverview', null);
-    commit('setOutcomes', null);
+    commit("setExperimentId", null);
+    commit("setOverview", null);
+    commit("setOutcomes", null);
   }
 }
 

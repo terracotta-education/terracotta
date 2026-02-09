@@ -13,7 +13,6 @@ import org.hibernate.annotations.OnDeleteAction;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -38,18 +37,13 @@ public class Outcome extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(
-        name = "outcome_id",
-        nullable = false
-    )
     private Long outcomeId;
 
-    @Column private String title;
-    @Column private Boolean external;
-    @Column private String lmsOutcomeId;
-    @Column private Float maxPoints;
+    private String title;
+    private Boolean external;
+    private String lmsOutcomeId;
+    private Float maxPoints;
 
-    @Column
     @Enumerated(EnumType.STRING)
     private LmsType lmsType;
 

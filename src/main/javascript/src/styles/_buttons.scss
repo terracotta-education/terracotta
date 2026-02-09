@@ -1,5 +1,10 @@
 .v-btn {
-    &--tile {
-        border-radius: 4px !important;
-    }
+  &--tile {
+    border-radius: 4px !important;
+  }
+}
+/* v-date-picker */
+.v-date-picker-table .v-btn.v-btn--outlined {
+  color: map-get($blue, "primary") !important;
+  border-color: map-get($blue, "primary") !important;
 }

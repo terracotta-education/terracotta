@@ -435,12 +435,12 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
         FileSubmissionLocal fileSubmissionLocal = fileStorageService.saveFileSubmissionLocal(file);
         answerSubmissionDto.setFileName(file.getResource().getFilename());
         answerSubmissionDto.setMimeType(file.getContentType());
-        answerSubmissionDto.setFileUri(fileSubmissionLocal.getFilePath());
+        answerSubmissionDto.setFileUri(fileSubmissionLocal.filePath());
         answerSubmissionDto.setFile(getFile(file, file.getName()));
 
-        if (fileSubmissionLocal.isCompressed()) {
-            answerSubmissionDto.setEncryptionPhrase(fileSubmissionLocal.getEncryptionPhrase());
-            answerSubmissionDto.setEncryptionMethod(fileSubmissionLocal.getEncryptionMethod());
+        if (fileSubmissionLocal.compressed()) {
+            answerSubmissionDto.setEncryptionPhrase(fileSubmissionLocal.encryptionPhrase());
+            answerSubmissionDto.setEncryptionMethod(fileSubmissionLocal.encryptionMethod());
         }
 
         return postAnswerSubmission(answerSubmissionDto, answerSubmissionDto.getQuestionSubmissionId());
@@ -474,12 +474,12 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
         answerSubmissionDto.setAnswerSubmissionId(null);
         answerSubmissionDto.setFileName(file.getResource().getFilename());
         answerSubmissionDto.setMimeType(file.getContentType());
-        answerSubmissionDto.setFileUri(fileSubmissionLocal.getFilePath());
+        answerSubmissionDto.setFileUri(fileSubmissionLocal.filePath());
         answerSubmissionDto.setFile(getFile(file, file.getName()));
 
-        if (fileSubmissionLocal.isCompressed()) {
-            answerSubmissionDto.setEncryptionPhrase(fileSubmissionLocal.getEncryptionPhrase());
-            answerSubmissionDto.setEncryptionMethod(fileSubmissionLocal.getEncryptionMethod());
+        if (fileSubmissionLocal.compressed()) {
+            answerSubmissionDto.setEncryptionPhrase(fileSubmissionLocal.encryptionPhrase());
+            answerSubmissionDto.setEncryptionMethod(fileSubmissionLocal.encryptionMethod());
         }
 
         return postAnswerSubmission(answerSubmissionDto, answerSubmissionDto.getQuestionSubmissionId());

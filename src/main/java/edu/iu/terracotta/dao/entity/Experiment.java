@@ -18,7 +18,6 @@ import org.hibernate.annotations.OnDeleteAction;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
@@ -48,29 +47,21 @@ public class Experiment extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(
-        name = "experiment_id",
-        nullable = false
-    )
     private Long experimentId;
 
-    @Column private String title;
-    @Column private Timestamp started;
-    @Column private Timestamp closed;
+    private String title;
+    private Timestamp started;
+    private Timestamp closed;
 
     @Lob
-    @Column
     private String description;
 
-    @Column
     @Enumerated
     private ExposureTypes exposureType;
 
-    @Column
     @Enumerated
     private ParticipationTypes participationType;
 
-    @Column
     @Enumerated
     private DistributionTypes distributionType;
 

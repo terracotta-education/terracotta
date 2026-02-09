@@ -9,7 +9,6 @@ import edu.iu.terracotta.dao.entity.messaging.content.MessageContent;
 import edu.iu.terracotta.dao.entity.messaging.message.Message;
 import edu.iu.terracotta.dao.entity.messaging.message.MessageConfiguration;
 import edu.iu.terracotta.dao.model.enums.messaging.MessageProcessingStatus;
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -47,13 +46,12 @@ public class MessageLog extends BaseMessageEntity {
     )
     private LtiUserEntity recipient;
 
-    @Column
     @Enumerated(EnumType.STRING)
     private MessageProcessingStatus status;
 
-    @Column private String body;
-    @Column private String errorMessage;
-    @Column private String remoteId;
+    private String body;
+    private String errorMessage;
+    private String remoteId;
 
     @Transient
     public Condition getCondition() {

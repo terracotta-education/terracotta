@@ -1,255 +1,125 @@
 <template>
-<v-dialog
-  v-model="display"
-  :width="dialogWidth"
+<div
+  :id="id"
+  :class="classes"
+  @click="open"
+  @focus="open"
+  @blur="close"
+  class="datetime-input d-flex align-items-center justify-content-between"
 >
-  <template
-    v-slot:activator="{ on }"
-  >
-    <v-text-field
-      v-bind="textFieldProps"
-      :disabled="disabled"
-      :loading="loading"
-      :label="label"
-      :value="formattedDatetime"
-      v-on="on"
-      readonly
-    >
-      <template
-        v-slot:progress
-      >
-        <slot
-          name="progress"
-        >
-          <v-progress-linear
-            color="primary"
-            height="2"
-            indeterminate
-            absolute
-          ></v-progress-linear>
-        </slot>
-      </template>
-    </v-text-field>
-  </template>
-  <v-card>
-    <v-card-text
-      class="px-0 py-0"
-    >
-      <v-tabs
-        v-model="activeTab"
-        fixed-tabs
-      >
-        <v-tab
-          key="calendar"
-        >
-          <slot
-            name="dateIcon"
-          >
-            <v-icon>event</v-icon>
-          </slot>
-        </v-tab>
-        <v-tab
-          :disabled="dateSelected"
-          key="timer"
-        >
-          <slot
-            name="timeIcon"
-          >
-            <v-icon>access_time</v-icon>
-          </slot>
-        </v-tab>
-        <v-tab-item
-          key="calendar"
-        >
-          <v-date-picker
-            v-model="date"
-            v-bind="datePickerProps"
-            @input="showTimePicker"
-            full-width
-          ></v-date-picker>
-        </v-tab-item>
-        <v-tab-item
-          key="timer"
-        >
-          <v-time-picker
-            v-model="time"
-            v-bind="timePickerProps"
-            ref="timer"
-            class="v-time-picker-custom"
-            full-width
-          ></v-time-picker>
-        </v-tab-item>
-      </v-tabs>
-    </v-card-text>
-    <v-card-actions>
-      <v-spacer></v-spacer>
-      <slot
-        :parent="this"
-        name="actions"
-      >
-        <v-btn
-          @click.native="clearHandler"
-          color="grey lighten-1"
-          text
-        >
-          {{ clearText }}
-        </v-btn>
-        <v-btn
-          @click="okHandler"
-          color="green darken-1"
-          text
-        >
-          {{ okText }}
-        </v-btn>
-      </slot>
-    </v-card-actions>
-  </v-card>
-</v-dialog>
+  <flat-pickr
+    v-model="date"
+    @on-change="handleDateChange"
+    :config="config"
+    :aria-label="ariaLabel"
+    :class="classes"
+    :name="name"
+    ref="flatpickr"
+    tabindex="0"
+  ></flat-pickr>
+  <v-icon>mdi-calendar-clock</v-icon>
+</div>
 </template>
 
 <script>
-import { format, parse } from "date-fns";
-
-const DEFAULT_DATE = "";
-const DEFAULT_TIME = "00:00:00";
-const DEFAULT_DATE_FORMAT = "yyyy-MM-dd";
-const DEFAULT_TIME_FORMAT = "HH:mm:ss";
-const DEFAULT_DIALOG_WIDTH = 340;
-const DEFAULT_CLEAR_TEXT = "CLEAR";
-const DEFAULT_OK_TEXT = "OK";
+import { addAttributesToElement } from "@/helpers/ui-utils.js";
+import flatPickr from "vue-flatpickr-component";
+import "flatpickr/dist/flatpickr.min.css";
 
 export default {
-  name: "v-datetime-picker",
-  model: {
-    prop: "datetime",
-    event: "input"
+  components: {
+    flatPickr,
   },
   props: {
-    datetime: {
-      type: [Date, String],
+    id: {
+      type: String
+    },
+    name: {
+      type: String
+    },
+    classes: {
+      type: String
+    },
+    ariaLabel: {
+      type: String,
+      default: "Date and Time Picker",
+    },
+    value: {
+      type: String,
       default: null
     },
-    disabled: {
-      type: Boolean
+    min: {
+      type: String
     },
-    loading: {
-      type: Boolean
+    max: {
+      type: String
     },
-    label: {
-      type: String,
-      default: ""
+    enableDate: {
+      type: Boolean,
+      default: true
     },
-    dialogWidth: {
-      type: Number,
-      default: DEFAULT_DIALOG_WIDTH
-    },
-    dateFormat: {
-      type: String,
-      default: DEFAULT_DATE_FORMAT
-    },
-    timeFormat: {
-      type: String,
-      default: "HH:mm"
-    },
-    clearText: {
-      type: String,
-      default: DEFAULT_CLEAR_TEXT
-    },
-    okText: {
-      type: String,
-      default: DEFAULT_OK_TEXT
-    },
-    textFieldProps: {
-      type: Object
-    },
-    datePickerProps: {
-      type: Object
-    },
-    timePickerProps: {
-      type: Object
+    enableTime: {
+      type: Boolean,
+      default: true
     }
   },
-  data() {
-    return {
-      display: false,
-      activeTab: 0,
-      date: DEFAULT_DATE,
-      time: DEFAULT_TIME
-    }
-  },
+  data: () => ({
+    date: null
+  }),
   watch: {
-    datetime: function() {
-      this.init();
+    date: {
+      handler(newDate) {
+        this.$emit("input", newDate);
+      }
     }
   },
   computed: {
-    dateTimeFormat() {
-      return `${this.dateFormat} ${this.timeFormat}`;
-    },
-    defaultDateTimeFormat() {
-      return `${DEFAULT_DATE_FORMAT} ${DEFAULT_TIME_FORMAT}`;
-    },
-    formattedDatetime() {
-      return this.selectedDatetime ? format(this.selectedDatetime, this.dateTimeFormat) : "";
-    },
-    selectedDatetime() {
-      if (this.date && this.time) {
-        let datetimeString = `${this.date} ${this.time}`;
-
-        if (this.time.length === 5) {
-          datetimeString += ":00";
-        }
-
-        return parse(datetimeString, this.defaultDateTimeFormat, new Date());
+    config() {
+      return {
+        enableTime: true,
+        dateFormat: "Z",
+        minDate: this.min,
+        maxDate: this.max,
+        altInput: true,
+        altFormat: "m/d/Y h:iK",
+        ariaDateFormat: "M j, Y h:i K"
       }
-
-      return null;
-    },
-    dateSelected() {
-      return !this.date;
     }
   },
   methods: {
-    init() {
-      if (!this.datetime) {
-        return;
-      }
-
-      let initDateTime
-      if (this.datetime instanceof Date) {
-        initDateTime = this.datetime;
-      } else if (typeof this.datetime === "string" || this.datetime instanceof String) {
-        // see https://stackoverflow.com/a/9436948
-        initDateTime = parse(this.datetime, this.dateTimeFormat, new Date());
-      }
-
-      this.date = format(initDateTime, DEFAULT_DATE_FORMAT);
-      this.time = format(initDateTime, DEFAULT_TIME_FORMAT);
+    open() {
+      this.$refs.flatpickr.fp.open();
     },
-    okHandler() {
-      this.resetPicker();
-      this.$emit("input", this.selectedDatetime);
+    close() {
+      this.$refs.flatpickr.fp.close();
     },
-    clearHandler() {
-      this.resetPicker();
-      this.date = DEFAULT_DATE;
-      this.time = DEFAULT_TIME;
-      this.$emit("input", null);
-    },
-    resetPicker() {
-      this.display = false;
-      this.activeTab = 0;
-
-      if (this.$refs.timer) {
-        this.$refs.timer.selectingHour = true;
-      }
-    },
-    showTimePicker() {
-      this.activeTab = 1;
+    handleDateChange(_, dateStr) {
+      this.date = dateStr;
     }
   },
   mounted() {
-    this.init();
+    this.date = this.value;
+    this.$nextTick(() => {
+      this.$refs.flatpickr.fp.setDate(this.date, true);
+      addAttributesToElement(
+        ".form-control.input",
+        [{
+          name: "aria-label",
+          value: this.ariaLabel
+        }]
+      )
+    });
   }
 }
 </script>
+
+<style scoped>
+.datetime-input {
+  color: rgba(0, 0, 0, .87);
+  border: 1px solid #a0a0a0;
+  border-radius: 4px;
+  max-width: fit-content;
+  padding: 8px;
+  margin: 0 8px;
+}
+</style>

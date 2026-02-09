@@ -1,8 +1,7 @@
 .plain-link {
-    text-decoration: none;
-
-    &:hover,
-    &:focus {
-        text-decoration: underline;
-    }
+  text-decoration: none;
+  &:hover,
+  &:focus {
+    text-decoration: underline;
+  }
 }
