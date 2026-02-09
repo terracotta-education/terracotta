@@ -72,8 +72,8 @@ public class MessagingSchedulerRunner {
 
                     try {
                         log.info(
-                            "Task [{}] ran. Processed messages: [{}]",
-                            MESSAGING_SEND_TASK,
+                            "Task [{}] ran. Sent messages summary: [{}]",
+                            TASK_NAME,
                             JsonMapper.builder()
                                 .build()
                                 .writeValueAsString(results.get())

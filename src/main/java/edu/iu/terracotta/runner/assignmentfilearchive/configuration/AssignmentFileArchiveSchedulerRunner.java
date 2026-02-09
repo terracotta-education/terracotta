@@ -25,7 +25,7 @@ import org.springframework.context.annotation.Configuration;
 
 @Slf4j
 @Configuration
-@SuppressWarnings({"unused", "PMD.GuardLogStatement"})
+@SuppressWarnings({"PMD.GuardLogStatement"})
 public class AssignmentFileArchiveSchedulerRunner {
 
     public static final String TASK_NAME = "delete_expired_assignment_file_archives";

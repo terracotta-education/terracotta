@@ -1,5 +1,7 @@
 <template>
-  <v-app class="app">
+  <v-app
+    class="app"
+  >
     <v-main>
       <v-container>
         <v-row>
@@ -14,8 +16,14 @@
               class="storage-access-card mx-auto"
               max-width="700"
             >
-              <v-card-title class="text-h5" >You are using a browser that requires we ask your permission to use cookies.</v-card-title>
-              <v-card-text class="storage-access-card__text">
+              <v-card-title
+                class="text-h5"
+              >
+                You are using a browser that requires we ask your permission to use cookies.
+              </v-card-title>
+              <v-card-text
+                class="storage-access-card__text"
+              >
                 <p>
                   For the best experience, we recommend <strong>opening {{ isAssignment ? "your assignment" : "Terracotta" }} in Chrome</strong>.
                 </p>
@@ -31,7 +39,9 @@
                       transition="slide-y-transition"
                       max-width="360px"
                     >
-                      <template v-slot:activator="{ on, attrs }">
+                      <template
+                        v-slot:activator="{ on, attrs }"
+                      >
                         <span
                           class="has-tooltip"
                           v-bind="attrs"
@@ -51,12 +61,14 @@
                   <li>
                     Allow Terracotta to use cookies and website data while you use your LMS.
                     <v-tooltip
-                      top
                       color="#373d3f"
                       transition="slide-y-transition"
                       max-width="360px"
+                      top
                     >
-                      <template v-slot:activator="{ on, attrs }">
+                      <template
+                        v-slot:activator="{ on, attrs }"
+                      >
                         <span
                           class="has-tooltip"
                           v-bind="attrs"
@@ -96,53 +108,83 @@
         method="post"
         hidden
       >
-        <div class="form-group">
-          <label for="iss">iss:</label>
+        <div
+          class="form-group"
+        >
+          <label
+            for="iss"
+          >
+            iss:
+          </label>
           <input
+            :value="iss"
             type="text"
             id="iss"
             name="iss"
-            :value="iss"
             class="form-control"
           />
         </div>
-        <div class="form-group">
-          <label for="login_hint">login_hint:</label>
+        <div
+          class="form-group"
+        >
+          <label
+            for="login_hint"
+          >
+            login_hint:
+          </label>
           <input
+            :value="loginHint"
             type="text"
             id="login_hint"
             name="login_hint"
-            :value="loginHint"
             class="form-control"
           />
         </div>
-        <div class="form-group">
-          <label for="target_link_uri">target_link_uri:</label>
+        <div
+          class="form-group"
+        >
+          <label
+            for="target_link_uri"
+          >
+            target_link_uri:
+          </label>
           <input
+            :value="targetLinkUri"
             type="text"
             id="target_link_uri"
             name="target_link_uri"
-            :value="targetLinkUri"
             class="form-control"
           />
         </div>
-        <div class="form-group">
-          <label for="lti_message_hint">lti_message_hint:</label>
+        <div
+          class="form-group"
+        >
+          <label
+            for="lti_message_hint"
+          >
+            lti_message_hint:
+          </label>
           <input
+            :value="ltiMessageHint"
             type="text"
             id="lti_message_hint"
             name="lti_message_hint"
-            :value="ltiMessageHint"
             class="form-control"
           />
         </div>
-        <div class="form-group">
-          <label for="client_id">client_id:</label>
+        <div
+          class="form-group"
+        >
+          <label
+            for="client_id"
+          >
+            client_id:
+          </label>
           <input
+            :value="clientId"
             type="text"
             id="client_id"
             name="client_id"
-            :value="clientId"
             class="form-control"
           />
         </div>
@@ -150,12 +192,16 @@
           v-if="ltiDeploymentId"
           class="form-group"
         >
-          <label for="lti_deployment_id">lti_deployment_id:</label>
+          <label
+            for="lti_deployment_id"
+          >
+            lti_deployment_id:
+          </label>
           <input
+            :value="ltiDeploymentId"
             type="text"
             id="lti_deployment_id"
             name="lti_deployment_id"
-            :value="ltiDeploymentId"
             class="form-control"
           />
         </div>
@@ -171,15 +217,36 @@
 
 <script>
 export default {
-  props: [
-    "targetLinkUri",
-    "iss",
-    "loginHint",
-    "clientId",
-    "ltiMessageHint",
-    "ltiDeploymentId",
-    "assignmentId",
-  ],
+  props: {
+    targetLinkUri: {
+      type: String,
+      required: true
+    },
+    iss: {
+      type: String,
+      required: true
+    },
+    loginHint: {
+      type: String,
+      required: true
+    },
+    clientId: {
+      type: String,
+      required: true
+    },
+    ltiMessageHint: {
+      type: String,
+      required: true
+    },
+    ltiDeploymentId: {
+      type: String,
+      required: false
+    },
+    assignmentId: {
+      type: Number,
+      required: false
+    }
+  },
   computed: {
     isAssignment() {
       return !!this.assignmentId;
@@ -191,7 +258,10 @@ export default {
     },
     requestFullWindowLaunch() {
       window.parent.postMessage(
-        { subject: "requestFullWindowLaunch", data: this.targetLinkUri },
+        {
+          subject: "requestFullWindowLaunch",
+          data: this.targetLinkUri
+        },
         "*"
       );
     },

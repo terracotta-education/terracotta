@@ -211,7 +211,7 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
             answerMcs(export.get(), experimentImport, idMap);
             outcomes(export.get(), experimentImport, idMap);
          } catch (ExperimentImportException e) {
-            log.warn("Validation exception occured for experiment import ID: [{}]. Exiting.", experimentImport.getId(), e);
+            log.warn("Validation exception occurred for experiment import ID: [{}]. Exiting.", experimentImport.getId(), e);
          }
     }
 

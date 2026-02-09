@@ -9,7 +9,7 @@ public class BeansConfiguration {
 
     @Bean
     public JavaMailSenderImpl javaMailSender() {
-          return new JavaMailSenderImpl();
+        return new JavaMailSenderImpl();
     }
 
 }

@@ -51,6 +51,7 @@ public class ConsentDocument extends BaseEntity {
     @Column private String fileUri;
     @Column private String encryptionPhrase;
     @Column private String encryptionMethod;
+    @Column private String metadata; // JSON metadata from the LMS
 
     @Lob
     @Column

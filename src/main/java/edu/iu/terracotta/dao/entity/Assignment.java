@@ -56,9 +56,10 @@ public class Assignment extends BaseEntity {
     @Column private String lmsAssignmentId;
     @Column private String resourceLinkId;
     @Column private String title;
-    @Column  private Integer assignmentOrder;
+    @Column private Integer assignmentOrder;
     @Column private Integer numOfSubmissions; // if null, no multiple attempts allowed; if zero, then the number of submissions is unlimited
     @Column private Float hoursBetweenSubmissions;
+    @Column private String metadata; // JSON metadata from the LMS
     @Transient private Date dueDate;
 
     @Column

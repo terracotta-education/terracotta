@@ -5,6 +5,7 @@ import store from '@/store/index'
  * Register methods
  */
 export const apiService = {
+  deepLinkJwt,
   getApiToken,
   refreshToken,
   reportStep
@@ -13,7 +14,7 @@ export const apiService = {
 /**
  * get the lti token and set the api token
  */
-function getApiToken(token) {
+async function getApiToken(token) {
   const requestOptions = {
     method: 'POST',
     headers: {
@@ -31,7 +32,7 @@ function getApiToken(token) {
 /**
  * Refresh the api token
  */
-function refreshToken() {
+async function refreshToken() {
   const requestOptions = {
     method: 'POST',
     headers: { ...authHeader()}
@@ -40,6 +41,22 @@ function refreshToken() {
   return fetch(`${store.getters['api/aud']}/api/oauth/refresh`, requestOptions).then(response => {
     if (response.ok) {
       return response.text()
+    }
+  })
+}
+
+/**
+ * Refresh the api token
+ */
+async function deepLinkJwt(id) {
+  const requestOptions = {
+    method: "GET",
+    headers: { ...authHeader()}
+  }
+
+  return fetch(`${store.getters['api/aud']}/deeplink/toJwt/${id}`, requestOptions).then(response => {
+    if (response.ok) {
+      return response.text();
     }
   })
 }

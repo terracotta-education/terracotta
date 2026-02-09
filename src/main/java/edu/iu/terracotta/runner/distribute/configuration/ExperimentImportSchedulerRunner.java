@@ -23,7 +23,7 @@ import tools.jackson.databind.json.JsonMapper;
 
 @Slf4j
 @Configuration
-@SuppressWarnings({"unused", "PMD.GuardLogStatement"})
+@SuppressWarnings({"PMD.GuardLogStatement"})
 public class ExperimentImportSchedulerRunner {
 
     public static final String TASK_NAME = "delete_completed_experiment_imports";

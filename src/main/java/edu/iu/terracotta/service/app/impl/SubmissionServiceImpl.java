@@ -7,6 +7,7 @@ import edu.iu.terracotta.connectors.generic.dao.model.lti.LtiToken;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.LineItem;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.LineItems;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.Score;
+import edu.iu.terracotta.connectors.generic.dao.model.lti.enums.LtiAgsScope;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
@@ -62,6 +63,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
@@ -83,7 +85,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
 @Component
-@SuppressWarnings({"PMD.PreserveStackTrace", "PMD.GuardLogStatement", "PMD.MethodNamingConventions"})
+@SuppressWarnings({"PMD.PreserveStackTrace", "PMD.GuardLogStatement", "PMD.MethodNamingConventions", "PMD.LooseCoupling"})
 public class SubmissionServiceImpl implements SubmissionService {
 
     @Autowired private AnswerMcRepository answerMcRepository;
@@ -105,6 +107,15 @@ public class SubmissionServiceImpl implements SubmissionService {
     @Autowired private ApiJwtService apiJwtService;
     @Autowired private IntegrationTokenService integrationTokenService;
     @Autowired private ApiClient apiClient;
+
+    @Value("${app.integrations.token.ttl:43200}")
+    private long integrationTokenTtl;
+
+    @Value("${app.integrations.token.warning.period:14400}")
+    private long integrationTokenWarningPeriod;
+
+    @Value("${app.integrations.token.expiration.check.interval:60}")
+    private long integrationTokenExpirationCheckInterval;
 
     @Override
     public List<SubmissionDto> getSubmissions(Long experimentId, String userId, Long assessmentId, boolean student) throws NoSubmissionsException {
@@ -236,6 +247,9 @@ public class SubmissionServiceImpl implements SubmissionService {
             integrationLaunchService.buildUrl(submission, 0, submission.getIntegration());
             submissionDto.setIntegrationLaunchUrl(submission.getIntegrationLaunchUrl());
             submissionDto.setIntegrationFeedbackEnabled(submission.isIntegrationFeedbackEnabled());
+            submissionDto.setIntegrationTokenExpirationDate(submission.getIntegrationTokenLaunchedAt().getTime() + (integrationTokenTtl * 1000));
+            submissionDto.setIntegrationTokenWarningPeriod(integrationTokenWarningPeriod * 1000);
+            submissionDto.setIntegrationTokenExpirationCheckInterval(integrationTokenExpirationCheckInterval * 1000);
         }
 
         if (questionSubmissions) {
@@ -432,8 +446,8 @@ public class SubmissionServiceImpl implements SubmissionService {
         Assessment assessment = submission.getAssessment();
         Assignment assignment = assessment.getTreatment().getAssignment();
         Experiment experiment = assignment.getExposure().getExperiment();
-        LtiToken ltiTokenScore = advantageAgsService.getToken("scores", experiment.getPlatformDeployment());
-        LtiToken ltiTokenResults = advantageAgsService.getToken("results", experiment.getPlatformDeployment());
+        LtiToken ltiTokenScore = advantageAgsService.getToken(LtiAgsScope.SCORES, experiment.getPlatformDeployment());
+        LtiToken ltiTokenResults = advantageAgsService.getToken(LtiAgsScope.RESULTS, experiment.getPlatformDeployment());
         //find the right id to pass based on the assignment
         String lineitemId = lineItemId(assignment);
 
@@ -736,7 +750,7 @@ public class SubmissionServiceImpl implements SubmissionService {
 
     private String lineItemId(Assignment assignment) throws ConnectionException, TerracottaConnectorException {
         Experiment experiment = assignment.getExposure().getExperiment();
-        LtiToken ltiToken = advantageAgsService.getToken("lineitems", experiment.getPlatformDeployment());
+        LtiToken ltiToken = advantageAgsService.getToken(LtiAgsScope.LINEITEMS, experiment.getPlatformDeployment());
         //find the right id to pass based on the assignment
         LineItems lineItems = advantageAgsService.getLineItems(ltiToken, experiment.getLtiContextEntity());
 

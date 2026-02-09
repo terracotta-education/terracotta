@@ -8,14 +8,10 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 
-/**
- * OAuth handling utils
- */
-public final class OAuthUtils {
+import lombok.experimental.UtilityClass;
 
-    private OAuthUtils() {
-        throw new IllegalStateException("Utility class");
-    }
+@UtilityClass
+public final class OAuthUtils {
 
     public static RSAPublicKey loadPublicKey(String key) throws GeneralSecurityException {
         String publicKeyContent = key.replace("\\n", "").replace("-----BEGIN PUBLIC KEY-----", "").replace("-----END PUBLIC KEY-----", "");
@@ -27,8 +23,8 @@ public final class OAuthUtils {
 
     public static PrivateKey loadPrivateKey(String privateKeyPem) throws GeneralSecurityException {
         // PKCS#8 format
-        final String pemPrivateStart = "-----BEGIN PRIVATE KEY-----";
-        final String pemPrivateEnd = "-----END PRIVATE KEY-----";
+        String pemPrivateStart = "-----BEGIN PRIVATE KEY-----";
+        String pemPrivateEnd = "-----END PRIVATE KEY-----";
 
         if (privateKeyPem.contains(pemPrivateStart)) { // PKCS#8 format
             privateKeyPem = privateKeyPem.replace(pemPrivateStart, "").replace(pemPrivateEnd, "");
@@ -39,7 +35,7 @@ public final class OAuthUtils {
             return factory.generatePrivate(new PKCS8EncodedKeySpec(pkcs8EncodedKey));
         }
 
-        throw new GeneralSecurityException("Not supported format of a private key");
+        throw new GeneralSecurityException("Unsupported format of a private key");
     }
 
 }

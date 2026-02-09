@@ -7,6 +7,7 @@ import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiUserRepository
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
+import edu.iu.terracotta.connectors.generic.service.lms.LmsUtils;
 import edu.iu.terracotta.connectors.generic.service.api.ApiClient;
 import edu.iu.terracotta.dao.entity.AnswerFileSubmission;
 import edu.iu.terracotta.dao.entity.AssignmentFileArchive;
@@ -83,6 +84,7 @@ public class FileStorageServiceImpl implements FileStorageService {
     @Autowired private ExperimentImportRepository experimentImportRepository;
     @Autowired private ExperimentRepository experimentRepository;
     @Autowired private ExperimentDataExportRepository exportDataRepository;
+    @Autowired private LmsUtils lmsUtils;
     @Autowired private LtiUserRepository ltiUserRepository;
     @Autowired private ApiClient apiClient;
     @Autowired private ApiJwtService apijwtService;
@@ -279,7 +281,10 @@ public class FileStorageServiceImpl implements FileStorageService {
         Experiment experiment = experimentRepository.findByExperimentId(experimentId);
         ConsentDocument consentDocument = experiment.getConsentDocument();
         LtiUserEntity instructorUser = ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
-        String lmsCourseId = org.apache.commons.lang3.StringUtils.substringBetween(experiment.getLtiContextEntity().getContext_memberships_url(), "courses/", "/names");
+        String lmsCourseId = lmsUtils.parseCourseId(
+            experiment.getPlatformDeployment(),
+            experiment.getLtiContextEntity().getContext_memberships_url()
+        );
 
         if (consentDocument == null) {
             consentDocument = new ConsentDocument();
@@ -298,14 +303,11 @@ public class FileStorageServiceImpl implements FileStorageService {
         if (consentDocument.getLmsAssignmentId() == null) {
             sendConsentFileToLms(consentDocument, experiment, instructorUser);
         } else {
-            Optional<LmsAssignment> lmsAssignment = apiClient.listAssignment(instructorUser, lmsCourseId, consentDocument.getLmsAssignmentId());
+            LmsAssignment lmsAssignment = apiClient.listAssignment(instructorUser, lmsCourseId, consentDocument.getLmsAssignmentId())
+                .orElseThrow(() -> new AssignmentNotEditedException("Error 136: The assignment is not linked to any LMS assignment"));
 
-            if (lmsAssignment.isEmpty()) {
-                throw new AssignmentNotEditedException("Error 136: The assignment is not linked to any LMS assignment");
-            }
-
-            lmsAssignment.get().setName(title);
-            apiClient.editAssignment(instructorUser, lmsAssignment.get(), lmsCourseId);
+            lmsAssignment.setName(title);
+            apiClient.editAssignment(instructorUser, lmsAssignment, lmsCourseId);
             consentDocument.setTitle(title);
         }
 
@@ -322,12 +324,13 @@ public class FileStorageServiceImpl implements FileStorageService {
             LmsAssignment lmsAssignment = apiClient.uploadConsentFile(experiment, consentDocument, instructorUser);
 
             consentDocument.setLmsAssignmentId(lmsAssignment.getId());
+            consentDocument.setMetadata(lmsAssignment.getMetadata());
             // This seems to be a more accurate way to get the resourceLinkId
             String jwtTokenAssignment = lmsAssignment.getSecureParams();
             String resourceLinkId = apijwtService.unsecureToken(jwtTokenAssignment, experiment.getPlatformDeployment()).get("lti_assignment_id").toString();
             consentDocument.setResourceLinkId(resourceLinkId);
         } catch (ApiException e) {
-            throw new AssignmentNotCreatedException("Error 137: The consent document assignment was not created.");
+            throw new AssignmentNotCreatedException("Error 137: The consent document assignment was not created.", e);
         }
     }
 
@@ -359,6 +362,7 @@ public class FileStorageServiceImpl implements FileStorageService {
         Optional<LmsAssignment> lmsAssignment = apiClient.listAssignment(instructorUser, securedInfo.getLmsCourseId(), consentDocument.getLmsAssignmentId());
 
         if (lmsAssignment.isPresent()) {
+            lmsAssignment.get().setMetadata(consentDocument.getMetadata());
             apiClient.deleteAssignmentInLms(lmsAssignment.get(), securedInfo.getLmsCourseId(), instructorUser);
         }
 

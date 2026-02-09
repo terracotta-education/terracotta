@@ -37,7 +37,7 @@ async function create() {
   const requestOptions = {
     method: "POST",
     headers: {...authHeader(), "Content-Type": "application/json"},
-    body: JSON.stringify({})
+    body: null
   }
 
   return fetch(`${store.getters["api/aud"]}/api/experiments`, requestOptions).then(handleResponse);

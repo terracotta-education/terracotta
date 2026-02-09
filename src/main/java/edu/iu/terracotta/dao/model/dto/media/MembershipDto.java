@@ -17,7 +17,6 @@ import org.joda.time.DateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@SuppressWarnings({"PMD.LooseCoupling"})
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class MembershipDto extends AbstractDto {
 

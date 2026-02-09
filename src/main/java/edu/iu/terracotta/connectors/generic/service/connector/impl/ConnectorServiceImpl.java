@@ -26,7 +26,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
-@SuppressWarnings({"unchecked", "PMD.GuardLogStatement"})
+@SuppressWarnings({"unchecked", "PMD.GuardLogStatement", "PMD.LooseCoupling"})
 public class ConnectorServiceImpl<T> implements ConnectorService<T> {
 
     @Autowired private PlatformDeploymentRepository platformDeploymentRepository;
@@ -45,7 +45,7 @@ public class ConnectorServiceImpl<T> implements ConnectorService<T> {
         Arrays.stream(LmsConnector.values())
             .forEach(lmsConnector -> connectorServiceMap.put(lmsConnector, new HashMap<>()));
 
-        // populated each connector service map (LmsConnector : {interface class: connector service impl})
+        // populate each connector service map (LmsConnector : {interface class: connector service impl})
         connectorServices.stream()
             .forEach(
                 connector -> {

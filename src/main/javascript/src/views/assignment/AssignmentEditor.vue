@@ -1,7 +1,9 @@
 <template>
   <div>
     <v-row>
-    <div class="col-6">
+    <div
+      class="col-6"
+    >
         <v-text-field
             v-model="assignment.title"
             label="Component name"
@@ -9,24 +11,31 @@
         ></v-text-field>
     </div>
     </v-row>
-    <p>This will create an unpublished component shell in Canvas and will be the way Terracotta will deliver treatments to students.</p>
-    <v-divider class=""></v-divider>
-    <v-tabs v-model="tab" class="tabs">
+    <p>This will create an unpublished component shell in {{ lmsTitle }} and will be the way Terracotta will deliver treatments to students.</p>
+    <v-divider />
+    <v-tabs
+      v-model="tab"
+      class="tabs"
+    >
       <v-tab>Settings</v-tab>
     </v-tabs>
-    <v-divider class=""></v-divider>
-    <v-tabs-items v-model="tab">
-        <v-tab-item class="my-5">
-            <assignment-settings />
+    <v-divider />
+    <v-tabs-items
+      v-model="tab"
+    >
+        <v-tab-item
+          class="my-5"
+        >
+          <assignment-settings />
         </v-tab-item>
     </v-tabs-items>
     <v-btn
       v-if="!this.editMode"
       :disabled="contDisabled"
+      @click="saveNext('AssignmentYourAssignments')"
       elevation="0"
       color="primary"
       class="mr-4"
-      @click="saveNext('AssignmentYourAssignments')"
     >
       Continue
     </v-btn>
@@ -39,16 +48,20 @@ import AssignmentSettings from './AssignmentSettings.vue';
 
 export default {
   name: "AssignmentEditor",
-  props: ['experiment'],
-  data() {
-    return {
-      tab: null,
-    };
+  props: {
+    experiment: {
+      type: Object,
+      required: true
+    }
   },
+  data: () => ({
+    tab: null
+  }),
   computed: {
     ...mapGetters({
       assignment: "assignment/assignment",
-      editMode: "navigation/editMode"
+      editMode: "navigation/editMode",
+      configurations: "configuration/get"
     }),
     experimentId() {
       return parseInt(this.$route.params.experimentId);
@@ -66,6 +79,9 @@ export default {
     },
     getSaveExitPage() {
       return this.editMode?.callerPage?.name || 'Home';
+    },
+    lmsTitle() {
+      return this.configurations?.lmsTitle || "LMS";
     }
   },
   methods: {

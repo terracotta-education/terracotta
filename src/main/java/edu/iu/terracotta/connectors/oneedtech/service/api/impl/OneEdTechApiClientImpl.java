@@ -1,7 +1,6 @@
 package edu.iu.terracotta.connectors.oneedtech.service.api.impl;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -9,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import edu.iu.terracotta.connectors.generic.annotation.TerracottaConnector;
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiContextEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
 import edu.iu.terracotta.connectors.generic.dao.model.enums.LmsConnector;
@@ -35,6 +35,7 @@ import edu.iu.terracotta.connectors.oneedtech.service.lti.advantage.impl.OneEdTe
 import edu.iu.terracotta.dao.entity.Assignment;
 import edu.iu.terracotta.dao.entity.ConsentDocument;
 import edu.iu.terracotta.dao.entity.Experiment;
+import edu.iu.terracotta.dao.entity.Outcome;
 import edu.iu.terracotta.dao.entity.Submission;
 
 @Service
@@ -72,13 +73,18 @@ public class OneEdTechApiClientImpl implements ApiClient {
     }
 
     @Override
-    public List<LmsAssignment> listAssignments(LtiUserEntity apiUser, String lmsCourseId) throws ApiException, TerracottaConnectorException {
-        return Collections.singletonList(AssignmentExtended.builder().build());
+    public List<LmsAssignment> listAssignments(LtiUserEntity apiUser, LtiContextEntity ltiContext) throws ApiException, TerracottaConnectorException {
+        return List.of(AssignmentExtended.builder().build());
+    }
+
+    @Override
+    public List<LmsAssignment> listAssignments(LtiUserEntity apiUser, Experiment experiment) throws ApiException, TerracottaConnectorException {
+        return List.of(AssignmentExtended.builder().build());
     }
 
     @Override
     public List<LmsAssignment> listAssignments(PlatformDeployment platformDeployment, String lmsCourseId, String tokenOverride) throws ApiException, TerracottaConnectorException {
-        return Collections.singletonList(AssignmentExtended.builder().build());
+        return List.of(AssignmentExtended.builder().build());
     }
 
     @Override
@@ -89,6 +95,11 @@ public class OneEdTechApiClientImpl implements ApiClient {
     @Override
     public Optional<LmsAssignment> listAssignment(LtiUserEntity apiUser, String lmsCourseId, String assignmentId) throws ApiException, TerracottaConnectorException {
         return Optional.of(AssignmentExtended.builder().build());
+    }
+
+    @Override
+    public Optional<LmsAssignment> listAssignment(LtiUserEntity apiUser, String lmsCourseId, Assignment assignment) throws ApiException, TerracottaConnectorException {
+        return listAssignment(apiUser, lmsCourseId, assignment.getLmsAssignmentId());
     }
 
     @Override
@@ -129,23 +140,27 @@ public class OneEdTechApiClientImpl implements ApiClient {
     }
 
     @Override
+    public void updateAssignmentMetadata(Assignment assignment, LmsAssignment lmsAssignment) throws TerracottaConnectorException {
+    }
+
+    @Override
     public List<LmsCourse> listCoursesForUser(PlatformDeployment platformDeployment, String lmsUserId, String tokenOverride) throws ApiException, TerracottaConnectorException {
-        return Collections.singletonList(CourseExtended.builder().build());
+        return List.of(CourseExtended.builder().build());
     }
 
     @Override
-    public Optional<LmsCourse> editCourse(PlatformDeployment platformDeployment, LmsCourse lmsCourse, String lmsCourseId, String tokenOverride) throws ApiException, TerracottaConnectorException {
-        return Optional.of(CourseExtended.builder().build());
+    public List<LmsSubmission> listSubmissions(LtiUserEntity apiUser, Outcome outcome, String lmsCourseId) throws ApiException, IOException, TerracottaConnectorException {
+        return List.of(SubmissionExtended.builder().build());
     }
 
     @Override
-    public List<LmsSubmission> listSubmissions(LtiUserEntity apiUser, String assignmentId, String lmsCourseId) throws ApiException, IOException, TerracottaConnectorException {
-        return Collections.singletonList(SubmissionExtended.builder().build());
+    public List<LmsSubmission> listSubmissions(LtiUserEntity apiUser, String lmsAssignmentId, String lmsCourseId) throws ApiException, IOException, TerracottaConnectorException {
+        return List.of(SubmissionExtended.builder().build());
     }
 
     @Override
     public List<LmsSubmission> listSubmissionsForMultipleAssignments(LtiUserEntity apiUser, String lmsCourseId, List<String> lmsAssignmentIds) throws ApiException, IOException, TerracottaConnectorException {
-        throw new UnsupportedOperationException("Unimplemented method 'listSubmissionsForMultipleAssignments'");
+        return List.of();
     }
 
     @Override
@@ -154,27 +169,27 @@ public class OneEdTechApiClientImpl implements ApiClient {
 
     @Override
     public List<LmsConversation> sendConversation(LmsCreateConversationOptions lmsCreateConversationOptions, LtiUserEntity apiUser) throws ApiException {
-        throw new UnsupportedOperationException("Unimplemented method 'sendConversation'");
+        return List.of();
     }
 
     @Override
     public Optional<LmsConversation> getConversation(LmsGetSingleConversationOptions lmsGetSingleConversationOptions, LtiUserEntity apiUser) throws ApiException {
-        throw new UnsupportedOperationException("Unimplemented method 'getConversation'");
+        return Optional.empty();
     }
 
     @Override
     public List<LmsUser> listUsersForCourse(LmsGetUsersInCourseOptions lmsGetUsersInCourseOptions, LtiUserEntity apiUser) throws ApiException {
-        throw new UnsupportedOperationException("Unimplemented method 'listUsersForCourse'");
+        return List.of();
     }
 
     @Override
     public Optional<LmsFile> getFile(LtiUserEntity apiUser, String lmsFileId) throws ApiException {
-        throw new UnsupportedOperationException("Unimplemented method 'getFile'");
+        return Optional.empty();
     }
 
     @Override
     public List<LmsFile> getFiles(LtiUserEntity apiUser) throws ApiException, TerracottaConnectorException {
-        throw new UnsupportedOperationException("Unimplemented method 'getFiles'");
+        return List.of();
     }
 
 }

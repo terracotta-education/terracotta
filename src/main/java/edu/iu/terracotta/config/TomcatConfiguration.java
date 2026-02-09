@@ -19,11 +19,13 @@ public class TomcatConfiguration {
     WebServerFactoryCustomizer<TomcatServletWebServerFactory> cookieProcessorCustomizer() {
         return tomcatServletWebServerFactory -> {
             tomcatServletWebServerFactory.addContextValves(new SameSiteCookieValve());
-            tomcatServletWebServerFactory.addContextCustomizers(context -> {
-                Rfc6265CookieProcessor processor = new Rfc6265CookieProcessor();
-                processor.setSameSiteCookies("None");
-                context.setCookieProcessor(processor);
-            });
+            tomcatServletWebServerFactory.addContextCustomizers(
+                context -> {
+                    Rfc6265CookieProcessor processor = new Rfc6265CookieProcessor();
+                    processor.setSameSiteCookies("None");
+                    context.setCookieProcessor(processor);
+                }
+            );
         };
     }
 

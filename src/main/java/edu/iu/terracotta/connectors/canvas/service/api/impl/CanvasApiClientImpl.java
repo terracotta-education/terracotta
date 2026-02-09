@@ -1,7 +1,6 @@
 package edu.iu.terracotta.connectors.canvas.service.api.impl;
 
 import edu.iu.terracotta.connectors.canvas.dao.model.extended.AssignmentExtended;
-import edu.iu.terracotta.connectors.canvas.dao.model.extended.CourseExtended;
 import edu.iu.terracotta.connectors.canvas.dao.model.extended.FolderExtended;
 import edu.iu.terracotta.connectors.canvas.dao.model.extended.options.GetSubmissionsOptionsExtended;
 import edu.iu.terracotta.connectors.canvas.service.extended.AssignmentReaderExtended;
@@ -9,16 +8,17 @@ import edu.iu.terracotta.connectors.canvas.service.extended.AssignmentWriterExte
 import edu.iu.terracotta.connectors.canvas.service.extended.ConversationReaderExtended;
 import edu.iu.terracotta.connectors.canvas.service.extended.ConversationWriterExtended;
 import edu.iu.terracotta.connectors.canvas.service.extended.CourseReaderExtended;
-import edu.iu.terracotta.connectors.canvas.service.extended.CourseWriterExtended;
 import edu.iu.terracotta.connectors.canvas.service.extended.FileReaderExtended;
 import edu.iu.terracotta.connectors.canvas.service.extended.FolderReaderExtended;
 import edu.iu.terracotta.connectors.canvas.service.extended.SubmissionReaderExtended;
 import edu.iu.terracotta.connectors.canvas.service.extended.UserReaderExtended;
 import edu.iu.terracotta.connectors.canvas.service.extended.impl.CanvasApiFactoryExtended;
 import edu.iu.terracotta.connectors.canvas.service.lms.impl.CanvasLmsOAuthServiceImpl;
+import edu.iu.terracotta.connectors.canvas.service.lms.impl.CanvasLmsUtilsImpl;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.annotation.TerracottaConnector;
 import edu.iu.terracotta.connectors.generic.dao.entity.api.ApiTokenEntity;
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiContextEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
 import edu.iu.terracotta.connectors.generic.dao.model.enums.LmsConnector;
@@ -39,6 +39,7 @@ import edu.iu.terracotta.connectors.generic.service.api.ApiClient;
 import edu.iu.terracotta.dao.entity.Assignment;
 import edu.iu.terracotta.dao.entity.ConsentDocument;
 import edu.iu.terracotta.dao.entity.Experiment;
+import edu.iu.terracotta.dao.entity.Outcome;
 import edu.iu.terracotta.dao.entity.Submission;
 import edu.ksu.canvas.exception.CanvasException;
 import edu.ksu.canvas.exception.ObjectNotFoundException;
@@ -79,10 +80,11 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @TerracottaConnector(LmsConnector.CANVAS)
-@SuppressWarnings({"PMD.GuardLogStatement", "PMD.LambdaCanBeMethodReference", "PMD.UnusedPrivateMethod"})
+@SuppressWarnings({"PMD.GuardLogStatement", "PMD.LambdaCanBeMethodReference", "PMD.UnusedPrivateMethod", "PMD.LooseCoupling"})
 public class CanvasApiClientImpl implements ApiClient {
 
     @Autowired private CanvasLmsOAuthServiceImpl canvasLmsOAuthService;
+    @Autowired private CanvasLmsUtilsImpl canvasLmsUtils;
 
     @Value("${app.token.logging.enabled:true}")
     private boolean tokenLoggingEnabled;
@@ -119,19 +121,40 @@ public class CanvasApiClientImpl implements ApiClient {
     }
 
     @Override
-    public AssignmentExtended restoreAssignment(Assignment assignment) throws ApiException, IOException {
+    public AssignmentExtended restoreAssignment(Assignment assignment) throws ApiException, IOException, TerracottaConnectorException {
         // create the new Assignment in Canvas
-        String canvasCourseId = StringUtils.substringBetween(
-            assignment.getExposure().getExperiment().getLtiContextEntity().getContext_memberships_url(),
-            "courses/",
-            "/names"
+        String canvasCourseId = canvasLmsUtils.parseCourseId(
+            assignment.getExposure().getExperiment().getPlatformDeployment(),
+            assignment.getExposure().getExperiment().getLtiContextEntity().getContext_memberships_url()
         );
 
         return createLmsAssignment(assignment.getExposure().getExperiment().getCreatedBy(), assignment, canvasCourseId);
     }
 
     @Override
-    public List<LmsAssignment> listAssignments(LtiUserEntity apiUser, String canvasCourseId) throws ApiException {
+    public List<LmsAssignment> listAssignments(LtiUserEntity apiUser, LtiContextEntity ltiContext) throws ApiException, TerracottaConnectorException {
+        String canvasCourseId = canvasLmsUtils.parseCourseId(
+            ltiContext.getToolDeployment().getPlatformDeployment(),
+            ltiContext.getContext_memberships_url()
+        );
+
+        try {
+            return castList(
+                getReader(apiUser,AssignmentReaderExtended.class)
+                    .listCourseAssignments(new ListCourseAssignmentsOptions(canvasCourseId))
+            );
+        } catch (Exception e) {
+            throw new ApiException(String.format("Failed to get the list of assignments Canvas course by ID [%s]", canvasCourseId), e);
+        }
+    }
+
+    @Override
+    public List<LmsAssignment> listAssignments(LtiUserEntity apiUser, Experiment experiment) throws ApiException, TerracottaConnectorException {
+        String canvasCourseId = canvasLmsUtils.parseCourseId(
+            experiment.getPlatformDeployment(),
+            experiment.getLtiContextEntity().getContext_memberships_url()
+        );
+
         try {
             return castList(
                 getReader(apiUser,AssignmentReaderExtended.class)
@@ -166,6 +189,11 @@ public class CanvasApiClientImpl implements ApiClient {
         } catch (Exception e) {
             throw new ApiException(String.format("Failed to get the assignments with id [%s] from canvas course [%s]", canvasAssignmentId, canvasCourseId), e);
         }
+    }
+
+    @Override
+    public Optional<LmsAssignment> listAssignment(LtiUserEntity apiUser, String lmsCourseId, Assignment assignment) throws ApiException, TerracottaConnectorException {
+        return listAssignment(apiUser, lmsCourseId, assignment.getLmsAssignmentId());
     }
 
     @Override
@@ -241,7 +269,7 @@ public class CanvasApiClientImpl implements ApiClient {
     }
 
     @Override
-    public AssignmentExtended uploadConsentFile(Experiment experiment, ConsentDocument consentDocument, LtiUserEntity instructorUser) throws ApiException, IOException {
+    public AssignmentExtended uploadConsentFile(Experiment experiment, ConsentDocument consentDocument, LtiUserEntity instructorUser) throws ApiException, IOException, TerracottaConnectorException {
         AssignmentExtended assignmentExtended = AssignmentExtended.builder().build();
         ExternalToolTagAttribute canvasExternalToolTagAttributes = assignmentExtended.getAssignment().new ExternalToolTagAttribute();
         String consentPath = String.format("/lti3?consent=true&experiment=%s", experiment.getExperimentId());
@@ -268,7 +296,10 @@ public class CanvasApiClientImpl implements ApiClient {
         assignmentExtended.getAssignment().setSubmissionTypes(Collections.singletonList("external_tool"));
 
         try {
-            String canvasCourseId = StringUtils.substringBetween(experiment.getLtiContextEntity().getContext_memberships_url(), "courses/", "/names");
+            String canvasCourseId = canvasLmsUtils.parseCourseId(
+                experiment.getPlatformDeployment(),
+                experiment.getLtiContextEntity().getContext_memberships_url()
+            );
 
             return getWriter(instructorUser, AssignmentWriterExtended.class)
                 .createAssignment(canvasCourseId, assignmentExtended.getAssignment())
@@ -343,6 +374,11 @@ public class CanvasApiClientImpl implements ApiClient {
     }
 
     @Override
+    public void updateAssignmentMetadata(Assignment assignment, LmsAssignment lmsAssignment) throws TerracottaConnectorException {
+        // unused by Canvas
+    }
+
+    @Override
     public List<LmsCourse> listCoursesForUser(PlatformDeployment platformDeployment, String canvasUserId, String tokenOverride) throws ApiException {
         try {
             return castList(
@@ -355,19 +391,12 @@ public class CanvasApiClientImpl implements ApiClient {
     }
 
     @Override
-    public Optional<LmsCourse> editCourse(PlatformDeployment platformDeployment, LmsCourse lmsCourse, String canvasCourseId, String tokenOverride) throws ApiException {
-        try {
-            return castOptional(
-                getWriter(platformDeployment.getBaseUrl(), CourseWriterExtended.class, tokenOverride)
-                    .editCourse(canvasCourseId, CourseExtended.of(lmsCourse))
-            );
-        } catch (Exception e) {
-            throw new ApiException(String.format("Failed to edit the course with ID [%s] in Canvas", canvasCourseId), e);
-        }
+    public List<LmsSubmission> listSubmissions(LtiUserEntity apiUser, Outcome outcome, String canvasCourseId) throws ApiException, IOException, TerracottaConnectorException {
+        return listSubmissions(apiUser, outcome.getLmsOutcomeId(), canvasCourseId);
     }
 
     @Override
-    public List<LmsSubmission> listSubmissions(LtiUserEntity apiUser, String canvasAssignmentId, String canvasCourseId) throws ApiException, IOException {
+    public List<LmsSubmission> listSubmissions(LtiUserEntity apiUser, String canvasAssignmentId, String canvasCourseId) throws ApiException, IOException, TerracottaConnectorException {
         GetSubmissionsOptions submissionsOptions = new GetSubmissionsOptions(canvasCourseId, Long.parseLong(canvasAssignmentId));
         submissionsOptions.includes(List.of(GetSubmissionsOptions.Include.USER));
         submissionsOptions.userIds(List.of(GetSubmissionsOptionsExtended.UserId.ALL.toString()));
@@ -378,7 +407,14 @@ public class CanvasApiClientImpl implements ApiClient {
                     .getCourseSubmissions(submissionsOptions)
             );
         } catch (Exception e) {
-            throw new ApiException(String.format("Failed to list submissions for the assignment with ID: [%s] in the course with ID: [%s] in Canvas", canvasAssignmentId, canvasCourseId), e);
+            throw new ApiException(
+                String.format(
+                    "Failed to list submissions for the assignment with ID: [%s] in the course with ID: [%s] in Canvas",
+                    canvasAssignmentId,
+                    canvasCourseId
+                ),
+                e
+            );
         }
     }
 
@@ -661,89 +697,5 @@ public class CanvasApiClientImpl implements ApiClient {
             return Collections.emptyList();
         }
     }
-
-    /*@Override
-    public List<Submission> listSubmissionsForGivenUser(LtiUserEntity apiUser, Integer assignmentId,
-            String canvasCourseId, String canvasUserId) throws ApiException, IOException {
-        PlatformDeployment platformDeployment = apiUser.getPlatformDeployment();
-        String canvasBaseUrl = platformDeployment.getBaseUrl();
-        String accessToken = getAccessToken(apiUser);
-        OauthToken oauthToken = new NonRefreshableOauthToken(accessToken);
-        CanvasApiFactoryExtended apiFactory = new CanvasApiFactoryExtended(canvasBaseUrl);
-        SubmissionImpl submissionReader = apiFactory.getReader(SubmissionImpl.class, oauthToken);
-        GetSubmissionsOptions submissionsOptions = new GetSubmissionsOptions(canvasCourseId, assignmentId);
-        submissionsOptions.includes(Collections.singletonList(GetSubmissionsOptions.Include.USER));
-        return submissionReader.getCourseSubmissions(submissionsOptions);
-    }
-
-    @Override
-    public Optional<Progress> postSubmission(LtiUserEntity apiUser, edu.iu.terracotta.model.app.Submission submission,
-            Float maxTerracottaScore)
-            throws ApiException, IOException {
-
-        String canvasCourseId = getCanvasCourseId(submission.getParticipant().getLtiMembershipEntity().getContext().getContext_memberships_url());
-        int assignmentId = Integer.parseInt(submission.getAssessment().getTreatment().getAssignment().getLmsAssignmentId());
-        String canvasUserId = submission.getParticipant().getLtiUserEntity().getLmsUserId();
-        Optional<AssignmentExtended> assignmentExtended = listAssignment(apiUser, canvasCourseId, assignmentId);
-        if (assignmentExtended.isEmpty()) {
-            throw new ApiException(
-                    "Failed to get the assignments with id [" + assignmentId + "] from canvas course [" + canvasCourseId + "]");
-        }
-        Double maxCanvasScore = assignmentExtended.get().getPointsPossible();
-
-        Double grade = Double.valueOf("0");
-        if (submission.getTotalAlteredGrade() != null) {
-            grade = Double.parseDouble(submission.getTotalAlteredGrade().toString());
-        } else if (submission.getAlteredCalculatedGrade() != null) {
-            grade = Double.parseDouble(submission.getAlteredCalculatedGrade().toString());
-        } else {
-            grade = Double.parseDouble(submission.getCalculatedGrade().toString());
-        }
-        grade = grade * maxCanvasScore / Double.parseDouble(maxTerracottaScore.toString());
-
-        return postGrade(apiUser, canvasCourseId, assignmentId, canvasUserId, grade);
-    }
-
-    @Override
-    public Optional<Progress> postConsentSubmission(LtiUserEntity apiUser, Participant participant)
-            throws ApiException, IOException {
-        String canvasCourseId = getCanvasCourseId(participant.getLtiMembershipEntity().getContext().getContext_memberships_url());
-        int assignmentId = Integer.parseInt(participant.getExperiment().getConsentDocument().getLmsAssignmentId());
-        String canvasUserId = participant.getLtiUserEntity().getLmsUserId();
-        Optional<AssignmentExtended> assignmentExtended = listAssignment(apiUser, canvasCourseId, assignmentId);
-        if (assignmentExtended.isEmpty()) {
-            throw new ApiException(
-                    "Failed to get the assignments with id [" + assignmentId + "] from canvas course [" + canvasCourseId + "]");
-        }
-
-        Double grade = Double.valueOf("1.0");
-
-        return postGrade(apiUser, canvasCourseId, assignmentId, canvasUserId, grade);
-    }
-
-    private Optional<Progress> postGrade(LtiUserEntity apiUser, String canvasCourseId, int assignmentId,
-            String canvasUserId, Double grade) throws IOException, ApiException {
-        PlatformDeployment platformDeployment = apiUser.getPlatformDeployment();
-        String canvasBaseUrl = platformDeployment.getBaseUrl();
-        String accessToken = getAccessToken(apiUser);
-        OauthToken oauthToken = new NonRefreshableOauthToken(accessToken);
-        CanvasApiFactoryExtended apiFactory = new CanvasApiFactoryExtended(canvasBaseUrl);
-        SubmissionWriter submissionWriter = apiFactory.getWriter(SubmissionWriter.class, oauthToken);
-        MultipleSubmissionsOptions multipleSubmissionsOptions = new MultipleSubmissionsOptions(canvasCourseId, assignmentId, new HashMap<>());
-        MultipleSubmissionsOptions.StudentSubmissionOption submissionsOptions =
-                multipleSubmissionsOptions.createStudentSubmissionOption(
-                        null,
-                        grade.toString(),
-                        false,
-                        false,
-                        null,
-                        null
-                );
-        HashMap<String, MultipleSubmissionsOptions.StudentSubmissionOption> submissionOptionHashMap = new HashMap<>();
-        submissionOptionHashMap.put(canvasUserId, submissionsOptions);
-        multipleSubmissionsOptions.setStudentSubmissionOptionMap(submissionOptionHashMap);
-        submissionWriter.gradeMultipleSubmissionsByCourse(multipleSubmissionsOptions);
-        return submissionWriter.gradeMultipleSubmissionsByCourse(multipleSubmissionsOptions);
-    }*/
 
 }

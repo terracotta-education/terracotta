@@ -22,7 +22,7 @@ public class CourseExtended extends LmsCourse {
             return null;
         }
 
-        return String.valueOf(course.getId());
+        return Long.toString(course.getId());
     }
 
     @Override
@@ -31,14 +31,18 @@ public class CourseExtended extends LmsCourse {
             return;
         }
 
-        course.setId(Long.valueOf(id));
+        if (id == null) {
+            return;
+        }
+
+        course.setId(Long.parseLong(id));
     }
 
     @Override
     public LmsCourse from() {
         LmsCourse lmsCourse = LmsCourse.builder().build();
         lmsCourse.setId(getId());
-        lmsCourse.setType(getType());
+        lmsCourse.setType(CourseExtended.class);
 
         return lmsCourse;
     }

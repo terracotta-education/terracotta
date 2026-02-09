@@ -22,7 +22,7 @@ const actions = {
     commit('setAud', decodedToken.aud)
     commit('setExperimentId', decodedToken.experimentId)
     commit('setConsent', decodedToken.consent)
-    commit('setAssignmentId', decodedToken.canvasAssignmentId)
+    commit('setAssignmentId', decodedToken.lmsAssignmentId)
     commit('setUserId', decodedToken.userId)
     commit('setUserInfo', userInfo(decodedToken.roles))
     return dispatch('setApiToken', token)
@@ -36,7 +36,7 @@ const actions = {
           commit('setApiToken', data)
           commit('setAud', decodedToken.aud)
           commit('setExperimentId', decodedToken.experimentId)
-          commit('setAssignmentId', decodedToken.canvasAssignmentId)
+          commit('setAssignmentId', decodedToken.lmsAssignmentId)
           commit('setConsent', decodedToken.consent)
           commit('setUserId', decodedToken.userId)
           commit('setUserInfo', userInfo(decodedToken.roles))
@@ -55,7 +55,7 @@ const actions = {
           commit('setAud', decodedToken.aud)
           commit('setApiToken', data)
           commit('setExperimentId', decodedToken.experimentId)
-          commit('setAssignmentId', decodedToken.canvasAssignmentId)
+          commit('setAssignmentId', decodedToken.lmsAssignmentId)
           commit('setConsent', decodedToken.consent)
           commit('setUserId', decodedToken.userId)
           commit('setUserInfo', userInfo(decodedToken.roles))
@@ -75,6 +75,17 @@ const actions = {
       .catch(response => {
         console.error('reportStep | catch', {response, state})
         return response
+      })
+  },
+  async deepLinkJwt({state}, id) {
+    // get a deeplink jwt from the server
+    return await apiService.deepLinkJwt(id)
+      .then(data => {
+        return JSON.parse(data);
+      })
+      .catch(response => {
+        console.error('deepLinkJwt | catch', {response, state})
+        return response;
       })
   },
   setLmsApiOAuthURL({commit}, url) {

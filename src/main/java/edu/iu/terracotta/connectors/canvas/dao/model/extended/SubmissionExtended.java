@@ -1,6 +1,7 @@
 package edu.iu.terracotta.connectors.canvas.dao.model.extended;
 
 import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsSubmission;
 import edu.ksu.canvas.annotation.CanvasObject;
@@ -132,7 +133,7 @@ public class SubmissionExtended extends LmsSubmission {
     }
 
     @Override
-    public Long getUserId() {
+    public String getUserId() {
         if (submission == null) {
             return null;
         }
@@ -141,15 +142,19 @@ public class SubmissionExtended extends LmsSubmission {
             return null;
         }
 
-        return submission.getUserId();
+        return Long.toString(submission.getUserId());
     }
 
     @Override
-    public void setUserId(Long userId) {
-        submission.setUserId(userId);
+    public void setUserId(String userId) {
+        if (submission == null || StringUtils.isBlank(userId)) {
+            return;
+        }
+
+        submission.setUserId(Long.parseLong(userId));
 
         if (submission.getUser() != null) {
-            submission.getUser().setId(userId);
+            submission.getUser().setId(Long.parseLong(userId));
         }
     }
 

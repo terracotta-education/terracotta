@@ -1,5 +1,7 @@
 <template>
-  <v-app class="app">
+  <v-app
+    class="app"
+  >
     <v-main>
       <v-container>
         <v-row>
@@ -10,9 +12,18 @@
               alt="Terracotta Logo"
               max-width="173"
             />
-            <v-card class="first-party-card mx-auto" max-width="700">
-              <v-card-title class="text-h5">You need to establish a first-party interaction with Terracotta.</v-card-title>
-              <v-card-text class="first-party-card__text">
+            <v-card
+              class="first-party-card mx-auto"
+              max-width="700"
+            >
+              <v-card-title
+                class="text-h5"
+              >
+                You need to establish a first-party interaction with Terracotta.
+              </v-card-title>
+              <v-card-text
+                class="first-party-card__text"
+              >
                 <p>
                   Click the button below to establish the connection. This will return you to your LMS {{ isAssignment ? "assignment" : "" }},
                   and you'll see the same pop-up window as before. It may look like nothing has changed, but please click
@@ -61,12 +72,23 @@
 </template>
 
 <script>
+import { mapGetters } from "vuex";
+
 export default {
-  props: [
-    "platformRedirectUrl",
-    "assignmentId"
-  ],
+  props: {
+    platformRedirectUrl: {
+      type: String,
+      required: true
+    },
+    assignmentId: {
+      type: Number,
+      required: false
+    }
+  },
   computed: {
+    ...mapGetters({
+      configurations: "configuration/get"
+    }),
     isAssignment() {
       return !!this.assignmentId;
     }

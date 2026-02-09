@@ -25,6 +25,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
+import edu.iu.terracotta.connectors.brightspace.io.model.ApiVersion;
 import edu.iu.terracotta.connectors.canvas.dao.model.extended.AssignmentExtended;
 import edu.iu.terracotta.connectors.canvas.dao.model.extended.CourseExtended;
 import edu.iu.terracotta.connectors.canvas.dao.model.extended.SubmissionExtended;
@@ -163,10 +164,12 @@ public class BaseModelTest {
     @Mock protected ApiOneUseToken apiOneUseToken;
     @Mock protected ApiScope apiScope;
     @Mock protected ApiTokenEntity apiTokenEntity;
+    @Mock protected ApiVersion apiVersion;
     @Mock protected Assessment assessment;
     @Mock protected AssessmentDto assessmentDto;
     @Mock protected Assignment assignment;
     @Mock protected AssignmentDto assignmentDto;
+    @Mock protected edu.iu.terracotta.connectors.brightspace.dao.model.extended.AssignmentExtended brightspaceAssignmentExtended;
     @Mock protected AssignmentExtended canvasAssignmentExtended;
     @Mock protected Condition condition;
     @Mock protected ConsentDocument consentDocument;
@@ -274,6 +277,8 @@ public class BaseModelTest {
             when(apiTokenEntity.getAccessToken()).thenReturn(ACCESS_TOKEN);
             when(apiTokenEntity.getTokenId()).thenReturn(1L);
             when(apiTokenEntity.getExpiresAt()).thenReturn(Timestamp.from(Instant.now()));
+            when(apiVersion.getLe()).thenReturn("1");
+            when(apiVersion.getLp()).thenReturn("1");
             when(assessment.canViewCorrectAnswers()).thenReturn(true);
             when(assessment.canViewResponses()).thenReturn(true);
             when(assessment.getAssessmentId()).thenReturn(1L);
@@ -382,6 +387,7 @@ public class BaseModelTest {
             when(lmsSubmission.getUserName()).thenReturn(DISPLAY_NAME);
             when(lti3Request.getToolDeployment()).thenReturn(toolDeployment);
             when(ltiContextEntity.getContextId()).thenReturn(1l);
+            when(ltiContextEntity.getContextKey()).thenReturn("context_key");
             when(ltiContextEntity.getContext_memberships_url()).thenReturn("courses/1/names");
             when(ltiContextEntity.getLineitems()).thenReturn(LTI_URL);
             when(ltiContextEntity.getToolDeployment()).thenReturn(toolDeployment);

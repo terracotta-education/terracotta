@@ -17,6 +17,8 @@ import org.mockito.MockitoAnnotations;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.List;
+
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -36,7 +38,7 @@ public class AsyncServiceImplTest extends BaseTest {
         when(lmsAssignment.getLmsExternalToolFields().getUrl()).thenReturn(LTI_URL + "?experiment=2&assignment=1");
         when(lmsAssignment.getId()).thenReturn("2");
 
-        asyncService.handleObsoleteAssignmentsInLmsByContext(securedInfo);
+        asyncService.handleObsoleteAssignmentsInLmsByContext(securedInfo, List.of(lmsAssignment));
 
         verify(apiClient).editAssignment(any(LtiUserEntity.class), any(LmsAssignment.class), anyString());
         verify(obsoleteAssignmentRepository).save(any(ObsoleteAssignment.class));
@@ -47,7 +49,7 @@ public class AsyncServiceImplTest extends BaseTest {
         when(securedInfo.getContextId()).thenReturn(1L);
         when(assignmentRepository.findAssignmentsToCheckByContext(anyLong())).thenReturn(Collections.emptyList());
 
-        asyncService.handleObsoleteAssignmentsInLmsByContext(securedInfo);
+        asyncService.handleObsoleteAssignmentsInLmsByContext(securedInfo, List.of());
 
         verify(apiClient, never()).editAssignment(any(LtiUserEntity.class), any(LmsAssignment.class), anyString());
         verify(obsoleteAssignmentRepository, never()).save(any(ObsoleteAssignment.class));
@@ -57,7 +59,7 @@ public class AsyncServiceImplTest extends BaseTest {
     void testHandleObsoleteAssignmentsInLmsByContextNoLmsAssignments() throws DataServiceException, ConnectionException, IOException, ApiException, TerracottaConnectorException {
         when(assignmentService.getAllAssignmentsForLmsCourse(any(SecuredInfo.class))).thenReturn(Collections.emptyList());
 
-        asyncService.handleObsoleteAssignmentsInLmsByContext(securedInfo);
+        asyncService.handleObsoleteAssignmentsInLmsByContext(securedInfo, List.of());
 
         verify(apiClient, never()).editAssignment(any(LtiUserEntity.class), any(LmsAssignment.class), anyString());
         verify(obsoleteAssignmentRepository, never()).save(any(ObsoleteAssignment.class));
@@ -71,7 +73,7 @@ public class AsyncServiceImplTest extends BaseTest {
 
         doThrow(new ApiException("API Exception")).when(apiClient).editAssignment(any(LtiUserEntity.class), any(LmsAssignment.class), anyString());
 
-        asyncService.handleObsoleteAssignmentsInLmsByContext(securedInfo);
+        asyncService.handleObsoleteAssignmentsInLmsByContext(securedInfo, List.of(lmsAssignment));
 
         verify(apiClient).editAssignment(any(LtiUserEntity.class), any(LmsAssignment.class), anyString());
         verify(obsoleteAssignmentRepository, never()).save(any(ObsoleteAssignment.class));
@@ -81,7 +83,7 @@ public class AsyncServiceImplTest extends BaseTest {
     void testCheckAndRestoreAssignmentsInLmsByContext() throws ApiException, DataServiceException, ConnectionException, IOException, TerracottaConnectorException {
         when(lmsAssignment.getId()).thenReturn("2");
 
-        asyncService.checkAndRestoreAssignmentsInLmsByContext(securedInfo);
+        asyncService.checkAndRestoreAssignmentsInLmsByContext(securedInfo, List.of(lmsAssignment));
 
         verify(assignmentService).restoreAssignmentInLms(any(Assignment.class));
     }
@@ -90,7 +92,7 @@ public class AsyncServiceImplTest extends BaseTest {
     void testCheckAndRestoreAssignmentsInLmsByContextNoAssignmentsToCheck() throws ApiException, DataServiceException, ConnectionException, IOException, TerracottaConnectorException {
         when(assignmentRepository.findAssignmentsToCheckByContext(anyLong())).thenReturn(Collections.emptyList());
 
-        asyncService.checkAndRestoreAssignmentsInLmsByContext(securedInfo);
+        asyncService.checkAndRestoreAssignmentsInLmsByContext(securedInfo, List.of());
 
         verify(assignmentService, never()).restoreAssignmentInLms(any(Assignment.class));
     }
@@ -99,9 +101,9 @@ public class AsyncServiceImplTest extends BaseTest {
     void testCheckAndRestoreAssignmentsInLmsByContextNoLmsAssignments() throws ApiException, DataServiceException, ConnectionException, IOException, TerracottaConnectorException {
         when(assignmentService.getAllAssignmentsForLmsCourse(any(SecuredInfo.class))).thenReturn(Collections.emptyList());
 
-        asyncService.checkAndRestoreAssignmentsInLmsByContext(securedInfo);
+        asyncService.checkAndRestoreAssignmentsInLmsByContext(securedInfo, List.of());
 
-        verify(assignmentService, never()).restoreAssignmentInLms(any(Assignment.class));
+        verify(assignmentService).restoreAssignmentInLms(any(Assignment.class));
     }
 
     @Test
@@ -110,7 +112,7 @@ public class AsyncServiceImplTest extends BaseTest {
 
         doThrow(new ApiException("API Exception")).when(assignmentService).restoreAssignmentInLms(any(Assignment.class));
 
-        asyncService.checkAndRestoreAssignmentsInLmsByContext(securedInfo);
+        asyncService.checkAndRestoreAssignmentsInLmsByContext(securedInfo, List.of(lmsAssignment));
 
         verify(assignmentService).restoreAssignmentInLms(any(Assignment.class));
     }

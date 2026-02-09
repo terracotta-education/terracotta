@@ -32,7 +32,7 @@ public class IntegrationTokenServiceImpl implements IntegrationTokenService {
     @Autowired private IntegrationTokenRepository integrationTokenRepository;
 
     @Value("${app.integrations.token.ttl:43200}")
-    private int ttl;
+    private long ttl;
 
     @Override
     public void create(Submission submission, SecuredInfo securedInfo) throws IntegrationTokenNotFoundException {

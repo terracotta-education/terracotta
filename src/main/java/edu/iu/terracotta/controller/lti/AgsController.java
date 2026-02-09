@@ -5,6 +5,7 @@ import edu.iu.terracotta.connectors.generic.dao.entity.lti.ToolDeployment;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.LtiToken;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.LineItem;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.LineItems;
+import edu.iu.terracotta.connectors.generic.dao.model.lti.enums.LtiAgsScope;
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiContextRepository;
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.ToolDeploymentRepository;
 import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
@@ -70,14 +71,14 @@ public class AgsController {
 
             //Call the ags service to get the users on the context
             // 1. Get the token
-            LtiToken ltiToken = advantageAGSServiceService.getToken("lineitems", toolDeployment.get().getPlatformDeployment());
+            LtiToken ltiToken = advantageAGSServiceService.getToken(LtiAgsScope.LINEITEMS, toolDeployment.get().getPlatformDeployment());
             log.info(TextConstants.TOKEN + ltiToken.getAccess_token());
             // 2. Call the service
             LineItems lineItemsResult = advantageAGSServiceService.getLineItems(ltiToken, context);
 
             // 3. update the model
-            model.addAttribute(TextConstants.SINGLE, false);
-            model.addAttribute(TextConstants.RESULTS, lineItemsResult.getLineItemList());
+            model.addAttribute(LtiAgsScope.SINGLE.key(), false);
+            model.addAttribute(LtiAgsScope.RESULTS.key(), lineItemsResult.getLineItemList());
         }
 
         return LTIADVAGSMAIN;
@@ -108,15 +109,15 @@ public class AgsController {
 
             //Call the ags service to post a lineitem
             // 1. Get the token
-            LtiToken ltiToken = advantageAGSServiceService.getToken("lineitems", toolDeployment.get().getPlatformDeployment());
+            LtiToken ltiToken = advantageAGSServiceService.getToken(LtiAgsScope.LINEITEMS, toolDeployment.get().getPlatformDeployment());
             log.info(TextConstants.TOKEN + ltiToken.getAccess_token());
 
             // 2. Call the service
             LineItems lineItemsResult = advantageAGSServiceService.postLineItems(ltiToken, context, lineItems);
 
             // 3. update the model
-            model.addAttribute(TextConstants.SINGLE, false);
-            model.addAttribute(TextConstants.RESULTS, lineItemsResult.getLineItemList());
+            model.addAttribute(LtiAgsScope.SINGLE.key(), false);
+            model.addAttribute(LtiAgsScope.RESULTS.key(), lineItemsResult.getLineItemList());
         }
 
         return LTIADVAGSMAIN;
@@ -146,15 +147,15 @@ public class AgsController {
 
             //Call the ags service to post a lineitem
             // 1. Get the token
-            LtiToken ltiToken = advantageAGSServiceService.getToken("lineitems", toolDeployment.get().getPlatformDeployment());
+            LtiToken ltiToken = advantageAGSServiceService.getToken(LtiAgsScope.LINEITEMS, toolDeployment.get().getPlatformDeployment());
             log.info(TextConstants.TOKEN + ltiToken.getAccess_token());
 
             // 2. Call the service
             LineItem lineItemsResult = advantageAGSServiceService.getLineItem(ltiToken, context, id);
 
             // 3. update the model
-            model.addAttribute(TextConstants.SINGLE, true);
-            model.addAttribute(TextConstants.RESULTS, Collections.singletonList(lineItemsResult));
+            model.addAttribute(LtiAgsScope.SINGLE.key(), true);
+            model.addAttribute(LtiAgsScope.RESULTS.key(), Collections.singletonList(lineItemsResult));
         }
 
         return LTIADVAGSMAIN;
@@ -184,7 +185,7 @@ public class AgsController {
 
                 //Call the ags service to post a lineitem
                 // 1. Get the token
-                LtiToken ltiToken = advantageAGSServiceService.getToken("lineitems", toolDeployment.get().getPlatformDeployment());
+                LtiToken ltiToken = advantageAGSServiceService.getToken(LtiAgsScope.LINEITEMS, toolDeployment.get().getPlatformDeployment());
                 log.info(TextConstants.TOKEN + ltiToken.getAccess_token());
 
                 // 2. Call the service
@@ -192,8 +193,8 @@ public class AgsController {
                 LineItem lineItemsResult = advantageAGSServiceService.putLineItem(ltiToken, context, lineItem);
 
                 // 3. update the model
-                model.addAttribute(TextConstants.SINGLE, true);
-                model.addAttribute(TextConstants.RESULTS, Collections.singletonList(lineItemsResult));
+                model.addAttribute(LtiAgsScope.SINGLE.key(), true);
+                model.addAttribute(LtiAgsScope.RESULTS.key(), Collections.singletonList(lineItemsResult));
             }
 
         return LTIADVAGSMAIN;
@@ -225,7 +226,7 @@ public class AgsController {
 
             //Call the ags service to post a lineitem
             // 1. Get the token
-            LtiToken ltiToken = advantageAGSServiceService.getToken("lineitems", toolDeployment.get().getPlatformDeployment());
+            LtiToken ltiToken = advantageAGSServiceService.getToken(LtiAgsScope.LINEITEMS, toolDeployment.get().getPlatformDeployment());
             log.info(TextConstants.TOKEN + ltiToken.getAccess_token());
 
             // 2. Call the service
@@ -233,9 +234,9 @@ public class AgsController {
             LineItems lineItemsResult = advantageAGSServiceService.getLineItems(ltiToken, context);
 
             // 3. update the model
-            model.addAttribute(TextConstants.SINGLE, false);
-            model.addAttribute(TextConstants.RESULTS, lineItemsResult.getLineItemList());
-            model.addAttribute("deleteResults", deleteResult);
+            model.addAttribute(LtiAgsScope.SINGLE.key(), false);
+            model.addAttribute(LtiAgsScope.RESULTS.key(), lineItemsResult.getLineItemList());
+            model.addAttribute(LtiAgsScope.DELETE_RESULTS.key(), deleteResult);
         }
 
         return LTIADVAGSMAIN;

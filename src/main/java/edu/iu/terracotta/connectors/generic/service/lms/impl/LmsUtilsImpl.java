@@ -1,5 +1,6 @@
 package edu.iu.terracotta.connectors.generic.service.lms.impl;
 
+import org.apache.commons.lang3.Strings;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
@@ -22,6 +23,35 @@ public class LmsUtilsImpl implements LmsUtils {
     @Override
     public String parseCourseId(PlatformDeployment platformDeployment, String url) throws TerracottaConnectorException {
         return instance(platformDeployment).parseCourseId(platformDeployment, url);
+    }
+
+    @Override
+    public String parseDeploymentId(PlatformDeployment platformDeployment, String url) throws TerracottaConnectorException {
+        return instance(platformDeployment).parseDeploymentId(platformDeployment, url);
+    }
+
+    @Override
+    public String sanitize(String input) {
+        input = Strings.CS.replace(input, "/", "_");
+        input = Strings.CS.replace(input, "\\", "_");
+        input = Strings.CS.replace(input, "\"", "_");
+        input = Strings.CS.replace(input, "*", "_");
+        input = Strings.CS.replace(input, "<", "_");
+        input = Strings.CS.replace(input, ">", "_");
+        input = Strings.CS.replace(input, "+", "_");
+        input = Strings.CS.replace(input, "=", "_");
+        input = Strings.CS.replace(input, "|", "_");
+        input = Strings.CS.replace(input, ",", "_");
+        input = Strings.CS.replace(input, "%", "_");
+        input = Strings.CS.replace(input, ":", "_");
+        input = Strings.CS.replace(input, "?", "_");
+        input = Strings.CS.replace(input, "~", "_");
+        input = Strings.CS.replace(input, "#", "_");
+        input = Strings.CS.replace(input, "&", "_");
+        input = Strings.CS.replace(input, "{", "_");
+        input = Strings.CS.replace(input, "}", "_");
+
+        return input;
     }
 
 }
