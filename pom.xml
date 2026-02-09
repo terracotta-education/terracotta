@@ -10,7 +10,7 @@
     </parent>
     <groupId>edu.iu</groupId>
     <artifactId>terracotta</artifactId>
-    <version>25.11.x</version>
+    <version>26.02.x</version>
     <inceptionYear>2021</inceptionYear>
     <name>Terracotta</name>
     <description>LTI 1.3 tool for educational experimentation</description>
@@ -35,7 +35,6 @@
         <joda-time.version>2.14.0</joda-time.version>
         <json.version>20250517</json.version>
         <jsoup.version>1.21.2</jsoup.version>
-        <liquibase.version>5.0.1</liquibase.version>
         <lombok.version>1.18.42</lombok.version>
         <mysql-connector-j.version>9.5.0</mysql-connector-j.version>
         <nimbus-jose-jwt.version>10.6</nimbus-jose-jwt.version>
@@ -91,10 +90,9 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-mail</artifactId>
         </dependency>
-
         <dependency>
-            <groupId>org.liquibase</groupId>
-            <artifactId>liquibase-core</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-liquibase</artifactId>
         </dependency>
 
         <dependency>

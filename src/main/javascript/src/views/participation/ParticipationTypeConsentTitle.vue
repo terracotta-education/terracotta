@@ -1,13 +1,13 @@
 <template>
   <div>
     <h1>Create a title for your consent assignment</h1>
-    <p>This will create an <strong>unpublished consent assignment</strong> in Canvas and will be the way your students
-      will read, review and sign your study’s informed consent. The consent assignment will be a prerequisite for your
+    <p>This will create an <strong>unpublished consent assignment</strong> in {{ lmsTitle }} and will be the way your students
+      will read, review and sign your study's informed consent. The consent assignment will be a prerequisite for your
       first study treatment assignments.</p>
     <form
+      v-if="experiment && consent"
       @submit.prevent="saveTitle('ParticipationTypeConsentFile')"
       class="my-5"
-      v-if="experiment && consent"
     >
       <v-text-field
         v-model="title"
@@ -39,36 +39,45 @@
 </template>
 
 <script>
-import { mapActions, mapGetters } from 'vuex';
+import { mapActions, mapGetters } from "vuex";
 
 export default {
-  name: 'ParticipationTypeConsentTitle',
-  props: ['experiment'],
+  name: "ParticipationTypeConsentTitle",
+  props: {
+    experiment: {
+      type: Object,
+      required: true
+    }
+  },
+  data: () => ({
+    titleProxy: "",
+    rules: [
+      v => v && !!v.trim() || "Title is required",
+      v => (v || "").length <= 255 || "A maximum of 255 characters is allowed"
+    ],
+  }),
   computed: {
     ...mapGetters({
-      consent: 'consent/consent',
-      editMode: 'navigation/editMode'
+      consent: "consent/consent",
+      editMode: "navigation/editMode",
+      configurations: "configuration/get"
     }),
     getSaveExitPage() {
-        return this.editMode?.callerPage?.name || 'Home';
+        return this.editMode?.callerPage?.name || "Home";
     },
     title: {
       get() {
-        return this.titleProxy === '' ? this.experiment?.consent?.title || this.consent?.title : this.titleProxy;
+        return this.titleProxy === "" ? this.experiment?.consent?.title || this.consent?.title : this.titleProxy;
       },
       set(value) {
         this.titleProxy = value;
         this.setConsentTitle(value);
       }
+    },
+    lmsTitle() {
+      return this.configurations?.lmsTitle || "LMS";
     }
   },
-  data: () => ({
-    titleProxy: '',
-    rules: [
-      v => v && !!v.trim() || 'Title is required',
-      v => (v || '').length <= 255 || 'A maximum of 255 characters is allowed'
-    ],
-  }),
   methods: {
     ...mapActions({
       setConsentTitle: "consent/setConsentTitle"
@@ -79,6 +88,6 @@ export default {
     saveExit() {
       this.saveTitle(this.getSaveExitPage)
     }
-  },
+  }
 }
 </script>

@@ -41,7 +41,7 @@ public class GroupParticipantServiceImplTest extends BaseTest {
 
     @Test
     public void testGetUniqueGroupByConditionIdNoAssignment() {
-        when(assignmentRepository.findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(anyLong(), anyString())).thenReturn(null);
+        when(assignmentRepository.findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(anyLong(), anyString())).thenReturn(Optional.empty());
 
         Exception exception = assertThrows(AssignmentNotMatchingException.class, () -> { groupParticipantService.getUniqueGroupByConditionId(1L, "1", 1l); });
 

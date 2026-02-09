@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import com.google.common.reflect.TypeToken;
 
 import edu.iu.terracotta.connectors.canvas.dao.model.extended.CourseExtended;
@@ -24,11 +23,6 @@ public class CourseExtendedImpl extends BaseImpl<CourseExtended, CourseReaderExt
     public CourseExtendedImpl(String canvasBaseUrl, Integer apiVersion, OauthToken oauthToken, RestClient restClient, int connectTimeout, int readTimeout, Integer paginationPageSize, Boolean serializeNulls) {
         super(canvasBaseUrl, apiVersion, oauthToken, restClient, connectTimeout, readTimeout, paginationPageSize, serializeNulls);
         this.courseImpl = new CourseImpl(canvasBaseUrl, apiVersion, oauthToken, restClient, connectTimeout, readTimeout, paginationPageSize, serializeNulls);
-    }
-
-    @Override
-    public Optional<CourseExtended> editCourse(String canvasCourseId, CourseExtended courseExtended) throws IOException {
-        return parseOptional(courseImpl.updateCourse(canvasCourseId, courseExtended.getCourse()));
     }
 
     @Override
@@ -60,15 +54,6 @@ public class CourseExtendedImpl extends BaseImpl<CourseExtended, CourseReaderExt
             );
 
             return courseExtendedList;
-    }
-
-    private Optional<CourseExtended> parseOptional(Optional<Course> course) {
-        return Optional.of(
-            CourseExtended.builder()
-                .course(course.get())
-                .type(Course.class)
-                .build()
-        );
     }
 
 }

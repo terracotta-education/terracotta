@@ -431,15 +431,13 @@ export default {
     Spinner,
     SubmissionSelector
   },
-  data() {
-    return {
-      maxPoints: 0,
-      selectedSubmissionId: null,
-      downloadId: null,
-      attempts: [], // [{submissionId, initialScoreType, typeChanged, calculatedGrade: {grade, touched}, overrideGrade: {grade, touched}, gradeOverridden, studentResponse, questionScoreMap, loaded}]
-      isSaving: false
-    };
-  },
+  data: () => ({
+    maxPoints: 0,
+    selectedSubmissionId: null,
+    downloadId: null,
+    attempts: [], // [{submissionId, initialScoreType, typeChanged, calculatedGrade: {grade, touched}, overrideGrade: {grade, touched}, gradeOverridden, studentResponse, questionScoreMap, loaded}]
+    isSaving: false
+  }),
   computed: {
     ...mapGetters({
       experiment: "experiment/experiment",
@@ -447,8 +445,8 @@ export default {
       assessment: "assessment/assessment",
       studentResponse: "submissions/studentResponse",
       questionPages: "assessment/questionPages",
+      configurations: "configuration/get"
     }),
-
     assessmentId() {
       return parseInt(this.$route.params.assessmentId);
     },
@@ -600,7 +598,7 @@ export default {
     scoreTooltip() {
       switch(this.getScoreType) {
         case "calculated":
-          return `This score updates based on points students earn on individual items (as input by Canvas for multiple choice questions or by instructors for short answer or file
+          return `This score updates based on points students earn on individual items (as input by ${this.lmsTitle} for multiple choice questions or by instructors for short answer or file
               upload questions). The instructor can override this score by clicking Override (which can be reversed after the change).`;
         case "override":
           return "You have overridden the calculated score. This score will not change based on changes made to points earned on individual questions. Click Revert to go back to the calculated score.";
@@ -685,6 +683,9 @@ export default {
     },
     currentAttemptOverrideGradeTouched() {
       return this.currentAttempt?.overrideGrade?.touched || false;
+    },
+    lmsTitle() {
+      return this.configurations?.lmsTitle || "LMS";
     }
   },
   watch: {

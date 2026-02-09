@@ -1,6 +1,7 @@
 package edu.iu.terracotta.service.app;
 
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
+import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.dao.entity.ConsentDocument;
 import edu.iu.terracotta.dao.entity.Experiment;
@@ -20,7 +21,7 @@ import java.util.List;
 
 public interface ExperimentService {
 
-    List<ExperimentDto> getExperiments(SecuredInfo securedInfo, boolean syncWithLms);
+    List<ExperimentDto> getExperiments(SecuredInfo securedInfo, boolean syncWithLms) throws ConnectionException, TerracottaConnectorException;
     Experiment getExperiment(long experimentId);
     ExperimentDto postExperiment(ExperimentDto experimentDto, SecuredInfo securedInfo) throws DataServiceException, TitleValidationException;
     void updateExperiment(long experimentId, long contextId, ExperimentDto experimentDto, SecuredInfo securedInfo) throws TitleValidationException, WrongValueException, ParticipantNotUpdatedException, ExperimentNotMatchingException, IOException, NumberFormatException, TerracottaConnectorException;

@@ -5,7 +5,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
-import org.apache.commons.lang3.Strings;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
@@ -22,6 +21,7 @@ import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.LineItem;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.LineItems;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.Results;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.Score;
+import edu.iu.terracotta.connectors.generic.dao.model.lti.enums.LtiAgsScope;
 import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.connectors.generic.exceptions.helper.ExceptionMessageGenerator;
@@ -40,15 +40,14 @@ public class OneEdTechAdvantageAgsServiceImpl implements AdvantageAgsService {
     @Autowired private ExceptionMessageGenerator exceptionMessageGenerator;
 
     @Override
-    public LtiToken getToken(String type, PlatformDeployment platformDeployment) throws ConnectionException {
-        String scope = "https://purl.imsglobal.org/spec/lti-ags/scope/lineitem";
+    public LtiToken getToken(LtiAgsScope type, PlatformDeployment platformDeployment) throws ConnectionException {
+        String scope;
 
-        if (Strings.CS.equals(type, "results")) {
-            scope = "https://purl.imsglobal.org/spec/lti-ags/scope/result.readonly";
-        }
-
-        if (Strings.CS.equals(type, "scores")) {
-            scope = "https://purl.imsglobal.org/spec/lti-ags/scope/score";
+        switch (type) {
+            case LINEITEM -> scope = LtiAgsScope.AGS_LINEITEM.key();
+            case RESULTS -> scope = LtiAgsScope.AGS_RESULT_READONLY.key();
+            case SCORES -> scope = LtiAgsScope.AGS_SCORE.key();
+            default -> scope = LtiAgsScope.AGS_LINEITEM.key();
         }
 
         return advantageConnectorHelper.getToken(platformDeployment, scope);
@@ -63,8 +62,8 @@ public class OneEdTechAdvantageAgsServiceImpl implements AdvantageAgsService {
                 advantageConnectorHelper.createTokenizedRequestEntityWithAcceptAndContentType(
                     ltiToken,
                     lineItem,
-                    "application/vnd.ims.lis.v2.lineitem+json",
-                    "application/vnd.ims.lis.v2.lineitem+json"
+                    LtiAgsScope.LIS_LINEITEM_JSON.key(),
+                    LtiAgsScope.LIS_LINEITEM_JSON.key()
                 ),
                 LineItem.class
             );
@@ -97,8 +96,8 @@ public class OneEdTechAdvantageAgsServiceImpl implements AdvantageAgsService {
             RestTemplate restTemplate = advantageConnectorHelper.createRestTemplate();
             HttpEntity request = advantageConnectorHelper.createTokenizedRequestEntityWithAcceptAndContentType(
                 ltiToken,
-                "application/vnd.ims.lis.v2.lineitemcontainer+json",
-                "application/vnd.ims.lis.v2.lineitemcontainer+json"
+                LtiAgsScope.LIS_LINEITEM_CONTAINER_JSON.key(),
+                LtiAgsScope.LIS_LINEITEM_CONTAINER_JSON.key()
             );
             ResponseEntity<LineItem[]> response = restTemplate.exchange(context.getLineitems(), HttpMethod.GET, request, LineItem[].class);
 
@@ -162,7 +161,12 @@ public class OneEdTechAdvantageAgsServiceImpl implements AdvantageAgsService {
             ResponseEntity<Void> scoreGetResponse = advantageConnectorHelper.createRestTemplate().exchange(
                 String.format("%s/scores", lineItemUrl),
                 HttpMethod.POST,
-                advantageConnectorHelper.createTokenizedRequestEntity(ltiTokenScores, JsonMapper.builder().build().writeValueAsString(score)),
+                advantageConnectorHelper.createTokenizedRequestEntity(
+                    ltiTokenScores,
+                    JsonMapper.builder()
+                        .build()
+                        .writeValueAsString(score)
+                ),
                 Void.class
             );
 

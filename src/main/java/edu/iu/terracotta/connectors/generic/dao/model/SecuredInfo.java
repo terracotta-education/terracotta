@@ -35,6 +35,7 @@ public class SecuredInfo {
     private String nonce;
     private Boolean consent;
     private Integer studentAttempts;
+    private String lmsName;
 
     /**
      * Number of allowed attempts for assignment. The value is only populated

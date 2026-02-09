@@ -116,7 +116,7 @@ export default {
       return (
         this.totalDistribution !== 100 ||
         this.distributionValue.some(
-          (value) => parseInt(value) <= 0 || isNaN(parseInt(value))
+          (value) => parseInt(value) < 0 || isNaN(parseInt(value))
         )
       );
     },

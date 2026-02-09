@@ -32,6 +32,7 @@ import edu.iu.terracotta.dao.model.dto.messaging.preview.MessagePreviewDto;
 import edu.iu.terracotta.dao.model.dto.messaging.rule.MessageRuleAssignmentDto;
 import edu.iu.terracotta.dao.model.dto.messaging.send.MessageSendTestDto;
 import edu.iu.terracotta.exceptions.BadTokenException;
+import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.messaging.MessageContainerNotFoundException;
 import edu.iu.terracotta.exceptions.messaging.MessageContainerNotMatchingException;
 import edu.iu.terracotta.exceptions.messaging.MessageContainerOwnerNotMatchingException;
@@ -98,7 +99,7 @@ public class MessageController {
 
         try {
             return new ResponseEntity<>(messageService.getAssignments(securedInfo), HttpStatus.OK);
-        } catch (ApiException | TerracottaConnectorException e) {
+        } catch (ApiException | TerracottaConnectorException | DataServiceException e) {
             log.error(e.getMessage(), e);
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }

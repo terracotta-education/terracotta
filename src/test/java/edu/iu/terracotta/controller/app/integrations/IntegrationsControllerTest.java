@@ -1,8 +1,14 @@
 package edu.iu.terracotta.controller.app.integrations;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.util.Optional;
 
 import org.apache.commons.lang3.Strings;
@@ -13,11 +19,16 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.http.HttpStatus;
 
 import edu.iu.terracotta.base.BaseTest;
+import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
+import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
+import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.dao.exceptions.OutcomeNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.integrations.IntegrationTokenAlreadyRedeemedException;
 import edu.iu.terracotta.dao.exceptions.integrations.IntegrationTokenExpiredException;
 import edu.iu.terracotta.dao.exceptions.integrations.IntegrationTokenInvalidException;
 import edu.iu.terracotta.dao.exceptions.integrations.IntegrationTokenNotFoundException;
+import edu.iu.terracotta.exceptions.AssignmentAttemptException;
+import edu.iu.terracotta.exceptions.AssignmentLockedException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 
 public class IntegrationsControllerTest extends BaseTest {
@@ -41,8 +52,10 @@ public class IntegrationsControllerTest extends BaseTest {
     }
 
     @Test
-    void scoreTokenNotFoundTest() throws IntegrationTokenNotFoundException, DataServiceException, IntegrationTokenInvalidException, IntegrationTokenExpiredException, IntegrationTokenAlreadyRedeemedException {
+    void scoreTokenNotFoundTest() throws IntegrationTokenNotFoundException, DataServiceException, IntegrationTokenInvalidException, IntegrationTokenExpiredException, IntegrationTokenAlreadyRedeemedException, IOException, AssignmentAttemptException, ApiException, TerracottaConnectorException, AssignmentLockedException {
         doThrow(new IntegrationTokenNotFoundException("{\"code\":\"token\",\"moreAttemptsAvailable\":true}")).when(integrationScoreService).score("token", "1", Optional.of(INTEGRATION_CLIENT_NAME));
+        doNothing().when(questionSubmissionService).canSubmit(any(SecuredInfo.class), anyLong());
+        when(integrationTokenLogRepository.findByCode(anyString())).thenReturn(Optional.empty());
 
         String ret = integrationsController.score("token", "1", httpServletRequest);
 

@@ -403,7 +403,8 @@ const routes = [
     meta: {
       appStyle: {
         backgroundColor: "#fdf5f2",
-        "overflow-y": "auto"
+        "overflow-y": "visible",
+        "min-height": "fit-content"
       }
     }
   },

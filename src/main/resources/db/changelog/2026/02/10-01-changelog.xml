@@ -1,0 +1,247 @@
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+  xmlns:pro="http://www.liquibase.org/xml/ns/pro"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd
+      http://www.liquibase.org/xml/ns/dbchangelog-ext
+      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd
+      http://www.liquibase.org/xml/ns/pro
+      http://www.liquibase.org/xml/ns/pro/liquibase-pro-latest.xsd">
+
+  <changeSet author="rlong" id="1756148740-01">
+    <modifyDataType tableName="api_token" columnName="access_token" newDataType="TEXT"/>
+    <modifyDataType tableName="api_token" columnName="refresh_token" newDataType="TEXT"/>
+  </changeSet>
+  <changeSet author="rlong" id="1756148740-02">
+        <insert tableName="api_scope">
+            <column name="scope" value="core:*:*"/>
+            <column name="lms_connector" value="BRIGHTSPACE"/>
+            <column name="entity_version" value="0"/>
+        </insert>
+        <insert tableName="api_scope">
+            <column name="scope" value="content:modules:manage"/>
+            <column name="lms_connector" value="BRIGHTSPACE"/>
+            <column name="entity_version" value="0"/>
+        </insert>
+        <insert tableName="api_scope">
+            <column name="scope" value="content:modules:readonly"/>
+            <column name="lms_connector" value="BRIGHTSPACE"/>
+            <column name="entity_version" value="0"/>
+        </insert>
+        <insert tableName="api_scope">
+            <column name="scope" value="content:topics:manage"/>
+            <column name="lms_connector" value="BRIGHTSPACE"/>
+            <column name="entity_version" value="0"/>
+        </insert>
+        <insert tableName="api_scope">
+            <column name="scope" value="content:topics:readonly"/>
+            <column name="lms_connector" value="BRIGHTSPACE"/>
+            <column name="entity_version" value="0"/>
+        </insert>
+        <insert tableName="api_scope">
+            <column name="scope" value="dropbox:folders:read"/>
+            <column name="lms_connector" value="BRIGHTSPACE"/>
+            <column name="entity_version" value="0"/>
+        </insert>
+        <insert tableName="api_scope">
+            <column name="scope" value="dropbox:folders:write"/>
+            <column name="lms_connector" value="BRIGHTSPACE"/>
+            <column name="entity_version" value="0"/>
+        </insert>
+        <insert tableName="api_scope">
+            <column name="scope" value="enrollment:orgunit:read"/>
+            <column name="lms_connector" value="BRIGHTSPACE"/>
+            <column name="entity_version" value="0"/>
+        </insert>
+        <insert tableName="api_scope">
+            <column name="scope" value="grades:gradeobjects:delete"/>
+            <column name="lms_connector" value="BRIGHTSPACE"/>
+            <column name="entity_version" value="0"/>
+        </insert>
+        <insert tableName="api_scope">
+            <column name="scope" value="grades:gradeobjects:read"/>
+            <column name="lms_connector" value="BRIGHTSPACE"/>
+            <column name="entity_version" value="0"/>
+        </insert>
+        <insert tableName="api_scope">
+            <column name="scope" value="grades:gradeobjects:write"/>
+            <column name="lms_connector" value="BRIGHTSPACE"/>
+            <column name="entity_version" value="0"/>
+        </insert>
+        <insert tableName="api_scope">
+            <column name="scope" value="grades:gradevalues:read"/>
+            <column name="lms_connector" value="BRIGHTSPACE"/>
+            <column name="entity_version" value="0"/>
+        </insert>
+        <insert tableName="api_scope">
+            <column name="scope" value="ltiadvantage:links:create"/>
+            <column name="lms_connector" value="BRIGHTSPACE"/>
+            <column name="entity_version" value="0"/>
+        </insert>
+        <insert tableName="api_scope">
+            <column name="scope" value="ltiadvantage:links:delete"/>
+            <column name="lms_connector" value="BRIGHTSPACE"/>
+            <column name="entity_version" value="0"/>
+        </insert>
+        <insert tableName="api_scope">
+            <column name="scope" value="ltiadvantage:links:read"/>
+            <column name="lms_connector" value="BRIGHTSPACE"/>
+            <column name="entity_version" value="0"/>
+        </insert>
+        <insert tableName="api_scope">
+            <column name="scope" value="ltiadvantage:links:update"/>
+            <column name="lms_connector" value="BRIGHTSPACE"/>
+            <column name="entity_version" value="0"/>
+        </insert>
+        <insert tableName="api_scope">
+            <column name="scope" value="ltiadvantage:quicklinks:create"/>
+            <column name="lms_connector" value="BRIGHTSPACE"/>
+            <column name="entity_version" value="0"/>
+        </insert>
+        <insert tableName="api_scope">
+            <column name="scope" value="orgunits:course:read"/>
+            <column name="lms_connector" value="BRIGHTSPACE"/>
+            <column name="entity_version" value="0"/>
+        </insert>
+        <insert tableName="api_scope">
+            <column name="scope" value="users:own_profile:read"/>
+            <column name="lms_connector" value="BRIGHTSPACE"/>
+            <column name="entity_version" value="0"/>
+        </insert>
+        <insert tableName="api_scope_features">
+            <column name="features_id" valueComputed="(SELECT id FROM terr_feature WHERE type = 'DEFAULT')"/>
+            <column name="scopes_id" valueComputed="(SELECT id FROM api_scope WHERE scope = 'core:*:*' AND lms_connector = 'BRIGHTSPACE')"/>
+            <column name="entity_version" value="0"/>
+        </insert>
+        <insert tableName="api_scope_features">
+            <column name="features_id" valueComputed="(SELECT id FROM terr_feature WHERE type = 'DEFAULT')"/>
+            <column name="scopes_id" valueComputed="(SELECT id FROM api_scope WHERE scope = 'content:modules:manage' AND lms_connector = 'BRIGHTSPACE')"/>
+            <column name="entity_version" value="0"/>
+        </insert>
+        <insert tableName="api_scope_features">
+            <column name="features_id" valueComputed="(SELECT id FROM terr_feature WHERE type = 'DEFAULT')"/>
+            <column name="scopes_id" valueComputed="(SELECT id FROM api_scope WHERE scope = 'content:modules:readonly' AND lms_connector = 'BRIGHTSPACE')"/>
+            <column name="entity_version" value="0"/>
+        </insert>
+        <insert tableName="api_scope_features">
+            <column name="features_id" valueComputed="(SELECT id FROM terr_feature WHERE type = 'DEFAULT')"/>
+            <column name="scopes_id" valueComputed="(SELECT id FROM api_scope WHERE scope = 'content:topics:manage' AND lms_connector = 'BRIGHTSPACE')"/>
+            <column name="entity_version" value="0"/>
+        </insert>
+        <insert tableName="api_scope_features">
+            <column name="features_id" valueComputed="(SELECT id FROM terr_feature WHERE type = 'DEFAULT')"/>
+            <column name="scopes_id" valueComputed="(SELECT id FROM api_scope WHERE scope = 'content:topics:readonly' AND lms_connector = 'BRIGHTSPACE')"/>
+            <column name="entity_version" value="0"/>
+        </insert>
+        <insert tableName="api_scope_features">
+            <column name="features_id" valueComputed="(SELECT id FROM terr_feature WHERE type = 'DEFAULT')"/>
+            <column name="scopes_id" valueComputed="(SELECT id FROM api_scope WHERE scope = 'dropbox:folders:read' AND lms_connector = 'BRIGHTSPACE')"/>
+            <column name="entity_version" value="0"/>
+        </insert>
+        <insert tableName="api_scope_features">
+            <column name="features_id" valueComputed="(SELECT id FROM terr_feature WHERE type = 'DEFAULT')"/>
+            <column name="scopes_id" valueComputed="(SELECT id FROM api_scope WHERE scope = 'dropbox:folders:write' AND lms_connector = 'BRIGHTSPACE')"/>
+            <column name="entity_version" value="0"/>
+        </insert>
+        <insert tableName="api_scope_features">
+            <column name="features_id" valueComputed="(SELECT id FROM terr_feature WHERE type = 'DEFAULT')"/>
+            <column name="scopes_id" valueComputed="(SELECT id FROM api_scope WHERE scope = 'enrollment:orgunit:read' AND lms_connector = 'BRIGHTSPACE')"/>
+            <column name="entity_version" value="0"/>
+        </insert>
+        <insert tableName="api_scope_features">
+            <column name="features_id" valueComputed="(SELECT id FROM terr_feature WHERE type = 'DEFAULT')"/>
+            <column name="scopes_id" valueComputed="(SELECT id FROM api_scope WHERE scope = 'grades:gradeobjects:delete' AND lms_connector = 'BRIGHTSPACE')"/>
+            <column name="entity_version" value="0"/>
+        </insert>
+        <insert tableName="api_scope_features">
+            <column name="features_id" valueComputed="(SELECT id FROM terr_feature WHERE type = 'DEFAULT')"/>
+            <column name="scopes_id" valueComputed="(SELECT id FROM api_scope WHERE scope = 'grades:gradeobjects:read' AND lms_connector = 'BRIGHTSPACE')"/>
+            <column name="entity_version" value="0"/>
+        </insert>
+        <insert tableName="api_scope_features">
+            <column name="features_id" valueComputed="(SELECT id FROM terr_feature WHERE type = 'DEFAULT')"/>
+            <column name="scopes_id" valueComputed="(SELECT id FROM api_scope WHERE scope = 'grades:gradeobjects:write' AND lms_connector = 'BRIGHTSPACE')"/>
+            <column name="entity_version" value="0"/>
+        </insert>
+        <insert tableName="api_scope_features">
+            <column name="features_id" valueComputed="(SELECT id FROM terr_feature WHERE type = 'DEFAULT')"/>
+            <column name="scopes_id" valueComputed="(SELECT id FROM api_scope WHERE scope = 'grades:gradevalues:read' AND lms_connector = 'BRIGHTSPACE')"/>
+            <column name="entity_version" value="0"/>
+        </insert>
+        <insert tableName="api_scope_features">
+            <column name="features_id" valueComputed="(SELECT id FROM terr_feature WHERE type = 'DEFAULT')"/>
+            <column name="scopes_id" valueComputed="(SELECT id FROM api_scope WHERE scope = 'ltiadvantage:links:create' AND lms_connector = 'BRIGHTSPACE')"/>
+            <column name="entity_version" value="0"/>
+        </insert>
+        <insert tableName="api_scope_features">
+            <column name="features_id" valueComputed="(SELECT id FROM terr_feature WHERE type = 'DEFAULT')"/>
+            <column name="scopes_id" valueComputed="(SELECT id FROM api_scope WHERE scope = 'ltiadvantage:links:delete' AND lms_connector = 'BRIGHTSPACE')"/>
+            <column name="entity_version" value="0"/>
+        </insert>
+        <insert tableName="api_scope_features">
+            <column name="features_id" valueComputed="(SELECT id FROM terr_feature WHERE type = 'DEFAULT')"/>
+            <column name="scopes_id" valueComputed="(SELECT id FROM api_scope WHERE scope = 'ltiadvantage:links:read' AND lms_connector = 'BRIGHTSPACE')"/>
+            <column name="entity_version" value="0"/>
+        </insert>
+        <insert tableName="api_scope_features">
+            <column name="features_id" valueComputed="(SELECT id FROM terr_feature WHERE type = 'DEFAULT')"/>
+            <column name="scopes_id" valueComputed="(SELECT id FROM api_scope WHERE scope = 'ltiadvantage:links:update' AND lms_connector = 'BRIGHTSPACE')"/>
+            <column name="entity_version" value="0"/>
+        </insert>
+        <insert tableName="api_scope_features">
+            <column name="features_id" valueComputed="(SELECT id FROM terr_feature WHERE type = 'DEFAULT')"/>
+            <column name="scopes_id" valueComputed="(SELECT id FROM api_scope WHERE scope = 'ltiadvantage:quicklinks:create' AND lms_connector = 'BRIGHTSPACE')"/>
+            <column name="entity_version" value="0"/>
+        </insert>
+        <insert tableName="api_scope_features">
+            <column name="features_id" valueComputed="(SELECT id FROM terr_feature WHERE type = 'DEFAULT')"/>
+            <column name="scopes_id" valueComputed="(SELECT id FROM api_scope WHERE scope = 'orgunits:course:read' AND lms_connector = 'BRIGHTSPACE')"/>
+            <column name="entity_version" value="0"/>
+        </insert>
+        <insert tableName="api_scope_features">
+            <column name="features_id" valueComputed="(SELECT id FROM terr_feature WHERE type = 'DEFAULT')"/>
+            <column name="scopes_id" valueComputed="(SELECT id FROM api_scope WHERE scope = 'users:own_profile:read' AND lms_connector = 'BRIGHTSPACE')"/>
+            <column name="entity_version" value="0"/>
+        </insert>
+    </changeSet>
+    <changeSet author="rlong" id="1756148740-03">
+        <addColumn tableName="terr_assignment">
+            <column name="metadata" type="TEXT" afterColumn="started"/>
+        </addColumn>
+    </changeSet>
+    <changeSet author="rlong" id="1756148740-04">
+        <addColumn tableName="terr_consent_document">
+            <column name="metadata" type="TEXT" afterColumn="file_uri"/>
+        </addColumn>
+    </changeSet>
+    <changeSet author="rlong" id="1756148740-05">
+        <createTable tableName="lti_deep_link">
+            <column autoIncrement="true" name="id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true"/>
+            </column>
+            <column name="uuid" type="BINARY(16)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="nonce" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="state" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="token" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="id_token" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="return_url" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="entity_version" type="INT"/>
+            <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" type="datetime"/>
+        </createTable>
+    </changeSet>
+</databaseChangeLog>

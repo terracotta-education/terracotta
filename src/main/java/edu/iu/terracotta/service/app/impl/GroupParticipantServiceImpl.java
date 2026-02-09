@@ -2,7 +2,6 @@ package edu.iu.terracotta.service.app.impl;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
@@ -37,19 +36,13 @@ public class GroupParticipantServiceImpl implements GroupParticipantService {
 
     @Override
     public Group getUniqueGroupByConditionId(Long experimentId, String lmsAssignmentId, Long conditionId) throws GroupNotMatchingException, AssignmentNotMatchingException {
-        Assignment assignment = assignmentRepository.findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(experimentId, lmsAssignmentId);
+        Assignment assignment = assignmentRepository.findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(experimentId, lmsAssignmentId)
+            .orElseThrow(() -> new AssignmentNotMatchingException(TextConstants.ASSIGNMENT_NOT_MATCHING));
 
-        if (assignment == null) {
-            throw new AssignmentNotMatchingException(TextConstants.ASSIGNMENT_NOT_MATCHING);
-        }
+        ExposureGroupCondition exposureGroupCondition = exposureGroupConditionRepository.getByCondition_ConditionIdAndExposure_ExposureId(conditionId, assignment.getExposure().getExposureId())
+            .orElseThrow(() -> new GroupNotMatchingException("Error 130: This assignment does not have a condition assigned for the participant group."));
 
-        Optional<ExposureGroupCondition> exposureGroupCondition = exposureGroupConditionRepository.getByCondition_ConditionIdAndExposure_ExposureId(conditionId, assignment.getExposure().getExposureId());
-
-        if (exposureGroupCondition.isEmpty()) {
-            throw new GroupNotMatchingException("Error 130: This assignment does not have a condition assigned for the participant group.");
-        }
-
-        return exposureGroupCondition.get().getGroup();
+        return exposureGroupCondition.getGroup();
     }
 
     @Override

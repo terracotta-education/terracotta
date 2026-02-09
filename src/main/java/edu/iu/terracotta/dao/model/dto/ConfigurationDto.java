@@ -2,6 +2,7 @@ package edu.iu.terracotta.dao.model.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
+import edu.iu.terracotta.connectors.generic.dao.model.enums.LmsConnector;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -18,5 +19,8 @@ public class ConfigurationDto {
 
     @Builder.Default private boolean experimentExportEnabled = false;
     @Builder.Default private boolean messagingEnabled = false;
+
+    private LmsConnector lms;
+    private String lmsTitle;
 
 }

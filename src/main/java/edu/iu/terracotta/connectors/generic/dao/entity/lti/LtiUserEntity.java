@@ -119,7 +119,7 @@ public class LtiUserEntity extends BaseEntity {
 
     @Transient
     public boolean isTestStudent() {
-        return Strings.CS.equals(displayName, TEST_STUDENT_DISPLAY_NAME);
+        return Strings.CI.equals(displayName, TEST_STUDENT_DISPLAY_NAME);
     }
 
 }

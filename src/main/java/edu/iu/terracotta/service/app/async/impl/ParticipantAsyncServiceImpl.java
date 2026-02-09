@@ -54,12 +54,7 @@ public class ParticipantAsyncServiceImpl implements ParticipantAsyncService {
         }
 
         if (!featureService.isFeatureEnabled(FeatureType.MESSAGING, experiment.getPlatformDeployment().getKeyId())) {
-            log.info(
-                "Messaging is not enabled for the platform deployment with key ID: [{}]. Participant data update aborted for experiment ID: [{}].",
-                experiment.getPlatformDeployment().getKeyId(),
-                experimentId
-            );
-
+            // only update participants if messaging feature is enabled
             return;
         }
 

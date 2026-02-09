@@ -1,7 +1,3 @@
-/**
- * This file has been copied from the Oxford University repo under the Apache License
- * https://github.com/oxctl/spring-security-lti13-demo
- */
 package edu.iu.terracotta.utils;
 
 import org.apache.catalina.connector.Request;
@@ -25,6 +21,7 @@ import java.util.Collection;
  * This class doesn't use a proper parse for the Set-Cookie header as we know the code building
  * the header (Tomcat) and I don't believe the extra complexity is worth it.
  */
+@SuppressWarnings({"PMD.LooseCoupling"})
 public class SameSiteCookieValve extends ValveBase {
 
     // The suffix we want to append to the normal session cookie name for old clients.

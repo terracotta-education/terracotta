@@ -12,14 +12,22 @@
           class="oauth-permissions-card mx-auto"
           max-width="700"
         >
-          <v-card-title class="text-h5">Terracotta wants to access your Canvas account</v-card-title>
-          <v-card-text class="oauth-permissions-card__text">
-            <p>
-              This will allow Terracotta to:
-            </p>
-            <ul class="permission-list">
+          <v-card-title
+            class="text-h5"
+          >
+            Terracotta wants to access your {{ lmsTitle }} account
+          </v-card-title>
+          <v-card-text
+            class="oauth-permissions-card__text"
+          >
+            <p>This will allow Terracotta to:</p>
+            <ul
+              class="permission-list"
+            >
               <li>
-                <div class="d-flex">
+                <div
+                  class="d-flex"
+                >
                   <div>List assignment submissions</div>
                   <v-tooltip
                     top
@@ -27,7 +35,9 @@
                     transition="slide-y-transition"
                     max-width="360px"
                   >
-                    <template v-slot:activator="{ on, attrs }">
+                    <template
+                      v-slot:activator="{ on, attrs }"
+                    >
                       <v-icon
                         v-bind="attrs"
                         v-on="on"
@@ -36,27 +46,31 @@
                         mdi-information-outline
                       </v-icon>
                     </template>
-                    <div class="tooltip-content">
+                    <div
+                      class="tooltip-content"
+                    >
                       <h3>What does this mean?</h3>
                       <div>
-                        Terracotta will pull information from your Canvas site which allows it to list students' names and assignments in order and match them up with the outcomes you choose.
+                        Terracotta will pull information from your {{ lmsTitle }} site which allows it to list students' names and assignments in order and match them up with the outcomes you choose.
                       </div>
                     </div>
                   </v-tooltip>
                 </div>
               </li>
               <li>
-                <div class="d-flex">
-                  <div>
-                    Create, list, edit and delete assignments
-                  </div>
+                <div
+                  class="d-flex"
+                >
+                  <div>Create, list, edit and delete assignments</div>
                   <v-tooltip
-                    top
                     color="#373d3f"
                     transition="slide-y-transition"
                     max-width="360px"
+                    top
                   >
-                    <template v-slot:activator="{ on, attrs }">
+                    <template
+                      v-slot:activator="{ on, attrs }"
+                    >
                       <v-icon
                         v-bind="attrs"
                         v-on="on"
@@ -65,11 +79,13 @@
                         mdi-information-outline
                       </v-icon>
                     </template>
-                    <div class="tooltip-content">
+                    <div
+                      class="tooltip-content"
+                    >
                       <h3>What does this involve?</h3>
                       <div>
-                        When you create an assignment in Terracotta, it automatically creates that same assignment in Canvas. Terracotta assignments are listed with other Canvas
-                        assignments, and when you edit or delete them in Terracotta, Terracotta communicates with Canvas to keep the assignments up to date.
+                        When you create an assignment in Terracotta, it automatically creates that same assignment in {{ lmsTitle }}. Terracotta assignments are listed with other {{ lmsTitle }}
+                        assignments, and when you edit or delete them in Terracotta, Terracotta communicates with {{ lmsTitle }} to keep the assignments up to date.
                       </div>
                     </div>
                   </v-tooltip>
@@ -83,7 +99,7 @@
               class="redirect-button"
               elevation="0"
             >
-              Go to the Canvas Authorization Page
+              Go to the {{ lmsTitle }} Authorization Page
             </v-btn>
           </v-card-actions>
         </v-card>
@@ -99,7 +115,11 @@ export default {
   computed: {
     ...mapGetters({
       lmsApiOAuthURL: "api/lmsApiOAuthURL",
+      configurations: "configuration/get"
     }),
+    lmsTitle() {
+      return this.configurations.lmsTitle || "LMS";
+    }
   },
 };
 </script>

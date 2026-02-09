@@ -10,9 +10,12 @@ import java.util.List;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 @Getter
 @Setter
 @SuppressWarnings({"PMD.LooseCoupling"})
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class JwtAuthenticationToken extends AbstractAuthenticationToken {
 
     private String token;

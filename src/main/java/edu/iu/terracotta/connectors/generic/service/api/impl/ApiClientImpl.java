@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiContextEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
 import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsAssignment;
@@ -27,6 +28,7 @@ import edu.iu.terracotta.connectors.generic.service.connector.ConnectorService;
 import edu.iu.terracotta.dao.entity.Assignment;
 import edu.iu.terracotta.dao.entity.ConsentDocument;
 import edu.iu.terracotta.dao.entity.Experiment;
+import edu.iu.terracotta.dao.entity.Outcome;
 import edu.iu.terracotta.dao.entity.Submission;
 
 @Primary
@@ -57,8 +59,13 @@ public class ApiClientImpl implements ApiClient {
     }
 
     @Override
-    public List<LmsAssignment> listAssignments(LtiUserEntity apiUser, String lmsCourseId) throws ApiException, TerracottaConnectorException {
-        return instance(apiUser).listAssignments(apiUser, lmsCourseId);
+    public List<LmsAssignment> listAssignments(LtiUserEntity apiUser, LtiContextEntity ltiContext)  throws ApiException, TerracottaConnectorException {
+        return instance(apiUser).listAssignments(apiUser, ltiContext);
+    }
+
+    @Override
+    public List<LmsAssignment> listAssignments(LtiUserEntity apiUser, Experiment experiment) throws ApiException, TerracottaConnectorException {
+        return instance(apiUser).listAssignments(apiUser, experiment);
     }
 
     @Override
@@ -74,6 +81,11 @@ public class ApiClientImpl implements ApiClient {
     @Override
     public Optional<LmsAssignment> listAssignment(LtiUserEntity apiUser, String lmsCourseId, String lmsAssignmentId) throws ApiException, TerracottaConnectorException {
         return instance(apiUser).listAssignment(apiUser, lmsCourseId, lmsAssignmentId);
+    }
+
+    @Override
+    public Optional<LmsAssignment> listAssignment(LtiUserEntity apiUser, String lmsCourseId, Assignment assignment) throws ApiException, TerracottaConnectorException {
+        return instance(apiUser).listAssignment(apiUser, lmsCourseId, assignment);
     }
 
     public Optional<LmsAssignment> editAssignment(LtiUserEntity apiUser, LmsAssignment lmsAssignment, String lmsCourseId) throws ApiException, TerracottaConnectorException {
@@ -117,18 +129,23 @@ public class ApiClientImpl implements ApiClient {
     }
 
     @Override
+    public void updateAssignmentMetadata(Assignment assignment, LmsAssignment lmsAssignment) throws TerracottaConnectorException {
+        instance(assignment).updateAssignmentMetadata(assignment, lmsAssignment);
+    }
+
+    @Override
     public List<LmsCourse> listCoursesForUser(PlatformDeployment platformDeployment, String lmsUserId, String tokenOverride) throws ApiException, TerracottaConnectorException {
         return instance(platformDeployment).listCoursesForUser(platformDeployment, lmsUserId, tokenOverride);
     }
 
     @Override
-    public Optional<LmsCourse> editCourse(PlatformDeployment platformDeployment, LmsCourse lmsCourse, String lmsCourseId, String tokenOverride) throws ApiException, TerracottaConnectorException {
-        return instance(platformDeployment).editCourse(platformDeployment, lmsCourse, lmsCourseId, tokenOverride);
+    public void addLmsExtensions(Score score, Submission submission, boolean studentSubmission) throws ApiException, IOException, TerracottaConnectorException {
+        instance(submission).addLmsExtensions(score, submission, studentSubmission);
     }
 
     @Override
-    public void addLmsExtensions(Score score, Submission submission, boolean studentSubmission) throws ApiException, IOException, TerracottaConnectorException {
-        instance(submission).addLmsExtensions(score, submission, studentSubmission);
+    public List<LmsSubmission> listSubmissions(LtiUserEntity apiUser, Outcome outcome, String lmsCourseId) throws ApiException, IOException, TerracottaConnectorException {
+        return instance(apiUser).listSubmissions(apiUser, outcome, lmsCourseId);
     }
 
     @Override

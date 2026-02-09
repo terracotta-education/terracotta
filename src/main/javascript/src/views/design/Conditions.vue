@@ -230,7 +230,7 @@ export default {
       }
 
       if (doAdd) {
-        await this.createCondition({name: "", experiment_experimentId: this.experimentId});
+        await this.createCondition(this.experimentId);
         this.$refs.conditionsForm.validate();
       }
     },

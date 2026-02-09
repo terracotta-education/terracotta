@@ -184,7 +184,7 @@ public class OneEdTechApiJwtServiceImpl implements ApiJwtService {
                 .readValue(
                     jwtPayload,
                     new TypeReference<Map<String,Object>>() {}
-            );
+                );
         } catch (JacksonException e) {
             throw new IllegalStateException("Request is not a valid LTI3 request.", e);
         }

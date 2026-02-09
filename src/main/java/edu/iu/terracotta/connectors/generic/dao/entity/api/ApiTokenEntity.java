@@ -46,24 +46,18 @@ public class ApiTokenEntity implements ApiToken {
     )
     private long tokenId;
 
-    @Lob
-    @Column
-    private String scopes;
+    @Column(nullable = false) private String refreshToken;
+    @Column(nullable = false) private Timestamp expiresAt;
+    @Column(nullable = false) private String lmsUserId;
+    @Column(nullable = false) private String lmsUserName;
 
+    @Lob
     @Column(nullable = false)
     private String accessToken;
 
-    @Column(nullable = false)
-    private String refreshToken;
-
-    @Column(nullable = false)
-    private Timestamp expiresAt;
-
-    @Column(nullable = false)
-    private Long lmsUserId;
-
-    @Column(nullable = false)
-    private String lmsUserName;
+    @Lob
+    @Column
+    private String scopes;
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "user_id")

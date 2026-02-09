@@ -88,7 +88,16 @@ public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
     @Async
     @Override
     @Transactional(rollbackFor = { ApiException.class })
-    public void checkAndRestoreAssignmentsInLmsByContext(SecuredInfo securedInfo) throws ApiException, DataServiceException, ConnectionException, IOException, TerracottaConnectorException {
+    public void handleAssignmentTasksInLmsByContext(SecuredInfo securedInfo) throws DataServiceException, ConnectionException, IOException, ApiException, TerracottaConnectorException {
+        List<LmsAssignment> lmsAssignments = assignmentService.getAllAssignmentsForLmsCourse(securedInfo);
+        checkAndRestoreAssignmentsInLmsByContext(securedInfo, lmsAssignments);
+        handleObsoleteAssignmentsInLmsByContext(securedInfo, lmsAssignments);
+    }
+
+    @Async
+    @Override
+    @Transactional(rollbackFor = { ApiException.class })
+    public void checkAndRestoreAssignmentsInLmsByContext(SecuredInfo securedInfo, List<LmsAssignment> lmsAssignments) throws ApiException, DataServiceException, ConnectionException, IOException, TerracottaConnectorException {
         List<Assignment> assignmentsToCheck = assignmentRepository.findAssignmentsToCheckByContext(securedInfo.getContextId());
 
         if (CollectionUtils.isEmpty(assignmentsToCheck)) {
@@ -101,14 +110,7 @@ public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
             Arrays.toString(assignmentsToCheck.stream().map(Assignment::getLmsAssignmentId).toArray())
         );
 
-        List<LmsAssignment> lmsAssignments = assignmentService.getAllAssignmentsForLmsCourse(securedInfo);
-
-        if (CollectionUtils.isEmpty(lmsAssignments)) {
-            log.info("No assignments exist in LMS for context ID: [{}]. Aborting.", securedInfo.getContextId());
-            return;
-        }
-
-        List<String> lmsAssignmentIds = lmsAssignments.stream()
+        List<String> lmsAssignmentIds = CollectionUtils.emptyIfNull(lmsAssignments).stream()
             .map(LmsAssignment::getId)
             .toList();
 
@@ -129,6 +131,31 @@ public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
             )
             .toList();
 
+        // update assignment metadata, if exists
+        assignmentsToCheck.stream()
+            .filter(assignmentToCheck -> assignmentToCheck.getLmsAssignmentId() != null && lmsAssignmentIds.contains(assignmentToCheck.getLmsAssignmentId()))
+            .filter(assignmentToCheck -> StringUtils.isNotBlank(assignmentToCheck.getMetadata()))
+            .forEach(
+                assignmentToCheck -> {
+                    try {
+                        LmsAssignment lmsAssignment = lmsAssignments.stream()
+                            .filter(lmsAssignmentItem -> Strings.CI.equals(assignmentToCheck.getLmsAssignmentId(), lmsAssignmentItem.getId()))
+                            .findFirst()
+                            .orElse(null);
+
+                        if (lmsAssignment == null) {
+                            log.warn("Could not find assignment with ID: [{}] in LMS to update metadata. Skipping.", assignmentToCheck.getLmsAssignmentId());
+                            return;
+                        }
+
+                        apiClient.updateAssignmentMetadata(assignmentToCheck, lmsAssignment);
+                        assignmentRepository.save(assignmentToCheck);
+                    } catch (Exception e) {
+                        log.error("Error adding metadata to assignment: [{}]", assignmentToCheck.getAssignmentId(), e);
+                    }
+                }
+            );
+
         log.info("Checking Terracotta assignments for context ID: [{}] in LMS COMPLETE. Assignments recreated: [{}].",
             securedInfo.getContextId(),
             CollectionUtils.isNotEmpty(assignmentsRecreated) ?
@@ -141,7 +168,7 @@ public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
     @Async
     @Override
     @Transactional(rollbackFor = { ApiException.class })
-    public void handleObsoleteAssignmentsInLmsByContext(SecuredInfo securedInfo) throws DataServiceException, ConnectionException, IOException, ApiException, TerracottaConnectorException {
+    public void handleObsoleteAssignmentsInLmsByContext(SecuredInfo securedInfo, List<LmsAssignment> lmsAssignments) throws DataServiceException, ConnectionException, IOException, ApiException, TerracottaConnectorException {
         // get assignments that currently exist in Terracotta for this context
         List<Assignment> terracottaAssignments = assignmentRepository.findAssignmentsToCheckByContext(securedInfo.getContextId());
 
@@ -152,12 +179,12 @@ public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
             .toList();
 
         // get lms assignments that are external tools that do not exist in Terracotta
-        List<LmsAssignment> lmsAssignments = assignmentService.getAllAssignmentsForLmsCourse(securedInfo).stream()
+        List<LmsAssignment> lmsAssignmentsFiltered = lmsAssignments.stream()
             .filter(lmsAssignment -> !terracottaLmsAssignmentIds.contains(lmsAssignment.getId()))
             .filter(lmsAssignment -> lmsAssignment.getLmsExternalToolFields() != null)
             .toList();
 
-        if (CollectionUtils.isEmpty(lmsAssignments)) {
+        if (CollectionUtils.isEmpty(lmsAssignmentsFiltered)) {
             log.info("No assignments exist in LMS for context ID: [{}] to check for obsolescence. Aborting.", securedInfo.getContextId());
             return;
         }
@@ -177,7 +204,7 @@ public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
         String localUrl = apiUser.getPlatformDeployment().getLocalUrl();
 
         // process assignments that do not exist in Terracotta, have not been converted already, and are external tools linked to this server
-        List<String> obsoleteAssignmentIds = lmsAssignments.stream()
+        List<String> obsoleteAssignmentIds = lmsAssignmentsFiltered.stream()
             .filter(lmsAssignment -> !terracottaLmsAssignmentIds.contains(lmsAssignment.getId()))
             .filter(lmsAssignment -> !convertedLmsAssignmentIds.contains(lmsAssignment.getId()))
             .filter(lmsAssignment -> Strings.CI.contains(lmsAssignment.getLmsExternalToolFields().getUrl(), localUrl))

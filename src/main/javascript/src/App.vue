@@ -41,6 +41,10 @@
         <div
           class="student-view"
         >
+          <integrations-token-alert
+            v-if="!consent && assignmentId && childLoaded && integrationsTokenAlert"
+            :alert="integrationsTokenAlert"
+          />
           <page-loading
             :display="!childLoaded"
             message="Loading your assignment. Please wait."
@@ -58,6 +62,7 @@
             :assignmentId="assignmentId"
             :preview="false"
             @loaded="childLoaded = true"
+            @integrationsTokenAlert="integrationsTokenAlert = $event"
           />
         </div>
       </template>
@@ -94,6 +99,7 @@
       <integrations
         v-if="!isIntegrationPreview"
         :integrationData="integrationData"
+        @integrationsTokenAlert="integrationsTokenAlert = $event"
       />
       <integrations-preview
         v-if="isIntegrationPreview"
@@ -115,6 +121,7 @@ import { mapActions, mapGetters } from "vuex";
 import Assignment from "@/views/obsolete/Assignment.vue";
 import Integrations from "@/views/integrations/Integrations.vue";
 import IntegrationsPreview from "@/views/integrations/IntegrationsPreview.vue";
+import IntegrationsTokenAlert from "@/views/integrations/IntegrationsTokenAlert.vue";
 import PageLoading from "@/components/PageLoading";
 import StudentConsent from "@/views/student/StudentConsent.vue";
 import StudentQuiz from "@/views/student/StudentQuiz.vue";
@@ -126,6 +133,7 @@ export default {
     Assignment,
     Integrations,
     IntegrationsPreview,
+    IntegrationsTokenAlert,
     PageLoading,
     StudentQuiz,
     StudentConsent,
@@ -143,7 +151,8 @@ export default {
     }
   },
   data: () => ({
-    childLoaded: false
+    childLoaded: false,
+    integrationsTokenAlert: null
   }),
   computed: {
     ...mapGetters({
@@ -221,8 +230,5 @@ export default {
   }
   p {
     padding-bottom: 15px;
-  }
-  .student-view {
-    display: flex;
   }
 </style>

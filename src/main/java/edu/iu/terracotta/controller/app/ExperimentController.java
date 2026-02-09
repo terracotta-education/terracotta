@@ -1,6 +1,7 @@
 package edu.iu.terracotta.controller.app;
 
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
+import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
 import edu.iu.terracotta.dao.exceptions.ExperimentNotMatchingException;
@@ -54,9 +55,10 @@ public class ExperimentController {
      * To show the experiment in a course (context) in a platform deployment.
      * @throws TerracottaConnectorException
      * @throws NumberFormatException
+     * @throws ConnectionException
      */
     @GetMapping
-    public ResponseEntity<List<ExperimentDto>> allExperimentsByCourse(HttpServletRequest req) throws BadTokenException, NumberFormatException, TerracottaConnectorException {
+    public ResponseEntity<List<ExperimentDto>> allExperimentsByCourse(HttpServletRequest req) throws BadTokenException, NumberFormatException, TerracottaConnectorException, ConnectionException {
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
 
         if (securedInfo == null) {
@@ -101,14 +103,18 @@ public class ExperimentController {
     }
 
     @PostMapping
-    public ResponseEntity<ExperimentDto> postExperiment(@RequestBody ExperimentDto experimentDto,
+    public ResponseEntity<ExperimentDto> postExperiment(@RequestBody(required = false) ExperimentDto experimentDto,
                                                         UriComponentsBuilder ucBuilder,
                                                         HttpServletRequest req)
             throws BadTokenException, TitleValidationException, IdInPostException, DataServiceException, NumberFormatException, TerracottaConnectorException {
+        if (experimentDto == null) {
+            experimentDto = ExperimentDto.builder().build();
+        }
+
         log.debug("Creating Experiment with title : {}", experimentDto.getTitle());
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
 
-        if (securedInfo ==null) {
+        if (securedInfo == null) {
             throw new BadTokenException(TextConstants.BAD_TOKEN);
         }
 

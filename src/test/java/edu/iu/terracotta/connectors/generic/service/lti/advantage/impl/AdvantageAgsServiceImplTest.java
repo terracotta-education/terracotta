@@ -6,13 +6,13 @@ import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.LineItem;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.LineItems;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.Result;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.Results;
+import edu.iu.terracotta.connectors.generic.dao.model.lti.enums.LtiAgsScope;
 import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.connectors.generic.service.lti.advantage.AdvantageAgsService;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -41,23 +41,23 @@ public class AdvantageAgsServiceImplTest extends BaseTest {
 
     @Test
     public void testGetTokenLineItem() throws ConnectionException {
-        advantageAgsService.getToken("lineitem", platformDeployment);
+        advantageAgsService.getToken(LtiAgsScope.LINEITEM, platformDeployment);
 
-        verify(advantageConnectorHelper).getToken(platformDeployment, "https://purl.imsglobal.org/spec/lti-ags/scope/lineitem");
+        verify(advantageConnectorHelper).getToken(platformDeployment, LtiAgsScope.AGS_LINEITEM.key());
     }
 
     @Test
     public void testGetTokenResults() throws ConnectionException {
-        advantageAgsService.getToken("results", platformDeployment);
+        advantageAgsService.getToken(LtiAgsScope.RESULTS, platformDeployment);
 
-        verify(advantageConnectorHelper).getToken(platformDeployment, "https://purl.imsglobal.org/spec/lti-ags/scope/result.readonly");
+        verify(advantageConnectorHelper).getToken(platformDeployment, LtiAgsScope.AGS_RESULT_READONLY.key());
     }
 
     @Test
     public void testGetTokenScores() throws ConnectionException {
-        advantageAgsService.getToken("scores", platformDeployment);
+        advantageAgsService.getToken(LtiAgsScope.SCORES, platformDeployment);
 
-        verify(advantageConnectorHelper).getToken(platformDeployment, "https://purl.imsglobal.org/spec/lti-ags/scope/score");
+        verify(advantageConnectorHelper).getToken(platformDeployment, LtiAgsScope.AGS_SCORE.key());
     }
 
     @Test
@@ -76,13 +76,6 @@ public class AdvantageAgsServiceImplTest extends BaseTest {
 
         assertNotNull(lineItems);
         assertEquals(1, lineItems.getLineItemList().size());
-    }
-
-    @Test
-    public void testDeleteLineItem() throws ConnectionException {
-        boolean ret = advantageAgsService.deleteLineItem(ltiToken, ltiContextEntity, "lineItemId");
-
-        assertTrue(ret);
     }
 
     @Test
