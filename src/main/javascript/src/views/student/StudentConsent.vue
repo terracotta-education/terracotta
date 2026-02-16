@@ -7,7 +7,7 @@
       class="mb-6 mx-0"
     >
       <div>
-        You are being asked to participate in a research study. Please read the statement below, and then select your response.
+        You are being asked to participate in a research study. Please read the statement below, then scroll to the bottom to select your response.
         Your teacher will be able to see whether you submitted a response, but will not be able to see your selection.
       </div>
     </v-row>
@@ -265,8 +265,8 @@ export default {
 }
 div.vue-pdf-embed {
   margin: 0 auto;
-  min-height: 300px;
-  max-height: 600px;
+  min-height: fit-content;
+  max-height: fit-content;
   overflow-y: scroll;
   box-shadow: 0 3px 1px -2px rgba(0,0,0,.2),0 2px 2px 0 rgba(0,0,0,.14),0 1px 5px 0 rgba(0,0,0,.12);
 }
