@@ -27,6 +27,7 @@
         >
           <v-btn
             @click="handleDataExportRequest()"
+            :disabled="experimentDataExportRequest.polling.active"
             color="primary"
             elevation="0"
             class="mx-1"
