@@ -12,6 +12,7 @@ import edu.iu.terracotta.dao.entity.events.Event;
 import edu.iu.terracotta.dao.model.dto.media.MediaEventDto;
 import edu.iu.terracotta.dao.model.dto.media.MediaLocationDto;
 import edu.iu.terracotta.dao.model.dto.media.MediaObjectDto;
+import edu.iu.terracotta.dao.model.enums.integrations.IntegrationLaunchParameter;
 import edu.iu.terracotta.dao.repository.EventRepository;
 import edu.iu.terracotta.dao.repository.ExposureGroupConditionRepository;
 import edu.iu.terracotta.dao.repository.SubmissionRepository;
@@ -64,7 +65,7 @@ import java.util.UUID;
 
 @Slf4j
 @Service
-@SuppressWarnings({"PMD.GuardLogStatement"})
+@SuppressWarnings({"PMD.GuardLogStatement", "PMD.LooseCoupling"})
 public class CaliperServiceImpl implements CaliperService {
 
     public static final String DATA_VERSION = "http://purl.imsglobal.org/ctx/caliper/v1p2";
@@ -575,6 +576,7 @@ public class CaliperServiceImpl implements CaliperService {
     private org.imsglobal.caliper.entities.resource.Assessment prepareAssessment(Submission submission, SecuredInfo securedInfo) {
         Map<String, Object> extensions = new HashMap<>();
         extensions.put("lms_assessment", submission.getParticipant().getLtiUserEntity().getPlatformDeployment().getBaseUrl() + "/courses/" + securedInfo.getLmsCourseId() + "/assignments/" + securedInfo.getLmsAssignmentId());
+
         int maxAttempts = 0;
 
         try {
@@ -626,7 +628,7 @@ public class CaliperServiceImpl implements CaliperService {
     }
 
     private Attempt prepareAttempt(Submission submission, Person actor, org.imsglobal.caliper.entities.resource.Assessment assessment) {
-        return Attempt.builder()
+        Attempt attempt = Attempt.builder()
             .id(assessment.getId() + "/submissions/" + submission.getSubmissionId())
             .type(EntityType.ATTEMPT)
             .assignee(actor)
@@ -636,6 +638,18 @@ public class CaliperServiceImpl implements CaliperService {
             .startedAtTime(convertTimestamp(submission.getCreatedAt(), false))
             .endedAtTime(convertTimestamp(submission.getDateSubmitted(), true)) //To avoid the error if they submit instantaneously for some reason.
             .build();
+
+        if (submission.isIntegration() && submission.getIntegrationToken() != null) {
+            // is an integration assignment, add the terracotta_launch_token value
+            if (attempt.getAssignable() != null && attempt.getAssignable().getExtensions() != null) {
+                attempt.getAssignable().getExtensions().put(
+                    IntegrationLaunchParameter.EVENT_JSON_KEY.key(),
+                    submission.getIntegrationToken().getToken()
+                );
+            }
+        }
+
+        return attempt;
     }
 
     private Result prepareResult(Submission submission, Attempt attempt, org.imsglobal.caliper.entities.resource.Assessment assessment) {
