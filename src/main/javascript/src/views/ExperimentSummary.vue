@@ -773,7 +773,7 @@ export default {
         return {
           showDownloadLink: false,
           showRecreateLink: true,
-          text: `There have been new submissions since the last requested data export for experiment "${dataExportRequest.experimentTitle}".`,
+          text: `There have been updates since the last requested data export for experiment "${dataExportRequest.experimentTitle}".`,
           type: "warning"
         }
       }
