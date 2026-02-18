@@ -77,7 +77,7 @@
               v-if="dataExportRequestAlert.showRecreateLink"
               @click="handleDataExportRequest()"
             >
-              <b><i>Click here to request a new data export</i></b>.
+              <b><i>Click here to download a new data export</i></b>.
             </a>
           </v-alert>
         </div>
