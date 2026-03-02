@@ -19,6 +19,7 @@ import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiUserRepository
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.dao.entity.Experiment;
+import edu.iu.terracotta.dao.entity.Outcome;
 import edu.iu.terracotta.dao.entity.Submission;
 import edu.iu.terracotta.dao.entity.export.data.ExperimentDataExport;
 import edu.iu.terracotta.dao.entity.messaging.log.MessageLog;
@@ -27,6 +28,7 @@ import edu.iu.terracotta.dao.exceptions.OutcomeNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.dao.model.dto.export.data.ExperimentDataExportDto;
 import edu.iu.terracotta.dao.model.enums.export.data.ExperimentDataExportStatus;
+import edu.iu.terracotta.dao.repository.OutcomeRepository;
 import edu.iu.terracotta.dao.repository.SubmissionRepository;
 import edu.iu.terracotta.dao.repository.export.data.ExperimentDataExportRepository;
 import edu.iu.terracotta.dao.repository.messaging.log.MessageLogRepository;
@@ -45,6 +47,7 @@ public class ExperimentDataExportServiceImpl implements ExperimentDataExportServ
     @Autowired private ExperimentDataExportRepository experimentDataExportRepository;
     @Autowired private LtiUserRepository ltiUserRepository;
     @Autowired private MessageLogRepository messageLogRepository;
+    @Autowired private OutcomeRepository outcomeRepository;
     @Autowired private SubmissionRepository submissionRepository;
     @Autowired private ExperimentDataExportAsyncService experimentDataExportAsyncService;
     @Autowired private FileStorageService fileStorageService;
@@ -101,7 +104,7 @@ public class ExperimentDataExportServiceImpl implements ExperimentDataExportServ
         }
 
         // TODO this needs to be handled better
-        // if marked as processing / reprocessing, but doesn't have any data associated, ,mark as error and notify
+        // if marked as processing / reprocessing, but doesn't have any data associated, mark as error and notify
         /*if ((ExperimentDataExportStatus.PROCESSING == experimentDataExport.getStatus() || ExperimentDataExportStatus.REPROCESSING == experimentDataExport.getStatus()) &&
             StringUtils.isAnyBlank(
                 experimentDataExport.getFileName(),
@@ -221,7 +224,10 @@ public class ExperimentDataExportServiceImpl implements ExperimentDataExportServ
     private boolean isExperimentDataExportCurrent(ExperimentDataExport experimentDataExport) {
         // get latest submission for the assignment
         Optional<Submission> submission = submissionRepository.findTopByParticipant_Experiment_ExperimentIdAndDateSubmittedNotNullOrderByDateSubmittedDesc(experimentDataExport.getExperimentId());
+        // get latest message log for the experiment
         Optional<MessageLog> messageLog = messageLogRepository.findTopByMessage_ExposureGroupCondition_Condition_Experiment_ExperimentIdOrderByCreatedAtDesc(experimentDataExport.getExperimentId());
+        // get latest outcome for the experiment
+        Optional<Outcome> outcome = outcomeRepository.findByExposure_Experiment_ExperimentIdOrderByUpdatedAtDesc(experimentDataExport.getExperimentId());
 
         // no submissions or export data is older than the latest submission
         boolean noNewSubmission = submission.isEmpty() || experimentDataExport.getCreatedAt().after(submission.get().getDateSubmitted());
@@ -229,7 +235,10 @@ public class ExperimentDataExportServiceImpl implements ExperimentDataExportServ
         // no message logs or export data is older than the latest message log
         boolean noNewMessageLog = messageLog.isEmpty() || experimentDataExport.getCreatedAt().after(messageLog.get().getCreatedAt());
 
-        return noNewSubmission && noNewMessageLog;
+        // no outcomes or export data is older than the latest outcome
+        boolean noNewOutcome = outcome.isEmpty() || experimentDataExport.getCreatedAt().after(outcome.get().getUpdatedAt());
+
+        return noNewSubmission && noNewMessageLog && noNewOutcome;
     }
 
 }
