@@ -78,7 +78,7 @@
               v-if="dataExportRequestAlert.showRecreateLink"
               @click="handleDataExportRequest(dataExportRequestAlert.experimentId)"
             >
-              <b><i>Click here to request a new data export</i></b>.
+              <b><i>Click here to download a new data export</i></b>.
             </a>
           </v-alert>
         </div>
@@ -450,7 +450,7 @@ export default {
                 experimentId: dataExportRequest.experimentId,
                 showDownloadLink: false,
                 showRecreateLink: true,
-                text: `There have been new submissions since the last requested data export for experiment "${dataExportRequest.experimentTitle}".`,
+                text: `There have been updates since the last requested data export for experiment "${dataExportRequest.experimentTitle}".`,
                 type: "warning"
               }
             );
