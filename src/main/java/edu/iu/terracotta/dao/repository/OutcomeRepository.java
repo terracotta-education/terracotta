@@ -20,7 +20,7 @@ public interface OutcomeRepository extends JpaRepository<Outcome, Long> {
     Page<Outcome> findByExposure_Experiment_ExperimentId(Long experimentId, Pageable pageable);
     Outcome findByOutcomeId(Long outcomeId);
     boolean existsByExposure_Experiment_ExperimentIdAndExposure_ExposureIdAndOutcomeId(Long experimentId, Long exposureId, Long outcomeId);
-    Optional<Outcome> findByExposure_Experiment_ExperimentIdOrderByUpdatedAtDesc(Long experimentId);
+    Optional<Outcome> findTopByExposure_Experiment_ExperimentIdOrderByUpdatedAtDesc(Long experimentId);
 
     @Modifying
     @Transactional

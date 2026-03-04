@@ -227,7 +227,7 @@ public class ExperimentDataExportServiceImpl implements ExperimentDataExportServ
         // get latest message log for the experiment
         Optional<MessageLog> messageLog = messageLogRepository.findTopByMessage_ExposureGroupCondition_Condition_Experiment_ExperimentIdOrderByCreatedAtDesc(experimentDataExport.getExperimentId());
         // get latest outcome for the experiment
-        Optional<Outcome> outcome = outcomeRepository.findByExposure_Experiment_ExperimentIdOrderByUpdatedAtDesc(experimentDataExport.getExperimentId());
+        Optional<Outcome> outcome = outcomeRepository.findTopByExposure_Experiment_ExperimentIdOrderByUpdatedAtDesc(experimentDataExport.getExperimentId());
 
         // no submissions or export data is older than the latest submission
         boolean noNewSubmission = submission.isEmpty() || experimentDataExport.getCreatedAt().after(submission.get().getDateSubmitted());

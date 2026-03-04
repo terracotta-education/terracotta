@@ -134,11 +134,7 @@ public class SubmissionExtended extends LmsSubmission {
 
     @Override
     public String getUserId() {
-        if (submission == null) {
-            return null;
-        }
-
-        if (submission.getUser() == null) {
+        if (submission == null || submission.getUserId() == null) {
             return null;
         }
 
