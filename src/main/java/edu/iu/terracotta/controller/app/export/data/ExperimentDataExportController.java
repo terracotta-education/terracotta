@@ -72,7 +72,8 @@ public class ExperimentDataExportController {
         }
 
         try {
-            return new ResponseEntity<>(experimentDataExportService.poll(apijwtService.experimentAllowed(securedInfo, experimentId), securedInfo, createNewOnOutdated), HttpStatus.OK);
+            Experiment experiment = apijwtService.experimentAllowed(securedInfo, experimentId);
+            return new ResponseEntity<>(experimentDataExportService.poll(experiment, securedInfo, createNewOnOutdated), HttpStatus.OK);
         } catch (Exception e) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
