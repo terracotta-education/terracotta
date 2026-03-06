@@ -146,7 +146,7 @@ public class CaliperServiceImpl implements CaliperService {
         Person actor = prepareActor(submission.getParticipant(), securedInfo.getLmsUserGlobalId());
         CaliperOrganization group = prepareGroup(submission.getParticipant().getLtiMembershipEntity(), securedInfo);
         org.imsglobal.caliper.entities.resource.Assessment assessment = prepareAssessment(submission, securedInfo);
-        Attempt attempt = prepareAttempt(submission, actor, assessment);
+        Attempt attempt = prepareAttempt(submission, actor, assessment, securedInfo);
         String uuid = "urn:uuid:" + UUID.randomUUID();
 
         Map<String, Object> extenstions = getTerracottaInternalIDs(submission,submission.getParticipant());
@@ -169,7 +169,7 @@ public class CaliperServiceImpl implements CaliperService {
         Envelope envelope = null;
 
         if (sendEnabled(submission.getParticipant().getLtiMembershipEntity().getUser().getPlatformDeployment())) {
-            envelope = new Envelope(getSensor(submission.getParticipant().getLtiMembershipEntity().getUser().getPlatformDeployment()).getId(), DateTime.now(), DATA_VERSION, Collections.singletonList(assessmentEvent));
+            envelope = new Envelope(getSensor(submission.getParticipant().getLtiMembershipEntity().getUser().getPlatformDeployment()).getId(), DateTime.now(), DATA_VERSION, List.of(assessmentEvent));
             send(envelope, submission.getParticipant().getLtiUserEntity().getPlatformDeployment());
         }
 
@@ -208,7 +208,7 @@ public class CaliperServiceImpl implements CaliperService {
         LtiSession ltiSession = prepareLtiSession(securedInfo, submission.getParticipant().getLtiMembershipEntity());
         CaliperOrganization group = prepareGroup(submission.getParticipant().getLtiMembershipEntity(), securedInfo);
         org.imsglobal.caliper.entities.resource.Assessment assessment = prepareAssessment(submission, securedInfo);
-        Attempt attempt = prepareAttempt(submission, actor, assessment);
+        Attempt attempt = prepareAttempt(submission, actor, assessment, securedInfo);
         String uuid = "urn:uuid:" + UUID.randomUUID();
         Map<String, Object> extensions = getTerracottaInternalIDs(submission, submission.getParticipant());
 
@@ -270,7 +270,7 @@ public class CaliperServiceImpl implements CaliperService {
         LtiSession ltiSession = prepareLtiSession(securedInfo, submission.getParticipant().getLtiMembershipEntity());
         CaliperOrganization group = prepareGroup(submission.getParticipant().getLtiMembershipEntity(), securedInfo);
         org.imsglobal.caliper.entities.resource.Assessment assessment = prepareAssessment(submission, securedInfo);
-        Attempt attempt = prepareAttempt(submission, actor, assessment);
+        Attempt attempt = prepareAttempt(submission, actor, assessment, securedInfo);
         String uuid = "urn:uuid:" + UUID.randomUUID();
         Map<String, Object> extensions = getTerracottaInternalIDs(submission, submission.getParticipant());
         assessment.getExtensions().putAll(extensions);
@@ -410,7 +410,7 @@ public class CaliperServiceImpl implements CaliperService {
         LtiSession ltiSession = prepareLtiSession(securedInfo, submission.getParticipant().getLtiMembershipEntity());
         CaliperOrganization group = prepareGroup(submission.getParticipant().getLtiMembershipEntity(), securedInfo);
         org.imsglobal.caliper.entities.resource.Assessment assessment = prepareAssessment(submission, securedInfo);
-        Attempt attempt = prepareAttempt(submission, actor, assessment);
+        Attempt attempt = prepareAttempt(submission, actor, assessment, securedInfo);
         Result result = prepareResult(submission, attempt, assessment);
         String uuid = "urn:uuid:" + UUID.randomUUID();
         Map<String, Object> extenstions = getTerracottaInternalIDs(submission, submission.getParticipant());
@@ -627,29 +627,32 @@ public class CaliperServiceImpl implements CaliperService {
             .build();
     }
 
-    private Attempt prepareAttempt(Submission submission, Person actor, org.imsglobal.caliper.entities.resource.Assessment assessment) {
-        Attempt attempt = Attempt.builder()
+    private Attempt prepareAttempt(Submission submission, Person actor, org.imsglobal.caliper.entities.resource.Assessment assessment, SecuredInfo securedInfo) {
+        org.imsglobal.caliper.entities.resource.Assessment attemptAssessment;
+
+        if (submission.isIntegration() && submission.getIntegrationToken() != null) {
+            attemptAssessment = prepareAssessment(submission, securedInfo);
+            // is an integration assignment, add the terracotta_launch_token value
+            if (attemptAssessment.getExtensions() != null) {
+                attemptAssessment.getExtensions().put(
+                    IntegrationLaunchParameter.EVENT_JSON_KEY.key(),
+                    submission.getIntegrationToken().getToken()
+                );
+            }
+        } else {
+            attemptAssessment = assessment;
+        }
+
+        return Attempt.builder()
             .id(assessment.getId() + "/submissions/" + submission.getSubmissionId())
             .type(EntityType.ATTEMPT)
             .assignee(actor)
-            .assignable(assessment)
+            .assignable(attemptAssessment)
             .count(submissionRepository.findByParticipant_IdAndAssessment_AssessmentId(submission.getParticipant().getParticipantId(), submission.getAssessment().getAssessmentId()).size())
             .dateCreated(convertTimestamp(submission.getCreatedAt(), false))
             .startedAtTime(convertTimestamp(submission.getCreatedAt(), false))
             .endedAtTime(convertTimestamp(submission.getDateSubmitted(), true)) //To avoid the error if they submit instantaneously for some reason.
             .build();
-
-        if (submission.isIntegration() && submission.getIntegrationToken() != null) {
-            // is an integration assignment, add the terracotta_launch_token value
-            if (attempt.getAssignable() != null && attempt.getAssignable().getExtensions() != null) {
-                attempt.getAssignable().getExtensions().put(
-                    IntegrationLaunchParameter.EVENT_JSON_KEY.key(),
-                    submission.getIntegrationToken().getToken()
-                );
-            }
-        }
-
-        return attempt;
     }
 
     private Result prepareResult(Submission submission, Attempt attempt, org.imsglobal.caliper.entities.resource.Assessment assessment) {
