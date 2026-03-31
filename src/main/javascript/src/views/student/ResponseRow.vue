@@ -1,34 +1,33 @@
 <template>
-  <v-row>
-    <v-col
-      cols="1"
+<v-row>
+  <v-col
+    cols="1"
+  >
+    &nbsp;
+  </v-col>
+  <v-col
+    cols="10"
+  >
+    <v-card
+      :class="border"
+      outlined
     >
-      &nbsp;
-    </v-col>
-    <v-col
-      cols="10"
-    >
-      <v-card
-        :class="border"
-        outlined
+      <v-card-title
+        class="py-0"
       >
-        <v-card-title
-          class="py-0"
-        >
-          <slot />
-        </v-card-title>
-      </v-card>
-    </v-col>
-  </v-row>
+        <slot />
+      </v-card-title>
+    </v-card>
+  </v-col>
+</v-row>
 </template>
 
 <script>
 export default {
   props: {
     correct: {
-      default() {
-        return null;
-      }
+      type: Boolean,
+      default: null
     }
   },
   computed: {
@@ -39,13 +38,15 @@ export default {
 };
 </script>
 
-<style>
+<style lang="scss" scoped>
+@import "@/styles/variables";
+
 .green--border {
-  border-color: #38ADB6 !important;
+  border-color: map-get($green, "base") !important;
   border-width: 2px !important;
 }
 .red--border {
-  border-color: #E5153E !important;
+  border-color: map-get($red, "base") !important;
   border-width: 2px !important;
 }
 </style>

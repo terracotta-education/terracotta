@@ -1,227 +1,191 @@
 <template>
-  <div>
-    <template
-      v-if="!readonly"
-    >
-      <response-row>
-        <v-card
-          v-if="isIdle && !file"
-          @drop.prevent="onDrop($event)"
-          @dragover.prevent="dragover = true"
-          @dragenter.prevent="dragover = true"
-          @dragleave.prevent="dragover = false"
-          :class="{ 'grey lighten-2': dragover }"
-          elevation="0"
-          width="100%"
-          height="100%"
+<div>
+  <template
+    v-if="!readonly"
+  >
+    <response-row>
+      <v-card
+        v-if="isIdle && !file"
+        :class="{ 'grey lighten-2': dragover }"
+        @drop.prevent="onDrop($event)"
+        @dragover.prevent="dragover = true"
+        @dragenter.prevent="dragover = true"
+        @dragleave.prevent="dragover = false"
+        elevation="0"
+        width="100%"
+        height="100%"
+      >
+        <v-card-actions
+          class="d-flex flex-column btn-upload-card-action"
+          align="center"
+          justify="center"
+          dense
         >
-          <v-card-actions
-            class="d-flex flex-column btn-upload-card-action"
+          <v-row
+            class="d-flex flex-column"
             align="center"
             justify="center"
             dense
           >
-            <v-row
-              class="d-flex flex-column"
+            <v-btn
+              :loading="isSelecting"
+              @click="handleFileImport"
+              color="primary"
+              class="upload-button"
               align="center"
-              justify="center"
-              dense
+              dark
             >
-              <v-btn
-                :loading="isSelecting"
-                @click="handleFileImport"
-                color="primary"
-                class="upload-button"
-                align="center"
-                dark
-              >
-                Upload File
-              </v-btn>
-            </v-row>
-            <input
-              @change="onFileChanged"
-              ref="uploader"
-              class="d-none"
-              type="file"
-            />
-            <v-spacer></v-spacer>
-          </v-card-actions>
-          <v-card-text
-            class="drag-drop-card-text"
+              Upload File
+            </v-btn>
+          </v-row>
+          <input
+            @change="onFileChanged"
+            ref="uploader"
+            class="d-none"
+            type="file"
+          />
+          <v-spacer></v-spacer>
+        </v-card-actions>
+        <v-card-text
+          class="drag-drop-card-text"
+        >
+          <v-row
+            class="d-flex flex-column"
+            align="center"
+            justify="center"
+            dense
           >
-            <v-row
-              class="d-flex flex-column"
-              align="center"
-              justify="center"
-              dense
+            <p
+              class="drag-drop-text"
             >
-              <p
-                class="drag-drop-text"
-              >
-                or drag and drop here
-              </p>
-            </v-row>
-          </v-card-text>
-        </v-card>
-        <v-card
-          v-if="!isIdle || file"
-          width="100%"
-          height="100%"
-        >
-          <v-card-text>
-            <v-row
-              class="d-flex flex-column"
-              align="center"
-              justify="center"
-              dense
-            >
-              <h2
-                v-if="isUploading"
-              >
-                Uploading...
-              </h2>
-              <h2
-                v-if="!isUploading"
-              >
-                Selected file:
-              </h2>
-              <div
-                v-if="isUploading"
-              >
-                <v-progress-linear
-                  v-model="uploadBarProgress"
-                  height="5"
-                >
-                </v-progress-linear>
-                <v-tooltip
-                  top
-                >
-                  <template
-                    v-slot:activator="{on, attrs}"
-                  >
-                    <v-btn
-                      v-bind="attrs"
-                      v-on="on"
-                      @click="deleteFile"
-                      class="btn-uploaded-file"
-                    >
-                      <v-icon
-                        class="btn-uploaded-file-icon"
-                      >
-                        mdi-close-outine
-                      </v-icon>
-                    </v-btn>
-                  </template>
-                  <span>Cancel upload</span>
-                </v-tooltip>
-              </div>
-              <div
-                v-if="!isUploading"
-                class="v-btn uploaded-file-row"
-                outlined
-              >
-                {{ file.name }}
-                <v-tooltip
-                  top
-                >
-                  <template
-                    v-slot:activator="{on, attrs}"
-                  >
-                    <v-btn
-                      v-bind="attrs"
-                      v-on="on"
-                      @click="deleteFile"
-                      class="btn-uploaded-file"
-                    >
-                      <v-icon
-                        class="btn-uploaded-file-icon"
-                      >
-                        mdi-trash-can-outline
-                      </v-icon>
-                    </v-btn>
-                  </template>
-                  <span>Delete file</span>
-                </v-tooltip>
-              </div>
-            </v-row>
-          </v-card-text>
-        </v-card>
-      </response-row>
-      <v-row
-        v-if="isIdle && !file"
-        class="d-flex flex-column"
-        align="center"
-        justify="center"
-        dense
+              or drag and drop here
+            </p>
+          </v-row>
+        </v-card-text>
+      </v-card>
+      <v-card
+        v-if="!isIdle || file"
+        width="100%"
+        height="100%"
       >
-        <p>Uploaded files cannot be larger than 10MB</p>
-      </v-row>
-    </template>
-    <template
-      v-if="readonly"
-    >
-      <response-row>
-        <v-card
-          class="uploaded-file-card"
-        >
-          <v-card-text>
-            <v-row
-              class="d-flex flex-column"
-              align="center"
-              justify="center"
-              dense
+        <v-card-text>
+          <v-row
+            class="d-flex flex-column"
+            align="center"
+            justify="center"
+            dense
+          >
+            <h2
+              v-if="isUploading"
             >
-              <h2>File submitted:</h2>
-              <div
-                v-for="fileResponse in fileResponses"
-                :key="fileResponse.answerSubmissionId"
-                class="v-btn uploaded-file-row"
-                outlined
+              {{ isUploading ? "Uploading..." : "Select file:" }}
+            </h2>
+            <div
+              v-if="isUploading"
+            >
+              <v-progress-linear
+                v-model="uploadBarProgress"
+                height="5"
               >
-                {{ fileResponse.fileName }}
-                <v-tooltip
-                  v-if="!isDownloading"
-                  top
-                >
-                  <template
-                    v-slot:activator="{on, attrs}"
-                  >
-                    <v-btn
-                      v-bind="attrs"
-                      v-on="on"
-                      @click="handleFileDownload(fileResponse)"
-                      class="btn-uploaded-file"
-                      target="_blank"
-                    >
-                      <v-icon
-                        class="btn-uploaded-file-icon"
-                      >
-                        mdi-file-download-outline
-                      </v-icon>
-                    </v-btn>
-                  </template>
-                  <span>Download file</span>
-                </v-tooltip>
-                <span
-                  v-if="isDownloading"
-                >
-                  <spinner />
-                </span>
-              </div>
-            </v-row>
-          </v-card-text>
-        </v-card>
-      </response-row>
-    </template>
-  </div>
+              </v-progress-linear>
+              <tool-tip
+                @clicked="deleteFile"
+                content="Cancel upload"
+                activatorType="button"
+                activatorClass="btn-uploaded-file"
+                activatorIconClass="btn-uploaded-file-icon"
+                icon="mdi-close-outline"
+                alignment="top"
+              />
+            </div>
+            <div
+              v-if="!isUploading"
+              class="v-btn uploaded-file-row"
+              outlined
+            >
+              {{ file.name }}
+              <tool-tip
+                @clicked="deleteFile"
+                content="Delete file"
+                activatorType="button"
+                activatorClass="btn-uploaded-file"
+                activatorIconClass="btn-uploaded-file-icon"
+                icon="mdi-trash-can-outline"
+                alignment="top"
+              />
+            </div>
+          </v-row>
+        </v-card-text>
+      </v-card>
+    </response-row>
+    <v-row
+      v-if="isIdle && !file"
+      class="d-flex flex-column"
+      align="center"
+      justify="center"
+      dense
+    >
+      <p>Uploaded files cannot be larger than 10MB</p>
+    </v-row>
+  </template>
+  <template
+    v-if="readonly"
+  >
+    <response-row>
+      <v-card
+        class="uploaded-file-card"
+      >
+        <v-card-text>
+          <v-row
+            class="d-flex flex-column"
+            align="center"
+            justify="center"
+            dense
+          >
+            <h2>File submitted:</h2>
+            <div
+              v-for="fileResponse in fileResponses"
+              :key="fileResponse.answerSubmissionId"
+              class="v-btn uploaded-file-row"
+              outlined
+            >
+              {{ fileResponse.fileName }}
+              <tool-tip
+                v-if="!isDownloading"
+                @clicked="handleFileDownload(fileResponse)"
+                activatorType="button"
+                activatorClass="btn-uploaded-file"
+                activatorIconClass="btn-uploaded-file-icon"
+                content="Download file"
+                icon="mdi-file-download-outline"
+                alignment="top"
+              />
+              <span
+                v-if="isDownloading"
+              >
+                <spinner />
+              </span>
+            </div>
+          </v-row>
+        </v-card-text>
+      </v-card>
+    </response-row>
+  </template>
+</div>
 </template>
 
 <script>
 import { mapGetters, mapActions } from "vuex";
 import ResponseRow from "./ResponseRow.vue";
 import Spinner from "@/components/Spinner";
+import ToolTip from "@/components/ToolTip.vue";
 
 export default {
+  components: {
+    ResponseRow,
+    Spinner,
+    ToolTip
+  },
   props: {
     value: {
       type: Object
@@ -246,21 +210,15 @@ export default {
       type: Number
     }
   },
-  components: {
-    ResponseRow,
-    Spinner
-  },
-  data() {
-    return {
-      response: this.value,
-      isSelecting: false,
-      selectedFile: null,
-      dragover: false,
-      uploading: false,
-      uploadBarProgress: 10,
-      uploaded: false
-    };
-  },
+  data: () => ({
+    response: null,
+    isSelecting: false,
+    selectedFile: null,
+    dragover: false,
+    uploading: false,
+    uploadBarProgress: 10,
+    uploaded: false
+  }),
   watch: {
     value() {
       this.response = this.value;
@@ -410,14 +368,6 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.v-tooltip__content {
-  max-width: 400px;
-  opacity: 1.0 !important;
-  background-color: rgba(55,61,63, 1.0) !important;
-  a {
-    color: #afdcff;
-  }
-}
 iframe {
   margin: 0 auto;
   min-height: 600px;

@@ -219,9 +219,9 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
 
                 ConsentDocument consentDocument = consentDocumentRepository.save(
                     ConsentDocument.builder()
-                        .encryptionMethod(fileSubmissionLocal.getEncryptionMethod())
-                        .encryptionPhrase(fileSubmissionLocal.getEncryptionPhrase())
-                        .fileUri(fileSubmissionLocal.getFilePath())
+                        .encryptionMethod(fileSubmissionLocal.encryptionMethod())
+                        .encryptionPhrase(fileSubmissionLocal.encryptionPhrase())
+                        .fileUri(fileSubmissionLocal.filePath())
                         .html(export.getConsentDocument().getHtml())
                         .lmsAssignmentId(null)
                         .resourceLinkId(null)

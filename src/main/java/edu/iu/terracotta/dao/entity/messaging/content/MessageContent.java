@@ -11,7 +11,6 @@ import edu.iu.terracotta.dao.entity.messaging.conditional.MessageConditionalText
 import edu.iu.terracotta.dao.entity.messaging.message.Message;
 import edu.iu.terracotta.dao.entity.messaging.piped.MessagePipedText;
 import jakarta.persistence.CascadeType;
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Lob;
@@ -39,7 +38,6 @@ public class MessageContent extends BaseMessageEntity {
     private Message message;
 
     @Lob
-    @Column
     private String html;
 
     @Builder.Default

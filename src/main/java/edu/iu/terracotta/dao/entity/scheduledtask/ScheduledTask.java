@@ -30,7 +30,7 @@ public class ScheduledTask {
     )
     private String taskName;
 
-    @Column private boolean picked;
-    @Column private String pickedBy;
+    private boolean picked;
+    private String pickedBy;
 
 }

@@ -1,83 +1,111 @@
 <template>
-  <div class="file-drop-zone">
-    <template v-if="!file">
-      <div
-        :class="['drop-zone', dragging ? 'drop-zone--over' : '']"
-        @dragenter="dragging = true"
-        @dragleave="dragging = false"
-      >
-        <div
-          class="drop-zone__info"
-          @drag="onChange"
-        >
-          <v-btn
-            class="mb-3"
-            elevation="0"
-            color="primary"
-          >
-            Upload PDF
-          </v-btn>
-          <p>or drag and drop here</p>
-        </div>
-        <input
-          type="file"
-          accept=".pdf,application/pdf"
-          @change="onChange"
-        >
-      </div>
-    </template>
+<div
+  class="file-drop-zone"
+>
+  <template
+    v-if="!file"
+  >
     <div
-      v-else
-      class="drop-zone__uploaded pa-3"
+      :class="['drop-zone', dragging ? 'drop-zone--over' : '']"
+      @dragenter="dragging = true"
+      @dragleave="dragging = false"
     >
-      <div class="drop-zone__uploaded-info">
-        <h4 class="drop-zone__title">Selected file:</h4>
-        <v-card outlined>
-          <v-card-text class="py-1 px-2">
-            <strong>Informed Consent File</strong>
-            <div>
-              <v-btn
-                class="icon-file-view"
-                elevation="0"
-                icon
-                tile
-                @click="doDisplayFile"
-              >
-                <v-icon>
-                  mdi-file-eye-outline
-                </v-icon>
-              </v-btn>
-              <v-btn
-                class="icon-file-remove"
-                elevation="0"
-                icon
-                tile
-                @click="removeFile"
-              >
-                <v-icon dark>
-                  mdi-close
-                </v-icon>
-              </v-btn>
-            </div>
-          </v-card-text>
-        </v-card>
+      <div
+        @drag="onChange"
+        class="drop-zone__info"
+      >
+        <v-btn
+          @click="$refs.fileInput.click()"
+          aria-label="Upload consent file"
+          class="mb-3"
+          elevation="0"
+          color="primary"
+        >
+          Upload PDF
+        </v-btn>
+        <p>or drag and drop here</p>
       </div>
+      <input
+        @change="onChange"
+        type="file"
+        ref="fileInput"
+        accept=".pdf,application/pdf"
+        aria-label="Upload consent file"
+      >
+    </div>
+  </template>
+  <div
+    v-else
+    class="drop-zone__uploaded pa-3"
+  >
+    <div
+      class="drop-zone__uploaded-info"
+    >
+      <h4
+        class="drop-zone__title"
+      >
+        Selected file:
+      </h4>
+      <v-card
+        outlined
+      >
+        <v-card-text
+          class="py-1 px-2"
+        >
+          <strong>Informed Consent File</strong>
+          <div>
+            <v-btn
+              @click="doDisplayFile"
+              aria-label="View uploaded consent file"
+              class="icon-file-view"
+              elevation="0"
+              icon
+              tile
+            >
+              <v-icon>
+                mdi-file-eye-outline
+              </v-icon>
+            </v-btn>
+            <v-btn
+              @click="removeFile"
+              aria-label="Remove uploaded consent file"
+              class="icon-file-remove"
+              elevation="0"
+              icon
+              tile
+            >
+              <v-icon dark>
+                mdi-close
+              </v-icon>
+            </v-btn>
+          </div>
+        </v-card-text>
+      </v-card>
     </div>
   </div>
+</div>
 </template>
 
 <script>
 export default {
-  props: ['existingFile'],
-  data() {
-    return {
-      file: null,
-      dragging: false
+  props: {
+    existingFile: {
+      type: Object,
+      default: null
     }
   },
+  data: () => ({
+    file: null,
+    dragging: false
+  }),
   watch: {
     existingFile(newFile) {
       this.file = newFile;
+    }
+  },
+  computed: {
+    extension() {
+      return (this.file) ? this.file.name.split(".").pop() : "";
     }
   },
   methods: {
@@ -92,43 +120,38 @@ export default {
       this.createFile(files[0]);
     },
     createFile(file) {
-      if (!file.type.match('application/pdf')) {
-        this.$swal('Please select a pdf file.');
+      if (!file.type.match("application/pdf")) {
+        this.$swal("Please select a pdf file.");
         this.dragging = false;
         return;
       }
 
       if (file.size > 10*1024*1024) {
-        this.$swal('Please check file size is not over 10 MB.')
+        this.$swal("Please check file size is not over 10 MB.");
         this.dragging = false;
         return;
       }
 
       this.file = file;
       this.dragging = false;
-      this.$emit('update', file)
-      this.$emit('newUpload', true);
+      this.$emit("update", file);
+      this.$emit("newUpload", true);
     },
     removeFile() {
-      this.file = '';
-      this.$emit('update', null);
-      this.$emit('newUpload', true);
-      this.$emit('displayFile', false);
+      this.file = null;
+      this.$emit("update", null);
+      this.$emit("newUpload", true);
+      this.$emit("displayFile", false);
     },
     doDisplayFile() {
-      this.$emit('displayFile', true);
+      this.$emit("displayFile", true);
     }
-  },
-  computed: {
-    extension() {
-      return (this.file) ? this.file.name.split('.').pop() : '';
-    }
-  },
+  }
 }
 </script>
 
 <style lang="scss">
-@import '~@/styles/variables';
+@import "~@/styles/variables";
 
 .drop-zone {
   height: 153px;

@@ -9,7 +9,6 @@ import lombok.Setter;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import edu.iu.terracotta.connectors.generic.dao.entity.BaseEntity;
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -31,16 +30,11 @@ public class QuestionSubmissionComment extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(
-        name = "question_submission_comment_id",
-        nullable = false
-    )
     private Long questionSubmissionCommentId;
 
-    @Column private String creator;
+    private String creator;
 
     @Lob
-    @Column
     private String comment;
 
     @ManyToOne(optional = false)

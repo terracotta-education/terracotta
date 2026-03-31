@@ -1,52 +1,54 @@
 <template>
-  <v-container
-    v-show="display"
-    :style="containerStyles"
-    class="page-loading-container"
+<v-container
+  v-show="display"
+  :style="containerStyles"
+  class="page-loading-container"
+>
+  <div
+    :style="spinnerStyles"
+    class="spinner-container"
   >
-    <div
-      :style="spinnerStyles"
-      class="spinner-container"
+    <h1>{{ message }}</h1>
+    <spinner
+      :width="'100px'"
+      :height="'100px'"
+      class="spinner"
     >
-      <h1>{{ message }}</h1>
-      <Spinner
-        :width="'100px'"
-        :height="'100px'"
-        class="spinner"
-      >
-      </Spinner>
-    </div>
-  </v-container>
+    </spinner>
+  </div>
+</v-container>
 </template>
 
 <script>
-  import Spinner from "@/components/Spinner";
+import Spinner from "@/components/Spinner";
 
-  export default {
-    name: "PageLoading",
-    components: {
-      Spinner
+export default {
+  name: "PageLoading",
+  components: {
+    Spinner
+  },
+  props: {
+    message: {
+      type: String,
+      default: "Loading. Please wait."
     },
-    props: {
-      message: {
-        type: String,
-        default: "Loading. Please wait."
-      },
-      display: {
-        type: Boolean,
-        default: false
-      },
-      containerStyles: {
-        type: String
-      },
-      spinnerStyles: {
-        type: String
-      }
+    display: {
+      type: Boolean,
+      default: false
+    },
+    containerStyles: {
+      type: String
+    },
+    spinnerStyles: {
+      type: String
     }
   }
+}
 </script>
 
 <style lang="scss" scoped>
+@import "~@/styles/variables";
+
 div.spinner-container {
   position: absolute;
   top: 50%;
@@ -62,7 +64,7 @@ div.spinner-container {
   h1 {
     width: 100%;
     margin-top: 20px;
-    color: #0077d2;
+    color: map-get($blue, "base");
   }
   .spinner {
     position: relative;

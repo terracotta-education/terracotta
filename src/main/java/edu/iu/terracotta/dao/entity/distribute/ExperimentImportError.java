@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import edu.iu.terracotta.connectors.generic.dao.entity.BaseUuidEntity;
 import jakarta.persistence.CascadeType;
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -25,7 +24,7 @@ import lombok.Setter;
 @Table(name = "terr_experiment_import_error")
 public class ExperimentImportError extends BaseUuidEntity {
 
-    @Column private String text;
+    private String text;
 
     @ManyToOne(
         optional = false,

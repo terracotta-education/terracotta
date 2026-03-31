@@ -1,33 +1,33 @@
 <template>
-  <div
-    class="container-outcomes"
+<div
+  class="container-outcomes"
+>
+  <v-col
+    class="input"
   >
-    <v-col
-      class="input"
-    >
-      <Input
-        @hasSelection="handleHasSelection"
-      />
-    </v-col>
-    <v-col
-      class="output"
-    >
-      <Output
-        :showOutputPanel="showOutputPanel"
-      />
-    </v-col>
-  </div>
+    <section-input
+      @hasSelection="handleHasSelection"
+    />
+  </v-col>
+  <v-col
+    class="output"
+  >
+    <section-output
+      :showOutputPanel="showOutputPanel"
+    />
+  </v-col>
+</div>
 </template>
 
 <script>
-import Input from "./components/section/Input.vue"
-import Output from "./components/section/Output.vue"
+import SectionInput from "./components/section/Input.vue";
+import SectionOutput from "./components/section/Output.vue";
 
 export default {
   name: "Outcomes",
   components: {
-    Input,
-    Output
+    SectionInput,
+    SectionOutput
   },
   data: () => ({
     displayOutput: false
@@ -45,7 +45,9 @@ export default {
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+@import "~@/styles/variables";
+
 div.container-outcomes {
   display: flex;
   flex-direction: row;
@@ -53,7 +55,8 @@ div.container-outcomes {
   > .col {
     padding-top: 40px;
     &.input {
-      background-color: rgba(249, 249, 249, 1);
+      background-color: map-get($grey, "extreme-light");
+      border-right: 1px solid rgba(0, 0, 0, .12);
       width: 30%;
       max-width: 30%;
     }

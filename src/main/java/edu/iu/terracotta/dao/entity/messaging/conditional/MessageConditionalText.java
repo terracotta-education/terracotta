@@ -8,7 +8,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import edu.iu.terracotta.dao.entity.messaging.BaseMessageEntity;
 import edu.iu.terracotta.dao.entity.messaging.content.MessageContent;
 import jakarta.persistence.CascadeType;
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -31,6 +30,8 @@ import lombok.Setter;
 @Table(name = "terr_messaging_conditional_text")
 public class MessageConditionalText extends BaseMessageEntity {
 
+    private String label;
+
     @ManyToOne
     @JoinColumn(name = "content_id")
     private MessageContent content;
@@ -48,7 +49,5 @@ public class MessageConditionalText extends BaseMessageEntity {
         orphanRemoval = true
     )
     private List<MessageConditionalTextRuleSet> ruleSets = new ArrayList<>();
-
-    @Column private String label;
 
 }

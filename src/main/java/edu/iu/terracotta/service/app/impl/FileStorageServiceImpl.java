@@ -260,7 +260,7 @@ public class FileStorageServiceImpl implements FileStorageService {
                 .filePath(filePath)
                 .build();
 
-            if (!fileSubmissionLocal.isCompressed()) {
+            if (!fileSubmissionLocal.compressed()) {
                 // file was not compressed; return
                 return fileSubmissionLocal;
             }
@@ -292,9 +292,9 @@ public class FileStorageServiceImpl implements FileStorageService {
             consentDocument.setTitle(title);
         }
 
-        consentDocument.setEncryptionMethod(fileInfoDto.getFileSubmissionLocal().getEncryptionMethod());
-        consentDocument.setEncryptionPhrase(fileInfoDto.getFileSubmissionLocal().getEncryptionPhrase());
-        consentDocument.setFileUri(fileInfoDto.getFileSubmissionLocal().getFilePath());
+        consentDocument.setEncryptionMethod(fileInfoDto.getFileSubmissionLocal().encryptionMethod());
+        consentDocument.setEncryptionPhrase(fileInfoDto.getFileSubmissionLocal().encryptionPhrase());
+        consentDocument.setFileUri(fileInfoDto.getFileSubmissionLocal().filePath());
 
         // reset to null, as not needed
         fileInfoDto.setFileSubmissionLocal(null);
@@ -454,7 +454,7 @@ public class FileStorageServiceImpl implements FileStorageService {
                 encryptionPhrase
             );
 
-            if (!fileSubmissionLocal.isCompressed()) {
+            if (!fileSubmissionLocal.compressed()) {
                 // file was not compressed; return
                 return fileSubmissionLocal;
             }

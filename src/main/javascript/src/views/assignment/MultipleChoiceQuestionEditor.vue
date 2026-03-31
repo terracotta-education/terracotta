@@ -1,120 +1,122 @@
 <template>
-  <!-- proxy props and event listeners to question-editor -->
-  <question-editor
-    v-bind="$props"
-    v-on="$listeners"
-    :isMC="true"
-    @edited="handleQuestionEdited"
+<!-- proxy props and event listeners to question-editor -->
+<question-editor
+  v-bind="$props"
+  v-on="$listeners"
+  :isMC="true"
+  @edited="handleQuestionEdited"
+>
+  <h4><strong>Options</strong></h4>
+  <p
+    class="ma-0 mb-3"
   >
-    <h4><strong>Options</strong></h4>
-    <p
-      class="ma-0 mb-3"
-    >
-      Select correct option(s) below
-    </p>
+    Select correct option(s) below
+  </p>
 
-    <ul
-      class="options-list pa-0 mb-6"
+  <ul
+    class="options-list pa-0 mb-6"
+  >
+    <li
+      v-for="(answer, aIndex) in question.answers"
+      :key="answer.answerId"
+      class="mb-3"
     >
-      <li
-        v-for="(answer, aIndex) in question.answers"
-        :key="answer.answerId"
-        class="mb-3"
+      <v-row
+        align="center"
+        class="flex-nowrap"
       >
-        <v-row
-          align="center"
-          class="flex-nowrap"
+        <v-col
+          class="py-0"
         >
-          <v-col
-            class="py-0"
+          <v-btn
+            :class="{
+              'green--text': answer.correct
+            }"
+            :aria-label="`Mark option ${answer.html || aIndex + 1} as correct`"
+            @click="handleToggleCorrect(answer)"
+            class="correct"
+            icon
+            tile
           >
-            <v-btn
-              icon
-              tile
-              class="correct"
-              :class="{
-                'green--text': answer.correct
-              }"
-              @click="handleToggleCorrect(answer)"
+            <template
+              v-if="!answer.correct"
             >
-              <template
-                v-if="!answer.correct"
-              >
-                <v-icon>mdi-checkbox-marked-circle-outline</v-icon>
-              </template>
-              <template
-                v-else
-              >
-                <v-icon>mdi-checkbox-marked-circle</v-icon>
-              </template>
-            </v-btn>
-          </v-col>
-          <v-col class="flex-basis-auto">
-            <v-text-field
-              :value="answer.html"
-              :label="`Option ${aIndex + 1}`"
-              :rules="longString"
-              @input="updateAnswerHtml(answer, $event)"
-              hide-details
-              outlined
-              required
+              <v-icon>mdi-checkbox-marked-circle-outline</v-icon>
+            </template>
+            <template
+              v-else
             >
-            </v-text-field>
-          </v-col>
-          <v-col
-            class="py-0"
+              <v-icon>mdi-checkbox-marked-circle</v-icon>
+            </template>
+          </v-btn>
+        </v-col>
+        <v-col class="flex-basis-auto">
+          <v-text-field
+            :value="answer.html"
+            :label="`Option ${aIndex + 1}`"
+            :rules="longString"
+            :aria-label="`Input text for option ${aIndex + 1}`"
+            @input="updateAnswerHtml(answer, $event)"
+            hide-details
+            outlined
+            required
           >
-            <v-btn
-              icon
-              tile
-              class="delete_option"
-              @click="handleDeleteAnswer(question, answer)"
-            >
-              <v-icon>mdi-delete</v-icon>
-            </v-btn>
-          </v-col>
-        </v-row>
-      </li>
-    </ul>
-    <v-row
-      align="center"
-      class="flex-nowrap"
-    >
-      <v-col
-        cols="auto"
-      >
-        <div
-          class="icon-button-spacer"
-        ></div>
-      </v-col>
-      <v-col
-        cols="auto"
-      >
-        <v-btn
-          @click="handleAddAnswer(question)"
-          elevation="0"
-          color="primary"
-          class="px-0"
-          plain
+          </v-text-field>
+        </v-col>
+        <v-col
+          class="py-0"
         >
-          Add Option
-        </v-btn>
-      </v-col>
-    </v-row>
-    <template
-      v-slot:actions
+          <v-btn
+            :aria-label="`Delete option ${answer.html || aIndex + 1}`"
+            @click="handleDeleteAnswer(question, answer)"
+            class="delete_option"
+            icon
+            tile
+          >
+            <v-icon>mdi-delete</v-icon>
+          </v-btn>
+        </v-col>
+      </v-row>
+    </li>
+  </ul>
+  <v-row
+    align="center"
+    class="flex-nowrap"
+  >
+    <v-col
+      cols="auto"
     >
       <div
-        class="d-flex align-center"
+        class="icon-button-spacer"
+      ></div>
+    </v-col>
+    <v-col
+      cols="auto"
+    >
+      <v-btn
+        @click="handleAddAnswer(question)"
+        elevation="0"
+        class="btn-add-option px-0"
+        plain
       >
-        <v-switch
-          v-model="randomizeAnswers"
-          class="randomize-answers-switch"
-          label="Randomize options"
-        />
-      </div>
-    </template>
-  </question-editor>
+        Add Option
+      </v-btn>
+    </v-col>
+  </v-row>
+  <template
+    v-slot:actions
+  >
+    <div
+      class="d-flex align-center"
+    >
+      <v-switch
+        v-model="randomizeAnswers"
+        class="randomize-answers-switch"
+        label="Randomize options"
+      />
+    </div>
+  </template>
+</question-editor>
 </template>
 
 <script>
@@ -122,17 +124,19 @@ import { mapActions, mapMutations } from "vuex";
 import QuestionEditor from "./QuestionEditor.vue";
 
 export default {
-  props: [
-    "question"
-  ],
+  name: "MultipleChoiceQuestionEditor",
   components: {
     QuestionEditor
   },
-  data() {
-    return {
-      longString: [(v) => (v && !!v.trim()) || "required"],
-    };
+  props: {
+    question: {
+      type: Object,
+      required: true
+    }
   },
+  data: () => ({
+    longString: [(v) => (v && !!v.trim()) || "required"],
+  }),
   computed: {
     experimentId() {
       return parseInt(this.$route.params.experimentId);
@@ -147,12 +151,14 @@ export default {
       return parseInt(this.$route.params.conditionId);
     },
     randomizeAnswers: {
-      // two-way computed property
       get() {
         return this.question.randomizeAnswers;
       },
       set(value) {
-        this.updateQuestions({ ...this.question, randomizeAnswers: value });
+        this.updateQuestions({
+          ...this.question,
+          randomizeAnswers: value
+        });
         this.handleQuestionEdited();
       },
     },
@@ -160,11 +166,11 @@ export default {
   methods: {
     ...mapMutations({
       updateAnswers: "assessment/updateAnswers",
-      updateQuestions: "assessment/updateQuestions",
+      updateQuestions: "assessment/updateQuestions"
     }),
     ...mapActions({
       createAnswer: "assessment/createAnswer",
-      deleteAnswer: "assessment/deleteAnswer",
+      deleteAnswer: "assessment/deleteAnswer"
     }),
     async handleToggleRandomizeOptions() {
       this.randomizeAnswers = !this.randomizeAnswers;
@@ -204,23 +210,27 @@ export default {
         ]);
         this.handleQuestionEdited();
       } catch (error) {
-        console.error("handleDeleteAnswer | catch", { error });
         this.$swal("there was a problem deleting the answer");
       }
     },
     updateAnswerHtml(answer, value) {
-      this.updateAnswers({ ...answer, html: value });
+      this.updateAnswers({
+        ...answer,
+        html: value
+      });
       this.handleQuestionEdited();
     },
     handleQuestionEdited() {
       this.$emit("edited");
     }
-  },
+  }
 };
 </script>
 
 <style lang="scss" scoped>
 @import "~vuetify/src/components/VBtn/_variables.scss";
+@import "~@/styles/variables";
+
 .options-list {
   list-style: none;
   > li {
@@ -243,5 +253,12 @@ export default {
 }
 .randomize-answers-switch::v-deep .v-input--selection-controls__input {
   margin-left: 10px;
+}
+.btn-add-option::v-deep {
+  color: map-get($blue, "base") !important;
+  caret-color: map-get($blue, "base") !important;
+  & .v-btn__content {
+    opacity: 1 !important;
+  }
 }
 </style>

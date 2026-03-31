@@ -411,7 +411,7 @@
 <script>
 import { mapGetters, mapActions, mapMutations } from "vuex";
 import { message as messageStatus } from "@/helpers/messaging/status.js";
-import { shrinkContainer, widenContainer, adjustBodyTopPadding } from "@/helpers/ui-utils.js";
+import { shrinkContainer, widenContainer, adjustBodyTopPadding, addAttributesToObservedElement, statusAlert } from "@/helpers/ui-utils.js";
 import { initValidations, validateMessage } from "@/helpers/messaging/validation.js";
 import ConditionalText from "@/views/messaging/components/conditional/ConditionalText.vue";
 import EditorSubMenu from "@/views/messaging/components/menu/editorsubmenu/EditorSubMenu.vue";
@@ -552,7 +552,8 @@ export default {
       messageConditionalTextEditId: "messagingConditionalText/messageConditionalTextEditId",
       allConditionalTexts: "messagingConditionalText/messageConditionalTexts",
       conditionalText: "messagingConditionalText/messageConditionalText",
-      pipedTextMessage: "messagingMessage/message"
+      pipedTextMessage: "messagingMessage/message",
+      alertStatuses: "alert/statuses"
     }),
     container() {
       return this.allMessageContainers.find(messageContainer => messageContainer.id === this.$route.params.containerId);
@@ -935,14 +936,10 @@ export default {
               .map(
                 ruleSet => ({
                   ...ruleSet,
-                  //id: null,
-                  //conditionalTextId: null,
                   rules: ruleSet.rules
                     .map(
                       rule => ({
                         ...rule,
-                        //id: null,
-                        //ruleSetId: null,
                         assignment: this.allMessageRuleAssignments.find(assignment => assignment.lmsId === rule.lmsAssignmentId) || rule.assignment
                       })
                     )
@@ -1067,7 +1064,6 @@ export default {
             this.handleValidationErrors(this.validationErrors);
           }
 
-
           return false;
         }
 
@@ -1125,7 +1121,11 @@ export default {
         name: "ExperimentSummary",
         params: {
           experimentId: this.experimentId,
-          exposureId: this.exposureId
+          exposureId: this.exposureId,
+          ...statusAlert(
+            this.alertStatuses.success,
+            "Message saved successfully"
+          )
         }
       });
     },
@@ -1148,6 +1148,9 @@ export default {
     adjustBodyTopPadding();
     await this.initialize();
     this.loaded = true;
+    this.$nextTick(() => {
+      addAttributesToObservedElement(".treatment-tab", "treatment-tab-conditional-text", ".tiptap.ProseMirror", [{ name: "aria-label", value: "message editor content" }]);
+    });
   },
   beforeUnmount() {
     this.openConditionalTextEditor = false;
@@ -1157,7 +1160,9 @@ export default {
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+@import "~@/styles/variables";
+
 .message-container {
   min-width: 100%;
   max-width: 100%;
@@ -1178,7 +1183,7 @@ export default {
       }
     }
     & .treatment-tab-conditional-text {
-      background-color: #fafafa;
+      background-color: map-get($grey, "extreme-light");
       padding: 10px;
       transition: width 0.3s ease;
       border: 1px solid rgba(0, 0, 0, .12);
@@ -1225,8 +1230,8 @@ export default {
 .validation-error {
   border: 2px solid red !important;
 }
-.copy-btn {
-  > span.v-btn__content {
+::v-deep .copy-btn {
+  & .v-btn__content {
     opacity: 1 !important;
   }
 }

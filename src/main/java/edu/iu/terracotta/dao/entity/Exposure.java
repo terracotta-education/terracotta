@@ -15,7 +15,6 @@ import edu.iu.terracotta.connectors.generic.dao.entity.BaseEntity;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.Entity;
-import jakarta.persistence.Column;
 import jakarta.persistence.Id;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.GeneratedValue;
@@ -35,13 +34,9 @@ public class Exposure extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(
-        name = "exposure_id",
-        nullable = false
-    )
     private Long exposureId;
 
-    @Column private String title;
+    private String title;
 
     @OneToMany(mappedBy = "exposure")
     private List<Outcome> outcomes;

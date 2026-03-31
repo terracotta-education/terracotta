@@ -51,17 +51,16 @@ public class Assessment extends BaseEntity {
     )
     private Long assessmentId;
 
-    @Column private String title;
-    @Column private Integer numOfSubmissions; // if null, no multiple attempts allowed; if zero, then the number of submissions is unlimited
-    @Column private Float hoursBetweenSubmissions; // if null then no minimum time between submissions
-    @Column private Float cumulativeScoringInitialPercentage;
-    @Column private Timestamp studentViewResponsesAfter;
-    @Column private Timestamp studentViewResponsesBefore;
-    @Column private Timestamp studentViewCorrectAnswersAfter;
-    @Column private Timestamp studentViewCorrectAnswersBefore;
+    private String title;
+    private Integer numOfSubmissions; // if null, no multiple attempts allowed; if zero, then the number of submissions is unlimited
+    private Float hoursBetweenSubmissions; // if null then no minimum time between submissions
+    private Float cumulativeScoringInitialPercentage;
+    private Timestamp studentViewResponsesAfter;
+    private Timestamp studentViewResponsesBefore;
+    private Timestamp studentViewCorrectAnswersAfter;
+    private Timestamp studentViewCorrectAnswersBefore;
 
     @Lob
-    @Column
     private String html;
 
     @Column(nullable = false)

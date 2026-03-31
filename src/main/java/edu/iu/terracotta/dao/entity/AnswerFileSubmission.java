@@ -39,14 +39,13 @@ public class AnswerFileSubmission extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long answerFileSubmissionId;
 
-    @Column private String fileName;
-    @Column private  String mimeType;
-    @Column private String fileUri;
-    @Column private String encryptionPhrase;
-    @Column private String encryptionMethod;
+    private String fileName;
+    private  String mimeType;
+    private String fileUri;
+    private String encryptionPhrase;
+    private String encryptionMethod;
 
     @Lob
-    @Column
     private byte[] fileContent;
 
     @ManyToOne(optional = false)

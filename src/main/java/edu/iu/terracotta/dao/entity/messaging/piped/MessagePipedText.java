@@ -8,7 +8,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import edu.iu.terracotta.dao.entity.messaging.BaseMessageEntity;
 import edu.iu.terracotta.dao.entity.messaging.content.MessageContent;
 import jakarta.persistence.CascadeType;
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToMany;
@@ -30,7 +29,7 @@ import lombok.Setter;
 @Table(name = "terr_messaging_piped_text")
 public class MessagePipedText extends BaseMessageEntity {
 
-    @Column private String fileName;
+    private String fileName;
 
     @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "content_id")

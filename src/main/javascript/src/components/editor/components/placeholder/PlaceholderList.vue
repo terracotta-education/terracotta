@@ -1,26 +1,26 @@
 <template>
-  <div
-    class="dropdown-menu"
+<div
+  class="dropdown-menu"
+>
+  <template
+    v-if="items.length"
   >
-    <template
-      v-if="items.length"
+    <button
+      v-for="(item, index) in items"
+      :class="{ 'is-selected': index === selectedIndex }"
+      :key="index"
+      @click="selectItem(item)"
     >
-      <button
-        v-for="(item, index) in items"
-        :class="{ 'is-selected': index === selectedIndex }"
-        :key="index"
-        @click="selectItem(item)"
-      >
-        {{ item.label }}
-      </button>
-    </template>
-    <div
-      v-else
-      class="item"
-    >
-      No result
-    </div>
+      {{ item.label }}
+    </button>
+  </template>
+  <div
+    v-else
+    class="item"
+  >
+    No result
   </div>
+</div>
 </template>
 
 <script>
@@ -41,7 +41,7 @@ export default {
   watch: {
     items() {
       this.selectedIndex = 0;
-    },
+    }
   },
   methods: {
     onKeyDown({ event }) {
@@ -76,7 +76,7 @@ export default {
       if (item) {
         this.command({ id: item.type + "_" + item.id, label: item.label });
       }
-    },
+    }
   }
 }
 </script>

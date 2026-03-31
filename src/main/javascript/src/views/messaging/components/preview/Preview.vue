@@ -4,7 +4,9 @@
   class="mt-6"
   flat
 >
-  <v-expansion-panel>
+  <v-expansion-panel
+    @click="panelExpansion"
+  >
     <v-expansion-panel-header
       class="preview-header"
     >
@@ -56,12 +58,9 @@
           outlined
         >
           <legend>Preview As</legend>
-          <v-list
-            dense
-            subheader
-          >
             <v-list-item-group
               v-model="selectedParticipant"
+              aria-label="Select a student to prevfiew a message as"
             >
               <v-list-item
                 v-for="(participant) in availableParticipants"
@@ -75,7 +74,6 @@
                 {{ participant.user.displayName }}
               </v-list-item>
             </v-list-item-group>
-          </v-list>
         </fieldset>
       </div>
     </v-expansion-panel-content>
@@ -85,6 +83,7 @@
 
 <script>
 import { mapGetters, mapActions, mapMutations } from "vuex";
+import { deleteAttributesFromElement } from "@/helpers/ui-utils.js";
 
 export default {
   props: {
@@ -215,12 +214,19 @@ export default {
           }
         )
       );
-
+    },
+    panelExpansion() {
+      setTimeout(() => {
+        deleteAttributesFromElement(".v-expansion-panel", ["aria-expanded"]);
+      }, 1000);
     }
   },
   async mounted() {
     await this.initialize();
     this.loaded = true;
+    this.$nextTick(() => {
+      deleteAttributesFromElement(".v-expansion-panel", ["aria-expanded"]);
+    });
   }
 }
 </script>

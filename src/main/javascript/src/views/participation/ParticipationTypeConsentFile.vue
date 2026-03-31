@@ -1,43 +1,44 @@
 <template>
+<div>
+  <h1>Add your study's <strong>informed consent</strong> file.</h1>
+  <file-drop-zone
+    :existingFile="pdfFile"
+    @update="onFileChange"
+    @newUpload="onNewUpload"
+    @displayFile="onDisplayFile"
+    class="my-5"
+  ></file-drop-zone>
   <div>
-    <h1>Add your study's <strong>informed consent</strong> file.</h1>
-    <file-drop-zone
-      class="my-5"
-      :existingFile="pdfFile"
-      @update="onFileChange"
-      @newUpload="onNewUpload"
-      @displayFile="onDisplayFile"
-    ></file-drop-zone>
-
-    <div>
-      <v-btn
-        :disabled="!consentFileExists || uploading"
-        class="mt-3 mb-6"
-        color="primary"
-        elevation="0"
-        @click="saveConsent(nextPage)"
-      >
-        Next
-      </v-btn>
-      <Spinner v-if="uploading"></Spinner>
-    </div>
-
-    <p>
-      You can
-      <a
-        :href="require('@/assets/files/Terracotta_ICS_template.docx')"
-        download="Terracotta_ICS_template.docx"
-      >
-        download an informed consent template here.
-      </a>
-    </p>
-
-    <div v-if="displayFile">
-      <vue-pdf-embed
-        :source="pdfFileDisplay"
-      />
-    </div>
+    <v-btn
+      :disabled="!consentFileExists || uploading"
+      @click="saveConsent(nextPage)"
+      class="mt-3 mb-6"
+      color="primary"
+      elevation="0"
+    >
+      Next
+    </v-btn>
+    <spinner
+      v-if="uploading"
+    />
   </div>
+  <p>
+    You can
+    <a
+      :href="require('@/assets/files/Terracotta_ICS_template.docx')"
+      download="Terracotta_ICS_template.docx"
+    >
+      download an informed consent template here.
+    </a>
+  </p>
+  <div
+    v-if="displayFile"
+  >
+    <vue-pdf-embed
+      :source="pdfFileDisplay"
+    />
+  </div>
+</div>
 </template>
 
 <script>
@@ -48,11 +49,16 @@ import VuePdfEmbed from 'vue-pdf-embed/dist/vue2-pdf-embed';
 
 export default {
   name: "ParticipationTypeConsentFile",
-  props: ["experiment"],
   components: {
     FileDropZone,
     Spinner,
     VuePdfEmbed
+  },
+  props: {
+    experiment: {
+      type: Object,
+      required: true
+    }
   },
   data: () => ({
     pdfFile: null,
@@ -69,7 +75,7 @@ export default {
   computed: {
     ...mapGetters({
       consent: "consent/consent",
-      editMode: 'navigation/editMode'
+      editMode: "navigation/editMode"
     }),
     saveExitPage() {
       return this.editMode?.callerPage?.name || "Home";
@@ -175,7 +181,6 @@ div.vue-pdf-embed {
   overflow-y: scroll;
   box-shadow: 0 3px 1px -2px rgba(0,0,0,.2),0 2px 2px 0 rgba(0,0,0,.14),0 1px 5px 0 rgba(0,0,0,.12);
 }
-
 $offset: 187;
 $duration: 0.75s;
 .spinner {

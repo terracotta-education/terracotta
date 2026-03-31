@@ -12,7 +12,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -41,24 +40,17 @@ public class Question extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(
-        name = "question_id",
-        nullable = false
-    )
     private Long questionId;
 
-    @Column private Float points;
-    @Column private Integer questionOrder;
+    private Float points;
+    private Integer questionOrder;
 
     @Lob
-    @Column
     private String html;
 
-    @Column
     @Enumerated(EnumType.STRING)
     private QuestionTypes questionType;
 
-    @Column
     @Enumerated(EnumType.STRING)
     private RegradeOption regradeOption;
 

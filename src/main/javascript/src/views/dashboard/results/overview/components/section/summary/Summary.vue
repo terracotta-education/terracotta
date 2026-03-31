@@ -1,28 +1,28 @@
 <template>
-  <v-row
-    class="row-summary"
-  >
-    <v-col>
-      <Participants
-        :participantsData="resultsOverviewParticipants"
-      />
-    </v-col>
-    <v-col>
-      <Assignments
-        :assignmentCount="resultsOverviewSummaryAssignmentsCount"
-      />
-    </v-col>
-    <v-col>
-      <Conditions
-        :conditionCount="resultsOverviewSummaryConditionsCount"
-      />
-    </v-col>
-    <v-col>
-      <Exposures
-        :exposureType="resultsOverviewExposureType"
-      />
-    </v-col>
-  </v-row>
+<v-row
+  class="row-summary"
+>
+  <v-col>
+    <participants
+      :participantsData="resultsOverviewParticipants"
+    />
+  </v-col>
+  <v-col>
+    <assignments
+      :assignmentCount="resultsOverviewSummaryAssignmentsCount"
+    />
+  </v-col>
+  <v-col>
+    <conditions
+      :conditionCount="resultsOverviewSummaryConditionsCount"
+    />
+  </v-col>
+  <v-col>
+    <exposures
+      :exposureType="resultsOverviewExposureType"
+    />
+  </v-col>
+</v-row>
 </template>
 
 <script>
@@ -33,7 +33,7 @@
   import Participants from "./Participants.vue";
 
 export default {
-  name: "Summary",
+  name: "ResultsOverviewSummary",
   components: {
     Assignments,
     Conditions,
@@ -77,12 +77,14 @@ export default {
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+@import "@/styles/variables";
+
 div.row-summary {
   justify-content: space-between;
   > div.col {
     max-width: 24%;
-    border: thin solid #e0e0e0;
+    border: thin solid map-get($grey, "lighter");
     border-radius: 10px;
     > .container-summary {
       display: flex;

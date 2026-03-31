@@ -54,7 +54,7 @@ operations.push(store.dispatch("api/setLmsApiOAuthURL", decodeURIComponent(lmsAp
 Promise.all(operations).then(startVue);
 
 function startVue() {
-  // always start with clean experiment/s list
+  // always start with clean experiments list
   store.dispatch("experiment/resetExperiment")
   store.dispatch("experiment/resetExperiments")
   store.dispatch("consent/resetConsent")
@@ -76,6 +76,30 @@ function startVue() {
   if (treatmentPreview.preview) {
     appProps["treatmentPreviewData"] = treatmentPreview;
   }
+
+  // status message alerts
+  router.beforeEach((to, from, next) => {
+    if (to.params && to.params.alertMessage) {
+      store.dispatch(
+        `alert/${to.params.alertType || store.getters["alert/statuses"].info}`,
+        to.params.alertMessage
+      );
+    } else {
+      let alert = store.getters["alert/alert"];
+
+      if (alert && alert.message && alert.type) {
+        store.dispatch("alert/clear");
+      }
+    }
+
+    // disable show skip link component
+    store.dispatch("configuration/update", {
+      name: "showSkipLink",
+      value: false
+    });
+
+    next();
+  });
 
   vm = new Vue({
     store,

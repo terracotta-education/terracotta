@@ -15,7 +15,6 @@ import org.hibernate.annotations.OnDeleteAction;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -44,12 +43,11 @@ import java.sql.Timestamp;
 )
 public class Participant extends BaseUuidEntity {
 
-    @Column private Boolean consent;
-    @Column private Timestamp dateGiven;
-    @Column private Timestamp dateRevoked;
-    @Column private Boolean dropped;
+    private Boolean consent;
+    private Timestamp dateGiven;
+    private Timestamp dateRevoked;
+    private Boolean dropped;
 
-    @Column
     @Enumerated(EnumType.STRING)
     private ParticipationTypes source;
 

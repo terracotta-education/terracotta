@@ -1,88 +1,114 @@
 <template>
-  <div v-if="assignment">
-    <h1 class="pa-0 mb-7">Now, let’s create different versions of <strong>{{
-        assignment.title
-      }}</strong> for each condition</h1>
-
-    <template v-if="conditions">
-      <v-expansion-panels class="v-expansion-panels--outlined mb-7" flat>
-        <v-expansion-panel class="py-3">
-          <v-expansion-panel-header>{{ assignment.title }} ({{ assignment.treatments && assignment.treatments.length || 0 }}/{{ conditions.length }})
-          </v-expansion-panel-header>
-          <v-expansion-panel-content>
-            <v-list class="pa-0">
-
-              <v-list-item class="justify-center px-0"
-                           v-for="condition in conditions"
-                           :key="condition.conditionId">
-                <v-list-item-content>
-                  <p class="ma-0 pa-0">{{ condition.name }}</p>
-                </v-list-item-content>
-
-                <v-list-item-action>
-                  <template v-if="hasTreatment(condition)">
-                    <v-btn
-                      icon
-                      outlined
-                      text
-                      tile
-                      @click="goToBuilder(condition.conditionId)"
-                    >
-                      <v-icon>mdi-pencil</v-icon>
-                    </v-btn>
-                  </template>
-                  <template v-else>
-                    <v-btn
-                      color="primary"
-                      outlined
-                      @click="goToBuilder(condition.conditionId)"
-                    >Create
-                    </v-btn>
-                  </template>
-                </v-list-item-action>
-              </v-list-item>
-
-            </v-list>
-          </v-expansion-panel-content>
-        </v-expansion-panel>
-      </v-expansion-panels>
-    </template>
-    <template v-else>
-      <p>no conditions</p>
-    </template>
-  </div>
+<div
+  v-if="assignment"
+>
+  <h1
+    class="pa-0 mb-7"
+  >
+    Now, let’s create different versions of <strong>{{ assignment.title }}</strong> for each condition
+  </h1>
+  <template
+    v-if="conditions"
+  >
+    <v-expansion-panels
+      class="v-expansion-panels--outlined mb-7"
+      flat
+    >
+      <v-expansion-panel
+        class="py-3"
+      >
+        <v-expansion-panel-header>
+          {{ assignment.title }} ({{ assignment.treatments && assignment.treatments.length || 0 }}/{{ conditions.length }})
+        </v-expansion-panel-header>
+        <v-expansion-panel-content>
+          <v-list
+            class="pa-0"
+          >
+            <v-list-item
+              v-for="condition in conditions"
+              :key="condition.conditionId"
+              class="justify-center px-0"
+            >
+              <v-list-item-content>
+                <p
+                  class="ma-0 pa-0"
+                >
+                  {{ condition.name }}
+                </p>
+              </v-list-item-content>
+              <v-list-item-action>
+                <template
+                  v-if="hasTreatment(condition)"
+                >
+                  <v-btn
+                    @click="goToBuilder(condition.conditionId)"
+                    outlined
+                    icon
+                    text
+                    tile
+                  >
+                    <v-icon>mdi-pencil</v-icon>
+                  </v-btn>
+                </template>
+                <template
+                  v-else
+                >
+                  <v-btn
+                    @click="goToBuilder(condition.conditionId)"
+                    color="primary"
+                    outlined
+                  >
+                    Create
+                  </v-btn>
+                </template>
+              </v-list-item-action>
+            </v-list-item>
+          </v-list>
+        </v-expansion-panel-content>
+      </v-expansion-panel>
+    </v-expansion-panels>
+  </template>
+  <template
+    v-else
+  >
+    <p>no conditions</p>
+  </template>
+</div>
 </template>
 
 <script>
 import {mapActions, mapGetters} from 'vuex';
 
 export default {
-  name: 'AssignmentTreatmentSelect',
-  props: ['experiment'],
-  computed: {
-    ...mapGetters({
-      assignment: 'assignment/assignment',
-      conditions: 'experiment/conditions',
-    }),
-    assignmentId() {
-      return parseInt(this.$route.params.assignmentId)
-    },
-    exposureId() {
-      return parseInt(this.$route.params.exposureId)
-    },
-  },
-  data() {
-    return {
-      tCount: 0,
-      conditionTreatments: []
+  name: "AssignmentTreatmentSelect",
+  props: {
+    experiment: {
+      type: Object,
+      required: true
     }
   },
+  computed: {
+    ...mapGetters({
+      assignment: "assignment/assignment",
+      conditions: "experiment/conditions"
+    }),
+    assignmentId() {
+      return parseInt(this.$route.params.assignmentId);
+    },
+    exposureId() {
+      return parseInt(this.$route.params.exposureId);
+    },
+  },
+  data: () => ({
+    tCount: 0,
+    conditionTreatments: []
+  }),
   methods: {
     ...mapActions({
-      createTreatment: 'treatment/createTreatment',
-      createAssessment: 'assessment/createAssessment',
-      fetchAssignment: 'assignment/fetchAssignment',
-      checkTreatment: 'treatment/checkTreatment',
+      createTreatment: "treatment/createTreatment",
+      createAssessment: "assessment/createAssessment",
+      fetchAssignment: "assignment/fetchAssignment",
+      checkTreatment: "treatment/checkTreatment"
     }),
     async handleCreateTreatment(conditionId) {
       // POST TREATMENT
@@ -93,7 +119,7 @@ export default {
           this.assignmentId,
         ])
       } catch (error) {
-        console.error("handleCreateTreatment | catch", {error})
+        console.error("handleCreateTreatment | catch", {error});
       }
     },
     async handleCreateAssessment(conditionId, treatment) {
@@ -105,7 +131,7 @@ export default {
           treatment.treatmentId
         ])
       } catch (error) {
-        console.error("handleCreateAssessment | catch", {error})
+        console.error("handleCreateAssessment | catch", {error});
       }
     },
     async goToBuilder(conditionId) {
@@ -116,6 +142,7 @@ export default {
         this.$swal(
           `There was a problem creating your treatment: ${treatment.data}`
         );
+
         return false;
       }
 
@@ -126,12 +153,13 @@ export default {
         this.$swal(
           `There was a problem creating your assessment: ${assessment.data}`
         );
+
         return false;
       }
 
-      // // send user to builder with the treatment and assessment ids
+      // send user to builder with the treatment and assessment ids
       this.$router.push({
-        name: 'TerracottaBuilder',
+        name: "TerracottaBuilder",
         params: {
           experimentId: this.experiment.experimentId,
           conditionId: conditionId,
@@ -162,21 +190,23 @@ export default {
 
           this.conditionTreatments = [
             ...this.conditionTreatments.filter((o) =>
-              o.conditionId === ctObj.conditionId &&
+              o.conditionId === ctObj.condition.conditionId &&
               o.treatment.assignmentId === this.assignmentId
             ),
-            {...ctObj}
+            {
+              ...ctObj
+            }
           ];
         }
       }
     },
     saveExit() {
-      this.$router.push({name: 'Home'})
+      this.$router.push({name: "Home"});
     }
   },
   async created() {
     await this.fetchAssignment([this.experiment.experimentId, this.exposureId, this.assignmentId])
     await this.checkConditionTreatments()
-  },
+  }
 };
 </script>

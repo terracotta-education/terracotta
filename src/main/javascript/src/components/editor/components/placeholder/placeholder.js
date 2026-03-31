@@ -1,6 +1,6 @@
 import { VueRenderer } from "@tiptap/vue-2";
-import tippy from "tippy.js"
-import FieldList from "./PlaceholderList.vue"
+import tippy from "tippy.js";
+import FieldList from "./PlaceholderList.vue";
 
 export default {
   render: () => {

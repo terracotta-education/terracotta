@@ -32,6 +32,7 @@
     content-class="add-assignment-dialog"
     transition="scale-transition"
     origin="right top"
+    attach
     bottom
     left
     offset-y
@@ -43,9 +44,10 @@
         v-if="hasExisting"
         v-on="on"
         v-bind="attrs"
+        :disabled="disableAddAssignmentButton"
         color="primary"
         elevation="0"
-        :disabled="disableAddAssignmentButton"
+        tabindex="0"
       >
         Add Assignment
       </v-btn>
@@ -55,16 +57,26 @@
         v-bind="attrs"
         class="btn-create-first-assignment"
         elevation="0"
+        tabindex="0"
       >
         Create Assignment
       </v-btn>
     </template>
-    <span class="add-assignment-dialog">
-      <div class="add-assignment-version-option">
+    <span
+      class="add-assignment-dialog"
+      >
+      <div
+        class="add-assignment-version-option"
+      >
         <v-btn
           @click="handleVersionSelection('multiple')"
+          @keyup.enter="handleVersionSelection('multiple')"
+          @keyup.space="handleVersionSelection('multiple')"
+          tag="a"
+          role="menuitem"
           color="primary"
           elevation="0"
+          tabindex="0"
         >
           With Different Versions
         </v-btn>
@@ -72,11 +84,18 @@
           Create <u>multiple</u> treatments of your assignment so your students can experience different conditions.
         </p>
       </div>
-      <div class="add-assignment-version-option">
+      <div
+        class="add-assignment-version-option"
+      >
         <v-btn
           @click="handleVersionSelection('single')"
+          @keyup.enter="handleVersionSelection('single')"
+          @keyup.space="handleVersionSelection('single')"
+          tag="a"
+          role="menuitem"
           color="primary"
           elevation="0"
+          tabindex="0"
         >
           With Only One Version
         </v-btn>

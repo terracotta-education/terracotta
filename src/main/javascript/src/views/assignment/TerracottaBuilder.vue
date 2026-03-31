@@ -1,190 +1,206 @@
 <template>
+<div
+  v-if="experiment && assessment"
+  class="terracotta-builder"
+>
   <div
-    v-if="experiment && assessment"
-    class="terracotta-builder"
+    class="header-container"
   >
+    <h1>
+      {{ this.assignmentTitle }}
+    </h1>
     <div
-      class="header-container"
+      v-if="!hasSingleTreatment"
     >
-      <h1>
-        {{ this.assignmentTitle }}
-      </h1>
-      <div
-        v-if="!hasSingleTreatment"
+      <h4
+        class="label-treatment"
+      >
+        Treatment
+      </h4>
+      <v-chip
+        :color="conditionColor"
+        label
       >
         <h4
-          class="label-treatment"
+          class="label-condition-name"
         >
-          Treatment
+          {{ this.conditionName }}
         </h4>
-        <v-chip
-          :color="conditionColor"
-          label
-        >
-          <h4
-            class="label-condition-name"
-          >
-            {{ this.conditionName }}
-          </h4>
-        </v-chip>
-      </div>
+      </v-chip>
     </div>
-    <v-tabs
-      v-model="tab"
-      class="tabs"
-    >
-      <v-tab>Treatment</v-tab>
-      <v-tab>Settings</v-tab>
-    </v-tabs>
-    <v-tabs-items
-      v-model="tab"
-    >
-      <v-tab-item>
-        <form
-          @submit.prevent="saveAll('AssignmentYourAssignments')"
-          class="my-5"
+  </div>
+  <v-tabs
+    v-model="tab"
+    class="tabs"
+  >
+    <v-tab>Treatment</v-tab>
+    <v-tab>Settings</v-tab>
+  </v-tabs>
+  <v-tabs-items
+    v-model="tab"
+  >
+    <v-tab-item>
+      <form
+        @submit.prevent="saveAll('AssignmentYourAssignments')"
+        class="questions-form my-5"
+      >
+        <v-textarea
+          v-model="html"
+          label="Instructions or description (optional)"
+          placeholder="e.g. Lorem ipsum"
+          outlined
+        />
+        <div
+          v-if="treatmentOptionSelected && !isIntegrationType && questionPages && questionPages.length > 0"
+          class="d-flex align-center mb-3 justify-space-between"
         >
-          <v-textarea
-            v-model="html"
-            label="Instructions or description (optional)"
-            placeholder="e.g. Lorem ipsum"
-            outlined
-          />
-          <div
-            v-if="treatmentOptionSelected && !isIntegrationType && questionPages && questionPages.length > 0"
-            class="d-flex align-center mb-3 justify-space-between"
-          >
-            <h4
-              class="pa-0"
-            >
-              <strong>Questions</strong>
-            </h4>
-            <v-btn
-              @click="handleClearQuestions()"
-              :disabled="!canClearAll"
-              color="primary"
-              elevation="0"
-              class="saveButton"
-              text
-            >
-              Clear All
-            </v-btn>
-          </div>
-          <template
-            v-if="treatmentOptionSelected && !isIntegrationType && questionPages && questionPages.length > 0"
-          >
-            <template>
-              <div
-                v-for="(questionPage, qpIndex) in questionPages"
-                :key="questionPage.key"
-              >
-                <v-expansion-panels
-                  v-model="expandedQuestionPanel[qpIndex]"
-                  :key="questionPage.key"
-                  class="v-expansion-panels--outlined"
-                  flat
-                  accordion
-                  outlined
-                >
-                  <draggable
-                    :list="questionPage.questions"
-                    group="questions"
-                    @change="(ev) => handleQuestionOrderChange(ev)"
-                    handle=".dragger"
-                    style="width:100%"
-                  >
-                    <v-expansion-panel
-                      v-for="(question, qIndex) in questionPage.questions"
-                      @click="expandedQuestionPagePanel = qpIndex"
-                      :key="question.questionId"
-                      :ref="buildExpandedQuestionPanelId(qpIndex, qIndex)"
-                      :class="[
-                        qIndex === 0 ? 'rounded-lg' : qIndex === questionPage.questions.length - 1 ? 'rounded-lg rounded-t-0' : '',
-                        qIndex === questionPage.questions.length - 1 ? '' : 'rounded-b-0'
-                      ]"
-                    >
-                      <template
-                        v-if="question"
-                      >
-                        <v-expansion-panel-header
-                          class="text-left"
-                        >
-                          <div
-                            class="d-flex align-start"
-                          >
-                            <span
-                              class="dragger me-2"
-                            >
-                              <v-icon>mdi-drag</v-icon>
-                            </span>
-                            <h2
-                              class="pa-0"
-                            >
-                              {{ questionPage.questionStartIndex + qIndex + 1 }}
-                              <span
-                                v-if="question.html"
-                                class="pl-3 question-text"
-                                v-html="textOnly(question.html)"
-                              ></span>
-                            </h2>
-                          </div>
-                        </v-expansion-panel-header>
-                        <v-expansion-panel-content>
-                          <component
-                            @edited="addEditedQuestion(question.questionId)"
-                            :is="questionTypeComponents[question.questionType]"
-                            :question="question"
-                          />
-                        </v-expansion-panel-content>
-                      </template>
-                    </v-expansion-panel>
-                  </draggable>
-                </v-expansion-panels>
-                <page-break
-                  v-if="questionPage.pageBreakAfter"
-                />
-              </div>
-            </template>
-          </template>
-          <template
-            v-if="treatmentOptionSelected && !isIntegrationType && questionPages && questionPages.length === 0"
-          >
           <h4
-              class="pa-0"
-            >
-              <strong>Questions</strong>
-            </h4>
-            <p
-              class="grey--text"
-            >
-              Add questions to continue
-            </p>
-          </template>
-          <template
-            v-if="treatmentOptionSelected && isIntegrationType"
+            class="pa-0"
           >
-            <external-integration-editor
-              @integration-updated="handleIntegrationUpdate($event)"
-              @url-validation-in-progress="handleUrlValidationInProgress"
-              :assessment="assessment"
-              :question="questions[0]"
-            />
-          </template>
-          <template
-            v-if="!treatmentOptionSelected"
+            <strong>Questions</strong>
+          </h4>
+          <v-btn
+            @click="handleClearQuestions()"
+            :disabled="!canClearAll"
+            color="primary"
+            elevation="0"
+            class="saveButton"
+            text
           >
-            <h4>Select a treatment mode</h4>
-            <p>
-              Use the Terracotta Builder to create assignments with multiple choice, short answer, or file upload questions.
-              Use the External Integration option to use a Qualtrics survey or a custom web activity for this treatment.
-            </p>
+            Clear All
+          </v-btn>
+        </div>
+        <template
+          v-if="treatmentOptionSelected && !isIntegrationType && questionPages && questionPages.length > 0"
+        >
+          <template>
+            <div
+              v-for="(questionPage, qpIndex) in questionPages"
+              :key="questionPage.key"
+              class="question-page"
+            >
+              <v-expansion-panels
+                v-model="expandedQuestionPanel[qpIndex]"
+                :key="questionPage.key"
+                class="v-expansion-panels--outlined"
+                flat
+                accordion
+                outlined
+              >
+                <draggable
+                  :list="questionPage.questions"
+                  group="questions"
+                  @change="(ev) => handleQuestionOrderChange(ev)"
+                  handle=".dragger"
+                  style="width:100%"
+                >
+                  <v-expansion-panel
+                    v-for="(question, qIndex) in questionPage.questions"
+                    @click="expandedQuestionPagePanel = qpIndex"
+                    :key="question.questionId"
+                    :ref="buildExpandedQuestionPanelId(qpIndex, qIndex)"
+                    :class="[
+                      qIndex === 0 ? 'rounded-lg' : qIndex === questionPage.questions.length - 1 ? 'rounded-lg rounded-t-0' : '',
+                      qIndex === questionPage.questions.length - 1 ? '' : 'rounded-b-0'
+                    ]"
+                  >
+                    <template
+                      v-if="question"
+                    >
+                      <v-expansion-panel-header
+                        class="text-left"
+                      >
+                        <div
+                          class="d-flex align-start"
+                        >
+                          <span
+                            class="dragger me-2"
+                          >
+                            <v-icon>mdi-drag</v-icon>
+                          </span>
+                          <h2
+                            class="pa-0"
+                          >
+                            {{ questionPage.questionStartIndex + qIndex + 1 }}
+                            <span
+                              v-if="question.html"
+                              class="pl-3 question-text"
+                              v-html="textOnly(question.html)"
+                            ></span>
+                          </h2>
+                        </div>
+                      </v-expansion-panel-header>
+                      <v-expansion-panel-content>
+                        <component
+                          @edited="addEditedQuestion(question.questionId)"
+                          :is="questionTypeComponents[question.questionType]"
+                          :question="question"
+                        />
+                      </v-expansion-panel-content>
+                    </template>
+                  </v-expansion-panel>
+                </draggable>
+              </v-expansion-panels>
+              <page-break
+                v-if="questionPage.pageBreakAfter"
+              />
+            </div>
           </template>
+        </template>
+        <template
+          v-if="treatmentOptionSelected && !isIntegrationType && questionPages && questionPages.length === 0"
+        >
+        <h4
+            class="pa-0"
+          >
+            <strong>Questions</strong>
+          </h4>
+          <p
+            class="add-questions-to-continue"
+          >
+            Add questions to continue
+          </p>
+        </template>
+        <template
+          v-if="treatmentOptionSelected && isIntegrationType"
+        >
+          <external-integration-editor
+            @integration-updated="handleIntegrationUpdate($event)"
+            @url-validation-in-progress="handleUrlValidationInProgress"
+            :assessment="assessment"
+            :question="questions[0]"
+          />
+        </template>
+        <template
+          v-if="!treatmentOptionSelected"
+        >
+          <h4>Select a treatment mode</h4>
+          <p>
+            Use the Terracotta Builder to create assignments with multiple choice, short answer, or file upload questions.
+            Use the External Integration option to use a Qualtrics survey or a custom web activity for this treatment.
+          </p>
+        </template>
+        <div
+          class="bottom-menu"
+        >
           <div
-            class="bottom-menu"
+            v-if="!treatmentOptionSelected"
+            class="treatment-mode-container d-flex flex-row"
           >
+            <v-btn
+              @click="handleAddTerracottaBuilder"
+              elevation="0"
+              class="add-treatment-type"
+              plain
+            >
+              Use Terracotta Builder
+            </v-btn>
             <v-menu
-              v-if="treatmentOptionSelected && !isIntegrationType"
+              close-on-content-click
+              close-on-click
               offset-y
+              attach
+              top
             >
               <template
                 v-slot:activator="{ on, attrs }"
@@ -192,226 +208,161 @@
                 <v-btn
                   v-bind="attrs"
                   v-on="on"
-                  color="primary"
                   elevation="0"
-                  class="mb-3 mt-3"
+                  class="add-treatment-type"
                   plain
                 >
-                  ADD QUESTION
-                  <v-icon>mdi-chevron-down</v-icon>
+                  Add External Integration <v-icon>mdi-chevron-down</v-icon>
                 </v-btn>
               </template>
               <v-list>
                 <v-list-item
-                  @click="handleAddQuestion('ESSAY')"
+                  @click="handleAddIntegration(externalIntegrationClients.qualtrics.name)"
                 >
                   <v-list-item-title>
-                    <v-icon class="mr-1">mdi-text</v-icon> Short answer
+                    {{ externalIntegrationClients.qualtrics.name }}
                   </v-list-item-title>
                 </v-list-item>
                 <v-list-item
-                  @click="handleAddQuestion('MC')"
+                  @click="handleAddIntegration(externalIntegrationClients.custom.name)"
                 >
                   <v-list-item-title>
-                    <v-icon class="mr-1">mdi-radiobox-marked</v-icon> Multiple choice
-                  </v-list-item-title>
-                </v-list-item>
-                <v-list-item
-                  @click="handleAddQuestion('FILE')"
-                >
-                  <v-list-item-title>
-                    <v-icon class="mr-1">mdi-file-upload-outline</v-icon> File submission
+                    {{ externalIntegrationClients.custom.name }}
                   </v-list-item-title>
                 </v-list-item>
               </v-list>
             </v-menu>
-            <v-menu
-              v-if="!treatmentOptionSelected"
-              offset-y
-              close-on-click
-              close-on-content-click
-            >
-              <template
-                v-slot:activator="{ on, attrs }"
+          </div>
+          <div
+            v-if="treatmentOptionSelected"
+            class="treatment-mode-selected-container d-flex flex-row"
+          >
+            <div>
+              <v-menu
+                v-if="!isIntegrationType"
+                offset-y
+                attach
+                top
               >
-                <v-btn
-                  v-bind="attrs"
-                  v-on="on"
-                  color="primary"
-                  elevation="0"
-                  class="mb-3 mt-3"
-                  plain
+                <template
+                  v-slot:activator="{ on, attrs }"
                 >
-                  ADD TREATMENT <v-icon>mdi-chevron-down</v-icon>
-                </v-btn>
-              </template>
-              <v-list>
-                <template>
+                  <v-btn
+                    v-bind="attrs"
+                    v-on="on"
+                    elevation="0"
+                    class="treatment-type-selected"
+                    plain
+                  >
+                    ADD QUESTION
+                    <v-icon>mdi-chevron-down</v-icon>
+                  </v-btn>
+                </template>
+                <v-list>
                   <v-list-item
-                    @click="handleAddTerracottaBuilder"
+                    @click="handleAddQuestion('ESSAY')"
                   >
                     <v-list-item-title>
                       <v-icon
                         class="mr-1"
                       >
-                        mdi-wrench-outline
+                        mdi-text
                       </v-icon>
-                      Terracotta Builder
+                      Short answer
                     </v-list-item-title>
                   </v-list-item>
-                  <v-list-item>
-                    <v-list-item-title>
-                      <v-menu
-                        class="pl-10"
-                        offset-x
-                        open-on-hover
-                        close-on-click
-                        close-on-content-click
-                      >
-                        <template
-                          v-slot:activator="{ on, attrs }"
-                        >
-                          <v-list-item
-                            v-bind="attrs"
-                            v-on="on"
-                            class="pl-0"
-                          >
-                            <v-list-item-title>
-                              <v-icon
-                                class="mr-1"
-                              >
-                                mdi-application-brackets-outline
-                              </v-icon>
-                              External Integration
-                              <v-icon>mdi-menu-right</v-icon>
-                            </v-list-item-title>
-                          </v-list-item>
-                        </template>
-                        <v-list>
-                          <v-list-item
-                            @click="handleAddIntegration(externalIntegrationClients.qualtrics.name)"
-                          >
-                            <v-list-item-title>
-                              {{ externalIntegrationClients.qualtrics.name }}
-                            </v-list-item-title>
-                          </v-list-item>
-                          <v-list-item
-                            @click="handleAddIntegration(externalIntegrationClients.custom.name)"
-                          >
-                            <v-list-item-title>
-                              {{ externalIntegrationClients.custom.name }}
-                            </v-list-item-title>
-                          </v-list-item>
-                        </v-list>
-                      </v-menu>
-                    </v-list-item-title>
-                  </v-list-item>
-                </template>
-              </v-list>
-            </v-menu>
-            <v-menu
-              v-if="treatmentOptionSelected && !isIntegrationType && assignmentsAvailableToCopy.length > 0"
-              offset-y
-              close-on-click
-              close-on-content-click
-            >
-              <template
-                v-slot:activator="{ on, attrs }"
-              >
-                <v-btn
-                  v-bind="attrs"
-                  v-on="on"
-                  color="primary"
-                  elevation="0"
-                  class="mb-3 mt-3"
-                  plain
-                >
-                  Copy Content From <v-icon>mdi-chevron-down</v-icon>
-                </v-btn>
-              </template>
-              <v-list>
-                  <template
-                    v-for="(assignment, index) in assignmentsAvailableToCopy"
+                  <v-list-item
+                    @click="handleAddQuestion('MC')"
                   >
-                    <v-menu
-                      v-if="assignment.treatments.length > 0 && hasTreatmentsNotCurrent(assignment.treatments)"
-                      :key="assignment.assignmentId"
-                      transition="slide-x-transition"
-                      offset-x
-                      open-on-hover
-                    >
-                      <template
-                        v-slot:activator="{ on, attrs }"
+                    <v-list-item-title>
+                      <v-icon
+                        class="mr-1"
                       >
-                        <v-list-item
-                          :key="index"
-                          v-bind="attrs"
-                          v-on="on"
-                        >
-                          <v-list-item-title>
-                            {{ assignment.title }}
-                          </v-list-item-title>
-                          <v-list-item-action
-                            class="justify-end"
-                          >
-                            <v-icon>mdi-menu-right</v-icon>
-                          </v-list-item-action>
-                        </v-list-item>
-                      </template>
-                      <v-list>
-                        <template
-                          v-for="treatment in assignment.treatments"
-                        >
-                          <v-list-item
-                            v-if="treatment.treatmentId != treatmentId"
-                            :key="treatment.treatmentId"
-                            @click="duplicate(treatment)"
-                          >
-                            <v-list-item-title>
-                              Treatment
-                              <v-chip
-                                v-if="assignment.treatments.length > 1"
-                                label
-                                :color="conditionColorMapping[conditionForTreatment(getGroupConditionListForAssignment(assignment), treatment.conditionId).conditionName]"
-                              >
-                                {{ conditionForTreatment(getGroupConditionListForAssignment(assignment), treatment.conditionId).conditionName }}
-                              </v-chip>
-                            </v-list-item-title>
-                          </v-list-item>
-                        </template>
-                      </v-list>
-                    </v-menu>
-                  </template>
-              </v-list>
-            </v-menu>
+                        mdi-radiobox-marked
+                      </v-icon>
+                      Multiple choice
+                    </v-list-item-title>
+                  </v-list-item>
+                  <v-list-item
+                    @click="handleAddQuestion('FILE')"
+                  >
+                    <v-list-item-title>
+                      <v-icon
+                        class="mr-1"
+                      >
+                        mdi-file-upload-outline
+                      </v-icon>
+                      File submission
+                    </v-list-item-title>
+                  </v-list-item>
+                </v-list>
+              </v-menu>
+              <v-menu
+                v-if="!isIntegrationType && assignmentsAvailableToCopy.length > 0"
+                close-on-content-click
+                close-on-click
+                offset-y
+                attach
+                top
+              >
+                <template
+                  v-slot:activator="{ on, attrs }"
+                >
+                  <v-btn
+                    v-bind="attrs"
+                    v-on="on"
+                    elevation="0"
+                    class="treatment-type-selected"
+                    plain
+                  >
+                    Copy Content From <v-icon>mdi-chevron-down</v-icon>
+                  </v-btn>
+                </template>
+                <v-list>
+                    <template>
+                      <v-list-item
+                        v-for="(assignment) in assignmentsAvailableToCopy"
+                        :key="assignment.assignmentId"
+                        :aria-label="`copy content from ${assignment.title}`"
+                        @click="duplicate(assignment)"
+                      >
+                        <v-list-item-title>
+                          {{ assignment.title }}
+                        </v-list-item-title>
+                      </v-list-item>
+                    </template>
+                </v-list>
+              </v-menu>
+            </div>
             <v-btn
-              v-if="treatmentOptionSelected && displayBackToTreatmentModeSelection"
+              v-if="displayBackToTreatmentModeSelection"
               @click="handleBackToTreatmentModeSelection"
-              color="primary"
               elevation="0"
-              class="mb-3 mt-3"
+              class="treatment-type-selected"
               plain
             >
               BACK TO TREATMENT MODE SELECTION
             </v-btn>
           </div>
-          <br />
-        </form>
-      </v-tab-item>
-      <v-tab-item
-        class="my-5"
-      >
-        <treatment-settings />
-      </v-tab-item>
-    </v-tabs-items>
-  </div>
+        </div>
+        <br />
+      </form>
+    </v-tab-item>
+    <v-tab-item
+      class="my-5"
+    >
+      <treatment-settings />
+    </v-tab-item>
+  </v-tabs-items>
+</div>
 </template>
 
 <script>
 import { mapActions, mapGetters, mapMutations } from "vuex";
 import { assessmentService } from '@/services';
-import { shrinkContainer, widenContainer } from "@/helpers/ui-utils.js";
+import { shrinkContainer, widenContainer, deleteAttributesFromObservedElement, deleteAttributesFromElement, addAttributesToElement, createStatusAlert, statusAlert } from "@/helpers/ui-utils.js";
 import draggable from 'vuedraggable';
+import CopyFromDialog from "@/components/dialog/CopyFromDialog.vue";
 import FileUploadQuestionEditor from "./FileUploadQuestionEditor.vue";
 import ExternalIntegrationEditor from "@/views/integrations/ExternalIntegrationEditor.vue";
 import MultipleChoiceQuestionEditor from "./MultipleChoiceQuestionEditor.vue";
@@ -424,8 +375,14 @@ import Vue from 'vue';
 
 export default {
   name: "TerracottaBuilder",
-  props: ["experiment"],
+  props: {
+    experiment: {
+      type: Object,
+      required: true
+    }
+  },
   components: {
+    CopyFromDialog,
     draggable,
     FileUploadQuestionEditor,
     ExternalIntegrationEditor,
@@ -471,6 +428,14 @@ export default {
           this.expandedQuestionPanel[i] = null;
         }
       }
+      this.$nextTick(() => {
+        setTimeout(() => {
+          deleteAttributesFromElement(".v-expansion-panel", ["aria-expanded"]);
+          addAttributesToElement(".editor .ProseMirror", [
+            { name: "aria-label", value: "question editor content" }
+          ]);
+        }, 1000);
+      });
     },
     expandedQuestionPanel: {
       handler(idx) {
@@ -492,6 +457,16 @@ export default {
     },
     assignmentCount() {
       this.findAssignmentsAvailableToCopy();
+    },
+    questions() {
+      this.$nextTick(() => {
+        setTimeout(() => {
+          deleteAttributesFromElement(".v-expansion-panel", ["aria-expanded"]);
+          addAttributesToElement(".editor .ProseMirror", [
+            { name: "aria-label", value: "question editor content" }
+          ]);
+        }, 1000);
+      });
     }
   },
   computed: {
@@ -504,7 +479,8 @@ export default {
       answerableQuestions: "assessment/answerableQuestions",
       questionPages: "assessment/questionPages",
       conditionColorMapping: "condition/conditionColorMapping",
-      submissions: "submissions/submissions"
+      submissions: "submissions/submissions",
+      alertStatuses: "alert/statuses"
     }),
     currentAssignment() {
       return JSON.parse(this.$route.params.current_assignment);
@@ -668,7 +644,7 @@ export default {
     async handleAddIntegration(integrationName) {
       let integrationClientId = this.integrationClients.find((integrationClient) => integrationClient.name === integrationName).id;
       this.treatmentOptionSelected = true;
-      await this.handleAddQuestion('INTEGRATION', integrationClientId);
+      await this.handleAddQuestion("INTEGRATION", integrationClientId);
       widenContainer();
     },
     async handleAddQuestion(questionType, integrationClientId = null) {
@@ -697,8 +673,21 @@ export default {
         var questionIndex = this.questionPages[questionPageIndex] && this.questionPages[questionPageIndex].questions && this.questionPages[questionPageIndex].questions.length > 0 ?
           this.questionPages[questionPageIndex].questions.length - 1 : 0;
         this.expandQuestionPanel(questionPageIndex, questionIndex);
+
+        createStatusAlert(
+          statusAlert(
+            this.alertStatuses.success,
+            "Question added successfully."
+          )
+        );
       } catch (error) {
         console.error(error);
+        createStatusAlert(
+          statusAlert(
+            this.alertStatuses.error,
+            "An error occurred while adding the question. Please try again."
+          )
+        );
       }
     },
     async handleAddMCOption(question) {
@@ -713,8 +702,20 @@ export default {
           false,
           0,
         ]);
+        createStatusAlert(
+          statusAlert(
+            this.alertStatuses.success,
+            "Multiple choice option added successfully."
+          )
+        );
       } catch (error) {
         console.error(error);
+        createStatusAlert(
+          statusAlert(
+            this.alertStatuses.error,
+            "An error occurred while adding the multiple choice option. Please try again."
+          )
+        );
       }
     },
     async handleQuestionOrderChange(event) {
@@ -730,6 +731,13 @@ export default {
         });
 
         this.handleSaveQuestions(list);
+
+        createStatusAlert(
+          statusAlert(
+            this.alertStatuses.success,
+            "Question order updated successfully."
+          )
+        );
       }
     },
     async handleClearQuestions() {
@@ -746,8 +754,20 @@ export default {
       ]).then(response => {
         if (response.status === 400) {
           this.$swal(response.data);
+          createStatusAlert(
+            statusAlert(
+              this.alertStatuses.error,
+              "An error occurred while clearing questions. Please try again."
+            )
+          );
           return false;
         }
+        createStatusAlert(
+          statusAlert(
+            this.alertStatuses.success,
+            "Questions cleared successfully."
+          )
+        );
       });
 
       return true;
@@ -772,6 +792,12 @@ export default {
       ]);
       if (response.status === 400) {
         this.$swal(response.data);
+        createStatusAlert(
+          statusAlert(
+            this.alertStatuses.error,
+            "An error occurred while saving the assessment. Please try again."
+          )
+        );
         return false;
       }
       return true;
@@ -872,7 +898,13 @@ export default {
         this.handleRegradeQuestions();
         this.$router.push({
           name: routeName,
-          params: { exposureId: isNaN(this.exposureId) ? this.$route.params.exposureId : this.exposureId },
+          params: {
+            exposureId: isNaN(this.exposureId) ? this.$route.params.exposureId : this.exposureId,
+            ...statusAlert(
+              this.alertStatuses.success,
+              "Assignment saved successfully."
+            )
+          },
         });
       }
     },
@@ -890,8 +922,44 @@ export default {
         this.regradeDetails
       ]);
     },
-    async duplicate(treatment) {
-      const { assessmentDto, conditionId } = treatment;
+    async duplicate(fromAssignment) {
+      let availableTreatments = fromAssignment.treatments
+        .filter(
+          (treatment) => treatment.treatmentId !== this.treatmentId && !treatment.assessmentDto.integration
+        );
+      availableTreatments = availableTreatments.map(
+        (availableTreatment) => {
+          return {
+            treatmentId: availableTreatment.treatmentId,
+            conditionName: this.conditionForTreatment(this.getGroupConditionListForAssignment(fromAssignment), availableTreatment.conditionId).conditionName,
+            conditionColor: this.conditionColorMapping[this.conditionForTreatment(this.getGroupConditionListForAssignment(fromAssignment), availableTreatment.conditionId).conditionName]
+          }
+        }
+      );
+
+      let selectedTreatment = await this.handleDisplayCopyFromDialog(availableTreatments);
+
+      if (!selectedTreatment || selectedTreatment.isDismissed) {
+        // no treatment selected or dialog dismissed
+        return;
+      }
+
+      let fromTreatment = this.assignmentsAvailableToCopy.map(
+        (assignmentAvailableToCopy) => {
+          let matchingTreatment = assignmentAvailableToCopy.treatments.find(treatment => treatment.treatmentId === parseInt(selectedTreatment.value.treatmentId));
+
+          if (matchingTreatment) {
+            return matchingTreatment;
+          }
+        }
+      ).filter(treatment => treatment != null);
+
+      if (fromTreatment.length === 0) {
+        this.$swal("Selected assignment does not have any treatments to copy from.");
+        return;
+      }
+
+      const { assessmentDto, conditionId } = fromTreatment[0];
       /* eslint-disable-next-line */
       const { treatmentId, assessmentId } = assessmentDto;
       let assessment;
@@ -1028,6 +1096,49 @@ export default {
     },
     handleUrlValidationInProgress(value) {
       this.urlValidationInProgress = value;
+    },
+    handleDisplayCopyFromDialog(availableTreatments) {
+      return this.$swal({
+        html: '<div id="dialog-copy-from"></div>',
+        showCancelButton: true,
+        confirmButtonText: "Copy",
+        cancelButtonText: "Cancel",
+        reverseButtons: true,
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        focusConfirm: false,
+        customClass: {
+          confirmButton: "response-option-confirm",
+          popup: "copy-from-popup"
+        },
+        preConfirm: () => {
+          const treatmentOption = this.$swal.getPopup().querySelector("input#treatment-option-selected");
+
+          if (treatmentOption && treatmentOption.value) {
+            return { treatmentId: treatmentOption.value };
+          }
+
+          // no value selected; prompt user to select one
+          this.$swal.showValidationMessage("Please select a treatment to copy the content from.");
+        },
+        willOpen: () => {
+          var CopyFromDialogClass = Vue.extend(CopyFromDialog);
+          var copyFromDialog = new CopyFromDialogClass({
+            propsData: {
+              treatments: availableTreatments,
+              assignmentName: this.assignmentTitle
+            }
+          });
+          copyFromDialog.$mount(document.getElementById("dialog-copy-from"));
+        },
+        didOpen: () => {
+          const treatmentOptionSelect = this.$swal.getHtmlContainer().querySelector("#copy-radio-group");
+
+          if (treatmentOptionSelect) {
+            treatmentOptionSelect.focus();
+          }
+        }
+      });
     }
   },
   async created() {
@@ -1049,6 +1160,7 @@ export default {
   },
   mounted() {
     widenContainer();
+    deleteAttributesFromObservedElement(".terracotta-builder", "question-page", ".v-expansion-panel", ["aria-expanded"]);
   },
   beforeUnmount() {
     shrinkContainer();
@@ -1057,6 +1169,8 @@ export default {
 </script>
 
 <style scoped lang="scss">
+@import "~@/styles/variables";
+
 v-expansion-panels {
   &, & > div {
     width: 100%;
@@ -1101,6 +1215,38 @@ v-expansion-panels {
     display: inline;
     padding-right: 5px;
     padding-bottom: 0;
+  }
+  .v-btn--plain:not(.v-btn--active):not(.v-btn--loading):not(:focus):not(:hover) .v-btn__content {
+    color: map-get($blue, "base") !important;
+    opacity: 1 !important;
+  }
+  .bottom-menu {
+    & .treatment-mode-container,
+    & .treatment-mode-selected-container {
+      max-width: fit-content;
+      & .add-treatment-type,
+      & .treatment-type-selected {
+        margin-top: 12px;
+        margin-bottom: 12px;
+        &:hover,
+        &:focus {
+          & ::v-deep .v-btn__content {
+            text-decoration: underline;
+          }
+        }
+      }
+      & .add-treatment-type {
+        color: map-get($blue, "primary") !important;
+        opacity: 1 !important;
+        & ::v-deep .v-btn__content {
+          color: map-get($blue, "primary") !important;
+          opacity: 1 !important;
+        }
+      }
+    }
+  }
+  .add-questions-to-continue {
+    opacity: .7 !important;
   }
 }
 </style>

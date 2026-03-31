@@ -1,15 +1,15 @@
 <template>
-  <v-data-table
-    class="v-data-table-alt"
-    :headers="tableHeaders"
-    :items="computedTableData"
-    :mobile-breakpoint="mobileBreakpoint"
-    :items-per-page="computedTableData.length"
-    item-key="title"
-    disable-sort
-    hide-default-footer
-  >
-  </v-data-table>
+<v-data-table
+  :headers="tableHeaders"
+  :items="computedTableData"
+  :mobile-breakpoint="mobileBreakpoint"
+  :items-per-page="computedTableData.length"
+  class="v-data-table-alt"
+  item-key="title"
+  disable-sort
+  hide-default-footer
+>
+</v-data-table>
 </template>
 
 <script>
@@ -17,11 +17,19 @@ import { timeFormat, percent } from "@/helpers/dashboard/utils.js";
 
 export default {
   name: "DataTable",
-  props: [
-    "tableData",
-    "titleHeader",
-    "outcomeType"
-  ],
+  props: {
+    tableData: {
+      type: Array,
+      required: true
+    },
+    titleHeader: {
+      type: String,
+      required: true
+    },    outcomeType: {
+      type: String,
+      required: true
+    }
+  },
   data: () => ({
     mobileBreakpoint: 636,
   }),
@@ -80,4 +88,3 @@ export default {
   }
 }
 </script>
-

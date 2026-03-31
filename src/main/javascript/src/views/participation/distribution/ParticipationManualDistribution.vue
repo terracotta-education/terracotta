@@ -1,129 +1,140 @@
 <template>
-  <div>
-    <h1 class="mb-5">
-      Select which students you would like for each condition.
-    </h1>
-
-    <!-- Conditions Section -->
-    <p>Conditions</p>
-    <v-expansion-panels class="v-expansion-panels--icon" flat>
-      <v-expansion-panel
-        v-for="(condition, index) in this.conditions"
-        :key="condition.conditionId"
-      >
-        <v-expansion-panel-header>
-          {{ condition.name }} ({{ arrayDataProxy[index] ? arrayDataProxy[index].length : 0 }})
-        </v-expansion-panel-header>
-        <v-expansion-panel-content>
-          <ListParticipants
-            :listOfParticipants="arrayDataProxy[index] ? arrayDataProxy[index] : []"
-            :moveToOptions="getConditionNames"
-            :moveToHandler="moveToHandler"
-            :selectedOption="'' + index"
-          />
-        </v-expansion-panel-content>
-      </v-expansion-panel>
-    </v-expansion-panels>
-
-    <!-- Unassigned -->
-    <ListParticipants
-      :listOfParticipants="arrayDataProxy[this.getConditionNames.length - 1] ? arrayDataProxy[this.getConditionNames.length - 1] : []"
-      :moveToOptions="getConditionNames"
-      :moveToHandler="moveToHandler"
-      :selectedOption="'' + (this.getConditionNames.length - 1)"
-    />
-
-    <v-btn
-      elevation="0"
-      class="mt-10"
-      color="primary"
-      @click="submitDistribution('ParticipationSummary')"
-      >Continue</v-btn
+<div
+  class="participation-manual-distribution-container"
+>
+  <h1
+    class="mb-5"
+  >
+    Select which students you would like for each condition.
+  </h1>
+  <!-- Conditions Section -->
+  <p>Conditions</p>
+  <v-expansion-panels
+    class="v-expansion-panels--icon"
+    flat
+  >
+    <v-expansion-panel
+      v-for="(condition, index) in this.conditions"
+      :key="condition.conditionId"
+      @click="panelExpansion"
     >
-  </div>
+      <v-expansion-panel-header>
+        {{ condition.name }} ({{ arrayDataProxy[index] ? arrayDataProxy[index].length : 0 }})
+      </v-expansion-panel-header>
+      <v-expansion-panel-content>
+        <ListParticipants
+          :listOfParticipants="arrayDataProxy[index] ? arrayDataProxy[index] : []"
+          :moveToOptions="getConditionNames"
+          :moveToHandler="moveToHandler"
+          :selectedOption="'' + index"
+        />
+      </v-expansion-panel-content>
+    </v-expansion-panel>
+  </v-expansion-panels>
+  <!-- Unassigned -->
+  <ListParticipants
+    :listOfParticipants="arrayDataProxy[this.getConditionNames.length - 1] ? arrayDataProxy[this.getConditionNames.length - 1] : []"
+    :moveToOptions="getConditionNames"
+    :moveToHandler="moveToHandler"
+    :selectedOption="'' + (this.getConditionNames.length - 1)"
+  />
+  <v-btn
+    @click="submitDistribution('ParticipationSummary')"
+    elevation="0"
+    class="mt-10"
+    color="primary"
+  >
+    Continue
+  </v-btn>
+</div>
 </template>
 
 <script>
-import { mapGetters, mapActions } from 'vuex'
-import { participantService } from '@/services'
-import ListParticipants from '../../../components/ListParticipants.vue'
-import store from '@/store'
+import { mapGetters, mapActions } from "vuex";
+import { participantService } from "@/services";
+import { deleteAttributesFromElement } from "@/helpers/ui-utils.js";
+import ListParticipants from "@/components/ListParticipants.vue";
+import store from "@/store";
 
 export default {
-  name: 'ParticipationManualDistribution',
-  props: ['experiment'],
+  name: "ParticipationManualDistribution",
+  props: {
+    experiment: {
+      type: Object,
+      required: true
+    }
+  },
   components: {
     ListParticipants,
   },
-  data() {
-    return {
-      arrayDataProxy: []
-    };
-  },
+  data: () => ({
+    arrayDataProxy: []
+  }),
   watch: {
     participants: {
-      // Watcher is required for keeping track of changes made in Participants
-      deep: true,
       handler() {
         // All the participant will go to 'Unparticipate' section
-        const participatingStudents = this.participants.filter(({consent}) => consent === true)
-        const conditionGroupIDMap = this.getConditionGroupIDMap()
+        const participatingStudents = this.participants.filter(({consent}) => consent === true);
+        const conditionGroupIDMap = this.getConditionGroupIDMap();
 
         // This will only required when the page is loaded
-        const newArray = []
+        const newArray = [];
+
         for (let i = 0; i < this.conditions.length; i++) {
-          const studentsAssignedToCondition = participatingStudents.filter((student) => student.groupId === conditionGroupIDMap[i])
-          newArray.push(studentsAssignedToCondition)
+          const studentsAssignedToCondition = participatingStudents.filter((student) => student.groupId === conditionGroupIDMap[i]);
+          newArray.push(studentsAssignedToCondition);
         }
-        const unAssignedStudents = participatingStudents.filter((student) => student.groupId === null)
-        newArray.push(unAssignedStudents)
-        this.arrayData = newArray
+
+        const unAssignedStudents = participatingStudents.filter((student) => student.groupId === null);
+        newArray.push(unAssignedStudents);
+        this.arrayData = newArray;
       },
-    },
+      deep: true
+    }
   },
   computed: {
     ...mapGetters({
-      participants: 'participants/participants',
-      exposures: 'exposures/exposures',
-      editMode: 'navigation/editMode'
+      participants: "participants/participants",
+      exposures: "exposures/exposures",
+      editMode: "navigation/editMode"
     }),
     getSaveExitPage() {
-      return this.editMode?.callerPage?.name || 'Home';
+      return this.editMode?.callerPage?.name || "Home";
     },
     conditions() {
-      return this.experiment.conditions
+      return this.experiment.conditions;
     },
     getConditionNames() {
       return [
         ...this.experiment.conditions.map((condition) => condition.name),
-        'Unassigned',
-      ]
+        "Unassigned",
+      ];
     },
     arrayData: {
       get: function() {
-        const newArray = []
+        const newArray = [];
+
         for (let i = 0; i < this.conditions.length; i++) {
-          newArray.push([])
+          newArray.push([]);
         }
+
         // All the participant will go to 'Unparticipate' section
-        newArray.push(this.participants)
-        return newArray
+        newArray.push(this.participants);
+        return newArray;
       },
       set: function(newValue) {
-        this.arrayDataProxy = newValue
+        this.arrayDataProxy = newValue;
       },
     },
   },
   methods: {
     ...mapActions({
-      fetchExposures: 'exposures/fetchExposures',
-      fetchParticipants: 'participants/fetchParticipants'
+      fetchExposures: "exposures/fetchExposures",
+      fetchParticipants: "participants/fetchParticipants"
     }),
-
     getExposure() {
       this.fetchExposures(this.experiment.experimentId);
     },
-
     getConditionGroupIDMap() {
       const conditionGroupIDMap = {};
 
@@ -141,22 +152,21 @@ export default {
 
       return conditionGroupIDMap;
     },
-
     submitDistribution(path) {
-      const requestBody = []
-      const conditionGroupIDMap = this.getConditionGroupIDMap()
+      const requestBody = [];
+      const conditionGroupIDMap = this.getConditionGroupIDMap();
 
       this.arrayDataProxy.map((arrData, index) =>
         arrData.map((participant) => {
-            const temp = {
-              participantId: participant.participantId,
-              consent: participant.consent,
-              dropped: participant.dropped,
-              groupId: conditionGroupIDMap[index] ? conditionGroupIDMap[index] : null,
-            }
-            requestBody.push(temp)
+          const temp = {
+            participantId: participant.participantId,
+            consent: participant.consent,
+            dropped: participant.dropped,
+            groupId: conditionGroupIDMap[index] ? conditionGroupIDMap[index] : null,
+          }
+          requestBody.push(temp)
         })
-      )
+      );
 
       participantService
         .updateParticipants(this.experiment.experimentId, requestBody)
@@ -171,14 +181,13 @@ export default {
           }
         })
         .catch((response) => {
-          console.log('submitParticipants | catch', { response });
+          console.log("submitParticipants | catch", { response });
         })
     },
-
     moveToHandler(option, tempSelected) {
       const selectedParticipantIDs = tempSelected.map(
         (participant) => participant.participantId
-      )
+      );
 
       const filteredParticipants = this.arrayDataProxy.map(
         (conditionParticipantMap) =>
@@ -186,23 +195,31 @@ export default {
             (participant) =>
               !selectedParticipantIDs.includes(participant.participantId)
           )
-      )
+      );
 
-      const idx = this.getConditionNames.indexOf(option)
+      const idx = this.getConditionNames.indexOf(option);
       filteredParticipants[idx] = [
         ...filteredParticipants[idx],
         ...tempSelected,
-      ]
+      ];
 
-      this.arrayData = filteredParticipants
+      this.arrayData = filteredParticipants;
     },
     saveExit() {
-      this.submitDistribution(this.getSaveExitPage)
+      this.submitDistribution(this.getSaveExitPage);
+    },
+    panelExpansion() {
+      setTimeout(() => {
+        deleteAttributesFromElement(".v-expansion-panel", ["aria-expanded"]);
+      }, 1000);
     }
   },
   async created() {
     await this.fetchExposures(this.experiment.experimentId);
     await this.fetchParticipants(this.experiment.experimentId);
+  },
+  mounted() {
+    deleteAttributesFromElement(".v-expansion-panel", ["aria-expanded"]);
   },
   beforeRouteUpdate(to, from, next) {
     //  load participant data before selection screen
@@ -211,6 +228,6 @@ export default {
         .dispatch("participants/fetchParticipants", to.params.experimentId)
         .then(next, next)
     );
-  },
+  }
 };
 </script>

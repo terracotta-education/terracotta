@@ -12,39 +12,34 @@
     <div
       class="col-6"
     >
-      <date-picker
-        :date="send.date"
-        :readOnly="readOnly"
-        :validatedErrors="validationErrors.date"
-        label="Date"
-        @updated="processSendDate"
+      <date-time-picker
+        :value="sendAt"
+        @input="processSendAt"
+        id="message-send-at"
+        name="message-send-at"
+        ariaLabel="Send message date time picker"
       />
     </div>
-    <div
-      class="col-6"
+  </v-row>
+  <v-row
+    class="mx-0 my-0 pl-3"
+  >
+    <span
+      class="date-format-hint"
     >
-      <time-picker
-        :time="send.time"
-        :readOnly="readOnly"
-        :validatedErrors="validationErrors.time"
-        label="Time"
-        @updated="processSendTime"
-      />
-    </div>
+      MM/DD/YYYY HH:MM
+    </span>
   </v-row>
 </div>
 </template>
 
 <script>
 import { validations } from "@/helpers/messaging/validation.js";
-import moment from "moment";
-import DatePicker from "@/components/picker/DatePicker";
-import TimePicker from "@/components/picker/TimePicker";
+import DateTimePicker from "@/components/picker/DateTimePicker.vue";
 
 export default {
   components: {
-    DatePicker,
-    TimePicker
+    DateTimePicker
   },
   props: {
     sendAt: {
@@ -64,10 +59,7 @@ export default {
     }
   },
   data: () => ({
-    send: {
-      date: null,
-      time: null
-    },
+    send: null,
     validationErrors: null
   }),
   watch: {
@@ -80,27 +72,26 @@ export default {
     }
   },
   methods: {
-    processSendDate(date) {
-      this.send.date = date;
-      this.processSendAt();
-    },
-    processSendTime(time) {
-      this.send.time = time;
-      this.processSendAt();
-    },
-    processSendAt() {
-      this.$emit("updated", this.send.date && this.send.time ? moment(`${this.send.date}T${this.send.time}`).valueOf() : null);
+    processSendAt(date) {
+      this.send = date;
+      this.$emit("updated", this.send);
     },
   },
   mounted() {
-    if (!this.sendAt) {
-      return;
-    }
-
-    this.send = {
-      date: moment(this.sendAt).format("YYYY-MM-DD"),
-      time: moment(this.sendAt).format("HH:mm:ss")
-    }
+    this.send = this.sendAt;
   }
 }
 </script>
+
+<style scoped>
+#message-send-at {
+  &.datetime-input {
+    margin-left: 0;
+    padding: 16px;
+  }
+}
+.date-format-hint {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.6);
+}
+</style>

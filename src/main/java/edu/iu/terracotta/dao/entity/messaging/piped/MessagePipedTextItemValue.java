@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
 import edu.iu.terracotta.dao.entity.messaging.BaseMessageEntity;
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -25,7 +24,7 @@ import lombok.Setter;
 @Table(name = "terr_messaging_piped_text_item_value")
 public class MessagePipedTextItemValue extends BaseMessageEntity {
 
-    @Column private String value;
+    private String value;
 
     @ManyToOne(optional = false)
     @JoinColumn(

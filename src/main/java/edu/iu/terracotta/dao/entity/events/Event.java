@@ -42,23 +42,23 @@ public class Event {
     )
     private Long eventId;
 
-    @Column private String caliperId;
-    @Column private String actorId;
-    @Column private String actorType;
-    @Column private String platform_deployment;
-    @Column private Timestamp eventTime;
-    @Column private String objectId;
-    @Column private String objectType;
-    @Column private String generatedId;
-    @Column private String generatedType;
-    @Column private String referrerId;
-    @Column private String referredType;
-    @Column private String targetId;
-    @Column private String targetType;
-    @Column private String federatedSession;
-    @Column private String membershipId;
-    @Column private String membershipRoles;
-    @Column private String ltiContextId;
+    private String caliperId;
+    private String actorId;
+    private String actorType;
+    private String platform_deployment;
+    private Timestamp eventTime;
+    private String objectId;
+    private String objectType;
+    private String generatedId;
+    private String generatedType;
+    private String referrerId;
+    private String referredType;
+    private String targetId;
+    private String targetType;
+    private String federatedSession;
+    private String membershipId;
+    private String membershipRoles;
+    private String ltiContextId;
 
     @Column(name = "event_type")
     private String type;

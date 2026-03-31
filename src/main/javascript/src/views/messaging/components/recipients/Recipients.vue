@@ -6,7 +6,9 @@
   class="my-6"
   flat
 >
-  <v-expansion-panel>
+  <v-expansion-panel
+    @click="panelExpansion"
+  >
     <v-expansion-panel-header
       class="recipients-header"
     >
@@ -105,7 +107,7 @@
                 @change="updateRule(ruleSetIndex, ruleIndex, rule)"
                 item-text="title"
                 label="Variable"
-                class="rule-assignment"
+                class="rule-variable"
                 return-object
                 outlined
                 dense
@@ -120,6 +122,7 @@
                 @change="updateRule(ruleSetIndex, ruleIndex, rule)"
                 item-text="label"
                 class="rule-comparison"
+                aria-label="comparison selector"
                 return-object
                 outlined
                 dense
@@ -151,6 +154,7 @@
                 <v-btn
                   v-if="!readOnly && ruleSet.rules.length > 1"
                   @click="deleteRule(ruleSetIndex, ruleIndex)"
+                  :aria-label="`delete rule number ${ruleIndex + 1} from rule set number ${ruleSetIndex + 1}`"
                   class="ml-2 px-0"
                   text
                 >
@@ -243,6 +247,7 @@
 <script>
 import { mapGetters } from "vuex";
 import { validations } from "@/helpers/messaging/validation";
+import { deleteAttributesFromElement, createStatusAlert, statusAlert } from "@/helpers/ui-utils.js";
 import Toggle from "@/views/messaging/components/recipients/components/form/Toggle.vue";
 
 export default {
@@ -295,12 +300,29 @@ export default {
         this.validationErrors = newValidatedErrors || validations.message.recipients;
       },
       immediate: true
+    },
+    ruleSets: {
+      handler() {
+        this.$nextTick(() => {
+          const ruleNodes = document.querySelectorAll(".v-select.rule-variable .v-input__control .v-input__slot, .v-select.rule-comparison .v-input__control .v-input__slot");
+          ruleNodes.forEach(
+            node => {
+              const ariaOwnsId = node.getAttribute("aria-owns");
+              node.setAttribute("role", "combobox");
+              node.setAttribute("aria-controls", ariaOwnsId);
+            }
+          );
+        });
+      },
+      deep: true,
+      immediate: true
     }
   },
   computed: {
     ...mapGetters({
       allMessageContainers: "messagingMessageContainer/messageContainers",
-      allMessageRuleAssignments: "messagingMessage/assignments"
+      allMessageRuleAssignments: "messagingMessage/assignments",
+      alertStatuses: "alert/statuses"
     }),
     container() {
       return this.allMessageContainers.find(messageContainer => messageContainer.id === this.containerId);
@@ -378,6 +400,13 @@ export default {
           }]
         }
       ];
+
+      createStatusAlert(
+        statusAlert(
+          this.alertStatuses.success,
+          "New rule set added"
+        )
+      );
     },
     addRule(ruleSetIndex) {
       this.ruleSets = this.ruleSets.toSpliced(
@@ -399,6 +428,12 @@ export default {
           ]
         }
       );
+      createStatusAlert(
+        statusAlert(
+          this.alertStatuses.success,
+          "New rule added"
+        )
+      );
     },
     clearRule(ruleSetIndex, ruleIndex) {
       this.ruleSets = this.ruleSets.toSpliced(
@@ -419,9 +454,22 @@ export default {
           )
         }
       );
+
+      createStatusAlert(
+        statusAlert(
+          this.alertStatuses.success,
+          "Rule cleared"
+        )
+      );
     },
     deleteRuleSet(ruleSetIndex) {
       this.ruleSets = this.ruleSets.toSpliced(ruleSetIndex, 1);
+      createStatusAlert(
+        statusAlert(
+          this.alertStatuses.success,
+          "Rule set deleted"
+        )
+      );
     },
     deleteRule(ruleSetIndex, ruleIndex) {
       this.ruleSets = this.ruleSets.toSpliced(
@@ -431,6 +479,13 @@ export default {
           ...this.ruleSets[ruleSetIndex],
           rules: [...this.ruleSets[ruleSetIndex].rules.toSpliced(ruleIndex, 1)]
         }
+      );
+
+      createStatusAlert(
+        statusAlert(
+          this.alertStatuses.success,
+          "Rule deleted"
+        )
       );
 
       if (ruleIndex === 0 && this.ruleSets[ruleSetIndex].rules.length) {
@@ -450,6 +505,12 @@ export default {
     },
     resetRuleSets() {
       this.ruleSets = JSON.parse(JSON.stringify(this.initialRuleSets));
+      createStatusAlert(
+        statusAlert(
+          this.alertStatuses.success,
+          "Rule sets reset"
+        )
+      );
     },
     updateRule(ruleSetIndex, ruleIndex, rule) {
       this.ruleSets = this.ruleSets.toSpliced(
@@ -487,10 +548,16 @@ export default {
     },
     async initialize() {
       this.initialRuleSets = JSON.parse(JSON.stringify(this.ruleSets));
+    },
+    panelExpansion() {
+      setTimeout(() => {
+        deleteAttributesFromElement(".v-expansion-panel", ["aria-expanded"]);
+      }, 1000);
     }
   },
   async mounted() {
     await this.initialize();
+    deleteAttributesFromElement(".v-expansion-panel", ["aria-expanded"]);
     this.loaded = true;
   }
 }
@@ -518,7 +585,7 @@ export default {
   }
   & .rule-row {
     justify-content: space-between;
-    & .rule-assignment {
+    & .rule-variable {
       max-width: 45%;
       min-width: 45%;
     }
