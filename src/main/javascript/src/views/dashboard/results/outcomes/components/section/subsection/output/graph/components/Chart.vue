@@ -1,33 +1,39 @@
 <template>
-  <figure
-    class="highcharts-figure"
+<figure
+  class="highcharts-figure"
+>
+  <div
+    id="container-chart"
   >
-    <div
-      id="container-chart"
-    >
-    </div>
-  </figure>
+  </div>
+</figure>
 </template>
 
 <script>
+import { mapGetters } from "vuex";
+import { milliToMinutes, minutesToMillis, percent, round, timeFormat } from "@/helpers/dashboard/utils.js";
+import { addAttributesToElement, getColor } from "@/helpers/ui-utils.js";
+import accessibility from "highcharts/modules/accessibility";
 import Highcharts from "highcharts";
 import exportData from "highcharts/modules/export-data";
 import exportingInit from "highcharts/modules/exporting";
+import OfflineExporting from "highcharts/modules/offline-exporting";
 import zipcelx from "zipcelx";
-import { mapGetters } from "vuex";
-import { milliToMinutes, minutesToMillis, percent, round, timeFormat } from "@/helpers/dashboard/utils.js";
 
 exportingInit(Highcharts);
 exportData(Highcharts);
+OfflineExporting(Highcharts);
+accessibility(Highcharts);
 
 (function(H) {
-  H.wrap(H.Chart.prototype, 'getDataRows', function(proceed, multiLevelHeaders) {
+  H.wrap(H.Chart.prototype, "getDataRows", function(proceed, multiLevelHeaders) {
     var rows = proceed.call(this, multiLevelHeaders);
 
     rows = rows.map(row => {
       if (row.x) {
         row[0] = row.x;
       }
+
       return row;
     });
 
@@ -37,16 +43,16 @@ exportData(Highcharts);
 
 (function (H) {
   H.Chart.prototype.downloadXLSX = function () {
-    const div = document.createElement('div');
+    const div = document.createElement("div");
     let name,
       xlsxRows = [];
-    div.style.display = 'none';
+    div.style.display = "none";
     document.body.appendChild(div);
     const rows = this.getDataRows(true);
     xlsxRows = rows.slice(1).map(function (row) {
       return row.map(function (column) {
         return {
-          type: typeof column === 'number' ? 'number' : 'string',
+          type: typeof column === "number" ? "number" : "string",
           value: column
         };
       });
@@ -56,9 +62,9 @@ exportData(Highcharts);
     if (this.options.exporting.filename) {
         name = this.options.exporting.filename;
     } else if (this.title && this.title.textStr) {
-        name = this.title.textStr.replace(/ /g, '-').toLowerCase();
+        name = this.title.textStr.replace(/ /g, "-").toLowerCase();
     } else {
-        name = 'chart';
+        name = "chart";
     }
 
     zipcelx({
@@ -70,30 +76,40 @@ exportData(Highcharts);
   };
 
   // Default lang string, overridable in i18n options
-  H.getOptions().lang.downloadXLSX = 'Download XLSX';
+  H.getOptions().lang.downloadXLSX = "Download XLSX";
 
   // Add the menu item handler
   H.getOptions().exporting.menuItemDefinitions.downloadXLSX = {
-    textKey: 'downloadXLSX',
+    textKey: "downloadXLSX",
     onclick: function () {
       this.downloadXLSX();
     }
   };
 
   // Replace the menu item
-  const menuItems =
-    H.getOptions().exporting.buttons.contextButton.menuItems;
-  menuItems[menuItems.indexOf('downloadXLS')] = 'downloadXLSX';
+  const menuItems = H.getOptions().exporting.buttons.contextButton.menuItems;
+  menuItems[menuItems.indexOf("downloadXLS")] = "downloadXLSX";
 }(Highcharts));
 
 export default {
   name : "Chart",
-  props: [
-    "displayChartData",
-    "graphData",
-    "outcomeType",
-    "type"
-  ],
+  props: {
+    displayChartData: {
+      type: Boolean,
+      default: false
+    },
+    graphData: {
+      type: Array,
+      default: () => []
+    },
+    outcomeType: {
+      type: String,
+      default: "STANDARD"
+    },
+    type: {
+      type: String
+    }
+  },
   data: () => ({
     chart: null
   }),
@@ -179,6 +195,18 @@ export default {
     options() {
       return {
         chart: {
+          accessibility: {
+            keyboardNavigation: {
+              focusBorder: {
+                style: {
+                  lineWidth: 3,
+                  color: getColor("--blue-primary"),
+                  borderRadius: 4,
+                },
+                margin: 4,
+              },
+            },
+          },
           events: {
             exportData({ dataRows }) {
               for (let i = 1; i < dataRows.length; i++) {
@@ -234,8 +262,8 @@ export default {
               symbol: "download",
               symbolStroke: "rgba(102, 102, 102, .75)",
               theme: {
-                'stroke-width': 1,
-                stroke: 'silver',
+                "stroke-width": 1,
+                stroke: "silver",
                 r: 4,
                 states: {
                   hover: {
@@ -248,7 +276,7 @@ export default {
               y: -60
             }
           },
-          filename: this.experimentTitle + "_" + this.chartDataType
+          filename: `${this.experimentTitle}_${this.chartDataType}`
         },
         plotOptions: {
           series: {
@@ -431,29 +459,32 @@ export default {
   },
   mounted() {
     this.createChart();
+    this.$nextTick(() => {
+      addAttributesToElement("svg.highcharts-root", [{ name: "aria-label", value: `${this.experimentTitle} ${this.chartDataType} chart` }]);
+    });
   }
 }
 
 Highcharts.Renderer.prototype.symbols.meanLine = function(x, y, w, h) {
   // custom SVG mean data point line
-  return ['M',x,y + w / 2,'L',x + h,y + w / 2];
+  return ["M",x,y + w / 2,"L",x + h,y + w / 2];
 };
 
 Highcharts.Renderer.prototype.symbols.download = function (x, y, w, h) {
   // custom download button
   return [
     // Arrow stem
-    'M', x + w * 0.5, y,
-    'L', x + w * 0.5, y + h * 0.7,
+    "M", x + w * 0.5, y,
+    "L", x + w * 0.5, y + h * 0.7,
     // Arrow head
-    'M', x + w * 0.3, y + h * 0.5,
-    'L', x + w * 0.5, y + h * 0.7,
-    'L', x + w * 0.7, y + h * 0.5,
+    "M", x + w * 0.3, y + h * 0.5,
+    "L", x + w * 0.5, y + h * 0.7,
+    "L", x + w * 0.7, y + h * 0.5,
     // Box
-    'M', x, y + h * 0.9,
-    'L', x, y + h,
-    'L', x + w, y + h,
-    'L', x + w, y + h * 0.9
+    "M", x, y + h * 0.9,
+    "L", x, y + h,
+    "L", x + w, y + h,
+    "L", x + w, y + h * 0.9
   ];
 };
 </script>

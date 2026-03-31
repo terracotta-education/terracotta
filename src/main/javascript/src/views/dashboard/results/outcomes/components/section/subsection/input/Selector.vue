@@ -1,32 +1,42 @@
 <template>
-  <v-col
-    class="container-selector"
+<v-col
+  class="container-selector"
+>
+  <v-row
+    v-for="(_, i) in experimentExposures"
+    :key="i"
+    class="input-selector mb-5"
   >
-    <v-row
-      v-for="(_, i) in experimentExposures"
-      :key="i"
-      class="input-selector mb-5"
+    <v-select
+      v-model="selected[i]"
+      :items="options[i]"
+      :label="selectorLabel(i)"
+      :menu-props="{bottom: true, offsetY: true}"
+      @change="onOutcomeSelect(i)"
+      @keydown.backspace="clearOutcomeSelection(i)"
+      @keydown.delete="clearOutcomeSelection(i)"
+      item-text="title"
+      item-value="outcomeId"
+      class="select-outcomes"
+      hide-details
+      hide-selected
+      outlined
+      clearable
+      attach
+      dense
     >
-      <v-select
-        v-model="selected[i]"
-        :items="options[i]"
-        :label="selectorLabel(i)"
-        :menu-props="{bottom: true, offsetY: true}"
-        item-text="title"
-        item-value="outcomeId"
-        @change="onOutcomeSelect(i)"
-        clearable
-        dense
-        hide-details
-        hide-selected
-        outlined
+      <template
+        v-slot:selection="{ item }"
       >
-        <template v-slot:selection="{ item }">
-          <span class="truncated">{{ item.title }}</span>
-        </template>
-      </v-select>
-    </v-row>
-  </v-col>
+        <span
+          class="truncated"
+        >
+          {{ item.title }}
+        </span>
+      </template>
+    </v-select>
+  </v-row>
+</v-col>
 </template>
 
 <script>
@@ -43,6 +53,27 @@ export default {
     selectedExposureIds: [], // corresponding exposure IDs
     loaded: false
   }),
+  watch: {
+    outcomes: {
+      handler() {
+        this.loaded = true;
+      }
+    },
+    options: {
+      handler() {
+        this.$nextTick(() => {
+          const optionNodes = document.querySelectorAll(".v-select.select-outcomes .v-input__control .v-input__slot");
+          optionNodes.forEach(
+            node => {
+              const ariaOwnsId = node.getAttribute("aria-owns");
+              node.setAttribute("role", "combobox");
+              node.setAttribute("aria-controls", ariaOwnsId);
+            }
+          );
+        });
+      }
+    }
+  },
   computed: {
     ...mapGetters({
         conditions: "experiment/conditions",
@@ -71,19 +102,12 @@ export default {
       return opts;
     }
   },
-  watch: {
-    outcomes: {
-      handler() {
-        this.loaded = true;
-      }
-    }
-  },
   methods: {
     ...mapActions({
       getOutcomes: "outcome/fetchOutcomesByExperimentId"
     }),
     selectorLabel(i) {
-      return "Exposure Set " + (i + 1);
+      return `Exposure Set ${i + 1}`;
     },
     onOutcomeSelect(index) {
       // index == the v-select index
@@ -183,12 +207,22 @@ export default {
           if (a.title.toUpperCase() < b.title.toUpperCase()) {
             return -1;
           }
+
           if (a.title.toUpperCase() > b.title.toUpperCase()) {
             return 1;
           }
+
           return 0;
         }
       )
+    },
+    clearOutcomeSelection(index) {
+      this.selected = [
+        ...this.selected.slice(0, index),
+        null,
+        ...this.selected.slice(index + 1)
+      ];
+      this.onOutcomeSelect(index);
     }
   },
   mounted() {
@@ -220,14 +254,12 @@ div.container-selector {
     }
     & .v-input__slot {
       background-color: white;
+      &.theme--light.v-label {
+        color: rgba(0, 0, 0, .87) !important;
+      }
     }
   }
   & .v-select {
-    &.v-input--is-dirty {
-      & input {
-        display: none;
-      }
-    }
     & span.truncated {
       min-width: 0;
       max-width: 100%;

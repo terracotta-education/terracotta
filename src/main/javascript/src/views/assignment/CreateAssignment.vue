@@ -1,42 +1,43 @@
 <template>
-  <div>
-    <h1>Create your component</h1>
-    <p>This will create an unpublished component shell in {{ lmsTitle }} and will be the way Terracotta will deliver treatments to students.</p>
-    <v-row>
-      <div
-        class="col-6"
-      >
-        <v-text-field
-          v-model="assignment.title"
-          :rules="rules"
-          label="Component name"
-          outlined
-        >
-        </v-text-field>
-      </div>
-    </v-row>
-    <v-divider />
-    <v-tabs
-      v-model="tab"
-      class="tabs"
+<div>
+  <h1>Create your component</h1>
+  <p>This will create an unpublished component shell in {{ lmsTitle }} and will be the way Terracotta will deliver treatments to students.</p>
+  <v-row>
+    <div
+      class="col-6"
     >
-      <v-tab>Settings</v-tab>
-    </v-tabs>
-    <v-divider />
-    <v-tabs-items
-      v-model="tab"
-    >
-      <v-tab-item
-        class="my-5"
+      <v-text-field
+        v-model="assignment.title"
+        :rules="rules"
+        label="Component name"
+        outlined
       >
-        <assignment-settings />
-      </v-tab-item>
-    </v-tabs-items>
-  </div>
+      </v-text-field>
+    </div>
+  </v-row>
+  <v-divider />
+  <v-tabs
+    v-model="tab"
+    class="tabs"
+  >
+    <v-tab>Settings</v-tab>
+  </v-tabs>
+  <v-divider />
+  <v-tabs-items
+    v-model="tab"
+  >
+    <v-tab-item
+      class="my-5"
+    >
+      <assignment-settings />
+    </v-tab-item>
+  </v-tabs-items>
+</div>
 </template>
 
 <script>
 import { mapGetters, mapActions, mapMutations } from "vuex";
+import { statusAlert, createStatusAlert } from "@/helpers/ui-utils.js";
 import AssignmentSettings from "./AssignmentSettings.vue";
 
 export default {
@@ -54,7 +55,8 @@ export default {
   computed: {
     ...mapGetters({
       assignment: "assignment/assignment",
-      configurations: "configuration/get"
+      configurations: "configuration/get",
+      alertStatuses: "alert/statuses"
     }),
     experimentId() {
       return parseInt(this.$route.params.experimentId);
@@ -95,15 +97,31 @@ export default {
             name: "ExperimentSummary",
             params: {
               experimentId: this.experimentId,
-              assignmentId: response.data.assignmentId
+              assignmentId: response.data.assignmentId,
+              ...statusAlert(
+                this.alertStatuses.success,
+                "Assignment created successfully."
+              )
             }
           })
         } else {
-          this.$swal(`${response}`)
+          this.$swal(`${response}`);
+          createStatusAlert(
+            statusAlert(
+              this.alertStatuses.error,
+              "There was an issue creating the assignment. Please try again."
+            )
+          );
         }
       } catch (error) {
         console.error("createAssignment | catch", {error})
-        this.$swal("There was an error creating the assignment.")
+        this.$swal("There was an error creating the assignment.");
+        createStatusAlert(
+          statusAlert(
+            this.alertStatuses.error,
+            "There was an issue creating the assignment. Please try again."
+          )
+        );
       }
     },
     async handleCreateTreatmentsForAssignment(experimentId, assignmentId) {

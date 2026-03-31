@@ -1,109 +1,171 @@
 <template>
-  <div>
-    <template v-if="experiment">
-      <h1 class="mb-5">How would you like to distribute your experiment participants?</h1>
-
-      <v-expansion-panels class="v-expansion-panels--icon" flat>
-
-        <v-expansion-panel :class="{'v-expansion-panel--selected':experiment.distributionType==='EVEN'}">
-          <v-expansion-panel-header hide-actions><img src="@/assets/even.svg" alt="even distribution"> Even
-          </v-expansion-panel-header>
-          <v-expansion-panel-content>
-            <p>Equally distribute your students across all conditions</p>
-            <v-btn @click="saveType('EVEN')" color="primary" elevation="0">Select</v-btn>
-          </v-expansion-panel-content>
-        </v-expansion-panel>
-
-        <v-expansion-panel :class="{'v-expansion-panel--selected':experiment.distributionType==='CUSTOM'}" :disabled="experiment.exposureType === 'WITHIN'">
-          <v-expansion-panel-header hide-actions><img src="@/assets/custom.svg" alt="custom distribution"> Custom
-          </v-expansion-panel-header>
-          <v-expansion-panel-content>
-            <p>Customize the percentage of students who receive each condition</p>
-            <v-btn @click="saveType('CUSTOM')" color="primary" elevation="0">Select</v-btn>
-          </v-expansion-panel-content>
-        </v-expansion-panel>
-
-        <v-expansion-panel :class="{'v-expansion-panel--selected':experiment.distributionType==='MANUAL'}" :disabled="experiment.exposureType === 'WITHIN'">
-          <v-expansion-panel-header hide-actions><img src="@/assets/manual.svg" alt="Manual distribution"> Manual
-          </v-expansion-panel-header>
-          <v-expansion-panel-content>
-            <p>Manually select which students receive each condition</p>
-            <v-btn @click="saveType('MANUAL')" color="primary" elevation="0">Select</v-btn>
-          </v-expansion-panel-content>
-        </v-expansion-panel>
-
-      </v-expansion-panels>
-    </template>
-  </div>
+<div
+  class="participation-distribution-container"
+>
+  <template
+    v-if="experiment"
+  >
+    <h1
+      class="mb-5"
+    >
+      How would you like to distribute your experiment participants?
+    </h1>
+    <v-expansion-panels
+      class="v-expansion-panels--icon"
+      flat
+    >
+      <v-expansion-panel
+        :class="{'v-expansion-panel--selected': experiment.distributionType==='EVEN'}"
+        @click="panelExpansion"
+      >
+        <v-expansion-panel-header
+          hide-actions
+        >
+          <img
+            src="@/assets/even.svg"
+            alt="even distribution"
+          >
+          Even
+        </v-expansion-panel-header>
+        <v-expansion-panel-content>
+          <p>Equally distribute your students across all conditions</p>
+          <v-btn
+            @click="saveType('EVEN')"
+            color="primary"
+            elevation="0"
+          >
+            Select
+          </v-btn>
+        </v-expansion-panel-content>
+      </v-expansion-panel>
+      <v-expansion-panel
+        :class="{'v-expansion-panel--selected': experiment.distributionType==='CUSTOM'}"
+        :disabled="experiment.exposureType === 'WITHIN'"
+        @click="panelExpansion"
+      >
+        <v-expansion-panel-header
+          hide-actions
+        >
+          <img
+            src="@/assets/custom.svg"
+            alt="custom distribution"
+          >
+          Custom
+        </v-expansion-panel-header>
+        <v-expansion-panel-content>
+          <p>Customize the percentage of students who receive each condition</p>
+          <v-btn
+            @click="saveType('CUSTOM')"
+            color="primary"
+            elevation="0"
+          >
+            Select
+          </v-btn>
+        </v-expansion-panel-content>
+      </v-expansion-panel>
+      <v-expansion-panel
+        :class="{'v-expansion-panel--selected': experiment.distributionType==='MANUAL'}"
+        :disabled="experiment.exposureType === 'WITHIN'"
+        @click="panelExpansion"
+      >
+        <v-expansion-panel-header
+          hide-actions
+        >
+          <img
+            src="@/assets/manual.svg"
+            alt="Manual distribution"
+          >
+          Manual
+        </v-expansion-panel-header>
+        <v-expansion-panel-content>
+          <p>Manually select which students receive each condition</p>
+          <v-btn
+            @click="saveType('MANUAL')"
+            color="primary"
+            elevation="0"
+          >
+            Select
+          </v-btn>
+        </v-expansion-panel-content>
+      </v-expansion-panel>
+    </v-expansion-panels>
+  </template>
+</div>
 </template>
 
 <script>
-import { mapActions, mapGetters } from 'vuex';
+import { mapActions, mapGetters } from "vuex";
+import { deleteAttributesFromElement } from "@/helpers/ui-utils.js";
 
 export default {
-  name: 'ParticipationDistribution',
-  props: ['experiment'],
+  name: "ParticipationDistribution",
+  props: {
+    experiment: {
+      type: Object,
+      required: true
+    }
+  },
   computed: {
     ...mapGetters({
-      editMode: 'navigation/editMode'
+      editMode: "navigation/editMode"
     }),
     saveExitPage() {
-      return this.editMode?.callerPage?.name || 'Home';
+      return this.editMode?.callerPage?.name || "Home";
     }
   },
   methods: {
     ...mapActions({
-      reportStep: 'api/reportStep',
-      updateExperiment: 'experiment/updateExperiment',
+      reportStep: "api/reportStep",
+      updateExperiment: "experiment/updateExperiment",
     }),
     saveType(type) {
       const e = this.experiment
       e.distributionType = type
 
-      const experimentId = e.experimentId
-      const step = 'distribution_type'
+      const experimentId = e.experimentId;
+      const step = "distribution_type";
 
       this.updateExperiment(e)
         .then(async response => {
-          if (typeof response?.status !== 'undefined' && response?.status === 200) {
+          if (typeof response?.status !== "undefined" && response?.status === 200) {
             if (!this.editMode) {
               // report the current step
               await this.reportStep({experimentId, step});
             }
             // forward to correct path after selection
-            if (this.experiment.distributionType === 'EVEN') {
+            if (this.experiment.distributionType === "EVEN") {
               this.$router.push({
-                name: 'ParticipationSummary',
+                name: "ParticipationSummary",
                 params: {
                   experiment: experimentId
                 }
               });
-            } else if (this.experiment.distributionType === 'CUSTOM') {
+            } else if (this.experiment.distributionType === "CUSTOM") {
               this.$router.push({
-                name: 'ParticipationCustomDistribution',
+                name: "ParticipationCustomDistribution",
                 params: {
                   experiment: experimentId
                 }
               });
-            }  else if (this.experiment.distributionType === 'MANUAL') {
+            }  else if (this.experiment.distributionType === "MANUAL") {
               this.$router.push({
-                name: 'ParticipationManualDistribution',
+                name: "ParticipationManualDistribution",
                 params: {
                   experiment: experimentId
                 }
               });
             } else {
-              this.$swal('Select a distribution type')
+              this.$swal("Select a distribution type")
             }
           } else if (response?.message) {
             this.$swal(`Error: ${response.message}`)
           } else {
-            this.$swal('There was an error saving your experiment.')
+            this.$swal("There was an error saving your experiment.")
           }
         }
         )
         .catch(response => {
-          console.log('updateExperiment | catch', {response})
+          console.log("updateExperiment | catch", { response })
         })
     },
     saveExit() {
@@ -112,8 +174,16 @@ export default {
         params: {
           experiment: this.experiment.experimentId
         }
-      })
+      });
+    },
+    panelExpansion() {
+      setTimeout(() => {
+        deleteAttributesFromElement(".v-expansion-panel", ["aria-expanded"]);
+      }, 1000);
     }
+  },
+  mounted() {
+    deleteAttributesFromElement(".v-expansion-panel", ["aria-expanded"]);
   }
 }
 </script>

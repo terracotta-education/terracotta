@@ -13,7 +13,6 @@ import edu.iu.terracotta.connectors.generic.dao.entity.BaseUuidEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.dao.entity.Submission;
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -41,6 +40,11 @@ import tools.jackson.databind.json.JsonMapper;
 @Table(name = "terr_integrations_token")
 public class IntegrationToken extends BaseUuidEntity {
 
+    private String token;
+    private String securedInfo;
+    private Timestamp lastLaunchedAt;
+    private Timestamp redeemedAt;
+
     @ManyToOne
     @JoinColumn(
         name = "lti_user_user_id",
@@ -61,11 +65,6 @@ public class IntegrationToken extends BaseUuidEntity {
 
     @OneToMany(mappedBy = "integrationToken")
     private List<IntegrationTokenLog> logs;
-
-    @Column private String token;
-    @Column private String securedInfo;
-    @Column private Timestamp lastLaunchedAt;
-    @Column private Timestamp redeemedAt;
 
     @Transient
     public boolean isExpired(long ttl) {

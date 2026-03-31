@@ -1,10 +1,10 @@
 <template>
-  <Chart
-    :displayChartData="displayChartData"
-    :graphData="graphData"
-    :outcomeType="outcomeType"
-    :type="getType"
-  />
+<chart
+  :displayChartData="displayChartData"
+  :graphData="graphData"
+  :outcomeType="outcomeType"
+  :type="getType"
+/>
 </template>
 
 <script>
@@ -13,12 +13,18 @@ import Chart from "./components/Chart.vue";
 
 export default {
   name: "Graph",
-  props: [
-    "displayOutput",
-    "type"
-  ],
   components: {
     Chart
+  },
+  props: {
+    displayOutput: {
+      type: Boolean,
+      default: false
+    },
+    type: {
+      type: String,
+      default: "condition"
+    }
   },
   computed: {
     ...mapGetters({
@@ -31,18 +37,25 @@ export default {
       return this.outcomes?.exposures?.rows || [];
     },
     getType() {
-      return this.type || "condition"; // default to "condition" data
+      return this.type; // default to "condition" data
     },
     displayChartData() {
-      return this.displayOutput || false;
+      return this.displayOutput;
     },
     graphData() {
-      var dataset = [];
-      if (this.getType === "exposure") {
-        dataset = this.orderByTitleAsc(this.exposures);
-      } else if (this.getType === "condition") {
-        dataset = this.orderByTitleAsc(this.conditions);
+      var dataset;
+
+      switch (this.getType) {
+        case "exposure":
+          dataset = this.orderByTitleAsc(this.exposures);
+          break;
+        case "condition":
+          dataset = this.orderByTitleAsc(this.conditions);
+          break;
+        default:
+          dataset = [];
       }
+
       return dataset
         .filter((ds) => ds.title !== "Overall") // filter "Overall" column from graph data
         .map(
@@ -63,12 +76,15 @@ export default {
     orderByTitleAsc(values) {
       return values.sort(
         function(a, b) {
+
           if (a.title.toUpperCase() < b.title.toUpperCase()) {
             return -1;
           }
+
           if (a.title.toUpperCase() > b.title.toUpperCase()) {
             return 1;
           }
+
           return 0;
         }
       )

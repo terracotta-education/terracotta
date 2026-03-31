@@ -1,17 +1,17 @@
 <template>
-  <div
-    class="container-summary"
-  >
-    <SummaryData
-      :title="title"
-      :value="experienced.type"
-      :message="tooltip"
-      :icon="headerIcon"
-      :iconBgColor="`#E8E6FE`"
-      :valueFontSize="valueFontSize"
-    />
-    <p>Exposed to {{ experienced.description }} condition</p>
-  </div>
+<div
+  class="container-summary"
+>
+  <summary-data
+    :title="title"
+    :value="experienced.type"
+    :message="tooltip"
+    :icon="headerIcon"
+    :valueFontSize="valueFontSize"
+    iconBgColor="#e8e6fe"
+  />
+  <p>Exposed to {{ experienced.description }} condition</p>
+</div>
 </template>
 
 <script>
@@ -20,14 +20,17 @@ import SummaryData from "./components/SummaryData.vue";
 
 export default {
   name: "Exposures",
-  props: [
-    "exposureType"
-  ],
   components: {
     SummaryData
   },
+  props: {
+    exposureType: {
+      type: String,
+      required: false
+    }
+  },
   data: () => ({
-    tooltip: "Fun exposures summary tooltip here...",
+    tooltip: "",
     headerIcon: icon,
     title: "Experiment type",
     valueFontSize: "1em"
@@ -58,8 +61,8 @@ export default {
 
 <style scoped>
 p {
-    max-width: fit-content;
-    align-self: flex-start;
-    font-size: small;
-  }
+  max-width: fit-content;
+  align-self: flex-start;
+  font-size: small;
+}
 </style>

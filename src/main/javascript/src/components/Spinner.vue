@@ -1,56 +1,74 @@
 <template>
-  <svg
-    class="spinner"
-    :width="getWidth"
-    :height="getHeight"
-    :viewBox="getViewBox"
-    xmlns="http://www.w3.org/2000/svg"
+<svg
+  :width="getWidth"
+  :height="getHeight"
+  :viewBox="getViewBox"
+  xmlns="http://www.w3.org/2000/svg"
+  class="spinner"
+>
+  <circle
+    :cx="getCx"
+    :cy="getCy"
+    :r="getR"
+    class="path"
+    fill="none"
+    stroke-width="6"
+    stroke-linecap="round"
   >
-    <circle
-      class="path"
-      fill="none"
-      stroke-width="6"
-      stroke-linecap="round"
-      :cx="getCx"
-      :cy="getCy"
-      :r="getR"
-    >
-    </circle>
-  </svg>
+  </circle>
+</svg>
 </template>
 
 <script>
-  export default {
-    name: "Spinner",
-    props: [
-      "width",
-      "height",
-      "viewBox",
-      "cx",
-      "cy",
-      "r"
-    ],
-    computed: {
-      getWidth() {
-        return this.width || "28px";
-      },
-      getHeight() {
-        return this.height || "28px";
-      },
-      getViewBox() {
-        return this.viewBox || "0 0 66 66";
-      },
-      getCx() {
-        return this.cx || "33";
-      },
-      getCy() {
-        return this.cy || "33";
-      },
-      getR() {
-        return this.r || "30";
-      }
+export default {
+  name: "Spinner",
+  props: {
+    width: {
+      type: String,
+      required: false
+    },
+    height: {
+      type: String,
+      required: false
+    },
+    viewBox: {
+      type: String,
+      required: false
+    },
+    cx: {
+      type: String,
+      required: false
+    },
+    cy: {
+      type: String,
+      required: false
+    },
+    r: {
+      type: String,
+      required: false
+    }
+  },
+  computed: {
+    getWidth() {
+      return this.width || "28px";
+    },
+    getHeight() {
+      return this.height || "28px";
+    },
+    getViewBox() {
+      return this.viewBox || "0 0 66 66";
+    },
+    getCx() {
+      return this.cx || "33";
+    },
+    getCy() {
+      return this.cy || "33";
+    },
+    getR() {
+      return this.r || "30";
     }
   }
+}
 </script>
 
 <style lang="scss" scoped>

@@ -1,56 +1,115 @@
 <template>
-  <ul class="component-steps">
-    <li v-for="section in sectionList" :key="section.key">
-      <template v-if="section.key === currentSection">
-        <strong
-          :class="{
-            'green--text':
-              isSummary && section.key === $route.meta.currentSection,
-          }"
-          >{{ section.name }}</strong
-        >
-      </template>
-      <template v-else>
-        <span
-          :class="{
-            'green--text':
-              (isSummary && section.key === $route.meta.currentSection || completedSections[currentSection].includes(section.key)),
-          }"
-          >{{ section.name }}</span
-        >
-      </template>
-
-      <v-stepper
-        vertical
-        v-if="section.key === currentSection"
-        :class="{ finished: isSummary }"
+<ul
+  class="component-steps"
+>
+  <li
+    v-for="section in sectionList"
+    :key="section.key"
+  >
+    <template
+      v-if="section.key === currentSection"
+    >
+      <strong
+        :class="{
+          'green--text':
+            isSummary && section.key === $route.meta.currentSection,
+        }"
       >
-        <v-stepper-step
-          v-for="step in section.steps"
-          :key="step.key"
-          :complete="
-            isSummary
-              ? isSummary
-              : section.steps.findIndex((el) => {
-                  return el.key === step.key;
-                }) <= currentStepNum
-          "
-          step=""
-        >
-          {{ step.name }}
-        </v-stepper-step>
-      </v-stepper>
-    </li>
-  </ul>
+        {{ section.name }}
+      </strong>
+    </template>
+    <template
+      v-else
+    >
+      <span
+        :class="{
+          'green--text':
+            (isSummary && section.key === $route.meta.currentSection || completedSections[currentSection].includes(section.key)),
+        }"
+      >
+        {{ section.name }}
+      </span>
+    </template>
+    <v-stepper
+      v-if="section.key === currentSection"
+      :class="{ finished: isSummary }"
+      vertical
+    >
+      <v-stepper-step
+        v-for="step in section.steps"
+        :key="step.key"
+        :complete="
+          isSummary
+            ? isSummary
+            : section.steps.findIndex((el) => {
+                return el.key === step.key;
+              }) <= currentStepNum
+        "
+        step=""
+      >
+        {{ step.name }}
+      </v-stepper-step>
+    </v-stepper>
+  </li>
+</ul>
 </template>
 
 <script>
-
 export default {
   name: "Steps",
-  props: ["currentSection", "currentStep", "participationType"],
-
+  props: {
+    currentSection: {
+      type: String,
+      required: true
+    },
+    currentStep: {
+      type: String,
+      required: true
+    },
+    participationType: {
+      type: String,
+      required: true
+    }
+  },
+  data: () => ({
+    completedSections: {
+      "design": [],
+      "participation": ["design"],
+      "assignments": []
+    }
+  }),
   computed: {
+    sectionList() {
+      return [
+        {
+          key: "design",
+          name: "Section 1: Design",
+          steps: [
+            {
+              key: "design_title",
+              name: "Title",
+            },
+            {
+              key: "design_description",
+              name: "Description",
+            },
+            {
+              key: "design_conditions",
+              name: "Conditions",
+            },
+            {
+              key: "design_type",
+              name: "Experiment Type",
+            },
+          ],
+        },
+        {
+          key: "participation",
+          name: "Section 2: Participation",
+          steps: this.generateSteps(),
+        }
+      ]
+    },
     isSummary() {
       return (
         this.$route.name === "ExperimentDesignSummary" ||
@@ -67,7 +126,6 @@ export default {
         });
     },
   },
-
   methods: {
     generateSteps() {
       const selectionType = this.$route.meta.selectionType
@@ -106,48 +164,9 @@ export default {
         })
       }
 
-      return steps
-    },
-  },
-
-  data() {
-    return {
-      sectionList: [
-        {
-          key: "design",
-          name: "Section 1: Design",
-          steps: [
-            {
-              key: "design_title",
-              name: "Title",
-            },
-            {
-              key: "design_description",
-              name: "Description",
-            },
-            {
-              key: "design_conditions",
-              name: "Conditions",
-            },
-            {
-              key: "design_type",
-              name: "Experiment Type",
-            },
-          ],
-        },
-        {
-          key: "participation",
-          name: "Section 2: Participation",
-          steps: this.generateSteps(),
-        },
-      ],
-      completedSections: {
-        'design': [],
-        'participation': ['design'],
-        'assignments': []
-      }
-    };
-  },
+      return steps;
+    }
+  }
 };
 </script>
 
@@ -218,7 +237,7 @@ ul.component-steps {
             position: absolute;
             height: 108%;
             width: 14px;
-            background: map-get($blue, "base");
+            background: map-get($blue, "primary");
             left: 0;
             bottom: 30px;
             z-index: -1;

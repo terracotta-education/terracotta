@@ -18,6 +18,8 @@
         :type="importRequestAlert.type"
         elevation="0"
         dismissible
+        outlined
+        text
       >
         {{ importRequestAlert.text }}
         <ul
@@ -44,6 +46,11 @@
       col="8"
       class="mt-15"
     >
+      <div
+        class="link-help d-flex justify-end"
+      >
+        <help />
+      </div>
       <v-img
         src="@/assets/terracotta_logo_vertical.svg"
         alt="Terracotta Logo"
@@ -106,7 +113,12 @@
 </template>
 
 <script>
+import Help from "@/components/Help.vue";
+
 export default {
+  components: {
+    Help
+  },
   props: {
     experimentExportEnabled: {
       type: Boolean,
@@ -164,7 +176,7 @@ export default {
     > .v-alert {
       margin: 0 auto;
       & a {
-        color: white;
+        color: inherit !important;
       }
     }
   }
@@ -185,6 +197,10 @@ export default {
     &.user-help-link {
       color: rgba(0, 0, 0, .87) !important;
     }
+  }
+  & .link-help {
+    max-width: 80%;
+    margin: 0 auto;
   }
 }
 </style>

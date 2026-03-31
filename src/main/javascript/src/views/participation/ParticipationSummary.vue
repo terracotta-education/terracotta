@@ -1,94 +1,119 @@
 <template>
-  <div>
-    <h1 class="my-3">
-      <span class="green--text font-weight-bold">
-        You've completed section 2.
-      </span>
-      <br />
-      Here's a summary of your experiment participation.
-    </h1>
-    <template v-if="experiment">
-      <v-expansion-panels
-        v-if="this.experiment.participationType"
-        flat
-      >
-        <v-expansion-panel class="py-3 mb-3">
-          <v-expansion-panel-header>
-            <strong>Selection Method</strong>
-          </v-expansion-panel-header>
-          <v-expansion-panel-content>
-            <p>{{ participationType }}</p>
-          </v-expansion-panel-content>
-        </v-expansion-panel>
-      </v-expansion-panels>
-
-      <v-expansion-panels
-        v-if="this.experiment.participationType === 'CONSENT'"
-        flat
-      >
-        <v-expansion-panel class="py-3 mb-3">
-          <v-expansion-panel-header>
-            <strong>Component Title</strong>
-          </v-expansion-panel-header>
-          <v-expansion-panel-content>
-            <p>{{ this.experiment.consent.title }}</p>
-          </v-expansion-panel-content>
-        </v-expansion-panel>
-      </v-expansion-panels>
-
-      <v-expansion-panels
-        v-if="this.experiment.participationType === 'CONSENT'"
-        flat
-      >
-        <v-expansion-panel class="py-3 mb-3">
-          <v-expansion-panel-header>
-            <strong>Informed Consent</strong>
-          </v-expansion-panel-header>
-          <v-expansion-panel-content>
-            <button
-              v-if="!downloading && !showFile"
-              class='pdfButton'
-              @click="doDisplayFile"
-            >
-              View consent file
-            </button>
-            <button
-              v-if="!downloading && showFile"
-              class='pdfButton'
-              @click="doHideFile"
-            >
-              Close preview
-            </button>
-            <Spinner v-if="downloading"></Spinner>
-            <div v-if="showFile">
-              <vue-pdf-embed
-                :source="pdfFile"
-              />
-            </div>
-          </v-expansion-panel-content>
-        </v-expansion-panel>
-      </v-expansion-panels>
-    </template>
-    <v-btn
-      v-if="!this.editMode"
-      elevation="0"
-      color="primary"
-      class="mt-3"
-      @click="nextSection"
+<div>
+  <h1
+    class="my-3"
+  >
+    <span
+      class="green--text font-weight-bold"
     >
-      Continue to components
-    </v-btn>
-  </div>
+      You've completed section 2.
+    </span>
+    <br />
+    Here's a summary of your experiment participation.
+  </h1>
+  <template
+    v-if="experiment"
+  >
+    <v-expansion-panels
+      v-if="this.experiment.participationType"
+      flat
+    >
+      <v-expansion-panel
+        @click="panelExpansion"
+        class="py-3 mb-3"
+      >
+        <v-expansion-panel-header>
+          <strong>Selection Method</strong>
+        </v-expansion-panel-header>
+        <v-expansion-panel-content>
+          <p>{{ participationType }}</p>
+        </v-expansion-panel-content>
+      </v-expansion-panel>
+    </v-expansion-panels>
+
+    <v-expansion-panels
+      v-if="this.experiment.participationType === 'CONSENT'"
+      flat
+    >
+      <v-expansion-panel
+        @click="panelExpansion"
+        class="py-3 mb-3"
+      >
+        <v-expansion-panel-header>
+          <strong>Component Title</strong>
+        </v-expansion-panel-header>
+        <v-expansion-panel-content>
+          <p>{{ this.experiment.consent.title }}</p>
+        </v-expansion-panel-content>
+      </v-expansion-panel>
+    </v-expansion-panels>
+
+    <v-expansion-panels
+      v-if="this.experiment.participationType === 'CONSENT'"
+      flat
+    >
+      <v-expansion-panel
+        @click="panelExpansion"
+        class="py-3 mb-3"
+      >
+        <v-expansion-panel-header>
+          <strong>Informed Consent</strong>
+        </v-expansion-panel-header>
+        <v-expansion-panel-content>
+          <button
+            v-if="!downloading && !showFile"
+            @click="doDisplayFile"
+            class="pdfButton"
+          >
+            View consent file
+          </button>
+          <button
+            v-if="!downloading && showFile"
+            @click="doHideFile"
+            class="pdfButton"
+          >
+            Close preview
+          </button>
+          <Spinner
+            v-if="downloading"
+          />
+          <div
+            v-if="showFile"
+          >
+            <vue-pdf-embed
+              :source="pdfFile"
+            />
+          </div>
+        </v-expansion-panel-content>
+      </v-expansion-panel>
+    </v-expansion-panels>
+  </template>
+  <v-btn
+    v-if="!this.editMode"
+    @click="nextSection"
+    elevation="0"
+    color="primary"
+    class="mt-3"
+  >
+    Continue to components
+  </v-btn>
+</div>
 </template>
 
 <script>
 import { mapGetters, mapActions } from "vuex";
+import { deleteAttributesFromElement } from "@/helpers/ui-utils.js";
 import Spinner from "@/components/Spinner";
-import VuePdfEmbed from 'vue-pdf-embed/dist/vue2-pdf-embed';
+import VuePdfEmbed from "vue-pdf-embed/dist/vue2-pdf-embed";
 
 export default {
   name: "ParticipationSummary",
-  props: ["experiment"],
+  props: {
+    experiment: {
+      type: Object,
+      required: true
+    }
+  },
   components: {
     Spinner,
     VuePdfEmbed
@@ -105,28 +130,28 @@ export default {
   },
   computed: {
     ...mapGetters({
-      consent: 'consent/consent',
-      editMode: 'navigation/editMode'
+      consent: "consent/consent",
+      editMode: "navigation/editMode"
     }),
     saveExitPage() {
-        return this.editMode?.callerPage?.name || 'ExperimentSummary';
+        return this.editMode?.callerPage?.name || "ExperimentSummary";
     },
     participationType() {
-      let type = ''
+      let type = "";
 
       switch (this.experiment.participationType) {
-        case 'CONSENT':
-          type = 'Invited students to consent'
-          break
-        case 'MANUAL':
-          type = 'Manually determined students'
-          break
-        case 'AUTO':
-          type = 'Automatically included all students'
-          break
+        case "CONSENT":
+          type = "Invited students to consent";
+          break;
+        case "MANUAL":
+          type = "Manually determined students";
+          break;
+        case "AUTO":
+          type = "Automatically included all students";
+          break;
       }
 
-      return type
+      return type;
     }
   },
   methods: {
@@ -152,7 +177,7 @@ export default {
             return;
           }
 
-          this.pdfFile = "data:application/pdf;base64," + encodeURI(file);
+          this.pdfFile = `data:application/pdf;base64,${encodeURI(file)}`;
         });
     },
     nextSection() {
@@ -161,23 +186,31 @@ export default {
         params: {
           experiment: this.experiment.experimentId
         }
-      })
+      });
     },
     saveExit() {
       this.nextSection();
     },
+    panelExpansion() {
+      setTimeout(() => {
+        deleteAttributesFromElement(".v-expansion-panel", ["aria-expanded"]);
+      }, 1000);
+    }
+  },
+  mounted() {
+    deleteAttributesFromElement(".v-expansion-panel", ["aria-expanded"]);
   },
   beforeRouteEnter(to, from, next) {
     // Updating selection type for custom steps
-    to.meta.selectionType = from.meta.selectionType
-    next()
+    to.meta.selectionType = from.meta.selectionType;
+    next();
   },
 };
 </script>
 
 <style lang="scss">
 .v-expansion-panel {
-  border: 1px solid map-get($grey, 'lighten-2');
+  border: 1px solid map-get($grey, "lighten-2");
   button.pdfButton {
     background: none!important;
     border: none;

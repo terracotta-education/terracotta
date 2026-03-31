@@ -6,7 +6,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -34,15 +33,11 @@ public class Condition extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(
-        name = "condition_id",
-        nullable = false
-    )
     private Long conditionId;
 
-    @Column private String name;
-    @Column private Boolean defaultCondition;
-    @Column private Float distributionPct;
+    private String name;
+    private Boolean defaultCondition;
+    private Float distributionPct;
 
     @ManyToOne(optional = false)
     @OnDelete(action = OnDeleteAction.CASCADE)

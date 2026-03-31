@@ -7,7 +7,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import edu.iu.terracotta.connectors.generic.dao.entity.BaseUuidEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
 import edu.iu.terracotta.dao.model.enums.AssignmentFileArchiveStatus;
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -33,13 +32,12 @@ public class AssignmentFileArchive extends BaseUuidEntity {
     public static final String COMPRESSED_FILE_EXTENSION = ".zip";
     public static final String MIME_TYPE = "application/zip";
 
-    @Column private String fileName;
-    @Column private String fileUri;
-    @Column private  String mimeType;
-    @Column private String encryptionPhrase;
-    @Column private String encryptionMethod;
+    private String fileName;
+    private String fileUri;
+    private String mimeType;
+    private String encryptionPhrase;
+    private String encryptionMethod;
 
-    @Column
     @Enumerated(EnumType.STRING)
     private AssignmentFileArchiveStatus status;
 

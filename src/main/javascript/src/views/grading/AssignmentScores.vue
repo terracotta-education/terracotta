@@ -1,145 +1,147 @@
 <template>
+<div
+  v-if="experiment && assignment"
+>
   <div
-    v-if="experiment && assignment"
+    v-if="showFileRequestAlert"
+    class="pb-2"
   >
-    <div
-      v-if="showFileRequestAlert"
-      class="pb-2"
+    <v-alert
+      v-model="showFileRequestAlert"
+      :type="fileRequestAlert.type"
+      @input="handleFileRequestAlertDismiss"
+      class="alert-file-request"
+      elevation="0"
+      dismissible
+      outlined
+      text
     >
-      <v-alert
-        v-model="showFileRequestAlert"
-        @input="handleFileRequestAlertDismiss"
-        :type="fileRequestAlert.type"
-        class="alert-file-request"
-        elevation="0"
-        dismissible
+      {{ fileRequestAlert.text }}
+      <a
+        v-if="fileRequestAlert.showDownloadLink"
+        @click="handleAlertFileRequest()"
       >
-        {{ fileRequestAlert.text }}
-        <a
-          v-if="fileRequestAlert.showDownloadLink"
-          @click="handleAlertFileRequest()"
-        >
-          <b><i>Click here to download</i></b>.
-        </a>
-      </v-alert>
-    </div>
-    <template>
+        <b><i>Click here to download</i></b>.
+      </a>
+    </v-alert>
+  </div>
+  <template>
+    <div
+      class="header-row w-100 mb-2"
+    >
+      <h1
+        class="header pb-2"
+      >
+        {{ assignment.title }}
+      </h1>
       <div
-        class="header-row w-100 mb-2"
+        class="btn-row"
       >
-        <h1
-          class="header pb-2"
-        >
-          {{ assignment.title }}
-        </h1>
         <div
-          class="btn-row"
+          class="download-files"
         >
-          <div
-            class="download-files"
+          <v-btn
+            v-if="hasFileSubmissionQuestions"
+            :disabled="!hasFileSubmissions"
+            @click="handleFileRequest()"
+            color="primary"
+            class="btn-download-file"
+            outlined
           >
-            <v-btn
-              v-if="hasFileSubmissionQuestions"
-              :disabled="!hasFileSubmissions"
-              @click="handleFileRequest()"
-              color="primary"
-              class="btn-download-file"
-              outlined
+            Retrieve File Submissions
+          </v-btn>
+          <div
+            v-if="fileArchive.showStatus"
+            class="file-archive-status"
+          >
+            <v-icon
+              :color="fileArchive.color"
             >
-              Retrieve File Submissions
-            </v-btn>
-            <div
-              v-if="fileArchive.showStatus"
-              class="file-archive-status"
-            >
-              <v-icon
-                :color="fileArchive.color"
-              >
-                {{ fileArchive.icon }}
-              </v-icon>
-              {{ fileArchive.status }}
-            </div>
+              {{ fileArchive.icon }}
+            </v-icon>
+            {{ fileArchive.status }}
           </div>
         </div>
       </div>
-      <div
-        v-for="(selectedTreatment, index) in selectedAssignmentTreatments"
-        :key="selectedTreatment.treatmentId"
-        class="mt-6"
+    </div>
+    <div
+      v-for="(selectedTreatment, index) in selectedAssignmentTreatments"
+      :key="selectedTreatment.treatmentId"
+      class="mt-6"
+    >
+      <h3>
+        {{ selectedTreatment.assessmentDto.title }}
+      </h3>
+      <form
+        @submit.prevent="saveExit"
       >
-        <h3>
-          {{ selectedTreatment.assessmentDto.title }}
-        </h3>
-        <form
-          @submit.prevent="saveExit"
+        <v-simple-table
+          class="mb-9 v-data-table--light-header"
         >
-          <v-simple-table
-            class="mb-9 v-data-table--light-header"
+          <template
+            v-slot:default
           >
-            <template
-              v-slot:default
-            >
-              <thead>
-                <tr>
-                  <th
-                    class="text-left"
-                  >
-                    Student Name
-                  </th>
-                  <th
-                    class="text-left"
-                    style="width:250px;"
-                  >
-                    Score (out of {{ selectedTreatment.assessmentDto.maxPoints }})
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                <template
-                  v-for="(participant, pidx) in getParticipantWithSubmission(participants, selectedTreatment)"
+            <thead>
+              <tr>
+                <th
+                  class="text-left"
                 >
-                  <template
-                    v-if="participant.submission"
+                  Student Name
+                </th>
+                <th
+                  class="text-left"
+                  style="width:250px;"
+                >
+                  Score (out of {{ selectedTreatment.assessmentDto.maxPoints }})
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <template
+                v-for="(participant, pidx) in getParticipantWithSubmission(participants, selectedTreatment)"
+              >
+                <template
+                  v-if="participant.submission"
+                >
+                  <tr
+                    :key="pidx"
                   >
-                    <tr
-                      :key="pidx"
-                    >
-                      <td>
-                        <router-link
-                          :to="{
-                            name: 'StudentSubmissionGrading',
-                            params: {
-                              experimentId: experimentId,
-                              exposureId: exposureId,
-                              assignmentId: assignmentId,
-                              assessmentId: participant.submission.assessmentId,
-                              conditionId: participant.submission.conditionId,
-                              treatmentId: participant.submission.treatmentId,
-                              participantId: participant.participantId,
-                            },
-                          }"
-                        >
-                          {{ participant.user.displayName }}
-                        </router-link>
-                      </td>
-                      <td>
-                        <span>{{ participant.scoreToDisplay }}</span>
-                      </td>
-                    </tr>
-                  </template>
+                    <td>
+                      <router-link
+                        :to="{
+                          name: 'StudentSubmissionGrading',
+                          params: {
+                            experimentId: experimentId,
+                            exposureId: exposureId,
+                            assignmentId: assignmentId,
+                            assessmentId: participant.submission.assessmentId,
+                            conditionId: participant.submission.conditionId,
+                            treatmentId: participant.submission.treatmentId,
+                            participantId: participant.participantId,
+                          },
+                        }"
+                      >
+                        {{ participant.user.displayName }}
+                      </router-link>
+                    </td>
+                    <td>
+                      <span>{{ participant.scoreToDisplay }}</span>
+                    </td>
+                  </tr>
                 </template>
-              </tbody>
-            </template>
-          </v-simple-table>
-        </form>
-        <template
-          v-if="index !== selectedAssignmentTreatments.length - 1"
-        >
-          <hr />
-        </template>
-      </div>
-    </template>
-  </div>
+              </template>
+            </tbody>
+          </template>
+        </v-simple-table>
+      </form>
+      <template
+        v-if="index !== selectedAssignmentTreatments.length - 1"
+      >
+        <hr />
+      </template>
+    </div>
+  </template>
+</div>
 </template>
 
 <script>

@@ -5,7 +5,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import edu.iu.terracotta.dao.entity.messaging.BaseMessageEntity;
 import edu.iu.terracotta.dao.model.enums.messaging.rule.MessageRuleComparison;
 import edu.iu.terracotta.dao.model.enums.messaging.rule.MessageRuleOperator;
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -28,6 +27,9 @@ import lombok.Setter;
 @Table(name = "terr_messaging_conditional_text_rule")
 public class MessageConditionalTextRule extends BaseMessageEntity {
 
+    private String lmsAssignmentId;
+    private String value;
+
     @ManyToOne
     @JoinColumn(
         name = "rule_set_id",
@@ -35,15 +37,10 @@ public class MessageConditionalTextRule extends BaseMessageEntity {
     )
     private MessageConditionalTextRuleSet ruleSet;
 
-    @Column
     @Enumerated(EnumType.STRING)
     private MessageRuleOperator operator;
 
-    @Column
     @Enumerated(EnumType.STRING)
     private MessageRuleComparison comparison;
-
-    @Column private String lmsAssignmentId;
-    @Column private String value;
 
 }

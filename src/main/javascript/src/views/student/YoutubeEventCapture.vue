@@ -1,14 +1,13 @@
 <template>
-  <div>
-    <slot />
-  </div>
+<div>
+  <slot />
+</div>
 </template>
 
 <script>
 import { mapActions } from "vuex";
 
 export default {
-  // TODO: is there any way to get these, except questionId, from the store?
   props: [
     "experimentId",
     "conditionId",

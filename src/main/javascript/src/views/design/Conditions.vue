@@ -1,106 +1,108 @@
 <template>
-  <div>
-    <h1>Name your conditions</h1>
-    <p>These will be used to label the different experimental versions of your assignments.</p>
-    <v-form
-      @submit.prevent="saveConditions(nextPage, true)"
-      class="my-5 mb-15"
-      ref="conditionsForm"
+<div>
+  <h1>Name your conditions</h1>
+  <p>These will be used to label the different experimental versions of your assignments.</p>
+  <v-form
+    @submit.prevent="saveConditions(nextPage, true)"
+    class="my-5 mb-15"
+    ref="conditionsForm"
+  >
+    <v-container
+      class="pa-0"
     >
-      <v-container
-        class="pa-0"
+      <v-row
+          v-for="(condition, i) in conditions"
+          :key="condition.conditionId"
       >
-        <v-row
-            v-for="(condition, i) in conditions"
-            :key="condition.conditionId"
-        >
-          <template>
-            <v-col
-              class="py-0"
-            >
-              <v-text-field
-                  v-model="condition.name"
-                  :name="'condition-' + condition.conditionId"
-                  :rules="[duplicateRule(condition), requiredRule(condition), maxLengthRule(condition)]"
-                  label="Condition name"
-                  placeholder="e.g. Condition Name"
-                  outlined
-                  required
-              >
-              </v-text-field>
-            </v-col>
-            <v-col
-              v-if="deleteAllowed && i > 0"
-              class="py-0"
-              cols="4"
-              sm="2"
-            >
-              <v-btn
-                @click="handleDeleteCondition(condition)"
-                class="delete_condition"
-                icon
+        <template>
+          <v-col
+            class="py-0"
+          >
+            <v-text-field
+                v-model="condition.name"
+                :name="'condition-' + condition.conditionId"
+                :rules="[duplicateRule(condition), requiredRule(condition), maxLengthRule(condition)]"
+                label="Condition name"
+                placeholder="e.g. Condition Name"
                 outlined
-                tile
-              >
-                <v-icon>mdi-delete</v-icon>
-              </v-btn>
-            </v-col>
-          </template>
-        </v-row>
-      </v-container>
-      <div
-        v-if="addAllowed"
-      >
-        <v-btn
-          v-if="experiment.conditions.length < 16"
-          @click="createNewCondition()"
-          color="blue"
-          class="add_condition px-0 mb-10"
-          text
-        >
-          Add another condition
-        </v-btn>
-        <v-alert
-          v-else
-          type="error"
-        >
-          You have reached the maximum number of conditions (16) allowed by the experiment builder.
-        </v-alert>
-      </div>
-
+                required
+            >
+            </v-text-field>
+          </v-col>
+          <v-col
+            v-if="deleteAllowed && i > 0"
+            class="py-0"
+            cols="4"
+            sm="2"
+          >
+            <v-btn
+              :aria-label="`Delete condition ${condition.name || i + 1}`"
+              @click="handleDeleteCondition(condition)"
+              class="delete_condition"
+              icon
+              outlined
+              tile
+            >
+              <v-icon>mdi-delete</v-icon>
+            </v-btn>
+          </v-col>
+        </template>
+      </v-row>
+    </v-container>
+    <div
+      v-if="addAllowed"
+    >
       <v-btn
-        :disabled="hasFieldErrors"
-        elevation="0"
-        color="primary"
-        class="mr-4"
-        type="submit"
+        v-if="experiment.conditions.length < 16"
+        @click="createNewCondition()"
+        color="blue"
+        class="add_condition px-0 mb-10"
+        text
       >
-        Next
+        Add another condition
       </v-btn>
-    </v-form>
-    <v-card
-      v-if="singleConditionExperiment && deleteAllowed"
-      class="mt-15 pt-5 px-5 mx-auto blue lighten-5 rounded-lg"
-      outlined
+      <v-alert
+        v-else
+        type="error"
+        outlined
+        text
+      >
+        You have reached the maximum number of conditions (16) allowed by the experiment builder.
+      </v-alert>
+    </div>
+    <v-btn
+      :disabled="hasFieldErrors"
+      elevation="0"
+      color="primary"
+      class="mr-4"
+      type="submit"
     >
-      <p>
-        Once you click NEXT to leave this screen, you will be able to add, but not delete conditions,
-        so please double-check that you have included what you need. To change your decisions beyond this point,
-        you will need to create a new experiment.
-      </p>
-    </v-card>
-    <v-card
-      v-if="!deleteAllowed"
-      class="mt-15 pt-5 px-5 mx-auto blue lighten-5 rounded-lg"
-      outlined
-    >
-      <p>
-        Please note that you are not able to {{ !addAllowed ? "add or" : "" }} delete conditions,
-        as you have previously completed {{ !addAllowed ? "your experiment design and participation settings" : "this section"}}.
-        To {{ !addAllowed ? "add or" : "" }} delete conditions, please create a new experiment.
-      </p>
-    </v-card>
-  </div>
+      Next
+    </v-btn>
+  </v-form>
+  <v-card
+    v-if="singleConditionExperiment && deleteAllowed"
+    class="mt-15 pt-5 px-5 mx-auto blue lighten-5 rounded-lg"
+    outlined
+  >
+    <p>
+      Once you click NEXT to leave this screen, you will be able to add, but not delete conditions,
+      so please double-check that you have included what you need. To change your decisions beyond this point,
+      you will need to create a new experiment.
+    </p>
+  </v-card>
+  <v-card
+    v-if="!deleteAllowed"
+    class="mt-15 pt-5 px-5 mx-auto blue lighten-5 rounded-lg"
+    outlined
+  >
+    <p>
+      Please note that you are not able to {{ !addAllowed ? "add or" : "" }} delete conditions,
+      as you have previously completed {{ !addAllowed ? "your experiment design and participation settings" : "this section"}}.
+      To {{ !addAllowed ? "add or" : "" }} delete conditions, please create a new experiment.
+    </p>
+  </v-card>
+</div>
 </template>
 
 <script>
@@ -112,7 +114,10 @@ import Vue from "vue";
 export default {
   name: "DesignConditions",
   props: {
-    experiment: {}
+    experiment: {
+      type: Object,
+      required: true
+    }
   },
   data() {
     return {
@@ -221,10 +226,11 @@ export default {
       if (!this.deleteAllowed) {
         const reallyAdd = await this.$swal({
           icon: "question",
-          text: `Do you really want to add a new condition? You will not be able to delete it.`,
+          text: "Do you really want to add a new condition? You will not be able to delete it.",
           showCancelButton: true,
           confirmButtonText: "Yes, add it",
           cancelButtonText: "No, cancel",
+          cancelButtonColor: "#515961"
         });
         doAdd = reallyAdd.isConfirmed;
       }
@@ -295,11 +301,8 @@ export default {
               this.$swal("There was an error saving your experiment.");
             }
           }
-        ).catch(
-          response => {
-            console.error("updateExperiment | catch", {response});
-            this.$swal("There was an error saving the experiment.");
-          }
+        ).catch(() =>
+          this.$swal("There was an error saving the experiment.")
         )
     },
     async handleDeleteCondition(condition) {
@@ -334,6 +337,7 @@ export default {
         showCancelButton: true,
         confirmButtonText: "Yes, delete it",
         cancelButtonText: "No, cancel",
+        cancelButtonColor: "#515961",
         willOpen: () => {
           var ConditionDeleteAlertClass = Vue.extend(ConditionDeleteAlert);
           var conditionDeleteAlert = new ConditionDeleteAlertClass({
@@ -429,6 +433,8 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+@import "~@/styles/variables";
+
 .add_condition {
   text-transform: unset !important;
 }
@@ -436,5 +442,10 @@ export default {
   border-radius: 4px;
   width: 100%;
   height: 56px;
+}
+.swal2-styled {
+  &.swal2-cancel {
+    background-color: map-get($swal, "cancel");
+  }
 }
 </style>

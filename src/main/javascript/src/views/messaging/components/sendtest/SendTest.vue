@@ -3,7 +3,9 @@
   class="my-6"
   flat
 >
-  <v-expansion-panel>
+  <v-expansion-panel
+    @click="panelExpansion"
+  >
     <v-expansion-panel-header
       class="send-test-header"
     >
@@ -120,6 +122,7 @@
 <script>
 import { mapActions, mapGetters } from "vuex";
 import { validations } from "@/helpers/messaging/validation.js";
+import { deleteAttributesFromElement } from "@/helpers/ui-utils.js";
 
 export default {
   name: "SendTest",
@@ -228,17 +231,25 @@ export default {
     cancelEdit() {
       this.isEditing = false;
       this.to = this.toPreEdit;
+    },
+    panelExpansion() {
+      setTimeout(() => {
+        deleteAttributesFromElement(".v-expansion-panel", ["aria-expanded"]);
+      }, 1000);
     }
   },
   mounted() {
     this.validationErrors = validations.message;
+    deleteAttributesFromElement(".v-expansion-panel", ["aria-expanded"]);
   }
 };
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+@import "@/styles/variables.scss";
+
 .v-expansion-panels {
-  border: 1px solid #9e9e9e;
+  border: 1px solid map-get($grey, "darker");
   border-radius: 4px;
   & .v-expansion-panel-content__wrap {
     padding: 10px 20px;
@@ -258,7 +269,7 @@ export default {
 .send-status {
   min-width: 100%;
   margin-top: 8px;
-  color: #9e9e9e;
+  color: map-get($grey, "darker");
   font-size: 0.9em;
 }
 </style>

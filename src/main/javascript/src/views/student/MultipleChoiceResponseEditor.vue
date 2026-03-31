@@ -1,72 +1,74 @@
 <template>
-  <div>
-    <template>
-      <response-row
-        v-for="answer in answers"
-        :key="answer.answerId"
-        :correct="getColor(answer)"
+<div>
+  <template>
+    <response-row
+      v-for="answer in answers"
+      :key="answer.answerId"
+      :correct="getColor(answer)"
+    >
+      <div
+        class="d-flex justify-space-between align-center w-100"
       >
         <div
-          class="d-flex justify-space-between align-center w-100"
+          class="question-input"
         >
-          <div
-            class="question-input"
+          <template
+            v-if="!readonly"
           >
-            <template
-              v-if="!readonly"
+            <v-radio-group
+              v-model="response"
+              @change="emitValueChanged"
             >
-              <v-radio-group
-                v-model="response"
-                @change="emitValueChanged"
+              <v-radio
+                :value="answer.answerId"
+                :aria-label="`select option ${answer.html}`"
+                class="radioButton"
               >
-                <v-radio
-                  class="radioButton"
-                  :value="answer.answerId"
-                >
-                </v-radio>
-              </v-radio-group>
-            </template>
-            <template
-              v-if="readonly"
-            >
-              <v-radio-group
-                v-model="answer.studentResponse"
-                :disabled="readonly"
-              >
-                <v-radio
-                  class="radioButton"
-                  :value="answer.answerId"
-                >
-                </v-radio>
-              </v-radio-group>
-            </template>
-            <span
-              v-html="answer.html"
-            >
-            </span>
-          </div>
+              </v-radio>
+            </v-radio-group>
+          </template>
           <template
             v-if="readonly"
           >
-            <span
-              v-if="answer.studentResponse"
-              :class="getColor(answer) ? 'green--text' : 'red--text'"
-              class="decorator"
+            <v-radio-group
+              v-model="answer.studentResponse"
+              :disabled="readonly"
             >
-              Student Response
-            </span>
-            <span
-              v-if="showAnswers && answer.correct && !answer.studentResponse"
-              :class="getColor(answer) ? 'green--text' : 'red--text'"
-              class="decorator"
-            >
-              Correct Response
-            </span>
+              <v-radio
+                :value="answer.answerId"
+                :aria-label="`option ${answer.html}`"
+                class="radioButton"
+              >
+              </v-radio>
+            </v-radio-group>
           </template>
+          <span
+            v-html="answer.html"
+          >
+          </span>
         </div>
-      </response-row>
-    </template>
-  </div>
+        <template
+          v-if="readonly"
+        >
+          <span
+            v-if="answer.studentResponse"
+            :class="getColor(answer) ? 'green--text' : 'red--text'"
+            class="decorator"
+          >
+            Student Response
+          </span>
+          <span
+            v-if="showAnswers && answer.correct && !answer.studentResponse"
+            :class="getColor(answer) ? 'green--text' : 'red--text'"
+            class="decorator"
+          >
+            Correct Response
+          </span>
+        </template>
+      </div>
+    </response-row>
+  </template>
+</div>
 </template>
 
 <script>

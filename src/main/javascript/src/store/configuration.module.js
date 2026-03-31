@@ -17,12 +17,21 @@ const actions = {
       .catch(response => {
         console.log("get | catch", {response})
       })
+  },
+  update: ({commit}, data) => {
+    commit("addConfiguration", data);
   }
 }
 
 const mutations = {
   setConfigurations(state, data) {
     state.configurations = data;
+  },
+  addConfiguration(state, data) {
+    state.configurations = {
+      ...state.configurations,
+      [data.name]: data.value
+    }
   }
 };
 

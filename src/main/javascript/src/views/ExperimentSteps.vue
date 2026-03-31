@@ -1,30 +1,34 @@
 <template>
-  <div>
-    <template
-      v-if="experiment"
+<div>
+  <template
+    v-if="experiment"
+  >
+    <div
+      class="experiment-steps"
     >
-      <div
-        class="experiment-steps"
+      <aside
+        v-if="!this.noSidebar.includes(this.$router.currentRoute.name)"
+        class="experiment-steps__sidebar"
       >
-        <aside
-          v-if="!this.noSidebar.includes(this.$router.currentRoute.name)"
-          class="experiment-steps__sidebar"
+        <steps
+          :current-section="currentSection"
+          :current-step="currentStep"
+          :participationType="experiment.participationType"
+        />
+      </aside>
+      <nav>
+        <router-link
+          v-if="this.editModePage"
+          :to="getBackTo"
+          :disabled="isSaving"
         >
-          <steps
-            :current-section="currentSection"
-            :current-step="currentStep"
-            :participationType="experiment.participationType"
-          />
-        </aside>
-        <nav>
-          <router-link
-            v-if="this.editModePage"
-            :to="getBackTo"
-            :disabled="isSaving"
-          >
-            <v-icon>mdi-chevron-left</v-icon> Back
-          </router-link>
-          <v-btn
+          <v-icon>mdi-chevron-left</v-icon> Back
+        </router-link>
+        <div
+          class="nav-right"
+          :class="{'ml-auto': !this.editModePage}"
+        >
+            <v-btn
             v-show="this.$router.currentRoute.name !== 'ExperimentDesignIntro' && !isSaving"
             :disabled="isSaving"
             @click="handleSaveClick()"
@@ -48,67 +52,73 @@
               SAVE & EXIT
             </span>
           </v-btn>
-        </nav>
-        <article
-          class="experiment-steps__body"
-        >
-          <v-container>
-            <v-row
-              justify="center"
-            >
-              <v-col
-                md="6"
-                class="steps-container-col"
-              >
-                <router-view
-                  :key="$route.fullPath"
-                  :experiment="experiment"
-                  ref="childComponent"
-                >
-                </router-view>
-              </v-col>
-            </v-row>
-          </v-container>
-        </article>
-      </div>
-    </template>
-    <template
-      v-else
-    >
-      <v-row
-        justify="center"
+          <help />
+        </div>
+      </nav>
+      <article
+        class="experiment-steps__body"
       >
-        <v-col
-          md="6"
-        >
-          <v-alert
-            prominent
-            type="error"
+        <v-container>
+          <v-row
+            justify="center"
           >
-            <v-row
-              align="center"
+            <v-col
+              md="6"
+              class="steps-container-col"
             >
-              <v-col
-                class="grow"
+              <router-view
+                :key="$route.fullPath"
+                :experiment="experiment"
+                ref="childComponent"
               >
-                Experiment not found
-              </v-col>
-            </v-row>
-          </v-alert>
-        </v-col>
-      </v-row>
-    </template>
-  </div>
+              </router-view>
+            </v-col>
+          </v-row>
+        </v-container>
+      </article>
+    </div>
+  </template>
+  <template
+    v-else
+  >
+    <v-row
+      justify="center"
+    >
+      <v-col
+        md="6"
+      >
+        <v-alert
+          type="error"
+          prominent
+          outlined
+          text
+        >
+          <v-row
+            align="center"
+          >
+            <v-col
+              class="grow"
+            >
+              Experiment not found
+            </v-col>
+          </v-row>
+        </v-alert>
+      </v-col>
+    </v-row>
+  </template>
+</div>
 </template>
 
 <script>
 import {mapActions, mapGetters} from "vuex";
-import Steps from "../components/Steps"
-import store from "@/store"
+import Help from "@/components/Help.vue";
+import Steps from "@/components/Steps";
+import store from "@/store";
 
 export default {
   name: "ExperimentSteps",
   components: {
+    Help,
     Steps
   },
   data: () => ({
@@ -181,7 +191,7 @@ export default {
       next();
       return;
     }
-    return store.dispatch("experiment/fetchExperimentById", to.params.experimentId).then(next, next)
+    return store.dispatch("experiment/fetchExperimentById", to.params.experimentId).then(next, next);
   },
   methods: {
     ...mapActions({
@@ -208,7 +218,6 @@ export default {
   grid-template-areas:
     "aside nav"
     "aside article";
-
   > nav {
     position: sticky;
     position: -webkit-sticky;
@@ -219,6 +228,7 @@ export default {
     padding: 30px;
     display: flex;
     justify-content: space-between;
+    align-items: center;
     z-index: 100;
     background: white;
     a {
@@ -236,12 +246,17 @@ export default {
       background: none!important;
       border: none;
       padding: 0!important;
-      color: #069;
+      color: map-get($blue, "primary");
       cursor: pointer;
     }
     .save-button:disabled,
     .save-button[disabled] {
       color: grey;
+    }
+    > .nav-right {
+      display: flex;
+      justify-content: right;
+      max-width: fit-content;
     }
   }
   > aside {

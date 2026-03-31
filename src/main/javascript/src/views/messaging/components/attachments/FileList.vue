@@ -12,6 +12,7 @@
       <v-btn
         v-bind="attrs"
         v-on="on"
+        aria-label="add attachments to message"
         text
       >
         <v-icon>mdi-paperclip</v-icon>

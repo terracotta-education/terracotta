@@ -509,11 +509,11 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
         answerSubmissionDto.setFileName(fileName);
         answerSubmissionDto.setMimeType(file.getContentType());
         answerSubmissionDto.setFile(tempFile);
-        answerSubmissionDto.setFileUri(fileSubmissionLocal.getFilePath());
+        answerSubmissionDto.setFileUri(fileSubmissionLocal.filePath());
 
-        if (fileSubmissionLocal.isCompressed()) {
-            answerSubmissionDto.setEncryptionPhrase(fileSubmissionLocal.getEncryptionPhrase());
-            answerSubmissionDto.setEncryptionMethod(fileSubmissionLocal.getEncryptionMethod());
+        if (fileSubmissionLocal.compressed()) {
+            answerSubmissionDto.setEncryptionPhrase(fileSubmissionLocal.encryptionPhrase());
+            answerSubmissionDto.setEncryptionMethod(fileSubmissionLocal.encryptionMethod());
         }
 
         List<AnswerSubmissionDto> answerSubmissionDtoList = new ArrayList<>();
@@ -570,11 +570,11 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
         answerSubmissionDto.setFileName(fileName);
         answerSubmissionDto.setMimeType(file.getContentType());
         answerSubmissionDto.setFile(tempFile);
-        answerSubmissionDto.setFileUri(fileSubmissionLocal.getFilePath());
+        answerSubmissionDto.setFileUri(fileSubmissionLocal.filePath());
 
-        if (fileSubmissionLocal.isCompressed()) {
-            answerSubmissionDto.setEncryptionPhrase(fileSubmissionLocal.getEncryptionPhrase());
-            answerSubmissionDto.setEncryptionMethod(fileSubmissionLocal.getEncryptionMethod());
+        if (fileSubmissionLocal.compressed()) {
+            answerSubmissionDto.setEncryptionPhrase(fileSubmissionLocal.encryptionPhrase());
+            answerSubmissionDto.setEncryptionMethod(fileSubmissionLocal.encryptionMethod());
         }
 
         List<AnswerSubmissionDto> answerSubmissionDtoList = new ArrayList<>();

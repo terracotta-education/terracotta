@@ -12,6 +12,7 @@ public enum IntegrationLaunchParameter {
     CONDITION_NAME("condition_name"),
     DUE_AT("due_at"),
     EXPERIMENT_ID("experiment_id"),
+    EVENT_JSON_KEY("terracotta_launch_token"),
     LAUNCH_TOKEN("launch_token"),
     REMAINING_ATTEMPTS("remaining_attempts"),
     SUBMISSION_ID("submission_id");

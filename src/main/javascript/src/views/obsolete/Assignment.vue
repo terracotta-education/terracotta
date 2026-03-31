@@ -1,42 +1,42 @@
 <template>
-  <v-app
-    class="app"
-  >
-    <v-main>
-      <v-container>
-        <v-row>
-          <v-col>
-            <v-img
-              class="mx-auto mb-10"
-              src="@/assets/terracotta_logo.svg"
-              alt="Terracotta Logo"
-              max-width="173"
-            />
-            <v-card
-              class="first-party-card mx-auto"
-              max-width="700"
+<v-app
+  class="app"
+>
+  <v-main>
+    <v-container>
+      <v-row>
+        <v-col>
+          <v-img
+            class="mx-auto mb-10"
+            src="@/assets/terracotta_logo.svg"
+            alt="Terracotta Logo"
+            max-width="173"
+          />
+          <v-card
+            class="first-party-card mx-auto"
+            max-width="700"
+          >
+            <v-card-text
+              class="first-party-card__text"
             >
-              <v-card-text
-                class="first-party-card__text"
+              <div
+                class="icon-circle icon-circle-invalid"
               >
-                <div
-                  class="icon-circle icon-circle-invalid"
-                >
-                  <v-icon>
-                    mdi-exclamation
-                  </v-icon>
-                </div>
-                <div>
-                    This assignment was copied when you copied your {{ lmsTitle }} course, but is linked to an inactive Terracotta experiment.
-                    Please click the Terracotta link from within <i>this</i> {{ lmsTitle }} course site and recreate your experiment within Terracotta.
-                </div>
-              </v-card-text>
-            </v-card>
-          </v-col>
-        </v-row>
-      </v-container>
-    </v-main>
-  </v-app>
+                <v-icon>
+                  mdi-exclamation
+                </v-icon>
+              </div>
+              <div>
+                  This assignment was copied when you copied your {{ lmsTitle }} course, but is linked to an inactive Terracotta experiment.
+                  Please click the Terracotta link from within <i>this</i> {{ lmsTitle }} course site and recreate your experiment within Terracotta.
+              </div>
+            </v-card-text>
+          </v-card>
+        </v-col>
+      </v-row>
+    </v-container>
+  </v-main>
+</v-app>
 </template>
 
 <script>
@@ -55,13 +55,13 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-  @import "../../styles/custom";
+@import "@/styles/custom";
+@import "@/styles/variables";
 
-  .app {
-    background-color: rgba(253, 245, 242, 1) !important;
-    padding-top: 80px;
-  }
-  .first-party-card {
+.app {
+  background-color: rgba(253, 245, 242, 1) !important;
+  padding-top: 80px;
+  & .first-party-card {
     padding: 32px;
     display: flex;
     justify-content: space-between;
@@ -80,11 +80,11 @@ export default {
       align-content: center;
       opacity: 1;
       &.icon-circle-invalid {
-        border: 2px solid rgba(229, 21, 62, 1);
+        border: 2px solid map-get($red, "base");
         background-color: rgba(229, 21, 62, .2);
-        color:rgba(229, 21, 62, 1);
+        color: map-get($red, "base");
         > .v-icon {
-          color:rgba(229, 21, 62, 1);
+          color: map-get($red, "base");
         }
       }
     }
@@ -99,4 +99,5 @@ export default {
       flex-direction: row;
     }
   }
+}
 </style>

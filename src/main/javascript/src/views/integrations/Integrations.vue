@@ -1,138 +1,138 @@
 <template>
-  <v-app
-    v-if="preview || isError"
-    class="app"
-  >
-    <v-main>
-      <v-container>
-        <v-row>
-          <v-col>
-            <v-img
-              class="mx-auto mb-10"
-              src="@/assets/terracotta_logo.svg"
-              alt="Terracotta Logo"
-              max-width="173"
-            />
-            <v-card
-              v-if="preview && isSuccess"
-              class="first-party-card mx-auto"
-              max-width="700"
+<v-app
+  v-if="preview || isError"
+  class="app"
+>
+  <v-main>
+    <v-container>
+      <v-row>
+        <v-col>
+          <v-img
+            class="mx-auto mb-10"
+            src="@/assets/terracotta_logo.svg"
+            alt="Terracotta Logo"
+            max-width="173"
+          />
+          <v-card
+            v-if="preview && isSuccess"
+            class="first-party-card mx-auto"
+            max-width="700"
+          >
+            <div
+              class="pt-5"
             >
               <div
-                class="pt-5"
+                class="icon-circle icon-circle-success"
               >
-                <div
-                  class="icon-circle icon-circle-success"
-                >
-                  <v-icon>
-                    mdi-check
-                  </v-icon>
+                <v-icon>
+                  mdi-check
+                </v-icon>
+              </div>
+            </div>
+            <div>
+              <v-card-title>
+                Successfully returned to Terracotta following preview
+              </v-card-title>
+              <v-card-text
+                class="first-party-card__text"
+              >
+                <div>
+                  <b>Preview Launch Token:</b> {{ launchToken }}
                 </div>
-              </div>
-              <div>
-                <v-card-title>
-                  Successfully returned to Terracotta following preview
-                </v-card-title>
-                <v-card-text
-                  class="first-party-card__text"
-                >
-                  <div>
-                    <b>Preview Launch Token:</b> {{ launchToken }}
-                  </div>
-                  <div>
-                    <b>Preview Score Received:</b> {{ score }}
-                  </div>
-                </v-card-text>
-              </div>
-            </v-card>
-            <v-card
-              v-else-if="preview && isInvalidScore"
-              class="first-party-card mx-auto"
-              max-width="700"
+                <div>
+                  <b>Preview Score Received:</b> {{ score }}
+                </div>
+              </v-card-text>
+            </div>
+          </v-card>
+          <v-card
+            v-else-if="preview && isInvalidScore"
+            class="first-party-card mx-auto"
+            max-width="700"
+          >
+            <div
+              class="pt-5"
             >
               <div
-                class="pt-5"
+                class="icon-circle icon-circle-invalid"
+              >
+                <v-icon>
+                  mdi-exclamation-thick
+                </v-icon>
+              </div>
+            </div>
+            <div>
+              <v-card-title>
+                {{ invalidScore.title }}
+              </v-card-title>
+              <v-card-text
+                class="first-party-card__text"
               >
                 <div
-                  class="icon-circle icon-circle-invalid"
-                >
-                  <v-icon>
-                    mdi-exclamation-thick
-                  </v-icon>
+                  v-html="invalidScore.info"
+                  class="mb-8"
+                ></div>
+                <div>
+                  <b>URL received:</b> {{ url }}
                 </div>
-              </div>
-              <div>
-                <v-card-title>
-                  {{ invalidScore.title }}
-                </v-card-title>
-                <v-card-text
-                  class="first-party-card__text"
-                >
-                  <div
-                    v-html="invalidScore.info"
-                    class="mb-8"
-                  ></div>
-                  <div>
-                    <b>URL received:</b> {{ url }}
-                  </div>
-                </v-card-text>
-              </div>
-            </v-card>
-            <v-card
-              v-else
-              class="first-party-card mx-auto"
-              max-width="700"
+              </v-card-text>
+            </div>
+          </v-card>
+          <v-card
+            v-else
+            class="first-party-card mx-auto"
+            max-width="700"
+          >
+            <div
+              class="pt-5"
             >
               <div
-                class="pt-5"
+                class="icon-circle icon-circle-invalid"
+              >
+                <v-icon>
+                  mdi-exclamation-thick
+                </v-icon>
+              </div>
+            </div>
+            <div>
+              <v-card-title>
+                {{ error.title }}
+              </v-card-title>
+              <v-card-text
+                class="first-party-card__text"
               >
                 <div
-                  class="icon-circle icon-circle-invalid"
+                  v-html="error.info[0]"
+                  class="mb-4"
+                ></div>
+                <div
+                  v-if="error.info.length > 1"
                 >
-                  <v-icon>
-                    mdi-exclamation-thick
-                  </v-icon>
-                </div>
-              </div>
-              <div>
-                <v-card-title>
-                  {{ error.title }}
-                </v-card-title>
-                <v-card-text
-                  class="first-party-card__text"
-                >
-                  <div
-                    v-html="error.info[0]"
+                  <v-btn
+                    v-if="moreAttemptsAvailable"
+                    @click="handleReattemptAssignment"
                     class="mb-4"
+                    color="primary"
+                  >
+                    Reattempt assignment
+                  </v-btn>
+                  <div
+                    v-html="error.info[1]"
                   ></div>
-                  <div
-                    v-if="error.info.length > 1"
-                  >
-                    <v-btn
-                      v-if="moreAttemptsAvailable"
-                      class="mb-4"
-                      color="primary"
-                      @click="handleReattemptAssignment"
-                    >
-                      Reattempt assignment
-                    </v-btn>
-                    <div
-                      v-html="error.info[1]"
-                    ></div>
-                  </div>
-                  <div
-                    v-if="preview"
-                  >
-                    <b>URL received:</b> {{ url }}
-                  </div>
-                </v-card-text>
-              </div>
-            </v-card>
-          </v-col>
-        </v-row>
-      </v-container>
-    </v-main>
-  </v-app>
+                </div>
+                <div
+                  v-if="preview"
+                >
+                  <b>URL received:</b> {{ url }}
+                </div>
+              </v-card-text>
+            </div>
+          </v-card>
+        </v-col>
+      </v-row>
+    </v-container>
+  </v-main>
+</v-app>
 </template>
 
 <script>
@@ -331,13 +331,13 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-  @import "../../styles/custom";
+@import "@/styles/custom";
+@import "@/styles/variables.scss";
 
-  .app {
-    background-color: rgba(253, 245, 242, 1) !important;
-    padding-top: 80px;
-  }
-  .first-party-card {
+.app {
+  background-color: rgba(253, 245, 242, 1) !important;
+  padding-top: 80px;
+  & .first-party-card {
     padding: 32px;
     display: flex;
     justify-content: space-between;
@@ -363,11 +363,11 @@ export default {
         }
       }
       &.icon-circle-invalid {
-        border: 2px solid rgba(229, 21, 62, 1);
+        border: 2px solid map-get($red, "base");
         background-color: rgba(229, 21, 62, .2);
-        color:rgba(229, 21, 62, 1);
+        color: map-get($red, "base");
         > .v-icon {
-          color:rgba(229, 21, 62, 1);
+          color: map-get($red, "base");
         }
       }
     }
@@ -380,4 +380,5 @@ export default {
       font-size: 16px;
     }
   }
+}
 </style>

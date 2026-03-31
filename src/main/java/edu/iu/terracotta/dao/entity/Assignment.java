@@ -41,28 +41,23 @@ public class Assignment extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(
-        name = "assignment_id",
-        nullable = false
-    )
     private Long assignmentId;
 
-    @Column private Timestamp studentViewResponsesAfter;
-    @Column private Timestamp studentViewResponsesBefore;
-    @Column private Timestamp studentViewCorrectAnswersAfter;
-    @Column private Timestamp studentViewCorrectAnswersBefore;
-    @Column private Timestamp started;
-    @Column private Float cumulativeScoringInitialPercentage;
-    @Column private String lmsAssignmentId;
-    @Column private String resourceLinkId;
-    @Column private String title;
-    @Column private Integer assignmentOrder;
-    @Column private Integer numOfSubmissions; // if null, no multiple attempts allowed; if zero, then the number of submissions is unlimited
-    @Column private Float hoursBetweenSubmissions;
-    @Column private String metadata; // JSON metadata from the LMS
+    private Timestamp studentViewResponsesAfter;
+    private Timestamp studentViewResponsesBefore;
+    private Timestamp studentViewCorrectAnswersAfter;
+    private Timestamp studentViewCorrectAnswersBefore;
+    private Timestamp started;
+    private Float cumulativeScoringInitialPercentage;
+    private String lmsAssignmentId;
+    private String resourceLinkId;
+    private String title;
+    private Integer assignmentOrder;
+    private Integer numOfSubmissions; // if null, no multiple attempts allowed; if zero, then the number of submissions is unlimited
+    private Float hoursBetweenSubmissions;
+    private String metadata; // JSON metadata from the LMS
     @Transient private Date dueDate;
 
-    @Column
     @Builder.Default
     private Boolean softDeleted = false;
 

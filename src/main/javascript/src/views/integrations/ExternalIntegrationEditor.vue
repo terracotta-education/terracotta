@@ -1,167 +1,168 @@
 <template>
-  <div>
-    <v-row
-      class="integrations-header"
+<div>
+  <v-row
+    class="integrations-header"
+  >
+    <h4>
+      {{ title }}
+    </h4>
+    <div
+      v-html="messages.header.directions"
+      class="mt-3 mb-8"
     >
-      <h4>
-        {{ title }}
-      </h4>
-      <div
-        v-html="messages.header.directions"
-        class="mt-3 mb-8"
-      >
-      </div>
-      <div
-        v-html="messages.header.instructions"
-        class="mb-8"
-      >
-      </div>
-    </v-row>
-    <v-row
-      class="row-sections"
+    </div>
+    <div
+      v-html="messages.header.instructions"
+      class="mb-8"
     >
-      <v-card
-        class="mt-10 section-card focus-section"
+    </div>
+  </v-row>
+  <v-row
+    class="row-sections"
+  >
+    <v-card
+      class="mt-10 section-card focus-section"
+    >
+      <div
+        class="section-circle focus-section-circle"
       >
+        <span>1</span>
+      </div>
+      <v-card-title>
+        {{ messages.section.titles.copy }}
+      </v-card-title>
+      <v-card-text>
         <div
-          class="section-circle focus-section-circle"
+          class="my-8"
         >
-          <span>1</span>
+          <v-textarea
+            v-model="launchUrl"
+            :label="messages.launchUrl.label"
+            :rules="textRules"
+            :error="showIframeValidationError"
+            @blur="validateIframeUrl"
+            class="mb-3"
+            rows="1"
+            hide-details="auto"
+            auto-grow
+            outlined
+            required
+            dense
+          />
+          <div>{{ messages.launchUrl.instructions }}</div>
         </div>
-        <v-card-title>
-          {{ messages.section.titles.copy }}
-        </v-card-title>
-        <v-card-text>
-          <div
-            class="my-8"
+        <div
+          class="mb-8"
+        >
+          <v-text-field
+            v-model="points"
+            :rules="numberRules"
+            label="Maximum points"
+            type="number"
+            step="any"
+            hide-details="auto"
+            class="mb-3"
+            outlined
+            required
+          />
+          <div>{{ messages.points.instructions }}</div>
+        </div>
+        <div
+          v-if="showFeedbackEnabled"
+          class="mb-4"
+        >
+          <v-checkbox
+            v-model="feedbackEnabled"
+            label="Tool allows students to view past submissions"
+          />
+        </div>
+        <div
+          :class="!showIframeValidationError ? 'mb-8' : 'mb-2'"
+        >
+          <v-btn
+            :disabled="!enablePreviewButton"
+            :href="!showIframeValidationError ? previewLaunchUrl : null"
+            :color="!showIframeValidationError ? 'primary' : 'error'"
+            target="_blank"
           >
-            <v-textarea
-              v-model="launchUrl"
-              :label="messages.launchUrl.label"
-              :rules="textRules"
-              :error="showIframeValidationError"
-              @blur="validateIframeUrl"
-              class="mb-3"
-              rows="1"
-              hide-details="auto"
-              auto-grow
-              outlined
-              dense
-              required
-            />
-            <div>{{ messages.launchUrl.instructions }}</div>
-          </div>
-          <div
-            class="mb-8"
+            <v-icon>mdi-eye-outline</v-icon>
+            PREVIEW
+          </v-btn>
+        </div>
+        <div
+          v-if="showIframeValidationError"
+          class="mb-8 error--text"
+        >
+          Error rendering content. Please see
+          <a
+            :href="iframeInvalidInfoUrl"
+            target="_blank"
           >
-            <v-text-field
-              v-model="points"
-              :rules="numberRules"
-              label="Maximum points"
-              type="number"
-              step="any"
-              hide-details="auto"
-              class="mb-3"
-              outlined
-              required
-            />
-            <div>{{ messages.points.instructions }}</div>
-          </div>
+            this link
+          </a>
+          for more information.
+        </div>
+      </v-card-text>
+    </v-card>
+    <v-card
+      :disabled="disableSection2"
+      :class="{'focus-section': section1Complete}"
+      class="mt-10 section-card section-2"
+    >
+      <div
+        :class="{
+          'focus-section-circle': !disableSection2,
+          'inactive-section-circle': disableSection2
+        }"
+        class="section-circle"
+      >
+        <span>2</span>
+      </div>
+      <v-card-title>
+        {{ messages.section.titles.insert }}
+      </v-card-title>
+      <v-card-text>
+        <div
+          class="my-8"
+        >
+          <v-textarea
+            v-model="returnUrl"
+            class="return-url mb-3"
+            rows="2"
+            hide-details="auto"
+            aria-label="redirect URL back to Terracotta"
+            auto-grow
+            readonly
+            dense
+          />
           <div
-            v-if="showFeedbackEnabled"
-            class="mb-4"
-          >
-            <v-checkbox
-              v-model="feedbackEnabled"
-              label="Tool allows students to view past submissions"
-            />
-          </div>
-          <div
-            :class="!showIframeValidationError ? 'mb-8' : 'mb-2'"
+            class="copy-url"
           >
             <v-btn
-              :disabled="!enablePreviewButton"
-              :href="!showIframeValidationError ? previewLaunchUrl : null"
-              :color="!showIframeValidationError ? 'primary' : 'error'"
-              target="_blank"
+              @click="copyReturnUrl"
+              :color="copiedReturnUrl.buttonColor"
             >
-              <v-icon>mdi-eye-outline</v-icon>
-              PREVIEW
+              <v-icon>
+                {{ copiedReturnUrl.icon }}
+              </v-icon>
+              {{ copiedReturnUrl.label }}
             </v-btn>
           </div>
-          <div
-            v-if="showIframeValidationError"
-            class="mb-8 error--text"
-          >
-            Error rendering content. Please see
-            <a
-              :href="iframeInvalidInfoUrl"
-              target="_blank"
-            >
-              this link
-            </a>
-            for more information.
-          </div>
-        </v-card-text>
-      </v-card>
-      <v-card
-        :disabled="disableSection2"
-        :class="{'focus-section': section1Complete}"
-        class="mt-10 section-card"
-      >
-        <div
-          :class="{
-            'focus-section-circle': section1Complete,
-            'inactive-section-circle': !section1Complete
-          }"
-          class="section-circle"
-        >
-          <span>2</span>
         </div>
-        <v-card-title>
-          {{ messages.section.titles.insert }}
-        </v-card-title>
-        <v-card-text>
-          <div
-            class="my-8"
-          >
-            <v-textarea
-              v-model="returnUrl"
-              class="return-url mb-3"
-              rows="2"
-              hide-details="auto"
-              auto-grow
-              readonly
-              dense
-            />
-            <div
-              class="copy-url"
-            >
-              <v-btn
-                @click="copyReturnUrl"
-                :color="copiedReturnUrl.buttonColor"
-              >
-                <v-icon>
-                  {{ copiedReturnUrl.icon }}
-                </v-icon>
-                {{ copiedReturnUrl.label }}
-              </v-btn>
-            </div>
-          </div>
-          <div
-            class="mb-8"
-          >
-            {{ messages.returnUrl.instructions.expects }}
-          </div>
-          <div
-            v-html="messages.returnUrl.instructions.details"
-            class="mb-8"
-          >
-          </div>
-        </v-card-text>
-      </v-card>
-    </v-row>
-  </div>
+        <div
+          class="mb-8"
+        >
+          {{ messages.returnUrl.instructions.expects }}
+        </div>
+        <div
+          v-html="messages.returnUrl.instructions.details"
+          class="mb-8"
+        >
+        </div>
+      </v-card-text>
+    </v-card>
+  </v-row>
+</div>
 </template>
 
 <script>
@@ -338,8 +339,29 @@ export default {
     returnUrl() {
       return this.client.returnUrl || "";
     },
+    launchUrlValid() {
+      if (!this.launchUrl) {
+        return false;
+      }
+
+      const pattern = new RegExp(
+        "^(https?:\\/\\/)?"+ // validate protocol
+        "((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|"+ // validate domain name
+        "((\\d{1,3}\\.){3}\\d{1,3}))"+ // validate OR ip (v4) address
+        "(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*"+ // validate port and path
+        "(\\?[;&a-z\\d%_.~+=-]*)?"+ // validate query string
+        "(\\#[-a-z\\d_]*)?$","i" // validate fragment locator
+      );
+      let isValid = pattern.test(this.launchUrl);
+
+      if (!isValid) {
+        return false;
+      }
+
+      return this.isIframeUrlValid;
+    },
     section1Complete() {
-      if (!this.validateLaunchUrl()) {
+      if (!this.launchUrlValid) {
         // invalid url input
         return false;
       }
@@ -363,7 +385,7 @@ export default {
       }
     },
     enablePreviewButton() {
-      return this.validateLaunchUrl();
+      return this.launchUrlValid;
     },
     previewUrl() {
       return this.integration.previewUrl;
@@ -395,7 +417,7 @@ export default {
     },
     copiedReturnUrl() {
       return {
-        buttonColor: this.showCopied ? "#38adb6" : "primary",
+        buttonColor: this.showCopied ? "#00614c" : "primary",
         icon: this.showCopied ? "mdi-check" :"mdi-content-copy",
         label: this.showCopied ? "COPIED" : "COPY URL"
       }
@@ -425,27 +447,6 @@ export default {
         console.log("error copying return url to clipboard");
       }
     },
-    async validateLaunchUrl() {
-      if (!this.launchUrl) {
-        return false;
-      }
-
-      const pattern = new RegExp(
-        "^(https?:\\/\\/)?"+ // validate protocol
-        "((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|"+ // validate domain name
-        "((\\d{1,3}\\.){3}\\d{1,3}))"+ // validate OR ip (v4) address
-        "(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*"+ // validate port and path
-        "(\\?[;&a-z\\d%_.~+=-]*)?"+ // validate query string
-        "(\\#[-a-z\\d_]*)?$","i" // validate fragment locator
-      );
-      let isValid = pattern.test(this.launchUrl);
-
-      if (!isValid) {
-        return false;
-      }
-
-      return this.isIframeUrlValid;
-    },
     validatePoints() {
       if (this.points === null || (this.points + "").trim() === "") {
         // null or blank
@@ -471,7 +472,7 @@ export default {
       this.$emit("url-validation-in-progress", false);
     },
     async emit() {
-      let urlValid = await this.validateLaunchUrl();
+      let urlValid = await this.launchUrlValid;
       await this.$emit(
           "integration-updated",
           {
@@ -501,7 +502,9 @@ export default {
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
+@import "~@/styles/variables";
+
 .row {
   margin: 0px !important;
 }
@@ -549,9 +552,9 @@ div.row-sections {
       opacity: 1;
     }
     & .focus-section-circle {
-      border: 2px solid rgba(29, 157, 255, 1);
-      color: rgba(29, 157, 255, 1);
-      background: rgba(237, 247, 255, 1);
+      border: 2px solid map-get($blue, "primary");
+      color: map-get($blue, "primary");
+      background: map-get($blue, "lightest");
     }
     & .inactive-section-circle {
       border: 2px solid rgba(224, 224, 224, 1);
@@ -579,7 +582,7 @@ div.row-sections {
       }
       &.v-btn.v-btn--disabled {
         &.v-btn--has-bg {
-          background-color: rgba(0, 119, 210, 1) !important;
+          background-color: map-get($blue, "primary") !important;
           opacity: .2 !important;
           color: white !important;
         }
@@ -603,7 +606,7 @@ div.row-sections {
     }
   }
   & .focus-section {
-    border-color: rgba(29, 157, 255, 1);
+    border-color: map-get($blue, "primary");
   }
   .v-card > :first-child:not(.v-btn):not(.v-chip) {
     border-top-left-radius: 50%;

@@ -39,7 +39,7 @@ public class AnswerMcSubmissionOption extends BaseEntity {
     )
     private long answerMcSubOptionId;
 
-    @Column private int answerOrder;
+    private int answerOrder;
 
     @ManyToOne(optional = false)
     @JoinColumn(

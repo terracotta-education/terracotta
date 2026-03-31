@@ -8,7 +8,6 @@ import edu.iu.terracotta.connectors.generic.dao.entity.BaseEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.api.ApiScope;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
 import edu.iu.terracotta.dao.model.enums.FeatureType;
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -35,12 +34,10 @@ public class Feature extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column
     private Long id;
 
-    @Column private boolean enabled;
+    private boolean enabled;
 
-    @Column
     @Enumerated(EnumType.STRING)
     private FeatureType type;
 

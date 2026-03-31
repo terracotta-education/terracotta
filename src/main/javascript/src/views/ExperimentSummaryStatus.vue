@@ -1,7 +1,12 @@
 <template>
-  <div class="experiment-summary-status">
-    <template
-      v-if="experiment"
+<div
+  class="experiment-summary-status"
+>
+  <template
+    v-if="experiment"
+  >
+    <div
+      class="summary-panels"
     >
       <v-expansion-panels
         v-if="experiment.consent"
@@ -9,6 +14,7 @@
         flat
       >
         <v-expansion-panel
+          @click="panelExpansion"
           class="py-3"
         >
           <v-expansion-panel-header>
@@ -18,7 +24,9 @@
             <v-simple-table
               class="mb-9 v-data-table--no-outline v-data-table--light-header"
             >
-              <template v-slot:default>
+              <template
+                v-slot:default
+              >
                 <thead>
                   <tr>
                     <th
@@ -43,10 +51,10 @@
                   <td>{{ experiment.consent.title }}</td>
                   <td>
                     <span
-                      class="completion-status"
                       :class="{
                         'complete': experiment.consent.answeredConsentCount >= experiment.consent.expectedConsent && experiment.consent.answeredConsentCount > 0
                       }"
+                      class="completion-status"
                     >
                       {{ experiment.consent.answeredConsentCount >= experiment.consent.expectedConsent && experiment.consent.answeredConsentCount > 0 ? "Complete" : "In Progress" }}
                     </span>
@@ -61,7 +69,6 @@
           </v-expansion-panel-content>
         </v-expansion-panel>
       </v-expansion-panels>
-
       <v-expansion-panels
         v-for="(exposure, eIndex) in exposures"
         :key="eIndex"
@@ -69,6 +76,7 @@
         flat
       >
         <v-expansion-panel
+          @click="panelExpansion"
           class="py-3"
         >
           <v-expansion-panel-header>
@@ -112,8 +120,9 @@
                   >
                     <td>
                       <a
-                        class="link-view-assignment"
                         @click="handleViewAssignment(exposure.exposureId, assignment.assignmentId)"
+                        class="link-view-assignment"
+                        tabindex="0"
                       >
                         {{ assignment.title }}
                       </a>
@@ -264,17 +273,19 @@
           </v-expansion-panel-content>
         </v-expansion-panel>
       </v-expansion-panels>
-    </template>
-    <template
-      v-else
-    >
-      no experiment
-    </template>
-  </div>
+    </div>
+  </template>
+  <template
+    v-else
+  >
+    no experiment
+  </template>
+</div>
 </template>
 
 <script>
 import {mapActions, mapGetters, mapMutations} from "vuex";
+import { deleteAttributesFromObservedElement, deleteAttributesFromElement } from "@/helpers/ui-utils.js";
 
 export default {
   name: "ExperimentSummaryStatus",
@@ -286,7 +297,7 @@ export default {
   },
   computed: {
     experimentId() {
-      return parseInt(this.experiment.experimentId)
+      return parseInt(this.experiment.experimentId);
     },
     ...mapGetters({
       assignments: "assignment/assignments",
@@ -341,7 +352,8 @@ export default {
           complete: complete
         })
       }
-      return arr
+
+      return arr;
     }
   },
   methods: {
@@ -410,40 +422,53 @@ export default {
           assignmentId: assignmentId
         }
       });
+    },
+    panelExpansion() {
+      setTimeout(() => {
+        deleteAttributesFromElement(".v-expansion-panel", ["aria-expanded"]);
+      }, 1000);
     }
   },
   async created() {
     // reset assignments to get a clean list
-    await this.resetAssignments()
+    await this.resetAssignments();
     // update assignments on load
-    await this.fetchExposures(this.experimentId)
+    await this.fetchExposures(this.experimentId);
+
     for (const e of this.exposures) {
       // add submissions to assignments request
-      const submissions = true
-      await this.fetchAssignmentsByExposure([this.experimentId, e.exposureId, submissions])
+      const submissions = true;
+      await this.fetchAssignmentsByExposure([this.experimentId, e.exposureId, submissions]);
     }
-    this.fetchOutcomesByExposures([this.experimentId, [...new Set(this.exposures.map(item => item.exposureId))]])
-  }
+
+    this.fetchOutcomesByExposures([this.experimentId, [...new Set(this.exposures.map(item => item.exposureId))]]);
+  },
+  mounted() {
+    deleteAttributesFromObservedElement(".experiment-summary-status", "summary-panels", ".v-expansion-panel", ["aria-expanded"]);
+    setTimeout(() => {
+      deleteAttributesFromElement(".v-expansion-panel", ["aria-expanded"]);
+    }, 1000);
+  },
 }
 </script>
 
 <style lang="scss" scoped>
-  .completion-status {
+.completion-status {
+  &::before {
+    content: "";
+    display: inline-block;
+    background: #FFE0B2;
+    height: 11px;
+    width: 11px;
+    margin-right: 8px;
+    border-radius: 999px;
+  }
+  &.complete {
     &::before {
-      content: "";
-      display: inline-block;
-      background: #FFE0B2;
-      height: 11px;
-      width: 11px;
-      margin-right: 8px;
-      border-radius: 999px;
-    }
-    &.complete {
-      &::before {
-        background: #38ADB6;
-      }
+      background: #38ADB6;
     }
   }
+}
 a.link-view-assignment {
   text-decoration: underline;
 }

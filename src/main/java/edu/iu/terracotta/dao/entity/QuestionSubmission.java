@@ -6,7 +6,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -33,14 +32,10 @@ public class QuestionSubmission extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(
-        name = "question_submission_id",
-        nullable = false
-    )
     private Long questionSubmissionId;
 
-    @Column private Float calculatedPoints;
-    @Column private Float alteredGrade;
+    private Float calculatedPoints;
+    private Float alteredGrade;
 
     @OneToMany(
         mappedBy = "questionSubmission",

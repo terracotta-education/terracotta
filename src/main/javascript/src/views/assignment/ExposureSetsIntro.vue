@@ -1,39 +1,48 @@
 <template>
-  <div>
-    <h1 class="mb-5">
-      Because you have <strong>{{ this.numExposureSets }} exposure sets</strong>,
-      you’ll need to include a minimum of <strong>{{ this.numExposureSets }} assignments</strong> in this experiment,
-      one for each set.
-      <br><br>
-      Let’s create your assignments now.
-    </h1>
+<div>
+  <h1
+    class="mb-5"
+  >
+    Because you have <strong>{{ this.numExposureSets }} exposure sets</strong>,
+    you'll need to include a minimum of <strong>{{ this.numExposureSets }} assignments</strong> in this experiment,
+    one for each set.
+    <br><br>
+    Let's create your assignments now.
+  </h1>
+  <v-btn
+    :to="{
+      name: 'AssignmentYourAssignments',
+      params:{
+        exposureId: this.$route.params.exposureId
+      }
+    }"
+    elevation="0"
+    color="primary"
+  >
+    Continue
+  </v-btn>
 
-    <v-btn
-      elevation="0"
-      color="primary"
-      :to="{
-        name: 'AssignmentYourAssignments',
-        params:{
-          exposureId: this.$route.params.exposureId
-        }
-      }"
-    >
-      Continue
-    </v-btn>
-
-    <v-card
-      class="mt-10 pt-5 px-5 mx-auto blue lighten-5 rounded-lg"
-      outlined
-    >
-      <p><strong>Note:</strong> If you want to include more assignments, you should try to have the same number of assignments in each exposure set for a balanced experiment. Once we've got everything setup, you'll have an opportunity to specify experimental outcomes (such as test performance, attendance, or other data) separately for each of the exposures. </p>
-    </v-card>
-  </div>
+  <v-card
+    class="mt-10 pt-5 px-5 mx-auto blue lighten-5 rounded-lg"
+    outlined
+  >
+    <p>
+      <strong>Note:</strong> If you want to include more assignments, you should try to have the same number of assignments in each exposure set for a balanced experiment.
+      Once we've got everything setup, you'll have an opportunity to specify experimental outcomes (such as test performance, attendance, or other data) separately for each of the exposures.
+    </p>
+  </v-card>
+</div>
 </template>
 
 <script>
 export default {
   name: "AssignmentExposureSetsIntro",
-  props: ['experiment'],
+  props: {
+    experiment: {
+      type: Object,
+      required: true
+    }
+  },
   computed: {
     numExposureSets() {
       return this.$route.params.numberOfExperimentSets;
@@ -41,7 +50,7 @@ export default {
   },
   methods: {
     saveExit() {
-      this.$router.push({name:'Home'})
+      this.$router.push({name:"Home"});
     }
   }
 };

@@ -1,81 +1,81 @@
 <template>
-  <div
-    v-if="isLoaded"
+<div
+  v-if="isLoaded"
+>
+  <v-row>
+    <div
+      class="col-10"
+    >
+      <v-text-field
+        v-model="title"
+        :disabled="readOnly"
+        :hide-details="validationErrors.title === null"
+        :error-messages="validationErrors.title"
+        label="Message container title"
+        outlined
+      />
+    </div>
+  </v-row>
+  <p
+    class="grey--text text--darken-2 pb-0"
   >
-    <v-row>
-      <div
-        class="col-10"
+    This will create an unpublished message container in Canvas. Please note: the message container title is not the same as your message's subject line, which you will create for each treatment.
+  </p>
+  <v-divider />
+  <v-tabs
+    v-model="tab"
+    class="tabs"
+  >
+    <v-tab>Settings</v-tab>
+  </v-tabs>
+  <v-divider />
+  <v-tabs-items
+    v-model="tab"
+  >
+    <v-tab-item
+      class="my-5 px-2"
+    >
+      <h4
+        class="mb-4"
       >
-        <v-text-field
-          v-model="title"
-          :disabled="readOnly"
-          :hide-details="validationErrors.title === null"
-          :error-messages="validationErrors.title"
-          label="Message container title"
-          outlined
-        />
-      </div>
-    </v-row>
-    <p
-      class="grey--text text--darken-2 pb-0"
-    >
-      This will create an unpublished message container in Canvas. Please note: the message container title is not the same as your message's subject line, which you will create for each treatment.
-    </p>
-    <v-divider />
-    <v-tabs
-      v-model="tab"
-      class="tabs"
-    >
-      <v-tab>Settings</v-tab>
-    </v-tabs>
-    <v-divider />
-    <v-tabs-items
-      v-model="tab"
-    >
-      <v-tab-item
-        class="my-5 px-2"
-      >
-        <h4
-          class="mb-4"
-        >
-          Settings at this level -- the container level -- will be applied to all treatments within the container. Settings can also be applied at the treatment level.
-        </h4>
-        <type
-          :type="type"
-          :readOnly="readOnly"
-          :validatedErrors="validationErrors.type"
-          @updated="updateType"
-          label="Send all messages in the container as:"
-        />
-        <to-consented-only
-          :selected="toConsentedOnly"
-          :readOnly="readOnly"
-          :experiment="experiment"
-          @updated="updateToConsentedOnly"
-        />
-        <reply-to
-          v-if="showReplyTo"
-          :replyTos="replyTo"
-          :readOnly="readOnly"
-          @updated="updateReplyTo"
-          ref="replyTo"
-        />
-        <scheduler
-          :sendAt="sendAt"
-          :readOnly="readOnly"
-          :validatedErrors="validationErrors.sendAt"
-          @updated="updateSendAt"
-          label="Decide when you would like the message to be sent."
-        />
-      </v-tab-item>
-    </v-tabs-items>
-  </div>
+        Settings at this level -- the container level -- will be applied to all treatments within the container. Settings can also be applied at the treatment level.
+      </h4>
+      <type
+        :type="type"
+        :readOnly="readOnly"
+        :validatedErrors="validationErrors.type"
+        @updated="updateType"
+        label="Send all messages in the container as:"
+      />
+      <to-consented-only
+        :selected="toConsentedOnly"
+        :readOnly="readOnly"
+        :experiment="experiment"
+        @updated="updateToConsentedOnly"
+      />
+      <reply-to
+        v-if="showReplyTo"
+        :replyTos="replyTo"
+        :readOnly="readOnly"
+        @updated="updateReplyTo"
+        ref="replyTo"
+      />
+      <scheduler
+        :sendAt="sendAt"
+        :readOnly="readOnly"
+        :validatedErrors="validationErrors.sendAt"
+        @updated="updateSendAt"
+        label="Decide when you would like the message to be sent."
+      />
+    </v-tab-item>
+  </v-tabs-items>
+</div>
 </template>
 
 <script>
 import { mapGetters, mapActions } from "vuex";
 import { editableMessageStatuses } from "@/helpers/messaging/status.js";
-import { shrinkContainer, widenContainer, adjustBodyTopPadding } from "@/helpers/ui-utils.js";
+import { shrinkContainer, widenContainer, adjustBodyTopPadding, statusAlert } from "@/helpers/ui-utils.js";
 import { initValidations, validateContainer } from "@/helpers/messaging/validation.js";
 import ReplyTo from "@/views/messaging/components/form/ReplyTo.vue";
 import Scheduler from "@/views/messaging/components/form/Scheduler.vue";
@@ -100,7 +100,8 @@ export default {
     ...mapGetters({
       editMode: "navigation/editMode",
       experiments: "experiment/experiments",
-      allMessageContainers: "messagingMessageContainer/messageContainers"
+      allMessageContainers: "messagingMessageContainer/messageContainers",
+      alertStatuses: "alert/statuses"
     }),
     experiment() {
       return this.experiments.find(e => e.experimentId === this.experimentId);
@@ -287,7 +288,11 @@ export default {
         name: "ExperimentSummary",
         params: {
           experiment_id: this.experimentId,
-          exposure_id: this.exposureId
+          exposure_id: this.exposureId,
+          ...statusAlert(
+             this.alertStatuses.success,
+            "Message container saved successfully."
+          )
         }
       });
     }
